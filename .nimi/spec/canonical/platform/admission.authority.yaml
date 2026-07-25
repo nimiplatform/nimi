@@ -162,7 +162,7 @@ units:
     modality: must
     scope:
       - nimi.spec-admission
-    statement: For the approximately 40 boundary and security checks retained by S2 as future evidence-binding candidates, every domain admission-decision record marks each domain check as bound immediately, deferred until nimicoding M6 coverage, or intentionally unbound with a reason, preventing a repeat of Realm F10 where green status created a false impression of verification while only one of 423 active rules had an evidence chain.
+    statement: Every domain admission-decision record marks each retained boundary and security check as bound, deferred, or intentionally unbound with a reason, so green status never creates a false impression of verification.
     condition: When admission decisions are recorded during each domain migration.
     failure: The domain admission-decision record is incomplete while any retained domain check lacks one of the three routes.
     relations:
@@ -204,9 +204,9 @@ units:
     modality: must
     scope:
       - nimi.spec-admission
-    statement: Evidence serves only as diagnostic output, every run operates without historical evidence as input, and retention keeps the most recent N runs with N defaulting to 3.
+    statement: Evidence serves only as diagnostic output, every run operates without historical evidence as input, and retention keeps a small bounded number of recent runs without any run consuming prior evidence.
     condition: Whenever evidence is produced, consumed, or retained by a run.
-    failure: Reject any historical-evidence input and discard retained runs older than the most recent N.
+    failure: Reject any historical-evidence input and discard retained runs outside the small bounded set.
     relations:
       - type: applies_to
         target: definition.nimi.admission.process-configuration

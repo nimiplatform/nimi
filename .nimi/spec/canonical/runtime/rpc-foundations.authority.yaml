@@ -1222,493 +1222,248 @@ units:
   - id: rule.nimi.runtime.rpc-foundations.r079
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/avatar/kernel/agent-script-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/avatar/kernel/agent-script-contract.md; terms=model_id; classification=unrelated_domain; action=Avatar Live2D package id; not Runtime AI target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r080
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/avatar/kernel/app-shell-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/avatar/kernel/app-shell-contract.md; terms=model_id; classification=unrelated_domain; action=Avatar app shell asset id; not Runtime AI target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r081
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/avatar/kernel/avatar-event-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/avatar/kernel/avatar-event-contract.md; terms=model_id; classification=unrelated_domain; action=Avatar event asset fact; not Runtime AI target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r082
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md; terms=model_id; classification=unrelated_domain; action=Avatar visual acceptance fact; not Runtime AI target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r083
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md; terms=model_id; classification=unrelated_domain; action=Live2D compatibility fact; not Runtime AI target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r084
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/avatar/kernel/live2d-render-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/avatar/kernel/live2d-render-contract.md; terms=model_id; classification=unrelated_domain; action=Live2D `*.model3.json` id; not Runtime AI target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r085
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml; terms=model_id; classification=unrelated_domain; action=Live2D adapter diagnostic fact."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r086
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml; terms=model_id; classification=unrelated_domain; action=Live2D adapter manifest field."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r087
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/canonical/desktop/ai-consumption.authority.yaml
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/canonical/desktop/ai-consumption.authority.yaml; terms=connector_id,goRuntimeLocalModelId,localModelId,model_id,profileId,targetId; classification=allowed_non_identity_fact; action=The canonical Desktop authority names retired fields only in migration and rejection rules, keeps connector_id as remote credential custody, and requires Runtime Target v2 before persistence or execution."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r088
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/canonical/desktop/shell-runtime.authority.yaml
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/canonical/desktop/shell-runtime.authority.yaml; terms=connector_id; classification=allowed_non_identity_fact; action=Managed credential routing only; G3/G12 require remote catalog target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r089
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/canonical/runtime/rpc-foundations.authority.yaml
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml; terms=LOCAL_MODEL,connector_id,goRuntimeLocalModelId,localModelId,model_id,profileId,targetId,target_model_id; classification=allowed_non_identity_fact; action=This canonical authority defines the classification and retirement boundary itself and forbids its listed legacy vocabulary from minting durable identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r090
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/canonical/runtime/security-core.authority.yaml
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/canonical/runtime/security-core.authority.yaml; terms=LOCAL_MODEL,connector_id,goRuntimeLocalModelId,localModelId,model_id,profileId,targetId,target_model_id; classification=allowed_non_identity_fact; action=The canonical security authority uses provider and connector facts only under explicit Runtime Target v2 rejection and remote catalog guards."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r091
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md; terms=profileId; classification=allowed_non_identity_fact; action=AIProfile identity only; G4/G9 reject profile id as local-runtime target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r092
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/platform/kernel/nimi-app-admission-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/platform/kernel/nimi-app-admission-contract.md; terms=profileId; classification=allowed_non_identity_fact; action=AIProfile identity only; G4 rejects profile id in local target refs."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r093
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/platform/kernel/nimi-first-party-integration-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/platform/kernel/nimi-first-party-integration-contract.md; terms=profileId; classification=allowed_non_identity_fact; action=AIProfile apply reference only; G4/G9 require v2 AIConfig refs before execution."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r094
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/platform/kernel/nimi-home-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/platform/kernel/nimi-home-contract.md; terms=profileId; classification=allowed_non_identity_fact; action=AIProfile selection only; G4/G9 guard the AIConfig projection boundary."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r095
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/ai-profile-execution-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/ai-profile-execution-contract.md; terms=connector_id,localModelId,model_id; classification=must_migrate; action=Patch AIProfile execution and memory binding authority to v2 refs."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r096
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/connector-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/connector-contract.md; terms=LOCAL_MODEL,connector_id,model_id; classification=must_migrate; action=Patch connector authority to remote credential custody only."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r097
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md; terms=model_id; classification=allowed_non_identity_fact; action=The model_id occurrence is local asset manifest and audit metadata, while Runtime Target v2 rules reject it as a durable target ref."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r098
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/local-category-capability.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/local-category-capability.md; terms=connector_id,model_id; classification=must_migrate; action=Patch local connector/category identity text to v2 local refs or non-identity facts."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r099
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md; terms=model_id; classification=allowed_non_identity_fact; action=Catalog/route model selector only; G4/G12 reject it as durable local target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r100
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/local-profile-application-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/local-profile-application-contract.md; terms=model_id; classification=must_migrate; action=Patch raw local model routing and profile application text to v2 local refs or resolved non-identity facts."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r101
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/model-catalog-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/model-catalog-contract.md; terms=model_id; classification=must_migrate; action=Patch remote catalog id minting and provider/catalog model id non-identity semantics."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r102
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/model-catalog-local-resolver-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/model-catalog-local-resolver-contract.md; terms=model_id; classification=allowed_non_identity_fact; action=The model_id occurrence is a catalog resolver selector guarded from durable local target identity by the required v2 discriminant."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r103
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/model-service-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/model-service-contract.md; terms=model_id; classification=allowed_non_identity_fact; action=Catalog model identifier only; G3/G11 reject descriptor/model-service id as target ref."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r104
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/nimillm-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/nimillm-contract.md; terms=model_id; classification=must_migrate; action=Patch outbound validation to resolved binding/provider facts."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r105
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/rpc-surface.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/rpc-surface.md; terms=connector_id,model_id,target_model_id; classification=must_migrate; action=Patch admitted AI RPC target inputs to v2 refs or resolved binding."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r106
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/runtime-memory-service-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/runtime-memory-service-contract.md; terms=connector_id,model_id; classification=must_migrate; action=Patch memory embedding durable binding to v2 refs."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r107
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml; terms=connector_id; classification=allowed_non_identity_fact; action=Credential custody table only; G3/G12 require remote catalog target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r108
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/tables/runtime-agent-ai-config.yaml
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/tables/runtime-agent-ai-config.yaml; terms=connector_id; classification=allowed_non_identity_fact; action=connector_id is remote credential custody within a complete v2 cloud binding and cannot mint target identity without remote_model_catalog_id."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r109
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/voice-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/voice-contract.md; terms=model_id,target_model_id; classification=must_migrate; action=Patch voice execution target inputs to v2 refs; keep asset compatibility only as guarded non-identity facts."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r110
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/runtime/kernel/workflow-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/runtime/kernel/workflow-contract.md; terms=connector_id,model_id,target_model_id; classification=must_migrate; action=Patch workflow AI node configs to v2 refs or resolved binding inputs."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r111
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/sdks/kernel/ai-config-surface-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/sdks/kernel/ai-config-surface-contract.md; terms=goRuntimeLocalModelId,localModelId,profileId,targetId; classification=must_migrate; action=Patch SDK core AIConfig authority and validators to v2 refs."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r112
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/sdks/kernel/connector-auth-acquisition-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/sdks/kernel/connector-auth-acquisition-contract.md; terms=profileId; classification=allowed_non_identity_fact; action=OAuth acquisition profile metadata only; G4/G12 reject it as local-runtime target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r113
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Target classification for .nimi/spec/sdks/kernel/runtime-route-contract.md
-    modality: must
-    scope:
-      - runtime.rpc-foundations
-    statement: "Target classification: surface=.nimi/spec/sdks/kernel/runtime-route-contract.md; terms=localModelId; classification=retired_history; action=This file explicitly retires legacy route bindings and `localModelId`; G8/G12 reject them as route target identity."
-    condition: Whenever the bounded Runtime Target v2 vocabulary scan includes this surface.
-    failure: Fail the target-identity gate when the surface, matched terms, classification, or required action and guard no longer match.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
+    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
+    relations: []
   - id: rule.nimi.runtime.rpc-foundations.r114
     kind: rule
     owner: team.runtime

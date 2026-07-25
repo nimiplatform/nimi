@@ -5,7 +5,7 @@ units:
     owner: team.runtime
     lifecycle: active
     title: Runtime agent context composition plane
-    meaning: The Runtime agent context composition plane owns LocalAgent per-turn context compilation, provider-visible request composition, deterministic budgeting, transcript and memory isolation, APML output admission, and bounded public context projections, including the strict AgentTurnContextManifestV1 and its acyclic domain-separated hashes, the typed source compiler with fixed lanes and trust boundaries, transcript, memory, budget, and deterministic truncation semantics, provider composition, media, tool, and APML fail-close boundaries, the bounded LocalAgent context projection families, and conversation-report route identity and capture boundaries, and it applies only to Runtime Agent Chat and other Runtime agent executors that consume a materialized LocalAgent while ordinary non-Agent Nimi Chat systemPrompt authority is unchanged.
+    meaning: The Runtime agent context composition plane owns LocalAgent per-turn context compilation, provider-visible request composition, deterministic budgeting, transcript and memory isolation, APML output admission, and bounded public context projections, including the strict AgentTurnContextManifestV1 and its acyclic domain-separated hashes, the typed source compiler with fixed lanes and trust boundaries, transcript, memory, budget, and deterministic truncation semantics, provider composition, media, tool, and APML fail-close boundaries, the bounded LocalAgent context projection families, and it applies only to Runtime Agent Chat and other Runtime agent executors that consume a materialized LocalAgent while ordinary non-Agent Nimi Chat systemPrompt authority is unchanged.
     relations: []
   - id: definition.nimi.runtime.agent-service.agent-service-plane
     kind: definition
@@ -262,31 +262,17 @@ units:
   - id: rule.nimi.runtime.agent-service.r018
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Conversation report turns bind one Runtime route identity
-    modality: must
-    scope:
-      - runtime.agent-service
-    statement: Runtime is the only executor for a live LocalAgent conversation-report turn, the route resolves through Runtime Agent AI Config and the Runtime model catalog, an app or test runner cannot call a provider or model directly, supply an execution binding, or embed a provider or model constant, one baseline run selects one route and keeps it stable for both LocalAgents and every reported turn, each turn records a complete resolved route identity binding providerId, modelId, and the resolved modelRevision or a stable catalog-derived model fingerprint plus the catalog revision and Runtime route digest available for that call, missing identity fields, an unresolved route, or silent route drift is an objective execution failure, and no evaluator or second route is required to produce the report while model identity never implies semantic quality.
-    condition: Whenever a live conversation-report turn is executed or its route recorded.
-    failure: Fail on missing route identity, unresolved routes, silent drift, and direct provider calls.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.agent-service.context-composition-plane
+    reason: Removed because the conversation-report capture pipeline has zero implementation and is zombie authority.
+    relations: []
   - id: rule.nimi.runtime.agent-service.r019
     kind: rule
     owner: team.runtime
-    lifecycle: active
+    lifecycle: removed
     title: Report capture stays observational and non-authoritative
-    modality: must
-    scope:
-      - runtime.agent-service
-    statement: Runtime retains the product-owned LocalAgent identity, conversation anchor, transcript, memory, relationship, state, and hook lineage, the report pipeline may capture their bounded public projections and the committed user and assistant transcript with exact account, source snapshot, LocalAgent, anchor, turn, surface, and model correlation, it cannot read raw system prompts, private context lanes, credentials, proofs, or other Runtime-private inputs, report capture is observational and cannot create or rewrite a product turn, message, transcript entry, memory item, relationship update, LocalAgent, snapshot, anchor, hook, action, or event, it performs no automatic provider retry, a captured reply, optional annotation, or derived review note never becomes source, snapshot, personality, memory, transcript, future context, or an authoritative semantic verdict, and Realm-offline turns continue from the frozen LocalAgent source snapshot and Runtime-local state.
-    condition: Whenever conversation-report capture reads or records agent state.
-    failure: Reject private reads, product mutation, provider retry, and captured content promoted to truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.agent-service.context-composition-plane
+    reason: Removed because the conversation-report capture pipeline has zero implementation and is zombie authority.
+    relations: []
   - id: rule.nimi.runtime.agent-service.r020
     kind: rule
     owner: team.runtime

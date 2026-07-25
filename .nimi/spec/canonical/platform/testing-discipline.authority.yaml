@@ -199,17 +199,10 @@ units:
   - id: rule.nimi.platform.testing-discipline.r012
     kind: rule
     owner: team.platform
-    lifecycle: active
+    lifecycle: removed
     title: LocalAgent semantics remain human review observations
-    modality: must
-    scope:
-      - platform.testing-discipline
-    statement: Real LocalAgent conversation reports preserve source, world, relationship, knowledge, transcript, and model context and present identity consistency, world understanding, continuity, unknown handling, privacy boundaries, contradiction resistance, tone, style, and relationship effects only as human-review observations.
-    condition: Whenever LocalAgent semantic behavior is evaluated.
-    failure: Reject any report that replaces reviewable observations with an automatic semantic verdict.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.testing-discipline.semantic-review-verdict
+    reason: Removed because the conversation-report pipeline has zero implementation and is zombie authority.
+    relations: []
   - id: rule.nimi.platform.testing-discipline.r013
     kind: rule
     owner: team.platform
