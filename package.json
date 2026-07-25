@@ -330,6 +330,7 @@
     "test": "node scripts/run-workspace-tests.mjs",
     "check:nimicoding-host-hardcut": "node scripts/check-nimicoding-host-hardcut.mjs",
     "test:nimicoding-host-hardcut": "node --test scripts/nimicoding-host-hardcut.test.mjs",
+    "spec:authority:consumers": "nimicoding authority consumers . --spec .nimi/spec/canonical --max-files 20000 --max-refs 50000 --max-bytes 268435456",
     "spec:authority:check": "pnpm exec nimicoding authority check .nimi/spec/canonical --scope-bindings config/authority-scope-bindings.yaml",
     "spec:authority:anchors": "pnpm exec nimicoding authority anchors . --spec .nimi/spec/canonical --scope-bindings config/authority-scope-bindings.yaml --embedded-paths --max-units 5000 --max-anchors 50000 --max-bytes 33554432",
     "nimicoding:sync": "pnpm exec nimicoding sync --check",
