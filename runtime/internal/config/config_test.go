@@ -801,7 +801,7 @@ func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
 
 func readProviderProbeTargetBindingsForTest(t *testing.T) map[string]providerEnvBinding {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", ".nimi", "spec", "runtime", "kernel", "tables", "provider-probe-targets.yaml"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "config", "spec-frozen", "runtime", "tables", "provider-probe-targets.yaml"))
 	if err != nil {
 		t.Fatalf("read provider probe targets: %v", err)
 	}

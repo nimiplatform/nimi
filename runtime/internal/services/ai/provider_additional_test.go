@@ -48,11 +48,16 @@ func TestRouteSelectorResolvesDefaultAliases(t *testing.T) {
 		LocalProviders: map[string]nimillm.ProviderCredentials{
 			"llama": {BaseURL: "http://127.0.0.1:18080/v1"},
 		},
+		// Cloud backends are always built through the DNS-pinning secured path,
+		// so a reserved .example host resolves to nothing and yields no backend.
+		// Loopback keeps this alias-resolution test hermetic and offline-safe
+		// without relaxing the endpoint-security posture.
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"gemini": {BaseURL: "https://gemini.example/v1", APIKey: "gemini-key"},
-			"openai": {BaseURL: "https://openai.example/v1", APIKey: "openai-key"},
+			"gemini": {BaseURL: "http://127.0.0.1:18091/v1", APIKey: "gemini-key"},
+			"openai": {BaseURL: "http://127.0.0.1:18092/v1", APIKey: "openai-key"},
 		},
-		DefaultCloudProvider: "openai",
+		AllowLoopbackEndpoint: true,
+		DefaultCloudProvider:  "openai",
 		ProviderDefaultModels: map[string]string{
 			"gemini": "gemini-2.5-pro",
 			"openai": "gpt-5.2",

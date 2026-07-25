@@ -156,7 +156,7 @@ func TestProfileRuntimeDescriptorRequiresFamilyCompanions(t *testing.T) {
 }
 
 func TestProfileRuntimeImageFamilyCompanionContractFollowsSpec(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", ".nimi", "spec", "runtime", "kernel", "tables", "profile-image-family-companion-slots.yaml"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "config", "spec-frozen", "runtime", "tables", "profile-image-family-companion-slots.yaml"))
 	if err != nil {
 		t.Fatalf("read image family companion spec: %v", err)
 	}

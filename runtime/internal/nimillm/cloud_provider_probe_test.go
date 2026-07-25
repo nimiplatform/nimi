@@ -61,7 +61,7 @@ func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
 }
 
 func TestEmbeddedProviderProbeTargetsAuthorityMatchesSpec(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", ".nimi", "spec", "runtime", "kernel", "tables", "provider-probe-targets.yaml"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "config", "spec-frozen", "runtime", "tables", "provider-probe-targets.yaml"))
 	if err != nil {
 		t.Fatalf("read provider probe target authority: %v", err)
 	}

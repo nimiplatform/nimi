@@ -18,17 +18,10 @@ const run = promisify(execFile);
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TIMEOUT_MS = 300_000;
 
-// Gates excluded from the static sweep, each with the reason it cannot run
-// from a clean checkout without prior build/service/network state.
-const NON_STATIC = new Map([
-  ['check:runtime-targeted', 'runs the Go compliance suite'],
-  ['check:runtime-owner-batch', 'runs the Go compliance suite'],
-  ['check:sdk-consumer-smoke', 'builds and packs the SDK into a temp consumer'],
-  ['check:bundle-size', 'requires a production renderer build'],
-  ['check:runtime-go-coverage', 'runs the Go test suite for coverage thresholds'],
-  ['check:runtime-ai-scenario-coverage', 'runs the Go AI scenario suite'],
+// Environment-blocked gates: their result here would say nothing about the
+// code, because the input they need is absent from a clean local checkout.
+const ENV_BLOCKED = new Map([
   ['check:runtime-govulncheck', 'queries the upstream vulnerability database'],
-  ['check:runtime-goreleaser-snapshot', 'runs a full goreleaser snapshot build'],
   ['check:runtime-release-signing', 'needs release signing material'],
   ['check:secrets', 'needs the detect-secrets Python hook on PATH'],
   ['check:live-smoke-gate', 'needs a live Runtime service'],
@@ -40,13 +33,51 @@ const NON_STATIC = new Map([
   ['check:zhiyu-acceptance', 'launches the Zhiyu Electron acceptance suite'],
 ]);
 
+// Cost-deferred gates: these run fine here and their result is meaningful,
+// they are just slow. Skipping them by default is a scheduling choice, not a
+// statement that they pass -- two CI-enforced reds hid in this tier once, so
+// the summary reports them as unknown and --full runs them.
+const COST_DEFERRED = new Map([
+  ['check:runtime-targeted', 'runs the Go compliance suite'],
+  ['check:runtime-owner-batch', 'runs the Go compliance suite'],
+  ['check:sdk-consumer-smoke', 'builds and packs the SDK into a temp consumer'],
+  ['check:bundle-size', 'requires a production renderer build'],
+  ['check:runtime-go-coverage', 'runs the whole Go service test suite'],
+  ['check:runtime-ai-scenario-coverage', 'runs the Go AI scenario suite'],
+  ['check:runtime-goreleaser-snapshot', 'runs a full goreleaser snapshot build'],
+]);
+
+const full = process.argv.includes('--full');
+
 const scripts = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8')).scripts ?? {};
 const keys = Object.keys(scripts).filter((key) => key.startsWith('check:'));
-const selected = keys.filter((key) => !NON_STATIC.has(key));
+const skipped = (key) => ENV_BLOCKED.has(key) || (!full && COST_DEFERRED.has(key));
+const selected = keys.filter((key) => !skipped(key));
 
 // A red gate that CI enforces is a broken build; a red gate no workflow can
 // reach is an accounting item. Reporting the tier keeps the two from being
 // read as the same thing.
+//
+// Reachability has to follow script bodies as well as package.json commands:
+// check-sdk-release-contracts.mjs fans out to further check keys from inside
+// its own source, so a package.json-only closure reports those as orphans.
+function keysMentionedIn(text) {
+  return [...text.matchAll(/check:[a-z0-9:-]+/g)].map((match) => match[0]);
+}
+
+function scriptBodyText(command) {
+  let text = '';
+  for (const match of command.matchAll(/[\w./-]+\.mjs/g)) {
+    try {
+      text += readFileSync(path.join(repoRoot, match[0]), 'utf8');
+    } catch {
+      // A command may name a file outside the repo or behind a filter; the
+      // package.json text alone still contributes its keys.
+    }
+  }
+  return text;
+}
+
 function ciReachableKeys() {
   const workflowsDir = path.join(repoRoot, '.github/workflows');
   let workflowText = '';
@@ -57,9 +88,10 @@ function ciReachableKeys() {
   for (let grew = true; grew;) {
     grew = false;
     for (const key of [...reachable]) {
-      for (const match of (scripts[key] ?? '').matchAll(/pnpm (check:[a-z0-9:-]+)/g)) {
-        if (!reachable.has(match[1])) {
-          reachable.add(match[1]);
+      const command = scripts[key] ?? '';
+      for (const found of [...keysMentionedIn(command), ...keysMentionedIn(scriptBodyText(command))]) {
+        if (scripts[found] && !reachable.has(found)) {
+          reachable.add(found);
           grew = true;
         }
       }
@@ -88,9 +120,18 @@ for (const key of selected) {
 }
 
 process.stdout.write('\n--- sweep summary ---\n');
-process.stdout.write(`static gates run: ${selected.length} of ${keys.length} check keys\n`);
-for (const [key, reason] of NON_STATIC) {
-  process.stdout.write(`excluded: ${key} (${reason})\n`);
+process.stdout.write(`gates run: ${selected.length} of ${keys.length} check keys\n`);
+for (const [key, reason] of ENV_BLOCKED) {
+  process.stdout.write(`env-blocked: ${key} (${reason})\n`);
+}
+const deferred = [...COST_DEFERRED].filter(([key]) => skipped(key));
+for (const [key, reason] of deferred) {
+  process.stdout.write(`NOT RUN, RESULT UNKNOWN: ${key} (${reason})\n`);
+}
+if (deferred.length > 0) {
+  process.stdout.write(`\n${deferred.length} cost-deferred gate(s) were not run. `);
+  process.stdout.write('They are runnable here and their reds are real; pass --full to include them. ');
+  process.stdout.write('Do not read this sweep as full coverage while any remain unrun.\n');
 }
 for (const { key, detail } of failedToStart) {
   process.stdout.write(`timeout: ${key} - ${detail}\n`);
