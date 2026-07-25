@@ -8,6 +8,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { requireActiveUnits } from './lib/authority-units.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const THROTTLED_EMIT = 'apps/avatar/src/shell/renderer/app-shell/throttled-emit.ts';
 const EMBODIMENT_STAGE = 'apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.tsx';
@@ -82,17 +84,16 @@ requireExcludes(EMBODIMENT_STAGE, [
   'createThrottledEmit<AvatarVoice',
 ]);
 
-requireIncludes(SMOOTHING_CONTRACT, [
-  'id: definition.nimi.avatar.embodiment.renderer-smoothing',
-  'coalesces setSignal writes',
-  'accumulates addSignal writes',
-  'id: rule.nimi.avatar.embodiment.r015',
-  'AV-PROJ-SMOOTH-002 signal-only smoothing',
-  'flushes before triggerMotion, stopMotion, setExpression, clearExpression, setPose, clearPose, wait, getSurfaceBounds, or runDefaultActivity',
-  'id: rule.nimi.avatar.embodiment.r016',
-  'AV-PROJ-SMOOTH-003 no cue authority',
-  'Runtime ordering, activity, expression, motion, speech, lipsync, provenance, readiness, or generated-motion truth',
-]);
+// Authority side: the smoothing definition and its two rules must exist and be
+// active. Matching their sentences here made a reworded statement a gate
+// failure and a deleted unit invisible.
+for (const failure of requireActiveUnits('avatar-projection-no-cue-semantics', [
+  'definition.nimi.avatar.embodiment.renderer-smoothing',
+  'rule.nimi.avatar.embodiment.r015',
+  'rule.nimi.avatar.embodiment.r016',
+])) {
+  fail(failure);
+}
 
 requireIncludes(PROJECTION_SMOOTHING, [
   'PROJECTION_SIGNAL_SMOOTHING_MAX_PENDING_SIGNALS',

@@ -17,12 +17,6 @@ const capabilityVocabularyPath = path.join(
   'config',
   'runtime-capability-vocabulary-mapping.yaml',
 );
-// Model-catalog kernel prose migrated to the canonical container
-// (.nimi/spec/runtime/model-catalog.authority.yaml); the retained
-// non-authoritative prose lives in the rationale document below.
-const modelCatalogContractPaths = [
-  path.join(repoRoot, 'docs', 'authority', 'runtime-model-catalog-rationale.md'),
-];
 
 const historicalLegacyCapabilityTokens = [
   'video_generation',
@@ -141,36 +135,6 @@ function checkGoldFixtureFile(absPath, vocabulary) {
   checkCapabilityList(relPath, 'capability', normalizeStringArray([doc?.capability]), vocabulary);
 }
 
-function checkDocPhrases(absPath, bannedPatterns, requiredTokens) {
-  const relPath = path.relative(repoRoot, absPath);
-  const content = readText(absPath);
-  for (const pattern of bannedPatterns) {
-    if (pattern.regex.test(content)) {
-      fail(`${relPath} still contains legacy normative phrase: ${pattern.label}`);
-    }
-  }
-  for (const token of requiredTokens) {
-    if (!content.includes(`\`${token}\``)) {
-      fail(`${relPath} must mention canonical capability token ${token}`);
-    }
-  }
-}
-
-function checkCombinedDocPhrases(absPaths, bannedPatterns, requiredTokens) {
-  const label = absPaths.map((absPath) => path.relative(repoRoot, absPath)).join(', ');
-  const content = absPaths.map((absPath) => readText(absPath)).join('\n');
-  for (const pattern of bannedPatterns) {
-    if (pattern.regex.test(content)) {
-      fail(`${label} still contains legacy normative phrase: ${pattern.label}`);
-    }
-  }
-  for (const token of requiredTokens) {
-    if (!content.includes(`\`${token}\``)) {
-      fail(`${label} must mention canonical capability token ${token}`);
-    }
-  }
-}
-
 function main() {
   const vocabulary = loadCapabilityVocabulary();
   const sourceProviders = listProviderSourceDocs(sourceDir);
@@ -187,25 +151,14 @@ function main() {
   snapshotFiles.forEach((snapshotFile) => checkSnapshotFile(snapshotFile, vocabulary));
   goldFixtureFiles.forEach((fixtureFile) => checkGoldFixtureFile(fixtureFile, vocabulary));
 
-  checkDocPhrases(
-    path.join(repoRoot, 'runtime', 'catalog', 'source', 'README.md'),
-    [
-      { label: 'When a model declares `tts`', regex: /When a model declares `tts`/ },
-      { label: 'When a model declares `video_generation`', regex: /When a model declares `video_generation`/ },
-      { label: '`tts` capability models', regex: /`tts` capability models/ },
-      { label: '`video_generation` capability models', regex: /`video_generation` capability models/ },
-    ],
-    vocabulary.canonicalTokens,
-  );
-  checkCombinedDocPhrases(
-    modelCatalogContractPaths,
-    [
-      { label: 'when capability includes `tts`', regex: /when capability includes `tts`/ },
-      { label: 'when capability includes `video_generation`', regex: /when capability includes `video_generation`/ },
-      { label: '对于仅提供视频能力（不含 `tts`', regex: /对于仅提供视频能力（不含 `tts`/ },
-    ],
-    vocabulary.canonicalTokens,
-  );
+  // The retired prose checks lived here: banned legacy phrasings and "the doc
+  // must mention these tokens", read out of runtime/catalog/source/README.md
+  // and the model-catalog rationale archive. Neither was a constraint over
+  // data. The closed vocabulary is now tied to authority structurally --
+  // authority closed-sets pairs rule.nimi.runtime.model-catalog.r011 against
+  // this file's canonical_tokens sequence with zero delta in both directions
+  // -- and every catalog source, snapshot and gold fixture above is checked
+  // against that vocabulary directly.
 
   if (failed) {
     process.exit(1);

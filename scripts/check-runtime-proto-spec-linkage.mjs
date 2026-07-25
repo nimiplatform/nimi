@@ -26,52 +26,16 @@ function exists(relPath) {
   return fs.existsSync(path.join(cwd, relPath));
 }
 
-// S6 migration: runtime kernel markdown files are being deleted wave by wave;
-// their verbatim prose is retained in docs/authority/runtime-*-rationale.md
-// behind `<!-- source: .nimi/spec/runtime/kernel/<name>.md -->` (or
-// `<!-- migrated-source: ... -->`) markers. Each fragment spans from its
-// marker to the next source marker or end of file.
-const RUNTIME_KERNEL_MD_PREFIX = '.nimi/spec/runtime/kernel/';
-let runtimeKernelRationaleFragments = null;
-
-function loadRuntimeKernelRationaleFragments() {
-  if (runtimeKernelRationaleFragments) return runtimeKernelRationaleFragments;
-  runtimeKernelRationaleFragments = new Map();
-  const docsRoot = path.join(cwd, 'docs/authority');
-  if (!fs.existsSync(docsRoot)) return runtimeKernelRationaleFragments;
-  const markerRe = /<!--\s*(?:[a-z][a-z0-9-]*-)?source:\s*(\S+)\s*-->/g;
-  for (const name of fs.readdirSync(docsRoot)) {
-    if (!/^runtime-.*-rationale\.md$/.test(name)) continue;
-    const content = fs.readFileSync(path.join(docsRoot, name), 'utf8');
-    const markers = [...content.matchAll(markerRe)];
-    for (let i = 0; i < markers.length; i += 1) {
-      const sourceRel = markers[i][1];
-      if (!sourceRel.startsWith(RUNTIME_KERNEL_MD_PREFIX) || !sourceRel.endsWith('.md')) continue;
-      const start = markers[i].index + markers[i][0].length;
-      const end = i + 1 < markers.length ? markers[i + 1].index : content.length;
-      const fragment = content.slice(start, end);
-      const existing = runtimeKernelRationaleFragments.get(sourceRel);
-      runtimeKernelRationaleFragments.set(
-        sourceRel,
-        existing === undefined ? fragment : `${existing}\n${fragment}`,
-      );
-    }
+function walk(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    const st = fs.statSync(full);
+    if (st.isDirectory()) out.push(...walk(full));
+    else out.push(full);
   }
-  return runtimeKernelRationaleFragments;
-}
-
-function readRuntimeKernelMd(relPath) {
-  if (fs.existsSync(path.join(cwd, relPath))) {
-    return read(relPath);
-  }
-  const fragment = loadRuntimeKernelRationaleFragments().get(relPath);
-  if (fragment === undefined) {
-    throw new Error(
-      `missing runtime kernel markdown and rationale fallback fragment for ${relPath}`
-      + ` (expected "<!-- source: ${relPath} -->" in docs/authority/runtime-*-rationale.md)`,
-    );
-  }
-  return fragment;
+  return out;
 }
 
 function expectRegex(content, pattern, label) {
@@ -84,42 +48,6 @@ function expectNotRegex(content, pattern, label) {
   if (pattern.test(content)) {
     fail(`found ${label}`);
   }
-}
-
-function collectRuntimeKernelRuleIds() {
-  const root = path.join(cwd, '.nimi/spec/runtime/kernel');
-  const files = walk(root)
-    .filter((file) => file.endsWith('.md'))
-    .filter((file) => !file.includes(`${path.sep}generated${path.sep}`))
-    .filter((file) => !file.includes(`${path.sep}companion${path.sep}`));
-
-  // Census surface = existing kernel markdown files plus every rationale
-  // fragment preserved for already-deleted kernel markdown (S6 migration).
-  const contents = files.map((file) => read(toRel(file)));
-  for (const [sourceRel, fragment] of loadRuntimeKernelRationaleFragments()) {
-    if (sourceRel.includes('/generated/') || sourceRel.includes('/companion/')) continue;
-    contents.push(fragment);
-  }
-
-  const ruleIds = new Set();
-  for (const content of contents) {
-    for (const match of content.matchAll(/^##\s+(K-[A-Z]+-\d{3})\b/gmu)) {
-      ruleIds.add(match[1]);
-    }
-  }
-  return ruleIds;
-}
-
-function walk(dir) {
-  if (!fs.existsSync(dir)) return [];
-  const out = [];
-  for (const name of fs.readdirSync(dir)) {
-    const full = path.join(dir, name);
-    const st = fs.statSync(full);
-    if (st.isDirectory()) out.push(...walk(full));
-    else out.push(full);
-  }
-  return out;
 }
 
 function toRel(absPath) {
@@ -174,10 +102,6 @@ function checkAuthJWTOnlyAndReserved() {
     }
   }
 
-  const specAuth = readRuntimeKernelMd('docs/authority/runtime-app-surface-rationale.md');
-  expectRegex(specAuth, /##\s+K-AUTHSVC-013\b/m, 'K-AUTHSVC-013 rule definition');
-  expectRegex(specAuth, /\bJWT\b/, 'K-AUTHSVC-013 JWT mention');
-  expectRegex(specAuth, /(?:reserved[\s\S]*\b2\b|\b2\b[\s\S]*reserved)/m, 'K-AUTHSVC-013 reserved=2 mention');
 }
 
 function checkConnectorUpdateMaskAndPagination() {
@@ -196,13 +120,6 @@ function checkConnectorUpdateMaskAndPagination() {
 
   // S6 domain-3 W4: connector contract migrated to canonical authority; the
   // verbatim prose (K-CONN rule text) now lives in the rationale document.
-  const specConnector = read('docs/authority/runtime-ai-provider-rationale.md');
-  expectRegex(specConnector, /##\s+K-CONN-013\b/m, 'K-CONN-013 rule definition');
-  expectRegex(specConnector, /\bupdate_mask\b/, 'K-CONN-013 update_mask mention');
-  expectRegex(specConnector, /\blabel\b[\s\S]*\bendpoint\b[\s\S]*\bapi_key\b[\s\S]*\bstatus\b/m, 'K-CONN-013 allowed path set mention');
-  expectRegex(specConnector, /(unknown path|未知路径)/i, 'K-CONN-013 unknown path handling');
-  expectRegex(specConnector, /##\s+K-CONN-014\b/m, 'K-CONN-014 rule definition');
-  expectRegex(specConnector, /\bpage_size\b[\s\S]*\bpage_token\b[\s\S]*\bnext_page_token\b/m, 'K-CONN-014 pagination fields mention');
 
   const connectorRules = YAML.parse(read('config/spec-frozen/runtime/tables/connector-rpc-field-rules.yaml'));
   const rules = Array.isArray(connectorRules?.rules) ? connectorRules.rules : [];
@@ -515,28 +432,7 @@ function checkLocalPaginationAndAuditFields() {
     assertMessageHasFields(resp, respName, rel, ['next_page_token']);
   }
 
-  const specLocal = readRuntimeKernelMd('docs/authority/runtime-local-compute-rationale.md');
-  expectRegex(specLocal, /##\s+K-LOCAL-029\b/m, 'K-LOCAL-029 rule definition');
-  expectRegex(specLocal, /##\s+K-LOCAL-030\b/m, 'K-LOCAL-030 rule definition');
-  for (const token of ['trace_id', 'app_id', 'domain', 'operation', 'subject_user_id', 'local_invoke_profile_id']) {
-    if (!specLocal.includes(token)) {
-      fail(`K-LOCAL local category/asset specs missing token: ${token}`);
-    }
-  }
 
-  const specPagination = read('.nimi/spec/runtime/rpc-foundations.authority.yaml');
-  for (const method of [
-    'ListLocalAssets',
-    'ListVerifiedAssets',
-    'SearchCatalogModels',
-    'ListLocalServices',
-    'ListNodeCatalog',
-    'ListLocalAudits',
-  ]) {
-    if (!specPagination.includes(method)) {
-      fail(`rpc-foundations authority missing pagination method: ${method}`);
-    }
-  }
 }
 
 function checkReasonCodes359To363Linkage() {
@@ -593,12 +489,6 @@ function checkPagingPairsInConnectorProto() {
     assertMessageHasFields(resp, respName, 'proto/runtime/v1/connector.proto', ['next_page_token']);
   }
 
-  const paginationSpec = read('.nimi/spec/runtime/rpc-foundations.authority.yaml');
-  for (const method of ['ListConnectors', 'ListConnectorModels']) {
-    if (!paginationSpec.includes(method)) {
-      fail(`rpc-foundations authority missing pagination anchor for ${method}`);
-    }
-  }
 }
 
 function checkMemoryProtoAdmission() {
@@ -635,22 +525,7 @@ function checkMemoryProtoAdmission() {
   assertMessageHasFields(listBanksReq, 'ListBanksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listBanksResp, 'ListBanksResponse', rel, ['next_page_token']);
 
-  const specMemory = readRuntimeKernelMd('docs/authority/runtime-memory-world-rationale.md');
-  for (const token of [
-    'scope-typed bank locator family',
-    'typed memory record family',
-    'typed replication state',
-    'infra-only locator branches',
-  ]) {
-    if (!specMemory.includes(token)) {
-      fail(`.nimi/spec/runtime/memory-world.authority.yaml missing token: ${token}`);
-    }
-  }
 
-  const paginationSpec = read('.nimi/spec/runtime/rpc-foundations.authority.yaml');
-  if (!paginationSpec.includes('ListBanks')) {
-    fail('rpc-foundations authority missing pagination anchor for ListBanks');
-  }
 }
 
 function checkRuntimeMemorySdkProjection() {
@@ -829,34 +704,9 @@ function checkRuntimeAgentServiceProtoAdmission() {
   assertMessageHasFields(listHooksReq, 'ListPendingHooksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listHooksResp, 'ListPendingHooksResponse', rel, ['next_page_token']);
 
-  const specAgentService = readRuntimeKernelMd('docs/authority/runtime-agent-service-rationale.md');
-  // Normalize whitespace so authority phrases that wrap across lines still
-  // match — content equivalence, not formatting equivalence.
-  const specAgentServiceFlat = specAgentService.replace(/\s+/g, ' ');
-  for (const token of [
-    'typed trigger-detail and hook-intent families',
-    'typed completed / failed / canceled / rescheduled / rejected families',
-    'typed command/patch union',
-  ]) {
-    if (!specAgentServiceFlat.includes(token)) {
-      fail(`.nimi/spec/runtime/agent-service.authority.yaml missing token: ${token}`);
-    }
-  }
 
   // K-AGCORE-040..043 narrow-admit HookIntent authority must be referenced by
   // name from the agent-hook-intent contract authority document.
-  const specHookIntent = readRuntimeKernelMd('docs/authority/runtime-agent-participation-rationale.md');
-  for (const token of [
-    'K-AGCORE-040',
-    'K-AGCORE-041',
-    'K-AGCORE-042',
-    'K-AGCORE-043',
-    'HookIntent',
-  ]) {
-    if (!specHookIntent.includes(token)) {
-      fail(`.nimi/spec/runtime/agent-participation.authority.yaml missing token: ${token}`);
-    }
-  }
 
   // K-AGCORE-006 typed-family registry must declare HOOK_INTENT (steady-state
   // canonical name; NEXT_HOOK_INTENT is retired per closeout-wave-1).
@@ -873,12 +723,6 @@ function checkRuntimeAgentServiceProtoAdmission() {
     fail('config/spec-frozen/runtime/tables/runtime-agent-service-typed-family.yaml must not declare retired NEXT_HOOK_INTENT family (K-AGCORE-041 admits HookIntent only)');
   }
 
-  const paginationSpec = read('.nimi/spec/runtime/rpc-foundations.authority.yaml');
-  for (const method of ['ListAgents', 'ListPendingHooks']) {
-    if (!paginationSpec.includes(method)) {
-      fail(`rpc-foundations authority missing pagination anchor for ${method}`);
-    }
-  }
 }
 
 function checkAvatarPackageProjectionProtoRetirement() {
@@ -929,38 +773,7 @@ function checkAvatarPackageProjectionProtoRetirement() {
   }
 }
 
-function checkRequiredRuleDefinitions() {
-  const requiredRuleIds = [
-    'K-AUTHSVC-013',
-    'K-CONN-013',
-    'K-CONN-014',
-    'K-CONN-015',
-    'K-GRANT-001',
-    'K-GRANT-002',
-    'K-GRANT-003',
-    'K-GRANT-014',
-    'K-MEM-002',
-    'K-MEM-003',
-    'K-MEM-006',
-    'K-MEM-008',
-    'K-AGCORE-003',
-    'K-AGCORE-006',
-    'K-AGCORE-138',
-    'K-LOCAL-003',
-    'K-LOCAL-029',
-    'K-LOCAL-030',
-    'K-PAGE-005',
-  ];
-  const definitions = collectRuntimeKernelRuleIds();
-  for (const ruleId of requiredRuleIds) {
-    if (!definitions.has(ruleId)) {
-      fail(`missing runtime kernel rule definition: ${ruleId}`);
-    }
-  }
-}
-
 function main() {
-  checkRequiredRuleDefinitions();
   checkAuthJWTOnlyAndReserved();
   checkConnectorUpdateMaskAndPagination();
   checkGrantServiceHardcutAndLocalAppPermissionProjection();

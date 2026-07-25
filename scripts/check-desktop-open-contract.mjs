@@ -10,6 +10,7 @@ import {
   rel,
   requireText,
 } from './lib/desktop-open-checks.mjs';
+import { requireActiveUnits } from './lib/authority-units.mjs';
 
 const failures = [];
 
@@ -262,13 +263,14 @@ if (/console\.(?:log|error|warn).*token/u.test(electronHost)) {
   failures.push('Electron Desktop Open host must not log descriptor token material');
 }
 
+// The authority side is unit existence, not sentence presence: the two rules
+// this contract rests on must be present and active.
+failures.push(...requireActiveUnits('desktop-open-contract', [
+  'rule.nimi.platform.core-protocol.p-dopen-007a',
+  'rule.nimi.platform.core-protocol.p-dopen-table-source-hosts',
+]));
+
 for (const [relPath, needles] of [
-  ['.nimi/spec/platform/core-protocol.authority.yaml', [
-    'id: rule.nimi.platform.core-protocol.p-dopen-007a',
-    'injects desktop-electron-local-app-host as sourceHost without application selection',
-    'id: rule.nimi.platform.core-protocol.p-dopen-table-source-hosts',
-    'Desktop Open sourceHost is exactly electron-standard-shell, tauri-standard-shell, desktop-electron-local-app-host, or dev-fixture',
-  ]],
   ['config/platform-desktop-open-intents.yaml', ['desktop-electron-local-app-host']],
   ['sdks/typescript/core/app/desktop-open.ts', ['desktop-electron-local-app-host']],
   ['apps/desktop/src-tauri/src/desktop_open_intent_parser.rs', ['desktop-electron-local-app-host']],
@@ -339,16 +341,11 @@ for (const vector of goldenVectors.accepted ?? []) {
   }
 }
 
-const ownerContracts = [
-  '.nimi/spec/desktop/shell-ui.authority.yaml',
-  '.nimi/spec/desktop/product-surfaces.authority.yaml',
-  '.nimi/spec/desktop/bridge-ipc.authority.yaml',
-].map((file) => read(file)).join('\n');
-for (const phrase of ['Settings', 'Agents', 'Apps', 'Runtime Config', 'Explore']) {
-  if (!ownerContracts.includes(phrase)) {
-    failures.push(`Desktop owner contracts missing anchor phrase ${phrase}`);
-  }
-}
+// The owner-contract anchor-phrase scan is retired. It asserted that the words
+// Settings, Agents, Apps, Runtime Config and Explore appear somewhere in three
+// desktop containers, which no rewording could keep true and no deletion could
+// make false in any useful way. The surface names themselves are checked
+// against the target catalogs above.
 
 failWith('Desktop Open contract gate failed.', failures);
 pass('desktop open contract gate passed');

@@ -11,6 +11,10 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import YAML from 'yaml';
+
+import { requireActiveUnits } from './lib/authority-units.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const FILES = {
@@ -57,6 +61,22 @@ function read(relPath) {
   return readFileSync(path.join(ROOT, relPath), 'utf8');
 }
 
+function parseYaml(relPath) {
+  return YAML.parse(read(relPath));
+}
+
+// The dispositions live one level down in the table; find the exact key
+// wherever it sits rather than assuming one shape.
+function findBoundaryDisposition(node, key) {
+  if (node === null || typeof node !== 'object') return undefined;
+  if (!Array.isArray(node) && Object.hasOwn(node, key)) return node[key];
+  for (const value of Array.isArray(node) ? node : Object.values(node)) {
+    const found = findBoundaryDisposition(value, key);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
 function requireIncludes(relPath, needles) {
   const text = read(relPath);
   for (const needle of needles) {
@@ -93,52 +113,40 @@ function walk(dirRel) {
   return out;
 }
 
-requireIncludes(FILES.avatarContract, [
-  'id: rule.nimi.runtime.agent-participation.r148',
-  'External entry is typed render-only projection',
-  'direct_api means Runtime-admitted direct projection rather than direct app write authority',
-  'Avatar never turns the projection into memory or cognition writes',
-  'id: rule.nimi.runtime.agent-participation.r149',
-  'Avatar exposes or owns an Avatar-local HTTP, WebSocket, browser-reachable, localhost state, or equivalent driver endpoint',
-  'local-driver token, rate-limit, consent, credential-custody, provider-routing, or protocol-adapter authority',
-  'render the typed degraded or refusal projection',
-]);
-
-requireIncludes(FILES.avatarIndex, ['[avatar-external-entry-consumer-contract]']);
-
-requireIncludes(FILES.runtimeParticipationPolicy, [
+// Authority side: the units this boundary rests on must exist and be active.
+// The sentences that used to be matched here were prose over authority text --
+// the "[avatar-external-entry-consumer-contract]" marker was a title prefix of
+// r148 and r149, so unit existence covers it exactly.
+for (const failure of requireActiveUnits('avatar-external-driver-runtime-boundary', [
+  'rule.nimi.runtime.agent-participation.r148',
+  'rule.nimi.runtime.agent-participation.r149',
+  'rule.nimi.runtime.agent-participation.r158',
   'definition.nimi.runtime.agent-participation.external-entry-plane',
-  'Runtime-admitted typed presentation projection',
-  'required gateway, firewall when applicable, credential-custody, consent, and audit verdict references',
-]);
+  'rule.nimi.avatar.embodiment.r010',
+])) {
+  fail(failure);
+}
 
-requireIncludes(FILES.externalBoundaryTable, [
-  'app_desktop_avatar_mod_direct_protocol_client: forbidden',
-  'external_principal_memory_writeback: forbidden',
-  'external_principal_cognition_writeback: forbidden',
-  'external_principal_canonical_chat_writeback: forbidden',
-  'external_principal_realm_group_commit: forbidden',
-  'external_principal_product_domain_commit: forbidden',
-  'missing_verdict_policy: fail_closed',
-  'direct_mcp_client_outside_runtime_delegated_adapter: forbidden',
-  'direct_a2a_client_outside_future_admitted_runtime_adapter: forbidden',
-]);
+// The boundary table is YAML, so it is parsed and its dispositions compared as
+// values instead of matched as "key: value" text.
+const externalBoundaries = parseYaml(FILES.externalBoundaryTable);
+for (const [key, expected] of [
+  ['app_desktop_avatar_mod_direct_protocol_client', 'forbidden'],
+  ['external_principal_memory_writeback', 'forbidden'],
+  ['external_principal_cognition_writeback', 'forbidden'],
+  ['external_principal_canonical_chat_writeback', 'forbidden'],
+  ['external_principal_realm_group_commit', 'forbidden'],
+  ['external_principal_product_domain_commit', 'forbidden'],
+  ['missing_verdict_policy', 'fail_closed'],
+  ['direct_mcp_client_outside_runtime_delegated_adapter', 'forbidden'],
+  ['direct_a2a_client_outside_future_admitted_runtime_adapter', 'forbidden'],
+]) {
+  const actual = findBoundaryDisposition(externalBoundaries, key);
+  if (actual !== expected) {
+    fail(`${FILES.externalBoundaryTable} ${key} must be ${expected}, found ${actual ?? 'nothing'}`);
+  }
+}
 
-requireIncludes(FILES.runtimePresentation, [
-  'detail.source records provenance such as apml_output or direct_api',
-]);
-
-requireIncludes(FILES.avatarEvent, [
-  'id: rule.nimi.runtime.agent-participation.r158',
-  'an apml_output source identifies validated Runtime APML projection',
-  'a direct_api source identifies a Runtime-admitted direct projection rather than an Avatar write',
-]);
-requireIncludes(FILES.agentScript, ['Avatar-local, Desktop, shell, backend, provider, mock, or fixture events never become, mirror, or imply runtime.agent truth']);
-requireIncludes(FILES.avatarProjection, [
-  'id: rule.nimi.avatar.embodiment.r010',
-  'Embodiment projection emits only motion, expression, pose, lookat, speak, parameter_delta, and surface_bounds cues',
-  'Reject an unknown cue, semantic writeback, fabricated voice or lipsync state',
-]);
 requireIncludes(FILES.driverTypes, ["export type ActivitySource = 'apml_output' | 'direct_api' | 'mock';"]);
 requireIncludes(FILES.sdkDriver, ['requireRuntimeProjectionSource']);
 requireIncludes(FILES.sdkDriverHelpers, ["value === 'apml_output' || value === 'direct_api'"]);

@@ -9,6 +9,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { requireActiveUnits } from './lib/authority-units.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const FILES = {
@@ -51,23 +53,18 @@ function requireExcludes(relPath, needles) {
   return text;
 }
 
-requireIncludes(FILES.runtimePresentation, [
-  'id: rule.nimi.runtime.agent-participation.r038',
-  'detail.source records provenance such as apml_output or direct_api',
-  'id: rule.nimi.runtime.agent-participation.r158',
-  'an apml_output source identifies validated Runtime APML projection',
-  'a direct_api source identifies a Runtime-admitted direct projection rather than an Avatar write',
-]);
-requireExcludes(FILES.runtimePresentation, ['a runtime_projection source identifies']);
-
-requireIncludes(FILES.avatarEvent, [
-  'id: rule.nimi.avatar.embodiment.r010',
-  'Embodiment projection emits only motion, expression, pose, lookat, speak, parameter_delta, and surface_bounds cues',
-]);
-
-requireIncludes(FILES.agentScript, [
-  'Avatar-local, Desktop, shell, backend, provider, mock, or fixture events never become, mirror, or imply runtime.agent truth',
-]);
+// The authority side asks whether the units this boundary depends on exist and
+// are active, not whether their sentences still read a particular way. The
+// sentence assertions that used to stand here were prose matching over
+// authority text: rewording a statement broke the gate, and retiring a unit
+// did not.
+for (const failure of requireActiveUnits('avatar-external-driver-source-enum', [
+  'rule.nimi.runtime.agent-participation.r038',
+  'rule.nimi.runtime.agent-participation.r158',
+  'rule.nimi.avatar.embodiment.r010',
+])) {
+  fail(failure);
+}
 
 requireIncludes(FILES.driverTypes, [
   "export type ActivitySource = 'apml_output' | 'direct_api' | 'mock';",
