@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.nimi2d.generation-supply.provider
     kind: definition
     title: N2D-IMG2-001 generation provider
-    meaning: A Nimi2D generation provider is an implementation-neutral producer of upstream image resources through the admitted request and artifact protocol.
+    meaning: A Nimi2D generation provider supplies upstream image resources through an admitted family wire; the current admitted first-party supply family is nimi.nimi2d.codex-image2, provider neutrality binds product semantics outside that admitted family wire, consumers must not depend on provider brands beyond the admitted family identity, and adding a supply family is an authority change.
   - id: definition.nimi.nimi2d.generation-supply.request
     kind: definition
     title: N2D-IMG2-020 provider request
@@ -30,9 +30,9 @@ units:
     kind: rule
     title: N2D-IMG2-001 provider-neutral supply route
     modality: must
-    statement: First-party Nimi2D image-resource generation uses a generation provider through the admitted request and artifact protocol without making any provider brand, executable, adapter, model, command name, launch formula, attempt count, or timeout part of product semantics.
+    statement: First-party Nimi2D image-resource generation uses the current admitted nimi.nimi2d.codex-image2 request-and-artifact family wire; outside that admitted family wire, product semantics and consumers must not depend on any provider brand, executable, adapter, model, command name, launch formula, attempt count, or timeout, and adding or replacing a supply family requires an authority change.
     condition: Whenever first-party image resources are generated for later Nimi2D processing.
-    failure: Reject an uncontracted supply result and do not infer success from a provider-specific invocation or implementation detail.
+    failure: Reject an uncontracted family or supply result, a consumer dependency beyond the admitted family identity, or an inferred success based only on invocation or implementation detail.
     relations:
       - type: applies_to
         target: definition.nimi.nimi2d.generation-supply.domain

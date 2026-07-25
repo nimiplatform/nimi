@@ -29,7 +29,7 @@ units:
   - id: definition.nimi.nimi2d.asset-package.renderability
     kind: definition
     title: N2D-GOV-001 N2D-GOV-002 renderability state
-    meaning: Nimi2D renderability is the package-owned distinction among character states renderable_with_default_outfit and renderable_with_selected_outfit, non-character states renderable_scene and renderable_prop, and non-visible states admission_rejected, non_renderable_incomplete, redacted_non_pixel_topology, and no_render, with no renderable_base_body state.
+    meaning: A Nimi2D package must distinguish the character states renderable_with_default_outfit and renderable_with_selected_outfit, non-character states renderable_scene and renderable_prop, and non-visible states admission_rejected, non_renderable_incomplete, redacted_non_pixel_topology, and no_render as the package-owned renderability ontology, with no renderable_base_body state.
   - id: definition.nimi.nimi2d.asset-package.diagnostics
     kind: definition
     title: N2D-INPUT-003 closed layer-input diagnostics
@@ -45,7 +45,7 @@ units:
   - id: definition.nimi.nimi2d.asset-package.generation-supply-gap
     kind: definition
     title: N2D-AUTH-001 deferred generation-supply boundary
-    meaning: Codex Image2 provider request and artifact semantics plus Generation Bench corpus, replay, metric, gate, and result semantics are intentionally outside this W1 asset-package container and remain unavailable here pending the Nimi2D generation-supply authority wave.
+    meaning: Codex Image2 provider request and artifact semantics plus Generation Bench corpus, replay, metric, gate, and result semantics are intentionally outside this W1 asset-package container and are owned by the sibling container .nimi/spec/canonical/nimi2d/generation-supply.authority.yaml.
   - id: rule.nimi.nimi2d.asset-package.r001
     kind: rule
     title: N2D-AUTH-001 N2D-AUTH-007 owner-true package semantics
@@ -262,7 +262,7 @@ units:
     kind: rule
     title: N2D-BODY-020 N2D-BODY-021 N2D-BODY-022 skeleton anchors and slots
     modality: must
-    statement: Base-body skeleton coverage includes root, torso, neck, head, face, jaw, eyes, shoulders, arms, hands, hips, legs, and feet; solved anchors include body_root, neck_base, head_center, face_center, left_eye_center, right_eye_center, mouth_center, left_shoulder, right_shoulder, left_hand, right_hand, and hip_center; and solved slots include head, face, hair, neck, torso, hip, left_arm, right_arm, left_hand, right_hand, left_leg, right_leg, left_foot, right_foot, outfit_upper, outfit_lower, outfit_full, accessory_head, accessory_face, accessory_hand, and prop_hand.
+    statement: Base-body skeleton coverage includes root, torso, neck, head, face, jaw, eyes, shoulders, arms, hands, hips, legs, and feet; solved anchors include body_root, neck_base, head_center, face_center, left_eye_center, right_eye_center, and mouth_center; and solved slots include head, face, hair, neck, torso, hip, left_arm, right_arm, left_hand, right_hand, left_leg, right_leg, left_foot, right_foot, outfit_upper, outfit_lower, outfit_full, accessory_head, accessory_face, accessory_hand, and prop_hand.
     condition: Whenever character package topology is solved or admitted.
     failure: Reject a missing required region, anchor, or slot and never conflate source hints with solved topology or runtime route identifiers.
     relations:
@@ -272,7 +272,7 @@ units:
     kind: rule
     title: N2D-BODY-030 N2D-BODY-031 morphology fit
     modality: must
-    statement: The morphology profile records height ratio, head-to-body proportion, shoulder width, torso width, waist-to-hip relation, chest volume and silhouette, limb-length ratios, and hand and foot scale, and wardrobe generation references that topology and profile instead of deriving fit only from a flat rendering.
+    statement: The morphology-profile wire must record height ratio, head-to-body proportion, shoulder width, torso width, waist-to-hip relation, chest volume and silhouette, limb-length ratios, and hand and foot scale, and the wardrobe-generation wire must reference that topology and profile instead of deriving fit only from a flat rendering.
     condition: Whenever morphology or wardrobe fit is generated or validated.
     failure: Reject a fit claim with missing required morphology, display sexual detail, or avoidable flat-image-only derivation.
     relations:
@@ -284,9 +284,9 @@ units:
     kind: rule
     title: N2D-BODY-040 N2D-BODY-041 deformation and action topology
     modality: must
-    statement: Base-body deformation topology contains only asset regions, constraints, attachment influences, and local hierarchy needed to solve channels, and stable action-topology names bind to the base-body topology rather than an outfit.
+    statement: The base-body deformation-topology wire must record only the asset regions, constraints, attachment influences, and local hierarchy needed to solve channels, and the action-topology wire must record stable action names bound to the base-body topology rather than an outfit.
     condition: Whenever deformation or action topology is declared or consumed.
-    failure: Reject outfit-owned action topology or any asset record that defines frame scheduling, stream semantics, backend routes, blend logic, or renderer parameter APIs.
+    failure: Reject missing deformation or action topology, outfit-owned action topology, or any asset record that defines frame scheduling, stream semantics, backend routes, blend logic, or renderer parameter APIs.
     relations:
       - type: applies_to
         target: definition.nimi.nimi2d.asset-package.base-body
@@ -308,7 +308,7 @@ units:
     kind: rule
     title: N2D-WARD-010 N2D-WARD-011 compatibility and closed slots
     modality: must
-    statement: Every wardrobe asset declares wardrobe_asset_id, wardrobe_kind, compatible_topology_id, compatible_topology_version, slot_bindings, coverage, and source_evidence_ref; topology identity and version exactly match the current base body; and bindings use only base-body-exposed admitted slots with no duplicate exclusive binding or missing required slot.
+    statement: Every wardrobe asset declares wardrobe_asset_id, wardrobe_kind, compatible_topology_id, compatible_topology_version, slot_bindings, and coverage; topology identity and version exactly match the current base body; and bindings use only base-body-exposed admitted slots with no duplicate exclusive binding or missing required slot.
     condition: Whenever a wardrobe asset is admitted or bound.
     failure: Reject an incomplete, incompatible, unknown, duplicate-exclusive, or missing-required binding without compatibility-range inference.
     relations:
@@ -618,7 +618,7 @@ units:
     kind: rule
     title: N2D-BODY-021 N2D-WARD-011 closed topology classification catalog
     modality: must
-    statement: Anchor classes map body_root, neck_base, and hip_center to body_core, head_center to head, face_center, both eye centers, and mouth_center to face, both shoulders and both hands to limb, attachment_point to attachment, and scene_origin to scene; slot classes are body_core owned by base_body with wardrobe forbidden, facial owned by base_body with accessory-only binding, limb owned by base_body with outfit-or-accessory binding, outfit owned by base_body with outfit binding, accessory owned by base_body with accessory binding, prop owned by base_body with prop binding, and scene owned by package_scene with scene_layer binding.
+    statement: Anchor classes map body_root and neck_base to body_core, head_center to head, face_center, both eye centers, and mouth_center to face, attachment_point to attachment, and scene_origin to scene; slot classes are body_core owned by base_body with wardrobe forbidden, facial owned by base_body with accessory-only binding, limb owned by base_body with outfit-or-accessory binding, outfit owned by base_body with outfit binding, accessory owned by base_body with accessory binding, prop owned by base_body with prop binding, and scene owned by package_scene with scene_layer binding.
     condition: Whenever anchor class, slot class, topology ownership, or wardrobe-binding class is resolved.
     failure: Reject an unknown or reclassified anchor, slot, owner, or binding class without open-string extension.
     relations:

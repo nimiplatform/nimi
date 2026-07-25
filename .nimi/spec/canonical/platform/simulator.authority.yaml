@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.platform.simulator.product
     kind: definition
     title: Independent Simulator product
-    meaning: The Simulator is one independent, publicly deployed browser product that combines the Nimi ecosystem landing, guided concept explanation, per-product experiences, cross-product demonstrations, deterministic scenario replay, and UI/UX regression probing through one Shell, one React root, one deterministic State Engine, one generated selected-module registry, and one independently deployable artifact.
+    meaning: The Simulator product identity is one independent browser product whose complete capability set comprises, as the ratified product target, a publicly deployed Nimi ecosystem landing, guided concept explanation, per-product experiences, cross-product demonstrations, deterministic scenario replay, and UI/UX regression probing, all operating through one Shell, one React root, one deterministic State Engine, one generated selected-module registry, and one independently deployable artifact; absent target capabilities are unmet product obligations rather than present facts.
   - id: definition.nimi.platform.simulator.selected-source-protocol
     kind: definition
     title: Simulator selected-source protocol
-    meaning: The selected-source protocol is the Simulator-owned curation, ordering, canonical renderer-factory and style closure, registry generation, and resolution contract for current App source.
+    meaning: The selected-source protocol is the Simulator-owned curation, ordering, canonical renderer-factory and style closure, registry generation, and resolution contract that resolves each admitted selected App source revision through selected-source descriptors; keeping admitted revisions current with product releases is a product obligation.
   - id: definition.nimi.platform.simulator.module-contract
     kind: definition
     lifecycle: removed
@@ -26,7 +26,7 @@ units:
   - id: definition.nimi.platform.simulator.state-engine
     kind: definition
     title: Deterministic Simulator State Engine
-    meaning: The Simulator State Engine is the sole owner of immutable deterministic scenario, ecosystem, Shell and instance presentation, private App-module, logical-time, randomness, operation-order, replay, lifecycle, and reset state for one simulated session.
+    meaning: The Simulator State Engine solely owns immutable deterministic scenario, ecosystem, private App-module, logical-time, randomness, operation-order, replay, lifecycle, and reset state for one simulated session; Shell chrome presentation state and session-local routing remain outside it as non-deterministic presentation concerns that must never feed back into deterministic state.
   - id: definition.nimi.platform.simulator.session-projection
     kind: definition
     title: Simulated session projection
@@ -526,7 +526,7 @@ units:
     kind: rule
     title: P-SIM-019 simulator-error-codes closed enum and envelope
     modality: must
-    statement: The simulator-error-codes enum contains exactly SIMULATOR_INVALID_MANIFEST, SIMULATOR_SOURCE_MISMATCH, SIMULATOR_UNSUPPORTED, SIMULATOR_CAPABILITY_DENIED, SIMULATOR_RESOURCE_EXHAUSTED, SIMULATOR_INVALID_PAYLOAD, SIMULATOR_INVALID_LIFECYCLE, SIMULATOR_STALE_EPOCH, SIMULATOR_INSTANCE_DISPOSED, SIMULATOR_INSTANCE_FAILED, SIMULATOR_MODULE_FAILED, SIMULATOR_EFFECT_FORBIDDEN, and SIMULATOR_INTEGRITY_FAILURE, and every error has exactly code, fixed-catalog message, nullable module, instance, and operation identities, and retryable false, with queued operation identities derived from epoch and sequence and pre-queue operation identity null.
+    statement: The simulator-error-codes enum is the closed Simulator diagnostics vocabulary and contains exactly SIMULATOR_INVALID_MANIFEST, SIMULATOR_SOURCE_MISMATCH, SIMULATOR_UNSUPPORTED, SIMULATOR_CAPABILITY_DENIED, SIMULATOR_RESOURCE_EXHAUSTED, SIMULATOR_INVALID_PAYLOAD, SIMULATOR_INVALID_LIFECYCLE, SIMULATOR_STALE_EPOCH, SIMULATOR_INSTANCE_DISPOSED, SIMULATOR_INSTANCE_FAILED, SIMULATOR_MODULE_FAILED, SIMULATOR_EFFECT_FORBIDDEN, and SIMULATOR_INTEGRITY_FAILURE; each member identifies only a product-facing failure class, and every error has exactly code, fixed-catalog message, nullable module, instance, and operation identities, and retryable false, with queued operation identities derived from epoch and sequence and pre-queue operation identity null.
     condition: Whenever Simulator constructs or serializes an error.
     failure: Reject an unknown code, missing or extra field, retryable result, non-canonical operation identity, or non-fixed message.
     relations:
@@ -536,9 +536,9 @@ units:
     kind: rule
     title: P-SIM-019 simulator-error-codes scope and SDK reachability
     modality: must
-    statement: Invalid manifest and source mismatch remain pre-session configuration failures without state change; unsupported behavior, denied capability, resource exhaustion, invalid payload, invalid lifecycle, stale epoch, disposed instance, and forbidden effect remain operation failures without state change; attributable instance and shared-module failures change only Shell diagnostics at their declared scope; integrity failure is session-terminal; invalid manifest, source mismatch, and invalid lifecycle are unreachable through the SDK facade; and every other SDK-reachable Simulator error maps to a host-neutral NimiError without exposing its raw Simulator code.
+    statement: Configuration-stage failures surface before any session exists, fail closed without creating a partial session or changing state, and are unreachable through the SDK facade; operation-stage unsupported behavior, denied capability, resource exhaustion, invalid payload, invalid lifecycle, stale epoch, disposed instance, and forbidden effect fail without state change; attributable instance and shared-module failures change only Shell diagnostics at their declared scope; integrity failure is session-terminal; invalid-lifecycle failures are unreachable through the SDK facade; and every SDK-reachable Simulator error maps to a host-neutral NimiError without exposing its raw Simulator code.
     condition: Whenever an error is scoped, committed, or mapped to the SDK facade.
-    failure: Reject a state-changing operation failure, incorrect failure scope, SDK-reachable pre-session error, or public raw Simulator code.
+    failure: Reject a partial session, state-changing operation failure, incorrect failure scope, SDK-reachable configuration-stage or invalid-lifecycle error, or public raw Simulator code.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.failure-model
@@ -550,7 +550,7 @@ units:
   - id: definition.nimi.platform.simulator.ecosystem-experience
     kind: definition
     title: Nimi ecosystem experience
-    meaning: The Nimi ecosystem experience is the Simulator capability set comprising the public ecosystem landing, guided concept story, independent per-product browser experiences, interactive cross-product journeys, deterministic scenario replay, and UI/UX regression probing within one product identity.
+    meaning: The Nimi ecosystem experience is the ratified complete capability target comprising the public ecosystem landing, guided concept story, independent per-product browser experiences, interactive cross-product journeys, deterministic scenario replay, and UI/UX regression probing; every capability must be delivered within the one Simulator product identity, and an absent capability is an unmet product obligation rather than a present fact.
   - id: definition.nimi.platform.simulator.cross-product-simulation
     kind: definition
     title: Disclosed cross-product simulation
