@@ -925,22 +925,22 @@ units:
   - id: rule.nimi.runtime.rpc-foundations.r087
     kind: rule
     lifecycle: removed
-    title: Target classification for .nimi/spec/canonical/desktop/ai-consumption.authority.yaml
+    title: Target classification for .nimi/spec/desktop/ai-consumption.authority.yaml
     reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
   - id: rule.nimi.runtime.rpc-foundations.r088
     kind: rule
     lifecycle: removed
-    title: Target classification for .nimi/spec/canonical/desktop/shell-runtime.authority.yaml
+    title: Target classification for .nimi/spec/desktop/shell-runtime.authority.yaml
     reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
   - id: rule.nimi.runtime.rpc-foundations.r089
     kind: rule
     lifecycle: removed
-    title: Target classification for .nimi/spec/canonical/runtime/rpc-foundations.authority.yaml
+    title: Target classification for .nimi/spec/runtime/rpc-foundations.authority.yaml
     reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
   - id: rule.nimi.runtime.rpc-foundations.r090
     kind: rule
     lifecycle: removed
-    title: Target classification for .nimi/spec/canonical/runtime/security-core.authority.yaml
+    title: Target classification for .nimi/spec/runtime/security-core.authority.yaml
     reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
   - id: rule.nimi.runtime.rpc-foundations.r091
     kind: rule

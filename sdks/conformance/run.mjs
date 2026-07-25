@@ -11,7 +11,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 const languages = ['typescript', 'python', 'go', 'rust'];
 const privateRealmOperationTable = YAML.parse(readFileSync(
-  path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/realm-private-operation-carriers.yaml'),
+  path.join(repoRoot, 'config/spec-frozen/sdks/tables/realm-private-operation-carriers.yaml'),
   'utf8',
 ));
 const privateRealmOperationIds = new Set(

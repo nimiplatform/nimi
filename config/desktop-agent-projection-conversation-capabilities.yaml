@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/desktop/agent-projection.authority.yaml
+# Normative authority: .nimi/spec/desktop/agent-projection.authority.yaml
 # Rationale: docs/authority/desktop-agent-projection-rationale.md
 config_id: desktop_agent_projection_conversation_capabilities
 owner: desktop

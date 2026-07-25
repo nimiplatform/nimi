@@ -3,7 +3,7 @@
 ## Status: Admitted Contract; Desktop-Owned Surface
 
 The Desktop AI profile config contract
-(`.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`) is admitted. The
+(`.nimi/spec/desktop/ai-consumption.authority.yaml`) is admitted. The
 user-facing per-agent configuration UI is a Desktop-owned surface, not an
 app-owned SDK API.
 
@@ -51,6 +51,6 @@ User wants an app workspace to use a different AI profile.
 
 ## Source Basis
 
-- [`.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/ai-consumption.authority.yaml)
+- [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
 - [`.nimi/spec/platform/kernel/ai-scope-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/ai-scope-contract.md)
 - [`.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/ai-profile-execution-contract.md)

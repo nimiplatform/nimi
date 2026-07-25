@@ -1,5 +1,5 @@
 # Non-authoritative Desktop shell UI machine configuration.
-# Normative authority: .nimi/spec/canonical/desktop/shell-ui.authority.yaml
+# Normative authority: .nimi/spec/desktop/shell-ui.authority.yaml
 # Rationale: docs/authority/desktop-shell-ui-rationale.md
 table_family: closed_enum
 owner: desktop

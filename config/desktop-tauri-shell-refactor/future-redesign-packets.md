@@ -2,7 +2,7 @@
 
 Date: 2026-07-09
 
-This tracked config file records commands and capability names that remain out of scope for the current Tauri-first refactor batch. It is audit evidence only. The non-authoritative command inventory is `config/desktop-ipc-commands.yaml`, the normative bridge authority is `.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml`, and executable truth remains the active Tauri registration surface; execution classification machine config is `config/desktop-command-execution-classification.yaml`, and its normative authority is `.nimi/spec/canonical/desktop/command-execution.authority.yaml`.
+This tracked config file records commands and capability names that remain out of scope for the current Tauri-first refactor batch. It is audit evidence only. The non-authoritative command inventory is `config/desktop-ipc-commands.yaml`, the normative bridge authority is `.nimi/spec/desktop/bridge-ipc.authority.yaml`, and executable truth remains the active Tauri registration surface; execution classification machine config is `config/desktop-command-execution-classification.yaml`, and its normative authority is `.nimi/spec/desktop/command-execution.authority.yaml`.
 
 | Command or capability | Current batch disposition | Current owner bucket | Future redesign target | Blocker before migration |
 | --- | --- | --- | --- | --- |

@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/platform/app-ecosystem.authority.yaml
+# Normative authority: .nimi/spec/platform/app-ecosystem.authority.yaml
 # Rationale: docs/authority/platform-app-ecosystem-rationale.md
 version: 8
 table_family: owner_matrix
@@ -189,10 +189,10 @@ platform_posture:
       realm: compile_time_fixed_local_Realm_broker_http_127.0.0.1_3002_production_endpoints_forbidden
       app_owned_sqlite_requires_nimi_permission: false
       acceptance_evidence_root: .nimi/local/acceptance/date-macos-runtime-desktop-zhiyu
-    service_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml#macos
-    transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#macos
-    custody_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml#macos
-    launch_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml#macos
+    service_profile_ref: config/spec-frozen/runtime/tables/protected-local-runtime-principal-profiles.yaml#macos
+    transport_profile_ref: config/spec-frozen/runtime/tables/protected-local-os-profiles.yaml#macos
+    custody_profile_ref: config/spec-frozen/runtime/tables/protected-local-custody-profiles.yaml#macos
+    launch_profile_ref: config/spec-frozen/runtime/tables/protected-local-launch-session-profiles.yaml#macos
     trust_profile_ref: protected-local-executable-trust-sets.yaml#macos
     source_rule: P-NAPP-037
   linux: fail_closed_pending_independent_admission

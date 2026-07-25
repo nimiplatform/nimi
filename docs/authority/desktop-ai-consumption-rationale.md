@@ -1,6 +1,6 @@
 # Desktop AI Consumption Rationale
 
-> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`。
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/desktop/ai-consumption.authority.yaml`。
 
 ## Rationale 完整性对账
 
@@ -37,9 +37,9 @@
 
 ## Normative migration dispositions
 
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` 是三簇现行唯一 Desktop product authority；历史 `D-AIPC-*`、`D-LLM-*`、`D-STRM-*` 仅作为本文 rationale anchors。
+- `.nimi/spec/desktop/ai-consumption.authority.yaml` 是三簇现行唯一 Desktop product authority；历史 `D-AIPC-*`、`D-LLM-*`、`D-STRM-*` 仅作为本文 rationale anchors。
 - `config/desktop-ai-consumption-llm-adapter.yaml` 与 `config/desktop-ai-consumption-streaming.yaml` 是 gates、tests 与 implementation audits 可消费的非权威 machine config；canonical rules 决定 ownership、wire boundary、timeouts、terminal semantics 与 fail-closed behavior。
-- Conversation capability presentation 继续由 `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` 拥有；AIConfig/AISnapshot umbrella 与 Desktop adaptation/stream mechanics 由本容器拥有，不形成并列真相。
+- Conversation capability presentation 继续由 `.nimi/spec/desktop/agent-projection.authority.yaml` 拥有；AIConfig/AISnapshot umbrella 与 Desktop adaptation/stream mechanics 由本容器拥有，不形成并列真相。
 - Runtime health、route、credential、stream、job、timeline、Agent execution 与 audit truth 仍由各自 Runtime/SDK owner 提供；本文保留的旧跨层引用只解释设计来源，不授予 Desktop 上游 authority。
 
 ## Preserved source: AI Profile / Config / Snapshot Desktop Consumption Contract
@@ -78,7 +78,7 @@ Agent Chat orchestration and execution semantics 不由本契约拥有。`AIProf
 Runtime owns Agent Chat turn planning、message/action、voice workflow、media
 execution、prompt/context assembly、and Runtime Agent execution projection.
 Desktop only consumes those projections through
-`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`（`D-LLM-022` ~ `D-LLM-026`）.
+`.nimi/spec/desktop/agent-projection.authority.yaml`（`D-LLM-022` ~ `D-LLM-026`）.
 
 ## D-AIPC-001 — Three-Tier AI Configuration Authority
 
@@ -371,7 +371,7 @@ localProfileRef-only image config：
 
 - 现有四层不被 supersede 或重命名；它们作为 `AIConfig` / `AISnapshot` 下的 conversation-capability submodel 保留。
 - 不允许"旧四层 + 新三层"并列 owner — 四层是 AIConfig/AISnapshot 的 submodel，不是独立 peer authority。
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`（`D-LLM-022` ~ `D-LLM-026`）不属于本 umbrella
+- `.nimi/spec/desktop/agent-projection.authority.yaml`（`D-LLM-022` ~ `D-LLM-026`）不属于本 umbrella
   收编对象；projection contract 与本契约是相邻 authority，边界固定为
   config/capability truth vs Desktop presentation/projection truth
 
@@ -536,9 +536,9 @@ projection exposed by the scope owner，不得自定义 local preview 真相。
 
 ## Fact Sources
 
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` — D-LLM-015 ~ D-LLM-021 conversation capability submodel rules
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` — Desktop provider adaptation and routing rules
+- `.nimi/spec/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
+- `.nimi/spec/desktop/agent-projection.authority.yaml` — D-LLM-015 ~ D-LLM-021 conversation capability submodel rules
+- `.nimi/spec/desktop/ai-consumption.authority.yaml` — Desktop provider adaptation and routing rules
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001 ~ P-AISC-006 AIScopeRef identity contract
 - `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001 ~ K-SCHED-007 scheduling judgement contract
 
@@ -627,7 +627,7 @@ Runtime-projected voice capability 状态呈现到对应 UI。
 - `audio.synthesize`：先走 `runtime.route.listOptions({ capability: 'audio.synthesize' })` 选 binding，再调用 `runtime.media.tts.listVoices/synthesize/stream`
 - `voice_workflow.voice_clone|voice_workflow.voice_design`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
 - 缺有效 binding 或缺 route-resolved model 时必须 fail-close，不得返回空 voice 列表作为静默 fallback
-- AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
+- AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `.nimi/spec/desktop/agent-projection.authority.yaml`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
 - 本契约只拥有 runtime-aligned voice route/API projection。Agent Chat voice
   workflow admission、voice identity、workflow return path、resolved voice action
   execution、playback-ready outcome、broader voice session、transcript/caption
@@ -688,7 +688,7 @@ Desktop 消费 `world.generate` 时必须保持 runtime-only 路径：
 
 ## Fact Sources
 
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — Desktop error-boundary semantics
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — Desktop error-boundary semantics
 - `config/desktop-shell-ui-error-codes.yaml` — non-authoritative Desktop bridge alias allowlist
 - `tables/rule-evidence.yaml` — LLM 分层门禁与证据映射
 
@@ -936,7 +936,7 @@ timeline authority and Avatar remains the lipsync/render proof owner.
 
 ## Fact Sources
 
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
+- `.nimi/spec/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — Runtime Agent execution / projection authority
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime voice workflow boundary
 - Runtime `K-STREAM-001~007` — 流式传输规则

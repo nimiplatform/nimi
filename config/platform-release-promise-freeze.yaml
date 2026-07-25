@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/platform/governance-release.authority.yaml
+# Normative authority: .nimi/spec/platform/governance-release.authority.yaml
 # Rationale: docs/authority/platform-governance-release-rationale.md
 version: 1
 table_family: product_catalog
@@ -65,9 +65,9 @@ capabilities:
     posture: supported
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/protected-session.authority.yaml#K-ACCSVC-001
+      - .nimi/spec/runtime/protected-session.authority.yaml#K-ACCSVC-001
       - .nimi/spec/realm/external-realm.md#R-OAUTH-001
-      - .nimi/spec/canonical/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r013
+      - .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r013
     login_requirement: realm_login_required
     public_promise: Runtime owns local first-party account session truth; Realm owns OAuth authorization; Desktop renders login state only.
     failure_behavior: Missing, expired, unavailable, or unregistered account state fails closed to anonymous, reauth-required, or unavailable projection; no local token fallback.
@@ -84,7 +84,7 @@ capabilities:
     authority_refs:
       - .nimi/spec/realm/external-realm.md#R-SOC-001
       - .nimi/spec/realm/external-realm.md#R-CHAT-001
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-139
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-139
     login_requirement: realm_login_required
     public_promise: Realm-owned ecosystem identity covers authenticated social, group, WorldCharacter, PersonaCharacter, and CharacterSourceRefV3 truth; Runtime alone acquires and verifies Packet v3 and owns local executable LocalAgent identity, SnapshotV2, provenance, context compilation, and lifecycle.
     failure_behavior: Unauthenticated or mismatched owner identity fails closed; localAgentRef is Runtime-owned opaque identity and must not be derived from ownerUserId plus runtimeSourceRef.
@@ -99,18 +99,18 @@ capabilities:
     posture: supported
     owner_domain: desktop
     authority_refs:
-      - .nimi/spec/canonical/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r058
-      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
-      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
-      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
-      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
+      - .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r058
+      - .nimi/spec/runtime/local-compute.authority.yaml
+      - .nimi/spec/runtime/local-compute.authority.yaml
+      - .nimi/spec/runtime/local-compute.authority.yaml
+      - .nimi/spec/runtime/local-compute.authority.yaml
       - docs/authority/platform-governance-release-rationale.md#P-GOV-026
     login_requirement: local_runtime_allowed
     public_promise: Runtime-reachable local AI and current-renderer local agent interaction may operate when Realm is unavailable, without claiming Realm sync, social, economy, or account success.
     failure_behavior: Realm commit, account mutation, economy, source-provenance materialization, and cross-device state fail closed or remain explicit pending intent; local outbox never equals Realm truth.
     partial_deferred_reason: none
     verification_refs:
-      - .nimi/spec/canonical/desktop/shell-runtime.authority.yaml
+      - .nimi/spec/desktop/shell-runtime.authority.yaml
       - runtime/internal/services/localservice/first_run_execution_evidence_test.go
     source_rule: P-GOV-026
 
@@ -118,9 +118,9 @@ capabilities:
     posture: supported
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/ai-provider.authority.yaml
-      - .nimi/spec/canonical/runtime/model-catalog.authority.yaml
-      - .nimi/spec/canonical/runtime/ai-provider.authority.yaml
+      - .nimi/spec/runtime/ai-provider.authority.yaml
+      - .nimi/spec/runtime/model-catalog.authority.yaml
+      - .nimi/spec/runtime/ai-provider.authority.yaml
       - config/platform-canonical-capability-catalog.yaml
     login_requirement: local_runtime_allowed
     public_promise: Runtime owns provider/model routing, model catalog, local/cloud capability resolution, scenario jobs, artifacts, and fail-closed execution for admitted canonical capabilities.
@@ -136,9 +136,9 @@ capabilities:
     posture: supported
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-001
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-139
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-141
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-001
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-139
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-141
     login_requirement: realm_login_required
     public_promise: RuntimeAgentService owns live LocalAgent lifecycle, conversation anchors, hard delete, event log, and local executable materialization from Runtime-acquired Packet v3 into LocalAgentSourceSnapshotV2 and v3 provenance.
     failure_behavior: Invalid Packet v3 closure/proof, mismatched localAgentRef, substrate deletion failure, or unavailable runtime state fails closed; TerminateAgent cannot leave partial projection truth and source removal must not delete LocalAgent state.
@@ -153,10 +153,10 @@ capabilities:
     posture: supported
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-002
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-032
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-037
-      - .nimi/spec/canonical/desktop/agent-projection.authority.yaml#D-LLM-022
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-002
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-032
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-037
+      - .nimi/spec/desktop/agent-projection.authority.yaml#D-LLM-022
     login_requirement: realm_login_required
     public_promise: Reactive Agent Chat turn request, interrupt, typed turn events, session snapshot, and Desktop projection are release-promised through RuntimeAgentService and SDK projection, not Desktop orchestration.
     failure_behavior: Invalid APML, envelope violation, missing anchor, unavailable Runtime, or missing committed message fails closed; provisional text is discarded unless Runtime emits commit.
@@ -178,9 +178,9 @@ capabilities:
     posture: partial
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-002
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-012
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-040
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-002
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-012
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-040
     login_requirement: realm_login_required
     public_promise: Only narrow Runtime-owned Life Track execution for admitted HookIntent follow-up-turn, budget, event projection, and canonical-memory candidate admission is promised.
     failure_behavior: Missing executor, invalid output, unsupported trigger/effect, budget denial, scheduler denial, or substrate failure emits typed rejection/failure; no hidden timer or pseudo-success.
@@ -201,8 +201,8 @@ capabilities:
     posture: partial
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/memory-world.authority.yaml#K-MEM-001
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-004
+      - .nimi/spec/runtime/memory-world.authority.yaml#K-MEM-001
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-004
       - docs/authority/cognition-standalone-services-rationale.md
     login_requirement: realm_login_required
     public_promise: Runtime owns local canonical agent memory policy, bank status projection, query/write admission, and explicit Realm replication outcome when enabled.
@@ -218,8 +218,8 @@ capabilities:
     posture: partial
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-041
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-009
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-041
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-009
     login_requirement: realm_login_required
     public_promise: Runtime-owned HookIntent supports time delay and admitted event triggers for follow-up-turn only, with persisted pending/running/completed/failed/canceled/rescheduled state.
     failure_behavior: Unsupported trigger/effect, invalid origin, conflict, budget denial, or execution failure is observable as typed hook rejection/failure/reschedule.
@@ -233,9 +233,9 @@ capabilities:
     posture: partial
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/agent-service.authority.yaml#K-AGCORE-143
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-043
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-037
+      - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-143
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-043
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-037
       - config/runtime-agent-event-projection.yaml
       - docs/authority/platform-app-ecosystem-rationale.md#P-PERM-012
     login_requirement: realm_login_required
@@ -256,9 +256,9 @@ capabilities:
     posture: partial
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/delegation.authority.yaml
-      - .nimi/spec/canonical/runtime/delegation.authority.yaml#K-DELEG-090
-      - .nimi/spec/canonical/runtime/delegation.authority.yaml
+      - .nimi/spec/runtime/delegation.authority.yaml
+      - .nimi/spec/runtime/delegation.authority.yaml#K-DELEG-090
+      - .nimi/spec/runtime/delegation.authority.yaml
     login_requirement: realm_login_required
     public_promise: Runtime owns delegated provider profiles, approval-required pause, typed approval decision, resume, output firewall, and replay linkage for admitted delegated capability requests.
     failure_behavior: Missing approval, expired approval, descriptor drift, policy drift, forbidden effect, firewall rejection, or consumed paused request fails closed; Desktop and adapters cannot auto-approve.
@@ -273,8 +273,8 @@ capabilities:
     posture: partial
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/service-operations.authority.yaml#K-AGCORE-053
-      - .nimi/spec/canonical/sdks/client-core.authority.yaml
+      - .nimi/spec/runtime/service-operations.authority.yaml#K-AGCORE-053
+      - .nimi/spec/sdks/client-core.authority.yaml
     login_requirement: realm_login_required
     public_promise: RuntimeArtifactService ReadArtifactBytes returns bytes, mime type, and observed size only for a current protected installed caller matching the durable account/app/release/session/use audience.
     failure_behavior: Anonymous, direct-gRPC, unbound, wrong-audience, expired, revoked, missing, corrupt, or over-size reads return typed ARTIFACT_* failures; no truncation or fabricated bytes.
@@ -288,10 +288,10 @@ capabilities:
     posture: partial
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-051
-      - .nimi/spec/canonical/runtime/model-catalog.authority.yaml
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-051
+      - .nimi/spec/runtime/model-catalog.authority.yaml
       - docs/authority/avatar-embodiment-rationale.md
-      - .nimi/spec/canonical/desktop/agent-projection.authority.yaml
+      - .nimi/spec/desktop/agent-projection.authority.yaml
     login_requirement: realm_login_required
     public_promise: Runtime may project typed presentation, voice playback, lipsync timeline, and artifact references for first-party Avatar consumption.
     failure_behavior: Missing timeline metadata, missing artifact, unsupported activity id, voice route failure, or Avatar binding mismatch fails closed before durable projection or renders explicit unavailable state.
@@ -306,9 +306,9 @@ capabilities:
     posture: deferred
     owner_domain: sdks
     authority_refs:
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml#S-RUNTIME-217
+      - .nimi/spec/sdks/feature-clients.authority.yaml#S-RUNTIME-217
       - config/sdks-runtime-agent-participation-methods.yaml
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-061
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-061
     login_requirement: realm_login_required
     public_promise: No public production promise. The SDK method registry is semantic-contract-only and proto-unavailable.
     failure_behavior: Callers must receive unavailable/unsupported behavior; SDK must not advertise production Runtime Agent Participation support.
@@ -323,7 +323,7 @@ capabilities:
     authority_refs:
       - .nimi/spec/realm/external-realm.md#R-CHAT-001
       - .nimi/spec/realm/external-realm.md#R-CHAT-011
-      - .nimi/spec/canonical/runtime/agent-participation.authority.yaml#K-AGCORE-076
+      - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-076
     login_requirement: realm_login_required
     public_promise: Realm Chat owns authenticated group thread/message truth; Runtime may return Realm group message candidates only, and Realm owns candidate commit.
     failure_behavior: Direct Runtime group commit, raw prompt/provider/model payload, spoofed agent authorship, missing slot binding, or unauthenticated commit fails closed.
@@ -338,8 +338,8 @@ capabilities:
     posture: supported
     owner_domain: sdks
     authority_refs:
-      - .nimi/spec/canonical/sdks/client-core.authority.yaml#S-BOUNDARY-004
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml
+      - .nimi/spec/sdks/client-core.authority.yaml#S-BOUNDARY-004
+      - .nimi/spec/sdks/feature-clients.authority.yaml
       - config/sdks-typescript-target-export-map.yaml
     login_requirement: local_runtime_allowed
     public_promise: The first stable TypeScript SDK package surface is the owner-approved root, runtime, runtime/generated, realm, realm/generated, app, types, contracts, ai, agent, testing, and feature exports in package.json.
@@ -356,7 +356,7 @@ capabilities:
     posture: partial
     owner_domain: sdks
     authority_refs:
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml#S-AIP-008
+      - .nimi/spec/sdks/feature-clients.authority.yaml#S-AIP-008
       - config/sdks-typescript-adapter-capability-ledger.yaml
     login_requirement: local_runtime_allowed
     public_promise: Vercel AI adapter supports the declared LanguageModelV3 text/tool/stream/object migration surface through Nimi Runtime/SDK contracts.
@@ -372,7 +372,7 @@ capabilities:
     posture: partial
     owner_domain: sdks
     authority_refs:
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml#S-AIP-008
+      - .nimi/spec/sdks/feature-clients.authority.yaml#S-AIP-008
       - config/sdks-typescript-adapter-capability-ledger.yaml
     login_requirement: local_runtime_allowed
     public_promise: Mastra adapter supports the declared text model, Runtime context injection, delegated tool, embedding, and non-realtime voice helper surfaces without owning Mastra memory/workflow truth as Nimi truth.
@@ -389,7 +389,7 @@ capabilities:
     posture: supported
     owner_domain: sdks
     authority_refs:
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml
+      - .nimi/spec/sdks/feature-clients.authority.yaml
       - config/sdks-typescript-adapter-capability-ledger.yaml
     login_requirement: local_runtime_allowed
     public_promise: OpenAI-compatible adapter v1 is a strict Chat Completions create/stream migration bridge with function-tool definition, tool_choice, and returned tool_calls.
@@ -407,10 +407,10 @@ capabilities:
       - docs/authority/platform-governance-release-rationale.md#P-GOV-026
       - docs/authority/platform-core-protocol-rationale.md#P-ARCH-002
       - docs/authority/platform-core-protocol-rationale.md#P-ARCH-004
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml#S-AIP-007
-      - .nimi/spec/canonical/runtime/security-core.authority.yaml
-      - .nimi/spec/canonical/runtime/service-operations.authority.yaml
-      - .nimi/spec/canonical/runtime/rpc-foundations.authority.yaml
+      - .nimi/spec/sdks/feature-clients.authority.yaml#S-AIP-007
+      - .nimi/spec/runtime/security-core.authority.yaml
+      - .nimi/spec/runtime/service-operations.authority.yaml
+      - .nimi/spec/runtime/rpc-foundations.authority.yaml
       - config/runtime-local-image-supervised-backend-matrix.yaml
     login_requirement: local_runtime_allowed
     public_promise: The OpenAI-compatible Local Gateway is admitted only as an out-of-process numeric-loopback Runtime consumer for the standard /v1 HTTP hardcut surface covering model listing, Chat Completions, Responses, Embeddings, Audio Speech, Images generation/edit/variation routing, health, and short-lived artifact retrieval; it is not a Runtime daemon REST endpoint and does not own Runtime model routing, grants, scenario execution, or artifact truth.
@@ -428,9 +428,9 @@ capabilities:
     posture: partial
     owner_domain: sdks
     authority_refs:
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml#S-AIP-008
+      - .nimi/spec/sdks/feature-clients.authority.yaml#S-AIP-008
       - config/sdks-typescript-adapter-capability-ledger.yaml
-      - .nimi/spec/canonical/runtime/delegation.authority.yaml
+      - .nimi/spec/runtime/delegation.authority.yaml
     login_requirement: local_runtime_allowed
     public_promise: MCP adapter supports structural MCP tools.list, tools.call auto mapping, and run event notification shapes over explicit Nimi tools and run events.
     failure_behavior: MCP resources, adapter-owned approval, external execution, raw MCP ontology promotion, or Runtime gateway bypass fails closed.
@@ -458,8 +458,8 @@ capabilities:
     posture: unsupported
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml#S-AIP-007
-      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml
+      - .nimi/spec/sdks/feature-clients.authority.yaml#S-AIP-007
+      - .nimi/spec/sdks/feature-clients.authority.yaml
     login_requirement: not_applicable
     public_promise: Nimi does not expose a stable OpenAI-compatible Runtime REST endpoint as a public product promise.
     failure_behavior: App-level REST bypass or assumed /v1 compatibility fails closed by SDK/guardrail checks.

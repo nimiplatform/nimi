@@ -7,7 +7,7 @@ import (
 // Runtime Agent Participation registry projections.
 //
 // Every row below mirrors one admitted row of the kernel tables under
-// .nimi/spec/runtime/kernel/tables/ one-to-one:
+// config/spec-frozen/runtime/tables/ one-to-one:
 //
 //   - agent-participation-profiles.yaml            (K-AGCORE-074..080)
 //   - agent-participation-context-blocks.yaml      (K-AGCORE-081)

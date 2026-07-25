@@ -1,6 +1,6 @@
 # SDKs Testing Gates - Rationale
 
-> 本文为旧格式 SDK testing-gates 契约的整文存档，非规范权威；测试纪律语义由 `.nimi/spec/canonical/platform/testing-discipline.authority.yaml` 与 `.nimi/spec/canonical/platform/admission.authority.yaml` 覆盖，SDK 产品边界语义由 `.nimi/spec/canonical/sdks/*.authority.yaml` 覆盖。原文件按准入标准（④类：门禁分层/命令注册表为流程配置，非产品权威）拒绝迁移并删除。
+> 本文为旧格式 SDK testing-gates 契约的整文存档，非规范权威；测试纪律语义由 `.nimi/spec/platform/testing-discipline.authority.yaml` 与 `.nimi/spec/platform/admission.authority.yaml` 覆盖，SDK 产品边界语义由 `.nimi/spec/sdks/*.authority.yaml` 覆盖。原文件按准入标准（④类：门禁分层/命令注册表为流程配置，非产品权威）拒绝迁移并删除。
 
 ---
 

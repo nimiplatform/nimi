@@ -1,6 +1,6 @@
 # Platform Core Protocol - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/platform/core-protocol.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/platform/core-protocol.authority.yaml`。
 
 ---
 
@@ -1120,7 +1120,7 @@ Account Default Profile content source。
   `P-CAPCAT-001..P-CAPCAT-003` canonical capability identity authority
 - `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml` —
   admitted `CanonicalCapabilityId` rows
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` —
+- `.nimi/spec/desktop/ai-consumption.authority.yaml` —
   `D-AIPC-001..D-AIPC-012` Desktop consumption rules for `AIProfile` /
   `AIConfig` / `AISnapshot`
 - `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` —

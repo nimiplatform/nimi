@@ -10,11 +10,11 @@ const repoRoot = path.resolve(scriptDir, '..');
 const fixturePath = path.join(scriptDir, 'testdata/public-raw-token-authority/negative-fixtures.json');
 const paths = {
   accountContract: 'docs/authority/runtime-protected-session-rationale.md',
-  accountMatrix: '.nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml',
-  protectedMatrix: '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
-  identityAccess: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
+  accountMatrix: 'config/spec-frozen/runtime/tables/account-rpc-permission-matrix.yaml',
+  protectedMatrix: 'config/spec-frozen/runtime/tables/protected-local-rpc-transport-matrix.yaml',
+  identityAccess: 'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/identity-access.yaml',
   rpcMethods: 'config/runtime-rpc-methods.yaml',
-  rpcMigration: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
+  rpcMigration: 'config/spec-frozen/runtime/tables/rpc-migration-map/methods-identity-app.yaml',
   appRegistry: 'config/platform-nimi-app-registry.yaml',
   sdkMethodGroups: 'config/sdks-runtime-method-groups.yaml',
 };

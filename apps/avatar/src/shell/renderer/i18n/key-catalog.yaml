@@ -8,7 +8,7 @@ description: >
   path.
 
   This catalog is not repo-wide product authority. Product semantics live under
-  `.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml`; concrete copy lives in bundled locale JSON
+  `.nimi/spec/avatar/embodiment-surface.authority.yaml`; concrete copy lives in bundled locale JSON
   resources. Both `locales/en/avatar.json` and `locales/zh/avatar.json` MUST
   cover every key listed here in 1:1 alignment; drift is a CI failure.
 

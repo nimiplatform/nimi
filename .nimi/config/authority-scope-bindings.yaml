@@ -3,7 +3,7 @@ scopes:
   - scope: nimi.spec-admission
     bindings:
       - kind: path_glob
-        value: ".nimi/spec/canonical/**/*.authority.yaml"
+        value: ".nimi/spec/**/*.authority.yaml"
   - scope: desktop.command-execution
     bindings:
       - kind: path_glob
@@ -490,8 +490,6 @@ scopes:
         value: ".nimi/contracts/*"
       - kind: path_glob
         value: ".nimi/methodology/*"
-      - kind: path_glob
-        value: ".nimi/spec/realm/*"
   - scope: platform.governance-release
     bindings:
       - kind: path_glob

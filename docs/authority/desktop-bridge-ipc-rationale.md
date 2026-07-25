@@ -1,4 +1,4 @@
-> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml`。
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/desktop/bridge-ipc.authority.yaml`。
 
 # Bridge IPC Contract
 
@@ -177,7 +177,7 @@ audit store.
 
 ## D-IPC-014 — Desktop Runtime Version Negotiation
 
-版本协商引用 SDK `S-TRANSPORT-005`，并受 `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` self-update plane 约束：
+版本协商引用 SDK `S-TRANSPORT-005`，并受 `.nimi/spec/desktop/shell-runtime.authority.yaml` self-update plane 约束：
 
 Desktop and Runtime releases may be serviced independently, but production
 compatibility is never inferred from semver. After mutual OS process/code-signing

@@ -1,6 +1,6 @@
 # Cognition Standalone Services - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/cognition/standalone-services.authority.yaml` 与 `.nimi/spec/canonical/cognition/runtime-bridge.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/cognition/standalone-services.authority.yaml` 与 `.nimi/spec/cognition/runtime-bridge.authority.yaml`。
 
 ---
 

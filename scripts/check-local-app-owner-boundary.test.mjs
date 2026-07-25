@@ -16,7 +16,7 @@ const bundleFiles = [
   'docs/authority/platform-ui-design-system-rationale.md',
   'docs/authority/platform-app-ecosystem-rationale.md',
   'config/platform-standard-shell-capabilities.yaml',
-  '.nimi/spec/canonical/desktop/shell-runtime.authority.yaml',
+  '.nimi/spec/desktop/shell-runtime.authority.yaml',
 ];
 
 const expectedFixtureCodes = [

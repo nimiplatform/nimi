@@ -9079,7 +9079,7 @@ func (x *GetAvatarDebugReplayResponse) GetReplayRef() *AvatarDebugReplayRef {
 // per Runtime Local Agent instance with monotonic revision, expected-revision
 // optimistic concurrency, and a probe-backed readiness projection. Capability,
 // readiness-state, and reason vocabularies are admitted in
-// .nimi/spec/canonical/runtime/agent-participation.authority.yaml.
+// .nimi/spec/runtime/agent-participation.authority.yaml.
 type RuntimeAgentAIConfigIntent struct {
 	state             protoimpl.MessageState   `protogen:"open.v1"`
 	Capability        string                   `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`

@@ -10,11 +10,11 @@ const check = process.argv.includes('--check');
 if (process.argv.slice(2).some((value) => value !== '--check')) throw new Error('generator accepts only --check');
 const readYAML = async (relative) => YAML.parse(await readFile(path.join(root, relative), 'utf8'));
 const [osTable, principalTable, custodyTable, launchTable, trustTable] = await Promise.all([
-  readYAML('.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml'),
-  readYAML('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml'),
-  readYAML('.nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml'),
-  readYAML('.nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml'),
-  readYAML('.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml'),
+  readYAML('config/spec-frozen/runtime/tables/protected-local-os-profiles.yaml'),
+  readYAML('config/spec-frozen/runtime/tables/protected-local-runtime-principal-profiles.yaml'),
+  readYAML('config/spec-frozen/runtime/tables/protected-local-custody-profiles.yaml'),
+  readYAML('config/spec-frozen/runtime/tables/protected-local-launch-session-profiles.yaml'),
+  readYAML('config/spec-frozen/platform/tables/protected-local-executable-trust-sets.yaml'),
 ]);
 const one = (rows, predicate, label) => { const found=(rows ?? []).filter(predicate); if(found.length !== 1) throw new Error(`expected one ${label}`); return found[0]; };
 const profileId = 'macos_local_development_v1';

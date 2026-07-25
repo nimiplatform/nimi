@@ -2521,7 +2521,7 @@ export interface GetAvatarDebugReplayResponse {
  * per Runtime Local Agent instance with monotonic revision, expected-revision
  * optimistic concurrency, and a probe-backed readiness projection. Capability,
  * readiness-state, and reason vocabularies are admitted in
- * .nimi/spec/canonical/runtime/agent-participation.authority.yaml.
+ * .nimi/spec/runtime/agent-participation.authority.yaml.
  *
  * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfigIntent
  */

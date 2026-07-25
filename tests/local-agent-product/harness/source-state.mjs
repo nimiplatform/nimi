@@ -24,7 +24,7 @@ const exactCandidateSourcePaths = new Set([
   'scripts/lib/first-party-protected-runtime-profile-compiler.mjs',
   'scripts/lib/runtime-build-record.mjs',
   'scripts/lib/windows-dev-signing.mjs',
-  '.nimi/spec/runtime/kernel/tables/first-party-protected-runtime-profiles.yaml',
+  'config/spec-frozen/runtime/tables/first-party-protected-runtime-profiles.yaml',
 ]);
 
 const nimiCandidateSourcePrefixes = [

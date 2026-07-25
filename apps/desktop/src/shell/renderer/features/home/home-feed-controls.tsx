@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 /**
  * Canonical Realm feed scopes presented on the Home feed surface.
- * Authority: `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`
+ * Authority: `.nimi/spec/desktop/product-surfaces.authority.yaml`
  * (`rule.nimi.desktop.product-surfaces.r018`) over Realm `R-FEED-005`.
  * Machine projection: `config/desktop-product-surfaces-home-feed-scopes.yaml`.
  */

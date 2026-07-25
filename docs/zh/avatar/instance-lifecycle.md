@@ -63,7 +63,7 @@ loading → ready → degraded:* → relaunch-pending
 
 同一个代理通常出现在：
 
-- 桌面聊天（通过 `kit/features/avatar` 消费 `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`）
+- 桌面聊天（通过 `kit/features/avatar` 消费 `.nimi/spec/desktop/agent-projection.authority.yaml`）
 - 独立的 Avatar 载体（此应用）
 
 这些界面保持同步，因为它们都消费**相同的运行时映射**。它们彼此之间不进行协调；它们消费运行时事件流和注册表映射。
@@ -137,4 +137,4 @@ loading → ready → degraded:* → relaunch-pending
 - [`.nimi/spec/avatar/nimi-avatar.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/nimi-avatar.md)
 - [`.nimi/spec/avatar/kernel/avatar-event-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/avatar-event-contract.md)
 - [`.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md)
-- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)
+- [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)

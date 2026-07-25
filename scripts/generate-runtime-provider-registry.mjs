@@ -16,7 +16,7 @@ const providerExtensionRegistryTablePath = path.join(repoRoot, 'config', 'runtim
 
 const configTableHeader = [
   '# Non-authoritative machine configuration.',
-  '# Normative authority: .nimi/spec/canonical/runtime/model-catalog.authority.yaml',
+  '# Normative authority: .nimi/spec/runtime/model-catalog.authority.yaml',
   '# Rationale: docs/authority/runtime-model-catalog-rationale.md',
   '',
 ].join('\n');

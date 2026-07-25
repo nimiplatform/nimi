@@ -37,7 +37,7 @@ function listRepoFiles(relativePath: string): string[] {
   return files.sort();
 }
 
-const bridgeIpcAuthority = readRepo('.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml');
+const bridgeIpcAuthority = readRepo('.nimi/spec/desktop/bridge-ipc.authority.yaml');
 const gitIgnoreSource = readRepo('.gitignore');
 const productControlSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control.rs');
 const productControlOperationsSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control/operations.rs');

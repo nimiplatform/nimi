@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/runtime/local-compute.authority.yaml
+# Normative authority: .nimi/spec/runtime/local-compute.authority.yaml
 # Rationale: docs/authority/runtime-local-compute-rationale.md
 version: 1
 table_family: closed_enum

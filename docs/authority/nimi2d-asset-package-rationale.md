@@ -1,6 +1,6 @@
 # Nimi2D Asset Package - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/nimi2d/asset-package.authority.yaml` 与 `.nimi/spec/canonical/nimi2d/generation-supply.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/nimi2d/asset-package.authority.yaml` 与 `.nimi/spec/nimi2d/generation-supply.authority.yaml`。
 
 ---
 
@@ -1606,7 +1606,7 @@ Nimi2D consumes, but does not redefine:
 - `.nimi/spec/avatar/kernel/tables/nimi2d-live-action-routes.yaml`
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 - `config/runtime-agent-event-projection.yaml`
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`
+- `.nimi/spec/desktop/ai-consumption.authority.yaml`
 - `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
 - `.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml`
 

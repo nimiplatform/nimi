@@ -1,6 +1,6 @@
 # Desktop Shell Runtime Rationale
 
-> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml`。
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/desktop/shell-runtime.authority.yaml`。
 
 ## Rationale 完整性对账
 
@@ -25,7 +25,7 @@
 ### 有意拒绝
 
 - Web/browser 的 storage、cookie、logout persistence 细节不进入 `desktop.shell-runtime`；只保留 Web/cloud material 不得成为 local first-party Desktop truth 的围栏。
-- Exact IPC command inventory、`afterSequence` native injection、`hasTauriInvoke` 与 invoke lifecycle 不在本容器重复定义；其产品语义由 `.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml` 拥有。
+- Exact IPC command inventory、`afterSequence` native injection、`hasTauriInvoke` 与 invoke lifecycle 不在本容器重复定义；其产品语义由 `.nimi/spec/desktop/bridge-ipc.authority.yaml` 拥有。
 - Runtime External Agent 的 scope evaluator、execution/completion verification、audit filter 与 ring-buffer retention 不进入 Desktop authority；Desktop 只保留 typed projection、one-time plaintext 与 fail-closed control UI。
 - Desktop-owned PKCE verifier、client secret、token exchange/custody、direct-Realm route/fetch、bearer Socket.IO、port rewrite、session/replay/LRU 与 polling coordination 均拒绝准入。
 - 旧 auth token slice、bearer-bearing bootstrap phase 描述、generic offline Runtime/Realm config staging、cache/outbox/signed-binary/loopback/synthetic-fixture pseudo-success 均拒绝准入。
@@ -761,7 +761,7 @@ Desktop UI state、SDK / Runtime projection cache、或 visible lifecycle projec
 
 `RuntimeFieldMap` 必须保持 string-keyed extensible map 语义；Desktop 可以预置核心字段，但不得将额外 runtime field key 视为非法。Desktop core 不得预置 Agent chat launcher 语义。
 
-`runtimeFields` 的 route-related 字段在 `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`（`D-LLM-015` ~ `D-LLM-021`）下只允许作为 execution projection / transient input；不得继续承担 selection truth、projection truth 或 thread-global route owner 语义。
+`runtimeFields` 的 route-related 字段在 `.nimi/spec/desktop/agent-projection.authority.yaml`（`D-LLM-015` ~ `D-LLM-021`）下只允许作为 execution projection / transient input；不得继续承担 selection truth、projection truth 或 thread-global route owner 语义。
 这些 route-related 字段不得从 `runtime_defaults`、renderer env fallback、或 Desktop-owned provider/model defaults 派生。
 
 若 Desktop 持久化 Agent Chat UI settings，仅允许表达 local UI preference / placement
@@ -813,7 +813,7 @@ subscription/cache. No instance may observe another instance's state.
 
 ## Fact Sources
 
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
+- `.nimi/spec/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — Runtime Agent Chat execution/projection authority
 - `tables/store-slices.yaml` — Slice 枚举
 - `tables/app-tabs.yaml` — AppTab 枚举

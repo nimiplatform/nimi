@@ -10,7 +10,7 @@ const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestFile = resolve(repoRoot, 'sdks/typescript/core-generated/runtime-core.manifest.json');
 const authPostureIndexFile = resolve(
   repoRoot,
-  '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml',
+  'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture.yaml',
 );
 const outputFiles = [
   resolve(repoRoot, 'kit/shell/tauri/src/runtime_bridge/generated/method_ids.rs'),

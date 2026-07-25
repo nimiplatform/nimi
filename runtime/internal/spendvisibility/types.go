@@ -1,5 +1,5 @@
 // Package spendvisibility implements the typed AI spend visibility
-// projection per `.nimi/spec/canonical/runtime/ai-provider.authority.yaml`.
+// projection per `.nimi/spec/runtime/ai-provider.authority.yaml`.
 //
 // Per Wave 5 close-requires: "AI spend visibility appears before
 // execution where policy requires it." This package projects typed

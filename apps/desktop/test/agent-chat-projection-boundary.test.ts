@@ -26,7 +26,7 @@ function readAuthorityUnit(container: string, unitId: string): string {
 }
 
 test('Agent Chat spec forbids draft, archive, rename, and offline transcript persistence', () => {
-  const spec = readWorkspaceFile('.nimi/spec/canonical/desktop/agent-projection.authority.yaml');
+  const spec = readWorkspaceFile('.nimi/spec/desktop/agent-projection.authority.yaml');
   const projectionTruth = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r002');
   const persistenceScope = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r020');
   const transcriptBoundary = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r021');
@@ -52,7 +52,7 @@ test('Agent Chat spec forbids draft, archive, rename, and offline transcript per
 });
 
 test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage', () => {
-  const desktopSpec = readWorkspaceFile('.nimi/spec/canonical/desktop/agent-projection.authority.yaml');
+  const desktopSpec = readWorkspaceFile('.nimi/spec/desktop/agent-projection.authority.yaml');
   const runtimeSpec = readWorkspaceFile('docs/authority/runtime-agent-service-rationale.md');
   const retiredStore = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r026');
   const summaries = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r028');

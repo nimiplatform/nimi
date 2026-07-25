@@ -119,7 +119,7 @@ Notes:
 - The runtime-facing knowledge/page surface is registered exclusively under
   `RuntimeCognitionService`. There is no separate standalone gRPC service for the
   knowledge surface; the retired topology is recorded in
-  `.nimi/spec/canonical/runtime/memory-world.authority.yaml` (K-KNOW-001 / K-KNOW-001a).
+  `.nimi/spec/runtime/memory-world.authority.yaml` (K-KNOW-001 / K-KNOW-001a).
 - standard `grpc.health.v1.Health` probing is also registered for daemon health, but
   it is not part of the runtime-owned proto service inventory above.
 
@@ -149,7 +149,7 @@ Health endpoints:
 - User-facing setup should prefer env-backed credentials; inline `apiKey` is fallback-only
 - `config` changes that touch runtime wiring remain restart-scoped
 - Connector/provider authority is the repo-local `.nimi` spec surface:
-  `.nimi/spec/canonical/runtime/ai-provider.authority.yaml`, `.nimi/spec/canonical/runtime/model-catalog.authority.yaml`,
+  `.nimi/spec/runtime/ai-provider.authority.yaml`, `.nimi/spec/runtime/model-catalog.authority.yaml`,
   and imported kernel provider catalog/capability tables. Runtime catalog source
   files and generated snapshots are support/projection inputs, not standalone
   product truth.

@@ -1,6 +1,6 @@
 # Runtime AI Provider - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/runtime/ai-provider.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/ai-provider.authority.yaml`。
 
 ---
 
@@ -377,7 +377,7 @@ Rules:
 - `scheduling-contract.md` — K-SCHED-001~007 (five-state scheduling judgement)
 - `key-source-routing.md` — K-KEYSRC-001~011 (remote binding legality)
 - `connector-contract.md` — K-CONN-001~017 (connector custody and legality)
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` — D-AIPC-001~012 (desktop AI config authority)
+- `.nimi/spec/desktop/ai-consumption.authority.yaml` — D-AIPC-001~012 (desktop AI config authority)
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~005 (AIScopeRef)
 
 

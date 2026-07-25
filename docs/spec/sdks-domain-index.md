@@ -6,9 +6,9 @@
 
 | 容器 | 覆盖面 |
 |---|---|
-| `.nimi/spec/canonical/sdks/client-core.authority.yaml` | 公开面/runtime 客户端/传输/错误投影/边界/scope(含无 fallback 旋钮与重试不救契约失败硬边界) |
-| `.nimi/spec/canonical/sdks/feature-clients.authority.yaml` | AI 适配与配置/第三方 app 客户端/permission/proposal/connector 认证/本地环境投影/route/delegation/avatar 控制/agent 参与/companion/包治理与 vnext |
-| `.nimi/spec/canonical/sdks/realm-consumer.authority.yaml` | Realm API 消费/生成核心/facade/world/world-evolution 投影与消费/群组参与客户端(Realm 产权只引用) |
+| `.nimi/spec/sdks/client-core.authority.yaml` | 公开面/runtime 客户端/传输/错误投影/边界/scope(含无 fallback 旋钮与重试不救契约失败硬边界) |
+| `.nimi/spec/sdks/feature-clients.authority.yaml` | AI 适配与配置/第三方 app 客户端/permission/proposal/connector 认证/本地环境投影/route/delegation/avatar 控制/agent 参与/companion/包治理与 vnext |
+| `.nimi/spec/sdks/realm-consumer.authority.yaml` | Realm API 消费/生成核心/facade/world/world-evolution 投影与消费/群组参与客户端(Realm 产权只引用) |
 
 原文散文见 `docs/authority/sdks-*-rationale.md`(非规范;app-client 契约节标记为 `nimi-app-client-contract.md`,runtime/transport 节同法);机器行数据见 `config/sdks-*.yaml`(头注声明非权威)。
 

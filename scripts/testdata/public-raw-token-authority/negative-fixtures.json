@@ -2,7 +2,7 @@
   {
     "fixture_id": "account-surface-reintroduced",
     "code": "PUBLIC_RAW_TOKEN_ACCOUNT_SURFACE_PRESENT",
-    "path": ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
+    "path": "config/spec-frozen/runtime/tables/account-rpc-permission-matrix.yaml",
     "mutation": {
       "kind": "yaml_append",
       "path": ["surfaces"],
@@ -12,7 +12,7 @@
   {
     "fixture_id": "refresh-account-surface-reintroduced",
     "code": "PUBLIC_REFRESH_ACCOUNT_SURFACE_PRESENT",
-    "path": ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
+    "path": "config/spec-frozen/runtime/tables/account-rpc-permission-matrix.yaml",
     "mutation": {
       "kind": "yaml_append",
       "path": ["surfaces"],
@@ -22,7 +22,7 @@
   {
     "fixture_id": "transport-surface-reintroduced",
     "code": "PUBLIC_RAW_TOKEN_TRANSPORT_SURFACE_PRESENT",
-    "path": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "path": "config/spec-frozen/runtime/tables/protected-local-rpc-transport-matrix.yaml",
     "mutation": {
       "kind": "yaml_append",
       "path": ["methods"],

@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/runtime/agent-participation.authority.yaml (voice stream axes)
-#   and .nimi/spec/canonical/runtime/rpc-foundations.authority.yaml (voice workflow/reference/asset enums)
+# Normative authority: .nimi/spec/runtime/agent-participation.authority.yaml (voice stream axes)
+#   and .nimi/spec/runtime/rpc-foundations.authority.yaml (voice workflow/reference/asset enums)
 # Rationale: docs/authority/runtime-agent-participation-rationale.md
 version: 1
 table_family: closed_enum

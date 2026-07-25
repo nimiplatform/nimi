@@ -19,7 +19,7 @@ export const IMMUTABLE_PACKAGE_METHOD_IDS = Object.freeze(
 );
 
 export const CANDIDATE_PATHS = Object.freeze({
-  authPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
+  authPosture: 'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/identity-access.yaml',
   runtimeHandlers: 'runtime/internal/services/app/immutable_package_unavailable.go',
   runtimeReadiness: 'runtime/internal/services/app/package_readiness_handler.go',
   runtimeTransport: 'runtime/internal/grpcserver/immutable_package_transport.go',

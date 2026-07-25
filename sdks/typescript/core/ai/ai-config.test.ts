@@ -149,7 +149,7 @@ test('image model family companion contract follows runtime spec table', () => {
 });
 
 function readImageFamilyCompanionSpec(): Record<string, Array<Record<string, string>>> {
-  const raw = readFileSync(new URL('../../../../.nimi/spec/runtime/kernel/tables/profile-image-family-companion-slots.yaml', import.meta.url), 'utf8');
+  const raw = readFileSync(new URL('../../../../config/spec-frozen/runtime/tables/profile-image-family-companion-slots.yaml', import.meta.url), 'utf8');
   const families: Record<string, Array<Record<string, string>>> = {};
   let family = '';
   let current: Record<string, string> | null = null;

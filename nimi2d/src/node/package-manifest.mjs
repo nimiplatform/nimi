@@ -84,7 +84,7 @@ function baseBody(input, layerRefs) {
     base_body_id: `n2d_base_body_${input.input_id}`,
     topology_id: 'nimi.nimi2d.base-body.topology',
     topology_version: 1,
-    slot_taxonomy_ref: '.nimi/spec/canonical/nimi2d/asset-package.authority.yaml',
+    slot_taxonomy_ref: '.nimi/spec/nimi2d/asset-package.authority.yaml',
     skeleton_id: `n2d_skeleton_${input.input_id}`,
     anchor_set_id: `n2d_anchor_set_${input.input_id}`,
     slot_set_id: `n2d_slot_set_${input.input_id}`,
@@ -168,7 +168,7 @@ function buildPackageManifest(input, layerInputPath, options) {
     capability: {
       requested_tier: requestedTier,
       proven_tier: provenTier,
-      channel_matrix_ref: '.nimi/spec/canonical/nimi2d/asset-package.authority.yaml',
+      channel_matrix_ref: '.nimi/spec/nimi2d/asset-package.authority.yaml',
       channel_evidence: capabilityEvidence(input, provenTier),
     },
     base_body: baseBody(input, baseLayerRefs(input)),

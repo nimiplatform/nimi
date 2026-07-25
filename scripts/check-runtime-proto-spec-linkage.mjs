@@ -204,7 +204,7 @@ function checkConnectorUpdateMaskAndPagination() {
   expectRegex(specConnector, /##\s+K-CONN-014\b/m, 'K-CONN-014 rule definition');
   expectRegex(specConnector, /\bpage_size\b[\s\S]*\bpage_token\b[\s\S]*\bnext_page_token\b/m, 'K-CONN-014 pagination fields mention');
 
-  const connectorRules = YAML.parse(read('.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml'));
+  const connectorRules = YAML.parse(read('config/spec-frozen/runtime/tables/connector-rpc-field-rules.yaml'));
   const rules = Array.isArray(connectorRules?.rules) ? connectorRules.rules : [];
   const updateMaskRules = rules.filter((item) => String(item?.rpc || '') === 'UpdateConnector' && String(item?.field || '').includes('update_mask'));
   if (updateMaskRules.length === 0) {
@@ -284,7 +284,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     expectRegex(accountService, new RegExp(`\\brpc\\s+${method}\\s*\\(`), `${accountRel} RuntimeAccountService.${method}`);
   }
 
-  const grantSpecRel = '.nimi/spec/canonical/runtime/security-core.authority.yaml';
+  const grantSpecRel = '.nimi/spec/runtime/security-core.authority.yaml';
   const grantSpec = YAML.parse(read(grantSpecRel));
   const grantRuleIds = new Set((grantSpec?.units ?? []).map((unit) => String(unit?.id ?? '')));
   for (const ruleId of [
@@ -303,7 +303,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     if (!grantRuleIds.has(ruleId)) fail(`${grantSpecRel} missing ${ruleId} rule definition`);
   }
 
-  const schemaRel = '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml';
+  const schemaRel = 'config/spec-frozen/runtime/tables/local-app-grant-binding-schema.yaml';
   const schema = readYaml(schemaRel);
   if (String(schema?.source_rule || '') !== 'K-GRANT-014') {
     fail(`${schemaRel} source_rule must be K-GRANT-014`);
@@ -339,9 +339,9 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
 
   const authorityTables = [
     'config/runtime-rpc-methods.yaml',
-    '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
-    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
-    '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
+    'config/spec-frozen/runtime/tables/rpc-migration-map/methods-identity-app.yaml',
+    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/identity-access.yaml',
+    'config/spec-frozen/runtime/tables/protected-local-rpc-transport-matrix.yaml',
     'config/sdks-runtime-method-groups.yaml',
   ];
   const authorityCorpus = authorityTables.map(read).join('\n');
@@ -367,7 +367,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     }
   }
 
-  const authPosture = readYaml('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml');
+  const authPosture = readYaml('config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/identity-access.yaml');
   const authRows = Array.isArray(authPosture?.methods) ? authPosture.methods : [];
   for (const method of permissionMethods) {
     const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
@@ -388,7 +388,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     }
   }
 
-  const migration = readYaml('.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml');
+  const migration = readYaml('config/spec-frozen/runtime/tables/rpc-migration-map/methods-identity-app.yaml');
   const mappings = Array.isArray(migration?.method_mappings) ? migration.method_mappings : [];
   for (const method of permissionMethods) {
     const row = mappings.find((item) => String(item?.design_service || '') === 'RuntimeAccountService' && String(item?.design_method || '') === method);
@@ -397,7 +397,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     }
   }
 
-  const transport = readYaml('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
+  const transport = readYaml('config/spec-frozen/runtime/tables/protected-local-rpc-transport-matrix.yaml');
   const transportRows = Array.isArray(transport?.methods) ? transport.methods : [];
   for (const method of permissionMethods) {
     const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
@@ -435,7 +435,7 @@ function checkDesktopProductControlProtectedAuthorityLinkage() {
   const expectedMethodIds = methodNames
     .map((method) => `/nimi.runtime.v1.RuntimeLocalService/${method}`)
     .sort();
-  const transport = readYaml('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
+  const transport = readYaml('config/spec-frozen/runtime/tables/protected-local-rpc-transport-matrix.yaml');
   const transportRows = Array.isArray(transport?.methods) ? transport.methods : [];
   const desktopRows = transportRows.filter((row) => String(row?.operation_class || '') === 'desktop_product_control');
   const actualMethodIds = desktopRows.map((row) => String(row?.method_id || '')).sort();
@@ -443,7 +443,7 @@ function checkDesktopProductControlProtectedAuthorityLinkage() {
     fail(`protected-local-rpc-transport-matrix.yaml desktop_product_control set mismatch: ${actualMethodIds.join(', ')}`);
   }
 
-  const posture = readYaml('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml');
+  const posture = readYaml('config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/local-connector-model.yaml');
   const postureRows = Array.isArray(posture?.methods) ? posture.methods : [];
   const rpcMethods = readYaml('config/runtime-rpc-methods.yaml');
   const runtimeLocal = (Array.isArray(rpcMethods?.services) ? rpcMethods.services : [])
@@ -524,7 +524,7 @@ function checkLocalPaginationAndAuditFields() {
     }
   }
 
-  const specPagination = read('.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml');
+  const specPagination = read('.nimi/spec/runtime/rpc-foundations.authority.yaml');
   for (const method of [
     'ListLocalAssets',
     'ListVerifiedAssets',
@@ -569,7 +569,7 @@ function checkReasonCodes359To363Linkage() {
     }
   }
 
-  const mappingDoc = readYaml('.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml');
+  const mappingDoc = readYaml('config/spec-frozen/runtime/tables/error-mapping-matrix.yaml');
   const mappings = Array.isArray(mappingDoc?.mappings) ? mappingDoc.mappings : [];
   const mappedReasonCodes = new Set(mappings.map((item) => String(item?.reason_code || '')));
   for (const [name] of expected) {
@@ -593,7 +593,7 @@ function checkPagingPairsInConnectorProto() {
     assertMessageHasFields(resp, respName, 'proto/runtime/v1/connector.proto', ['next_page_token']);
   }
 
-  const paginationSpec = read('.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml');
+  const paginationSpec = read('.nimi/spec/runtime/rpc-foundations.authority.yaml');
   for (const method of ['ListConnectors', 'ListConnectorModels']) {
     if (!paginationSpec.includes(method)) {
       fail(`rpc-foundations authority missing pagination anchor for ${method}`);
@@ -643,11 +643,11 @@ function checkMemoryProtoAdmission() {
     'infra-only locator branches',
   ]) {
     if (!specMemory.includes(token)) {
-      fail(`.nimi/spec/canonical/runtime/memory-world.authority.yaml missing token: ${token}`);
+      fail(`.nimi/spec/runtime/memory-world.authority.yaml missing token: ${token}`);
     }
   }
 
-  const paginationSpec = read('.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml');
+  const paginationSpec = read('.nimi/spec/runtime/rpc-foundations.authority.yaml');
   if (!paginationSpec.includes('ListBanks')) {
     fail('rpc-foundations authority missing pagination anchor for ListBanks');
   }
@@ -839,7 +839,7 @@ function checkRuntimeAgentServiceProtoAdmission() {
     'typed command/patch union',
   ]) {
     if (!specAgentServiceFlat.includes(token)) {
-      fail(`.nimi/spec/canonical/runtime/agent-service.authority.yaml missing token: ${token}`);
+      fail(`.nimi/spec/runtime/agent-service.authority.yaml missing token: ${token}`);
     }
   }
 
@@ -854,26 +854,26 @@ function checkRuntimeAgentServiceProtoAdmission() {
     'HookIntent',
   ]) {
     if (!specHookIntent.includes(token)) {
-      fail(`.nimi/spec/canonical/runtime/agent-participation.authority.yaml missing token: ${token}`);
+      fail(`.nimi/spec/runtime/agent-participation.authority.yaml missing token: ${token}`);
     }
   }
 
   // K-AGCORE-006 typed-family registry must declare HOOK_INTENT (steady-state
   // canonical name; NEXT_HOOK_INTENT is retired per closeout-wave-1).
-  const typedFamilyTable = YAML.parse(read('.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml'));
+  const typedFamilyTable = YAML.parse(read('config/spec-frozen/runtime/tables/runtime-agent-service-typed-family.yaml'));
   const families = Array.isArray(typedFamilyTable?.families) ? typedFamilyTable.families : [];
   const familyNames = families.map((item) => String(item?.family || ''));
   const requiredFamilies = ['HOOK_INTENT', 'HOOK_OUTCOME', 'CANONICAL_MEMORY_CANDIDATE', 'CANONICAL_MEMORY_VIEW', 'CONSTRAINED_STATE_MUTATION', 'AGENT_EVENT'];
   for (const required of requiredFamilies) {
     if (!familyNames.includes(required)) {
-      fail(`.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml missing family: ${required}`);
+      fail(`config/spec-frozen/runtime/tables/runtime-agent-service-typed-family.yaml missing family: ${required}`);
     }
   }
   if (familyNames.includes('NEXT_HOOK_INTENT')) {
-    fail('.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml must not declare retired NEXT_HOOK_INTENT family (K-AGCORE-041 admits HookIntent only)');
+    fail('config/spec-frozen/runtime/tables/runtime-agent-service-typed-family.yaml must not declare retired NEXT_HOOK_INTENT family (K-AGCORE-041 admits HookIntent only)');
   }
 
-  const paginationSpec = read('.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml');
+  const paginationSpec = read('.nimi/spec/runtime/rpc-foundations.authority.yaml');
   for (const method of ['ListAgents', 'ListPendingHooks']) {
     if (!paginationSpec.includes(method)) {
       fail(`rpc-foundations authority missing pagination anchor for ${method}`);
@@ -918,7 +918,7 @@ function checkAvatarPackageProjectionProtoRetirement() {
   if (rpcMethods.includes('ResolveAvatarPackageLaunchProjection')) {
     fail('rpc-methods.yaml must not list retired ResolveAvatarPackageLaunchProjection');
   }
-  const authPosture = read('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml');
+  const authPosture = read('config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml');
   for (const retiredToken of [
     '/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection',
     'runtime.agent.avatar_package.read',

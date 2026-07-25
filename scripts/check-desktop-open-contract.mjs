@@ -345,9 +345,9 @@ if (!platformIndex.includes('desktop-open-intent-contract.md')
 }
 
 const ownerContracts = [
-  '.nimi/spec/canonical/desktop/shell-ui.authority.yaml',
-  '.nimi/spec/canonical/desktop/product-surfaces.authority.yaml',
-  '.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml',
+  '.nimi/spec/desktop/shell-ui.authority.yaml',
+  '.nimi/spec/desktop/product-surfaces.authority.yaml',
+  '.nimi/spec/desktop/bridge-ipc.authority.yaml',
 ].map((file) => read(file)).join('\n');
 for (const phrase of ['Settings', 'Agents', 'Apps', 'Runtime Config', 'Explore']) {
   if (!ownerContracts.includes(phrase)) {

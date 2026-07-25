@@ -1,5 +1,5 @@
 // Package hostcapability implements Runtime host capability profile
-// resolution per .nimi/spec/canonical/runtime/local-compute.authority.yaml.
+// resolution per .nimi/spec/runtime/local-compute.authority.yaml.
 //
 // This package loads the canonical host capability profile catalog from
 // runtime/kernel/tables/host-capability-profiles.yaml and resolves the

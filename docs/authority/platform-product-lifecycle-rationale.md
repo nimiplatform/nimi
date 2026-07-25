@@ -1,6 +1,6 @@
 # Platform Product Lifecycle - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/platform/product-lifecycle.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/platform/product-lifecycle.authority.yaml`。
 
 ---
 
@@ -556,7 +556,7 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 
 定义 `Nimi Home` — Platform 拥有的产品入口/壳层 authority surface。
 本契约只定义产品 ontology 与非 owner 边界，shell IA 与实现细节由
-`.nimi/spec/canonical/desktop/shell-ui.authority.yaml`（`rule.nimi.desktop.shell-ui.r049..r061`）拥有。
+`.nimi/spec/desktop/shell-ui.authority.yaml`（`rule.nimi.desktop.shell-ui.r049..r061`）拥有。
 
 不创建 `.nimi/spec/home/**` 平级 kernel。
 
@@ -700,7 +700,7 @@ health、Apps 等）。
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
 - `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 - `config/desktop-shell-ui-home-surfaces.yaml` — non-authoritative machine projection
 - `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
 - `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
@@ -778,7 +778,7 @@ ready 投影。
 
 ## P-SUPD-007 — Existing Desktop Self-Update Supersession
 
-`MUST`：`.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` 的 self-update plane 继续保留
+`MUST`：`.nimi/spec/desktop/shell-runtime.authority.yaml` 的 self-update plane 继续保留
 为 desktop-host 实现细节（atomic Desktop release unit、与 independently
 installed Runtime service 的 signed release compatibility、updater
 pubkey/endpoint 实现等）。它在本 Platform policy 之下作为 desktop-hosted
@@ -802,7 +802,7 @@ OS service manager 持有。
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
 - `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
-- `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
+- `.nimi/spec/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
@@ -911,7 +911,7 @@ identity，必须由显式 `web-release-contract.md` cut 处理。
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
 - `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
 - `.nimi/spec/platform/kernel/tables/release-gate-registry.yaml`
-- `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
+- `.nimi/spec/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 
@@ -1086,7 +1086,7 @@ spec admission。
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-008`
 - `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 - `.nimi/spec/avatar` (kernel authority retained)
 
 
@@ -1197,7 +1197,7 @@ user product truth。
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 
 
 ---

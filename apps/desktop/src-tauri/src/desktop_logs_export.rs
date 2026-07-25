@@ -1,6 +1,6 @@
 //! Support `logs` sub-area log-export command (`rule.nimi.desktop.product-surfaces.r027`).
 //!
-//! Spec authority: `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`
+//! Spec authority: `.nimi/spec/desktop/product-surfaces.authority.yaml`
 //! `rule.nimi.desktop.product-surfaces.r027` — the Support `logs` sub-area MUST produce a user-locatable
 //! log-export artifact of the `<nimi_data>/logs/` directory
 //! (`P-MIG-006` `logs` row, owner `runtime_product_support`,

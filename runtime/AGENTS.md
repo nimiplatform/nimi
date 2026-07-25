@@ -8,7 +8,7 @@
 - Keep runtime self-contained: no imports from `sdk/**` or `apps/**`.
 - Preserve Go rules: constructor injection, no global mutable state, `fmt.Errorf("op: %w", err)`, no `log.Println`.
 - Treat `runtime/gen/**` and `runtime/internal/providerregistry/generated.go` as generated read-only outputs.
-- Runtime connector/provider authority: `.nimi/spec/canonical/runtime/ai-provider.authority.yaml` + `model-catalog.authority.yaml`(散文 `docs/authority/runtime-domain-guides-rationale.md`).
+- Runtime connector/provider authority: `.nimi/spec/runtime/ai-provider.authority.yaml` + `model-catalog.authority.yaml`(散文 `docs/authority/runtime-domain-guides-rationale.md`).
   Runtime catalog source files and generated snapshots are support/projection inputs only; they must not become
   parallel product truth for connector provider domains, model-list semantics, custody, owner, or probe behavior.
 - Do not patch runtime gaps with desktop or SDK hardcodes.

@@ -129,7 +129,7 @@ const authorityRules = [
   },
   {
     ruleId: 'rule.nimi.desktop.shell-runtime.r078',
-    contract: '.nimi/spec/canonical/desktop/shell-runtime.authority.yaml',
+    contract: '.nimi/spec/desktop/shell-runtime.authority.yaml',
     clauses: [
       ['DESKTOP_LIFECYCLE_ONLY_OWNER_MISSING', /Desktop owns account-control and lifecycle UX and verified process launch/iu],
       ['RUNTIME_REALM_TRANSPORT_OWNER_MISSING', /Runtime remains the sole owner of authenticated Realm unary, realtime, and media transport/iu],

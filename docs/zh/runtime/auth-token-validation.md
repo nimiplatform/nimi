@@ -127,7 +127,7 @@
 
 ## 来源依据
 
-- [`.nimi/spec/canonical/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/runtime/security-core.authority.yaml)
+- [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
 - [`docs/authority/runtime-security-core-rationale.md`](https://github.com/nimiplatform/nimi/blob/main/docs/authority/runtime-security-core-rationale.md)
 - [`.nimi/spec/runtime/kernel/auth-service.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/auth-service.md)
 - [`.nimi/spec/runtime/kernel/account-session-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/account-session-contract.md)

@@ -15,14 +15,14 @@ without prior conversation context.
 1. Root `AGENTS.md`.
 2. `.nimi/spec/INDEX.md`.
 3. `.nimi/spec/sdks/kernel/index.md`.
-4. `.nimi/spec/canonical/sdks/client-core.authority.yaml`.
-5. `.nimi/spec/canonical/sdks/client-core.authority.yaml`.
-6. `.nimi/spec/canonical/sdks/feature-clients.authority.yaml`.
+4. `.nimi/spec/sdks/client-core.authority.yaml`.
+5. `.nimi/spec/sdks/client-core.authority.yaml`.
+6. `.nimi/spec/sdks/feature-clients.authority.yaml`.
 7. `docs/authority/sdks-testing-gates-rationale.md`.
-8. `.nimi/spec/canonical/sdks/client-core.authority.yaml`.
-9. `.nimi/spec/canonical/sdks/realm-consumer.authority.yaml`.
-10. `.nimi/spec/canonical/sdks/feature-clients.authority.yaml`.
-11. `.nimi/spec/canonical/sdks/client-core.authority.yaml`.
+8. `.nimi/spec/sdks/client-core.authority.yaml`.
+9. `.nimi/spec/sdks/realm-consumer.authority.yaml`.
+10. `.nimi/spec/sdks/feature-clients.authority.yaml`.
+11. `.nimi/spec/sdks/client-core.authority.yaml`.
 12. `config/sdks-runtime-method-groups.yaml`.
 13. `docs/authority/sdks-testing-gates-rationale.md`.
 

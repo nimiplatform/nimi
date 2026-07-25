@@ -1,5 +1,5 @@
 # Ordinary conformance test fixture. Not product authority; normative semantics live in
-# .nimi/spec/canonical/platform/core-protocol.authority.yaml (P-DOPEN family).
+# .nimi/spec/platform/core-protocol.authority.yaml (P-DOPEN family).
 version: 1
 table_family: product_catalog
 owner: platform

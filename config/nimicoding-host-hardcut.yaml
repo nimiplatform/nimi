@@ -2,7 +2,7 @@ version: 2
 policy_id: nimi.nimicoding-host-boundary-hardcut.v2
 
 authority:
-  path: .nimi/spec/canonical/platform/authority-admission.authority.yaml
+  path: .nimi/spec/platform/authority-admission.authority.yaml
   required_rule_ids:
     - P-PKG-010
     - P-PKG-011

@@ -54,8 +54,8 @@ const SKIP_DIRS = new Set([
 
 const ALLOWLIST = new Set([
   '.nimi/spec/platform/kernel/index.md',
-  '.nimi/spec/canonical/platform/app-ecosystem.authority.yaml',
-  '.nimi/spec/canonical/sdks/feature-clients.authority.yaml',
+  '.nimi/spec/platform/app-ecosystem.authority.yaml',
+  '.nimi/spec/sdks/feature-clients.authority.yaml',
   'docs/authority/platform-app-ecosystem-rationale.md',
   'scripts/check-no-public-mod-extension-admission.mjs',
   'scripts/check-p-moex-anti-targets.mjs',

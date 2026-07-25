@@ -63,13 +63,13 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 
 - 项目未上线，不留 retired compatibility shim；retired v1 feature-phasing 框架已废弃
 - 不做 MVP / 不做半成品中间态；每次修改都必须端到端交付
-- spec 先行（`.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` 与 `.nimi/spec/canonical/**`），spec admit 后再做实现
+- spec 先行（`.nimi/spec/avatar/embodiment-surface.authority.yaml` 与 `.nimi/spec/**`），spec admit 后再做实现
 - 不做伪实现 / 伪返回；i18n、design tokens、lipsync 必须真实接通
 - 外部 AI host 独占任务编排；nimi-coding 仅提供已保留的方法论、spec 工具与确定性门禁
 
 ## Spec Authority & Sync
 
-`.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` is Nimi Avatar's admitted product authority (runtime-owned companion semantics live in `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`). Machine rows live in `config/avatar-*.yaml` (non-authoritative); `docs/authority/avatar-embodiment-rationale.md` is the archived prose guide.
+`.nimi/spec/avatar/embodiment-surface.authority.yaml` is Nimi Avatar's admitted product authority (runtime-owned companion semantics live in `.nimi/spec/runtime/agent-participation.authority.yaml`). Machine rows live in `config/avatar-*.yaml` (non-authoritative); `docs/authority/avatar-embodiment-rationale.md` is the archived prose guide.
 
 ### Migrated Contract Lineage
 
@@ -83,14 +83,14 @@ derivation history remains in Git and is not an active truth surface:
 
 Platform contracts are consumed from active `.nimi/spec/**` authority:
 
-- APML wire format → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`(原文 `docs/authority/runtime-agent-participation-rationale.md`)
-- APML LLM compliance → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
-- Activity ontology → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml` and `config/runtime-agent-activity-ontology.yaml`
-- HookIntent / event owner map → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
-- SDK runtime consume surface → `.nimi/spec/canonical/sdks/client-core.authority.yaml`
-- Presentation Timeline boundary → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
+- APML wire format → `.nimi/spec/runtime/agent-participation.authority.yaml`(原文 `docs/authority/runtime-agent-participation-rationale.md`)
+- APML LLM compliance → `.nimi/spec/runtime/agent-participation.authority.yaml`
+- Activity ontology → `.nimi/spec/runtime/agent-participation.authority.yaml` and `config/runtime-agent-activity-ontology.yaml`
+- HookIntent / event owner map → `.nimi/spec/runtime/agent-participation.authority.yaml`
+- SDK runtime consume surface → `.nimi/spec/sdks/client-core.authority.yaml`
+- Presentation Timeline boundary → `.nimi/spec/runtime/agent-participation.authority.yaml`
 
-Nimi Avatar-specific canonical units in `.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` do not re-define upstream; they define Avatar-local behavior and downstream implementation binding.
+Nimi Avatar-specific canonical units in `.nimi/spec/avatar/embodiment-surface.authority.yaml` do not re-define upstream; they define Avatar-local behavior and downstream implementation binding.
 
 ### Key Tables
 
@@ -327,7 +327,7 @@ advertising the workflow as canonical.
 
 ## Retrieval Defaults
 
-Start with: `.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml`, `config/avatar-*.yaml`, `src/shell/renderer/nas/`, `src/shell/renderer/live2d/`, `src/shell/renderer/app-shell/`, `src-tauri/src/`.
+Start with: `.nimi/spec/avatar/embodiment-surface.authority.yaml`, `config/avatar-*.yaml`, `src/shell/renderer/nas/`, `src/shell/renderer/live2d/`, `src/shell/renderer/app-shell/`, `src-tauri/src/`.
 
 Skip: `node_modules/`, `dist/`, `target/`, lockfiles.
 

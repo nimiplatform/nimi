@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { parse } from 'yaml';
 
 const root = process.cwd();
-const policyPath = resolve(root, '.nimi/spec/runtime/kernel/tables/realm-broker-operations.yaml');
+const policyPath = resolve(root, 'config/spec-frozen/runtime/tables/realm-broker-operations.yaml');
 const openAPIPath = resolve(root, 'config/realm-openapi/api-nimi.yaml');
 const outputPath = resolve(root, 'runtime/internal/services/account/realm_broker_policy_generated.go');
 const sdkOutputPath = resolve(root, 'sdks/typescript/core/app/runtime-account-realm-source-readiness.generated.ts');

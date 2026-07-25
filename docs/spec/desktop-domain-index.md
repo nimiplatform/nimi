@@ -1,16 +1,16 @@
 # Desktop 迁移域索引
 
-Desktop 的 canonical product authority 已迁至 `.nimi/spec/canonical/desktop/**`。本页只提供迁移后的定位清单，不定义规则，也不把 `config/**` 或 `docs/authority/**` 提升为 authority。
+Desktop 的 canonical product authority 已迁至 `.nimi/spec/desktop/**`。本页只提供迁移后的定位清单，不定义规则，也不把 `config/**` 或 `docs/authority/**` 提升为 authority。
 
 ## Canonical authority 容器
 
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`
-- `.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml`
-- `.nimi/spec/canonical/desktop/command-execution.authority.yaml`
-- `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`
-- `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml`
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml`
+- `.nimi/spec/desktop/agent-projection.authority.yaml`
+- `.nimi/spec/desktop/ai-consumption.authority.yaml`
+- `.nimi/spec/desktop/bridge-ipc.authority.yaml`
+- `.nimi/spec/desktop/command-execution.authority.yaml`
+- `.nimi/spec/desktop/product-surfaces.authority.yaml`
+- `.nimi/spec/desktop/shell-runtime.authority.yaml`
+- `.nimi/spec/desktop/shell-ui.authority.yaml`
 
 ## Non-authoritative machine config
 

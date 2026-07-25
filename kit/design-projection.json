@@ -6,7 +6,7 @@
   "designVersion": 2,
   "authority": {
     "owner": "platform",
-    "canonical": ".nimi/spec/canonical/platform/ui-design-system.authority.yaml",
+    "canonical": ".nimi/spec/platform/ui-design-system.authority.yaml",
     "projection": "kit/DESIGN.md",
     "generatedBy": "scripts/generate-nimi-design-md.mjs",
     "writeCommand": "node scripts/generate-nimi-design-md.mjs --write",

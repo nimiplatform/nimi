@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Normative authority: .nimi/spec/avatar/embodiment-surface.authority.yaml
 # Rationale: docs/authority/avatar-embodiment-rationale.md
 version: 1
 table_family: product_catalog
@@ -12,9 +12,9 @@ description: >
   tags or runtime activity ontology ids.
 
 source_authority:
-  runtime_projection: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+  runtime_projection: .nimi/spec/runtime/agent-participation.authority.yaml
   runtime_activity_ontology: config/runtime-agent-activity-ontology.yaml
-  public_apml_wire: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+  public_apml_wire: .nimi/spec/runtime/agent-participation.authority.yaml
 
 public_apml_syntax:
   direct_motion_expression_lookat_pose_tags_admitted: false

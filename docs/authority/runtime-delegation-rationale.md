@@ -1,6 +1,6 @@
 # Runtime Delegation - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/runtime/delegation.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/delegation.authority.yaml`。
 
 ---
 
@@ -593,7 +593,7 @@ no alternate active path until their own contract, implementation, and tests
 admit production consumption:
 
 - `delegated-mcp-adapter-contract.md`
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
+- `.nimi/spec/desktop/agent-projection.authority.yaml`
 - `delegated-a2a-future-seam-contract.md`
 - Avatar reference-only alignment when Avatar consumption changes
 

@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/runtime/rpc-foundations.authority.yaml
+# Normative authority: .nimi/spec/runtime/rpc-foundations.authority.yaml
 # Rationale: docs/authority/runtime-rpc-foundations-rationale.md
 version: 1
 table_family: protocol_surface

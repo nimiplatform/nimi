@@ -32,7 +32,7 @@ function sdkDefaultFor(source, key) {
 }
 
 function main() {
-  const spec = YAML.parse(read('.nimi/spec/runtime/kernel/tables/config-schema.yaml')) || {};
+  const spec = YAML.parse(read('config/spec-frozen/runtime/tables/config-schema.yaml')) || {};
   const fields = Array.isArray(spec.fields) ? spec.fields : [];
   const sdkSource = read('sdks/typescript/runtime/bridge-config.ts');
   const keys = ['schemaVersion', 'grpcAddr', 'httpAddr'];

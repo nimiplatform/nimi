@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/platform/core-protocol.authority.yaml
+# Normative authority: .nimi/spec/platform/core-protocol.authority.yaml
 # Rationale: docs/authority/platform-core-protocol-rationale.md
 version: 1
 table_family: protocol_surface

@@ -13,8 +13,8 @@ export const SOURCE_PATHS = Object.freeze({
   authProto: 'proto/runtime/v1/auth.proto',
   commonProto: 'proto/runtime/v1/common.proto',
   developmentProto: 'proto/runtime/v1/development.proto',
-  identityMap: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
-  excludedMap: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/excluded-proto-methods.yaml',
+  identityMap: 'config/spec-frozen/runtime/tables/rpc-migration-map/methods-identity-app.yaml',
+  excludedMap: 'config/spec-frozen/runtime/tables/rpc-migration-map/excluded-proto-methods.yaml',
   reasonAuthority: 'config/runtime-reason-codes/10-general-auth-connector.yaml',
 });
 

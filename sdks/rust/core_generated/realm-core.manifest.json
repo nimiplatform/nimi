@@ -9,7 +9,7 @@
     "config/realm-openapi/api-nimi.yaml"
   ],
   "authority_refs": [
-    ".nimi/spec/canonical/sdks/realm-consumer.authority.yaml"
+    ".nimi/spec/sdks/realm-consumer.authority.yaml"
   ],
   "provenance": {
     "source_rule": "S-SURFACE-019",

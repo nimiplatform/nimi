@@ -67,7 +67,7 @@ function realmSDKMethodName(operationID) {
 }
 
 function checkRuntimePermissionMatrix() {
-  const document = parse(read('.nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml'));
+  const document = parse(read('config/spec-frozen/runtime/tables/account-rpc-permission-matrix.yaml'));
   const platformBinding = document.platform_transport_binding;
   const protectedOriginBindings = platformBinding?.protected_origin_bindings ?? {};
   if (document.protected_transport_authority_ref !== 'protected-local-rpc-transport-matrix.yaml') fail('permission matrix protected transport authority ref drift');
@@ -163,7 +163,7 @@ function checkRuntimeCallerEnvelope() {
 }
 
 function checkRuntimeBrokerPolicy() {
-  const policy = parse(read('.nimi/spec/runtime/kernel/tables/realm-broker-operations.yaml'), { merge: true });
+  const policy = parse(read('config/spec-frozen/runtime/tables/realm-broker-operations.yaml'), { merge: true });
   const operations = policy.operations ?? [];
   const expectedOperationIDs = [
     'WorldCoreController_discoverPersonaCharacters',

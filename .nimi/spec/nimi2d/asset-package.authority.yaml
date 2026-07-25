@@ -45,7 +45,7 @@ units:
   - id: definition.nimi.nimi2d.asset-package.generation-supply-gap
     kind: definition
     title: N2D-AUTH-001 deferred generation-supply boundary
-    meaning: Codex Image2 provider request and artifact semantics plus Generation Bench corpus, replay, metric, gate, and result semantics are intentionally outside this W1 asset-package container and are owned by the sibling container .nimi/spec/canonical/nimi2d/generation-supply.authority.yaml.
+    meaning: Codex Image2 provider request and artifact semantics plus Generation Bench corpus, replay, metric, gate, and result semantics are intentionally outside this W1 asset-package container and are owned by the sibling container .nimi/spec/nimi2d/generation-supply.authority.yaml.
   - id: rule.nimi.nimi2d.asset-package.r001
     kind: rule
     title: N2D-AUTH-001 N2D-AUTH-007 owner-true package semantics
@@ -252,7 +252,7 @@ units:
     kind: rule
     title: N2D-BODY-010 topology identity
     modality: must
-    statement: Every base body declares topology_id nimi.nimi2d.base-body.topology, topology_version 1, slot_taxonomy_ref .nimi/spec/canonical/nimi2d/asset-package.authority.yaml, skeleton_id, and morphology_profile_id, and a change to required anchors, required slots, skeleton ownership, or wardrobe compatibility increments topology_version before use.
+    statement: Every base body declares topology_id nimi.nimi2d.base-body.topology, topology_version 1, slot_taxonomy_ref .nimi/spec/nimi2d/asset-package.authority.yaml, skeleton_id, and morphology_profile_id, and a change to required anchors, required slots, skeleton ownership, or wardrobe compatibility increments topology_version before use.
     condition: Whenever a base-body topology is admitted or compatibly evolved.
     failure: Reject missing, mismatched, or silently changed topology identity.
     relations:
@@ -516,7 +516,7 @@ units:
     kind: rule
     title: N2D-PKG-030 N2D-PKG-031 package tier claims
     modality: must
-    statement: capability is closed to requested_tier, proven_tier, literal channel_matrix_ref .nimi/spec/canonical/nimi2d/asset-package.authority.yaml, and channel_evidence; requested and proven tiers use only tiers zero through three; proven tier is validator-computed; and tier 1 permits jaw-amplitude evidence but prohibits AEIOU viseme evidence.
+    statement: capability is closed to requested_tier, proven_tier, literal channel_matrix_ref .nimi/spec/nimi2d/asset-package.authority.yaml, and channel_evidence; requested and proven tiers use only tiers zero through three; proven tier is validator-computed; and tier 1 permits jaw-amplitude evidence but prohibits AEIOU viseme evidence.
     condition: Whenever package capability is parsed, validated, or reported.
     failure: Reject self-declared success, reserved tier use, unknown channel, missing mandatory attestation, or tier-1 true-viseme overclaim.
     relations:

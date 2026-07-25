@@ -2,8 +2,8 @@ import path from 'node:path';
 
 import { generatedBy, readYaml, writeText } from './context.mjs';
 
-const AUTH_POSTURE_INDEX = '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml';
-const AUTH_POSTURE_DIR = '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture';
+const AUTH_POSTURE_INDEX = 'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture.yaml';
+const AUTH_POSTURE_DIR = 'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture';
 export function writeTypescriptRuntimeAuthPostureProjection(runtime) {
   const index = readYaml(AUTH_POSTURE_INDEX);
   const rows = [];

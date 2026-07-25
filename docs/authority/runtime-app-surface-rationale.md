@@ -1,6 +1,6 @@
 # Runtime App Surface - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/runtime/app-surface.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/app-surface.authority.yaml`。
 
 ---
 

@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Normative authority: .nimi/spec/avatar/embodiment-surface.authority.yaml
 # Rationale: docs/authority/avatar-embodiment-rationale.md
 schema_id: nimi.avatar.mapping-sidecar.v1
 table_family: product_catalog

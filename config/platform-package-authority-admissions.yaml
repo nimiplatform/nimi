@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/platform/authority-admission.authority.yaml
+# Normative authority: .nimi/spec/platform/authority-admission.authority.yaml
 # Rationale: docs/authority/platform-authority-admission-rationale.md
 version: 1
 table_family: product_catalog
@@ -18,12 +18,12 @@ admissions:
       - .nimi/spec/runtime/**
       - .nimi/spec/sdks/**
       - .nimi/spec/realm/**
-      - .nimi/spec/canonical/platform/**
+      - .nimi/spec/platform/**
       - .nimi/spec/desktop/**
-      - .nimi/spec/canonical/cognition/**
-      - .nimi/spec/canonical/avatar/**
+      - .nimi/spec/cognition/**
+      - .nimi/spec/avatar/**
     projection_boundary:
-      host_project_admission_owner: .nimi/spec/canonical/platform/authority-admission.authority.yaml
+      host_project_admission_owner: .nimi/spec/platform/authority-admission.authority.yaml
       package_truth_root: package://@nimiplatform/nimi-coding/spec
       host_local_projection_roots:
         - .nimi/config

@@ -65,7 +65,7 @@ function conversationReadinessHint(conversation: ZhiyuEvidence['conversation']):
 
 // Readiness tri-state product copy for the composer gate. The unavailable
 // reason codes come from the Runtime Agent AI Config readiness projection
-// (.nimi/spec/canonical/runtime/agent-participation.authority.yaml).
+// (.nimi/spec/runtime/agent-participation.authority.yaml).
 export function agentAIConfigReadinessHint(route: ZhiyuEvidence['route']): string {
   if (route.reasonCode === 'zhiyu-agent-ai-config-auth-required') {
     return '请先登录本地运行服务账户。';

@@ -3,7 +3,7 @@
 Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agent 的视觉化身。当前 admitted backend union 是 Live2D + VRM；Avatar 不把任何 renderer backend 当 app-local semantic home。
 
 > This README is a non-authoritative operator guide. Normative authority lives
-> under `../../.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` (machine rows in `config/avatar-*.yaml`) and the repo-wide platform specs referenced
+> under `../../.nimi/spec/avatar/embodiment-surface.authority.yaml` (machine rows in `config/avatar-*.yaml`) and the repo-wide platform specs referenced
 > there.
 
 ## Status
@@ -132,13 +132,13 @@ Platform-level spec is consumed from active `.nimi/spec/**` authority. The
 tracked reader guide is
 [Avatar Kernel Authority Map](../../docs/authority/avatar-embodiment-rationale.md).
 
-- [APML wire format](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
-- [Activity ontology](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml) and [activity ontology table](../../config/runtime-agent-activity-ontology.yaml)
-- [HookIntent and event owner map](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
-- [Runtime projection stream](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
-- [Conversation anchor](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
-- [SDK runtime consume surface](../../.nimi/spec/canonical/sdks/client-core.authority.yaml)
-- [Presentation Timeline admission boundary](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
+- [APML wire format](../../.nimi/spec/runtime/agent-participation.authority.yaml)
+- [Activity ontology](../../.nimi/spec/runtime/agent-participation.authority.yaml) and [activity ontology table](../../config/runtime-agent-activity-ontology.yaml)
+- [HookIntent and event owner map](../../.nimi/spec/runtime/agent-participation.authority.yaml)
+- [Runtime projection stream](../../.nimi/spec/runtime/agent-participation.authority.yaml)
+- [Conversation anchor](../../.nimi/spec/runtime/agent-participation.authority.yaml)
+- [SDK runtime consume surface](../../.nimi/spec/sdks/client-core.authority.yaml)
+- [Presentation Timeline admission boundary](../../.nimi/spec/runtime/agent-participation.authority.yaml)
 
 ## Carrier Notes
 

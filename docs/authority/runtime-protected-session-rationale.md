@@ -1,6 +1,6 @@
 # Runtime Protected Session and Surface - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/runtime/protected-session.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/protected-session.authority.yaml`。
 
 ---
 

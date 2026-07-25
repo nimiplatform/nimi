@@ -1,6 +1,6 @@
 # Runtime RPC Foundations - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/rpc-foundations.authority.yaml`。
 
 ---
 
@@ -1173,9 +1173,9 @@ this hard cut unless a downstream owner is explicitly named.
 | `.nimi/spec/avatar/kernel/live2d-render-contract.md` | `model_id` | `unrelated_domain` | Live2D `*.model3.json` id; not Runtime AI target identity. |
 | `.nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml` | `model_id` | `unrelated_domain` | Live2D adapter diagnostic fact. |
 | `.nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml` | `model_id` | `unrelated_domain` | Live2D adapter manifest field. |
-| `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` | `targetId`, `profileId`, `model_id`, `connector_id`, `localModelId`, `goRuntimeLocalModelId` | `must_migrate` | Patch Desktop AIProfile config authority to v2 refs. |
-| `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` | `connector_id` | `allowed_non_identity_fact` | Remote credential custody only; G3/G9/G12 reject connector-only target identity. |
-| `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` | `connector_id` | `allowed_non_identity_fact` | Managed credential routing only; G3/G12 require remote catalog target identity. |
+| `.nimi/spec/desktop/ai-consumption.authority.yaml` | `targetId`, `profileId`, `model_id`, `connector_id`, `localModelId`, `goRuntimeLocalModelId` | `must_migrate` | Patch Desktop AIProfile config authority to v2 refs. |
+| `.nimi/spec/desktop/ai-consumption.authority.yaml` | `connector_id` | `allowed_non_identity_fact` | Remote credential custody only; G3/G9/G12 reject connector-only target identity. |
+| `.nimi/spec/desktop/shell-runtime.authority.yaml` | `connector_id` | `allowed_non_identity_fact` | Managed credential routing only; G3/G12 require remote catalog target identity. |
 | `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` | `profileId` | `allowed_non_identity_fact` | AIProfile identity only; G4/G9 reject profile id as local-runtime target identity. |
 | `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` | `profileId` | `allowed_non_identity_fact` | AIProfile identity only; G4 rejects profile id in local target refs. |
 | `.nimi/spec/platform/kernel/nimi-first-party-integration-contract.md` | `profileId` | `allowed_non_identity_fact` | AIProfile apply reference only; G4/G9 require v2 AIConfig refs before execution. |

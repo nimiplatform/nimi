@@ -1,6 +1,6 @@
 # Runtime Agent Participation - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/agent-participation.authority.yaml`。
 
 ---
 
@@ -107,7 +107,7 @@ Fixed rules:
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
+- `.nimi/spec/desktop/agent-projection.authority.yaml`
 - `.nimi/spec/avatar/kernel/app-shell-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and dual-entry session correspondence
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and conversation continuity correspondence
@@ -640,7 +640,7 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — runtime-owned live agent lifecycle and app-facing control-plane boundary
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime-owned transient presentation / turn seam and current emotion projection
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime-owned `VoiceReference` and voice asset truth
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` — desktop-local carrier decommission and avatar-app handoff boundary
+- `.nimi/spec/desktop/agent-projection.authority.yaml` — desktop-local carrier decommission and avatar-app handoff boundary
 - `.nimi/spec/avatar/kernel/index.md` — Avatar first-party carrier authority map
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and core presentation correspondence
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and presentation correspondence
@@ -853,7 +853,7 @@ Active owner map:
 - APML parser events remain runtime-internal diagnostics and must not be exposed
   as durable app-facing `apml.*` product events
 - Desktop owns only chat shell bridge / handoff semantics under
-  `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
+  `.nimi/spec/desktop/agent-projection.authority.yaml`
 - Avatar owns Avatar-local `avatar.*` event naming and consume semantics under
   `.nimi/spec/avatar/kernel/avatar-event-contract.md`
 - SDK may consume admitted runtime agent projections but does not own platform
@@ -976,7 +976,7 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
 - `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
+- `.nimi/spec/desktop/agent-projection.authority.yaml`
 - `.nimi/spec/avatar/kernel/avatar-event-contract.md`
 - `.nimi/spec/avatar/kernel/tables/activity-mapping.yaml`
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime projection reader guide and core projection correspondence

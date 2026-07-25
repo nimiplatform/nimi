@@ -91,7 +91,7 @@
   },
   {
     "fixture_id": "final-method-left-unassigned",
-    "target": ".nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml",
+    "target": "config/spec-frozen/runtime/tables/rpc-migration-map/methods-identity-app.yaml",
     "expected_issue": "PLINK_FINAL_MAPPING",
     "mutation": {
       "kind": "replace_exact",
@@ -111,7 +111,7 @@
   },
   {
     "fixture_id": "excluded-retired-surface-reintroduced",
-    "target": ".nimi/spec/runtime/kernel/tables/rpc-migration-map/excluded-proto-methods.yaml",
+    "target": "config/spec-frozen/runtime/tables/rpc-migration-map/excluded-proto-methods.yaml",
     "expected_issue": "PLINK_EXCLUDED_METHODS_NOT_EMPTY",
     "mutation": {
       "kind": "replace_exact",

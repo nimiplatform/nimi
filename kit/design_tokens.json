@@ -516,7 +516,7 @@
   "nimi": {
     "$type": "object",
     "$value": {
-      "canonical": ".nimi/spec/canonical/platform/ui-design-system.authority.yaml",
+      "canonical": ".nimi/spec/platform/ui-design-system.authority.yaml",
       "projection": "kit/DESIGN.md",
       "fullProjection": "kit/design-projection.json"
     }

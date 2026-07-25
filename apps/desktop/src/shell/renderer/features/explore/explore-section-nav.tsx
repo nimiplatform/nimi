@@ -4,7 +4,7 @@ import { Surface } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 // Canonical Explore section catalog. Fact source:
-// Authority: .nimi/spec/canonical/desktop/product-surfaces.authority.yaml
+// Authority: .nimi/spec/desktop/product-surfaces.authority.yaml
 // (rule.nimi.desktop.product-surfaces.r002); machine projection:
 // config/desktop-product-surfaces-explore-sections.yaml.
 // The sections are fixed; do not add/remove/rename without updating the

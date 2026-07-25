@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+# Normative authority: .nimi/spec/runtime/agent-participation.authority.yaml
 # Rationale: docs/authority/runtime-agent-participation-rationale.md
 version: 1
 table_family: product_catalog
@@ -37,7 +37,7 @@ domain_future_seams:
     identity_source: NPC_WORLD_ACTOR
     execution_owner: RUNTIME
     authority_references:
-      - contract: .nimi/spec/canonical/runtime/memory-world.authority.yaml
+      - contract: .nimi/spec/runtime/memory-world.authority.yaml
         owner_rule_range: K-WEV-001..016
         posture: runtime_local_world_execution_evidence_only
       - contract: .nimi/spec/realm/external-realm.md
@@ -78,7 +78,7 @@ domain_future_seams:
     execution_owner: RUNTIME
     product_domain_posture: pending_future_product_domain
     authority_references:
-      - contract: .nimi/spec/canonical/runtime/service-operations.authority.yaml
+      - contract: .nimi/spec/runtime/service-operations.authority.yaml
         owner_rule_range: K-JOB-001..008
         posture: scenario_job_reference_only
     required_context_blocks:

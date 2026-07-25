@@ -13,7 +13,7 @@ const checkMode = args.has('--check');
 
 const profileTablePath = path.join(repoRoot, 'config/platform-ai-profile-factory-catalog.yaml');
 const canonicalCapabilityTablePath = path.join(repoRoot, 'config/platform-canonical-capability-catalog.yaml');
-const hostCapabilityProfilesTablePath = path.join(repoRoot, '.nimi/spec/runtime/kernel/tables/host-capability-profiles.yaml');
+const hostCapabilityProfilesTablePath = path.join(repoRoot, 'config/spec-frozen/runtime/tables/host-capability-profiles.yaml');
 const localComputePacksTablePath = path.join(repoRoot, 'config/runtime-local-compute-packs.yaml');
 const localEnvironmentDependenciesTablePath = path.join(
   repoRoot,

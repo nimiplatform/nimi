@@ -1,4 +1,4 @@
-# 机器消费配置，非权威；权威 = .nimi/spec/canonical/desktop/command-execution.authority.yaml
+# 机器消费配置，非权威；权威 = .nimi/spec/desktop/command-execution.authority.yaml
 scan_roots:
   - apps/desktop/src-tauri/src
   - kit/shell/tauri/src

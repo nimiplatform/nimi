@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/desktop/agent-projection.authority.yaml
+# Normative authority: .nimi/spec/desktop/agent-projection.authority.yaml
 # Rationale: docs/authority/desktop-agent-projection-rationale.md
 # Companion status/method/ref semantics remain owned by Avatar, SDK, and Runtime and are not duplicated here.
 config_id: desktop_agent_projection_participation

@@ -19,13 +19,13 @@ boundary work, read:
 6. `docs/authority/platform-authority-admission-rationale.md`
 7. `docs/authority/platform-ui-design-system-rationale.md`
 8. `config/platform-nimi-data-directory-ownership.yaml`
-9. `.nimi/spec/canonical/runtime/app-surface.authority.yaml`
-10. `.nimi/spec/canonical/runtime/protected-session.authority.yaml`
-11. `.nimi/spec/canonical/sdks/feature-clients.authority.yaml`
-12. `.nimi/spec/canonical/sdks/client-core.authority.yaml`
-13. `.nimi/spec/canonical/sdks/client-core.authority.yaml`
-14. `.nimi/spec/canonical/sdks/client-core.authority.yaml`
-15. `.nimi/spec/canonical/sdks/feature-clients.authority.yaml`
+9. `.nimi/spec/runtime/app-surface.authority.yaml`
+10. `.nimi/spec/runtime/protected-session.authority.yaml`
+11. `.nimi/spec/sdks/feature-clients.authority.yaml`
+12. `.nimi/spec/sdks/client-core.authority.yaml`
+13. `.nimi/spec/sdks/client-core.authority.yaml`
+14. `.nimi/spec/sdks/client-core.authority.yaml`
+15. `.nimi/spec/sdks/feature-clients.authority.yaml`
 
 ## Responsibility Model
 

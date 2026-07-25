@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/zhiyu/local-partner-surface.authority.yaml
+# Normative authority: .nimi/spec/zhiyu/local-partner-surface.authority.yaml
 # Rationale: docs/authority/zhiyu-local-partner-surface-rationale.md
 version: 1
 table_family: owner_matrix

@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/platform/simulator.authority.yaml
+# Normative authority: .nimi/spec/platform/simulator.authority.yaml
 # Rationale: docs/authority/platform-simulator-rationale.md
 version: 1
 table_family: product_catalog

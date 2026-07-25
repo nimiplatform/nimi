@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/platform/authority-admission.authority.yaml
+# Normative authority: .nimi/spec/platform/authority-admission.authority.yaml
 # Rationale: docs/authority/platform-authority-admission-rationale.md
 version: 1
 table_family: product_catalog
@@ -22,8 +22,8 @@ admissions:
       - .nimi/spec/runtime/**
       - .nimi/spec/sdks/**
       - .nimi/spec/realm/**
-      - .nimi/spec/canonical/platform/**
+      - .nimi/spec/platform/**
       - .nimi/spec/desktop/**
-      - .nimi/spec/canonical/cognition/**
-      - .nimi/spec/canonical/avatar/**
+      - .nimi/spec/cognition/**
+      - .nimi/spec/avatar/**
     source_rule: P-APP-001

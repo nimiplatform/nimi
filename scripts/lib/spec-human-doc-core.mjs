@@ -466,9 +466,9 @@ export const sdkKernelFiles = [
 
 export const desktopKernelFiles = [
   'codegen-contract.md', 'testing-gates-contract.md',
-  '.nimi/spec/canonical/desktop/agent-projection.authority.yaml',
-  '.nimi/spec/canonical/desktop/ai-consumption.authority.yaml',
-  '.nimi/spec/canonical/desktop/shell-ui.authority.yaml',
+  '.nimi/spec/desktop/agent-projection.authority.yaml',
+  '.nimi/spec/desktop/ai-consumption.authority.yaml',
+  '.nimi/spec/desktop/shell-ui.authority.yaml',
 ];
 
 export const platformKernelFiles = [

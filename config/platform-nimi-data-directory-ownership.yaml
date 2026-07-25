@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
+# Normative authority: .nimi/spec/platform/product-lifecycle.authority.yaml
 # Rationale: docs/authority/platform-product-lifecycle-rationale.md
 version: 1
 table_family: owner_matrix

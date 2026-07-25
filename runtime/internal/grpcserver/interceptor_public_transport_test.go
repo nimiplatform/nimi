@@ -115,7 +115,7 @@ func TestA0PublicTransportGateCoversCanonicalProtectedMatrix(t *testing.T) {
 	var matrix struct {
 		Methods []matrixRow `yaml:"methods"`
 	}
-	raw, err := os.ReadFile(findRepoFile(t, filepath.FromSlash(".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml")))
+	raw, err := os.ReadFile(findRepoFile(t, filepath.FromSlash("config/spec-frozen/runtime/tables/protected-local-rpc-transport-matrix.yaml")))
 	if err != nil {
 		t.Fatalf("read protected-local matrix: %v", err)
 	}

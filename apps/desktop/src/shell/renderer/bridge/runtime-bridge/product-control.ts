@@ -185,7 +185,7 @@ export type AccountDefaultProfileAIProfile = NimiAIProfile;
  * Read + verify the Account Default Profile as a portable AIProfile payload.
  *
  * Used by the Desktop host AIConfig scope-init rule in
- * `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`: a new AIConfig scope
+ * `.nimi/spec/desktop/ai-consumption.authority.yaml`: a new AIConfig scope
  * initializes from the Account Default Profile only when no prior AIConfig
  * exists for that scope. The payload is the verified content of the durable
  * `default.json` record.

@@ -46,7 +46,7 @@ carrier; if the user wants embodiment, the Avatar app surfaces it.
    carry phase, emotion, action cue, attention target, lipsync
    frames.
 2. **Desktop chat normalizes.** Per
-   `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` (D-LLM-053..D-LLM-054), Desktop
+   `.nimi/spec/desktop/agent-projection.authority.yaml` (D-LLM-053..D-LLM-054), Desktop
    maps these events into a unified `AvatarInteractionState`.
 3. **Reusable kit avatar consumes.** `kit/features/avatar` and
    `apps/avatar` both consume the normalized surface inputs. Neither
@@ -108,16 +108,16 @@ does not invent author identity.
 
 | Concern | Owner |
 | --- | --- |
-| Desktop chat avatar transient surface | Desktop (`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`, D-LLM-053..) |
+| Desktop chat avatar transient surface | Desktop (`.nimi/spec/desktop/agent-projection.authority.yaml`, D-LLM-053..) |
 | Persistent presentation profile + default voice | Runtime (`agent-presentation-contract.md`) |
 | Transient turn / presentation seam | Runtime (`agent-presentation-stream-contract.md`) |
 | Avatar carrier + embodiment execution | Avatar app (`apps/avatar`) |
 | Reusable kit avatar consumer | `kit/features/avatar` |
-| Configuration / debug workbench | Desktop (`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`, `agent-avatar-debug-workbench-contract.md`) |
+| Configuration / debug workbench | Desktop (`.nimi/spec/desktop/agent-projection.authority.yaml`, `agent-avatar-debug-workbench-contract.md`) |
 
 ## Source Basis
 
-- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)
+- [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
 - [`.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)

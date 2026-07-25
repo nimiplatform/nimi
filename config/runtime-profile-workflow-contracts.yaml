@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/runtime/ai-provider.authority.yaml
+# Normative authority: .nimi/spec/runtime/ai-provider.authority.yaml
 # Rationale: docs/authority/runtime-ai-provider-rationale.md
 version: 1
 table_family: owner_matrix

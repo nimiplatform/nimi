@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Normative authority: .nimi/spec/avatar/embodiment-surface.authority.yaml
 # Rationale: docs/authority/avatar-embodiment-rationale.md
 schema_id: nimi.avatar.nimi2d-backend-capability-profile.v1
 table_family: protocol_surface
@@ -43,7 +43,7 @@ fields:
       package_manifest_ref:
         type: opaque_ref
       package_id:
-        source: ".nimi/spec/canonical/nimi2d/asset-package.authority.yaml"
+        source: ".nimi/spec/nimi2d/asset-package.authority.yaml"
       package_digest_sha256:
         type: lowercase_hex
         length: 64
@@ -181,5 +181,5 @@ invariants:
 
 refs:
   contract: "docs/authority/avatar-embodiment-rationale.md"
-  nimi2d_package_manifest: ".nimi/spec/canonical/nimi2d/asset-package.authority.yaml"
-  nimi2d_generation_bench: ".nimi/spec/canonical/nimi2d/generation-supply.authority.yaml"
+  nimi2d_package_manifest: ".nimi/spec/nimi2d/asset-package.authority.yaml"
+  nimi2d_generation_bench: ".nimi/spec/nimi2d/generation-supply.authority.yaml"

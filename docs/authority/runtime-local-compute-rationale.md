@@ -1,6 +1,6 @@
 # Runtime Local Compute - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/runtime/local-compute.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/local-compute.authority.yaml`。
 
 ---
 

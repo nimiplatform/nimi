@@ -1,6 +1,6 @@
 # Desktop Tauri Command Execution Contract
 
-> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/desktop/command-execution.authority.yaml`。
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/desktop/command-execution.authority.yaml`。
 
 > Owner Domain: `D-GATE-*`
 

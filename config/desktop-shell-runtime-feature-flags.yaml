@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/desktop/shell-runtime.authority.yaml
+# Normative authority: .nimi/spec/desktop/shell-runtime.authority.yaml
 # Rationale: docs/authority/desktop-shell-runtime-rationale.md
 config_id: desktop_shell_runtime_feature_flags
 owner: desktop

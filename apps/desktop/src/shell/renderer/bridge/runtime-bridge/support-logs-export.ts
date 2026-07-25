@@ -3,7 +3,7 @@
  * (`rule.nimi.desktop.product-surfaces.r027`).
  *
  * Backend authority: `apps/desktop/src-tauri/src/desktop_logs_export.rs`,
- * spec `rule.nimi.desktop.product-surfaces.r027` in `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`. The command bundles
+ * spec `rule.nimi.desktop.product-surfaces.r027` in `.nimi/spec/desktop/product-surfaces.authority.yaml`. The command bundles
  * `<nimi_data>/logs/` into a user-locatable `.zip` archive in the OS Downloads
  * directory and reveals it in the OS file manager.
  *

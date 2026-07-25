@@ -6,7 +6,7 @@ Platform catalog projections, and feature modules that every Nimi consumer
 needs, so app authors do not have to rebuild baseline styling, interaction
 shells, or platform wiring. The kit is a reusable projection of
 platform-governed design and integration contracts; canonical semantics remain
-in `.nimi/spec/canonical/platform/ui-design-system.authority.yaml`.
+in `.nimi/spec/platform/ui-design-system.authority.yaml`.
 
 ## Installation
 
@@ -53,7 +53,7 @@ extend the kit surface first when the missing behavior is cross-app.
 `kit/DESIGN.md` is the generated Google DESIGN.md-style projection for
 Nimi Kit UI/UX work. It combines DESIGN.md-compatible YAML front matter
 with human-readable guidance for agents, but canonical authority remains
-in `.nimi/spec/canonical/platform/ui-design-system.authority.yaml`.
+in `.nimi/spec/platform/ui-design-system.authority.yaml`.
 
 The generated design artifact set is:
 

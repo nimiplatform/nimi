@@ -1,6 +1,6 @@
 # Platform App Ecosystem - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/platform/app-ecosystem.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/platform/app-ecosystem.authority.yaml`。
 
 ---
 
@@ -111,8 +111,8 @@ closed。
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`
 - `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` — `D-LLM-022..D-LLM-026`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
+- `.nimi/spec/desktop/agent-projection.authority.yaml` — `D-LLM-022..D-LLM-026`
 
 
 ---
@@ -1686,7 +1686,7 @@ control remains unchanged and Desktop-specific.
   - `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`
   - `.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml`
 - `.nimi/spec/platform/kernel/kit-contract.md` — `P-KIT-041C`, `P-KIT-041E`, `P-KIT-044`
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r038`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r038`
 - `.nimi/spec/desktop/kernel/tables/local-app-launch-hosts.yaml`
 - `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-022`
 - `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*`
@@ -1697,7 +1697,7 @@ control remains unchanged and Desktop-specific.
 - `.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml`
 - `.nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 
 
 ---

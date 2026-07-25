@@ -102,8 +102,8 @@ async function checkSpec() {
   const scanned = [];
   const contractPath = 'docs/authority/platform-ui-design-system-rationale.md';
   const registryPath = 'config/platform-nimi-kit-registry.yaml';
-  const desktopKitPath = '.nimi/spec/canonical/desktop/shell-ui.authority.yaml';
-  const desktopConversationPath = '.nimi/spec/canonical/desktop/agent-projection.authority.yaml';
+  const desktopKitPath = '.nimi/spec/desktop/shell-ui.authority.yaml';
+  const desktopConversationPath = '.nimi/spec/desktop/agent-projection.authority.yaml';
   const zhiyuPath = 'docs/authority/zhiyu-local-partner-surface-rationale.md';
   const avatarPath = 'docs/authority/runtime-agent-participation-rationale.md';
 

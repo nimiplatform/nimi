@@ -17,7 +17,7 @@ const profilePostsSource = readWorkspaceFile('src/shell/renderer/features/profil
 const profileLikesSource = readWorkspaceFile('src/shell/renderer/features/profile/likes-tab.tsx');
 const profileCollectionsSource = readWorkspaceFile('src/shell/renderer/features/profile/collections-tab.tsx');
 const profileGiftsSource = readWorkspaceFile('src/shell/renderer/features/profile/gifts-tab.tsx');
-const desktopUiShellSpec = readRepoFile('.nimi/spec/canonical/desktop/shell-ui.authority.yaml');
+const desktopUiShellSpec = readRepoFile('.nimi/spec/desktop/shell-ui.authority.yaml');
 const desktopSurfacesSpec = readRepoFile('config/desktop-shell-ui-renderer-design-surfaces.yaml');
 const desktopKitAdoptionSpec = readRepoFile('config/desktop-shell-ui-kit-adoption.yaml');
 

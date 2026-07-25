@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "compiler": "scripts/generate-first-party-protected-runtime-profiles.mjs",
-  "source": ".nimi/spec/runtime/kernel/tables/first-party-protected-runtime-profiles.yaml",
+  "source": "config/spec-frozen/runtime/tables/first-party-protected-runtime-profiles.yaml",
   "sourceSha256": "7cc53b54b9e57e703bb6b10186f7bfc7ffa690d42f35a9e791bc92057e134a59",
   "profiles": {
     "desktop_machine_product_v1": {

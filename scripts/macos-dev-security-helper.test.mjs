@@ -55,7 +55,7 @@ test('user-domain signing commands are real native transactions rather than pend
 });
 
 test('fresh profile separates user signing authority from Runtime custody', async () => {
-  const profile = await read('.nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml');
+  const profile = await read('config/spec-frozen/runtime/tables/protected-local-custody-profiles.yaml');
   assert.match(profile, /dedicated_user-domain_development_signing_Keychain/);
   assert.match(profile, /Runtime-only_non-synchronizing_System-Keychain-items/);
   assert.match(profile, /tracked_profile_migration: forbidden/);

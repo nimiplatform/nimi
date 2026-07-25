@@ -8,10 +8,10 @@ export const RUNTIME_FACADE_PATHS = Object.freeze({
   methodGroups: 'config/sdks-runtime-method-groups.yaml',
   exportMap: 'config/sdks-typescript-target-export-map.yaml',
   postureShards: Object.freeze([
-    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
-    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml',
-    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
-    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
+    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/identity-access.yaml',
+    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml',
+    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
+    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
   ]),
 });
 

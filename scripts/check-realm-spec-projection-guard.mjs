@@ -8,7 +8,7 @@ const REPO_ROOT = process.cwd();
 const REALM_SPEC_ROOT = path.join(REPO_ROOT, '.nimi', 'spec', 'realm');
 const ALLOWED_FILES = new Set(['AGENTS.md', 'README.md', 'external-realm.md']);
 const REQUIRED_POINTER_SNIPPETS = new Map([
-  ['README.md', ['external Realm authority', '.nimi/spec/canonical/sdks/realm-consumer.authority.yaml']],
+  ['README.md', ['external Realm authority', '.nimi/spec/sdks/realm-consumer.authority.yaml']],
   ['external-realm.md', ['external Realm authority', 'Realm server/domain product rules are not redefined in this repository']],
   ['AGENTS.md', ['This subtree is not Realm product authority', 'external Realm authority']],
 ]);

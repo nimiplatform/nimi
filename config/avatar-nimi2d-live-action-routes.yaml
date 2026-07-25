@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Normative authority: .nimi/spec/avatar/embodiment-surface.authority.yaml
 # Rationale: docs/authority/avatar-embodiment-rationale.md
 version: 1
 table_family: product_catalog
@@ -13,9 +13,9 @@ description: >
   Generation Bench.
 
 source_authority:
-  runtime_projection: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+  runtime_projection: .nimi/spec/runtime/agent-participation.authority.yaml
   runtime_activity_ontology: config/runtime-agent-activity-ontology.yaml
-  nimi2d_package_manifest: .nimi/spec/canonical/nimi2d/asset-package.authority.yaml
+  nimi2d_package_manifest: .nimi/spec/nimi2d/asset-package.authority.yaml
 
 routes: &avatar_nimi2d_live_action_route_entries
   - route_id: nimi2d_static_visible

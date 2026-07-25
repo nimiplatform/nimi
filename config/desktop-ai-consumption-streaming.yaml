@@ -1,5 +1,5 @@
 # Non-authoritative Desktop AI-consumption machine configuration.
-# Normative authority: .nimi/spec/canonical/desktop/ai-consumption.authority.yaml
+# Normative authority: .nimi/spec/desktop/ai-consumption.authority.yaml
 # Rationale: docs/authority/desktop-ai-consumption-rationale.md
 version: 1
 table_family: runtime_projection_catalog

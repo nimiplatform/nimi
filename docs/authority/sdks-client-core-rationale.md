@@ -1,6 +1,6 @@
 # SDKs Client Core - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/sdks/client-core.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/sdks/client-core.authority.yaml`。
 
 ---
 

@@ -25,7 +25,7 @@ test('negative fixtures are independent, current-source mutations with stable ex
   assert.equal(new Set(fixtures.map(({ expected_issue: code }) => code)).size, fixtures.length);
   for (const fixture of fixtures) {
     assert.match(fixture.fixture_id, /^[a-z0-9-]+$/u);
-    assert.match(fixture.target, /^(?:proto\/runtime\/v1\/|\.nimi\/spec\/runtime\/kernel\/tables\/)/u);
+    assert.match(fixture.target, /^(?:proto\/runtime\/v1\/|config\/spec-frozen\/runtime\/tables\/)/u);
     assert.match(fixture.expected_issue, /^PLINK_[A-Z0-9_]+$/u);
     assert.equal(fixture.mutation.kind, 'replace_exact');
     assert.match(fixture.mutation.from, /\S/u);

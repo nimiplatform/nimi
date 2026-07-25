@@ -1,5 +1,5 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+# Normative authority: .nimi/spec/runtime/agent-participation.authority.yaml
 # Rationale: docs/authority/runtime-agent-participation-rationale.md
 version: 1
 table_family: owner_matrix

@@ -18,7 +18,7 @@ const capabilityVocabularyPath = path.join(
   'runtime-capability-vocabulary-mapping.yaml',
 );
 // Model-catalog kernel prose migrated to the canonical container
-// (.nimi/spec/canonical/runtime/model-catalog.authority.yaml); the retained
+// (.nimi/spec/runtime/model-catalog.authority.yaml); the retained
 // non-authoritative prose lives in the rationale document below.
 const modelCatalogContractPaths = [
   path.join(repoRoot, 'docs', 'authority', 'runtime-model-catalog-rationale.md'),

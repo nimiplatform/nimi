@@ -248,7 +248,7 @@ func TestAuthenticateMapsRevocationRateLimitToRetryableUnavailable(t *testing.T)
 
 // =============================================================================
 // Posture-consumer test. Loads the canonical spec table index at
-// nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml plus its
+// nimi/config/spec-frozen/runtime/tables/runtime-rpc-auth-posture.yaml plus its
 // method shards as READ-ONLY YAML fixtures, asserts table shape sanity, and
 // confirms the runtime authn interceptor's K-AUTHN-001 pass-through behavior
 // on sample method ids of every posture (anonymous_read AND
@@ -381,7 +381,7 @@ func loadPostureTableFixture(t *testing.T) *runtimeRPCAuthPostureTable {
 
 func findPostureTableFixture(t *testing.T, sourceFile string) string {
 	t.Helper()
-	const relativePath = ".nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml"
+	const relativePath = "config/spec-frozen/runtime/tables/runtime-rpc-auth-posture.yaml"
 	current := filepath.Dir(sourceFile)
 	for {
 		candidate := filepath.Join(current, filepath.FromSlash(relativePath))

@@ -1,6 +1,6 @@
 # Desktop Product Surfaces Rationale
 
-> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`。
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/desktop/product-surfaces.authority.yaml`。
 
 ## Rationale 完整性对账
 
@@ -302,7 +302,7 @@ World/detail/source-detail path; it does not add a section/productIntent pair.
 - `.nimi/spec/desktop/kernel/tables/explore-sections.yaml` — Explore section catalog.
 - `.nimi/spec/desktop/kernel/tables/explore-open-targets.yaml` — Explore Desktop Open target and productIntent catalog.
 - `.nimi/spec/desktop/kernel/tables/realm-source-materialization-actions.yaml` — source-generic WorldCharacter/PersonaCharacter state-to-action table.
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — navigation, World Detail layout, and Apps surface boundary.
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — navigation, World Detail layout, and Apps surface boundary.
 - `.nimi/spec/sdks/kernel/realm-api-consumer-contract.md` — external Realm consumer boundary and current generated API floor.
 - `.nimi/spec/sdks/kernel/realm-core-contract.md` — current World/Character generated-core projection boundary.
 - `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md` — Packet v3 to SnapshotV2/LocalAgent materialization and Runtime-local deletion.
@@ -327,7 +327,7 @@ installed shell（`D-HOME-*`）的显式 non-overlap。
 **不拥有**：
 
 - shell 导航 tab 体系、布局、路由分包、windowing —— 由
-  `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` 拥有；
+  `.nimi/spec/desktop/shell-ui.authority.yaml` 拥有；
 - Realm Post / Feed canonical 真值、feed scope 投影语义、Create Post
   truth-write admission —— 由 Realm `feed-contract.md`（`R-FEED-001` ~
   `R-FEED-010`）拥有；
@@ -335,7 +335,7 @@ installed shell（`D-HOME-*`）的显式 non-overlap。
   `social-contract.md` 与 `R-CORE-010` 拥有；
 - `Nimi Home` installed shell 的 hosted-shell IA、first-run / return-run
   state machine、surface registry、Apps placement —— 由
-  `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` `rule.nimi.desktop.shell-ui.r049..r061` 拥有；
+  `.nimi/spec/desktop/shell-ui.authority.yaml` `rule.nimi.desktop.shell-ui.r049..r061` 拥有；
 - Realm discovery（Worlds / PersonaCharacter sources / public activity 发现）—— 由
   `explore-surface-contract.md`（`D-EXPL-001` ~ `D-EXPL-013`）拥有。
 
@@ -446,7 +446,7 @@ activity 内容如何生成不在本契约范围（`R-FEED-010`）。
 - `.nimi/spec/desktop/kernel/tables/home-feed-scopes.yaml` — `Home` 表面 feed scope 呈现 catalog
 - `.nimi/spec/realm/kernel/feed-contract.md` — `R-FEED-001` ~ `R-FEED-010`（Realm Post / Feed canonical 真值、三个 feed scope、Create Post admission）
 - `.nimi/spec/realm/kernel/social-contract.md` 与 `.nimi/spec/realm/kernel/core-contract.md` — Friendship 与 core source relationship admission
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `Nimi Home` installed shell 与 primary navigation tab placement
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — `Nimi Home` installed shell 与 primary navigation tab placement
 - `.nimi/spec/desktop/kernel/explore-surface-contract.md` — `D-EXPL-001` ~ `D-EXPL-013`（Realm discovery；与 `Home` feed 表面互不重叠）
 
 ## Preserved source: Support Surface Contract
@@ -472,7 +472,7 @@ recovery 在 Settings preference 状态本身损坏时仍可达。
 
 不拥有：
 
-- self-update / release 真值与更新执行机制（`.nimi/spec/canonical/desktop/shell-runtime.authority.yaml`
+- self-update / release 真值与更新执行机制（`.nimi/spec/desktop/shell-runtime.authority.yaml`
   `rule.nimi.desktop.shell-runtime.r066..r072`，`P-SUPD-*`）；Support 只投影并触发其受管 command。
 - `~/.nimi` config 迁移与修复执行（`P-MIG-*`）；Support repair 子区只调用
   `P-MIG-*` 修复流程，不重定义它。
@@ -486,7 +486,7 @@ recovery 在 Settings preference 状态本身损坏时仍可达。
 `nav_group: secondary` 的非权威机器投影表面，与 `settings` 平级。它必须可从菜单 / 账户区 / Settings 入口到达。
 
 `MUST NOT`：`Support` 不得进入 `getCoreNavItems()` 的 core 导航；ordinary
-primary navigation 必须保持 `.nimi/spec/canonical/desktop/shell-ui.authority.yaml`
+primary navigation 必须保持 `.nimi/spec/desktop/shell-ui.authority.yaml`
 `rule.nimi.desktop.shell-ui.r001` 的六项闭合集。`Support`、其子区（repair / updates /
 diagnostics / logs / recovery）均不得作为 primary ordinary 产品类别。
 
@@ -521,7 +521,7 @@ developer surface 的入口——developer surface 归 `D-DEV-*`。
 
 ## D-SUP-004 — Updates Sub-Area
 
-`MUST`：`updates` 子区是 `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` self-update plane 假定的
+`MUST`：`updates` 子区是 `.nimi/spec/desktop/shell-runtime.authority.yaml` self-update plane 假定的
 Application Update 宿主表面。它必须消费 `DesktopReleaseInfo` 投影并展示当前
 desktop release、target desktop release 与 updater state；当前 verified Runtime
 service release、mutual compatibility 与 repair state 必须来自 protected-local
@@ -585,8 +585,8 @@ preference 状态本身损坏、或 ordinary shell 因 fail-closed 状态不可�
 
 ## Fact Sources
 
-- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — shell navigation, Developer Tools, and telemetry semantics
-- `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` — `rule.nimi.desktop.shell-runtime.r066..r072`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — shell navigation, Developer Tools, and telemetry semantics
+- `.nimi/spec/desktop/shell-runtime.authority.yaml` — `rule.nimi.desktop.shell-runtime.r066..r072`
 - `config/desktop-shell-ui-app-tabs.yaml` — non-authoritative machine projection
 - `config/desktop-shell-ui-log-areas.yaml` — non-authoritative machine projection
 - `.nimi/spec/platform/kernel/local-config-migration-contract.md` — `P-MIG-001..P-MIG-008`

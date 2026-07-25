@@ -1,4 +1,4 @@
-> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`。
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/desktop/agent-projection.authority.yaml`。
 
 # Desktop Agent Projection Rationale
 
@@ -27,7 +27,7 @@ Desktop owns only:
 - renderer-local ephemeral UI state such as focus, scroll, transient composer
   text, popovers, pending attachments, and visible panel state
 - Avatar / Live2D / VRM presentation handoff as defined by the avatar units in
-  `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`, without owning
+  `.nimi/spec/desktop/agent-projection.authority.yaml`, without owning
   Agent Chat execution truth
 
 Desktop must not own:
@@ -288,11 +288,11 @@ Adjacent owner boundaries are fixed:
 - `.nimi/spec/runtime/kernel/voice-contract.md` owns runtime voice workflow,
   `VoiceReference`, `VoiceAsset`, and scenario job truth.
 - the avatar units in
-  `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` own only
+  `.nimi/spec/desktop/agent-projection.authority.yaml` own only
   Desktop-to-Avatar presentation handoff and transient visual surface cues.
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` owns only
+- `.nimi/spec/desktop/ai-consumption.authority.yaml` owns only
   Desktop stream consumption mechanics, cancellation display, and retry UX.
-- `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` owns only Desktop UI state
+- `.nimi/spec/desktop/shell-runtime.authority.yaml` owns only Desktop UI state
   persistence mechanics, not Agent Chat execution truth.
 - Ordinary Nimi Chat product session persistence is governed by `D-LLM-107`;
   it is not evidence that Desktop may own Agent Chat or Runtime AI authority.
@@ -304,8 +304,8 @@ Adjacent owner boundaries are fixed:
 - `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 - `.nimi/spec/runtime/kernel/voice-contract.md`
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`
+- `.nimi/spec/desktop/agent-projection.authority.yaml`
+- `.nimi/spec/desktop/ai-consumption.authority.yaml`
 
 
 ## Preserved source: Conversation Capability Contract
@@ -314,7 +314,7 @@ Adjacent owner boundaries are fixed:
 
 > Authority: Desktop Kernel
 >
-> Umbrella: This contract is a submodel of `AIConfig` / `AISnapshot` as defined in `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` (D-AIPC-010). The rules below remain normative but their owner semantics are subordinate to the three-tier AI configuration authority (D-AIPC-001).
+> Umbrella: This contract is a submodel of `AIConfig` / `AISnapshot` as defined in `.nimi/spec/desktop/ai-consumption.authority.yaml` (D-AIPC-010). The rules below remain normative but their owner semantics are subordinate to the three-tier AI configuration authority (D-AIPC-001).
 
 ## Scope
 
@@ -587,7 +587,7 @@ asset packaging truth。`.nimi/spec/runtime/kernel/agent-presentation-contract.m
 （`K-AGCORE-036` ~ `K-AGCORE-039`）继续拥有 runtime-owned transient turn /
 presentation seam 与 current emotion projection；
 Runtime Agent Chat / Voice projections continue to own message / action / voice
-upstream semantic truth. `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
+upstream semantic truth. `.nimi/spec/desktop/agent-projection.authority.yaml`
 中的 Agent Chat units 只拥有 Desktop Agent Chat presentation/projection boundaries；
 kit avatar module 只消费本契约定义的
 normalized surface semantics，不得反向成为 Desktop product owner。
@@ -624,7 +624,7 @@ adjacent authority 边界固定为：
   （`K-AGCORE-036` ~ `K-AGCORE-039`）继续拥有 `runtime.agent.turn.*` /
   `runtime.agent.presentation.*` / `runtime.agent.state.emotion_changed`
   的 runtime-owned transient projection truth
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` 中的
+- `.nimi/spec/desktop/agent-projection.authority.yaml` 中的
   `D-LLM-022` ~ `D-LLM-026` 继续拥有 Desktop Agent Chat presentation/projection
   boundary；Runtime Agent / Voice contracts
   own upstream behavior, message/action, workflow, and session truth
@@ -732,7 +732,7 @@ descriptor, backend capability profile, or per-agent binding truth as an
 admitted first-party carrier line.
 
 This rule does not prohibit the `D-LLM-099..103` opaque private local Avatar
-asset controls in `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`.
+asset controls in `.nimi/spec/desktop/agent-projection.authority.yaml`.
 Desktop may help a
 user select/import/remove a private local Live2D / VRM asset ref, but that ref
 is configuration evidence only. It is not a carrier registry row, package
@@ -1051,7 +1051,7 @@ Fixed rules:
   false; a single failed condition fails the whole gate closed.
 - a failed gate MUST resolve to a typed non-launch outcome consistent with the
   fail-closed configuration state `D-LLM-083` in
-  `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`; it MUST NOT
+  `.nimi/spec/desktop/agent-projection.authority.yaml`; it MUST NOT
   degrade to a guessed launch, a remembered local
   binding, idle-motion success, or a static carrier proxy.
 - the gate MUST be the single actuation authority for `start_with_chat`. No
@@ -1120,7 +1120,7 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime persistent presentation truth and non-owner boundary
 - `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` — conversation continuity anchor truth
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — transient turn, presentation, emotion, and timeline projection truth
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` — Desktop Agent Chat presentation/projection boundary
+- `.nimi/spec/desktop/agent-projection.authority.yaml` — Desktop Agent Chat presentation/projection boundary
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — Runtime Agent execution and presentation projection authority
 - `.nimi/spec/runtime/kernel/voice-contract.md` — Runtime voice workflow / asset semantics
 - `.nimi/spec/platform/kernel/kit-contract.md` — reusable `kit/features/avatar` admission and ownership hardcut
@@ -1133,7 +1133,7 @@ Fixed rules:
 ## D-LLM-078a Cross-Reference — Configuration
 
 The avatar-configuration units in
-`.nimi/spec/canonical/desktop/agent-projection.authority.yaml` own the Agent Chat
+`.nimi/spec/desktop/agent-projection.authority.yaml` own the Agent Chat
 Settings Avatar configuration product surface.
 
 This contract continues to own transient avatar surface and handoff semantics.
@@ -1355,7 +1355,7 @@ Fixed constraints:
   such as `connector://`, `key-source://`, or `grant://`; it MUST NOT expose raw
   credential material to delegated provider profiles.
 - Avatar-specific configuration truth lives in the corresponding units of
-  `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`. This rule
+  `.nimi/spec/desktop/agent-projection.authority.yaml`. This rule
   remains the delegated-capability placement cross-reference and does not own backend
   capability profile refs, Runtime avatar probe semantics, or Avatar backend
   evidence.

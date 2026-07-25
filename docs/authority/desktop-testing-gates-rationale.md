@@ -1,4 +1,4 @@
-> 本文为两份旧格式 Desktop testing-gates 文档的整文存档，非规范权威；真实纪律语义由 `.nimi/spec/canonical/platform/testing-discipline.authority.yaml` 覆盖。
+> 本文为两份旧格式 Desktop testing-gates 文档的整文存档，非规范权威；真实纪律语义由 `.nimi/spec/platform/testing-discipline.authority.yaml` 覆盖。
 
 ---
 
@@ -189,9 +189,9 @@ This guide points to the desktop authority surfaces for testing-gates. It does n
 ## Reading Path
 
 - `.nimi/spec/desktop/kernel/index.md`
-- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
-- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`
-- `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml`
+- `.nimi/spec/desktop/agent-projection.authority.yaml`
+- `.nimi/spec/desktop/ai-consumption.authority.yaml`
+- `.nimi/spec/desktop/shell-runtime.authority.yaml`
 
 ## Tables
 

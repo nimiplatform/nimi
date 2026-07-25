@@ -1,6 +1,6 @@
 # Avatar Embodiment - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml`(runtime 产权部分见 `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`)。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/avatar/embodiment-surface.authority.yaml`(runtime 产权部分见 `.nimi/spec/runtime/agent-participation.authority.yaml`)。
 
 ---
 

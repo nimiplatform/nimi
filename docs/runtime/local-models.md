@@ -176,5 +176,5 @@ through the materializer with a single confirmation UI.
 - [`.nimi/spec/runtime/kernel/device-profile-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/device-profile-contract.md)
 - [`.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml)
 - [`.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml)
-- [`.nimi/spec/canonical/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/runtime/security-core.authority.yaml)
+- [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
 - [`.nimi/spec/runtime/kernel/scheduling-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/scheduling-contract.md)

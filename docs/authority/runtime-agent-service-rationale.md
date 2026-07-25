@@ -1,6 +1,6 @@
 # Runtime Agent Service - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/runtime/agent-service.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/agent-service.authority.yaml`。
 
 ---
 

@@ -69,7 +69,7 @@ const ICON_ADVANCED = (
 
 /**
  * Canonical six-section Runtime IA per
- * `.nimi/spec/canonical/desktop/shell-ui.authority.yaml`.
+ * `.nimi/spec/desktop/shell-ui.authority.yaml`.
  * Developer-only surfaces are NOT ordinary entries — they
  * live behind admitted developer mode inside the Advanced section.
  */

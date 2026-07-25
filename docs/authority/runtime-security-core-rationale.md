@@ -1,6 +1,6 @@
 # Runtime Security Core Rationale
 
-> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/runtime/security-core.authority.yaml`。
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/runtime/security-core.authority.yaml`。
 
 ## Rationale 完整性对账
 

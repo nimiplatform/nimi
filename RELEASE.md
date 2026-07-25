@@ -38,7 +38,7 @@ pnpm release:proof:first-public
 
 This command is a thin alias over `pnpm preflight --tier first-public-existence
 --target any --require-release`. The tier is declared in
-`.nimi/spec/canonical/platform/governance-release.authority.yaml`, and the output
+`.nimi/spec/platform/governance-release.authority.yaml`, and the output
 is the same `release-gate-evidence/v1` document as any other preflight run. A
 passing first-public proof means the frozen public promise copy, SDK/app-tools
 developer entry, Realm bypass guard, adapter ledger, and spec governance checks
@@ -51,7 +51,7 @@ pnpm preflight --require-release
 ```
 
 该命令是 Node mjs 实现的 release preflight，从单一 source of truth
-`.nimi/spec/canonical/platform/governance-release.authority.yaml` 投影出
+`.nimi/spec/platform/governance-release.authority.yaml` 投影出
 所有 release-blocking gate（149 行 / 20 owner namespaces，由 P-RELG-001..014
 治理）。每个 gate 的 stdout/stderr 持久化到
 `.local/report/release/preflight-logs/<gate_id>-<ISO8601>.log`，结构化的
@@ -62,7 +62,7 @@ verdict + summary 输出到 `.local/report/release/preflight-evidence-<ISO8601>.
 开发者本地可省略，让 live / external-repo tier 的 blocked 不阻断。
 
 详细命令行参考 `pnpm preflight --help`。门禁权威由
-`.nimi/spec/canonical/platform/governance-release.authority.yaml` 持有。
+`.nimi/spec/platform/governance-release.authority.yaml` 持有。
 如需自定义日志文件，可设置 `NIMI_RELEASE_PREFLIGHT_LOG_FILE=/abs/path/to.log`。
 如需调整失败时回显的日志尾部行数，可设置 `NIMI_RELEASE_PREFLIGHT_TAIL_LINES=120`。
 

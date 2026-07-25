@@ -1,6 +1,6 @@
 # Platform UI Design System - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/canonical/platform/ui-design-system.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/platform/ui-design-system.authority.yaml`。
 
 ---
 

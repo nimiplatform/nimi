@@ -1,7 +1,7 @@
 /**
  * T10.4 — Support secondary surface acceptance (`rule.nimi.desktop.product-surfaces.r022..r029`).
  *
- * Acceptance coverage for `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`:
+ * Acceptance coverage for `.nimi/spec/desktop/product-surfaces.authority.yaml`:
  *   - rule.nimi.desktop.product-surfaces.r022: Support is a `nav_group: secondary` surface, reachable from
  *     the account-area menu, and NOT one of the ordinary primary nav tabs.
  *   - rule.nimi.desktop.product-surfaces.r023: the surface hosts exactly the five sub-areas.

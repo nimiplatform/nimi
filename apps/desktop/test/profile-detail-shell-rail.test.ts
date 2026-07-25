@@ -17,7 +17,7 @@ const mainLayoutSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts
 const profilePanelSource = readWorkspaceFile('src/shell/renderer/features/profile/profile-panel.tsx');
 const profileDetailModalSource = readWorkspaceFile('src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
-const stateAuthoritySource = readRepoFile('.nimi/spec/canonical/desktop/shell-runtime.authority.yaml');
+const stateAuthoritySource = readRepoFile('.nimi/spec/desktop/shell-runtime.authority.yaml');
 const storeSlicesConfigSource = readRepoFile('config/desktop-shell-runtime-store-slices.yaml');
 
 test('profile detail shell rail: ui slice tracks shared profile overlay state', () => {

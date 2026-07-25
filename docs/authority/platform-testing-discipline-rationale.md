@@ -1,4 +1,4 @@
-> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/platform/testing-discipline.authority.yaml`。
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/platform/testing-discipline.authority.yaml`。
 
 > `P-TEST-002`、`P-TEST-003`、`P-TEST-017` 与 `P-TEST-019` 已废止且无继任。
 
