@@ -331,7 +331,7 @@
     "check:nimicoding-host-hardcut": "node scripts/check-nimicoding-host-hardcut.mjs",
     "test:nimicoding-host-hardcut": "node --test scripts/nimicoding-host-hardcut.test.mjs",
     "spec:authority:check": "pnpm exec nimicoding authority check .nimi/spec/canonical --scope-bindings config/authority-scope-bindings.yaml",
-    "spec:authority:anchors": "pnpm exec nimicoding authority anchors . --spec .nimi/spec/canonical --scope-bindings config/authority-scope-bindings.yaml --max-units 5000 --max-anchors 20000 --max-bytes 16777216",
+    "spec:authority:anchors": "pnpm exec nimicoding authority anchors . --spec .nimi/spec/canonical --scope-bindings config/authority-scope-bindings.yaml --embedded-paths --max-units 5000 --max-anchors 50000 --max-bytes 33554432",
     "nimicoding:sync": "pnpm exec nimicoding sync --check",
     "nimicoding:sync:apply": "pnpm check:nimicoding-host-hardcut && pnpm exec nimicoding sync --apply",
     "check:nimi-coding-seed-sync": "pnpm nimicoding:sync",

@@ -363,7 +363,7 @@ units:
     modality: must
     scope:
       - nimi2d.asset-package
-    statement: Every base body declares topology_id nimi.nimi2d.base-body.topology, topology_version 1, slot_taxonomy_ref .nimi/spec/nimi2d/kernel/tables/slot-taxonomy.yaml, skeleton_id, and morphology_profile_id, and a change to required anchors, required slots, skeleton ownership, or wardrobe compatibility increments topology_version before use.
+    statement: Every base body declares topology_id nimi.nimi2d.base-body.topology, topology_version 1, slot_taxonomy_ref .nimi/spec/canonical/nimi2d/asset-package.authority.yaml, skeleton_id, and morphology_profile_id, and a change to required anchors, required slots, skeleton ownership, or wardrobe compatibility increments topology_version before use.
     condition: Whenever a base-body topology is admitted or compatibly evolved.
     failure: Reject missing, mismatched, or silently changed topology identity.
     relations:
@@ -723,7 +723,7 @@ units:
     modality: must
     scope:
       - nimi2d.asset-package
-    statement: capability is closed to requested_tier, proven_tier, literal channel_matrix_ref .nimi/spec/nimi2d/kernel/tables/capability-channel-matrix.yaml, and channel_evidence; requested and proven tiers use only tiers zero through three; proven tier is validator-computed; and tier 1 permits jaw-amplitude evidence but prohibits AEIOU viseme evidence.
+    statement: capability is closed to requested_tier, proven_tier, literal channel_matrix_ref .nimi/spec/canonical/nimi2d/asset-package.authority.yaml, and channel_evidence; requested and proven tiers use only tiers zero through three; proven tier is validator-computed; and tier 1 permits jaw-amplitude evidence but prohibits AEIOU viseme evidence.
     condition: Whenever package capability is parsed, validated, or reported.
     failure: Reject self-declared success, reserved tier use, unknown channel, missing mandatory attestation, or tier-1 true-viseme overclaim.
     relations:
