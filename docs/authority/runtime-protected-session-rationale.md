@@ -600,7 +600,6 @@ reason, retryability, and a non-secret action hint; it never includes endpoint
 material, executable path, process tuple, operation id, durable anchor, account
 material, or credential values.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/account-session-contract.md -->
@@ -1253,7 +1252,6 @@ admitted selector, lifecycle, SDK/Kit, UI, audit, revoke and endpoint slice,
 third-party Agent inventory and conversation operations remain unavailable.
 No old operation grant or caller-selected Agent id can promote them.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/config-contract.md -->
@@ -1574,7 +1572,6 @@ installers, and Python dependency materializers must resolve their install root
 from `dataRootRef` / `managedRoots` and must not use `~/.nimi/engines` or any
 other home-directory root. When `dataRootRef` is empty the managed install
 fails closed into product setup rather than guessing a path.
-
 
 ---
 
@@ -2007,4 +2004,3 @@ activation-gate projection semantics are owned by
 stable RPC Surface anchor and delegates read, confirmation, command, job
 observation, activation-gate, and no-ordinary-user-installer rules to those
 files.
-

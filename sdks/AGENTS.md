@@ -22,4 +22,3 @@
 - `pnpm --filter @nimiplatform/sdk test`
 - `pnpm check:sdk-release-contracts`
 - `pnpm check:sdk-doctor` (required after editing `sdks/typescript/doctor/**`, adapter manifests, or `config/sdks-framework-api-capability-map.yaml`)
-

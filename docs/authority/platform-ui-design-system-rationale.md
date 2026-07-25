@@ -48,7 +48,6 @@ This guide points to the Platform authority surfaces for design-pattern. It does
 - `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/design-pattern-contract.md -->
@@ -346,7 +345,6 @@ This guide points to the Platform authority surfaces for design-pattern. It does
 - `tables/nimi-ui-allowlists.yaml`
 - `tables/rule-evidence.yaml`
 - `nimi-ui-motion-contract.md`
-
 
 ---
 
@@ -917,7 +915,6 @@ Fixed rules:
 - `tables/nimi-kit-registry.yaml`
 - `tables/rule-evidence.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/agent-center-contract.md -->
@@ -1052,7 +1049,6 @@ authority.
 
 - AUTHORITY-RELATION subject=apps action=own object=localagent-intent-and-presentation value=app-owned polarity=require
 - AUTHORITY-RELATION subject=kit-agent-center action=assemble object=localagent-context value=denied polarity=forbid
-
 
 ---
 
@@ -1223,7 +1219,6 @@ contract; they are narrow, named carve-outs with fixed scope. The
 default enforcement threshold remains 4.5:1 / 3:1 for any
 `(tier, tone, app, surface_slot)` not listed in this section.
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/nimi-ui-motion-contract.md -->
@@ -1365,6 +1360,4 @@ travel. It does not mean "no feedback".
 - App code must not adopt a second animation library or hand-rolled
   `requestAnimationFrame` loops for governed surfaces.
 
-
 ---
-

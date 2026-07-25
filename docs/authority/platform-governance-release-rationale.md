@@ -50,7 +50,6 @@ This guide points to the Platform authority surfaces for open-source-governance.
 - `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
 - `.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/governance-contract.md -->
@@ -168,6 +167,4 @@ Fixed rules:
 
 `release-gate-contract.md` (`P-RELG-*`) is the operational refinement of `P-GOV-003`, `P-GOV-011`, `P-GOV-021`, and `P-GOV-023`. It declares a single release-gate registry (`tables/release-gate-registry.yaml`) as the source of release-gate identity, locks projection-only semantics for preflight / lint chain / CI workflow step blocks, and enforces traceability through a coherence checker plus a projection-drift checker. `P-RELG-*` rules cite their parent `P-GOV-*` anchors explicitly and never override them.
 
-
 ---
-

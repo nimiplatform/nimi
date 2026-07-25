@@ -169,7 +169,6 @@ portable proof, stronger permission, or persistent Nimi-managed autostart.
 - `grant-service.md` — `K-GRANT-*`
 - `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/app-messaging-contract.md -->
@@ -410,7 +409,6 @@ Fixed rules:
   through Runtime / SDK authority before loading private agent data.
 - Explicit binding-only Avatar modes must use `K-BIND-*` scoped binding
   attachment and must fail closed when binding is missing or invalid.
-
 
 ---
 
@@ -814,7 +812,6 @@ Immutable bytes remain typed unavailable until 0P/P. Package-manager roots,
 workspace/source scanning, app-local manifests, app id, file presence, process
 liveness, or an inventory-only record cannot create runnable truth.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/local-app-principal-record-contract.md -->
@@ -922,7 +919,6 @@ truth and are not repartitioned or owned by the app principal.
 - `account-session-contract.md` — `K-ACCSVC-*`
 - `runtime-agent-service-contract.md` — `K-AGCORE-*`
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-*`
-
 
 ---
 
@@ -1162,7 +1158,6 @@ bootstrap、fixture mode 或 public token RPC。Full first-party apps and defaul
 Avatar use the same Runtime-mediated broker as every local app; no binding or
 caller class permits an app/host bearer fallback.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/auth-service.md -->
@@ -1376,4 +1371,3 @@ environment/CLI/config projections, request intent, `RegisterApp`, app id,
 manifest, ordinary app session, metadata, or a temporary bearer do not exist as
 compatibility paths. Unknown predecessor config keys fail schema validation;
 the service does not decode or special-case predecessor wire payloads.
-

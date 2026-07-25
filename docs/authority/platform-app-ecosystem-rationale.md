@@ -114,7 +114,6 @@ closed。
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — `D-LLM-022..D-LLM-026`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/app-permission-contract.md -->
@@ -345,7 +344,6 @@ permission prompts.
 - `.nimi/spec/realm/external-realm.md`
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/nimi-app-local-admission-contract.md -->
@@ -490,7 +488,6 @@ frozen by 0K. 0P may map package and attestation inputs into those slots but
 cannot rename or reshape them. Promotion invalidates leases/sessions and never
 creates a permission decision. Shipped Zhiyu remains bundled; its integration build is an isolated
 development principal.
-
 
 ---
 
@@ -904,7 +901,6 @@ remains a `base_entitlement`; the sixteen public permission ids remain reserved
 until their own owner-complete admissions; Camera, Microphone, Files,
 Accessibility, Screen Recording and Notifications remain independent macOS
 `os_right` decisions.
-
 
 ---
 
@@ -1699,7 +1695,6 @@ control remains unchanged and Desktop-specific.
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md -->
@@ -2177,7 +2172,6 @@ and do not redefine them.
   and solo-reviewer lever. `P-ECO-004` remains the active authority for the
   review-state set and tier-to-adjudicator mapping.
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/nimi-app-developer-workflow-contract.md -->
@@ -2635,7 +2629,6 @@ written only to its admitted owner surface and cannot become workflow truth.
 - This contract is the active authority for developer repository layout,
   workflow steps, local audit dry-run, CI build, immutable submission,
   production Developer Mode, and workflow non-targets.
-
 
 ---
 
@@ -3108,7 +3101,6 @@ remain fail-closed.
 - `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` -- `K-BIND-*`
 - `.nimi/spec/runtime/kernel/app-messaging-contract.md` -- `K-APP-*`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/nimi-ecosystem-contract.md -->
@@ -3259,7 +3251,6 @@ Runtime / Realm / Cognition / SDK boundary invariants。
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-022..P-ARCH-027`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
-
 
 ---
 
@@ -3507,7 +3498,6 @@ boundary rules for Desktop/Web, SDK, and Runtime.
 names, owner-specific execution paths, or alias surfaces forbidden by
 `P-PROP-003`.
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/mod-extension-retirement-contract.md -->
@@ -3619,6 +3609,4 @@ script / generated SDK anti-targets。
 - `.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md` — `P-NAPP-030..P-NAPP-032`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 
-
 ---
-

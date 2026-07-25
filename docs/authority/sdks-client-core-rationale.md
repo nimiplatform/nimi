@@ -575,7 +575,6 @@ history, review, save, or commit behavior. SDK ai-provider adapters may use the
 same Runtime AI scenario job runner, but adapters own only framework request and
 response mapping, not job lifecycle truth.
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/runtime-contract.md -->
@@ -1265,7 +1264,6 @@ Fixed rules:
   lifecycle fields explicit as unavailable or `not_projected`; they must not
   backfill product copy with synthetic lifecycle values.
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/transport-contract.md -->
@@ -1492,7 +1490,6 @@ SDK 在流消费速度不足时必须将背压关闭转化为可判定的错误�
 - **执行型流（Mode A）**：由调用方决策是否重试，SDK 不得自动重放。
 - SDK 自动重试仅限 unary/短生命周期读取调用；流式订阅与执行型流都必须由上层显式重建或重放。
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/error-projection.md -->
@@ -1696,7 +1693,6 @@ SDK 在轮询 `GetScenarioJob` 并遇到终态失败（`FAILED` / `CANCELED` / `
 
 SDK 不得要求上层通过解析 `reasonDetail` 自由文本来恢复失败细节。
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/boundary-contract.md -->
@@ -1841,7 +1837,6 @@ routing, execution, readiness, artifacts, reason codes, audit, and fail-closed
 enforcement. SDK must fail closed unless Runtime reports `COMPLETED` before
 artifacts are treated as a successful scenario result.
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/scope-contract.md -->
@@ -1869,4 +1864,3 @@ scope 本地错误必须统一投影到 sdk-error-codes 受控 family。
 ## S-SCOPE-005 Cross-Package Boundary
 
 scope 实现不得跨包调用 runtime/realm 私有客户端。
-

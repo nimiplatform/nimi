@@ -319,7 +319,6 @@ upstream authority。
 - `.nimi/spec/platform/kernel/tables/first-run-state-machine.yaml`
 - `.nimi/spec/platform/kernel/tables/product-control-record-schema.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/local-config-migration-contract.md -->
@@ -543,7 +542,6 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 - `.nimi/spec/platform/kernel/tables/local-config-file-registry.yaml`
 - `.nimi/spec/runtime/kernel/config-contract.md` — `K-CFG-014`, `K-CFG-015`, `K-CFG-016`, `K-CFG-018`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/nimi-home-contract.md -->
@@ -705,7 +703,6 @@ health、Apps 等）。
 - `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
 - `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/nimi-self-update-contract.md -->
@@ -807,7 +804,6 @@ OS service manager 持有。
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
 - `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`
-
 
 ---
 
@@ -915,7 +911,6 @@ identity，必须由显式 `web-release-contract.md` cut 处理。
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/web-release-contract.md -->
@@ -966,7 +961,6 @@ Audit evidence roots for `apps/web/**`, `apps/install-gateway/**`, and other pla
 `apps/simulator/**` evidence is admitted under its own Simulator authority row.
 It cannot be inferred as Web evidence merely because both artifacts are
 browser-deployed or use Cloudflare.
-
 
 ---
 
@@ -1089,7 +1083,6 @@ spec admission。
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 - `.nimi/spec/avatar` (kernel authority retained)
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/nimi-first-party-migration-contract.md -->
@@ -1199,6 +1192,4 @@ user product truth。
 - `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 
-
 ---
-

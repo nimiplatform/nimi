@@ -39,7 +39,6 @@ product rules.
 - `.nimi/spec/nimi2d/kernel/tables/generation-bench-corpus.schema.yaml`
 - `.nimi/spec/nimi2d/kernel/tables/generation-bench-result.schema.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/nimi2d/kernel/authority-boundary-contract.md -->
@@ -291,7 +290,6 @@ The Nimi2D boundary is valid only if:
 - No `.nimi/spec/nimi2d/**` file defines raw image intake.
 - No `.nimi/spec/nimi2d/**` file defines raw APML syntax.
 
-
 ---
 
 <!-- source: .nimi/spec/nimi2d/kernel/base-body-contract.md -->
@@ -498,7 +496,6 @@ Base body validation is valid only if:
 - no base-body-only render state exists
 - no Avatar runtime backend behavior is defined by base body data
 
-
 ---
 
 <!-- source: .nimi/spec/nimi2d/kernel/capability-tier-contract.md -->
@@ -700,7 +697,6 @@ Tier validation is valid only if:
 - requested tier and proven tier are distinct
 - overclaimed channels fail closed
 - tier-N is not used as a current success target
-
 
 ---
 
@@ -1048,7 +1044,6 @@ Provider closure is valid only if:
 - distribution reports can fail closed when layer-input full-chain package proof
   is missing or failing and that strict release-audit gate is requested
 
-
 ---
 
 <!-- source: .nimi/spec/nimi2d/kernel/generation-bench-contract.md -->
@@ -1378,7 +1373,6 @@ Generation Bench closure is valid only if:
 - deterministic replay metadata is present
 - final decision follows `tables/generation-bench-gates.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/nimi2d/kernel/index.md -->
@@ -1613,7 +1607,6 @@ Nimi2D consumes, but does not redefine:
 ## Derived Views
 
 No Nimi2D derived view is currently admitted as independent authority.
-
 
 ---
 
@@ -1960,7 +1953,6 @@ Layer input admission is valid only if:
 - no generated rig, renderer, runtime backend, or Avatar channel is produced by
   the layer input validator
 
-
 ---
 
 <!-- source: .nimi/spec/nimi2d/kernel/package-manifest-contract.md -->
@@ -2279,7 +2271,6 @@ Package manifest validation is valid only if:
 - upstream segmentation/occlusion evidence remains source evidence only
 - runtime blend/composer/APML/Avatar route fields are absent
 
-
 ---
 
 <!-- source: .nimi/spec/nimi2d/kernel/renderability-governance-contract.md -->
@@ -2524,7 +2515,6 @@ Governance validation is valid only if:
   evidence fails closed
 - no package success state can claim adult capability in v1
 
-
 ---
 
 <!-- source: .nimi/spec/nimi2d/kernel/wardrobe-slot-contract.md -->
@@ -2708,6 +2698,4 @@ Wardrobe validation is valid only if:
 - no wardrobe state exposes base body pixels without outfit
 - runtime generation is not required for outfit switching
 
-
 ---
-

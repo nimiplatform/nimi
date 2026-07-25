@@ -150,7 +150,6 @@ fail-close per the K-AUTHN-006 restart config group). The test
 fixtures use real `httptest.NewServer`
 to exercise the contract under realistic transport behavior.
 
-
 ---
 
 <!-- migrated-source: .nimi/spec/runtime/kernel/authz-ownership.md -->
@@ -219,7 +218,6 @@ Connector ownership applies to remote credential custody only.
 > `tables/runtime-rpc-auth-posture.yaml` 索引并汇总在分片中；ordinary authn
 > or request-body authorization never upgrades protected origin。
 
-
 ---
 
 <!-- migrated-source: .nimi/spec/runtime/kernel/endpoint-security.md -->
@@ -261,7 +259,6 @@ endpoint 校验不允许只在 create/update 时执行；每次实际出站请�
 ## K-SEC-005 Phase 1 配置边界
 
 Phase 1 不提供私网 allowlist（CIDR/hosts）。
-
 
 ---
 
@@ -345,7 +342,6 @@ The exact pre-admission and future target schema is defined by
 `tables/local-app-grant-binding-schema.yaml`. It intentionally declares
 `store_identity: absent_pre_admission`; changing that value requires the full
 permission admission slice, not a standalone schema or CRUD change.
-
 
 ---
 
@@ -566,7 +562,6 @@ Local refs must use the v2 local discriminant from K-RTARGET-002. Raw
 `model_id`, `target_model_id`, `localModelId`, `goRuntimeLocalModelId`,
 `targetId/profileId`, and `connector_id + model_id` are not admitted durable
 target identity. `connector_id` remains credential custody only.
-
 
 ---
 

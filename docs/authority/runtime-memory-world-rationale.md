@@ -173,7 +173,6 @@ Fixed rules:
 - RuntimeAgentService must not redefine cognition object model, cleanup semantics, or standalone public surface by implementation convention
 - runtime/private cognition consumption does not authorize collapsing cognition authority back into runtime contracts
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-memory-service-contract.md -->
@@ -639,7 +638,6 @@ Fixed rules:
   `MEMORY_EVENT_TYPE_RECORD_RETAINED` as if a new canonical row were inserted
   when the runtime reuses an existing retained row
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-memory-substrate-contract.md -->
@@ -755,7 +753,6 @@ Fixed rules:
   off the retained runtime-private memory path; deterministic replay/rebuild
   ownership remains runtime-owned unless a later redesign explicitly reopens
   that boundary
-
 
 ---
 
@@ -1100,7 +1097,6 @@ List/search/get-ingest fixed rules:
 - write/admin actions must validate bank authorization before mutating storage
   or accepting ingest work
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/scheduling-contract.md -->
@@ -1365,7 +1361,6 @@ ResourceHint {
 - `ai-profile-execution-contract.md` — K-AIEXEC-003~004 (execution snapshot, scheduling boundary)
 - `config-contract.md` — K-CFG-* (configuration paths)
 - `local-profile-application-contract.md` — K-LOCAL-013~015 (ResolveProfile, ApplyProfile)
-
 
 ---
 
@@ -1680,4 +1675,3 @@ If an implementation uses workflow substrate, it must first project all external
 - `workflow-contract.md` — `K-WF-003`, `K-WF-004`
 - `scheduling-contract.md` — `K-SCHED-001` through `K-SCHED-007`
 - `ai-profile-execution-contract.md` — `K-AIEXEC-003`, `K-AIEXEC-004`
-

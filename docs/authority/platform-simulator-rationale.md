@@ -447,6 +447,4 @@ authority. That table cannot grant authority to an implementation path.
 - `tables/simulator-listener-families.yaml`
 - `tables/simulator-performance-policy.yaml`
 
-
 ---
-

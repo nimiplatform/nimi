@@ -107,7 +107,6 @@ A future production A2A packet must include:
 - controlled non-fake integration fixture
 - explicit migration posture from this future-seam-only contract
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/delegated-approval-contract.md -->
@@ -221,7 +220,6 @@ SDK and Desktop may consume approval projection as typed Runtime state:
 
 Approval projection is not policy truth. Runtime policy remains canonical.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/delegated-audit-replay-contract.md -->
@@ -298,7 +296,6 @@ more-specific Runtime-owned subdomain such as `runtime.delegation.firewall`.
 
 No Desktop, Avatar, app, MCP, or A2A audit domain may become the canonical
 source for delegated decision lineage.
-
 
 ---
 
@@ -597,7 +594,6 @@ admit production consumption:
 - `delegated-a2a-future-seam-contract.md`
 - Avatar reference-only alignment when Avatar consumption changes
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/delegated-mcp-adapter-contract.md -->
@@ -810,7 +806,6 @@ Fixed rules:
 - a future remote-HTTP transport admission must satisfy the stateless
   no-session-affinity model and the revision's required request headers, and
   requires its own packet; nothing in this rule pre-admits it
-
 
 ---
 
@@ -1213,4 +1208,3 @@ Delegation failure reason codes are listed in
 `tables/delegation-reason-codes.yaml`. Public error projection may map these
 codes to existing transport errors, but the original delegation reason code
 must remain available in audit and replay.
-

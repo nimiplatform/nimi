@@ -327,7 +327,6 @@ component 不允许 emit 未在 event-contract 列出的 kind。
 - 新 Live2DBackendExtension capability → minor bump + 同步 `agent-script-contract.md`
   允许的 `requires` 集合
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/app-shell-contract.md -->
@@ -1131,7 +1130,6 @@ delegated Avatar mode，且作为 carrier-relation attachment，不替代 token�
 ---
 **Industrial baseline.** Embodied Output Interaction、Transient Overlays、Degraded Surface、Composition State 属于本 contract 的完整权威；实现不得偏离本 contract 已声明的规则，新增表面 / 新增 composition state 必须先以 minor / major bump 方式更新本 contract。
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/projection-backpressure-smoothing-contract.md -->
@@ -1218,7 +1216,6 @@ The guard `pnpm check:avatar-projection-no-cue-semantics` must prove:
   pending signal flush
 - voice/lipsync modules are not part of the smoothing implementation
 - no Avatar-local Runtime event scheduling surface is introduced
-
 
 ---
 
@@ -1453,7 +1450,6 @@ This contract supersedes the `.vrma` runtime asset close gate recorded by
 implementation is hard-cut, but they are not canonical runtime proof for this
 contract.
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/kit-ui-consumption-contract.md -->
@@ -1494,7 +1490,6 @@ Avatar renderer styles must not define a parallel root design token registry. Hi
 
 - `tables/nimi-kit-adoption.yaml`
 - `tables/nimi-kit-compositions.yaml`
-
 
 ---
 
@@ -1970,7 +1965,6 @@ Avatar shell 在 click 时 call `hitTestArea` 填入 `avatar.user.click.detail.r
 
 **Current Live2D branch scope**: Cubism SDK for Web 集成 + Plugin API v1，voice-driven lipsync 通过已 admit 的 voice/lipsync authority 接入；multi-backend 抽象已由 BackendBranch + VRM branch authority 接管。
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md -->
@@ -2276,7 +2270,6 @@ Driver constraints:
 - Changing the ParamMouthForm winner-key mapping values requires a minor bump
   + sync to the lipsync driver `const` table + sync to evidence regression
   fixture.
-
 
 ---
 
@@ -2661,7 +2654,6 @@ throttled 上报到 carrier（详 design-07）。
 - VRM 1.x → 2.x library 升级 → 评估 `rotateVRMx` 等 API breakage；可能
   major bump
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/nimi2d-backend-contract.md -->
@@ -3013,7 +3005,6 @@ This contract does not admit:
 - Public Runtime/SDK `nimi2d` backend enum admission requires a separate
   Runtime/SDK authority packet and generated client update.
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/embodiment-projection-contract.md -->
@@ -3269,7 +3260,6 @@ export interface NasActivityHandler {
   contract evidence in the same packet
 - 新 Live2DBackendExtension capability：minor bump + 同步 `agent-script-contract.md`
   允许的 `requires` 集合
-
 
 ---
 
@@ -3995,7 +3985,6 @@ into public APML syntax.
 lip-sync pipeline / TTS 绑定 / model 加载策略 / settings UI 等）不在本 spec 范围，仅定义
 Avatar-local event contract。平台级 runtime projection 以 `.nimi/spec/runtime/kernel/**`
 为准。
-
 
 ---
 
@@ -4778,7 +4767,6 @@ Examples:
 
 API cheatsheet and ctx quick reference moved to [`agent-script-reference.md`](agent-script-reference.md) in the same kernel authority root, so this contract stays focused on handler convention, sandbox, discovery, and execution model.
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/avatar-debug-session-contract.md -->
@@ -4882,7 +4870,6 @@ This contract admits Avatar debug session authority and schema only. Avatar
 debug session runtime code, SDK methods, Desktop UI, and product support
 require their own implementation and test evidence before support is claimed.
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/agent-script-reference.md -->
@@ -4926,6 +4913,4 @@ ctx.app.{namespace, surface_id, visible, focused, window, cursor_x, cursor_y}
 ctx.runtime.{now, session_id, locale}
 ```
 
-
 ---
-

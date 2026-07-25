@@ -112,7 +112,6 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and dual-entry session correspondence
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and conversation continuity correspondence
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/agent-hook-intent-contract.md -->
@@ -221,7 +220,6 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — broad event-bus deferral and runtime event owner map
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and HookIntent / app-event boundary correspondence
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and HookIntent correspondence
-
 
 ---
 
@@ -430,7 +428,6 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and APML correspondence
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and APML decision correspondence
-
 
 ---
 
@@ -644,7 +641,6 @@ Fixed rules:
 - `.nimi/spec/avatar/kernel/index.md` — Avatar first-party carrier authority map
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and core presentation correspondence
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and presentation correspondence
-
 
 ---
 
@@ -982,7 +978,6 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime projection reader guide and core projection correspondence
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and runtime projection correspondence
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/avatar-debug-projection-contract.md -->
@@ -1118,7 +1113,6 @@ Runtime implementation, SDK methods, Desktop UI, and Avatar debug execution
 must each have implementation and test evidence before product support is
 claimed.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/companion-participation-projection-contract.md -->
@@ -1222,7 +1216,6 @@ turn these into synthetic candidates.
 The `avatar_companion_presentation_room` row in
 `tables/room-orchestration-domain-overlays.yaml` is a projection overlay. It
 does not create a new participation profile or execution owner.
-
 
 ---
 
@@ -1473,7 +1466,6 @@ Matrix closure requires all of the following:
 - domain overlays are explicitly limited to refinements against the closed base
   matrix
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-agent-ai-config-contract.md -->
@@ -1672,7 +1664,6 @@ Fixed rules:
 - the seed must not overwrite an existing committed config, including after
   daemon upgrade or restart
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-agent-app-consume-contract.md -->
@@ -1789,7 +1780,6 @@ Fixed rules:
 - a local-app principal remains only the caller/access/audit subject; it cannot
   substitute for `agent_id`, `conversation_anchor_id`, agent ownership, memory
   ownership or `subject_user_id`
-
 
 ---
 
@@ -2022,7 +2012,6 @@ Fixed rules:
   limited to relative delay and event-triggered follow-up continuation
 - proactive cadence ownership under `K-AGCORE-027` does not by itself imply a
   full time-driven assistant object model
-
 
 ---
 
@@ -2260,7 +2249,6 @@ This axis must preserve `K-AGCORE-002`, `K-AGCORE-007`, and `K-AGCORE-027`.
 It does not create a second Chat Track, Life Track, token-budget, or cadence
 owner.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-agent-participation-domain-promotion-contract.md -->
@@ -2481,7 +2469,6 @@ Required for every promotion candidate:
 - output candidate reference
 - missing-required-input policy of `fail_closed`
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-agent-participation-policy-boundary-contract.md -->
@@ -2659,7 +2646,6 @@ Matches in `K-DELEG-*` contracts, generated docs, or explicit prohibition text
 are allowed evidence only when they preserve protocol/gateway ownership and do
 not create public implementation support.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-agent-participation-profile-contract.md -->
@@ -2825,7 +2811,6 @@ Domain commit remains owned by the domain:
 - Scenario transcript commit remains future Scenario authority
 - OASIS/world event commit remains future world authority
 - external reply commit remains the owning domain/external path
-
 
 ---
 
@@ -3091,7 +3076,6 @@ config fields, provider/model route fields, memory fields, transcript/session
 recovery fields, Runtime snapshot fields, and arbitrary key growth. Avatar
 package gates remain required before RLA5 closeout.
 
-
 ---
 
 <!-- source: .nimi/spec/avatar/kernel/avatar-external-entry-consumer-contract.md -->
@@ -3183,7 +3167,6 @@ Avatar must refuse rendering of an external-entry projection when:
 
 Refusal must use admitted degraded/debug surfaces. It must not invent a local
 fallback driver, localhost state path, fixture carrier, or static success state.
-
 
 ---
 
@@ -3370,6 +3353,4 @@ must not be invented under the `avatar.*` namespace.
 - Any audio/lipsync success claim without Runtime artifact or backend evidence
   is drift.
 
-
 ---
-

@@ -155,7 +155,6 @@ Forbidden under `.nimi/spec/realm/**`:
 - `sdks/typescript/core-generated/realm-client.ts`
 - `sdks/typescript/core-generated/realm-typed-client.ts`
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/realm-contract.md -->
@@ -282,7 +281,6 @@ persistence, refresh callbacks, public grants, or caller-selected origin.
 Installed/developer/first-party facades must not export token wrappers or
 `createRealmWithRuntimeAccountToken`.
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/realm-core-contract.md -->
@@ -334,7 +332,6 @@ They do not by themselves prove that every language exposes or can execute
 every operation. Runtime-private operations must not be projected as public SDK
 methods; language behavior claims require an executable conformance path that
 returns normally or a typed error, never `panic`, trap, or process abort.
-
 
 ---
 
@@ -446,7 +443,6 @@ The first `sdk/world` cut excludes:
 - renderer-driver APIs
 - direct Realm mutation surfaces beyond existing authority homes
 - cognition or authoring-workbench ownership
-
 
 ---
 
@@ -941,7 +937,6 @@ No publication layer may use selector-read stable methods to smuggle in:
 - `surface-contract.md` — `S-SURFACE-001`, `S-SURFACE-004`, `S-SURFACE-013`
 -
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/world-evolution-engine-projection-contract.md -->
@@ -1107,7 +1102,6 @@ Projection must remain fail-close:
 - `runtime-contract.md` — `S-RUNTIME-011`, `S-RUNTIME-073`
 - `boundary-contract.md` — `S-BOUNDARY-001`, `S-BOUNDARY-002`
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/realm-group-agent-participation-client-contract.md -->
@@ -1188,7 +1182,6 @@ facade over Realm and Runtime owners.
 - `S-RUNTIME-224`: status and refusal projection.
 - `S-RUNTIME-225`: consumer hardcut gates.
 - `S-RUNTIME-226`: implementation status.
-
 
 ---
 

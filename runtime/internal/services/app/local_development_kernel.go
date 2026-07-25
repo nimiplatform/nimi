@@ -111,9 +111,9 @@ func (s *Service) prepareLocalDevelopmentRecord(ctx context.Context, authorizati
 	authorizationRef := localDevelopmentAuthorizationRef(authorization.ID)
 	principal, lookupErr := s.localAppKernel.Principals().GetByDevelopmentAuthorizationID(ctx, authorizationRef)
 	if errors.Is(lookupErr, localappkernel.ErrNotFound) || (lookupErr == nil && principal.State == localappkernel.PrincipalStateTombstoned) {
-		principal, record, createErr := s.createLocalDevelopmentProjection(ctx, authorization, observation)
+		created, record, createErr := s.createLocalDevelopmentProjection(ctx, authorization, observation)
 		if createErr == nil {
-			return principal, record, nil
+			return created, record, nil
 		}
 		if !errors.Is(createErr, localappkernel.ErrStateConflict) {
 			return localappkernel.Principal{}, localappkernel.Record{}, createErr

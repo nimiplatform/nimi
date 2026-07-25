@@ -42,7 +42,6 @@ This guide points to the cognition authority surfaces for index. It does not def
 - `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
 - `.nimi/spec/cognition/kernel/tables/skill-service-operations.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/cognition/kernel/app-memory-access-contract.md -->
@@ -171,7 +170,6 @@ approval 或单独 CRUD endpoint 都不能宣称 admission 完成。
 - `.nimi/spec/cognition/kernel/knowledge-service-contract.md` — knowledge owner truth
 - `.nimi/spec/cognition/kernel/skill-service-contract.md` — skill owner truth
 - `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — public SDK projection
-
 
 ---
 
@@ -406,7 +404,6 @@ The following are outside the admitted standalone cognition baseline:
 - app-facing or SDK-facing cognition transport contracts
 - any requirement that standalone cognition reuse runtime bank scope truth as its own semantic home
 
-
 ---
 
 <!-- source: .nimi/spec/cognition/kernel/completion-contract.md -->
@@ -490,7 +487,6 @@ Fixed rules:
   hidden completion dependency
 - repo-wide non-cognition governance drift must be recorded explicitly rather
   than misreported as cognition completion failure
-
 
 ---
 
@@ -582,7 +578,6 @@ Fixed rules:
 - caller-owned payload must not carry service-owned derived metadata as if it were durable truth
 - fail-closed validation applies before mutation commit, not only at read time
 
-
 ---
 
 <!-- source: .nimi/spec/cognition/kernel/index.md -->
@@ -630,7 +625,6 @@ updated: 2026-04-16
 ## Derived Views
 
 Cognition table views are rendered on demand with `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition`. The views are stdout artifacts; `generated/` is not a product authority directory.
-
 
 ---
 
@@ -765,7 +759,6 @@ Fixed rules:
   not downgrade to APP_PRIVATE, anonymous, subject_user_id, fixture, or legacy
   behavior
 
-
 ---
 
 <!-- source: .nimi/spec/cognition/kernel/memory-service-contract.md -->
@@ -845,7 +838,6 @@ Fixed rules:
 - derived-view support does not permit caller-owned mutation of service-owned
   ranking or cleanup posture
 
-
 ---
 
 <!-- source: .nimi/spec/cognition/kernel/prompt-serving-contract.md -->
@@ -893,7 +885,6 @@ Fixed rules:
   best-effort rendering
 - formatter convenience must not override family-truth ordering
 - prompt output must not silently imply kernel truth from advisory-only inputs
-
 
 ---
 
@@ -958,7 +949,6 @@ Fixed rules:
   path through storage ownership alone
 - digest `remove` requires prior archival plus a later pass confirmation; same-
   pass archive-and-remove is not admitted
-
 
 ---
 
@@ -1037,7 +1027,6 @@ Fixed rules:
 - runtime bridge adapters must fail closed when the committed `text.embed` intent
   cannot resolve to an admitted embedding execution path
 
-
 ---
 
 <!-- source: .nimi/spec/cognition/kernel/runtime-upgrade-contract.md -->
@@ -1086,7 +1075,6 @@ Fixed rules:
   omitted runtime concern does not damage standalone cognition completeness
 - a smaller or vaguer cognition surface must not claim parity solely because the
   overall project is “standalone”
-
 
 ---
 
@@ -1145,7 +1133,6 @@ Fixed rules:
   to absorb runtime execution-policy or workflow ownership
 - validated skill artifacts may participate in prompt serving and digest
   cleanup, but that does not make cognition a runtime automation owner
-
 
 ---
 
@@ -1246,6 +1233,4 @@ Fixed rules:
 - low-level digest analysis/apply helpers must remain internal implementation detail rather than public execution contract
 - standalone cognition must not grow a façade-owned digest pseudo-service
 
-
 ---
-

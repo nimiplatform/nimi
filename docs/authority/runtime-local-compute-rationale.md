@@ -128,7 +128,6 @@ Phase 1 不缓存设备画像：每次 `CollectDeviceProfile` 调用都实时采
 - 不通过时返回 warning（附加在响应中），但不阻断启动流程（Phase 1）。
 - Phase 2 可升级为阻断策略（需新增配置开关）。
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md -->
@@ -253,7 +252,6 @@ hashes:                        # 必填，所有文件须有对应 hash
 - 非法 `page_token` 返回 `INVALID_ARGUMENT` + `PAGE_TOKEN_INVALID`。
 - 所有 list/search RPC 必须保持 read-snapshot 语义。特别是 `ListLocalAssets` 只能读取 runtime 已持久化或内存中已承认的 local asset inventory projection；它不得为了“normalize”或“freshen”结果同步执行 health probe、engine bootstrap、warm、status mutation 或 persistence side effect。
 - 需要 fresh health truth 的 caller 必须使用显式 health/warm/start RPC 或等待 runtime-owned background health maintainer 的投影更新；不得把 `ListLocalAssets` 作为隐式 health refresh API。
-
 
 ---
 
@@ -424,7 +422,6 @@ capability heuristic（仅在 manifest 未给出更强事实时生效）：
 companion 约束：
 
 - 模型声明 `text.generate.vision` 能力但无可用 mmproj artifact 时，registration 必须 fail-close。
-
 
 ---
 
@@ -650,7 +647,6 @@ K-MCAT `local` catalog。两者不得形成第二套 verified catalog。
 
 `InstallModelFromPlan` 只能消费 `ResolveModelInstallPlan` 产出的 `LocalInstallPlanDescriptor` 形态；`install_available=false` 必须 fail-closed。Desktop/Web/Kit 不得绕过该 RPC 自行执行 catalog/manual install。
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/local-engine-contract.md -->
@@ -800,7 +796,6 @@ Speech product posture 由 `local-engine-speech-contract.md` 的 `Speech Runtime
 - 不得把 `backend_class`、`backend_family` 暴露给 app 作为 public routing knob。
 - 不得把 canonical local image path 降级为 `ATTACHED_ENDPOINT`。
 - 不得把 `media.diffusers`、`stablediffusion-ggml` 等 backend 名称提升为 public engine target。
-
 
 ---
 
@@ -976,7 +971,6 @@ provide product evidence.
   metadata / audit tag，是本节唯一一份 stream 降级词汇，绝不能被当作 native
   realtime 的主验收真相；分片模拟的语音流不满足 `native_stream` 验收。
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/local-engine-accelerator-contract.md -->
@@ -1110,7 +1104,6 @@ Lifecycle projection:
 - `failed`, `cancelled`, and `repair_required` must project as fail-closed
   dependency setup / repair detail, not as topology unsupported and not as
   pseudo-success.
-
 
 ---
 
@@ -1350,7 +1343,6 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 - 双平面失败时只允许一个稳定主错误码；次级平面信息只能进入 `secondary_detail`。
 - `repair_required -> resolved` 每次发生时，必须写入 audit event（至少包含 `old_entry_id`、重新解析原因、触发入口与时间戳）。
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md -->
@@ -1534,7 +1526,6 @@ file existence, or local cache.
 
 Detailed materializer authority is owned by `K-LENG-028` in `local-environment-materializers-contract.md`. This section remains the stable Local Engine Contract anchor and delegates registry, source manifest, verification evidence, selected source record, activation, and ordinary-user boundary rules to that file.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/local-engine-speech-contract.md -->
@@ -1591,7 +1582,6 @@ Speech product posture:
   - `audio.synthesize` 只 materialize 当前 admitted `qwen3_tts` plain synth slice
   - future-admitted `voice_workflow.voice_clone` / `voice_workflow.voice_design` 也必须分别按自身 slice 懒加载，不得因为 plain `TTS` 已请求就自动预取
 - runtime/desktop 必须复用已验证的 env/cache/materialized slice；除非 repair/remove 明确要求，否则不得默认重下载或重 bootstrap
-
 
 ---
 
@@ -1830,7 +1820,6 @@ Activation and materialization relation:
 transfer completion, script exit, warmup success, or previous health success may
 mint or satisfy `runtimeBaselineRef` without the activation evidence above.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/local-environment-materializers-contract.md -->
@@ -2038,7 +2027,6 @@ dependency in `unsupported` state carrying the typed resolver reason code
 (`K-MCAT-037`). The dependency keeps a non-empty `dependency_id` (the pack's
 stable default model-family id) and is never projected as a ready or
 startable dependency with an empty `dependency_id`.
-
 
 ---
 
@@ -2271,4 +2259,3 @@ profile entry 允许通过 `overrides` 字段覆盖 asset 的非路径 profile �
 - `overrides` 的应用时机在 runtime 完成 slot 路径注入之后，engine 请求构造之前。
 - `overrides` 不得触发 asset 重新安装或 Service 重启；它们仅影响单次 workflow 执行参数。
 - profile entry 不携带 `overrides` 时，使用 asset 自身的默认参数。
-

@@ -307,7 +307,6 @@ Adjacent owner boundaries are fixed:
 - `.nimi/spec/desktop/agent-projection.authority.yaml`
 - `.nimi/spec/desktop/ai-consumption.authority.yaml`
 
-
 ## Preserved source: Conversation Capability Contract
 
 # Conversation Capability Contract
@@ -560,7 +559,6 @@ Agent Chat `audio.synthesize` and `voice_workflow.*` intent are Runtime Agent
 AI Config-owned. Desktop conversation capability `audio.synthesize` or voice
 workflow capability state must not be reinterpreted as Runtime Agent audio
 binding truth, generation policy, or workflow ownership.
-
 
 ## Preserved source: Agent Avatar Surface Contract
 
@@ -1141,7 +1139,6 @@ The configuration contract must not reopen Desktop-local carrier registry,
 per-agent avatar binding truth, or launch payload widening prohibited by
 D-LLM-059 through D-LLM-072.
 
-
 ## Preserved source: Agent Avatar Configuration Contract
 
 # Agent Avatar Configuration Contract
@@ -1300,7 +1297,6 @@ app-local carrier truth.
 - `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md`
 - `.nimi/spec/sdks/kernel/runtime-avatar-control-client-contract.md`
 
-
 ## Preserved source: Agent Delegation Control Surface Contract
 
 # Agent Delegation Control Surface Contract
@@ -1410,7 +1406,6 @@ Fixed constraints:
 - Desktop and Avatar MUST continue to consume only typed Runtime projections for
   any user-visible delegated result.
 
-
 ## Preserved source: Companion Participation Control Surface Contract
 
 # Companion Participation Control Surface Contract
@@ -1463,7 +1458,6 @@ success state.
 Desktop companion participation surfaces must not create app-local schedulers,
 room queues, fairness budgets, timeout budgets, or queue-status truth for
 Runtime participation.
-
 
 ## Preserved source: Realm Group Agent Participation Surface Contract
 

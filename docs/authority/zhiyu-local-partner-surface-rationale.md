@@ -31,7 +31,6 @@ execution, own memory truth, own Runtime AI config, own Avatar resource truth,
 or directly consume AI provider/model routes. Zhiyu presents and operates
 admitted upstream surfaces.
 
-
 ---
 
 <!-- source: .nimi/spec/zhiyu/kernel/index.md -->
@@ -98,7 +97,6 @@ When conflicts occur:
 1. Upstream owner specs define upstream truth.
 2. Zhiyu kernel defines Zhiyu product surface and consumption requirements.
 3. App implementation and tests follow this kernel.
-
 
 ---
 
@@ -225,7 +223,6 @@ may return only declared host-neutral projections/results from deterministic
 scenario state. Unsupported behavior stays an explicit typed unavailable
 result; it cannot be implemented as a silent no-op or success-shaped mock.
 
-
 ---
 
 <!-- source: .nimi/spec/zhiyu/kernel/avatar-voice-surface-contract.md -->
@@ -296,7 +293,6 @@ be admitted here for Zhiyu. Desktop avatar rules are provenance for migration,
 not direct Zhiyu authority. Without admitted public handoff, Zhiyu must present
 avatar launch as disabled/deferred with a reason code and no ready-looking local
 instance fabrication.
-
 
 ---
 
@@ -411,7 +407,6 @@ Retired local config module ownership for Zhiyu Agent Center:
 Config-owned. Zhiyu must not render app-local audio binding truth, workflow
 ownership, or a playable pseudo voice artifact as Agent Center truth.
 
-
 ---
 
 <!-- source: .nimi/spec/zhiyu/kernel/conversation-surface-contract.md -->
@@ -487,7 +482,6 @@ conversation artifact projection, including `runtime.agent.turn.artifact_ready`
 and action projection families. Zhiyu must not request image generation, fetch
 artifacts through a local seam, own retry semantics, or store artifact truth.
 
-
 ---
 
 <!-- source: .nimi/spec/zhiyu/kernel/creation-activity-contract.md -->
@@ -511,7 +505,6 @@ If Runtime local agent generates an image during conversation, Zhiyu may
 display the Runtime-owned conversation artifact projection. This exception does
 not admit image generation as a Zhiyu capability.
 
-
 ---
 
 <!-- source: .nimi/spec/zhiyu/kernel/diagnostics-dev-mode-contract.md -->
@@ -532,7 +525,6 @@ step. Upstream raw truth remains owned by its domain.
 
 Diagnostics, release evidence, old screenshots, old E2E, and closeout reports
 cannot define product authority or override `.nimi/spec/zhiyu/**`.
-
 
 ---
 
@@ -555,7 +547,6 @@ Registry admission does not grant Zhiyu upstream ownership.
 
 Release evidence is verification material only. It does not become product
 authority and cannot override kernel contracts.
-
 
 ---
 
@@ -624,7 +615,6 @@ closed into typed `emotionViolation` evidence without displaying the rejected
 raw value. Non-emotion Runtime Agent activity events must not overwrite the
 current companion emotion projection.
 
-
 ---
 
 <!-- source: .nimi/spec/zhiyu/kernel/local-persistence-boundary-contract.md -->
@@ -658,7 +648,6 @@ Simulator replay is Platform release/debug evidence and never a Zhiyu recovery
 source. A Simulator Adapter recreates its projection from the new scenario
 epoch; it does not hydrate Zhiyu storage or invoke production recovery.
 
-
 ---
 
 <!-- source: .nimi/spec/zhiyu/kernel/main-ui-copy-contract.md -->
@@ -681,7 +670,6 @@ Diagnostics may show technical truth with owner, reason, and next step.
 Button labels and empty-state copy must reflect the real admitted action. If a
 Desktop/Runtime/Avatar facade is unavailable, copy must present honest guidance
 instead of a fake action.
-
 
 ---
 
@@ -707,7 +695,6 @@ upstream non-user-visible or owner-reviewed admission.
 Zhiyu partner paths must not call SDK `writeMemory` or equivalent memory write
 helpers. Memory changes, if any, are Runtime/Cognition-owned conversation
 derived projection.
-
 
 ---
 
@@ -756,7 +743,6 @@ Availability may be presented only from bounded
 `LocalAgentSourceContextStatus` plus admitted opaque inventory/provenance.
 Unknown/partial status never becomes a current or ready partner. Zhiyu stores
 no raw source/profile/context cache and creates no alternate identity mapping.
-
 
 ---
 
@@ -807,7 +793,6 @@ Zhiyu also owns its canonical renderer factory, current
 Those inputs define how current Zhiyu UI consumes a host-neutral binding; they
 cannot redefine Platform `P-SIM-*`, Kit, SDK, Runtime, Realm, Desktop, or
 Simulator selection/release authority.
-
 
 ---
 
@@ -885,6 +870,4 @@ effect scan, or integrated graph is unproved. App-tools produces App-source
 qualification; Simulator owns final resolver, cross-App, DOM/CSS, performance,
 and release qualification. Neither report substitutes for the other.
 
-
 ---
-

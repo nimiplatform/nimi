@@ -380,7 +380,6 @@ Rules:
 - `.nimi/spec/desktop/ai-consumption.authority.yaml` — D-AIPC-001~012 (desktop AI config authority)
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~005 (AIScopeRef)
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/connector-contract.md -->
@@ -628,7 +627,6 @@ connector's credential payload remains Runtime-custodied.
 - Missing connector/credential/model/capability readiness produces
   connector-readiness or setup-required/no-live-config projection for required
   slices; it must not synthesize placeholder AIConfig.
-
 
 ---
 
@@ -878,7 +876,6 @@ downloads.
 - let Desktop/Tauri download progress events be the only terminal evidence
 - mark an install ready before Runtime registry, manifest, and health evidence
   agree
-
 
 ---
 
@@ -1320,7 +1317,6 @@ iteration 支持必须由 `music.generate.iteration` capability 与 runtime prov
 - Package-source selection inside the managed native-binary path is runtime-private. Choosing a canonical or experimental package source must not change the public request path, response envelope, or any app-visible provider/model contract.
 - Unsupported managed-image package tuples must fail-close before provider execution begins, using `AI_LOCAL_MODEL_UNAVAILABLE` rather than a generic provider internal error.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/nimillm-contract.md -->
@@ -1375,7 +1371,6 @@ routePolicy、backendName、fallback 决策必须可观测。
 ## K-NIMI-010 Availability & Fallback
 
 可用性门控与 fallback 必须显式，禁止静默降级。
-
 
 ---
 
@@ -1553,4 +1548,3 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 - When multiple package sources exist for one host tuple, provider health must use the tuple's canonical `product_state=supported` package source by default. Runtime-private experimental package sources must not affect health unless that source was explicitly selected inside runtime configuration.
 - If the matrix recognizes the topology but the managed image backend package table marks the tuple unsupported, provider health must report recognized-but-unsupported detail and keep the asset unavailable.
 - Health attribution for supported native-binary tuples must be based on the managed image backend gRPC target plus `local-media` execution readiness, not on llama management routes.
-

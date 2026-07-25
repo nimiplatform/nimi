@@ -128,7 +128,6 @@ binds framework memory or context to Nimi Cognition owner surfaces must
 first classify every durable framework state cluster under these tests, and
 the admission fails closed while any durable cluster remains unclassified.
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/ai-config-surface-contract.md -->
@@ -539,7 +538,6 @@ passes the compact-ref validator; otherwise it must be rejected, not shimmed.
 - `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001~007
 - `.nimi/spec/sdks/kernel/runtime-route-contract.md` — S-RUNTIME-074~078
 - `.nimi/spec/sdks/kernel/surface-contract.md` — S-SURFACE-001~011
-
 
 ---
 
@@ -1126,7 +1124,6 @@ voice truth, credential, playback state, or durable audio bytes.
 - `.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`
 - `.nimi/spec/runtime/kernel/voice-contract.md` — `K-VOICE-021`
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/nimi-permission-client-contract.md -->
@@ -1249,7 +1246,6 @@ permission posture/lifecycle 是互斥词汇；review 结果不得 seed 或扩�
 - `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-*`
 - `.nimi/spec/sdks/kernel/error-projection.md` — `S-ERROR-*`
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/nimi-proposal-intake-client-contract.md -->
@@ -1350,7 +1346,6 @@ truth remains the Platform-returned record.
 `MUST NOT`: Apps must not persist alternate proposal truth, alternate review
 state, or hidden success state when the SDK returns a fail-closed error.
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/connector-auth-acquisition-contract.md -->
@@ -1429,7 +1424,6 @@ W1 admitted managed OAuth acquisition 不拥有 refresh / rotation automation。
   defined by `K-CONN-018`.
 - Re-authentication is manual reacquire unless a future spec redesign explicitly admits
   refresh / rotation owner, storage semantics, audit events, and failure behavior.
-
 
 ---
 
@@ -1510,7 +1504,6 @@ environment setup, confirmation, failed, unsupported, cancelled, or repair
 state. SDK public errors and helper text must not instruct ordinary users to
 install these dependencies through system package managers, global Python, user
 PATH, machine PATH, shell profiles, or engine-private directories.
-
 
 ---
 
@@ -1636,7 +1629,6 @@ host typed surface。该 surface 只能做 Runtime facts 的 deterministic proje
   health dependency，但 `runtime.route.*` 本身不是 memory embedding editable
   config surface，也不是 canonical bank bind / cutover command surface。
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/runtime-delegation-client-contract.md -->
@@ -1753,7 +1745,6 @@ Runtime delegation. The family is a typed contract surface:
 `S-RUNTIME-205`, `S-RUNTIME-206`, `S-RUNTIME-207`, `S-RUNTIME-208`,
 `S-RUNTIME-209`, and `S-RUNTIME-210` must be consumed by later SDK
 implementation admissions without re-owning Runtime delegation semantics.
-
 
 ---
 
@@ -1874,7 +1865,6 @@ Fixed rules:
 - registration must also require explicit `conversationAnchorId`
 - SDK must return Runtime's binding plus `ConversationAnchorSnapshot`; it must
   not infer anchor continuity from same-agent identity or app-local storage
-
 
 ---
 
@@ -2014,7 +2004,6 @@ Runtime Agent Participation. The family is intentionally typed-client-only:
 SDK consumes `K-AGCORE-061` through `K-AGCORE-088` and existing Runtime audit /
 delegation / Realm commit authority without re-owning them.
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/companion-participation-client-contract.md -->
@@ -2070,7 +2059,6 @@ The SDK must preserve the distinction between Runtime candidate projection and
 domain/canonical commit projection. It must not infer commit from candidate text
 or app-side display state.
 
-
 ---
 
 <!-- source: .nimi/spec/sdks/kernel/package-governance-contract.md -->
@@ -2118,7 +2106,6 @@ commands, conformance commands, or export manifests before the corresponding
 generator/conformance authority is admitted. No forwarding package or
 compatibility shim may be created to bridge archived old SDK source and
 `sdks/`.
-
 
 ---
 
@@ -2184,4 +2171,3 @@ OpenAI-compatible boundary:
   completion CRUD, logprobs, `n > 1`, general OpenAI API compatibility, and
   Runtime REST bypass promises.
 - Unsupported behavior: fail closed with `SDK_ADAPTER_FEATURE_UNSUPPORTED`.
-

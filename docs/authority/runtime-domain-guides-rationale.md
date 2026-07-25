@@ -43,7 +43,6 @@ This guide points to the runtime authority surfaces for cli. It does not define 
 - `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/config.md -->
@@ -84,7 +83,6 @@ This guide points to the runtime authority surfaces for config. It does not defi
 - `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
-
 
 ---
 
@@ -127,7 +125,6 @@ This guide points to the runtime authority surfaces for connector. It does not d
 - `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/local-model.md -->
@@ -168,7 +165,6 @@ This guide points to the runtime authority surfaces for local-model. It does not
 - `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
-
 
 ---
 
@@ -211,7 +207,6 @@ This guide points to the runtime authority surfaces for multimodal-delivery-gate
 - `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/multimodal-provider.md -->
@@ -252,7 +247,6 @@ This guide points to the runtime authority surfaces for multimodal-provider. It 
 - `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
-
 
 ---
 
@@ -295,7 +289,6 @@ This guide points to the runtime authority surfaces for nimillm. It does not def
 - `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/proto-governance.md -->
@@ -337,7 +330,6 @@ This guide points to the runtime authority surfaces for proto-governance. It doe
 - `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/companion/multimodal-provider-guide.md -->
@@ -369,7 +361,6 @@ Anchors: K-MMPROV-011, K-GATE-040, K-GATE-060
 
 workflow external async 与媒体任务状态机应保持一致，并通过交付门矩阵验证。
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/companion/proto-governance-playbook.md -->
@@ -396,6 +387,4 @@ Anchors: K-PROTO-009, K-PROTO-010
 
 发布前以 gate 结果为准；design/proto 命名映射统一查 `rpc-migration-map.yaml`。
 
-
 ---
-

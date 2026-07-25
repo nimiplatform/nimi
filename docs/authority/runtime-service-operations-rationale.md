@@ -173,7 +173,6 @@ local asset record in the active Runtime state.
 
 `WarmLocalAsset` 的语义限定为 runtime-owned 的”就绪/预热”路径：允许解析已安装 local model / local service，并在首次真实请求前触发最小执行以加载模型。对于 chat/text，本地模型在 `status in {installed, active}` 时可被选择，runtime 在首次真实 text 请求前负责 warm，不得要求 desktop 先行维持第二套 start/stop 真源。
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-artifact-contract.md -->
@@ -430,7 +429,6 @@ readability from their id, local-user ownership or earlier anonymous behavior.
 - artifact upload by id (`uploadArtifact` already exists with distinct semantics)
 - platform-side `lipsync_frame_batch` deprecation
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/scenario-job-lifecycle.md -->
@@ -513,7 +511,6 @@ job 到达终态后必须清理快照凭据（best-effort 内存清零 + 持久�
 - `SubscribeScenarioJobEvents` 可在 job 仍为 `RUNNING` 时重复发送 `RUNNING` 事件；消费者必须以最新 job 快照覆盖旧快照
 - `GetScenarioJob` 与 `SubscribeScenarioJobEvents` 在同一时刻看到的进度字段必须一致
 - 若 backend 无法提供可信进度，runtime 只返回状态，不得基于耗时或 UI 侧估算生成伪进度
-
 
 ---
 
@@ -756,7 +753,6 @@ root mismatch or inability to commit epoch invalidation makes protected local
 app access unavailable; no direct daemon, environment-selected root, portable
 session, app-id lookup or old process channel may recover it.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/cli-onboarding-contract.md -->
@@ -840,4 +836,3 @@ background runtime management surface 必须稳定提供 `nimi start`、`nimi st
 ## K-CLI-015 Stale Daemon State Cleanup
 
 background runtime state files（如 `daemon.pid`、`daemon.json` 与 stale lock state）必须 fail-close 清理；若 state 与 live process 不一致，CLI 必须优先 live process truth 并移除陈旧 state。
-

@@ -361,7 +361,6 @@ audit store without copying request filters or returned event payloads into the
 read event. Desktop must present the projected `trace_id` as selectable text
 for K-AUDIT-019 correlation while preserving the returned value verbatim.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/error-model.md -->
@@ -501,7 +500,6 @@ Fixed action classes:
   explicit Desktop interaction and never background-approve or autostart;
 - operation unavailable is not a generic proxy fallback signal.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/pagination-filtering.md -->
@@ -596,7 +594,6 @@ pagination are non-identity list facts and must not mint durable target refs.
 | `SearchCatalogModels` | RuntimeLocalService | 是（K-PAGE-005） | verified DESC, title ASC（K-LOCAL-021） | query（必填）, category_filter, engine_filter | K-LOCAL-030 |
 
 **注意**：`ListAIProviderHealth` 不使用分页，因 provider 总数通常 < 20，全量返回更适合 UI 消费。
-
 
 ---
 
@@ -833,7 +830,6 @@ workflow-capable speech family 的 app-facing consume 与健康验证必须保�
 - STT 必须继续由独立 STT family 的 resolved binding / health / execution truth 验证
 - family-level acceptance matrix 若缺失独立 STT sentinel，则不得宣称整条 `tts + stt + voice_design + voice_clone` 链路已经 admitted
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/streaming-contract.md -->
@@ -989,7 +985,6 @@ Runtime → SDK → Desktop 的流式路径必须共享显式背压预算，而�
 - 背压触发后的恢复边界必须由流类型显式决定：订阅流可重建，非幂等执行流不得自动重放。
 - SDK 自动重试只适用于订阅型或可安全重放的读取型流；执行型流是否重试必须由调用方显式决策。
 - Desktop 在流因背压关闭后，必须展示“已中断/需重试”的用户可读状态，并保留 `trace_id` 供跨层排障。
-
 
 ---
 
@@ -1204,4 +1199,3 @@ this hard cut unless a downstream owner is explicitly named.
 | `.nimi/spec/sdks/kernel/connector-auth-acquisition-contract.md` | `profileId` | `allowed_non_identity_fact` | OAuth acquisition profile metadata only; G4/G12 reject it as local-runtime target identity. |
 | `.nimi/spec/sdks/kernel/runtime-route-contract.md` | `localModelId` | `retired_history` | This file explicitly retires legacy route bindings and `localModelId`; G8/G12 reject them as route target identity. |
 | `.nimi/spec/sdks/kernel/transport-contract.md` | `connector_id` | `allowed_non_identity_fact` | Credential/bearer routing only; G3/G12 reject connector-only cloud target identity. |
-

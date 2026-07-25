@@ -278,7 +278,6 @@ frozen LocalAgent source snapshot and Runtime-local state.
 - AUTHORITY-RELATION subject=conversation-report-capture action=commit object=product-turn-message-transcript-memory-localagent-state value=denied polarity=forbid
 - AUTHORITY-RELATION subject=captured-behavior-observation action=become object=semantic-or-personality-truth value=denied polarity=forbid
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/runtime-agent-service-contract.md -->
@@ -721,7 +720,6 @@ Fixed rules:
 - cursor resume semantics must read from the committed event log rather than re-synthesizing events from current snapshots
 - hook-related events must originate from hook lifecycle transitions, not from thin wrappers around RPC responses
 - subscriber filtering may narrow delivery, but it must not invent missing hook outcomes or hide committed cancellation / failure / reschedule events
-
 
 ---
 
@@ -1168,4 +1166,3 @@ new opaque LocalAgent, snapshot, conversation/transcript scope, and memory
 scope. Restart rehydrates the exact validated state without contacting Realm
 or substituting current source data. Missing or invalid snapshot, provenance,
 account, agent, or anchor binding fails closed with a typed status.
-

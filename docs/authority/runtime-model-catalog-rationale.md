@@ -151,7 +151,6 @@ Runtime MUST fail-close and MUST NOT silently fallback to legacy hardcoded voice
 
 `ListPresetVoices` gRPC surface remains unchanged in this phase. `catalog_source` is an internal/runtime diagnostic behavior and does not require proto breaking change.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/model-catalog-local-resolver-contract.md -->
@@ -433,7 +432,6 @@ resolver 必须严格 fail-close：
   implementation and compliance evidence must exist before production
   readiness is claimed）
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/model-catalog-provider-metadata-contract.md -->
@@ -551,7 +549,6 @@ provider 默认文本模型元数据只对 `inventory_mode=static_source` provid
 - `K-MCAT-024`：`pnpm check:runtime-provider-capability-token-canonicalization`
 - `K-MCAT-027`：`pnpm check:runtime-provider-endpoint-ssot`
 - `K-MCAT-030`：`pnpm check:runtime-selection-freshness`
-
 
 ---
 
@@ -812,7 +809,6 @@ baseline local live chat voice bundle 的 source/catalog freeze 固定如下：
   canonical Python env
 - cloud plain `TTS` 是否同步迁移到 `qwen3-tts-*` 不属于本规则自动推出的结果；
   若要调整，必须由独立 reviewed source/default truth 显式声明
-
 
 ---
 
@@ -1231,7 +1227,6 @@ selector rules, shell carrier projection, revocation behavior, and product UX
 under P-PERM-017; it must not restore fine-grained `runtime.agent.voice.*`
 permission strings or a generic Runtime proxy.
 
-
 ---
 
 <!-- source: .nimi/spec/runtime/kernel/workflow-contract.md -->
@@ -1434,4 +1429,3 @@ Workflow 服务的跨域消费契约状态：
 | **Desktop Workflow Consumer** | 无 Workflow 消费面 | 创建 Desktop Workflow UI/runtime bridge consumer contract，定义事件订阅、状态投影和取消交互；不得创建 Desktop DataSync flow |
 
 > **设计完整性注意**：K-WF-001~011 共 11 条规则已定义完整的执行模型，但无任何消费方。Runtime 实现完成后，功能不可交付直到 SDK 和 Desktop 消费契约就绪。
-

@@ -48,7 +48,6 @@ This guide points to the Platform authority surfaces for vision. It does not def
 - `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/architecture.md -->
@@ -94,7 +93,6 @@ This guide points to the Platform authority surfaces for architecture. It does n
 - `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
-
 
 ---
 
@@ -142,7 +140,6 @@ This guide points to the Platform authority surfaces for protocol. It does not d
 - `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/ai-last-mile.md -->
@@ -189,7 +186,6 @@ This guide points to the Platform authority surfaces for ai-last-mile. It does n
 - `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
 
-
 ---
 
 <!-- source: .nimi/spec/platform/ai-agent-security-interface.md -->
@@ -235,7 +231,6 @@ This guide points to the Platform authority surfaces for ai-agent-security-inter
 - `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
-
 
 ---
 
@@ -364,7 +359,6 @@ App 模式访问矩阵：
 
 字段与规则定义见 `tables/protocol-primitives.yaml` (presence)。状态可恢复，过期自动收敛，跨设备确定性合并。
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/ai-last-mile-contract.md -->
@@ -414,7 +408,6 @@ AI 调用标准协议：discover → dry-run → verify → commit → audit。`
 ## P-ALMI-030 — 性能与可用性红线
 
 控制面与数据面必须分离。策略与授权决策应本地缓存。审计写入默认异步。Action 控制面附加开销 p95 <= 20ms。只读低风险动作策略异常时可降级（受控 fail-open）。高风险写动作默认 fail-close。
-
 
 ---
 
@@ -562,7 +555,6 @@ app-launch scope 不得复用 `P-AISC-006` 的 built-in chat feature scope
   `{ kind: 'app', ownerId: <admitted app_id>, surfaceId? }` 形状；其
   `ownerId` 解析对齐 `P-NAPP-002` registry row schema。
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/capability-catalog-contract.md -->
@@ -658,7 +650,6 @@ app-launch scope 不得复用 `P-AISC-006` 的 built-in chat feature scope
 
 - `tables/canonical-capability-catalog.yaml`
 - `tables/rule-evidence.yaml`
-
 
 ---
 
@@ -1143,7 +1134,6 @@ Account Default Profile content source。
 - `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml` —
   admitted factory `AIProfile` rows
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/architecture-contract.md -->
@@ -1342,7 +1332,6 @@ Boundary rules:
 - `sdk/world` must not absorb renderer-driver implementation, provider-native
   request ownership, or shared-projection truth ownership.
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/desktop-open-intent-contract.md -->
@@ -1476,6 +1465,4 @@ authority or release evidence.
 - `.nimi/spec/desktop/kernel/tables/desktop-open-targets.yaml`
 - `.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml`
 
-
 ---
-

@@ -34,7 +34,6 @@ Spec-first audit planning may expand admitted app-local specs into authority chu
 
 An app slice that is inactive, obsolete, or intentionally removed must be marked inactive or removed from the admission table. Retained implementation files without active authority admission must remain unmapped evidence and must block full-audit closeout.
 
-
 ---
 
 <!-- source: .nimi/spec/platform/kernel/package-authority-admission-contract.md -->
@@ -103,6 +102,4 @@ If the installed package still contains those surfaces, they remain unadmitted a
 
 This hardcut governs repository-work orchestration only. It does not rename, retire, or constrain Runtime `K-WF-*` product workflows, Nimi App product or developer workflows, Nimi2D Image2 pipelines, domain-native motion and scenario terms such as `greet_wave`, or other product semantics whose owner contracts are outside `P-PKG-*`.
 
-
 ---
-
