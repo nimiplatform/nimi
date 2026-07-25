@@ -914,25 +914,7 @@ function checkAvatarPackageProjectionProtoRetirement() {
 
   const contractRel = '.nimi/spec/runtime/kernel/avatar-package-projection-contract.md';
   if (exists(contractRel)) {
-    fail(`${contractRel} must remain deleted; use rule-evidence retired sentinels instead of active Avatar package projection truth`);
-  }
-  // S6 domain-1 R-B retired the rule-evidence pointer family; the agent-core
-  // evidence rows survive as fragment payloads under tables/rule-evidence/agent-core/.
-  const ruleEvidenceLegacyRel = '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-agent-core.yaml';
-  const ruleEvidence = exists(ruleEvidenceLegacyRel)
-    ? JSON.stringify(readYaml(ruleEvidenceLegacyRel) ?? {})
-    : JSON.stringify(
-      walk(path.join(cwd, '.nimi/spec/runtime/kernel/tables/rule-evidence/agent-core'))
-        .filter((file) => file.endsWith('.yaml'))
-        .map((file) => readYaml(toRel(file)) ?? {}),
-    );
-  for (const token of [
-    'Avatar package projection contract withdrawn with Asset Market',
-    'K-AGCORE-138',
-  ]) {
-    if (!ruleEvidence.includes(token)) {
-      fail(`rule-evidence.rules-agent-core.yaml missing retirement/continuity token: ${token}`);
-    }
+    fail(`${contractRel} must remain deleted; retirement semantics live in canonical runtime authority`);
   }
 
   const rpcMethods = read('config/runtime-rpc-methods.yaml');
