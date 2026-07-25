@@ -429,5 +429,23 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.1.7"
+  },
+  "nimi": {
+    "duplicateDependencyReferenceExceptions": {
+      "react": {
+        "sections": [
+          "devDependencies",
+          "peerDependencies"
+        ],
+        "reason": "Library package: peerDependencies declares the host requirement; devDependencies provides the same major locally for tests and preview builds."
+      },
+      "react-dom": {
+        "sections": [
+          "devDependencies",
+          "peerDependencies"
+        ],
+        "reason": "Library package: peerDependencies declares the host requirement; devDependencies provides the same major locally for tests and preview builds."
+      }
+    }
   }
 }

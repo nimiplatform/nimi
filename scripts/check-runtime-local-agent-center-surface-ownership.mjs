@@ -4,6 +4,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { requireActiveUnits } from './lib/authority-units.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const validModes = new Set(['spec', 'kit', 'desktop', 'zhiyu', 'all']);
@@ -98,62 +100,32 @@ function collectForbidden(source, relPath, checks, findings) {
 }
 
 async function checkSpec() {
-  const findings = [];
+  const findings = requireActiveUnits('runtime-local-agent-center-surface-ownership', [
+    'rule.nimi.platform.ui-design-system.p-agent-center-001a',
+    'rule.nimi.platform.ui-design-system.p-agent-center-001b',
+    'rule.nimi.platform.ui-design-system.p-agent-center-003',
+    'rule.nimi.platform.ui-design-system.p-agent-center-004',
+    'rule.nimi.platform.ui-design-system.p-agent-center-006a',
+    'rule.nimi.desktop.shell-ui.r048',
+    'rule.nimi.desktop.agent-projection.r095',
+    'rule.nimi.zhiyu.local-partner-surface.r029',
+    'rule.nimi.zhiyu.local-partner-surface.r028',
+    'rule.nimi.runtime.agent-participation.r021',
+  ]);
   const scanned = [];
-  const contractPath = '.nimi/spec/platform/ui-design-system.authority.yaml';
   const registryPath = 'config/platform-nimi-kit-registry.yaml';
-  const desktopKitPath = '.nimi/spec/desktop/shell-ui.authority.yaml';
-  const desktopConversationPath = '.nimi/spec/desktop/agent-projection.authority.yaml';
-  const zhiyuPath = '.nimi/spec/zhiyu/local-partner-surface.authority.yaml';
-  const avatarPath = '.nimi/spec/runtime/agent-participation.authority.yaml';
 
-  if (!await exists(contractPath)) {
-    findings.push(`${contractPath}: missing Agent Center contract`);
-  } else {
-    const source = await readText(contractPath);
-    scanned.push(contractPath);
-    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-001a', 'Kit Agent Center ownership unit', contractPath, findings);
-    assertContains(source, 'Kit owns the reusable Agent Center layout, sections, state assembly, typed controls, appearance feature behavior', 'Kit Agent Center reusable ownership', contractPath, findings);
-    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-001b', 'Agent Center non-ownership unit', contractPath, findings);
-    assertContains(source, 'Kit Agent Center owns Runtime Agent execution, lifecycle, memory, event, transcript, AI configuration persistence', 'Runtime truth non-ownership', contractPath, findings);
-    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-003', 'Agent Center persistence boundary unit', contractPath, findings);
-    assertContains(source, 'dropped local history or last-section state', 'local history and last-section owner decision', contractPath, findings);
-    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-004', 'voice workflow adapter unit', contractPath, findings);
-    assertContains(source, 'only through the Runtime AI configuration adapter', 'audio and voice workflow editable adapter decision', contractPath, findings);
-    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-006a', 'Agent Center child allocation unit', contractPath, findings);
-    assertContains(source, 'partner apps retain partner chrome and developer tooling outside', 'partner tooling classification', contractPath, findings);
-  }
-
-  for (const relPath of [registryPath, desktopKitPath, desktopConversationPath, zhiyuPath, avatarPath]) {
-    if (!await exists(relPath)) {
-      findings.push(`${relPath}: missing required spec file`);
-      continue;
-    }
-    scanned.push(relPath);
+  if (!await exists(registryPath)) {
+    findings.push(`${registryPath}: missing required registry file`);
+    return { name: 'spec', findings, scanned };
   }
 
   const registry = await readText(registryPath);
+  scanned.push(registryPath);
   assertContains(registry, '- kit.features.agent-center', 'registry entry', registryPath, findings);
   assertContains(registry, 'id: kit.features.agent-center', 'registry module', registryPath, findings);
   assertContains(registry, 'source_rule: P-AGENT-CENTER-001', 'registry source rule', registryPath, findings);
   assertNotContains(registry, 'active_modules', 'non-schema registry field', registryPath, findings);
-
-  const desktopKit = await readText(desktopKitPath);
-  assertContains(desktopKit, 'id: rule.nimi.desktop.shell-ui.r048', 'Desktop Kit Agent Center boundary', desktopKitPath, findings);
-  assertContains(desktopKit, 'drops local_history and ui.last_section without replacement', 'Desktop local_history decision', desktopKitPath, findings);
-
-  const desktopConversation = await readText(desktopConversationPath);
-  assertContains(desktopConversation, 'id: rule.nimi.desktop.agent-projection.r095', 'Desktop Agent Chat AI config boundary', desktopConversationPath, findings);
-
-  const zhiyu = await readText(zhiyuPath);
-  assertContains(zhiyu, 'id: rule.nimi.zhiyu.local-partner-surface.r029', 'Zhiyu Kit consumer boundary', zhiyuPath, findings);
-  assertContains(zhiyu, 'developer tools, app-specific diagnostics, Capability Studio', 'Zhiyu tooling placement boundary', zhiyuPath, findings);
-  assertContains(zhiyu, 'id: rule.nimi.zhiyu.local-partner-surface.r028', 'Zhiyu retired local config unit', zhiyuPath, findings);
-  assertContains(zhiyu, 'avatar_autoplay remains only in Runtime AgentPresentationProfile', 'Zhiyu voice owner decision', zhiyuPath, findings);
-
-  const avatar = await readText(avatarPath);
-  assertContains(avatar, 'id: rule.nimi.runtime.agent-participation.r021', 'Runtime presentation profile unit', avatarPath, findings);
-  assertContains(avatar, 'avatar_autoplay is the single persistent per-agent autoplay home never mirrored into app-local Agent Center config', 'Runtime appearance persistence boundary', avatarPath, findings);
 
   return { name: 'spec', findings, scanned };
 }

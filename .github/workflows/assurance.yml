@@ -82,6 +82,8 @@ jobs:
         run: pnpm check:sdk-coverage
       - name: gate.sdk.release-contracts
         run: pnpm check:sdk-release-contracts
+      - name: gate.sdk.kit-pack-audit
+        run: pnpm check:sdk-kit-pack-audit
       - name: gate.sdk.version-matrix
         run: pnpm check:sdk-version-matrix
       - name: gate.web.landing-generated
@@ -132,6 +134,10 @@ jobs:
       - name: gate.proto.lint
         run: pnpm proto:lint
 
+      - name: gate.runtime.local-agent-center-surface-ownership
+        run: pnpm check:runtime-local-agent-center-surface-ownership
+      - name: gate.workspace.package-dependency-duplicates
+        run: pnpm check:package-dependency-duplicates
       - name: gate.runtime.ai-scenario-coverage
         run: pnpm check:runtime-ai-scenario-coverage
       - name: gate.runtime.compliance

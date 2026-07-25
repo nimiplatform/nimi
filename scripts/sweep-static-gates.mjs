@@ -8,8 +8,8 @@
 // Gates needing a built workspace, a live service, or network are excluded
 // by name below - they are not "skipped silently", they are reported.
 
-import { execFile } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
+import { execFile, execFileSync } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -105,6 +105,25 @@ function ciReachableKeys() {
 
 const ciReachable = ciReachableKeys();
 
+function orphanCheckerFiles() {
+  const tracked = execFileSync('git', ['ls-files', '--', 'scripts/check-*.mjs'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  })
+    .split(/\r?\n/u)
+    .map((name) => name.trim().replaceAll('\\', '/'))
+    .filter((name) => name && existsSync(path.join(repoRoot, name)));
+  const referenced = new Set();
+  for (const key of keys) {
+    for (const match of String(scripts[key] || '').matchAll(/scripts\/check-[\w.-]+\.mjs/gu)) {
+      referenced.add(match[0]);
+    }
+  }
+  return tracked.filter((name) => !referenced.has(name));
+}
+
+const orphanFiles = orphanCheckerFiles();
+
 const red = [];
 const failedToStart = [];
 for (const key of selected) {
@@ -125,6 +144,10 @@ for (const key of selected) {
 
 process.stdout.write('\n--- sweep summary ---\n');
 process.stdout.write(`gates run: ${selected.length} of ${keys.length} check keys\n`);
+process.stdout.write(`\norphan checker files (no package key): ${orphanFiles.length}\n`);
+for (const name of orphanFiles) {
+  process.stdout.write(`  ${name}\n`);
+}
 for (const [key, reason] of ENV_BLOCKED) {
   process.stdout.write(`env-blocked: ${key} (${reason})\n`);
 }

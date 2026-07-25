@@ -11,6 +11,7 @@ const dependencySections = [
   'optionalDependencies',
 ];
 const skippedDirectories = new Set([
+  '.claude',
   '.git',
   '.next',
   '.tmp',

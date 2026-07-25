@@ -154,6 +154,7 @@
     "check:sdk-connector-auth-acquisition-profile-drift": "node scripts/generate-sdk-connector-auth-acquisition-profiles.mjs --check",
     "check:runtime-video-capability-block-enforcement": "node scripts/check-runtime-video-capability-block-enforcement.mjs",
     "check:runtime-agent-center-local-config-boundary": "node scripts/check-runtime-agent-center-local-config-boundary.mjs",
+    "check:runtime-local-agent-center-surface-ownership": "node scripts/check-runtime-local-agent-center-surface-ownership.mjs",
     "check:agent-center-hardcut-boundaries": "node scripts/check-agent-center-hardcut-boundaries.mjs",
     "check:agent-center-preview-boundary": "node scripts/check-agent-center-preview-boundary.mjs",
     "check:agent-center-renderer-deps": "node scripts/check-agent-center-renderer-deps.mjs",
@@ -255,6 +256,7 @@
     "check:sdk-vnext-ai-runner-consumer-smoke": "node scripts/check-sdk-vnext-ai-runner-consumer-smoke.mjs",
     "check:sdk-vnext-root-consumer-smoke": "node scripts/check-sdk-vnext-root-consumer-smoke.mjs",
     "check:sdk-release-contracts": "node scripts/check-sdk-release-contracts.mjs",
+    "check:sdk-kit-pack-audit": "node scripts/check-sdk-kit-pack-audit.mjs",
     "check:sdk-coverage": "node scripts/check-sdk-coverage.mjs",
     "check:runtime-go-coverage": "node scripts/check-runtime-go-coverage.mjs",
     "check:runtime-ai-scenario-coverage": "node scripts/check-runtime-ai-scenario-coverage.mjs",
@@ -317,7 +319,8 @@
     "check:p-moex-anti-targets": "node scripts/check-p-moex-anti-targets.mjs",
     "kit:preview": "pnpm --filter @nimiplatform/kit preview",
     "check:kit-visual-audit": "pnpm --filter @nimiplatform/kit audit:ui",
-    "check:web-landing-generated": "cd apps/web && node scripts/generate-landing-data.mjs --check"
+    "check:web-landing-generated": "cd apps/web && node scripts/generate-landing-data.mjs --check",
+    "check:package-dependency-duplicates": "node scripts/check-package-dependency-duplicates.mjs"
   },
   "dependencies": {
     "yaml": "^2.9.0"
