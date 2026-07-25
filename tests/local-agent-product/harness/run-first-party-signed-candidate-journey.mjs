@@ -9,14 +9,34 @@ import {
   resolveFirstPartyProductRoot,
   runFirstPartyProductJourney,
 } from './first-party-product-journey-driver.mjs';
-import { repoRoot } from './registry.mjs';
+import { readExecutionPolicy, readJourneyRegistry, repoRoot } from './registry.mjs';
+import { resolveProductJourneyTimeBudgetMs } from './time-budget.mjs';
 import { buildMergedEnv } from '../../../scripts/lib/live-env.mjs';
 
-const PRODUCT_GATES = Object.freeze([
-  { gate: 'first-run', label: 'Gate 0' },
-  { gate: 'direct-nimi', label: 'Gate 1' },
-  { gate: 'partner-core', label: 'Gate 2' },
-]);
+// The manifests are the single control plane: the execution policy fixes the
+// P4 journey sequence and the journey registry fixes each gate's driver token
+// and time budget. This runner only executes what they declare - a hardcoded
+// gate list here once let the manifest and the runner drift into two control
+// planes with the budgets consumed by neither.
+function loadProductGates() {
+  const policy = readExecutionPolicy();
+  const journeyIds = policy?.gates?.first_party_p4?.journeys;
+  if (!Array.isArray(journeyIds) || journeyIds.length === 0) {
+    throw new Error('execution policy declares no first_party_p4 journeys');
+  }
+  const registry = new Map((readJourneyRegistry()?.journeys ?? []).map((entry) => [entry?.journey_id, entry]));
+  return Object.freeze(journeyIds.map((journeyId, index) => {
+    const journey = registry.get(journeyId);
+    if (!journey) throw new Error(`journey ${journeyId} is declared by the execution policy but absent from the journey registry`);
+    const gate = String(journey.driver_gate || '').trim();
+    if (!gate) throw new Error(`journey ${journeyId} declares no driver_gate`);
+    const budgetMs = resolveProductJourneyTimeBudgetMs(process.env, journey.time_budget_ms);
+    const gateNumber = String(journey.product_gate || '').replace(/^gate_/u, '');
+    return { gate, label: `Gate ${gateNumber || index}`, journeyId, budgetMs };
+  }));
+}
+
+const PRODUCT_GATES = loadProductGates();
 
 function option(name, fallback = '') {
   const index = process.argv.indexOf(name);
@@ -155,8 +175,18 @@ try {
       };
     }
 
+    const gateDurationMs = Math.round(performance.now() - gateStarted);
+    // The manifest budget is enforced, not decorative: a gate that ran past
+    // it fails the run even though its own checks passed, because a journey
+    // that no longer fits its declared budget is a drifted journey.
+    if (gateDurationMs > definition.budgetMs) {
+      ledger.records[index].durationMs = gateDurationMs;
+      throw new Error(
+        `${definition.label} (${definition.journeyId}) exceeded its manifest time budget: ${gateDurationMs}ms > ${definition.budgetMs}ms`,
+      );
+    }
     ledger.records[index].outcome = 'passed';
-    ledger.records[index].durationMs = Math.round(performance.now() - gateStarted);
+    ledger.records[index].durationMs = gateDurationMs;
     writeLedger(ledgerPath, ledger);
     process.stdout.write(`${definition.label}: passed\n`);
   }

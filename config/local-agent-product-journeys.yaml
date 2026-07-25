@@ -3,6 +3,7 @@ authority_class: non_authoritative_execution_manifest
 owner: local-agent-product-harness
 journeys:
   - journey_id: first-party-installed-first-run
+    driver_gate: first-run
     product_gate: gate_0
     applicable_layer: L2
     environment:
@@ -23,6 +24,7 @@ journeys:
       - {checkpoint_id: execution-evidence-ref-parseable, prerequisite_ids: [product-control-owner-ready]}
 
   - journey_id: first-party-direct-nimi
+    driver_gate: direct-nimi
     product_gate: gate_1
     applicable_layer: L2
     environment:
@@ -47,6 +49,7 @@ journeys:
       - {checkpoint_id: direct-nimi-no-cloud-fallback, prerequisite_ids: [direct-nimi-model-unavailable]}
 
   - journey_id: first-party-partner-core
+    driver_gate: partner-core
     product_gate: gate_2
     applicable_layer: L2
     environment:
