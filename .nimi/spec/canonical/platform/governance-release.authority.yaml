@@ -1,34 +1,23 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.platform
+scope: platform.governance-release
 units:
   - id: definition.nimi.platform.governance-release.release-promise
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 release promise from release-promise-freeze
     meaning: A release promise is a public product claim indexed by Platform while its canonical capability semantics, ownership, and failure behavior remain exclusively with the referenced owner domain.
-    relations: []
   - id: definition.nimi.platform.governance-release.promise-posture
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 promise posture and login requirement vocabularies
     meaning: Promise posture has the closed values supported, partial, unsupported, and deferred, while login requirement has the closed values realm_login_required, local_runtime_allowed, anonymous_projection_only, and not_applicable.
-    relations: []
   - id: definition.nimi.platform.governance-release.degraded-mode
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 Realm-unavailable degraded mode
     meaning: Degraded mode is the explicit Realm-unavailable posture in which reachable local Runtime AI and current-renderer local-agent interaction may continue without converting local state or pending intent into Realm, social, economy, synchronization, or account truth.
-    relations: []
   - id: rule.nimi.platform.governance-release.p-gov-026-positioning
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 positioning statement from release-promise-freeze
     modality: must
-    scope:
-      - platform.governance-release
     statement: Public release positioning states that Nimi is an open-source, local-first, multi-provider personal AI runtime with Realm-owned ecosystem identity.
     condition: Whenever public Nimi positioning is published for the release.
     failure: Correct conflicting public copy before release publication.
@@ -37,12 +26,8 @@ units:
         target: definition.nimi.platform.governance-release.release-promise
   - id: rule.nimi.platform.governance-release.p-gov-026-posture-values
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 closed posture_values from release-promise-freeze
     modality: must
-    scope:
-      - platform.governance-release
     statement: Every release promise uses exactly one posture from supported, partial, unsupported, or deferred.
     condition: Whenever a release promise is classified or published.
     failure: Reject an absent or unknown posture and withhold the promise from publication.
@@ -51,12 +36,8 @@ units:
         target: definition.nimi.platform.governance-release.promise-posture
   - id: rule.nimi.platform.governance-release.p-gov-026-login-requirement-values
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 closed login_requirement_values from release-promise-freeze
     modality: must
-    scope:
-      - platform.governance-release
     statement: Every release promise uses exactly one login requirement from realm_login_required, local_runtime_allowed, anonymous_projection_only, or not_applicable.
     condition: Whenever a release promise is classified or published.
     failure: Reject an absent or unknown login requirement and withhold the promise from publication.
@@ -65,12 +46,8 @@ units:
         target: definition.nimi.platform.governance-release.promise-posture
   - id: rule.nimi.platform.governance-release.p-gov-026-owner-boundary
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 promise boundary from release-promise-freeze
     modality: must
-    scope:
-      - platform.governance-release
     statement: Every public promise matches the canonical semantics of its referenced owner domain, and the Platform release-promise index never overrides, reassigns, or independently defines that domain's ownership or capability truth.
     condition: Whenever a release promise is authored, interpreted, or published.
     failure: Reject the conflicting promise and resolve semantics from the referenced owner domain before publication.
@@ -79,12 +56,8 @@ units:
         target: definition.nimi.platform.governance-release.release-promise
   - id: rule.nimi.platform.governance-release.p-gov-026-degraded-local-claims
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 degraded-mode local-operation claim boundary
     modality: must_not
-    scope:
-      - platform.governance-release
     statement: Realm-unavailable local operation claims Realm synchronization, social, economy, or account success or treats a local outbox as Realm truth.
     condition: While Realm is unavailable and local Runtime operation continues.
     failure: Preserve only the explicit local result and project Realm-owned outcomes as unavailable or pending.
@@ -93,12 +66,8 @@ units:
         target: definition.nimi.platform.governance-release.degraded-mode
   - id: rule.nimi.platform.governance-release.p-gov-026-degraded-realm-mutations
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 degraded-mode Realm mutation fail closure
     modality: must
-    scope:
-      - platform.governance-release
     statement: Realm commit, account mutation, economy, source-provenance materialization, and cross-device state fail closed or remain explicit pending intent while Realm is unavailable.
     condition: Whenever degraded mode requests an operation requiring Realm-owned completion.
     failure: Reject fabricated completion and preserve an explicit failed, unavailable, or pending-intent outcome.
@@ -107,26 +76,16 @@ units:
         target: definition.nimi.platform.governance-release.degraded-mode
   - id: definition.nimi.platform.governance-release.license-boundary
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-001 and P-GOV-002 public distribution license boundary
     meaning: The public distribution boundary excludes the Realm implementation surface, licenses runtime, sdk, and proto under Apache-2.0, licenses apps/desktop, apps/web, and kit under MIT, and licenses docs and spec under CC-BY-4.0.
-    relations: []
   - id: definition.nimi.platform.governance-release.final-authority
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-024 active final authority boundary
     meaning: Active final authority under .nimi/spec/** contains current product rules and facts rather than repository-work task lifecycle, subordinate-process, historical-process, process-provenance, operational evidence, or task-state truth.
-    relations: []
   - id: rule.nimi.platform.governance-release.p-gov-001-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-001 and P-GOV-002 license matrix
     modality: must
-    scope:
-      - platform.governance-release
     statement: Publicly distributed Nimi surfaces use the license assigned by the closed license boundary, and the Realm implementation surface is not distributed by this public repository.
     condition: Whenever a repository surface is publicly distributed or licensed.
     failure: Block distribution until the surface uses its assigned license and the Realm implementation exclusion remains intact.
@@ -135,12 +94,8 @@ units:
         target: definition.nimi.platform.governance-release.license-boundary
   - id: rule.nimi.platform.governance-release.p-gov-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-003 breaking changes and authority-first release discipline
     modality: must
-    scope:
-      - platform.governance-release
     statement: Every breaking release change has an explicit declaration and migration path, and active final authority is updated before its implementation changes.
     condition: Whenever a breaking release change is introduced.
     failure: Block the change until its declaration, migration path, and prior authority update exist.
@@ -149,12 +104,8 @@ units:
         target: definition.nimi.platform.governance-release.final-authority
   - id: rule.nimi.platform.governance-release.p-gov-024
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-024 spec contains active final authority only
     modality: must_not
-    scope:
-      - platform.governance-release
     statement: Active authority under .nimi/spec/** uses repository task lifecycle, subordinate-process, historical-process, process-provenance, operational evidence, worker results, decision dossiers, or task status as the source of truth for an active rule, table, status, evidence requirement, or fact.
     condition: Whenever active authority is authored or interpreted.
     failure: Reject the process-derived claim and resolve product meaning only from active final authority.
@@ -163,12 +114,8 @@ units:
         target: definition.nimi.platform.governance-release.final-authority
   - id: rule.nimi.platform.governance-release.p-gov-026-non-promises
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 non-promise capability postures
     modality: must_not
-    scope:
-      - platform.governance-release
     statement: A semantic-contract-only proto-unavailable, source-root-only, fixture-only, design-only, or adapter-placeholder surface is represented as a public release promise.
     condition: Whenever a capability is evaluated for public release positioning.
     failure: Exclude the surface from public promises until an owner-domain capability with real release behavior exists.
@@ -177,12 +124,8 @@ units:
         target: definition.nimi.platform.governance-release.release-promise
   - id: rule.nimi.platform.governance-release.p-gov-026-supported-completeness
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 supported promise completeness
     modality: must
-    scope:
-      - platform.governance-release
     statement: Every supported release promise names its canonical owner, login requirement, and failure behavior.
     condition: Whenever a release promise has supported posture.
     failure: Withhold the promise from publication until every required product field is explicit and resolves to owner authority.
@@ -193,12 +136,8 @@ units:
         target: definition.nimi.platform.governance-release.release-promise
   - id: rule.nimi.platform.governance-release.p-gov-026-nonsupported-completeness
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-GOV-026 partial unsupported and deferred promise completeness
     modality: must
-    scope:
-      - platform.governance-release
     statement: Every partial, unsupported, or deferred release promise names its product reason and fail-closed behavior.
     condition: Whenever a release promise has partial, unsupported, or deferred posture.
     failure: Withhold the promise from publication until its product reason and fail-closed behavior are explicit.

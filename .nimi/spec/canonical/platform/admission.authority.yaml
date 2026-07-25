@@ -1,41 +1,27 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.nimi
+scope: nimi.spec-admission
 units:
   - id: definition.nimi.admission.product-authority
     kind: definition
-    owner: team.nimi
-    lifecycle: active
     title: Product authority boundary
     meaning: "Product authority under .nimi/spec/** is content that constrains product behavior or real boundaries and satisfies all three admission conditions: violating it would cause a real product defect, security vulnerability, or architectural decay; it can be verified against product behavior rather than another governance artifact; and after its removal no compiler, type system, or existing test provides equivalent protection. Eligible content is limited to production contracts covering RPC or IPC method surfaces, wire formats, schemas, MIME types or discriminators, and fail-closed semantics; security boundaries covering credential custody, protected transport, admission matrices, raw-token prohibitions, and signature chains; architecture boundaries covering cross-layer import prohibitions such as Runtime not importing SDKs or apps and Desktop or Web not importing Runtime internals; risk admission such as command-execution classification of commands that may block and admitted risk families; consistency matrices constraining breaking proto or architecture changes, such as compliance-test matrices; and principle clauses enforcing anti-fabrication and fail-closed discipline so that tests do not constitute product truth, source inspection does not claim runtime behavior, missing prerequisites never become a pass, and a bad test is fixed or removed immediately and never kept in a permanent exclusion ledger."
-    relations: []
   - id: definition.nimi.admission.process-configuration
     kind: definition
-    owner: team.nimi
-    lifecycle: active
     title: Process configuration
     meaning: Process configuration is non-authoritative content that is demoted to ordinary configuration or deleted rather than admitted under .nimi/spec/**, including test topology and inventories, runner or harness implementation details, evidence accounting, CI or lint configuration, process ledgers, structure budgets and naming policing, and rule-to-evidence pointer registries.
-    relations: []
   - id: definition.nimi.admission.admission-default-deny
     kind: definition
-    owner: team.nimi
-    lifecycle: active
     title: Default-deny admission
     meaning: Default-deny admission places the burden of proof on any content seeking authority under .nimi/spec/**; content that cannot be proven to satisfy the admission conditions is not migrated, its legacy table is deleted when its domain switches, and checks, tests, and evidence obligations that depend on it are deleted in the same change.
-    relations: []
   - id: definition.nimi.admission.migration-obligation
     kind: definition
-    owner: team.nimi
-    lifecycle: active
     title: Migration obligation
     meaning: Migration obligations are the duties accompanying each domain migration to preserve discoverable rationale for admitted units, register known specification gaps as boundary definitions, and record an evidence-adoption route for retained boundary and security checks.
-    relations: []
   - id: rule.nimi.admission.r001
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Test topology and inventories are not authority
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: Test topology and inventory content, including suite registries, test-file censuses, per-file selectors, and lane or tier assignments, is admitted as authority under .nimi/spec/**.
     condition: Whenever such content is evaluated for admission.
     failure: Deny admission and demote the content to ordinary configuration or delete it.
@@ -44,12 +30,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r002
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Runner and harness details are not authority
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: Runner or harness implementation details, including file names, process-launch formulas, and clauses prohibiting replacement runners, are admitted as authority under .nimi/spec/**.
     condition: Whenever such content is evaluated for admission.
     failure: Deny admission and demote the content to ordinary configuration or delete it.
@@ -58,12 +40,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r003
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Evidence accounting is not authority
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: Evidence accounting, including point totals such as 169/145/24, evidence-completeness accounts, evidence-file schemas, and cross-run evidence prerequisite chains, is admitted as authority under .nimi/spec/**.
     condition: Whenever such content is evaluated for admission.
     failure: Deny admission and demote the content to ordinary configuration or delete it.
@@ -72,12 +50,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r004
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: CI and lint configuration is not authority
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: CI or lint configuration, including gate registries, tier-to-workflow projections, and command, timeout, or runner declarations, is admitted as authority under .nimi/spec/**.
     condition: Whenever such content is evaluated for admission.
     failure: Deny admission and demote the content to ordinary configuration or delete it.
@@ -86,12 +60,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r005
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Process ledgers are not authority
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: Process ledgers, including migration proofs, replacement ledgers, and decision logs, are admitted as authority under .nimi/spec/**.
     condition: Whenever such content is evaluated for admission.
     failure: Deny admission and place the content under .nimi/topics/ or in Git history.
@@ -100,12 +70,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r006
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Structure budgets and naming policing are not authority
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: Structure budgets and naming policing, including file line-count budgets, directory-structure budgets, and wording prohibitions unrelated to security boundaries, are admitted as authority under .nimi/spec/**.
     condition: Whenever such content is evaluated for admission.
     failure: Deny admission and demote the content to ordinary configuration or delete it.
@@ -114,12 +80,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r007
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Rule-evidence pointer registries are not authority
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: A mapping family from rule IDs to evidence files is admitted as authority under .nimi/spec/**.
     condition: Whenever such content is evaluated for admission.
     failure: Deny admission and demote the content to ordinary configuration or delete it.
@@ -128,12 +90,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r008
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Admitted-unit rationale remains discoverable
     modality: must
-    scope:
-      - nimi.spec-admission
     statement: Every admitted unit stores its rationale, including design reasons and trade-off context, in a discoverable docs or ADR location or a document reachable from the unit anchor, and makes it discoverable from the unit title or anchor; the rationale does not survive only in Git history, preventing the Realm L5 loss of the philosophy and vision layer and the unreadable 200:1 compression of the Forge narrative.
     condition: When a unit is admitted during migration.
     failure: The unit is not admitted until its rationale is discoverable outside Git history.
@@ -142,12 +100,8 @@ units:
         target: definition.nimi.admission.migration-obligation
   - id: rule.nimi.admission.r009
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Known specification gaps remain explicit
     modality: must
-    scope:
-      - nimi.spec-admission
     statement: Each domain migration registers what the domain specification does not cover as a boundary definition unit, using Realm U1-U7 as existing models, so legacy under-specification or gap lists such as Realm BU1-BU16 are not silently discarded without successors.
     condition: When a domain is migrated.
     failure: The domain migration is incomplete while any legacy under-specification or gap list is silently discarded without a successor boundary definition.
@@ -156,12 +110,8 @@ units:
         target: definition.nimi.admission.migration-obligation
   - id: rule.nimi.admission.r010
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Retained checks receive evidence-adoption routes
     modality: must
-    scope:
-      - nimi.spec-admission
     statement: Every domain admission-decision record marks each retained boundary and security check as bound, deferred, or intentionally unbound with a reason, so green status never creates a false impression of verification.
     condition: When admission decisions are recorded during each domain migration.
     failure: The domain admission-decision record is incomplete while any retained domain check lacks one of the three routes.
@@ -170,12 +120,8 @@ units:
         target: definition.nimi.admission.migration-obligation
   - id: rule.nimi.admission.r011
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Test-file changes require no registration
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: Adding, deleting, or modifying a test file requires any registration action.
     condition: When a test file is added, deleted, or modified.
     failure: The registration requirement is invalid and cannot block the test-file change.
@@ -184,12 +130,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r012
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: CI-check changes use direct edits
     modality: must
-    scope:
-      - nimi.spec-admission
     statement: A CI-check addition or deletion is made by directly editing the workflow or package.json, without a generator or projection validation.
     condition: When a CI check is added or deleted.
     failure: The change is invalid while it depends on a generator or projection validation instead of the direct edit.
@@ -198,12 +140,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r013
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Evidence remains diagnostic and ephemeral
     modality: must
-    scope:
-      - nimi.spec-admission
     statement: Evidence serves only as diagnostic output, every run operates without historical evidence as input, and retention keeps a small bounded number of recent runs without any run consuming prior evidence.
     condition: Whenever evidence is produced, consumed, or retained by a run.
     failure: Reject any historical-evidence input and discard retained runs outside the small bounded set.
@@ -212,12 +150,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r014
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Product-source string matching cannot gate
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: A check script gates product source by matching exact source strings with grep or equivalent string matching.
     condition: When a check script examines product source content; boundary import scanning is excluded.
     failure: The source-string-matching gate is invalid and does not gate the product.
@@ -226,12 +160,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r015
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: Check scripts generally require no self-tests
     modality: must_not
-    scope:
-      - nimi.spec-admission
     statement: A check script is required to have self-tests when it does not protect a security boundary.
     condition: When self-test obligations for a check script are determined.
     failure: Remove the self-test requirement unless the check protects a security boundary.
@@ -240,12 +170,8 @@ units:
         target: definition.nimi.admission.process-configuration
   - id: rule.nimi.admission.r016
     kind: rule
-    owner: team.nimi
-    lifecycle: active
     title: New automation has two admitted forms
     modality: must
-    scope:
-      - nimi.spec-admission
     statement: "New automation takes one of only two admitted forms: automation solidified after readiness once its behavior has been proven by a real path, or a bug-regression detector with one minimal reproduction for each fixed bug."
     condition: Whenever new automation is admitted.
     failure: Reject new automation that has neither admitted form.

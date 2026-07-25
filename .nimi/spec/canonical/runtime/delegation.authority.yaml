@@ -1,55 +1,35 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.delegation
 units:
   - id: definition.nimi.runtime.delegation.capability-gateway-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime delegated capability gateway plane
     meaning: The Runtime delegated capability gateway plane owns delegated provider profile identity and lifecycle, trust tiers, normalized capability descriptors and effect classes, delegated session identity and context slices, normalized delegation request and result envelopes, streaming segment envelopes, the protocol metadata evidence boundary, descriptor drift detection, and gateway evidence custody before a firewall verdict.
-    relations: []
   - id: definition.nimi.runtime.delegation.mcp-adapter-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime delegated MCP adapter plane
     meaning: The Runtime delegated MCP adapter plane owns MCP adapter admission, the official protocol SDK dependency boundary, provider profile binding, admitted transport classes, server session lifecycle custody, tool discovery and allowlist filtering, tool schema drift checks, tool call admission, quarantined gateway evidence creation, command environment hygiene, timeout and cancellation, and the MCP protocol revision result boundary.
-    relations: []
   - id: definition.nimi.runtime.delegation.output-firewall-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime delegated output firewall plane
     meaning: The Runtime delegated output firewall plane owns the only admission path from delegated provider output into Runtime model context, decisions, projection, action input, and presentation, including schema and provenance validation, confidence and evidence normalization, poisoning and prompt-injection screening, sensitive data classification, stream segment acceptance, verdict emission, accepted observation, suggestion, and artifact shapes, quarantine custody, and delegation failure semantics.
-    relations: []
   - id: definition.nimi.runtime.delegation.approval-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime delegated approval plane
     meaning: The Runtime delegated approval plane owns delegated approval policy, pending approval state, approval decision state, resume and expiry semantics, rejection semantics, programmatic approval policy, approval projection, and approval audit linkage.
-    relations: []
   - id: definition.nimi.runtime.delegation.audit-replay-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime delegation audit replay plane
     meaning: The Runtime delegation audit replay plane owns the delegation-specific audit payload extension over existing Runtime audit authority, the delegation trace chain, replay redaction, replay outcome semantics, and the delegation audit domain, without creating a second audit store.
-    relations: []
   - id: definition.nimi.runtime.delegation.a2a-future-seam-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime A2A future seam plane
     meaning: The Runtime A2A future seam plane owns the negative boundary that admits A2A only as a future delegated provider adapter seam, including the prohibitions on production A2A implementation, dependencies, configuration, claims, and fixtures, and the gateway, firewall, approval, custody, and audit obligations any future A2A adapter must satisfy.
-    relations: []
   - id: rule.nimi.runtime.delegation.r001
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Gateway authority is Runtime owned
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime owns the delegated capability gateway, which owns delegated provider registry projection, delegated provider lifecycle state, delegated session identity, normalized delegation request and result envelopes, gateway evidence custody before a firewall verdict, and routing into the delegated output firewall, while final Runtime action decisions remain owned by the Runtime agent decision path.
     condition: Whenever delegated capability providers, sessions, requests, or results are handled.
     failure: Reject gateway semantics owned outside Runtime and gateway-owned final action decisions.
@@ -58,12 +38,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r002
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Provider profile identity is fixed
     modality: must
-    scope:
-      - runtime.delegation
     statement: Every delegated provider profile carries a stable provider_profile_id plus provider_kind, display_name, trust_tier, lifecycle_state, a protocol_adapter_ref, and conditional custody_ref and grant_scope_ref references, provider_kind admits only MCP_TOOL_PROVIDER, REMOTE_AGENT_SEAM, RUNTIME_NATIVE_PROVIDER, and CONTROLLED_TEST_PROVIDER, and REMOTE_AGENT_SEAM stays inactive for production until A2A support is separately admitted.
     condition: Whenever a delegated provider profile is created, stored, or projected.
     failure: Reject profiles missing required identity fields or carrying undeclared provider kinds.
@@ -72,12 +48,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r003
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Profiles reference custody without duplication
     modality: must
-    scope:
-      - runtime.delegation
     statement: A delegated provider profile is not a Runtime connector record and may reference connector custody for endpoint or credential material while never duplicating connector credentials, connector lifecycle, provider health, or managed key-source routing, which remain owned by the Runtime connector and key-source authority.
     condition: Whenever a provider profile touches connector or key-source material.
     failure: Reject duplicated custody, lifecycle, health, or key-source facts inside provider profiles.
@@ -86,12 +58,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r004
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Trust tier is closed and fails closed
     modality: must
-    scope:
-      - runtime.delegation
     statement: trust_tier admits only CONTROLLED_LOCAL for repository-controlled local providers used for tests or product-grade local integration, USER_ADDED_REVIEWED for user-added providers with explicit review and allowlist, ORG_MANAGED for organization-managed providers with administrative policy, and BLOCKED for retained profiles that cannot be invoked.
     condition: Whenever a provider trust tier is assigned or evaluated.
     failure: Fail closed on a missing or undeclared trust tier.
@@ -100,12 +68,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r005
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Lifecycle states are closed with visible reasons
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegated provider lifecycle admits only REGISTERED, DISCOVERING, READY, DEGRADED, DISABLED, QUARANTINED, and REMOVED, and no lifecycle transition hides the reason for DEGRADED, DISABLED, or QUARANTINED.
     condition: Whenever a delegated provider lifecycle state changes.
     failure: Reject undeclared states and reasonless degradation, disablement, or quarantine.
@@ -114,12 +78,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r006
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Capability descriptors are Nimi normalized
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime-normalized capability descriptors carry capability_id, provider_profile_id, capability_kind, effect_class, input_schema_ref, output_shape, requires_approval, discovered_at, and descriptor_hash, with capability_kind limited to READ_RESOURCE, QUERY_DATA, SUGGEST_ACTION, PROPOSE_PRESENTATION, CREATE_ARTIFACT, and CONTROLLED_TEST.
     condition: Whenever a delegated capability descriptor is normalized or stored.
     failure: Reject descriptors missing required fields or carrying undeclared capability kinds.
@@ -128,12 +88,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r007
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Effect classes gate approval
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegated capability effects are classified before invocation as READ_ONLY, LOCAL_SIDE_EFFECT, EXTERNAL_SIDE_EFFECT, SENSITIVE_READ, or UNSUPPORTED_EFFECT, and EXTERNAL_SIDE_EFFECT and SENSITIVE_READ require approval unless a stricter Runtime policy blocks them.
     condition: Whenever a delegated capability effect is classified or invoked.
     failure: Reject unclassified invocation and approval bypass for side-effect or sensitive-read classes.
@@ -142,12 +98,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r008
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Delegated sessions are Runtime owned and typed
     modality: must
-    scope:
-      - runtime.delegation
     statement: A delegated session is Runtime-owned and carries delegation_session_id, provider_profile_id, agent_id, conditional conversation_anchor_id and runtime_turn_id, opened_at, session_state limited to OPEN, PAUSED_FOR_APPROVAL, CLOSING, CLOSED, and FAILED, policy_snapshot_id, and audit_trace_id.
     condition: Whenever a delegated session is opened, updated, or closed.
     failure: Reject sessions missing required fields or carrying undeclared states.
@@ -156,12 +108,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r009
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Session context slices are typed and bounded
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime passes delegated providers only policy-approved context slices typed as USER_REQUEST_SUMMARY, RUNTIME_SELECTED_ARGUMENTS, APPROVED_RESOURCE_REF, SAFE_MEMORY_EXCERPT, or CONTROLLED_TEST_PAYLOAD, and raw Runtime memory, raw prompt chains, raw app private state, and raw runtime.agent.* projection streams are never forwarded as context.
     condition: Whenever context is passed to a delegated provider.
     failure: Reject untyped context slices and raw memory, prompt, state, or projection forwarding.
@@ -170,12 +118,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r010
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Delegation requests are typed with closed kinds
     modality: must
-    scope:
-      - runtime.delegation
     statement: Every delegated request carries delegation_request_id, delegation_session_id, capability_id, request_kind, effect_class, input_ref, context_refs, approval_state, timeout_policy_id, and created_at, input_ref points to Runtime-owned typed input material rather than an inline untyped protocol payload, and request_kind admits only OBSERVE, QUERY, SUGGEST_INTENT, SUGGEST_TOOL_REQUEST, SUGGEST_PRESENTATION, CREATE_ARTIFACT, and CONTROLLED_TEST with unlisted kinds rejected.
     condition: Whenever a delegated request is built or dispatched.
     failure: Reject requests missing fields, carrying inline protocol payloads, or using unlisted kinds.
@@ -184,12 +128,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r011
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Request approval state is Runtime owned
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegated request approval state admits only NOT_REQUIRED, REQUIRED_PENDING, APPROVED, REJECTED, and POLICY_BLOCKED, and Desktop may render approval UX without owning these states.
     condition: Whenever request approval state is set or consumed.
     failure: Reject undeclared approval states and consumer-owned approval state truth.
@@ -198,12 +138,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r012
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Delegation results stay quarantined until verdict
     modality: must
-    scope:
-      - runtime.delegation
     statement: Every delegated result carries delegation_result_id, delegation_request_id, provider_profile_id, result_state, conditional output_ref and failure_ref, provenance_ref, descriptor_hash, and received_at, result_state admits only RECEIVED, STREAMING, COMPLETE, FAILED, TIMED_OUT, CANCELED, PROTOCOL_INVALID, and PROVIDER_DRIFTED, output_ref remains quarantined gateway evidence until the output firewall emits a verdict, and COMPLETE never means accepted by Runtime.
     condition: Whenever a delegated result is recorded or consumed.
     failure: Reject results missing fields, undeclared states, and pre-verdict output consumption.
@@ -212,12 +148,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r013
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Stream segments are typed and quarantined on terminal error
     modality: must
-    scope:
-      - runtime.delegation
     statement: Streaming delegated results use typed segments carrying stream_segment_id, delegation_result_id, sequence, segment_kind limited to DATA, HEARTBEAT, PROGRESS, TERMINAL_SUCCESS, and TERMINAL_ERROR, segment_ref, and received_at, and a TERMINAL_ERROR ending keeps all unaccepted segments of that result quarantined out of model context, projection, action input, and presentation output.
     condition: Whenever a delegated result streams.
     failure: Reject untyped segments and consumption of unaccepted segments after terminal error.
@@ -226,12 +158,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r014
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Protocol metadata stays adapter evidence
     modality: must
-    scope:
-      - runtime.delegation
     statement: Protocol metadata is stored only as adapter evidence carrying protocol_name, protocol_revision, transport_kind, adapter_version, and descriptor_hash, and protocol-specific fields are never promoted into Runtime semantic contracts without a new Runtime rule.
     condition: Whenever protocol metadata is stored or consumed.
     failure: Reject protocol field promotion into Runtime semantics without new authority.
@@ -240,12 +168,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r015
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Descriptor drift degrades or quarantines
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime detects descriptor drift by comparing descriptor_hash across discovery, request, and result evidence, and drift transitions the provider or capability to DEGRADED or QUARANTINED until Runtime policy allows rediscovery.
     condition: Whenever descriptor hashes are compared across delegation evidence.
     failure: Reject continued invocation on drifted descriptors without the declared transition.
@@ -254,12 +178,8 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r016
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: MCP is an adapter source not semantic authority
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime owns MCP adapter admission, provider profile binding, server lifecycle, tool discovery, tool filtering, tool call admission, timeout, drift handling, and quarantined evidence creation, and MCP wire objects never become public Runtime ontology but are normalized into the delegated gateway semantics before firewall admission to model context, projection, or action paths.
     condition: Whenever MCP data enters Runtime.
     failure: Reject MCP wire objects consumed as Runtime semantic authority.
@@ -268,12 +188,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r017
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: The MCP dependency is the official SDK adapter only
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime MCP implementation uses the official modelcontextprotocol go-sdk package as the protocol adapter dependency unless a later high-risk admission explicitly replaces it, and the dependency never defines Nimi provider identity, request or result vocabulary, approval state, firewall verdict, audit retention, or Runtime agent projection semantics.
     condition: Whenever the MCP protocol dependency is selected or consumed.
     failure: Reject unofficial protocol dependencies and dependency-defined Nimi semantics.
@@ -282,12 +198,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r018
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: MCP providers bind to delegated profiles
     modality: must
-    scope:
-      - runtime.delegation
     statement: Each MCP provider binds to a Runtime delegated provider profile with provider_id, provider_kind fixed to MCP_TOOL_PROVIDER, an admitted transport_kind, a Runtime-owned allowed_tools list, an inherited trust_tier, and a conditional credential_ref referencing connector, key-source, or grant authority.
     condition: Whenever an MCP provider is bound.
     failure: Reject unbound MCP providers and bindings missing required fields.
@@ -296,12 +208,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r019
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: stdio_command is the admitted MCP transport
     modality: must
-    scope:
-      - runtime.delegation
     statement: stdio_command is the production MCP transport class for Runtime-owned local gateway execution, and remote HTTP transports require separate admission proving target-resource authorization, credential custody, timeout, and response quarantine.
     condition: Whenever an MCP transport class is admitted or used.
     failure: Reject undeclared transports and unadmitted remote HTTP usage.
@@ -310,12 +218,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r020
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: MCP sessions and imports stay Runtime internal
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime owns starting, connecting, monitoring, timing out, and closing MCP server sessions, no Desktop, Avatar, Web, SDK, or app layer instantiates an MCP client or server session directly, and only Runtime-owned MCP adapter implementation paths import the MCP protocol SDK.
     condition: Whenever an MCP session is created or the MCP SDK is imported.
     failure: Reject consumer-layer MCP sessions and non-Runtime MCP SDK imports.
@@ -324,12 +228,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r021
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Discovery normalizes and allowlists tools
     modality: must
-    scope:
-      - runtime.delegation
     statement: MCP discovery calls tool listing through the adapter dependency and normalizes each listed tool into Runtime gateway evidence that is neither model context nor runtime.agent.* projection, provider profiles without an explicit allowed tool list are rejected, only allowed tools may be returned from discovery or called, and unknown tools may be ignored during listing but never become callable or visible as available Runtime delegated capabilities.
     condition: Whenever MCP tools are discovered, listed, or exposed.
     failure: Reject allowlist-free profiles and unlisted tool exposure or invocation.
@@ -338,12 +238,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r022
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Tool schema digests gate calls
     modality: must
-    scope:
-      - runtime.delegation
     statement: When an allowed tool declares an expected input schema digest Runtime compares the current MCP tool input schema digest before a tool call, and a digest mismatch is provider drift that fails closed with a delegation reason code.
     condition: Whenever a digest-configured MCP tool is called.
     failure: Fail closed on digest mismatch instead of calling the drifted tool.
@@ -352,12 +248,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r023
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Tool call admission preconditions are complete
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime calls an MCP tool only after the provider profile exists and is active, the provider kind is MCP_TOOL_PROVIDER, the transport kind is admitted, the tool name is allowlisted, the expected schema digest check passes when configured, and the request timeout is bounded.
     condition: Whenever an MCP tool call is admitted.
     failure: Reject tool calls missing any admission precondition.
@@ -366,12 +258,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r024
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: MCP output is quarantined until a firewall verdict
     modality: must
-    scope:
-      - runtime.delegation
     statement: MCP call output is recorded as quarantined gateway evidence carrying firewall_state not_evaluated, model_context_admitted false, projection_admitted false, and action_admitted false, and only an admitted firewall verdict may transform that evidence into accepted observation, suggestion, artifact, failure, approval, or action input semantics, so unverdicted evidence is never consumed by Runtime model prompt or context construction, Runtime agent final decision logic, runtime.agent.* projection, Desktop UI state, Avatar presentation state, or action execution.
     condition: Whenever MCP call output is recorded or consumed.
     failure: Fail closed on pre-verdict consumption of quarantined MCP evidence.
@@ -380,12 +268,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r025
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: No raw token passthrough
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime never passes raw user, provider, connector, OAuth, API key, or bearer tokens through MCP request arguments, SDK metadata, environment injection, app payloads, Avatar payloads, or Desktop payloads, credential material remains under connector, key-source, grant, authn, and authz authority, and MCP adapter code receives only the minimum credential material needed inside Runtime-owned execution.
     condition: Whenever credential material approaches the MCP adapter surface.
     failure: Reject raw token passthrough and custody outside the declared authorities.
@@ -394,12 +278,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r026
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: stdio environments are bounded
     modality: must
-    scope:
-      - runtime.delegation
     statement: stdio_command MCP servers run with a Runtime-constructed bounded process environment that never inherits arbitrary secret-bearing environment variables, preserving allowlisted operational variables such as PATH, temporary-directory variables, and OS process bootstrap variables only when needed for process startup.
     condition: Whenever an MCP stdio server process is launched.
     failure: Reject inherited secret-bearing environments.
@@ -408,12 +288,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r027
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: MCP timeouts and failures map fail-closed
     modality: must
-    scope:
-      - runtime.delegation
     statement: MCP discovery and tool calls use bounded contexts, cancellation or timeout closes the MCP session and returns a fail-closed gateway failure, and MCP connection failure, discovery failure, unlisted tool, schema drift, tool call protocol error, timeout, and server lifecycle failure map to delegation failure semantics and delegation reason codes.
     condition: Whenever an MCP call times out, is cancelled, or fails.
     failure: Reject unbounded calls and unmapped failure outcomes.
@@ -422,12 +298,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r028
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: The MCP revision result boundary fails closed
     modality: must
-    scope:
-      - runtime.delegation
     statement: The Runtime MCP gateway advertises no MCP extensions during connect and treats extension negotiation results as quarantined adapter evidence only, a tools/call result carrying model-requested inputRequests, an unsolicited task handle, or an extension-negotiated continuation is an unsupported result shape that fails closed as result-invalid rather than being partially accepted, deferred, or silently stripped, the gateway never polls, resumes, or acknowledges task handles, and a future remote-HTTP transport admission must satisfy the stateless no-session-affinity model and the revision required request headers under its own admission.
     condition: Whenever MCP protocol revision features appear in connect or tool results.
     failure: Fail closed as result-invalid instead of partial acceptance or silent stripping.
@@ -436,12 +308,8 @@ units:
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
   - id: rule.nimi.runtime.delegation.r029
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Firewall authority is Runtime owned and exclusive
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime owns the delegated output firewall as the only path from delegated provider output to Runtime model context, decisions, projection, app action input, or Avatar presentation, owning schema validation, provenance validation, confidence and evidence normalization, poisoning and prompt-injection screening, sensitive data classification, stream segment acceptance state, and verdict emission, while final action execution stays outside the firewall, which emits accepted evidence or suggestions for the Runtime agent decision path.
     condition: Whenever delegated provider output seeks Runtime consumption.
     failure: Reject any consumption path that bypasses the firewall.
@@ -450,12 +318,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r030
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Firewall input is typed by result identity
     modality: must
-    scope:
-      - runtime.delegation
     statement: Firewall input references a delegation_result_id and carries firewall_input_id, candidate_output_ref, provider_profile_id, capability_id, descriptor_hash, and received_at, and direct protocol payloads are not valid firewall inputs.
     condition: Whenever the firewall evaluates delegated output.
     failure: Reject direct protocol payload inputs and inputs missing required fields.
@@ -464,12 +328,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r031
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Verdicts are closed and mandatory
     modality: must
-    scope:
-      - runtime.delegation
     statement: Firewall verdicts admit only ACCEPTED_OBSERVATION, ACCEPTED_SUGGESTION, APPROVAL_REQUIRED, QUARANTINED, REJECTED, PROVIDER_DRIFTED, SCHEMA_INVALID, and POLICY_BLOCKED, and a missing verdict fails closed.
     condition: Whenever a firewall evaluation concludes.
     failure: Fail closed on missing or undeclared verdicts.
@@ -478,12 +338,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r032
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Provenance records are complete and credential free
     modality: must
-    scope:
-      - runtime.delegation
     statement: Every accepted or quarantined output has a provenance record carrying provenance_id, provider_profile_id, capability_id, delegation_request_id, delegation_result_id, descriptor_hash, protocol_name, protocol_revision, and received_at, and provenance records never include raw credentials or authorization headers.
     condition: Whenever delegated output is accepted or quarantined.
     failure: Reject outputs without complete provenance and provenance with embedded credential material.
@@ -492,12 +348,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r033
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Confidence is Runtime normalized
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegated confidence carries confidence_level limited to HIGH, MEDIUM, LOW, and UNSUPPORTED, a conditional decimal confidence_score, evidence_count, requires_user_confirmation, and confidence_reason, and provider-native scores may inform confidence_score but never bypass Runtime normalization.
     condition: Whenever delegated confidence is produced or consumed.
     failure: Reject provider-native confidence bypassing normalization.
@@ -506,12 +358,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r034
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Evidence references are typed custody pointers
     modality: must
-    scope:
-      - runtime.delegation
     statement: Evidence references use only PROVIDER_OUTPUT, RESOURCE_SNAPSHOT, TOOL_DESCRIPTOR, USER_APPROVAL, RUNTIME_POLICY, and CONTROLLED_FIXTURE and point to Runtime-owned evidence custody rather than raw unbounded protocol objects.
     condition: Whenever delegation evidence is referenced.
     failure: Reject untyped references and raw protocol object references.
@@ -520,12 +368,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r035
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Accepted observations are typed
     modality: must
-    scope:
-      - runtime.delegation
     statement: An accepted observation is information Runtime may use as context and carries observation_id, delegation_result_id, observation_kind limited to FACTUAL_SUMMARY, RESOURCE_STATE, DIAGNOSTIC_STATE, and CONTROLLED_TEST_RESULT, content_ref, confidence_ref, and provenance_ref.
     condition: Whenever an observation is accepted for Runtime context use.
     failure: Reject observations missing required fields or carrying undeclared kinds.
@@ -534,12 +378,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r036
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Suggestions are never actions
     modality: must
-    scope:
-      - runtime.delegation
     statement: Accepted suggestions are limited to the suggested_intent, suggested_tool_request, and suggested_presentation families and are not actions, and Runtime still decides whether to ignore, ask for approval, convert to a Runtime-owned tool request, convert to presentation projection, or emit a diagnostic failure.
     condition: Whenever a delegated suggestion is accepted.
     failure: Reject direct execution or projection of suggestions without a Runtime decision.
@@ -548,12 +388,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r037
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Suggested intents are typed
     modality: must
-    scope:
-      - runtime.delegation
     statement: A suggested intent carries suggested_intent_id, intent_kind limited to ANSWER_USER, ASK_CLARIFYING_QUESTION, REQUEST_TOOL, REQUEST_PRESENTATION, and NO_ACTION, summary_ref, confidence_ref, and approval_requirement.
     condition: Whenever a suggested intent is emitted.
     failure: Reject intents missing required fields or carrying undeclared kinds.
@@ -562,12 +398,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r038
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Suggested tool requests require re-authorization
     modality: must
-    scope:
-      - runtime.delegation
     statement: A suggested tool request carries suggested_tool_request_id, runtime_tool_kind, argument_ref, effect_class, and approval_requirement, and it cannot execute directly because Runtime re-authorizes and emits a Runtime-owned request when it accepts the suggestion.
     condition: Whenever a suggested tool request is emitted or accepted.
     failure: Reject direct execution of suggested tool requests.
@@ -576,12 +408,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r039
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Suggested presentations use typed projection
     modality: must
-    scope:
-      - runtime.delegation
     statement: A suggested presentation carries suggested_presentation_id, presentation_kind, projection_target limited to DESKTOP, AVATAR, and SDK_CONSUMER, content_ref, and confidence_ref, and Avatar targets still pass through typed runtime.agent.* projection.
     condition: Whenever a suggested presentation is emitted.
     failure: Reject undeclared projection targets and untyped Avatar delivery.
@@ -590,12 +418,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r040
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Delegated artifacts are typed
     modality: must
-    scope:
-      - runtime.delegation
     statement: A delegated artifact carries artifact_id, artifact_kind limited to TEXT, JSON_DOCUMENT, IMAGE, AUDIO, VIDEO, BINARY, and CONTROLLED_FIXTURE, artifact_ref, provenance_ref, content_hash, and retention_class.
     condition: Whenever a delegated artifact is recorded.
     failure: Reject artifacts missing required fields or carrying undeclared kinds.
@@ -604,12 +428,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r041
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Quarantine retains redacted evidence
     modality: must
-    scope:
-      - runtime.delegation
     statement: Quarantined output retains quarantine_id, delegation_result_id, reason_code, provenance_ref, unsafe_excerpt_ref, created_at, and review_state as audit evidence without becoming model context or presentation, and unsafe_excerpt_ref stays redacted or access-controlled according to Runtime policy.
     condition: Whenever delegated output is quarantined.
     failure: Reject quarantine leaks into context or presentation and unredacted excerpts.
@@ -618,12 +438,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r042
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Failure records are typed with stages
     modality: must
-    scope:
-      - runtime.delegation
     statement: A delegation failure record carries failure_id, conditional delegation_request_id and delegation_result_id, reason_code, failure_stage limited to DISCOVERY, REQUEST_BUILD, PROVIDER_CALL, STREAMING, FIREWALL, APPROVAL, and DECISION, retry_class, and message_ref.
     condition: Whenever a delegation failure is recorded.
     failure: Reject failures missing required fields or carrying undeclared stages.
@@ -632,12 +448,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r043
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Reason codes come from one table
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegation reason codes come only from the delegation reason-code table, public error projection may map them to existing transport errors through existing error contracts, and the original delegation reason code remains available in audit and replay.
     condition: Whenever a delegation reason code is emitted or projected.
     failure: Reject undeclared reason codes and projections that lose the original code.
@@ -646,12 +458,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r044
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Stream acceptance is conditional and terminal errors invalidate
     modality: must
-    scope:
-      - runtime.delegation
     statement: Every delegated stream segment is untrusted and the firewall accepts a segment or aggregate segment group only after segment schema validity, provenance match with the parent result, unchanged descriptor hash, satisfied sensitive data policy, passed poisoning checks, and coherent terminal state, and a terminal stream error invalidates all unaccepted partial output of that result, which may remain audit evidence but never becomes model context, action input, projection, or presentation.
     condition: Whenever delegated stream segments are evaluated.
     failure: Quarantine unaccepted partial output instead of consuming it.
@@ -660,12 +468,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r045
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Instruction-bearing payloads are screened
     modality: must
-    scope:
-      - runtime.delegation
     statement: The firewall treats tool descriptors, prompt-like resource content, provider output, and remote agent messages as possible instruction-bearing payloads, and payloads that attempt to override Runtime policy, reveal hidden context, change tool routing, exfiltrate credentials, or bypass approval are quarantined or rejected.
     condition: Whenever delegated content is screened for poisoning.
     failure: Quarantine or reject injection attempts instead of admitting them.
@@ -674,12 +478,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r046
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Sensitive classification gates use
     modality: must
-    scope:
-      - runtime.delegation
     statement: Sensitive output classification admits only NONE, USER_PRIVATE, CREDENTIAL_LIKE, ORG_PRIVATE, REGULATED, and UNKNOWN_SENSITIVE, and CREDENTIAL_LIKE, REGULATED, and UNKNOWN_SENSITIVE require quarantine or explicit policy approval before further use.
     condition: Whenever delegated output sensitivity is classified.
     failure: Reject unclassified or under-gated sensitive output.
@@ -688,12 +488,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r047
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Approval requirement derivation is fixed
     modality: must
-    scope:
-      - runtime.delegation
     statement: The firewall derives approval requirement from effect class, sensitivity class, confidence level, provider trust tier, policy snapshot, and user or organization rule, with values limited to NOT_REQUIRED, REQUIRED, and POLICY_BLOCKED.
     condition: Whenever approval requirement is derived.
     failure: Reject derivations outside the declared inputs or values.
@@ -702,12 +498,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r048
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Model context admission is builder mediated
     modality: must
-    scope:
-      - runtime.delegation
     statement: Accepted observations enter Runtime model context only through a Runtime-owned context builder that records observation_id, provenance_id, and confidence_ref, and raw provider output is never inserted directly.
     condition: Whenever delegated observations enter model context.
     failure: Reject direct raw output insertion and unrecorded context admission.
@@ -716,12 +508,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r049
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Projection admission follows Runtime decision
     modality: must
-    scope:
-      - runtime.delegation
     statement: Accepted presentation suggestions influence runtime.agent.* projection only after a Runtime decision, and Avatar and Desktop consume the final typed projection rather than firewall input or raw provider output.
     condition: Whenever delegated suggestions influence projection.
     failure: Reject pre-decision projection and raw output consumption.
@@ -730,12 +518,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r050
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Action admission requires re-authorization
     modality: must
-    scope:
-      - runtime.delegation
     statement: Accepted tool suggestions become actions only after Runtime re-authorizes the action through existing auth, grant, and Runtime agent decision rules.
     condition: Whenever an accepted suggestion becomes an action.
     failure: Reject actions without Runtime re-authorization.
@@ -744,12 +528,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r051
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Verdicts link to audit
     modality: must
-    scope:
-      - runtime.delegation
     statement: Every firewall verdict links to audit and replay through delegation_request_id, delegation_result_id, firewall_input_id, provenance_id, verdict, and reason_code.
     condition: Whenever a firewall verdict is emitted.
     failure: Reject verdicts missing audit linkage.
@@ -758,12 +538,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r052
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: The firewall fails closed on missing facts
     modality: must
-    scope:
-      - runtime.delegation
     statement: Missing schema, missing provenance, missing descriptor hash, invalid stream sequence, unknown provider, unknown capability, unknown approval state, or unknown sensitivity class fails closed.
     condition: Whenever the firewall encounters missing or unknown facts.
     failure: Fail closed instead of defaulting or partially accepting.
@@ -772,12 +548,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r053
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Artifact retention and hashes are mandatory
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegated artifact retention classes admit only EPHEMERAL_EVIDENCE, REPLAY_EVIDENCE, USER_VISIBLE_ARTIFACT, and QUARANTINED_EVIDENCE, USER_VISIBLE_ARTIFACT requires Runtime decision acceptance before SDK, Desktop, Web, Avatar, or app consumption, and every delegated artifact has a content hash before acceptance, quarantine, or replay with a missing hash emitting DELEG_ARTIFACT_HASH_MISSING.
     condition: Whenever a delegated artifact is retained, accepted, or replayed.
     failure: Reject undeclared retention classes, pre-decision visibility, and hashless artifacts.
@@ -786,12 +558,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r054
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Artifact custody is Runtime owned without placeholders
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegated artifacts are not runtime.agent.* projection and consumers never infer presentation truth from artifact custody alone, artifact evidence custody stays Runtime-owned so provider URLs, temporary files, or adapter-local handles never serve as durable Nimi artifact identity, and artifact fetch, hash, classification, or retention failure emits a delegation failure without synthesized placeholder artifact success.
     condition: Whenever delegated artifact custody, projection, or failure is handled.
     failure: Reject custody-derived presentation truth, non-Runtime identity, and placeholder success.
@@ -800,12 +568,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r055
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Failure records are canonical with closed retry classes
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegation failure records are canonical Runtime delegation facts that complement rather than replace existing error authority by adding delegation-specific failure stage, retry, and replay semantics, retry_class admits only NEVER_RETRY, SAFE_RETRY, RETRY_AFTER_REVIEW, and PROVIDER_REDISCOVERY_REQUIRED, and PROVIDER_REDISCOVERY_REQUIRED never retries the same descriptor hash.
     condition: Whenever a delegation failure is recorded or retried.
     failure: Reject undeclared retry classes and same-hash rediscovery retries.
@@ -814,12 +578,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r056
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Failures project honestly without silent fallback
     modality: must
-    scope:
-      - runtime.delegation
     statement: Failure projection to SDK and Desktop uses typed reason codes and failure stages, user-facing surfaces may localize the message but never hide quarantine, policy block, or approval rejection, and a delegated failure never silently falls back to another provider, local fabrication, cached stale output, or a model-generated substitute, with a new provider chosen only through a new delegated request with independent audit lineage.
     condition: Whenever a delegation failure is projected or recovered from.
     failure: Reject hidden failure states and silent fallback substitution.
@@ -828,12 +588,8 @@ units:
         target: definition.nimi.runtime.delegation.output-firewall-plane
   - id: rule.nimi.runtime.delegation.r057
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Approval authority is Runtime owned
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime owns delegated approval policy, pending approval state, approval decision state, resume semantics, rejection semantics, and audit linkage, Desktop owns only the approval review UX, and protocol adapters never own approval semantics.
     condition: Whenever delegated approval state or policy is handled.
     failure: Reject approval semantics owned by Desktop or protocol adapters.
@@ -842,12 +598,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r058
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Approval requests are typed and firewall clean
     modality: must
-    scope:
-      - runtime.delegation
     statement: An approval request carries approval_request_id, delegation_request_id, agent_id, effect_class, sensitivity_class, provider_profile_id, capability_id, summary_ref, policy_snapshot_id, and created_at, and summary_ref points to Runtime-reviewed approval copy that never exposes raw provider output that has not passed firewall review.
     condition: Whenever a delegated approval request is created.
     failure: Reject requests missing fields or exposing unreviewed provider output.
@@ -856,12 +608,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r059
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Decision values are closed with bounded session approval
     modality: must
-    scope:
-      - runtime.delegation
     statement: Approval decisions admit only APPROVED_ONCE, REJECTED, APPROVED_FOR_SESSION, POLICY_BLOCKED, and EXPIRED, and APPROVED_FOR_SESSION is valid only when Runtime policy allows session-scoped approval for the exact provider, capability, effect class, and policy snapshot.
     condition: Whenever an approval decision is recorded.
     failure: Reject undeclared decisions and out-of-scope session approvals.
@@ -870,12 +618,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r060
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Resume is condition gated and expiring
     modality: must
-    scope:
-      - runtime.delegation
     statement: Runtime resumes a paused delegated request only when the approval request id matches the paused request, the policy snapshot is still valid, the provider descriptor hash has not drifted, the request effect class has not changed, and the user or administrative principal is authorized, any failed condition causes rejection or regeneration of the approval request, and every pending approval has an expiry after which it transitions to EXPIRED and cannot be resumed.
     condition: Whenever a paused delegated request resumes or a pending approval ages.
     failure: Reject resumes with failed conditions and resumption of expired approvals.
@@ -884,12 +628,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r061
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Approval audit linkage is complete
     modality: must
-    scope:
-      - runtime.delegation
     statement: Every approval request and decision links to delegation_request_id, provider_profile_id, capability_id, policy_snapshot_id, the principal id, and the audit trace id, using existing Runtime audit storage with delegation payload fields.
     condition: Whenever approval activity is audited.
     failure: Reject approval records missing audit linkage.
@@ -898,12 +638,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r062
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Approval UI is render and submit only
     modality: must
-    scope:
-      - runtime.delegation
     statement: Desktop approval UI may display summary, risk, provider, capability, effect class, sensitivity, and retry options and submits a typed approve or reject decision to Runtime without directly mutating provider policy, credential custody, or request payload.
     condition: Whenever approval UX is rendered or submitted.
     failure: Reject UI-side mutation of policy, custody, or payloads.
@@ -912,12 +648,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r063
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Rejection is observable
     modality: must
-    scope:
-      - runtime.delegation
     statement: A rejected approval produces an observable delegation failure or rejected suggestion, and Runtime never continues the same delegated request by silently removing the risky operation.
     condition: Whenever a delegated approval is rejected.
     failure: Reject silent continuation after rejection.
@@ -926,12 +658,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r064
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Programmatic approval is Runtime policy only
     modality: must
-    scope:
-      - runtime.delegation
     statement: Programmatic approval exists only as Runtime policy, and Desktop, SDK, protocol adapters, apps, and Avatar never auto-approve delegated requests by local convention.
     condition: Whenever a delegated request is approved without direct user action.
     failure: Reject consumer-side auto-approval.
@@ -940,12 +668,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r065
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Approval projection is typed and non-canonical
     modality: must
-    scope:
-      - runtime.delegation
     statement: SDK and Desktop consume approval projection only as typed Runtime state covering the pending approval list, approval detail, approval decision result, and approval failure, and the projection is never policy truth because Runtime policy remains canonical.
     condition: Whenever approval state is projected to consumers.
     failure: Reject untyped projection and projection-derived policy truth.
@@ -954,12 +678,8 @@ units:
         target: definition.nimi.runtime.delegation.approval-plane
   - id: rule.nimi.runtime.delegation.r066
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Delegation audit extends the existing store
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegated audit events use existing Runtime audit storage, retention, export, and minimum fields, delegation-specific facts live in the payload extension as delegation_session_id, delegation_request_id, delegation_result_id, provider_profile_id, capability_id, firewall_verdict, approval_decision_id, runtime_decision_id, and projection_event_id, and adapter gateway evidence carries enough trace material to correlate provider, request, tool, session, failure, and quarantine state without creating a second audit store.
     condition: Whenever delegated activity is audited.
     failure: Reject second audit stores and delegation facts outside the payload extension.
@@ -968,12 +688,8 @@ units:
         target: definition.nimi.runtime.delegation.audit-replay-plane
   - id: rule.nimi.runtime.delegation.r067
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: The trace chain is joinable
     modality: must
-    scope:
-      - runtime.delegation
     statement: Replay joins at minimum the Runtime turn or session id, delegated provider profile, delegated request, delegated result or failure, firewall verdict, approval decision when applicable, Runtime decision, and final projection or action disposition, and missing join keys fail replay validation.
     condition: Whenever a delegation replay is validated.
     failure: Fail replay validation on missing join keys.
@@ -982,12 +698,8 @@ units:
         target: definition.nimi.runtime.delegation.audit-replay-plane
   - id: rule.nimi.runtime.delegation.r068
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Replay enforces redaction
     modality: must
-    scope:
-      - runtime.delegation
     statement: Replay may expose redacted output and metadata while raw credentials, authorization headers, hidden prompts, and unapproved sensitive provider output remain unavailable to SDK and Desktop consumers, and Runtime audit may retain protected evidence according to policy while replay views enforce access and redaction.
     condition: Whenever delegation replay views are served.
     failure: Reject replay exposure of protected material.
@@ -996,12 +708,8 @@ units:
         target: definition.nimi.runtime.delegation.audit-replay-plane
   - id: rule.nimi.runtime.delegation.r069
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Replay outcomes are closed
     modality: must
-    scope:
-      - runtime.delegation
     statement: Replay outcomes admit only RECONSTRUCTED, PARTIAL_REDACTED, PARTIAL_MISSING_EVIDENCE, BLOCKED_BY_POLICY, and INVALID_LINEAGE, and PARTIAL_MISSING_EVIDENCE and INVALID_LINEAGE are failures whenever replay is required evidence.
     condition: Whenever a delegation replay outcome is reported.
     failure: Reject undeclared outcomes and success claims on missing evidence or invalid lineage.
@@ -1010,12 +718,8 @@ units:
         target: definition.nimi.runtime.delegation.audit-replay-plane
   - id: rule.nimi.runtime.delegation.r070
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: The audit domain is Runtime owned
     modality: must
-    scope:
-      - runtime.delegation
     statement: Delegation audit event domains use runtime.delegation or a more specific Runtime-owned subdomain such as runtime.delegation.firewall, and no Desktop, Avatar, app, MCP, or A2A audit domain becomes the canonical source for delegated decision lineage.
     condition: Whenever delegation audit domains are assigned or consumed.
     failure: Reject non-Runtime canonical lineage domains.
@@ -1024,12 +728,8 @@ units:
         target: definition.nimi.runtime.delegation.audit-replay-plane
   - id: rule.nimi.runtime.delegation.r071
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: A2A is a future seam only
     modality: must
-    scope:
-      - runtime.delegation
     statement: A2A is admitted only as a future Runtime delegated provider adapter seam, any production A2A implementation requires new admitted authority before code, dependency, runtime registration, UI claim, or integration fixture lands, MCP remains the only production delegated protocol adapter, and the MCP adapter admission never implements, imports, registers, exposes, or fakes A2A support.
     condition: Whenever A2A support is proposed or referenced.
     failure: Reject production A2A work without new admitted authority.
@@ -1038,12 +738,8 @@ units:
         target: definition.nimi.runtime.delegation.a2a-future-seam-plane
   - id: rule.nimi.runtime.delegation.r072
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: A2A facts normalize before consumption
     modality: must
-    scope:
-      - runtime.delegation
     statement: A2A protocol wire schemas, task payloads, agent cards, and remote agent native states are not Runtime semantic authority, and a future A2A adapter normalizes all protocol-native facts into the delegated gateway semantics before any firewall, approval, audit, replay, model-context, projection, or action path consumes them.
     condition: Whenever a future A2A adapter handles protocol-native facts.
     failure: Reject unnormalized A2A fact consumption.
@@ -1052,12 +748,8 @@ units:
         target: definition.nimi.runtime.delegation.a2a-future-seam-plane
   - id: rule.nimi.runtime.delegation.r073
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: A2A enters through gateway and firewall
     modality: must
-    scope:
-      - runtime.delegation
     statement: A future A2A adapter enters through the Runtime delegated capability gateway and is never called directly by Desktop, Web, Avatar, apps, SDK public convenience APIs, or product UI surfaces, and A2A output remains untrusted delegated provider output with no task message, artifact, event, or remote-agent response entering model context, runtime.agent.* projection, UI state, audit replay view, or action execution before an admitted firewall verdict.
     condition: Whenever a future A2A adapter is invoked or returns output.
     failure: Reject direct consumer calls and pre-verdict A2A output consumption.
@@ -1066,12 +758,8 @@ units:
         target: definition.nimi.runtime.delegation.a2a-future-seam-plane
   - id: rule.nimi.runtime.delegation.r074
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: A2A actions require Runtime approval semantics
     modality: must
-    scope:
-      - runtime.delegation
     statement: A2A-suggested actions, tool calls, workflow mutations, or side effects require Runtime-owned approval semantics whenever approval requirement derivation or delegated provider policy requires human review, and Desktop renders only Runtime typed approval requests without inferring approval from A2A task state.
     condition: Whenever a future A2A adapter suggests actions or side effects.
     failure: Reject task-state-derived approval and approval bypass.
@@ -1080,12 +768,8 @@ units:
         target: definition.nimi.runtime.delegation.a2a-future-seam-plane
   - id: rule.nimi.runtime.delegation.r075
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: A2A credentials stay in Runtime custody
     modality: must
-    scope:
-      - runtime.delegation
     statement: A2A credentials, authorization headers, bearer tokens, refresh tokens, API keys, and OAuth artifacts remain under Runtime connector, grant, authn, and authz custody, and future A2A adapter code never passes raw credentials through SDK, Desktop, Avatar, or app surfaces.
     condition: Whenever A2A credential material is handled.
     failure: Reject raw A2A credential passthrough.
@@ -1094,12 +778,8 @@ units:
         target: definition.nimi.runtime.delegation.a2a-future-seam-plane
   - id: rule.nimi.runtime.delegation.r076
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: A2A audit extends the delegation chain
     modality: must
-    scope:
-      - runtime.delegation
     statement: A2A delegated calls extend Runtime delegation audit and replay with the same trace chain required for delegation replay, and A2A native logs, task ids, or remote-agent receipts may serve as evidence refs but never become the canonical audit ledger.
     condition: Whenever a future A2A adapter produces auditable activity.
     failure: Reject A2A-native canonical audit ledgers.
@@ -1108,12 +788,8 @@ units:
         target: definition.nimi.runtime.delegation.a2a-future-seam-plane
   - id: rule.nimi.runtime.delegation.r077
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: No production A2A surface exists
     modality: must_not
-    scope:
-      - runtime.delegation
     statement: The product contains a production A2A SDK import, a Runtime A2A adapter registration, a Desktop A2A configuration or availability claim, an app or Avatar direct A2A client path, a fake A2A server success fixture, an A2A task payload projected directly into runtime.agent.*, or a Desktop, Web, Avatar, or app claim of production A2A availability, configuration, health, or success beyond unsupported-seam mentions in spec or debug material.
     condition: Always.
     failure: Reject the surface, claim, fixture, or projection; production A2A stays unadmitted.

@@ -1,97 +1,59 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.cognition
+scope: cognition.standalone-services
 units:
   - id: definition.nimi.cognition.standalone-services.domain
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-001 standalone cognition domain
     meaning: The cognition domain is the independent authority owner for standalone local cognition object, scope, mutation, retrieval, persistence, cleanup, prompt, working-state, reference, and external-routine semantics, and it is neither a Runtime layer nor a Realm shared-truth owner.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.artifact-family
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-005 C-COG-019 cognition artifact family
     meaning: A cognition artifact family is exactly one of agent_model_kernel, world_model_kernel, memory_substrate, knowledge_projections, skill_artifacts, or working_state with an explicit truth weight, persistence posture, prompt lane, cleanup lane, and owner surface.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.scope
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-020 cognition scope
     meaning: A cognition scope is the identity and isolation boundary that owns exactly one local agent model kernel, one local world model kernel, its durable advisory artifacts, and its transient working state.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.memory-service
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-039 standalone memory service
     meaning: The standalone memory service owns validated scope-local memory record mutation, raw and derived retrieval, lexical search, explicit lifecycle visibility, history, and deletion without owning Runtime infrastructure truth.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.knowledge-service
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-043 standalone knowledge service
     meaning: The standalone knowledge service owns validated scope-local page lifecycle, lexical and hybrid retrieval, first-class relation integrity, ingest progress, history, and deletion without owning Runtime or Realm shared truth.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.skill-service
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-056 standalone skill service
     meaning: The standalone skill service owns validated scope-local advisory bundle lifecycle, lexical retrieval, history, and deletion without owning execution or orchestration policy.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.prompt-serving
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-050 prompt serving
     meaning: Cognition prompt serving is the ordered fail-closed projection of kernel and advisory cognition truth through distinct lanes using only validated artifacts and service-owned derived views.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.reference-graph
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-047 cognition reference graph
     meaning: The cognition reference graph is the scope-local typed relation authority for artifact dependencies, support, broken targets, traversal, cleanup blockers, and lifecycle explainability.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.routine
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-013 external cognition routine
     meaning: An external cognition routine is a scope-bound worker that uses typed non-kernel cognition access and lifecycle-aware mutation without becoming a core cognition command or kernel owner.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.app-memory-access
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-001 app memory access
     meaning: App memory access is the fail-closed Cognition-owned resource-selection and resource-policy boundary for a third-party Nimi App seeking access to Cognition-owned memory, knowledge, or skill resources.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.public-surface
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-026 C-COG-027 standalone public surface
     meaning: The standalone cognition public surface is the closed owner-true constructor, facade, service, prompt, working-state, and external-worker operation set admitted by this container.
-    relations: []
   - id: definition.nimi.cognition.standalone-services.product-closure
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-004 C-COG-053 product semantic closure
     meaning: Cognition product semantic closure is decision-complete owner, failure, persistence, retrieval, serving, lifecycle, and cleanup behavior without pseudo-success, silent downgrade, or dependence on verification artifacts as product truth.
-    relations: []
   - id: rule.nimi.cognition.standalone-services.r001
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-001 C-COG-002 independent authority and ownership
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Cognition remains independently specifiable and operational for standalone local cognition while Runtime provider bridges, replication, canonical review, live-agent lifecycle, bank truth, and Realm shared-truth governance remain with their owning domains.
     condition: Whenever standalone cognition behavior or ownership is specified or implemented.
     failure: Reject any dependency or ownership transfer that makes Runtime or Realm the semantic owner of standalone cognition.
@@ -100,12 +62,8 @@ units:
         target: definition.nimi.cognition.standalone-services.domain
   - id: rule.nimi.cognition.standalone-services.r002
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-003 C-COG-015 owner truth and anti-fabrication
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: Implementation layout, tests, reports, compatibility wrappers, fake payloads, placeholder cleanup, optional unwired capabilities, or typed shapes alone establish or replace cognition product truth.
     condition: Whenever a cognition capability or completion claim is evaluated.
     failure: Keep the capability unavailable or incomplete until its owner-true behavior and explicit failure semantics exist.
@@ -116,12 +74,8 @@ units:
         target: definition.nimi.cognition.standalone-services.product-closure
   - id: rule.nimi.cognition.standalone-services.r003
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-004 C-COG-017 fail-closed semantic completeness
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Every admitted cognition surface explicitly closes its applicable mutation, retrieval, persistence, lifecycle, cleanup, formatting, and failure semantics and rejects malformed payloads, illegal references, illegal transitions, illegal scope crossings, unavailable capability, and caller-forged service metadata.
     condition: Whenever an admitted cognition operation is invoked.
     failure: Return explicit failure before mutation or serving and never return pseudo-success, best-effort mutation, invented metadata, or silent capability downgrade.
@@ -130,12 +84,8 @@ units:
         target: definition.nimi.cognition.standalone-services.product-closure
   - id: rule.nimi.cognition.standalone-services.r004
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-005 C-COG-019 closed artifact family catalog
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: The catalog contains exactly agent_model_kernel and world_model_kernel as durable reopen-safe primary local-model families owned by KernelService, memory_substrate as durable reopen-safe advisory memory owned by MemoryService, knowledge_projections as durable reopen-safe advisory knowledge owned by KnowledgeService, skill_artifacts as durable reopen-safe advisory skill owned by SkillService, and working_state as transient scaffolding owned by WorkingService.
     condition: Whenever cognition family membership, persistence, serving, cleanup, or ownership is determined.
     failure: Reject an unregistered family, duplicate family, concrete storage-backend name as product truth, or family whose declared semantics differ from the closed catalog.
@@ -144,12 +94,8 @@ units:
         target: definition.nimi.cognition.standalone-services.artifact-family
   - id: rule.nimi.cognition.standalone-services.r005
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-006 kernel boundary
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Each scope contains exactly one agent model kernel and one world model kernel whose mutation begins at incoming_patch, preserves independent anchor-binding, alignment, and lifecycle axes, and proceeds only through status, diff, merge, resolve, commit, and log semantics.
     condition: Whenever kernel state is initialized, read, or mutated.
     failure: Reject upstream observation capture, duplicate kernels, collapsed rule axes, or mutation that bypasses the admitted fail-closed kernel surface.
@@ -160,12 +106,8 @@ units:
         target: definition.nimi.cognition.standalone-services.scope
   - id: rule.nimi.cognition.standalone-services.r006
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-007 memory substrate boundary
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Memory records use typed family payloads, service-owned derived support and cleanup views, independently complete local serving semantics, and caller-independent validation before persistence.
     condition: Whenever memory is persisted, retrieved, served, or consumed by prompts or routines.
     failure: Reject malformed records, caller-owned derived metadata, or a weaker lookup presented as complete memory retrieval.
@@ -174,12 +116,8 @@ units:
         target: definition.nimi.cognition.standalone-services.memory-service
   - id: rule.nimi.cognition.standalone-services.r007
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-008 knowledge projection boundary
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Knowledge projections preserve explicit typed lifecycle, retrieval, same-scope relation integrity, and local graph ownership without claiming external shared citation, review, or graph truth.
     condition: Whenever knowledge pages or relations are mutated or retrieved.
     failure: Reject fake graph ownership, untyped or cross-scope relations, and reduced blob-search semantics presented as complete knowledge behavior.
@@ -188,12 +126,8 @@ units:
         target: definition.nimi.cognition.standalone-services.knowledge-service
   - id: rule.nimi.cognition.standalone-services.r008
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-009 skill artifact boundary
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Skill artifacts remain advisory, validated, ordered, reference-safe, lifecycle-visible, and subordinate to kernels and knowledge projections without carrying Runtime execution-policy truth.
     condition: Whenever a skill bundle is stored, retrieved, served, or cleaned up.
     failure: Reject malformed bundles, unstable or duplicate steps, illegal references, hidden lifecycle, or execution-policy ownership.
@@ -202,12 +136,8 @@ units:
         target: definition.nimi.cognition.standalone-services.skill-service
   - id: rule.nimi.cognition.standalone-services.r009
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-010 working state boundary
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: Working state persists by default or enters durable search, reference, digest, prompt, Runtime hook, autonomy, control-plane, or replication truth.
     condition: Whenever working state is saved, loaded, cleared, or considered by another cognition surface.
     failure: Keep the state transient and scope-local, exclude it from those surfaces, and require new cognition authority before any persistence.
@@ -216,12 +146,8 @@ units:
         target: definition.nimi.cognition.standalone-services.artifact-family
   - id: rule.nimi.cognition.standalone-services.r010
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-012 C-COG-024 cleanup family boundary
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Digest cleanup targets only memory_substrate, knowledge_projections, and skill_artifacts, never targets kernels, clears working_state only explicitly, and derives cleanup reasoning from the local reference graph without fake drift or unadmitted timeout forgetting.
     condition: Whenever cleanup eligibility or cleanup action is determined.
     failure: Reject an ineligible target, hidden cleanup lane, fabricated signal, or cleanup action unsupported by explicit reference and lifecycle truth.
@@ -232,12 +158,8 @@ units:
         target: definition.nimi.cognition.standalone-services.reference-graph
   - id: rule.nimi.cognition.standalone-services.r011
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-013 C-COG-014 external digest routine
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Digest runs as the first admitted external routine over memory, knowledge, and skill through typed non-kernel access and proposes explainable archive or remove transitions that remain distinct from explicit destructive delete.
     condition: Whenever digest analyzes or mutates cognition artifacts.
     failure: Reject direct kernel mutation, raw-store ownership, facade-owned pseudo-service execution, wall-clock stale sweeping, or unexplainable cleanup.
@@ -248,12 +170,8 @@ units:
         target: definition.nimi.cognition.standalone-services.routine
   - id: rule.nimi.cognition.standalone-services.r012
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-018 explicit non-ownership baseline
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: Standalone cognition claims Runtime provider bridge, replication, canonical review, Runtime bank scope, app or SDK transport, or Realm shared-truth governance as cognition-owned semantics.
     condition: Whenever cognition integrates with an external owner.
     failure: Keep the external concern reference-only and preserve cognition viability without that owner.
@@ -262,12 +180,8 @@ units:
         target: definition.nimi.cognition.standalone-services.domain
   - id: rule.nimi.cognition.standalone-services.r013
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-020 scope identity and deletion
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Every durable artifact belongs to exactly one cognition scope, family-local identifiers are unique within that scope, cross-scope references are prohibited, and scope deletion atomically removes its durable artifacts and clears its transient working state.
     condition: Whenever an artifact or scope is created, addressed, referenced, or deleted.
     failure: Reject duplicate identity or cross-scope access and fail scope deletion without reporting partial success.
@@ -276,12 +190,8 @@ units:
         target: definition.nimi.cognition.standalone-services.scope
   - id: rule.nimi.cognition.standalone-services.r014
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-021 C-COG-022 truth weight and persistence separation
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Kernel families alone carry primary local-model truth, memory, knowledge, and skill remain advisory, working state remains transient and unserved, routine evidence is not a cognition family, and durable families survive close and reopen without changing their semantics.
     condition: Whenever cognition persists, restores, retrieves, ranks, prompts, or cleans family data.
     failure: Reject truth-weight promotion, transient leakage, routine-evidence promotion, or reopen behavior that changes durable product truth.
@@ -290,12 +200,8 @@ units:
         target: definition.nimi.cognition.standalone-services.artifact-family
   - id: rule.nimi.cognition.standalone-services.r015
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-023 C-COG-025 typed reference and storage validation
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Every stored artifact is validated before commit against its family payload and typed family-qualified references, and one family cannot impersonate another or persist service-owned derived metadata in a caller-owned envelope.
     condition: Whenever a cognition artifact is saved or updated.
     failure: Reject before commit on malformed payload, mislabeled family, missing target, forbidden family relation, cross-scope reference, or caller-supplied derived metadata.
@@ -306,12 +212,8 @@ units:
         target: definition.nimi.cognition.standalone-services.reference-graph
   - id: rule.nimi.cognition.standalone-services.r016
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-026 root constructor readiness
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: New is the sole admitted root constructor and succeeds only when the standalone durable store, reference graph, transient working-state lane, and all public subservices are ready without Runtime semantic dependency.
     condition: Whenever a standalone cognition root is constructed.
     failure: Return constructor failure and no usable root when any required owner surface is unavailable.
@@ -320,12 +222,8 @@ units:
         target: definition.nimi.cognition.standalone-services.public-surface
   - id: rule.nimi.cognition.standalone-services.r017
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-027 closed root facade
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: The root facade exposes exactly KernelService, MemoryService, KnowledgeService, AppMemoryAccessService, SkillService, WorkingService, PromptService, KernelEngine, NewRoutineContext, InitScope, DeleteScope, ListScopes, and Close.
     condition: Whenever the standalone root facade is defined or expanded.
     failure: Reject an unlisted accessor, digest pseudo-service, compatibility wrapper, unwired optional capability, or bridge-owned registry surface.
@@ -334,12 +232,8 @@ units:
         target: definition.nimi.cognition.standalone-services.public-surface
   - id: rule.nimi.cognition.standalone-services.r018
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-028 kernel service surface
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: KernelService exposes only Init, typed Load, and Engine, while root KernelEngine and Engine access preserve kernel validation, mutation, and commit semantics.
     condition: Whenever a caller accesses or mutates a kernel through the public surface.
     failure: Reject an ad hoc kernel helper or any engine use that bypasses admitted validation or commit behavior.
@@ -348,12 +242,8 @@ units:
         target: definition.nimi.cognition.standalone-services.public-surface
   - id: rule.nimi.cognition.standalone-services.r019
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-029 advisory and working service surface
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: MemoryService exposes Save, Load, LoadView, List, ListViews, SearchLexical, SearchViews, Delete, History, and ListIDs; KnowledgeService exposes Save, Load, List, Delete, History, SearchLexical, SearchHybrid, PutRelation, DeleteRelation, ListRelations, ListBacklinks, Traverse, IngestDocument, GetIngestTask, and ListIDs; SkillService exposes Save, Load, List, Search, Delete, History, and ListIDs; and WorkingService exposes only Save, Load, and Clear.
     condition: Whenever an advisory-family or working-state public service is defined or called.
     failure: Reject an unlisted service operation or any operation that silently acquires Runtime review, replication, event-stream, workflow, or execution ownership.
@@ -362,12 +252,8 @@ units:
         target: definition.nimi.cognition.standalone-services.public-surface
   - id: rule.nimi.cognition.standalone-services.r020
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-030 prompt public surface
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: PromptService exposes exactly FormatCore for kernel truth, FormatAdvisory for validated advisory truth, and FormatAll for combined output that preserves lane boundaries, and memory support, lineage, invalidation, and cleanup fields remain service-owned derived outputs.
     condition: Whenever prompt context is formatted.
     failure: Reject an unlisted formatter, lane collapse, working-state or routine input, or caller-persisted derived metadata.
@@ -378,12 +264,8 @@ units:
         target: definition.nimi.cognition.standalone-services.public-surface
   - id: rule.nimi.cognition.standalone-services.r021
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-031 C-COG-032 routine context and worker surface
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: NewRoutineContext returns one-scope typed non-kernel artifact and clock access, and digest.NewWorker(...).Run is the authoritative digest worker entry whose cleanup uses lifecycle-aware archive and remove operations.
     condition: Whenever an external cognition routine receives access or executes.
     failure: Reject direct kernel mutation, raw store as the primary contract, public low-level analysis helpers, or a facade-owned routine service.
@@ -394,12 +276,8 @@ units:
         target: definition.nimi.cognition.standalone-services.routine
   - id: rule.nimi.cognition.standalone-services.r022
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-039 closed memory operation contract
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Each memory operation in Save, Load, LoadView, List, ListViews, SearchLexical, SearchViews, Delete, History, and ListIDs acts on one explicit scope with its declared raw, derived, lexical, identifier, lifecycle, or history posture and explicit failure reasons.
     condition: Whenever memory capability is admitted or an operation executes.
     failure: Reject an inferred, duplicate, unscoped, posture-ambiguous, or silent-failure memory capability.
@@ -408,12 +286,8 @@ units:
         target: definition.nimi.cognition.standalone-services.memory-service
   - id: rule.nimi.cognition.standalone-services.r023
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-040 memory mutation and deletion
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Memory Save validates explicit scope and record identity, typed payload, references, and lifecycle before one-record create or update, while Delete is explicit and digest archive or remove transitions remain observable through lifecycle-bearing views and history.
     condition: Whenever a memory record is saved, archived, removed, or deleted.
     failure: Reject invalid mutation before commit and never represent deletion or cleanup as silent disappearance.
@@ -422,12 +296,8 @@ units:
         target: definition.nimi.cognition.standalone-services.memory-service
   - id: rule.nimi.cognition.standalone-services.r024
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-041 memory retrieval history and derived views
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Raw memory reads remain distinct from derived views, lexical and list ordering is explicit, history exposes lifecycle transitions, and support, live lineage, invalidation, and cleanup signals are recomputed from current service-owned inputs at read time.
     condition: Whenever memory is loaded, listed, searched, viewed, or read through history.
     failure: Fail explicitly on missing or malformed derivation inputs and reject caller-persisted metadata or weaker lookup presented as recall or history parity.
@@ -436,12 +306,8 @@ units:
         target: definition.nimi.cognition.standalone-services.memory-service
   - id: rule.nimi.cognition.standalone-services.r025
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-042 memory non-ownership
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: MemoryService owns Runtime provider routing, embedding bridge or live configuration, replication, canonical review, event streaming, bank identity, bank migration, or caller-mutable ranking and cleanup posture.
     condition: Whenever standalone memory overlaps or integrates with Runtime memory infrastructure.
     failure: Keep the concern with its Runtime owner and preserve the standalone local memory contract without a fallback ownership claim.
@@ -450,12 +316,8 @@ units:
         target: definition.nimi.cognition.standalone-services.memory-service
   - id: rule.nimi.cognition.standalone-services.r026
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-043 closed knowledge operation contract
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Each knowledge operation in Save, Load, List, Delete, History, SearchLexical, SearchHybrid, PutRelation, DeleteRelation, ListRelations, ListBacklinks, Traverse, IngestDocument, GetIngestTask, and ListIDs acts on one explicit registered cognition scope with its declared page, retrieval, relation, ingest, lifecycle, history, or identifier posture and explicit failure reasons.
     condition: Whenever standalone knowledge capability is admitted or an operation executes.
     failure: Reject an inferred, duplicate, unregistered-scope, posture-ambiguous, or silent-failure knowledge capability.
@@ -464,12 +326,8 @@ units:
         target: definition.nimi.cognition.standalone-services.knowledge-service
   - id: rule.nimi.cognition.standalone-services.r027
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-044 knowledge lifecycle and retrieval
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Knowledge Save or update affects one page in one scope, Delete has explicit lifecycle visibility, lexical and lexical-plus-vector hybrid retrieval remain distinct, and every list, search, graph, history, and ingest result identifies its ordering and product posture.
     condition: Whenever a knowledge page is mutated, deleted, or retrieved.
     failure: Reject silent index disappearance, ambiguous retrieval posture, unavailable hybrid capability presented as success, or generic blob search presented as complete knowledge behavior.
@@ -478,12 +336,8 @@ units:
         target: definition.nimi.cognition.standalone-services.knowledge-service
   - id: rule.nimi.cognition.standalone-services.r028
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-045 knowledge relation ingest and progress
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Knowledge relations are first-class same-scope rows validated for live source, live target, type, duplicates, and self-links; backlinks and bounded traversal have explicit ordering; and typed document ingest persists queued, running, completed, or failed progress with interrupted tasks becoming failed on reopen.
     condition: Whenever knowledge relations are written or traversed or a document ingest task is accepted, resumed, or read.
     failure: Reject invalid relation or ingest input before commit and never hide relation truth in page artifact references or ingest as an untracked side effect.
@@ -494,12 +348,8 @@ units:
         target: definition.nimi.cognition.standalone-services.reference-graph
   - id: rule.nimi.cognition.standalone-services.r029
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-046 knowledge non-ownership
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: KnowledgeService owns Runtime bank authorization, shared-truth replication, workflow truth, Agent Core admission, shared citation, or Runtime review semantics.
     condition: Whenever standalone knowledge overlaps or integrates with an external knowledge owner.
     failure: Keep the concern reference-only with its owner and preserve only standalone local projection, relation, and ingest semantics.
@@ -508,12 +358,8 @@ units:
         target: definition.nimi.cognition.standalone-services.knowledge-service
   - id: rule.nimi.cognition.standalone-services.r030
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-047 admitted reference matrix
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Kernel families may reference memory, knowledge, and skill but accept no incoming references; each advisory family may reference and receive references from memory, knowledge, and skill but not kernels or working state; working state has no references; and every family rejects cross-scope and missing-target saves.
     condition: Whenever an artifact reference is validated or traversed.
     failure: Reject a relation outside the closed matrix before commit.
@@ -522,12 +368,8 @@ units:
         target: definition.nimi.cognition.standalone-services.reference-graph
   - id: rule.nimi.cognition.standalone-services.r031
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-048 reference graph explainability
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: The reference graph exposes broken references, strong and weak incoming support, outgoing dependency health, backlinks, traversal, delete blockers, and digest reasoning; removed sources provide no live support and removed targets remain visible as broken dependencies.
     condition: Whenever relation health, deletion, archive, remove, or cleanup is evaluated.
     failure: Reject hidden heuristic reasoning, flattened blocker classes, or external review, replication, alias, or provider-ranking ownership.
@@ -536,12 +378,8 @@ units:
         target: definition.nimi.cognition.standalone-services.reference-graph
   - id: rule.nimi.cognition.standalone-services.r032
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-049 missing-target and cleanup blocking
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Missing targets reject saves, advisory-family missing or incoming relations explicitly block archive or remove according to the reference matrix, and digest remove requires prior archival plus confirmation on a later pass.
     condition: Whenever save, archive, remove, or digest cleanup encounters a missing target or inbound relation.
     failure: Reject the current operation without generic forced removal or same-pass archive-and-remove.
@@ -550,12 +388,8 @@ units:
         target: definition.nimi.cognition.standalone-services.reference-graph
   - id: rule.nimi.cognition.standalone-services.r033
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-050 closed prompt lane matrix
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Prompt serving orders core_kernel first for agent and world kernels, advisory_memory second from service-owned memory views, advisory_knowledge third from validated pages, advisory_skill fourth from validated bundles, and combined_render fifth while preserving all lane boundaries.
     condition: Whenever prompt context is selected or rendered.
     failure: Reject an unknown lane, wrong order, unadmitted family, missing lane marker, or input not supplied by the lane's owner surface.
@@ -564,12 +398,8 @@ units:
         target: definition.nimi.cognition.standalone-services.prompt-serving
   - id: rule.nimi.cognition.standalone-services.r034
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-011 C-COG-051 prompt separation and derived metadata
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Kernel truth remains distinct and primary, advisory lanes consume only validated artifacts or service-owned derived views, and working state, routine evidence, caller-persisted support, and cleanup metadata remain excluded.
     condition: Whenever prompt inputs are assembled or formatted.
     failure: Reject advisory promotion, lane merging, or forbidden input before producing prompt output.
@@ -578,12 +408,8 @@ units:
         target: definition.nimi.cognition.standalone-services.prompt-serving
   - id: rule.nimi.cognition.standalone-services.r035
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-052 prompt failure model
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Prompt serving fails explicitly on missing required kernels, illegal lane mixing, malformed derived views, forbidden inputs, or advisory-only input presented as kernel truth.
     condition: Whenever a prompt operation cannot satisfy its lane contract.
     failure: Return explicit failure and no best-effort or semantically promoted output.
@@ -592,12 +418,8 @@ units:
         target: definition.nimi.cognition.standalone-services.prompt-serving
   - id: rule.nimi.cognition.standalone-services.r036
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-053 C-COG-054 semantic completion clauses
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Product semantic closure requires decision-complete owner surfaces, explicit failure behavior, one durable reopen-safe persistence posture, retrieval and formatting semantics, lifecycle-aware worker and service mutation equivalence, rejection of lifecycle resurrection and writes to non-live relation targets, and closed provenance validation.
     condition: Whenever production-grade standalone cognition behavior is claimed.
     failure: Keep product semantic closure incomplete while any clause remains weaker, ambiguous, parallel, or pseudo-successful.
@@ -606,12 +428,8 @@ units:
         target: definition.nimi.cognition.standalone-services.product-closure
   - id: rule.nimi.cognition.standalone-services.r037
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-053 semantic consistency gates
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Cognition overlap semantics do not downgrade, malformed and unavailable operations fail closed, prompt serving preserves core and advisory lanes with owner-derived inputs, and cleanup remains explainable through reference and lifecycle truth.
     condition: Whenever standalone cognition semantics are changed or claimed complete.
     failure: Reject a missing overlap concern, silent fallback, serving-lane violation, or cleanup action without explicit support and blocker truth.
@@ -620,12 +438,8 @@ units:
         target: definition.nimi.cognition.standalone-services.product-closure
   - id: rule.nimi.cognition.standalone-services.r038
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-055 runtime independence semantics
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: Standalone mutation, retrieval, prompt, cleanup, persistence, or semantic completeness requires Runtime-owned provider, replication, review, lifecycle, serialization, or bridge truth.
     condition: Whenever standalone cognition operates or its product semantics are evaluated.
     failure: Keep the operation or completion claim unavailable until cognition-owned semantics are sufficient without Runtime.
@@ -636,12 +450,8 @@ units:
         target: definition.nimi.cognition.standalone-services.product-closure
   - id: rule.nimi.cognition.standalone-services.r039
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-056 closed skill operation contract
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Each skill operation in Save, Load, List, Search, Delete, History, and ListIDs acts on one explicit scope with its declared advisory, lexical, identifier, lifecycle, deletion, or history posture and explicit failure reasons.
     condition: Whenever skill capability is admitted or an operation executes.
     failure: Reject an inferred, duplicate, unscoped, posture-ambiguous, or silent-failure skill capability.
@@ -650,12 +460,8 @@ units:
         target: definition.nimi.cognition.standalone-services.skill-service
   - id: rule.nimi.cognition.standalone-services.r040
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-057 skill lifecycle retrieval and history
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Skill Save validates non-empty ordered steps, unique step identity and order, references, scope, and lifecycle; List and Search exclude removed bundles by default; Load and History retain created, updated, archived, removed, and deleted visibility until explicit deletion; and Delete remains distinct from archive or remove and respects inbound blockers.
     condition: Whenever a skill bundle is saved, loaded, listed, searched, archived, removed, deleted, or read through history.
     failure: Reject invalid mutation or blocked deletion and never hide lifecycle outcomes from the admitted history contract.
@@ -664,12 +470,8 @@ units:
         target: definition.nimi.cognition.standalone-services.skill-service
   - id: rule.nimi.cognition.standalone-services.r041
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-058 skill non-ownership
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: SkillService owns Runtime scheduler, provider or tool routing, automation execution policy, workflow ownership, or control-plane state merely because validated skill artifacts participate in prompt serving or digest cleanup.
     condition: Whenever skill artifacts integrate with execution or orchestration surfaces.
     failure: Keep the external execution concern with its owner and preserve skill as advisory cognition truth only.
@@ -678,12 +480,8 @@ units:
         target: definition.nimi.cognition.standalone-services.skill-service
   - id: rule.nimi.cognition.standalone-services.r042
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-001 protected resource policy ownership
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Cognition alone selects and applies resource policy for Cognition-owned memory, knowledge, and skill, while app-owned data remains app authority and Runtime principal, session, account, and permission prechecks and Realm cloud truth remain reference-only owner inputs.
     condition: Whenever an app requests a Cognition-owned protected resource.
     failure: Deny parallel policy from Desktop, SDK, Kit, app host, renderer, Runtime, or Realm and never create a Cognition permission row for app-owned data.
@@ -692,12 +490,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r043
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-002 public permission mapping
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Third-party app intent maps only to memory.read, memory.write, knowledge.read, or knowledge.write, these public identifiers remain distinct from endpoints and internal policy identities, and no skill permission is inferred from open strings or another permission.
     condition: Whenever an app declares or requests Cognition resource access.
     failure: Deny an unknown, internal, inferred, or unadmitted skill permission without exposing internal operation identity.
@@ -706,12 +500,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r044
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-003 owner-selected resource boundary
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: A future admitted decision uses a Cognition-generated bounded selector for the chosen memory collection and read time range, writable memory collection, knowledge base, or writable knowledge base, and every endpoint revalidates decision, selector, ownership, account, principal, session, revision, and endpoint policy.
     condition: Whenever a future positive app memory or knowledge decision is admitted and used.
     failure: Deny missing, stale, revoked, mismatched, app-supplied, or digest-only resource evidence.
@@ -720,12 +510,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r045
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-004 no implicit projection or write
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: Transcript, prompt context, cache, background job, replay, display, batch, retry, or asynchronous execution implicitly creates Cognition truth, derives write from read, expands a selector, or writes without admitted permission, owner-selected target, typed audit reason, and atomic Cognition mutation.
     condition: Whenever app-originated data is read, displayed, retried, or considered for Cognition mutation.
     failure: Deny the write or expansion and preserve the original bounded decision without background fallback.
@@ -734,12 +520,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r046
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-005 conversation-derived memory
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Conversion of app conversation to Cognition memory requires a current admitted memory.write decision, Cognition-selected collection, Runtime-derived app principal and account, canonical conversation anchor and persona relation, and typed audit event, while app_id is display metadata only.
     condition: Whenever app conversation is proposed as Cognition memory.
     failure: Deny conversion when any required fact is absent and prohibit later cache or background backfill.
@@ -748,12 +530,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r047
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-006 caller subject is not resource ownership
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: Local app principal, display app id, project or package path, process id, local-app record, permission decision, cache, SQLite, valid session, Developer Mode, launch approval, publisher tier, bundled identity, or first-party binding determines Cognition resource ownership or substitutes for a current protected-resource decision.
     condition: Whenever agent, persona, conversation, collection, knowledge-base, or permission ownership is resolved.
     failure: Resolve ownership only through canonical RuntimeAgent and Cognition relations and deny when that resolution or current decision is unavailable.
@@ -762,12 +540,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r048
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-007 first-party and third-party separation
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: A third-party or local-development principal inherits a bundled first-party product's agent, memory, knowledge, service entitlement, or positive fallback, or records first-party entitlement in the third-party permission ledger.
     condition: Whenever first-party and third-party app access are compared or evaluated.
     failure: Keep principals and entitlements separate and deny the third-party request without fallback.
@@ -776,12 +550,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r049
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-008 audit revocation and disclosure
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Future admitted decision creation, denial, expiry, revocation, and every write produce owner audit, and account switch, principal tombstone, selector or resource-policy change, or revocation immediately denies later calls while apps receive only public posture.
     condition: Whenever a future admitted app decision changes or a protected operation executes.
     failure: Deny unaudited or stale access and withhold decision identity, selector digest, internal operation or resource identity, and other-app state.
@@ -790,12 +560,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r050
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-APMEM-009 current reserved admission posture
     modality: must_not
-    scope:
-      - cognition.standalone-services
     statement: A third-party app receives positive memory.read, memory.write, knowledge.read, or knowledge.write access while those permissions remain reserved, or treats catalog presence, manifest declaration, mock approval, or an isolated CRUD endpoint as admission.
     condition: Whenever current third-party Cognition access is requested or presented.
     failure: Return typed unavailable or deny from every protected endpoint without a positive read or mutation path.
@@ -804,12 +570,8 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r051
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-026 C-COG-027 root wire contracts
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: New returns (*Cognition, error); facade accessors return *KernelService, *MemoryService, *KnowledgeService, *AppMemoryAccessService, *SkillService, *WorkingService, *PromptService, and *kernelops.Engine respectively; NewRoutineContext returns (routine.Context, error); InitScope, DeleteScope, and Close return error; and ListScopes returns ([]string, error).
     condition: Whenever the standalone constructor or root facade is called.
     failure: Reject a root implementation whose return contract differs, whose InitScope does not initialize both kernels, whose DeleteScope does not remove durable scope data and clear working state, or whose Close does not close durable state and clear transient working state.
@@ -818,12 +580,8 @@ units:
         target: definition.nimi.cognition.standalone-services.public-surface
   - id: rule.nimi.cognition.standalone-services.r052
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-028 C-COG-029 C-COG-030 service wire contracts
     modality: must
-    scope:
-      - cognition.standalone-services
     statement: Kernel Init returns error, Load returns (*kernel.Kernel, []kernel.Rule, error), and Engine returns *kernelops.Engine; memory Save and Delete return error, raw operations return memory records or identifiers with error, derived operations return memory views with error, and History returns memory history entries with error; knowledge mutation operations return error, page retrieval returns pages or identifiers with error, relation retrieval returns relations or traversal hits with error, IngestDocument and GetIngestTask return ingest tasks with error, and History returns knowledge history entries with error; skill Save and Delete return error, retrieval returns bundles or identifiers with error, and History returns skill history entries with error; working Save and Clear return error and Load returns (*working.State, error); prompt formatters return (string, error); and digest worker Run returns (*routine.Result, error).
     condition: Whenever a public cognition service or external worker operation returns.
     failure: Reject a return shape that drops typed data or explicit error, conflates raw and derived outputs, or reports success without the operation's owner-true result.

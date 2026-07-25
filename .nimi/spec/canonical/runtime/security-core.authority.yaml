@@ -1,55 +1,35 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.security-core
 units:
   - id: definition.nimi.runtime.security-core.token-validation-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime token validation plane
     meaning: The Runtime token validation plane parses Realm bearer input, validates JWT headers, claims, time bounds, JWKS signatures, session revocation, and cross-service claim alignment, and projects only the minimum authenticated identity context.
-    relations: []
   - id: definition.nimi.runtime.security-core.ownership-authorization-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime ownership authorization plane
     meaning: The Runtime ownership authorization plane applies authenticated, anonymous, connector, local target, and ScenarioJob ownership policy only after authentication and preserves information hiding and fixed evaluation order.
-    relations: []
   - id: definition.nimi.runtime.security-core.endpoint-security-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime endpoint security plane
     meaning: The Runtime endpoint security plane validates every managed or inline remote endpoint at execution time, rejects unsafe address classes after DNS resolution, and pins validated dial targets without changing the original TLS or HTTP authority.
-    relations: []
   - id: definition.nimi.runtime.security-core.grant-service-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime permission decision plane
     meaning: The Runtime permission decision plane is the owner-internal lifecycle boundary for atomically admitted public user permissions after removal of the former portable credential-grant family and separation of all non-permission authority classes.
-    relations: []
   - id: definition.nimi.runtime.security-core.key-routing-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime key source and routing plane
     meaning: The Runtime key source and routing plane selects mutually exclusive managed connector, inline remote, configured, or anonymous local execution paths through fixed identity, credential, endpoint, target, routing, and audit checks without path fallback.
-    relations: []
   - id: definition.nimi.runtime.security-core.workspace-binding-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime workspace binding plane
     meaning: The Runtime workspace binding plane defines a Runtime-issued workspace-specific non-secret relation and attachment for WORKSPACE_PRIVATE knowledge authorization whose production consumption remains blocked pending separate Runtime operation admission.
-    relations: []
   - id: rule.nimi.runtime.security-core.r001
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Authorization metadata has one bearer shape
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime reads authentication only from the normalized gRPC authorization metadata key, accepts only Bearer followed by one JWT, and treats an absent authorization value as anonymous without error.
     condition: Whenever a Runtime request enters bearer authentication.
     failure: Reject any unsupported authentication carrier or bearer shape instead of deriving authenticated identity from it.
@@ -58,12 +38,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r002
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Malformed authorization never downgrades to anonymous
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: A present but malformed authorization value is treated as anonymous or allowed to continue without UNAUTHENTICATED and AUTH_TOKEN_INVALID.
     condition: Whenever authorization metadata is present but is not a valid bearer input.
     failure: Return UNAUTHENTICATED with AUTH_TOKEN_INVALID before authorization evaluation.
@@ -72,12 +48,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r003
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Realm JWT claims are closed and time checked
     modality: must
-    scope:
-      - runtime.security-core
     statement: Realm JWT validation requires iss, aud, sub, exp, and iat and applies temporal validation to nbf whenever nbf is present.
     condition: Whenever Runtime validates a Realm JWT.
     failure: Return UNAUTHENTICATED with AUTH_TOKEN_INVALID when a required claim is absent or a temporal claim is invalid.
@@ -86,12 +58,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r004
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: JWT algorithm and key shape follow generated Realm JWKS
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime accepts only RS256 and key shapes currently declared by the generated Realm JWKS contract and maintains no parallel transport DTO or independently widened algorithm set.
     condition: Whenever Runtime selects a JWT verification algorithm or key.
     failure: Return UNAUTHENTICATED with AUTH_TOKEN_INVALID for every undeclared algorithm or key shape.
@@ -100,12 +68,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r005
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Unsigned and keyless JWT headers are denied
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Runtime accepts alg none or a JWT header without kid.
     condition: Whenever Runtime parses a JWT header.
     failure: Return UNAUTHENTICATED with AUTH_TOKEN_INVALID before signature verification proceeds.
@@ -114,12 +78,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r006
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: JWKS lookup refreshes once on cache or key miss
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime uses the cached JWKS snapshot first and performs one refresh on cache miss or kid miss.
     condition: Whenever JWT verification cannot resolve the requested kid from the current cache.
     failure: Return UNAUTHENTICATED rather than retrying without bound or downgrading to anonymous.
@@ -128,12 +88,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r007
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: JWKS stale fallback is short and key specific
     modality: must
-    scope:
-      - runtime.security-core
     statement: A failed JWKS refresh may use the most recent successful snapshot only within a short TTL and only when that snapshot already contains the requested kid.
     condition: Whenever a JWKS refresh fails after a previously successful fetch.
     failure: Return UNAUTHENTICATED when the fallback window expired or the requested kid is absent.
@@ -142,12 +98,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r008
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: JWKS has one configured secure source
     modality: must
-    scope:
-      - runtime.security-core
     statement: auth.jwt.jwksUrl is the only Runtime verification-key source, publicKeyPath is excluded from the verification chain, and jwksUrl uses https except that http is allowed for localhost, 127.0.0.0/8, or ::1.
     condition: Whenever Runtime configures or fetches JWT verification keys.
     failure: Disable the bearer JWT path when the source or transport violates the fixed JWKS boundary.
@@ -156,12 +108,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r009
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: JWT temporal skew is fixed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime applies a fixed plus or minus 60 second skew window to exp and nbf and gives no soft tolerance outside that window.
     condition: Whenever Runtime evaluates JWT expiration or not-before time.
     failure: Return UNAUTHENTICATED with AUTH_TOKEN_INVALID when the token lies outside the fixed window.
@@ -170,12 +118,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r010
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Signed sessions still require revocation validation
     modality: must
-    scope:
-      - runtime.security-core
     statement: After successful JWT signature validation Runtime requires sid and queries the configured session revocation endpoint whenever the session domain is available.
     condition: Whenever a bearer JWT passes signature and claim validation.
     failure: Return SESSION_EXPIRED for a revoked or expired session and do not treat signature validity as session validity.
@@ -184,12 +128,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r011
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Bearer restart configuration is atomic
     modality: must
-    scope:
-      - runtime.security-core
     statement: auth.jwt.revocationUrl, auth.jwt.issuer, auth.jwt.audience, and auth.jwt.jwksUrl form one restart configuration group and the bearer JWT path is enabled only when every member is present.
     condition: Whenever Runtime starts or restarts bearer authentication.
     failure: Disable the bearer JWT path instead of operating with a partial configuration group.
@@ -198,12 +138,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r012
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Revocation introspection request has one wire shape
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime posts JSON to auth.jwt.revocationUrl with session_id, subject_user_id, issuer, audience, issued_at, and expires_at.
     condition: Whenever Runtime introspects a bearer session.
     failure: Treat inability to construct or send the exact request as AUTH_REVOCATION_UNAVAILABLE.
@@ -212,12 +148,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r013
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Revocation introspection response is closed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime accepts only a 200 application/json revocation response containing boolean active, boolean revoked, and optional RFC3339 expires_at, and treats revoked true or active false as revoked.
     condition: Whenever Runtime receives a revocation introspection response.
     failure: Return SESSION_EXPIRED for a determined revocation and reject every malformed response as temporarily unavailable.
@@ -226,12 +158,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r014
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Indeterminate revocation fails unavailable
     modality: must
-    scope:
-      - runtime.security-core
     statement: Network errors, non-2xx responses, wrong content type, and invalid revocation payloads return UNAVAILABLE with AUTH_REVOCATION_UNAVAILABLE and a retryable projection.
     condition: Whenever revocation state cannot be determined from the exact introspection contract.
     failure: Return the typed unavailable result and never downgrade the request to anonymous or active.
@@ -240,12 +168,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r015
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Authentication failures use the closed reason taxonomy
     modality: must
-    scope:
-      - runtime.security-core
     statement: Bearer format, signature, header, and claim failures return UNAUTHENTICATED with AUTH_TOKEN_INVALID, session revocation or expiration returns SESSION_EXPIRED, indeterminate revocation returns AUTH_REVOCATION_UNAVAILABLE, and ExternalPrincipal proof expiration or unsupported proof type may use AUTH_TOKEN_EXPIRED or AUTH_UNSUPPORTED_PROOF_TYPE respectively.
     condition: Whenever Runtime emits an authentication failure.
     failure: Reject the request with the applicable typed code instead of an ad hoc, anonymous, or success result.
@@ -254,12 +178,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r016
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Authenticated context is minimal and parsed once
     modality: must
-    scope:
-      - runtime.security-core
     statement: Successful authentication projects only subject_user_id from sub, issuer, audience, and optional session_id, and downstream authorization consumes that projection without reimplementing JWT parsing.
     condition: Whenever authenticated identity is passed to downstream Runtime authorization.
     failure: Reject duplicate token parsing or identity projection beyond the admitted minimum.
@@ -270,12 +190,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r017
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Realm and Runtime claims configuration must align
     modality: must
-    scope:
-      - runtime.security-core
     statement: Realm-issued iss equals auth.jwt.issuer, Realm-issued aud contains auth.jwt.audience, and Runtime obtains Realm verification keys only through auth.jwt.jwksUrl.
     condition: Whenever Realm tokens are issued for Runtime consumption.
     failure: Return UNAUTHENTICATED with AUTH_TOKEN_INVALID for every issuer or audience mismatch.
@@ -284,12 +200,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r018
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: JWT posture never establishes protected origin
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: A valid JWT or ordinary request-body authorization is interpreted as protected local origin for an RPC whose closed posture requires a separately verified carrier and role.
     condition: Whenever Runtime evaluates an RPC with binding-only, protected-origin, blocked-pending-authority, or deny-all posture.
     failure: Deny the RPC until its independently required protected origin is verified.
@@ -300,12 +212,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r019
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Local models are not connector ownership targets
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: LOCAL_MODEL is treated as an active connector kind or connector ownership path instead of deriving local model authorization from Runtime local asset and profile ownership.
     condition: Whenever Runtime authorizes a local model target.
     failure: Reject connector-derived local ownership and resolve the target through Runtime local asset and profile authority.
@@ -314,12 +222,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r020
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Authenticated and anonymous target access stays distinct
     modality: must
-    scope:
-      - runtime.security-core
     statement: A valid Realm JWT may access caller-owned local asset or profile refs and sub-owned REMOTE_MANAGED connectors, while an absent JWT may access machine-local asset or profile refs, system-owned remote connectors, and inline execution; a present invalid bearer is denied as unauthenticated.
     condition: Whenever Runtime selects authenticated or anonymous ownership policy.
     failure: Return UNAUTHENTICATED for an invalid bearer and deny targets outside the applicable identity partition.
@@ -330,12 +234,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r021
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Anonymous machine connectors are API key system records
     modality: must
-    scope:
-      - runtime.security-core
     statement: An anonymous machine-global REMOTE_MANAGED connector uses auth_kind API_KEY, owner type SYSTEM, and owner_id machine.
     condition: Whenever an anonymous caller creates or uses a machine-global connector.
     failure: Deny every anonymous machine connector with another auth kind or owner mapping.
@@ -344,12 +244,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r022
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Remote connector ownership is information hidden
     modality: must
-    scope:
-      - runtime.security-core
     statement: A missing remote connector, an owner mismatch, and anonymous access to a user-owned remote connector all return NOT_FOUND.
     condition: Whenever Runtime cannot expose a remote connector under caller ownership policy.
     failure: Return NOT_FOUND without distinguishing existence, ownership, or user-owned status.
@@ -358,12 +254,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r023
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Connector owner mapping is fixed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Authenticated REMOTE_MANAGED connectors map to REALM_USER, anonymous machine-global API_KEY connectors map to SYSTEM with owner_id machine, OAUTH_MANAGED connectors always map to REALM_USER, and local asset or profile refs remain under RuntimeLocalService ownership.
     condition: Whenever Runtime assigns or validates connector and target ownership.
     failure: Return NOT_FOUND or deny creation for every incompatible owner, auth-kind, or target-owner mapping.
@@ -372,12 +264,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r024
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Connector creation follows caller identity
     modality: must
-    scope:
-      - runtime.security-core
     statement: Create permits a valid JWT to create a user-owned remote connector and permits a caller without JWT to create only a machine-global API_KEY remote connector.
     condition: Whenever ConnectorService creates a connector.
     failure: Deny creation that does not match the authenticated-user or anonymous-machine branch.
@@ -386,12 +274,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r025
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Connector mutation preserves owner and auth kind
     modality: must
-    scope:
-      - runtime.security-core
     statement: Update and Delete require a valid JWT for user-owned remote connectors, while anonymous or authenticated callers may manage an owner_id machine connector only when its auth kind is API_KEY.
     condition: Whenever ConnectorService updates or deletes a connector.
     failure: Hide or deny the connector when caller identity, owner, or auth kind does not satisfy the mutation branch.
@@ -400,12 +284,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r026
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Connector reads expose only caller-visible records
     modality: must
-    scope:
-      - runtime.security-core
     statement: Get, List, Test, and ListConnectorModels may run without JWT, hide user-owned remote connectors from anonymous callers, keep system-owned remote connectors visible, and treat every non-user-owned OAUTH_MANAGED record as NOT_FOUND.
     condition: Whenever ConnectorService reads, tests, or lists connectors or connector models.
     failure: Return NOT_FOUND for an invalid ownership and auth-kind combination without exposing the record.
@@ -414,12 +294,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r027
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: AI connector authorization order is fixed
     modality: must
-    scope:
-      - runtime.security-core
     statement: After JWT validation the connector_id path evaluates owner, then status, then credential in that order before endpoint, target, route, and audit processing.
     condition: Whenever AI consume uses a managed connector.
     failure: Stop at the first failed check and do not reorder evaluation in a way that leaks ownership or connector state.
@@ -430,12 +306,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r028
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: ScenarioJob ownership is captured at creation
     modality: must
-    scope:
-      - runtime.security-core
     statement: ScenarioJob creation stores owner_id as jwt.sub for a valid JWT and anonymous otherwise, and GetScenarioJob, CancelScenarioJob, SubscribeScenarioJobEvents, and GetScenarioArtifacts authorize against that stored job owner independently of connector existence.
     condition: Whenever Runtime creates or accesses a ScenarioJob.
     failure: Deny job access on owner mismatch without depending on current connector state.
@@ -444,12 +316,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r029
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Authentication completes before authorization
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime enters owner, status, and credential authorization only after authentication succeeds.
     condition: Whenever a request carries authentication material.
     failure: Return the authentication failure without running authorization checks or exposing authorization state.
@@ -460,12 +328,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r030
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Ordinary identity cannot upgrade protected origin
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Ordinary authn, a request-body app identifier, or an ownership match upgrades a call to a separately protected local origin.
     condition: Whenever a Runtime RPC requires protected transport or origin posture.
     failure: Deny the operation until the required carrier and origin role are independently verified.
@@ -474,12 +338,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r031
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed and inline endpoints share validation
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime applies endpoint security validation to every REMOTE_MANAGED connector endpoint and every inline x-nimi-provider-endpoint.
     condition: Whenever Runtime prepares a remote provider request.
     failure: Reject the request before network dispatch when either endpoint source is unvalidated.
@@ -488,12 +348,8 @@ units:
         target: definition.nimi.runtime.security-core.endpoint-security-plane
   - id: rule.nimi.runtime.security-core.r032
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Remote endpoints default to HTTPS
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime permits https endpoints by default and permits http only when allow_loopback_provider_endpoint is true and the target is localhost, 127.0.0.0/8, or ::1.
     condition: Whenever Runtime validates an endpoint scheme and loopback posture.
     failure: Reject non-HTTPS endpoints that do not satisfy every loopback exception condition.
@@ -502,12 +358,8 @@ units:
         target: definition.nimi.runtime.security-core.endpoint-security-plane
   - id: rule.nimi.runtime.security-core.r033
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Unsafe address classes stay denied after DNS
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime unconditionally rejects 169.254.0.0/16, 169.254.169.254, fe80::/10, and fc00::/7, conditionally rejects localhost, 127.0.0.0/8, and ::1 when loopback is disabled, and reapplies those checks to every DNS result.
     condition: Whenever Runtime validates a literal or resolved provider address.
     failure: Reject the endpoint if any selected dial address belongs to a prohibited class.
@@ -516,12 +368,8 @@ units:
         target: definition.nimi.runtime.security-core.endpoint-security-plane
   - id: rule.nimi.runtime.security-core.r034
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Validated DNS results are pinned without authority rewrite
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime dials only validated pinned IPs, preserves the original hostname for TLS ServerName and HTTP Host, and permits connection-level failover among all validated safe IPs returned for that hostname.
     condition: Whenever Runtime dispatches to a DNS-resolved remote endpoint.
     failure: Reject unpinned dialing, authority rewriting, or failover to an address that was not validated.
@@ -530,12 +378,8 @@ units:
         target: definition.nimi.runtime.security-core.endpoint-security-plane
   - id: rule.nimi.runtime.security-core.r035
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Endpoint validation occurs at execution time
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime repeats endpoint and resolved-address validation immediately before every actual outbound request rather than relying only on create-time or update-time validation.
     condition: Whenever Runtime is about to open an outbound provider connection.
     failure: Stop network dispatch when current validation does not pass.
@@ -544,12 +388,8 @@ units:
         target: definition.nimi.runtime.security-core.endpoint-security-plane
   - id: rule.nimi.runtime.security-core.r036
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Private endpoint allowlists are unavailable
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Runtime uses a CIDR or host private-network allowlist to bypass the Phase 1 endpoint baseline.
     condition: Whenever endpoint policy evaluates a private or otherwise prohibited address.
     failure: Reject the address under the fixed baseline without an allowlist override.
@@ -558,12 +398,8 @@ units:
         target: definition.nimi.runtime.security-core.endpoint-security-plane
   - id: rule.nimi.runtime.security-core.r037
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Public portable grant credentials stay removed
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Runtime proto, generated clients, SDK exports, service registration, persistence, or a renamed surface recreates the former public credential-grant family, its reserved wire identities, tokens, bearers, scope lists, resource fingerprints, operation identifiers, delegation chains, or app-selected endpoints.
     condition: Whenever a public grant or permission surface is defined or shipped.
     failure: Remove the portable credential surface and reject every operation that depends on it.
@@ -572,12 +408,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r038
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Apps receive permission posture but no decision authority
     modality: must
-    scope:
-      - runtime.security-core
     statement: The app-facing permission surface exposes only product-level status and request while approval, decision, revoke, minting, truth, and endpoint enforcement remain with Runtime or the canonical remote owner and Desktop is at most a future decision UI.
     condition: Whenever an app, SDK, Desktop, or Runtime surface handles a public permission.
     failure: Deny app-carried or Desktop-owned authority and keep enforcement with the canonical owner.
@@ -586,12 +418,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r039
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Every local-app action has one authority class
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime classifies each local-app action as exactly one of base_entitlement, user_permission, one_shot_consent, app_owned_authority, or os_right.
     condition: Whenever Runtime authorizes a local-app action.
     failure: Return typed unavailable or deny when the action lacks one exact authority class.
@@ -600,12 +428,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r040
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Only user permissions create durable decision rows
     modality: must
-    scope:
-      - runtime.security-core
     statement: Only user_permission may use an owner-internal durable decision lifecycle, while base entitlements, app-owned authority, one-shot handles, and OS rights create no Runtime permission row.
     condition: Whenever Runtime considers permission persistence.
     failure: Reject persistence for every non-user-permission authority class.
@@ -614,12 +438,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r041
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Non-permission product state cannot synthesize permission truth
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Launch approval, publisher review, Developer Mode, login, session existence, product-route availability, AI routing, or metering creates or substitutes for permission truth.
     condition: Whenever Runtime derives public permission status or enforcement.
     failure: Return unavailable or deny until a current canonical owner decision exists.
@@ -628,12 +448,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r042
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Public permission identity comes only from the Platform catalog
     modality: must
-    scope:
-      - runtime.security-core
     statement: Public permission ids come only from the Platform Nimi app permission catalog, while internal operation and resource identities remain owner implementation details excluded from manifests, permission requests, ordinary SDK or Kit surfaces, approval UI, and app-readable diagnostics.
     condition: Whenever a permission or internal enforcement identity crosses a public surface.
     failure: Reject unknown public ids and remove internal operation or resource identities from the public projection.
@@ -642,12 +458,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r043
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Generic operation and resource grant engines are forbidden
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Runtime persists or evaluates a generic capability_scope plus resource_scope grant.
     condition: Whenever Runtime models a public permission or protected endpoint decision.
     failure: Reject the generic grant and use the exact admitted owner permission or another exact authority class.
@@ -656,12 +468,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r044
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Permission admission is atomic
     modality: must
-    scope:
-      - runtime.security-core
     statement: A public permission becomes admitted only when decision owner, selector, lifecycle, endpoint mapping, audit, revoke, SDK and Kit projection, product UI, and positive evidence arrive atomically; a catalog row alone grants nothing.
     condition: Whenever a public permission is proposed or evaluated for admission.
     failure: Return typed unavailable for status and request and deny every mapped operation until the complete slice is admitted.
@@ -670,12 +478,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r045
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Current public permission admission is empty
     modality: must
-    scope:
-      - runtime.security-core
     statement: The admitted third-party public-permission set is empty, Runtime has no positive local permission mutation path or durable permission-decision store, and a restricted process-bound app session may use only base entitlements without listing protected inventory to construct an authorization request.
     condition: Until an atomic public permission slice is separately admitted.
     failure: Return typed unavailable and deny positive permission mutation, persistence, and protected inventory enumeration.
@@ -684,12 +488,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r046
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Future permission identity is owner-bound
     modality: must
-    scope:
-      - runtime.security-core
     statement: Any future Runtime-owned public permission lifecycle binds local_os_user_anchor, account_id, local_app_principal_id, permission_id, and owner_selector_digest, and the selector is produced by the canonical owner rather than supplied as authority by the app.
     condition: Whenever a Runtime-owned public permission is atomically admitted.
     failure: Deny creation or use when any binding is missing, mismatched, or app-authored.
@@ -698,12 +498,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r047
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Future permission decisions are fresh revocable and audited
     modality: must
-    scope:
-      - runtime.security-core
     statement: Any future permission lifecycle has monotonic revision, explicit user decision evidence, account and principal isolation, revoke semantics, fresh reads at every protected endpoint, and complete audit, and fails closed on account switch, principal tombstone, or owner-policy change without accepting app_id, publisher tier, provenance, catalog presence, or session validity as a substitute.
     condition: Whenever an admitted public permission is stored, read, enforced, or revoked.
     failure: Deny the protected operation when current owner decision evidence is absent, stale, transferred, or substituted.
@@ -712,12 +508,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r048
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Durable target identity follows Runtime Target v2
     modality: must
-    scope:
-      - runtime.security-core
     statement: connector_id remains managed credential custody only, remote cloud execution resolves through remote_model_catalog_id, local execution resolves through the v2 local durable discriminant, and older model_id or connector_id plus model_id shapes are not durable target identity.
     condition: Whenever Runtime resolves an AI execution target.
     failure: Reject every retired durable target shape rather than converting or inferring it.
@@ -726,12 +518,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r049
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Key source has mutually exclusive explicit paths
     modality: must
-    scope:
-      - runtime.security-core
     statement: AI consume uses either a managed remote connector_id path or an inline remote metadata path, while a request with neither continues only to Runtime-configured or anonymous-local routing evaluation and local connectors never enter AI consume execution.
     condition: Whenever Runtime selects an AI key source.
     failure: Reject ambiguous or unsupported paths and do not invent credentials or a local connector execution path.
@@ -740,12 +528,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r050
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed connector authentication stays in custody
     modality: must
-    scope:
-      - runtime.security-core
     statement: Managed remote connectors admit API_KEY or OAUTH_MANAGED, callers submit only connector_id, OAuth payloads remain provider-defined sealed secrets constrained by the admitted provider_auth_profile set, and every OAUTH_MANAGED connector is user-owned.
     condition: Whenever Runtime loads or validates a managed connector credential.
     failure: Return NOT_FOUND for machine-owned or system-owned OAUTH_MANAGED records and deny undeclared auth profiles.
@@ -756,12 +540,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r051
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Inline credentials remain a caller-owned escape hatch
     modality: must
-    scope:
-      - runtime.security-core
     statement: Inline remote credentials are limited to development, direct external Agent, and temporary call scenarios, Desktop always uses managed connectors without renderer access to raw API keys, and Runtime only guarantees audit redaction rather than extra inline credential custody.
     condition: Whenever inline metadata is offered or projected.
     failure: Reject inline credentials from Desktop-managed product paths and redact them from audit output.
@@ -770,12 +550,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r052
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed and inline credentials cannot coexist
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: connector_id appears together with any inline credential field.
     condition: Whenever Runtime parses AI request body and metadata.
     failure: Return AI_REQUEST_CREDENTIAL_CONFLICT before connector or provider execution.
@@ -784,12 +560,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r053
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Key source metadata and app identity are fixed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Inline and managed metadata uses only x-nimi-key-source, x-nimi-provider-type, x-nimi-provider-endpoint, and x-nimi-provider-api-key, management RPC app_id is required only as x-nimi-app-id, and AI consume app_id is required in the request body.
     condition: Whenever Runtime parses key-source metadata or app identity for management and consume RPCs.
     failure: Reject missing required app identity and unsupported or misplaced authority inputs.
@@ -798,12 +570,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r054
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: AI consume evaluation sequence is closed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Runtime evaluates body and metadata normalization, optional JWT, non-empty app_id, key-source mutual exclusion, connector load, owner and status and credential, remote endpoint, inline endpoint, target or remote catalog, and route execution plus audit in that order.
     condition: Whenever Runtime handles AI consume.
     failure: Stop at the first failed stage and do not bypass, reorder, or defer a security check beyond execution.
@@ -816,12 +584,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r055
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed OAuth consume never mutates custody
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: AI consume implicitly refreshes, replaces, or rewrites an OAUTH_MANAGED payload; credential resolution returns more than the minimum execution token or headers, maps missing execution material to anything other than AI_CONNECTOR_CREDENTIAL_MISSING, or maps provider authentication rejection to anything other than AI_PROVIDER_AUTH_FAILED.
     condition: Whenever AI consume resolves or uses an OAUTH_MANAGED credential.
     failure: Return the applicable typed failure without mutating the sealed payload.
@@ -830,12 +594,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r056
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Remote consume requires subject identity
     modality: must
-    scope:
-      - runtime.security-core
     statement: subject_user_id is required for CLOUD routing, every managed remote connector, and every inline remote path, and may be empty only for explicit LOCAL routing with no connector, no inline metadata, and no Authorization header.
     condition: Whenever Runtime validates AI consume caller identity.
     failure: Reject a missing remote subject and return UNAUTHENTICATED with AUTH_TOKEN_INVALID for an invalid bearer instead of anonymous-local fallback.
@@ -846,12 +606,8 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r057
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed and inline field truth is fail closed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Managed or implicit-connector routing requires a non-empty connector_id and forbids all inline provider fields, while inline routing forbids connector_id and requires every provider field declared for that provider, with no automatic correction to another route.
     condition: Whenever Runtime validates the key-source field combination.
     failure: Reject every truth-table violation before credential or route resolution.
@@ -860,12 +616,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r058
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Missing key-source fields have exact errors
     modality: must
-    scope:
-      - runtime.security-core
     statement: Explicit managed routing without connector_id returns INVALID_ARGUMENT with AI_CONNECTOR_ID_REQUIRED and missing required inline credential fields return INVALID_ARGUMENT with AI_REQUEST_CREDENTIAL_MISSING.
     condition: Whenever key-source validation finds a required field absent or empty.
     failure: Return the exact typed error without selecting a different key source.
@@ -874,12 +626,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r059
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Providers that require endpoint reject implicit inline destinations
     modality: must
-    scope:
-      - runtime.security-core
     statement: Inline providers declared to require an explicit endpoint require non-empty x-nimi-provider-endpoint.
     condition: Whenever inline routing selects a provider with explicit endpoint requirement.
     failure: Return INVALID_ARGUMENT with AI_REQUEST_CREDENTIAL_MISSING when the endpoint is absent or empty.
@@ -890,12 +638,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r060
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed routing admits only remote capability rows
     modality: must
-    scope:
-      - runtime.security-core
     statement: Managed routing loads connector_id, rejects retired raw local connector kind 1 with FAILED_PRECONDITION and AI_LOCAL_CONNECTOR_RETIRED, requires provider runtime_plane remote, and dispatches through nimillm according to the provider capability row.
     condition: Whenever connector_id selects managed execution.
     failure: Reject local, unknown, or non-remote connector routing before provider execution.
@@ -904,12 +648,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r061
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Inline routing admits only declared remote providers
     modality: must
-    scope:
-      - runtime.security-core
     statement: Inline routing requires a provider capability row with runtime_plane remote and inline_supported true and dispatches through nimillm.
     condition: Whenever x-nimi-key-source selects inline execution.
     failure: Reject local-plane, unsupported-inline, or unknown providers before execution.
@@ -918,12 +658,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r062
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Selected execution routes never fall back
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Runtime automatically switches from a selected managed, inline, cloud, or local execution path to another path after execution failure.
     condition: Whenever a selected route fails.
     failure: Return the selected route failure without trying another credential or execution path.
@@ -932,12 +668,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r063
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Remote and local target refs are closed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Remote managed execution requires connector_id, remote_model_catalog_id, provider_model_id, and provider, returning AI_REMOTE_MODEL_CATALOG_ID_REQUIRED for a missing catalog id and AI_REMOTE_MODEL_CATALOG_STALE for a stale or snapshot-mismatched id, while local execution requires the v2 local discriminant and rejects raw local asset ids, provider model ids, and retired compact target/profile pairs under the Runtime target reason taxonomy.
     condition: Whenever Runtime validates execution target identity.
     failure: Reject missing, stale, incompatible, unknown, or retired target refs without minting durable identity from provider facts.
@@ -946,12 +678,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r064
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Cloud memory embedding reuses managed connector security
     modality: must
-    scope:
-      - runtime.security-core
     statement: Cloud memory embedding binding contains connector_id, remote_model_catalog_id, provider_model_id, and provider, persists no inline credentials or endpoints, and reuses managed owner, status, credential, and endpoint checks without owning resolved profile, readiness, or bank cutover truth.
     condition: Whenever Runtime resolves Desktop-host-owned cloud memory embedding configuration.
     failure: Reject local, invalid, owner-mismatched, status-invalid, credential-invalid, endpoint-invalid, or shortcut connector bindings.
@@ -964,12 +692,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r065
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: AIProfile cloud refs carry routing identity only
     modality: must
-    scope:
-      - runtime.security-core
     statement: An AIProfile cloud connector target ref carries only connector_id, remote_model_catalog_id, provider_model_id, provider, any needed capability discriminator, and profile or requirement trace ref, and Runtime resolves it through managed owner, status, and credential checks without inline metadata, inline endpoints, provider secrets, or app-local connector stores.
     condition: Whenever AIProfile or AIConfig selects a cloud connector slice.
     failure: Reject secret-bearing, app-local, unresolved, or unmanaged target refs.
@@ -978,12 +702,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r066
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Runtime Target v2 supersedes retired durable names
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Raw model_id, target_model_id, localModelId, goRuntimeLocalModelId, targetId/profileId, or connector_id plus model_id is admitted as durable target identity, while provider model ids remain provider facts and connector_id remains credential custody only.
     condition: Whenever a caller, profile, or persisted record supplies a durable Runtime target.
     failure: Reject the retired identity and require the remote catalog tuple or v2 local discriminant.
@@ -992,12 +712,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r067
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace binding production use remains blocked
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: The workspace binding relation or attachment is consumed in production before a separate Runtime operation admission changes its blocked-pending posture.
     condition: Until the workspace knowledge operation slice is separately admitted.
     failure: Return typed unavailable or deny without issuing, resolving, or consuming an active workspace binding.
@@ -1006,12 +722,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r068
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace binding has one owner and purpose
     modality: must
-    scope:
-      - runtime.security-core
     statement: If separately admitted, RuntimeAccountService alone issues and revokes workspace bindings only for purpose workspace.knowledge.consume as non-secret selectors distinct from Avatar or agent app binding, tokens, Realm credentials, and subject or account truth, with no resolver or probe semantics on the public projection.
     condition: Whenever a separately admitted workspace binding issue or revoke surface is defined.
     failure: Reject other owners, purposes, capability families, credential interpretations, and public resolver or probe behavior.
@@ -1020,12 +732,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r069
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace binding relation has an exact tuple
     modality: must
-    scope:
-      - runtime.security-core
     statement: A workspace relation contains Runtime-issued opaque binding_id, Runtime-authenticated runtime_app_id and app_instance_id, Runtime-derived device_id, Runtime account-projected account_id and realm_environment_id, Realm membership-projected workspace_id, exact purpose workspace.knowledge.consume, a non-empty subset of admitted Runtime knowledge scopes, required issued_at and expires_at, required state, and reason_code on non-allow state.
     condition: Whenever a separately admitted workspace relation is minted, stored, or evaluated.
     failure: Deny issuance or resolution when any field, authority source, value, or requirement is absent or inconsistent.
@@ -1034,12 +742,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r070
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace attachment is closed and credential free
     modality: must
-    scope:
-      - runtime.security-core
     statement: A KnowledgeRequestContext workspace attachment contains only binding_id, optional binding_handle, runtime_app_id, app_instance_id, workspace_id, and optional realm_environment_id, and contains no account_id, device_id, subject_user_id, Realm access or refresh token, Runtime app session token, raw JWT, decoded subject, or membership proof.
     condition: Whenever a workspace attachment is minted, carried, logged, or parsed.
     failure: Reject the attachment when an allowed field is malformed or any forbidden identity, proof, or credential field is present.
@@ -1048,12 +752,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r071
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace issue derives every authority input
     modality: must
-    scope:
-      - runtime.security-core
     statement: A separately admitted issue path requires a Runtime-authenticated caller, authenticated account state, Runtime-derived caller app, app instance, device, account, and Realm environment, active workspace membership projection, and non-empty admitted knowledge scopes, and emits only an attachment plus redacted audit and event evidence.
     condition: Whenever Runtime issues a workspace binding.
     failure: Deny issuance when any current context, membership, scope, or redaction requirement fails.
@@ -1062,12 +762,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r072
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace revoke verifies owner and is idempotent
     modality: must
-    scope:
-      - runtime.security-core
     statement: A separately admitted revoke path requires a Runtime-authenticated caller, verifies ownership of the stored relation, revokes idempotently, and emits binding.revoked with a typed reason.
     condition: Whenever Runtime revokes a workspace binding.
     failure: Deny caller mismatch and never report revocation success without the idempotent state and typed event result.
@@ -1076,12 +772,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r073
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Active workspace bindings are short-lived and memory only
     modality: must
-    scope:
-      - runtime.security-core
     statement: Active workspace bindings have short TTLs, do not survive daemon restart, and are never persisted as active capabilities, while an optional redacted ledger is audit evidence only and cannot reactivate an old binding id.
     condition: Whenever Runtime stores, expires, restarts, or audits workspace binding state.
     failure: Treat prior active state as not found after restart and reject every recovery attempt from the redacted ledger.
@@ -1090,12 +782,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r074
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace resolver is internal and context bound
     modality: must
-    scope:
-      - runtime.security-core
     statement: ResolveWorkspaceBinding is an internal account-owned seam whose input includes protocol-envelope app id and app instance id, Runtime-derived or verified device identity, the attachment, owner-supplied target workspace id, required knowledge scopes, and knowledge action for audit.
     condition: Whenever the separately admitted workspace resolver evaluates a knowledge request.
     failure: Deny resolution when invoked publicly or without every Runtime-bound and owner-bound input.
@@ -1104,12 +792,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r075
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace resolver decisions are closed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Workspace resolution returns exactly ALLOW, DENY_MISSING_ATTACHMENT, DENY_MALFORMED_ATTACHMENT, DENY_NOT_FOUND, DENY_REVOKED, DENY_EXPIRED, DENY_REPLAY, DENY_ACCOUNT_UNAVAILABLE, DENY_CALLER_MISMATCH, DENY_WORKSPACE_MISMATCH, DENY_ENV_MISMATCH, DENY_DEVICE_MISMATCH, or DENY_SCOPE_MISSING.
     condition: Whenever the workspace resolver returns a decision.
     failure: Return the applicable deny result instead of an unknown, ambiguous, or success-like decision.
@@ -1118,12 +802,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r076
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace allow requires all current relation evidence
     modality: must
-    scope:
-      - runtime.security-core
     statement: ALLOW requires authenticated account state, active membership at consume time, an active present unexpired binding, exact workspace knowledge purpose, caller app and instance and device and account and Realm environment matches, attachment workspace matching the target bank owner, and relation scopes covering every required scope.
     condition: Whenever the workspace resolver considers ALLOW.
     failure: Return the corresponding deny decision on any mismatch or missing condition.
@@ -1132,12 +812,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r077
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace resolver uses Runtime projection truth
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: Workspace resolution performs a synchronous Realm membership lookup for each knowledge RPC or delegates membership or authorization truth to SDK, Desktop, app, or another consumer cache.
     condition: Whenever the workspace resolver validates current membership and caller binding.
     failure: Deny when the Runtime-owned membership projection is missing or stale.
@@ -1146,12 +822,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r078
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace binding invalidation triggers are closed
     modality: must
-    scope:
-      - runtime.security-core
     statement: Workspace bindings revoke or become invalid on logout, account switch, membership loss, Realm environment change, custody unavailable, refresh failure, reauthentication required, account expiration, device mismatch, scope change, replay detection, policy revocation, and daemon restart with daemon_restart_no_recovery evidence when a redacted ledger exists.
     condition: Whenever a workspace binding invalidation trigger occurs.
     failure: Make the binding unusable immediately and never reactivate its old id.
@@ -1160,12 +832,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r079
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace binding audit is complete and redacted
     modality: must
-    scope:
-      - runtime.security-core
     statement: Issue, revoke, expire, replay, and resolver-deny audit includes binding_id, runtime_app_id, app_instance_id, device_id, account_id, realm_environment_id, workspace_id, knowledge_action when consumed, required_scopes, decision, reason_code, action_hint, and event_sequence, and excludes attachment handles as secrets, tokens, raw JWT, decoded subject, refresh material, and caller-supplied subject proof.
     condition: Whenever Runtime records workspace binding lifecycle or resolution evidence.
     failure: Reject or fail the auditable operation when required evidence or redaction is missing.
@@ -1174,12 +842,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r080
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace binding failure matrix is exhaustive
     modality: must
-    scope:
-      - runtime.security-core
     statement: Missing or malformed attachment, unknown binding id, revoked or expired binding, replay, account unavailable, caller or workspace or Realm environment or device mismatch, missing scope, missing or stale membership, and direct app_id or subject_user_id proof all fail closed.
     condition: Whenever workspace knowledge authorization encounters any listed state.
     failure: Return the applicable deny result without fallback, inferred proof, or partial success.
@@ -1188,12 +852,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r081
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace consumers only carry the admitted attachment
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: SDK, Desktop, Web, or an app computes workspace authorization, caches membership as resolver truth, invokes the internal resolver, converts a workspace binding into Realm REST credentials, or carries fields outside the admitted attachment.
     condition: Whenever a consumer handles workspace knowledge binding context.
     failure: Reject the consumer path and preserve Runtime-owned resolution and credential separation.
@@ -1202,12 +862,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r082
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Local-app authority classes keep exact meanings
     modality: must
-    scope:
-      - runtime.security-core
     statement: base_entitlement means the caller principal's bounded Nimi-private partition, user_permission means durable access through one admitted public permission id, one_shot_consent means one owner-selected resource represented by a bounded non-forgeable handle, app_owned_authority means the app host's own SQLite, media, settings, cache, routes, and product commands, and os_right means authority actually granted to the native process by the operating system.
     condition: Whenever Runtime classifies a local-app action.
     failure: Deny the action when its claimed authority does not match the exact selected class meaning.
@@ -1216,12 +872,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r083
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Pre-admission permission storage stays absent
     modality: must
-    scope:
-      - runtime.security-core
     statement: The pre-admission permission schema retains store_identity absent_pre_admission and positive mutation absent, and neither value changes through a standalone schema, persistence, or CRUD change outside the full atomic permission admission slice.
     condition: Until a Runtime-owned public permission is atomically admitted.
     failure: Reject any permission store or mutation path introduced independently of the complete admission slice.
@@ -1230,12 +882,8 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r084
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Key-source and route taxonomies stay distinct
     modality: must
-    scope:
-      - runtime.security-core
     statement: Managed connector custody is the preferred remote key-source path, inline credentials remain an escape hatch, local connectors remain only a Phase 1 local category and probe facade, and provider runtime_plane local or remote is not interpreted as route_policy LOCAL or CLOUD.
     condition: Whenever Runtime or a consumer classifies a connector, key source, provider capability, or route policy.
     failure: Reject execution that conflates custody, connector category, capability plane, or route policy.
@@ -1244,12 +892,8 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
   - id: rule.nimi.runtime.security-core.r085
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed credentials enter only request execution context
     modality: must
-    scope:
-      - runtime.security-core
     statement: ConnectorService decrypts a managed credential only during owner, status, and credential evaluation and injects the provider_type, endpoint, and credential tuple into request-scoped execution context, while downstream execution modules obtain it only from that context and never read CredentialStore directly.
     condition: Whenever Runtime prepares managed remote execution.
     failure: Stop execution when credential material cannot be injected through the request context or a downstream module attempts direct storage access.
@@ -1260,12 +904,8 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r086
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace binding cannot authorize adjacent products
     modality: must_not
-    scope:
-      - runtime.security-core
     statement: A workspace binding is accepted for Avatar, agent, app messaging, world, grant, Realm REST, or direct account-token access, or Avatar or agent scoped binding relation semantics are broadened to satisfy WORKSPACE_PRIVATE knowledge authorization.
     condition: Whenever a consumer presents workspace binding material outside workspace knowledge consumption.
     failure: Deny the adjacent product operation and require its independently admitted authority path.
@@ -1274,12 +914,8 @@ units:
         target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r087
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace resolver caller metadata is exact
     modality: must
-    scope:
-      - runtime.security-core
     statement: The internal workspace resolver obtains caller app id from x-nimi-app-id, caller app instance id from x-nimi-app-instance-id, and device identity only from Runtime account or app registry derivation or verification.
     condition: Whenever the workspace resolver binds protocol-envelope caller identity.
     failure: Deny resolution when caller metadata is absent, mismatched, or supplied through another authority source.

@@ -1,90 +1,55 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.platform
+scope: platform.ui-design-system
 units:
   - id: definition.nimi.platform.ui-design-system.design-pattern
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Nimi design pattern
     meaning: The Nimi design pattern is the cross-app product contract for shared semantic tokens, theme expression, primitive families, material and motion semantics, reusable composition boundaries, and external app integration.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.theme-system
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Shared theme system
     meaning: The shared theme system combines one light or dark foundation scheme with exactly one app accent pack and exposes governed semantic tokens by foundation or accent layer.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.shared-primitive
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Shared UI primitive
     meaning: A shared UI primitive is a Kit-delivered accessible behavior and visual family whose variants, states, sizing, and semantic-token use are common across governed product surfaces.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.governed-surface
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Governed UI surface
     meaning: A governed UI surface is a shell, product, overlay, field, navigation, content, feedback, or interaction surface subject to the shared design pattern while retaining app-owned information architecture, data models, placement, and art direction.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.ui-material
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: UI material system
     meaning: UI material is a tone-orthogonal five-tier surface axis comprising solid, glass-thin, glass-regular, glass-thick, and glass-chrome with neutral foundation tokens, downgrade semantics, accessibility thresholds, and spatial stacking roles.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.ambient-system
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Ambient background system
     meaning: The ambient background system is the governed mesh, minimal, or none treatment for a surface, with none as the default and token-owned composition and color slots.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.motion-system
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: UI motion system
     meaning: The UI motion system is the shared interaction-state, duration, easing, spring, gesture, overlay, interruption, and reduced-motion vocabulary for governed surfaces.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.density-system
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: UI density system
     meaning: UI density is a theme-layer runtime axis with compact, regular, and expressive values, regular as the default, and application at page or composition boundaries.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.kit-module-surface
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Reusable Kit module surface
     meaning: A reusable Kit module surface owns common layout, rendering, interaction, loading, failure, disabled, and responsive behavior while consuming domain truth only through typed owner projections and adapters.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.agent-center-surface
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Agent Center surface
     meaning: Agent Center is the reusable first-party Kit module for presenting and editing admitted Runtime Local Agent projections without owning Runtime execution, lifecycle, memory, transcript, configuration persistence, resource readiness, or semantic presentation truth.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.runtime-projection
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Runtime-owned UI projection
     meaning: A Runtime-owned UI projection is bounded typed state or mutation capability exposed to Kit through the public SDK or an injected typed adapter without transferring Runtime truth ownership to Kit or an app.
-    relations: []
   - id: rule.nimi.platform.ui-design-system.p-design-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-001 shared foundation authority
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: The Nimi design pattern remains the single cross-app authority for shared primitive families, semantic-token taxonomy, theme-pack schema, material taxonomy, and external app integration behavior.
     condition: Whenever a governed product surface defines or consumes shared design behavior.
     failure: Reject any parallel cross-app design authority.
@@ -93,12 +58,8 @@ units:
         target: definition.nimi.platform.ui-design-system.design-pattern
   - id: rule.nimi.platform.ui-design-system.p-design-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-001 app composition boundary
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: An app-local contract redefines shared primitive families, semantic-token taxonomies, theme governance, or material and motion behavior.
     condition: Whenever an app owns concrete consumption, retained composition, information architecture, or product art direction.
     failure: Keep app-specific composition locally owned and reject the shared-contract redefinition.
@@ -107,12 +68,8 @@ units:
         target: definition.nimi.platform.ui-design-system.governed-surface
   - id: rule.nimi.platform.ui-design-system.p-design-002a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-002 foundation and accent composition
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every governed app composes the shared light and dark foundation schemes with exactly one app accent pack, using nimi-light and nimi-dark as foundation schemes and nimi-accent as the shared Nimi accent pack.
     condition: Whenever a governed app initializes theme expression.
     failure: Reject a missing foundation scheme, multiple accent packs, or an app-local replacement foundation.
@@ -121,12 +78,8 @@ units:
         target: definition.nimi.platform.ui-design-system.theme-system
   - id: rule.nimi.platform.ui-design-system.p-design-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-002 external accent ownership
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: An external app accent pack may be packaged by Kit only when its values remain owned by the consuming app rather than platform design authority.
     condition: Whenever Kit packages an external app accent pack.
     failure: Reject a pack whose app-specific values are claimed as platform-owned design truth.
@@ -135,12 +88,8 @@ units:
         target: definition.nimi.platform.ui-design-system.theme-system
   - id: rule.nimi.platform.ui-design-system.p-design-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-003 semantic token taxonomy
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Shared semantic tokens use the closed surface, text, action, overlay, sidebar, field, status, radius, spacing, typography, stroke, elevation, motion, z, sizing, border, opacity, focus, scrollbar, toggle, material, backdrop, and ambient categories, declare foundation or accent layer ownership, and receive theme values from the shared structured design tables rather than app-local registries.
     condition: Whenever a shared semantic token or theme value is declared or consumed.
     failure: Reject an unknown category, absent layer, or parallel app token registry.
@@ -149,12 +98,8 @@ units:
         target: definition.nimi.platform.ui-design-system.theme-system
   - id: rule.nimi.platform.ui-design-system.p-design-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-004 shared scheme mechanism
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Governed apps resolve light or dark theme state through the shared scheme mechanism, and accent expression layers above the foundation without changing primitive-family structure.
     condition: Whenever theme state is resolved or an accent is applied.
     failure: Reject a parallel theme entrypoint, root token system, or accent-owned primitive structure.
@@ -163,12 +108,8 @@ units:
         target: definition.nimi.platform.ui-design-system.theme-system
   - id: rule.nimi.platform.ui-design-system.p-design-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-005 primitive visual authority
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Shared primitive variants are closed structured taxonomy implemented in Kit with accessible headless behavior, class-variance styling, Tailwind utilities, and semantic theme values, while app and shared-library code may compose but may not define variants for shared families outside Kit UI.
     condition: Whenever a shared primitive family is implemented, styled, or composed.
     failure: Reject an undeclared variant, inaccessible behavior substrate, generated primitive selector authority, or out-of-bound variant definition.
@@ -177,12 +118,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-006 no local primitive redefinition
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Governed app styling defines shared-family variants, targeted utility overrides, or wrapper styling that changes a Kit primitive visual contract.
     condition: Whenever an app styles a governed shared primitive.
     failure: Remove the redefinition and retain only app-owned composition styling.
@@ -191,12 +128,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-007
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-007 no local shared token authority
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Governed app or handwritten shared-library styling assigns shared Nimi semantic-token values or supplies fallback token authority.
     condition: Whenever governed styling reads or writes a shared semantic token.
     failure: Remove the assignment or fallback and resolve the value from the generated shared theme.
@@ -205,12 +138,8 @@ units:
         target: definition.nimi.platform.ui-design-system.theme-system
   - id: rule.nimi.platform.ui-design-system.p-design-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-008 accent alias phase-out
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Generated accent packs retain app-scoped alias namespaces or retired full-theme compatibility outputs, or governed chrome depends on such aliases for shared background, text, focus, or surface meaning.
     condition: Whenever foundation-plus-accent theme output is generated or consumed.
     failure: Emit and consume shared semantic tokens only while preserving app identity through those tokens and local color mixing.
@@ -219,12 +148,8 @@ units:
         target: definition.nimi.platform.ui-design-system.theme-system
   - id: rule.nimi.platform.ui-design-system.p-design-009a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-009 visual references are non-authoritative inputs
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Reference images, labels, pixels, measurements, artifact identities, hashes, or host-local locations become canonical token values, theme packs, app composition truth, or implementation proof.
     condition: Whenever a visual reference informs shared taxonomy.
     failure: Keep reference identity diagnostic and source numeric visual values from admitted shared token authority.
@@ -233,12 +158,8 @@ units:
         target: definition.nimi.platform.ui-design-system.design-pattern
   - id: rule.nimi.platform.ui-design-system.p-design-009b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-009 reusable abstraction boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: A reference composition becomes shared Kit authority only as a reusable primitive abstraction, while its information architecture, route placement, data model, and screen composition remain app-owned.
     condition: Whenever a visual reference composition is promoted into shared design authority.
     failure: Reject promotion of app-specific product structure.
@@ -247,12 +168,8 @@ units:
         target: definition.nimi.platform.ui-design-system.governed-surface
   - id: rule.nimi.platform.ui-design-system.p-design-010
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-010 shared primitive contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Kit delivers accessible token-styled shared primitives for surface, action, overlay, sidebar, field, status, scroll area, toggle, and avatar families, and any compatibility wrapper delegates directly without changing their visual contract.
     condition: Whenever a governed shell-level module uses one of the shared families.
     failure: Reject a hand-rolled family or a wrapper that changes shared behavior or visuals.
@@ -261,12 +178,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-011
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-011 surface contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Surface is the sole shared shell primitive for canvas, panel, card, hero, and overlay tones, and its elevation and border treatment resolve through semantic tokens rather than feature-local constants.
     condition: Whenever a governed shell surface is rendered.
     failure: Reject a substitute shared surface family or local elevation and border contract.
@@ -275,12 +188,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-012a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-012 action taxonomy and shape
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Button and IconButton provide primary, secondary, ghost, and danger actions through semantic tokens; standard actions use the continuous 12-pixel action radius rather than a capsule, and capsule shape remains reserved for chip, filter, badge, segmented selection, search, and toggle families.
     condition: Whenever a governed action primitive is rendered.
     failure: Reject an unknown tone, tone-dependent shape, or capsule-shaped standard action.
@@ -289,12 +198,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-012b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-012 immediate action feedback
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Shared actions provide visible token-driven pressed feedback on pointer-down within one frame and do not use hover-only feedback or vertical hover lifts.
     condition: Whenever a pointer activates a shared action.
     failure: Treat the action interaction as non-conforming until immediate pressed feedback replaces the prohibited model.
@@ -303,12 +208,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-013a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-013 overlay family contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: OverlayShell owns governed dialog and drawer backdrop, panel, title, content, footer, motion, stacking, close behavior, and testability slots, while controlled lower-level dialog, popover, and tooltip parts retain canonical overlay-family classes and reduced-motion behavior.
     condition: Whenever governed overlay content is rendered.
     failure: Reject a hand-rolled governed dialog or drawer, missing canonical slots, or unstable accessibility and testability behavior.
@@ -317,12 +218,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-013b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-013 overlay sizing and sidebar
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: OverlayShell admits S 480-pixel, M 720-pixel, L 960-pixel, XL 1120-pixel, and full viewport-minus-32-pixel panel sizes with the same viewport-safe maximum, preserves its default medium-width layout when size is absent, and offers an optional Kit-chromed 200-pixel sidebar while retaining single-column default behavior.
     condition: Whenever OverlayShell sizing or two-column composition is requested.
     failure: Reject an unknown size, viewport-unsafe panel, caller-owned sidebar chrome, or changed default composition.
@@ -331,12 +228,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-014
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-014 sidebar and navigation contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Shared sidebars and shell navigation use the nimi-sidebar-v1 family with entity-row, category-row, or nav-row items and badge, status-dot, chevron, or count trailing affordances.
     condition: Whenever a governed sidebar or shell navigation list is rendered.
     failure: Reject an unknown item kind, trailing affordance, or parallel sidebar family.
@@ -345,12 +238,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-015a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-015 field family and tones
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: TextField, SearchField, TextareaField, and SelectField are the shared governed fields; field background, stroke, placeholder, and focus use semantic tokens, and text and textarea fields admit only default, search, quiet, and danger tones.
     condition: Whenever a governed form or settings field is rendered.
     failure: Reject a parallel field primitive, unknown tone, or local visual-state constant.
@@ -359,12 +248,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-015b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-015 danger accessibility semantics
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Danger-tone text and textarea fields resolve invalid chrome through the shared danger status token and default the inner control to aria-invalid true unless the caller explicitly supplies that attribute.
     condition: Whenever a text or textarea field uses danger tone.
     failure: Reject missing invalid semantics, non-token danger chrome, or overwriting of a caller-supplied accessibility attribute.
@@ -373,12 +258,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-016
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-016 typography contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Governed typography scale, weights, line heights, letter spacing, and shared role utilities derive from semantic typography tokens, and modules do not invent an ad hoc scale for a covered role.
     condition: Whenever governed text uses a shared page, section, body, caption, label, overline, or monospaced role.
     failure: Replace the local typography contract with the shared tokenized role.
@@ -387,12 +268,8 @@ units:
         target: definition.nimi.platform.ui-design-system.theme-system
   - id: rule.nimi.platform.ui-design-system.p-design-017
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-017 spacing and sizing contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Shared primitive padding, gaps, minimum heights, icon sizes, sidebar rows, and scrollbars resolve through semantic spacing and sizing scales rather than raw module values when a shared token exists.
     condition: Whenever a governed primitive defines layout rhythm or component size.
     failure: Replace the raw covered value with its shared token.
@@ -401,12 +278,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-018
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-018 focus opacity and icon contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Governed focus rings, disabled opacity, interaction overlays, hover treatment, and icon sizing resolve through shared semantic tokens, while apps may vary icon glyphs but not shared size or focus behavior.
     condition: Whenever a governed primitive presents focus, disabled, hover, overlay, or icon state.
     failure: Reject a per-app constant or app-local focus and icon-size contract.
@@ -415,12 +288,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-design-019
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-019 app-owned composition boundary
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: An app-owned composition becomes parallel visual authority for action, field, surface, sidebar, overlay, status, scroll area, toggle, or avatar families, or a thin wrapper adds a visual contract instead of direct delegation.
     condition: Whenever an app retains a composition or wrapper around shared primitives.
     failure: Keep only app-owned interaction and layout for an uncovered family and delegate covered families unchanged.
@@ -429,12 +298,8 @@ units:
         target: definition.nimi.platform.ui-design-system.governed-surface
   - id: rule.nimi.platform.ui-design-system.p-design-021
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-021 controlled exception boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: A controlled exception to shared primitive adoption is narrow, app-owned, and still consumes shared semantic tokens without defining an independent token system or placing concrete app exception inventory in platform authority.
     condition: Whenever a governed app cannot consume a shared primitive unchanged.
     failure: Reject a broad, platform-owned, or parallel-token exception.
@@ -443,12 +308,8 @@ units:
         target: definition.nimi.platform.ui-design-system.governed-surface
   - id: rule.nimi.platform.ui-design-system.p-design-022a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 five-tier material taxonomy
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Governed surfaces use material as an axis separate from tone, default to solid, and admit only solid, glass-thin, glass-regular, glass-thick, and glass-chrome, preserving prior solid, glass-regular, and glass-thick semantics.
     condition: Whenever a governed surface declares or infers material.
     failure: Reject a parallel material axis, undeclared tier, or missing tone on non-solid material.
@@ -457,12 +318,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-022b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 neutral tokenized material
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Glass background, border, blur, and saturation resolve through neutral foundation material and backdrop tokens with light and dark values, and accent packs neither own nor override those material values.
     condition: Whenever a glass material is defined, themed, or rendered.
     failure: Reject inline visual material values, absent scheme values, or accent-coupled material tokens.
@@ -471,12 +328,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-022c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 transparency fallback
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: A glass consumer preserves legibility without backdrop filtering and downgrades to solid for a reduced-transparency preference.
     condition: Whenever backdrop filtering is unsupported or reduced transparency is requested.
     failure: Replace the glass result with the required legible fallback rather than displaying unsupported or inaccessible material.
@@ -485,12 +338,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-023
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-023 ambient background contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Ambient backgrounds use mesh, minimal, or default none as governed surfaces; mesh derives composition and neutral light and dark color slots from ambient tokens, permits accent-slot overrides without structural change, stops halo motion for reduced motion, and falls back to minimal or none for reduced transparency.
     condition: Whenever a governed surface renders an ambient background.
     failure: Reject an ad hoc decorative implementation, raw gradient or color value, missing foundation value, structurally changing accent override, or ignored accessibility preference.
@@ -499,12 +348,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ambient-system
   - id: rule.nimi.platform.ui-design-system.p-design-024a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-024 reusable taxonomy families
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Shared taxonomy admits app-background, regular-glass, elevated-glass, navigation, floating-panel, and modal-shell surface roles; page-title, section-title, card-title, body, helper, label, caption, and CJK typography roles; button, icon-button, segmented-control, text, search, select, textarea, toggle, checkbox, slider, stepper, and tab controls; badge, progress, alert, empty, loading, error, success, tooltip, menu, popover, confirmation, and settings-shell roles; focus, selection, primary-action, active-navigation, subtle-tint, and confirming accent roles; fixed companion-color tokens; and soft-status background, border, and text tokens without admitting product placement, data models, settings structure, or unavailable component APIs.
     condition: Whenever UI Card v2.1 taxonomy informs a governed surface.
     failure: Reject app composition truth, raw palette and status values, or an API not admitted by the executable primitive contract.
@@ -513,12 +358,8 @@ units:
         target: definition.nimi.platform.ui-design-system.design-pattern
   - id: rule.nimi.platform.ui-design-system.p-design-024b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-024 density taxonomy separation
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Density-mode taxonomy remains separate from reusable platform composition rows and does not use composition registry entries to carry density guidance.
     condition: Whenever density or composition taxonomy is represented.
     failure: Separate density semantics from component composition records.
@@ -527,12 +368,8 @@ units:
         target: definition.nimi.platform.ui-design-system.density-system
   - id: rule.nimi.platform.ui-design-system.p-design-025
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-025 composition extraction boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Desktop reference compositions may identify reusable shell, navigation, control, panel, list, badge, avatar, stat, and meter primitive gaps but do not become platform-owned dock, status-bar, workflow, metric, world-data, contact, route, or panel-placement truth, and an ambiguous candidate remains app-local until reusable abstraction is established.
     condition: Whenever a Desktop reference composition is evaluated for shared extraction.
     failure: Reject the app composition as platform truth and retain only a proven reusable primitive abstraction.
@@ -541,12 +378,8 @@ units:
         target: definition.nimi.platform.ui-design-system.governed-surface
   - id: rule.nimi.platform.ui-design-system.p-design-026
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-026 anti-drift product patterns
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: A governed product surface introduces a marketing hero, oversized gradient card, random accent palette, plain native form style, dense border-first form grid, or ad hoc heavy-shadow card when a shared primitive family covers the need.
     condition: Whenever a governed product surface selects a visual pattern.
     failure: Replace the negative pattern with compact, glass-based, token-governed, component-led UI unless a narrow app-owned exception preserves shared authority.
@@ -555,12 +388,8 @@ units:
         target: definition.nimi.platform.ui-design-system.governed-surface
   - id: rule.nimi.platform.ui-design-system.p-design-027a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 unified motion scale
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: CSS and typed animation code resolve one fast, base, slow, and ambient duration scale and one standard, emphasized, decelerated, and accelerated easing scale from shared motion tokens without divergent hardcoded values.
     condition: Whenever governed motion timing or easing is resolved.
     failure: Reject a divergent duration, easing, or parallel motion scale.
@@ -569,12 +398,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 immediate pressed feedback
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every interactive primitive produces visible pressed feedback within one frame through the shared pressed-scale token or an admitted token-driven equivalent independent of hover.
     condition: Whenever pointer-down occurs on an interactive primitive.
     failure: Treat delayed, release-only, or hover-only feedback as non-conforming.
@@ -583,12 +408,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 overlay and gesture causality
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Governed overlays enter and exit symmetrically through Kit spring motion anchored to their spatial source, and gesture settles begin at the live presentation value with inherited pointer velocity and admitted decay projection rather than a fixed-duration or app-authored substitute.
     condition: Whenever an overlay transitions or a gesture-driven surface settles.
     failure: Reject asymmetric paths, lost velocity, logical-target restarts, overlay keyframes, or app-owned projection math.
@@ -597,12 +418,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027d
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 functional property boundary
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: A governed component uses transition-all or animates non-compositor layout properties for functional travel when transform and opacity suffice.
     condition: Whenever a governed functional transition is authored.
     failure: Restrict travel to transform and opacity and state changes to admitted color or shadow properties.
@@ -611,12 +428,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027e
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 reduced-motion causality
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Reduced motion preserves feedback and spatial causality by cross-fading overlays in place, making pressed feedback instantaneous, and stopping ambient, looping, and parallax motion rather than relying only on a global duration guard.
     condition: Whenever reduced motion is requested.
     failure: Replace travel and looping motion with the required reduced-motion substitutions.
@@ -625,12 +438,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-028a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-028 density runtime boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Density uses compact, regular, or expressive at a page or composition boundary through the shared scheme runtime, defaults to regular, permits expressive subtree restoration inside compact regions, and does not use per-control height or radius overrides to simulate density.
     condition: Whenever a governed surface selects or changes density.
     failure: Reject an unknown value, ad hoc control override, or density state outside the shared runtime axis.
@@ -639,12 +448,8 @@ units:
         target: definition.nimi.platform.ui-design-system.density-system
   - id: rule.nimi.platform.ui-design-system.p-design-028b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-028 density pack boundaries
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Compact density packs override only sizing and typography tokens, governed consumers load the shared density pack, Desktop operational surfaces default compact, and identity or hero surfaces use expressive only at an admitted composition boundary.
     condition: Whenever a density pack is defined or a governed surface consumes density.
     failure: Reject an out-of-family token override, missing density pack, or unadmitted composition-level density choice.
@@ -653,12 +458,8 @@ units:
         target: definition.nimi.platform.ui-design-system.density-system
   - id: rule.nimi.platform.ui-design-system.p-agent-center-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-001 Kit surface ownership
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Kit owns the reusable Agent Center layout, sections, state assembly, typed controls, appearance feature behavior, loading, failure, disabled, and narrow-layout contracts while combining Runtime-owned presentation selection with host-local Kit Shell asset custody.
     condition: Whenever Agent Center is rendered or composed by a first-party app.
     failure: Reject an app fork of reusable Agent Center behavior or ownership transfer of Runtime selection truth.
@@ -669,12 +470,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-001 Runtime and resource ownership boundary
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Kit Agent Center owns Runtime Agent execution, lifecycle, memory, event, transcript, AI configuration persistence, scoped binding, semantic presentation selection, Avatar carrier lifecycle, preview render truth, backend readiness, compatibility, calibration, or launch payload truth.
     condition: Whenever Agent Center consumes or edits agent state.
     failure: Keep the truth with Runtime, SDK custody, Avatar, or Kit Shell as applicable and expose only a typed bounded projection.
@@ -683,12 +480,8 @@ units:
         target: definition.nimi.platform.ui-design-system.runtime-projection
   - id: rule.nimi.platform.ui-design-system.p-agent-center-001c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-001 bounded app integration
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Apps may place and chrome Agent Center and inject admitted typed adapters, host bridges, copy, navigation, and placement callbacks, but may not fork route truth, bypass Runtime mutations, reconstruct memory, persist transcript or presentation truth, restore private bridges or local stores, derive diagnostics locally, inject arbitrary feature panels, or send raw context, prompts, private memory, proofs, provider payloads, credentials, or tool data to Kit.
     condition: Whenever an app integrates the Agent Center module.
     failure: Reject the untyped, app-authoritative, raw-data, or arbitrary-panel integration.
@@ -697,12 +490,8 @@ units:
         target: definition.nimi.platform.ui-design-system.agent-center-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-002a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-002 complete generic sections
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Agent Center provides generic Overview, Model, Behavior, Cognition, Appearance, and Advanced sections covering admitted Runtime status, configuration, readiness, autonomy, cognition, presentation selection, host asset custody, preview status, diagnostics, source identity, binding, revision, and audit projections, while partner placement keeps advanced diagnostics secondary.
     condition: Whenever the complete reusable Agent Center surface is presented.
     failure: Reject missing generic ownership, app-specific section authority, or first-viewport promotion of secondary diagnostics.
@@ -711,12 +500,8 @@ units:
         target: definition.nimi.platform.ui-design-system.agent-center-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-002 bounded context summary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Overview and Advanced may render only the closed read-only turn-context summary of state, reason, versions, hashes, ordered lane identifiers and status counts, budget, truncation, transcript, memory, media and tool counts, and route or catalog digest without rendering or reconstructing raw context.
     condition: Whenever Agent Center presents Local Agent context status.
     failure: Treat unknown or raw context as unavailable and do not reconstruct execution input.
@@ -725,12 +510,8 @@ units:
         target: definition.nimi.platform.ui-design-system.runtime-projection
   - id: rule.nimi.platform.ui-design-system.p-agent-center-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-003 no local persisted config
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Agent Center persists app-local or Kit-local configuration, selected-but-uncommitted appearance success, dropped local history or last-section state, retired policy fields, or private host asset bridges; Runtime owns presentation selections, Kit Shell owns only local byte custody and validation metadata, and Web imports no assets without a standard shell host.
     condition: Whenever Agent Center reads, changes, imports, or persists appearance and local preference state.
     failure: Remove the local record or bridge and require committed Runtime presentation truth plus bounded Kit Shell custody.
@@ -739,12 +520,8 @@ units:
         target: definition.nimi.platform.ui-design-system.agent-center-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-004 Runtime-owned optional audio
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Agent Center renders and edits synthesis and voice-workflow intent only through the Runtime AI configuration adapter, Runtime voice owns generation and artifacts, and apps do not fabricate playable artifacts or independent synthesis and workflow truth.
     condition: Whenever optional agent audio is configured, generated, or presented.
     failure: Reject app-local audio truth or pseudo artifacts and retain Runtime ownership.
@@ -753,12 +530,8 @@ units:
         target: definition.nimi.platform.ui-design-system.runtime-projection
   - id: rule.nimi.platform.ui-design-system.p-agent-center-005a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-005 typed dependency boundary
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Production Agent Center imports Runtime internals, app code, SDK-private modules, or app aliases instead of the public Kit SDK contract or explicitly injected typed adapters.
     condition: Whenever Agent Center production code obtains Runtime or app capability.
     failure: Remove the private dependency and consume only the typed public projection or adapter.
@@ -767,12 +540,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-005b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-005 closed Local Agent inputs
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Agent Center accepts only the bounded source-context status and turn-context summary; unknown or partial schema, enum, state, lane, or reason becomes unavailable or failed state, and no adapter assembles, overrides, or attaches Local Agent context.
     condition: Whenever Agent Center receives a Local Agent projection.
     failure: Fail closed in the UI and reject raw, partial, or context-authoring input.
@@ -781,12 +550,8 @@ units:
         target: definition.nimi.platform.ui-design-system.runtime-projection
   - id: rule.nimi.platform.ui-design-system.p-agent-center-006a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-006 surface ownership mapping
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every Agent Center child maps to reusable Kit core, Runtime projection or setting, typed host transport, Avatar or Runtime resource boundary, or app-only placement outside Agent Center; Desktop becomes a placement wrapper, partner apps retain partner chrome and developer tooling outside, and shared appearance uses Kit Shell plus Runtime presentation writes.
     condition: Whenever an existing or new Agent Center child surface is placed or migrated.
     failure: Block the surface while it is unmapped or retains app-specific feature content inside Kit core.
@@ -795,12 +560,8 @@ units:
         target: definition.nimi.platform.ui-design-system.agent-center-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-006b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGENT-CENTER-006 intent presentation and truth separation
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Kit or an app promotes bounded summary fields into source, prompt, context, memory, proof, or execution authority; apps own only Local Agent intent capture, placement, copy, navigation, and bounded presentation while Runtime owns source snapshot and context execution truth.
     condition: Whenever bounded Local Agent state is rendered or used by an app.
     failure: Reject the promoted authority and return to the Runtime-owned typed projection.
@@ -809,12 +570,8 @@ units:
         target: definition.nimi.platform.ui-design-system.runtime-projection
   - id: rule.nimi.platform.ui-design-system.p-design-022d
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 material token interface and radii
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Governed surfaces consume material through the shared Surface material interface or equivalent material marker; solid resolves through surface tone without material background or border tokens; glass-thin, glass-regular, glass-thick, and glass-chrome resolve through matching material background and border tokens and blur-thin 10, blur-regular 18, blur-strong 24, and blur-chrome 28 pixel tokens, with no sixth tier pre-authorized.
     condition: Whenever the material token interface is declared or consumed.
     failure: Reject a mismatched token, obsolete blur radius, inline material value, or unadmitted tier.
@@ -823,12 +580,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-022e
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 transparency downgrade interface
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Transparency level is auto, none, reduced, or full; solid never changes, none maps every glass tier to solid, reduced maps thin to solid, regular to thin, thick to regular, and chrome to thick, full preserves input, auto equals full under no preference and collapses to reduced or to none when the operating-system preference disables transparency, and every downgrade is idempotent and independent of accent packs.
     condition: Whenever runtime material performance or accessibility policy downgrades a tier.
     failure: Reject an unknown level, noncanonical mapping, non-idempotent result, or accent-dependent downgrade.
@@ -837,12 +590,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-022f
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 material contrast threshold
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every material-tier and surface-tone combination over the expected app background provides WCAG 2.1 AA contrast of at least 4.5 to 1 for normal text and 3 to 1 for large text, and body text on thin glass over noisy ambient content gains an opaque text surface or downgrades under reduced transparency.
     condition: Whenever text is rendered on a governed material surface.
     failure: Reject the combination or apply the required legible surface or downgrade.
@@ -851,12 +600,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-022g
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 material role matrix
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Canvas uses solid with operational ambient motion off by default outside expressive boundaries, structural chrome uses chrome or thick glass, content uses solid, thin, or regular glass, and floating or modal surfaces use regular through chrome glass according to overlay kind; glass content does not nest equal or stronger glass and stacked sheets dim or push back instead of stacking equal-strength layers.
     condition: Whenever a governed material is assigned to a spatial role.
     failure: Reject a tier outside the role, equal-strength nesting, or flattened stacked-sheet hierarchy.
@@ -865,12 +610,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-022h
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 material stacking and vibrancy
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: One region overlaps at most one structural, one content, and one floating material layer, and glass combines its blur with the shared 180-percent saturation token through Kit-emitted classes rather than handwritten backdrop filters.
     condition: Whenever material layers overlap or render over changing content.
     failure: Reject excess overlap, same-role equal-or-stronger glass stacking, or hand-authored saturation.
@@ -879,12 +620,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-022i
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-022 no admitted material exceptions
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: A governed material bypasses the fixed contrast threshold or role and stacking semantics through an exception.
     condition: While the admitted material exception set is empty.
     failure: Reject the exception and apply the default material contract.
@@ -893,12 +630,8 @@ units:
         target: definition.nimi.platform.ui-design-system.ui-material
   - id: rule.nimi.platform.ui-design-system.p-design-027f
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 interaction state model
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every interactive primitive supports idle without operational looping, hover through subtle token color or border change without lift, same-frame 0.97-scale pressed feedback, one-to-one dragging from grab offset, velocity-preserving settling from live state, and interruption without input lockout.
     condition: Whenever an interactive primitive enters an interaction state.
     failure: Reject a skipped state, hover-only substitute, end-only dragging update, stale restart, or locked input.
@@ -907,12 +640,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027g
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 exact duration and easing values
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Motion fast is 120 milliseconds for presses, hover, and toggles, base is 200 for standard state changes, slow is 320 for overlay fades and reduced-motion fallback, and ambient is 600 only for ambient and theme changes; standard easing is cubic-bezier 0.2, 0, 0, 1, emphasized is 0.05, 0.7, 0.1, 1 for mirrored overlays, decelerated is 0, 0, 0, 1 for enter-only fallback, and accelerated is 0.3, 0, 1, 1 for exit-only fallback.
     condition: Whenever a governed duration or easing token is resolved.
     failure: Reject any divergent CSS or typed-code value.
@@ -921,12 +650,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027h
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 spring presets
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: The default spring uses 0.4-second response and 1.0 damping without overshoot for overlays and repositioning, the momentum spring uses 0.35-second response and 0.8 damping only after a velocity-carrying gesture, two-dimensional motion uses independent axes, and retargeting blends current velocity.
     condition: Whenever governed motion uses a spring.
     failure: Reject an unknown preset, unearned bounce, coupled axes, or velocity-reset retargeting.
@@ -935,12 +660,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027i
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 momentum projection
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Gesture settlement hands raw pointer velocity to absolute-velocity springs or normalizes it by target minus current value for relative-velocity springs, projects the endpoint as current position plus release velocity divided by 1000 times d divided by one minus d using d 0.998 for scroll-like or 0.99 for snappier settlement, snaps to the nearest projected target, and compares explicit origin and target destinations without assuming zero.
     condition: Whenever a governed gesture ends or chooses commit versus reverse.
     failure: Reject a seam, incorrect velocity convention, noncanonical decay, or implicit zero destination.
@@ -949,12 +670,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027j
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 overlay motion grammar
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Dialogs fade and scale from 0.95 around center or known trigger, drawers translate only on their edge axis without scale, popovers and menus fade and scale from 0.96 with a four-pixel side-aware offset and trigger-facing origin, all reverse symmetrically, and backdrops animate opacity only with slow standard easing.
     condition: Whenever a governed overlay enters or exits.
     failure: Reject motion that violates the overlay-kind path, origin, symmetry, or backdrop boundary.
@@ -963,12 +680,8 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: rule.nimi.platform.ui-design-system.p-design-027k
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DESIGN-027 admitted animation substrate
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Governed surfaces use the Kit motion layer as their sole animation library, retain CSS transitions only for micro-state and color behavior, limit CSS keyframes to ambient backgrounds and loading indicators, and do not use app-authored animation-frame loops for overlays or gestures.
     condition: Whenever governed animation is implemented.
     failure: Remove the second library, prohibited keyframe, or hand-rolled loop and use the shared substrate.
@@ -977,33 +690,20 @@ units:
         target: definition.nimi.platform.ui-design-system.motion-system
   - id: definition.nimi.platform.ui-design-system.kit-module-family
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Kit module family
     meaning: A Kit module family is a foundation, feature, logic, infrastructure, renderer, host, or backend-renderer module inside the single cross-app Kit package with a bounded ownership role and declared dependency direction.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.kit-public-surface
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Kit public surface
     meaning: A Kit public surface is an explicitly delivered typed package, native-host, headless, UI, Runtime-aware, Realm-aware, adapter, or backend-renderer entrypoint consumable without private app, Runtime, SDK, or host implementation access.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.kit-dependency-boundary
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Kit dependency boundary
     meaning: A Kit dependency boundary is the directed import and ownership constraint that keeps reusable modules independent of app code, private Runtime and SDK code, platform bridge implementations, foreign product truth, and undeclared host assumptions.
-    relations: []
   - id: rule.nimi.platform.ui-design-system.p-kit-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-001 single package and reuse authority
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: The Nimi Kit package is the single cross-app authority for shared platform infrastructure, delivers UI, authentication, core, telemetry, feature, shell-capability, renderer-shell, and Electron-shell modules through explicit public subpaths, and apps consume rather than duplicate covered capabilities.
     condition: Whenever cross-app platform infrastructure is published, consumed, or implemented by an app.
     failure: Reject a parallel package, private entrypoint, or app-local duplicate.
@@ -1014,12 +714,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-003 package host and dependency boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Kit remains one workspace package; its modules never import app or Runtime-internal code; TypeScript apps use explicit Kit subpaths; standard shell identifiers, commands, and errors come from the shell-capabilities surface; Tauri hosts consume the shared non-npm Rust surface; Electron main and preload consume the Electron surface; and renderer applications consume neither host-specific surface.
     condition: Whenever a Kit module or app resolves a Kit or shell dependency.
     failure: Reject an independent submodule authority, private import, duplicated shell contract, wrong host delivery, or host-specific renderer dependency.
@@ -1030,12 +726,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-family
   - id: rule.nimi.platform.ui-design-system.p-kit-010
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-010 UI module ownership boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: The Kit UI foundation owns shared tokens, primitives, themes, generated visual contracts, reusable primitive families, and default visual behavior under all P-DESIGN rules, while app composition, information architecture, route placement, data schemas, and app-local inventories remain app-owned and reference-taxonomy gaps remain non-authoritative until a public primitive exists.
     condition: Whenever shared UI behavior or a candidate primitive is considered.
     failure: Reject app-product truth in Kit UI or an unimplemented candidate presented as available.
@@ -1046,12 +738,8 @@ units:
         target: definition.nimi.platform.ui-design-system.shared-primitive
   - id: rule.nimi.platform.ui-design-system.p-kit-020
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-020 authentication module boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: The authentication feature may combine components, hooks, logic, adapters, storage, and styling in one bounded surface, consumes shared Nimi semantic variables, receives platform behavior only through its typed adapter, and permits presentation-scoped variable overrides without a parallel global token namespace.
     condition: Whenever shared authentication UI or behavior is implemented.
     failure: Reject an independent token system, direct host-platform import, or unscoped theme namespace.
@@ -1062,12 +750,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-family
   - id: rule.nimi.platform.ui-design-system.p-kit-030
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-030 pure core logic boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Kit core provides shared environment, capability detection, OAuth, and Desktop Open Intent helpers as pure TypeScript logic with no UI, styling, or rendering dependencies, consumes the SDK only through the single kit-core SDK contract boundary module, parameterizes OAuth through a typed bridge, and detects shell mode from injected environment values without app-name assumptions.
     condition: Whenever a shared core helper is implemented or consumed.
     failure: Reject a visual or rendering dependency, an SDK import outside the contract boundary module, a host-specific import, or hardcoded app identity.
@@ -1078,12 +762,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-family
   - id: rule.nimi.platform.ui-design-system.p-kit-040
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-040 renderer-safe telemetry boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: The telemetry infrastructure module provides renderer-side telemetry and reusable React-only error boundaries, accepts caller-shaped payloads without imposing a schema, assumes no app context, and has no direct Tauri, Node.js, or Electron dependency beyond React as a peer.
     condition: Whenever shared renderer telemetry or an error boundary is implemented.
     failure: Reject a host import, app-context assumption, payload-schema ownership, or non-React dependency.
@@ -1092,12 +772,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-041
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-041 protected carrier and Tauri boundaries
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Protected-local carries only typed protected verification, empty-session bootstrap, and fixed-service status, start, and restart while Runtime and the operating system retain security and lifecycle truth; its host-only carrier never reaches renderer; the app-agnostic Tauri host neither manages or executes Runtime nor owns credentials, OAuth, Realm, protected RPC, renderer, app, menu, Runtime, or Realm truth; shared defaults contain only non-security hints and have no app-local duplicate; platform catalogs are read-only projections that neither replace catalog truth nor write app admission; identity is parameterized; static assets use admitted build inputs; IPC semantics retain their external owner; and generated commands retain one external owner.
     condition: Whenever Kit carries protected local or Tauri shell behavior.
     failure: Reject renderer exposure, product stop, selectors, generic configuration or RPC, foreign truth, hardcoded branding, cross-layer app inclusion, or parallel command truth.
@@ -1106,12 +782,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-041c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-041C standard shell capability contract
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Shell capabilities are the single standard contract for identifiers, operations, commands, negative states, and shared error envelopes across Tauri and Electron; represent binding-only transport, typed service lifecycle, non-security defaults, browser callbacks, shell UI, diagnostics, data, storage, configuration, local assets, local agent, AI Profile, AI Config, Avatar, Agent Center, platform projection, file dialog, reveal, export, artifacts, and floating windows; carry authentication only through Runtime account transport; exclude renderer session control and lifecycle stop; reject protected methods and lifecycle selectors from generic transport; make host gaps typed failures; keep renderer probing diagnostic and generic caller metadata local-agent-owned; and limit Agent Center host operations to local asset custody, validation, preview resolution, sidecar association, and scoped removal without configuration, selection, readiness, path, or launch truth.
     condition: Whenever a standard shell operation is defined or implemented.
     failure: Reject parallel truth, a missing standard family, pseudo-success, forbidden session or protected behavior, selector payload, path leakage, or promoted asset custody.
@@ -1122,12 +794,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-041c-storage
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-041C host-owned JSON storage
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Standard storage resolves canonical relative JSON paths beneath a host-owned principal-derived app-data root, never accepts an absolute root or app selector, admits only read and write results containing value and byte size plus idempotent remove, keeps full-host remove results limited to path and removed while the protected projection returns removed only, enforces 256-KiB document and 16-MiB partition quotas on every call, and grants app-private storage without a permission prompt or generic file authority.
     condition: Whenever a standard host processes app storage.
     failure: Fail closed on an absolute or escaping path, oversized data, foreign partition, path disclosure, or implied generic file access.
@@ -1136,12 +804,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-041f
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-041F standard file artifact and window boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Full standard hosts provide host-selected file paths, validated reveal, sanitized collision-free export, bounded artifact writes under the app-data artifact subtree, and invoking-window-only floating controls through shared operations; validate and register paths and bytes; allow artifact URLs only after valid writes; reserve Runtime artifact reading for an admitted owner picker and one-shot handle; keep system window dragging shell-UI-owned while manual floating drag reports current origin and requires renderer-driven moves; fail unsupported behavior without simulation; and expose none of these operations to local-app capability sets.
     condition: Whenever file, artifact, export, or floating-window capability is exposed or invoked.
     failure: Fail closed on renderer-supplied absolute input, invalid bytes, untrusted or escaping path, cross-window control, unsupported behavior, local-app exposure, or caller-selected internal artifact identity.
@@ -1150,12 +814,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-042
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-042 host-neutral renderer shell
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Renderer shell provides host-neutral commands, bridges, bootstrap hooks, and a provider-scoped seam for capabilities, localization, opaque identity, targets, theme, lifecycle, overlays, and result mapping; concrete hosts allocate resources; Kit exposes no host discriminator, credentials, Runtime transport, simulator authority, raw identity, app store, navigation, UI, readiness, auth, or telemetry truth; bridges source standard commands and failures, parse required defaults without empty normalization, fail closed without a host, and exclude raw host APIs, local-file fallbacks, consumer UI, and shared-core app duplicates.
     condition: Whenever renderer shell glue initializes or dispatches.
     failure: Reject foreign ownership, host discrimination, forked parsing, silent fallback, raw host access, consumer UI, or app-specific shared logic.
@@ -1164,12 +824,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-041e
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-041E Electron host security boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Electron shell is main and narrowed preload glue over exact protected and standard capabilities; accepts only app identity, exact renderer locations, and IPC registration; excludes external-daemon, app, Runtime, and Realm truth; never exposes raw Electron, Node, filesystem, process, arbitrary channels, native binding, credentials, or protected sessions; validates closed native operations before verified transport; keeps generated bytes behind exact selection; enforces command namespaces, sender identity, origin allowlists, sandboxing, context isolation, disabled renderer Node integration, and validated local-artifact serving; and carries only fixed-service status, start, and restart without Runtime lifecycle ownership.
     condition: Whenever Electron main, preload, IPC, window, protected transport, lifecycle, or artifact serving is configured or used.
     failure: Fail closed on unsafe exposure, app-selected authority, arbitrary methods, missing identity, disallowed origin, unsafe window posture, raw local files, parallel protocols, generic lifecycle mutation, or pseudo-offline success.
@@ -1178,12 +834,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-041e-recovery
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-041E bounded restart recovery
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Runtime restart invalidates host registration and protected sessions, permits at most one rebuild and retry for public binding-only transport, requires protected callers to reopen natively, classifies only the admitted unauthorized pair for account probing, preserves owner handling for registration, revocation, and expiry, and never retries endpoint, business, unrelated permission, or unclassified failures indefinitely.
     condition: Whenever an Electron-carried Runtime call encounters restart or authorization failure.
     failure: Close stale state and reject protected metadata reconstruction, misclassification, or unbounded retry.
@@ -1192,12 +844,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-044
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-044 exact local-app carrier boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Kit never creates or accepts account, principal, provenance, record, permission decision, launch, process, session, owner-operation, endpoint, proof, or security truth; Electron and Tauri share one verified Runtime-bound client exposing only session posture, permission status or request carrying a public permission identifier and bounded user reason, and principal-partitioned relative-path JSON read and write results containing value and byte size plus remove containing removed; no public permission is currently admitted and every reserved request is unavailable; no generic proxy, root, filesystem fallback, internal selector, artifact, Agent, conversation, or voice surface exists; app-native data and commands remain app-owned; and protected identity material remains host-private.
     condition: Whenever a local-app host opens, exposes, or uses its native session.
     failure: Reject caller-supplied authority, unadmitted operations, root disclosure, generic forwarding, filesystem substitution, or protected-material projection.
@@ -1208,12 +856,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-044-recovery
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-044 fail-closed local-app recovery
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Missing or untrusted service or carrier, process mismatch, revocation, account switch, Runtime restart, and unsupported platform or profile return typed failure through the admitted recovery flow, with no ordinary RPC, external daemon, manually started host, inherited principal, permission effect from provenance, or pseudo-success fallback.
     condition: Whenever a local-app carrier cannot maintain verified state.
     failure: Close the invalid carrier and surface typed failure without fallback.
@@ -1222,12 +866,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-045
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-045 Desktop Open Intent boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Desktop Open Intent core wraps SDK-owned parsing without a second parser; the standard capability owns its operation and command; renderer input contains only intent and optional request identity; hosts contact but never start the running Desktop bridge; domain rejections return typed domain results; and pre-domain host failures use the standard shell envelope.
     condition: Whenever Kit parses, transports, or reports a Desktop Open Intent.
     failure: Reject parser duplication, forbidden source or endpoint fields, Desktop startup, or confusion between domain and host failures.
@@ -1236,12 +876,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-046
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-046 local-development bootstrap boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Local-development bootstrap uses the common verified carrier, accepts no app-provided security or process selectors, serializes host-only renewal against business calls, reopens after controlled replacement or restart, unregisters renderer commands before one no-argument close callback on failure, and projects identical Electron and Tauri states limited to authorizing, ready, denied, runtime-unavailable, revoked, and project-changed with reason and retryability plus only session posture, permission posture or request, and app-private JSON storage.
     condition: Whenever a local-development host bootstraps, renews, replaces, closes, or projects its carrier.
     failure: Reject app authority, stale concurrent use, a live failed bridge, unknown state, protected disclosure, generic forwarding, ordinary-RPC fallback, or inherited identity.
@@ -1250,12 +886,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-047
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-047 generated protected profile transport
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: The shared protected adapter derives exact Desktop machine, Desktop account, and bundled Avatar operation sets from the single Runtime-owned profile projection, preserves distinct profiles on one carrier, authorizes exact created window and frame objects, fixes profile after renderer parsing, accepts no renderer authority fields, carries generated SDK bytes only after named intent selection, binds streams to sender, connection, boot epoch, and applicable account generation, closes them on every identity or lifecycle invalidation, and never reconnects or falls back across profiles or transports.
     condition: Whenever a first-party protected unary or stream operation is selected, delivered, or invalidated.
     failure: Fail before Runtime dispatch or later delivery on a parallel selector, borrowed identity, unbound sender, wrong entrypoint, stale generation, unsupported platform, invalidation, or profile mismatch.
@@ -1264,12 +896,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-043
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-043 shared capability semantics
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Core Runtime-capabilities logic is the single app-independent owner of capability normalization, wildcard matching, and generated catalog semantics, is safe for Runtime and renderer consumers, and has no UI, styling, app, or shell-specific dependency.
     condition: Whenever shared capability semantics are implemented or consumed.
     failure: Reject an app-local catalog, visual or shell dependency, or single-app ownership.
@@ -1278,12 +906,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-family
   - id: rule.nimi.platform.ui-design-system.p-kit-050
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-050 reusable module admission
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: A new shared capability module enters Kit only when reused by or explicitly planned for at least two apps and declares its public surface and dependency direction before consumers adopt it.
     condition: Whenever a new Kit module family is proposed.
     failure: Keep the capability app-owned until reuse and public-boundary conditions are satisfied.
@@ -1292,12 +916,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-family
   - id: rule.nimi.platform.ui-design-system.p-kit-060
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-060 portable feature module topology
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Feature modules are reusable AI capability surfaces that may combine components, hooks, headless logic, adapters, and styling but remain portable by receiving app data and platform capability through injected adapters rather than app code, app stores, synchronization code, or bridge implementations.
     condition: Whenever a Kit feature module is implemented or integrated.
     failure: Reject a direct app or platform dependency and require the typed adapter seam.
@@ -1306,12 +926,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-family
   - id: rule.nimi.platform.ui-design-system.p-kit-061
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-061 chat composition adapter boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Shared chat remains conversation-shell parity owner outside explicit caller-owned geometry, placement, or flow inputs and neither forks transcript, scroll-root, grouping, or virtualization truth nor widens host-local flow into shared ownership without a separate authority change.
     condition: Whenever a host composes or adapts the shared chat shell.
     failure: Reject private shell truth or implicit expansion of Kit ownership.
@@ -1320,12 +936,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-065
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-065 Kit-first reuse obligation
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: An app extends or composes an existing Kit surface whenever it covers most baseline styling and interaction behavior, keeps local implementation only for unmatched or clearly app-specific requirements, and treats a shell likely reusable across two apps as a future Kit candidate rather than entrenching a parallel baseline.
     condition: Before app-local UI or interaction behavior is added or refactored.
     failure: Reject the parallel app-local shell and use or propose the reusable Kit surface.
@@ -1334,12 +946,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-module-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-070
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-070 headless UI and domain seams
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every feature exposes headless state, filtering, submission, and interaction contracts plus a default opinionated UI covering baseline styling and behavior; stable modules deliver explicit headless and UI surfaces; UI composes shared primitives without bypassing headless semantics; Runtime-aware and Realm-aware integration surfaces bind only their corresponding public SDK domain without app stores or bridges; and Runtime and Realm remain distinct seams.
     condition: Whenever a feature publishes or binds its reusable contract.
     failure: Reject a missing surface, duplicated consumer shell, bypassed headless contract, private integration, or mislabeled domain seam.
@@ -1348,12 +956,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-071
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-071 reusable Avatar surfaces
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Avatar publishes aggregate, headless, UI, and Runtime-aware surfaces; headless owns normalized presentation inputs and transient interaction contracts; UI owns the default stage shell; Runtime integration binds only Runtime-owned persistent presentation projection; optional backend renderers remain lightweight semantic-preserving seams; and chat or app shells consume the shared Avatar contract without private semantics, app stores, host bridges, renderer-local truth transfer, or app-placement ownership.
     condition: Whenever reusable Avatar presentation is implemented or consumed.
     failure: Reject a missing baseline surface, heavyweight default coupling, parallel renderer shell, semantic fork, or transferred app or Runtime truth.
@@ -1362,12 +966,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-072
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-072 Avatar ownership hardcut
     modality: must_not
-    scope:
-      - platform.ui-design-system
     statement: Avatar owns Runtime-persistent presentation, app-transient interaction, agent identity, memory, voice workflow or assets, thread continuity, app permission, placement or orchestration truth, imports app stores, host bridges, or Runtime internals, or invents fallback assets, voices, or pseudo-success when required profile fields are unresolved.
     condition: Whenever Avatar consumes presentation or interaction state.
     failure: Keep truth with its owner and fail closed on unresolved required presentation fields.
@@ -1376,12 +976,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-073
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-073 Avatar backend renderer seam
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: An explicitly delivered Avatar backend renderer preserves normalized headless presentation, owns only stage-rendering semantics, accepts framing limited to auto, full-body, bottom-companion, or head-shoulders after app synonym mapping, and excludes asset import, storage, registry, agent binding, fallback, packaging, viewport lifecycle, pointer parity, camera choreography, authoring, and model inspection unless separately admitted.
     condition: Whenever an optional Avatar backend renderer is published or invoked.
     failure: Reject an undelivered export, unknown framing term, transferred truth, or unadmitted behavior.
@@ -1390,12 +986,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.p-kit-074
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-074 Avatar interaction adapter boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Avatar interaction adapters may receive typed resolved attention targets, continuous presence, and bounded follow intent, while raw pointer capture, viewport measurement, smoothing, clamping, speaking precedence, stop lines, and raw interaction lifecycle remain outside Kit and backend-renderer semantic ownership unless separately admitted.
     condition: Whenever an active Avatar surface receives interaction input.
     failure: Reject raw intake or implicit lifecycle ownership and require caller-resolved bounded input.
@@ -1404,12 +996,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-080
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-KIT-080 typed adapters and host-neutral construction
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Feature modules expose obvious typed adapters as the sole seam for app data, mutations, and platform capability; bind public SDK Runtime or Realm services only from the matching integration surface; avoid direct app, host bridge, Runtime-internal, or injectable SDK-service imports; and app renderer factories use identical provider, store, route, and UI construction for production-host and Simulator bindings without host discrimination while Simulator reducers, scenarios, fixtures, and selection remain app-owned.
     condition: Whenever a feature receives app or first-party capability or an app constructs its canonical renderer.
     failure: Reject an implicit, mislabeled, private, direct, or host-discriminated integration or transfer of Simulator app truth into Kit.
@@ -1418,12 +1006,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.standard-shell-capabilities-envelope
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: standard-shell-capabilities command and error envelope
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every standard shell invocation resolves one cataloged capability-family, operation, and command tuple, accepts only that operation's declared request fields, returns only its declared result fields, and maps failure to an admitted operation-level negative state in an envelope containing code, reasonCode, actionHint, and source with optional details.
     condition: Whenever a standard shell host validates, dispatches, completes, or rejects an invocation.
     failure: Reject an unknown tuple or field and surface a typed admitted error without raw host failure, silent fallback, or pseudo-success.
@@ -1432,12 +1016,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.standard-shell-capabilities-closure
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: standard-shell-capabilities catalog closure
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: A standard shell host exposes only cataloged commands, permits an operation only when its resolved capability set explicitly allows it, denies every forbidden or uncataloged operation, and treats every planned operation as denied until separate admission moves it into the allowed set.
     condition: Whenever a host resolves or enforces a standard shell capability set.
     failure: Deny dispatch before owner invocation and return the cataloged typed failure for unavailable or forbidden capability.
@@ -1446,12 +1026,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.standard-shell-capabilities-profile-schema
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: standard-shell-capabilities profile schema
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every standard shell capability profile declares a stable set identity, host class, app package kind, verified launch resolution, authentication binding, authority status, disjoint allowed, planned, and forbidden operation sets, and an explicit deny-until-admission disposition for planned operations.
     condition: Whenever a standard shell capability profile is registered or resolved.
     failure: Reject an incomplete, overlapping, selector-derived, or permissive profile.
@@ -1460,12 +1036,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.standard-shell-capabilities-family-security
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: standard-shell-capabilities family security boundaries
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Each standard shell command family remains bound to its declared host contract and payload, result, and ownership constraints; renderer input cannot supply protected identity, authorization, endpoint, process, session, account, permission-decision, storage-root, or absolute-path authority; and the host verifies the invoking profile before dispatch without transferring domain ownership.
     condition: Whenever a renderer or host crosses a standard shell command-family boundary.
     failure: Fail closed before dispatch on forbidden authority input, wrong host contract, profile mismatch, path disclosure, or ownership transfer.
@@ -1474,12 +1046,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.nimi-kit-registry-closure
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: nimi-kit-registry consumption closure
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: A Kit module is consumable only through a public entrypoint listed by an active module registration, and an unregistered, pending, removed, private, or unlisted module surface is unavailable to consumers.
     condition: Whenever a Kit module or entrypoint is published, imported, or resolved.
     failure: Reject consumption outside the active registered public surface.
@@ -1488,12 +1056,8 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.nimi-kit-registry-schema
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: nimi-kit-registry registration schema and module boundary
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Every Kit module registration declares stable identity and subpath, module kind and surface level, adapter contract, internal and peer dependency sets, public exports partitioned into headless and UI surfaces, reuse entrypoints, admission status, and owner; every internal dependency resolves to a registered Kit module, every external dependency is explicit, and every categorized or reuse entrypoint belongs to the module's declared public exports.
     condition: Whenever a Kit module registration is created, changed, or consumed.
     failure: Reject an incomplete registration, undeclared dependency, dangling internal dependency, or entrypoint outside the declared public surface.
@@ -1506,33 +1070,20 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: definition.nimi.platform.ui-design-system.nimi-ui-compositions-compact-density
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: nimi-ui-compositions compact density
     meaning: Compact density is the low-ceremony, high-scan-efficiency presentation mode for repeated operational work.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.nimi-ui-compositions-regular-density
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: nimi-ui-compositions regular density
     meaning: Regular density is the default readability mode for ordinary application pages, shared primitives, standard forms, and mixed content.
-    relations: []
   - id: definition.nimi.platform.ui-design-system.nimi-ui-compositions-expressive-density
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: nimi-ui-compositions expressive density
     meaning: Expressive density is an opt-in presentation mode for identity-led, content-led, cinematic, or admitted ambient moments rather than operational chrome.
-    relations: []
   - id: rule.nimi.platform.ui-design-system.nimi-ui-compositions-density-selection
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: nimi-ui-compositions density selection semantics
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: A governed surface selects compact density for repeated operational work, regular density for default readable application content, and expressive density only for an explicit identity-led, content-led, cinematic, or admitted ambient boundary.
     condition: Whenever a governed page or composition selects a density mode.
     failure: Reject a density selection that contradicts the semantic role of the governed surface.
@@ -1545,12 +1096,8 @@ units:
         target: definition.nimi.platform.ui-design-system.nimi-ui-compositions-regular-density
   - id: rule.nimi.platform.ui-design-system.nimi-ui-compositions-density-behavior
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: nimi-ui-compositions density behavior semantics
     modality: must
-    scope:
-      - platform.ui-design-system
     statement: Compact density uses functional transitions without decorative operational-state motion, regular density permits light elevation and useful transitions only when they clarify grouping or state, and expressive density provides reduced-motion handling while operational descendants return to regular or compact density.
     condition: Whenever a governed surface applies density-specific motion or contains a nested operational region.
     failure: Reject decorative compact motion, uninformative regular motion, missing expressive reduced-motion handling, or an expressive operational descendant.

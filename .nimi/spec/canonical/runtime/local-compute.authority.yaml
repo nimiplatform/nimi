@@ -1,55 +1,35 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.local-compute
 units:
   - id: definition.nimi.runtime.local-compute.device-profile-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime device profile plane
     meaning: The Runtime device profile plane owns LocalDeviceProfile collection and freshness, GPU, NPU, Python, disk, and port probing semantics, hardware-engine compatibility warnings, and the single shared hardware truth consumed by recommendation, install preflight, and start-time revalidation.
-    relations: []
   - id: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local asset storage manifest plane
     meaning: The Runtime local asset storage manifest plane owns the managed models root layout, the unified asset manifest entry and intake schema, manifest validation and import path truth, and the local artifact format policy.
-    relations: []
   - id: definition.nimi.runtime.local-compute.catalog-recommendation-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local catalog recommendation plane
     meaning: The Runtime local catalog recommendation plane owns catalog search ordering, the unified recommendation payload, format-aware variant descriptors, media and LLM fit evaluation, the recommendation feed boundary, Hugging Face community catalog access and capability inference, and the local download pipeline.
-    relations: []
   - id: definition.nimi.runtime.local-compute.category-capability-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local category capability plane
     meaning: The Runtime local category capability plane owns the Asset, Service, and Node abstraction, local install and import semantics, verified asset projection, install plan preflight, custom invoke profile gating, local unavailability error mapping, and the ordinary-user local speech bundle projection boundary.
-    relations: []
   - id: definition.nimi.runtime.local-compute.local-engine-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local engine plane
     meaning: The Runtime local engine plane owns the closed public engine taxonomy, engine runtime modes, attached endpoint constraints, and supervised process, materialization root, and bootstrap download custody for local execution engines.
-    relations: []
   - id: definition.nimi.runtime.local-compute.engine-protocol-health-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime engine protocol health plane
     meaning: The Runtime engine protocol health plane owns engine default endpoints, the llama and sidecar canonical protocol baselines, local engine health and recovery probing semantics, attached engine credential custody, engine HTTP failure mapping, and stream downgrade simulation.
-    relations: []
   - id: rule.nimi.runtime.local-compute.r001
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Device profile structure is fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: LocalDeviceProfile carries os, arch, total_ram_bytes, available_ram_bytes, gpu, python, npu, disk_free_bytes, and ports, the gpu profile carries available, vendor, model, memory_model limited to discrete, unified, or unknown, plus optional total_vram_bytes and available_vram_bytes that stay empty when not reliably probed, and CollectDeviceProfile returns the complete current device snapshot.
     condition: Whenever a device profile is collected or returned.
     failure: Reject profiles missing required fields or carrying fabricated hardware values.
@@ -58,12 +38,8 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r002
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: GPU detection order is fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: GPU detection tries the NVIDIA command-line probe first and on success reports vendor nvidia with memory_model discrete and VRAM values from the probe, otherwise an Apple silicon unified-memory host reports vendor apple with memory_model unified, a best-effort chip model from an OS probe, and VRAM values that may reuse host RAM metrics, and any other outcome reports available false with memory_model unknown and empty VRAM values.
     condition: Whenever Runtime detects GPU hardware for the device profile.
     failure: Reject GPU results outside the declared detection order or with guessed vendor or memory values.
@@ -72,12 +48,8 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r003
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Unprobeable acceleration is low confidence
     modality: must
-    scope:
-      - runtime.local-compute
     statement: When the host cannot reliably report VRAM or unified-memory figures CollectDeviceProfile still succeeds with the affected values left empty, consumers treat the result as a low-confidence hardware profile rather than defaulting to zero, and accelerator vendors without an implemented probe report unavailable instead of inferred capacity.
     condition: Whenever hardware capacity cannot be reliably probed.
     failure: Reject errors, zero defaults, or fabricated capacity for unprobeable hardware.
@@ -86,12 +58,8 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r004
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: NPU detection is environment driven
     modality: must
-    scope:
-      - runtime.local-compute
     statement: NPU detection reads only the NIMI_NPU_AVAILABLE, NIMI_NPU_READY, NIMI_NPU_VENDOR, and NIMI_NPU_RUNTIME environment variables with ready honored only while available is true, performs no OS-level NPU hardware probing, and reports available false and ready false when the variables are absent.
     condition: Whenever Runtime detects NPU state for the device profile.
     failure: Reject OS-probe-derived or defaulted NPU availability.
@@ -100,12 +68,8 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r005
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Python and port probing are fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Python detection tries python3 then python version parsing and reports available false when both fail, port availability is judged by a loopback TCP bind attempt released immediately on success, and the default probed port list is the engine default loopback ports plus any caller-specified extras.
     condition: Whenever Python runtime or port availability is probed.
     failure: Reject availability conclusions not backed by the declared probe.
@@ -114,12 +78,8 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r006
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Compatibility warnings never block install
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Install plan resolution derives WARN_GPU_REQUIRED, WARN_PYTHON_REQUIRED, and WARN_NPU_REQUIRED warnings from engine-name traits against GPU, Python, and NPU availability, emits them only in the install plan descriptor warnings, and never blocks installation on a warning alone.
     condition: Whenever hardware-engine compatibility is evaluated for an install plan.
     failure: Reject silent warning loss or installs blocked by warnings alone.
@@ -128,12 +88,8 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r007
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Device profile truth is fresh and single
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The device profile is collected live without a persistent cache at CollectDeviceProfile, inside install plan and profile resolution normalization, and again with compatibility revalidation before StartLocalAsset and StartLocalService whose failed checks attach warnings without blocking start, and recommendation, profile requirement display, and install preflight share the same LocalDeviceProfile truth without a second private hardware probe.
     condition: Whenever a consumer needs current device hardware truth.
     failure: Reject stale cached profiles and parallel private hardware probes.
@@ -142,12 +98,8 @@ units:
         target: definition.nimi.runtime.local-compute.device-profile-plane
   - id: rule.nimi.runtime.local-compute.r008
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Asset storage layout is fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The Runtime managed models root contains the objects, sources, recipes, resolved, and cache subtrees, the resolved tree holds one directory per local asset whose asset.manifest.json is the single canonical bundle entry for every asset kind, original filenames and nested directory structures are preserved rather than content-addressed renames, legacy manifest names are rejected as public import or install entries, and bare-file intake never treats the resolved tree as orphan or unregistered candidates.
     condition: Whenever local asset storage is laid out, imported, or scanned.
     failure: Reject undeclared layouts, legacy manifest entries, and orphan classification of resolved assets.
@@ -156,12 +108,8 @@ units:
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r009
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Manifest intake schema is unified
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Stable public local asset intake accepts only files named asset.manifest.json whose top-level stable identity fields are asset_id and kind, runnable assets extend the same schema with logical_model_id, capabilities, artifact_roles, preferred_engine, and fallback_engines, passive assets share the schema with empty capabilities and an omissible logical_model_id, and no stable surface accepts model_id or artifact_id top-level identity, dual manifest shapes, or legacy field aliases.
     condition: Whenever a local asset manifest is authored, imported, or emitted on a stable surface.
     failure: Fail closed on legacy manifest names, shapes, or aliases.
@@ -170,12 +118,8 @@ units:
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r010
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Manifest validation and import path truth fail closed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Manifest validation requires non-empty schema_version, engine, entry, files, license, source repo and revision, and hashes, the entry must exist in files, every hash key must reference an existing file with a non-empty value, runnable capability entries must be valid tokens under the capability vocabulary mapping, file paths reject absolute forms and parent traversal with backslashes normalized to forward slashes, an imported manifest's source repo must be the manifest's own file URL with resolved file truth derived only from the manifest parent directory plus entry, and any local-import source repo fails closed without slug, symlink, copy, or fallback-directory repair.
     condition: Whenever a local asset manifest is validated or an imported asset path is resolved.
     failure: Reject the manifest or import instead of repairing paths or identity heuristically.
@@ -184,12 +128,8 @@ units:
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r011
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Format policy stays open with fixed entry selection
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local assets support both GGUF and SafeTensors artifacts without locking a single format, and llama engine entry selection prefers a gguf file, then model.safetensors, then any safetensors file.
     condition: Whenever local artifact formats are admitted or a llama entry is selected.
     failure: Reject single-format lockdown or entry selection outside the declared priority.
@@ -198,12 +138,8 @@ units:
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r012
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Local assets use the three-layer abstraction
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A LocalAssetRecord carries local_asset_id in ULID form, kind from the closed asset kind set, logical_model_id, family, artifact_roles, preferred_engine, fallback_engines, bundle_state, warm_state, and host_requirements, a Service is the single bound execution instance of a runnable asset represented by one reachable endpoint in attached or supervised mode, a Node is a computed capability projection generated from services and capabilities that is never persisted and never a truth source, and passive assets share the install, remove, and transfer pipeline while taking no Service binding and no Node generation.
     condition: Whenever local asset, service, or node abstractions are stored or projected.
     failure: Reject persisted nodes, passive service bindings, and records missing the declared fields.
@@ -212,12 +148,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r013
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Service binding is one-to-one with bounded switching
     modality: must
-    scope:
-      - runtime.local-compute
     statement: One local model binds at most one Service, node catalogs are generated live from installed services at query time, a request-routed single-worker switch may rebind the sole resident supervised llama worker to an explicitly targeted model without relaxing the one-to-one constraint, and bounded multi-worker residency stays unadmitted until a dedicated cutover fixes service topology, engine truth, residency budget, and eviction semantics.
     condition: Whenever local model-to-service bindings or worker residency changes.
     failure: Reject one-to-many bindings and default multi-worker residency before the cutover.
@@ -226,12 +158,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r014
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Install registers and persists one identity
     modality: must
-    scope:
-      - runtime.local-compute
     statement: InstallVerifiedAsset, InstallModelFromPlan, and ImportLocalAsset register the asset by persisting its identity, kind, capabilities, engine, source, and endpoint fields together with runtime-native metadata including family, artifact_roles, preferred_engine, fallback_engines, bundle_state, warm_state, and host_requirements plus the internal engine_runtime_mode, mint a unique ULID local_asset_id starting in INSTALLED state, write logical_model_id for runnable assets while never synthesizing it for passive assets, and user file imports always mint a new installed identity while only explicit catalog installs may fail closed on an exact catalog duplicate.
     condition: Whenever a local asset is installed or imported.
     failure: Reject installs missing persisted metadata or duplicate-identity reuse for file imports.
@@ -240,12 +168,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r015
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Verified descriptors project catalog truth
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Every LocalVerifiedAssetDescriptor field derives from the local provider catalog row and its local-plane block with asset_id taken from the variant identity, logical_model_id from the row model identity, kind and capabilities from row truth in canonical tokens, install facts from the install block, and files, hashes, and total size from the selected variant, Runtime keeps no in-process hardcoded verified metadata, and a projection missing integrity hashes fails closed without placeholder descriptors.
     condition: Whenever verified local asset metadata is projected or listed.
     failure: Fail closed on missing integrity material and delete parallel hardcoded verified truth.
@@ -254,12 +178,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r016
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Install plans gate every install path
     modality: must
-    scope:
-      - runtime.local-compute
     statement: ResolveModelInstallPlan collects the device profile, evaluates hardware-engine compatibility warnings, judges install availability as true only for attached mode with an explicit valid endpoint or supervised mode with a reachable engine binary and otherwise false with a reason code, fills engine-specific provider hints, and returns the plan descriptor, InstallModelFromPlan consumes only that descriptor shape and fails closed when install availability is false, no Desktop, Web, or Kit surface executes catalog or manual install outside this gate, and the verified catalog projection plus the Hugging Face community catalog remain the only catalog sources without forming a second verified catalog.
     condition: Whenever a local install plan is resolved or consumed.
     failure: Reject bypassed installs and plans with fabricated availability.
@@ -268,12 +188,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r017
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Custom assets require an invoke profile
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A custom-declared local model missing its local_invoke_profile_id is marked unavailable and execution returns FAILED_PRECONDITION with AI_LOCAL_MODEL_PROFILE_MISSING.
     condition: Whenever a custom local model is projected or invoked without an invoke profile.
     failure: Return the exact typed failure instead of guessing request format or parameters.
@@ -282,12 +198,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r018
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Local unavailability mapping is exact
     modality: must
-    scope:
-      - runtime.local-compute
     statement: When no usable local model exists a probe path returns ok false with AI_LOCAL_MODEL_UNAVAILABLE, an execution path returns FAILED_PRECONDITION with AI_LOCAL_MODEL_UNAVAILABLE, and service lifecycle and probe paths use the service sibling codes AI_LOCAL_SERVICE_UNAVAILABLE, AI_LOCAL_SERVICE_ALREADY_INSTALLED, and AI_LOCAL_SERVICE_INVALID_TRANSITION.
     condition: Whenever local model or service unavailability is reported.
     failure: Return the exact typed mapping without generic or silent outcomes.
@@ -296,12 +208,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r019
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Speech bundle projection is layered and confirmed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The ordinary-user local speech bundle is a product projection over runtime-owned speech asset and service truth that keeps bootstrap environment, host readiness, and per-capability materialization as internal layers of one download and init flow rather than independent install objects, requires explicit user download confirmation before any environment bootstrap, host init, or capability download is triggered by capability selection, route attempts, or passive probing, reuses existing environments, caches, and materialized slices unless repair or removal demands otherwise, materializes capabilities lazily without prefetching all speech slices, and exposes product states only as projection labels while canonical lifecycle stays with runtime truth.
     condition: Whenever the ordinary-user local speech bundle is projected, downloaded, or initialized.
     failure: Fail closed awaiting confirmation instead of silent bootstrap, download, or a second install owner.
@@ -310,12 +218,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r020
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Catalog search ordering is fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: SearchCatalogModels orders verified rows before unverified rows and sorts case-insensitively by ascending title within each group, and neither recommendation metadata nor the recommendation feed surface rewrites this ordering.
     condition: Whenever catalog search results are ordered or presented.
     failure: Reject reordered results and recommendation-driven ordering rewrites.
@@ -324,12 +228,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r021
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Recommendation payload is uniform and subordinate
     modality: must
-    scope:
-      - runtime.local-compute
     statement: SearchCatalogModels, ListCatalogVariants, and ResolveModelInstallPlan may attach one optional recommendation payload whose tier expresses main-model fit rather than end-to-end workflow readiness, whose host_support_class is limited to supported_supervised, attached_only, and unsupported, and whose confidence is limited to high, medium, and low, and the payload never overrides install availability, engine runtime mode, or existing warning and reason-code semantics.
     condition: Whenever a catalog surface returns recommendation metadata.
     failure: Reject undeclared payload values and recommendation overrides of install truth.
@@ -338,12 +238,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r022
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Variant descriptors are format aware
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A catalog variant descriptor carries filename, entry, files, and format plus optional size, sha256, and recommendation fields, GGUF variants support precise entry-level recommendation, and SafeTensors variants may carry only conservative repo-level or artifact-level recommendation exposed with low confidence.
     condition: Whenever catalog variants are listed or described.
     failure: Reject GGUF-only descriptor shapes and overconfident coarse recommendations.
@@ -352,12 +248,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r023
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Media fit evaluation is bounded and honest
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Media fit applies only to image and video main models without judging complete workflows, estimates memory from main artifact size, device profile RAM, VRAM, or unified memory, and engine-specific conservative overhead, counts hard prerequisites in estimates and notes without deciding the main tier, fixes the image baseline at 1024x1024 text-to-image and the video baseline at 720p four-second sixteen-fps text-to-video without audio, maps estimates within seventy, eighty-five, and one hundred percent of the host budget to recommended, runnable, and tight with beyond-budget as not_recommended, and lowers confidence with reasons on incomplete metadata or device profile instead of silently reporting high confidence.
     condition: Whenever media fit recommendation is computed.
     failure: Reject workflow-scope claims, undeclared baselines, and silent high-confidence fallbacks.
@@ -366,12 +258,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r024
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: LLM fit reuses shared truth and exposes inference
     modality: must
-    scope:
-      - runtime.local-compute
     statement: LLM and vision-LLM fit maps the shared LocalDeviceProfile into the runtime-owned fit evaluator without a second private hardware truth, may infer parameter count, context, and quantization conservatively from repo naming, entry filenames, and artifact sizes when a model index is absent, maps the Perfect, Good, Marginal, and TooTight fit levels to recommended, runnable, tight, and not_recommended, may point recommended_entry at a better quantization variant with the remaining variants in fallback_entries, and lowers confidence or exposes inference provenance whenever values are filename-derived or size-derived.
     condition: Whenever LLM fit recommendation is computed.
     failure: Reject parallel hardware truth and hidden inference-derived confidence.
@@ -380,12 +268,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r025
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Recommendation feed stays a bounded read surface
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A capability-scoped recommendation feed may exist beside the catalog surface only when its candidate pools output install-bridge-ready entry metadata, RuntimeLocalService owns model index caches, installed-state projection, device-profile fit evaluation, and the final tier, host support, and confidence ordering with Desktop consuming SDK projections for rendering only, worker and index layers never become host-fit, readiness, or install action truth, and feed items reuse the same recommendation payload semantics without a second recommendation contract.
     condition: Whenever a recommendation feed surface is served or consumed.
     failure: Reject feed-owned fit truth, second recommendation contracts, and worker-owned readiness.
@@ -394,12 +278,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r026
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Hugging Face access is direct and normalized
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Hugging Face is the sole community catalog source accessed through direct REST calls without hf-hub or Hugging Face hub SDK dependencies, repo identifiers in hf scheme, full URL, or bare org slash model form normalize internally to org slash model, artifact downloads construct resolve URLs from repo, revision, and file path on the huggingface.co host, and community search uses the models REST API with search, pipeline tag, and library filters under a twenty-second timeout and a result limit between one and eighty.
     condition: Whenever Runtime searches or downloads from the Hugging Face catalog.
     failure: Reject undeclared SDK dependencies, unnormalized repo identity, and out-of-bounds search parameters.
@@ -408,12 +288,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r027
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: HF capability inference fails closed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Hugging Face capability inference maps text-generation and text2text-generation to chat, text-to-image to image, text-to-video to video, text-to-speech and text-to-audio to tts, automatic-speech-recognition to stt, and feature-extraction and sentence-similarity to embedding, and a row whose pipeline tag and tags match nothing is treated as missing capability evidence that never defaults to chat and never enters installable or executable catalog projections.
     condition: Whenever community model capabilities are inferred from catalog metadata.
     failure: Fail closed on unmatched rows instead of defaulting capabilities.
@@ -422,12 +298,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r028
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: HF source bindings split portable and runtime truth
     modality: must
-    scope:
-      - runtime.local-compute
     statement: An AIProfile asset source binding may declare exactly one Hugging Face source object carrying repo identity, repo type, revision, file, directory, or manifest entries, an access policy of public, requires_auth, gated, or unknown, format and variant hints, and optional expected integrity as a portable requirement, Runtime exclusively owns auth token custody, gated access, terms approval, selected-source records, observed integrity, transfer state, and access-denied evidence which never persist in AIProfile or AIConfig, profile-owned downloaders are forbidden with descriptor prepare routed through Runtime source surfaces, auth and access denials classify as hf auth required, hf gated unaccepted, or hf access denied readiness rather than generic failure or asset-health poisoning, declared expected integrity is a hard verification requirement while its absence stays risk context only, and manual import association never implies provenance verification without Runtime verification success.
     condition: Whenever a Hugging Face source binding is declared, prepared, or satisfied.
     failure: Fail closed on custody violations, generic denial mapping, and implied provenance.
@@ -436,12 +308,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r029
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Download sessions are resumable and explicit
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local downloads resume with HTTP range requests skipping completed byte ranges, retry with exponential backoff capped at eight attempts stepping from three hundred milliseconds through one, five, fifteen, thirty, sixty, one hundred twenty, and one hundred eighty seconds, move through queued, running, paused, failed, completed, and cancelled states driven only by explicit control commands without UI pseudo-pause, convert residual running or queued sessions to paused with an interruption reason after process restart requiring manual resume, verify per-file SHA-256 with an optional prefix and return AI_LOCAL_DOWNLOAD_HASH_MISMATCH on mismatch, and stage files under a per-asset staging directory committed by atomic rename with rollback on failure.
     condition: Whenever a local asset download session runs.
     failure: Reject implicit state transitions, automatic post-restart resumption, and unverified commits.
@@ -450,12 +318,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r030
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Download progress and failure classes are typed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Download progress events carry install session identity, phase, received and total bytes, speed, eta, message, state, optional reason code and retryability, and done plus success flags, network, timeout, and disk failures mark the session failed and retryable while preserving partial staging for resume, hash mismatches mark it failed and non-retryable while clearing staging and forbidding resume, and cancellation marks it cancelled while clearing staging.
     condition: Whenever download progress or failure is reported.
     failure: Reject untyped progress, resumable hash failures, and retained staging after cancel.
@@ -464,12 +328,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r031
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Family heuristics stay bounded and companion gated
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Family inference may tag gemma models from model identity, capability heuristics apply only when the manifest gives no stronger facts with gemma-4 identities adding vision understanding, audio understanding stays disabled until upstream engine support is publicly proven, and a model declaring vision understanding without an available multimodal projector companion fails registration closed.
     condition: Whenever local family or capability heuristics run.
     failure: Fail registration closed instead of admitting unproven capabilities.
@@ -478,12 +338,8 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r032
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Engine taxonomy is closed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The public local engines are exactly llama for text generation, text embedding, and image and audio understanding, media for image generation and editing plus video generation, speech for the local speech family line, and sidecar for the external music sidecar, the canonical local engine catalog table is the single engine value-domain source with consuming code generated from or mechanically checked against it, retired engine identities are neither engines nor execution truth sources, the internal diffusers driver stays a runtime-internal media backend never exposed as a public engine target, and backend_class stays orthogonal to the public engine without becoming a public routing knob or provider alias.
     condition: Whenever engine identities or backend classes are declared, consumed, or projected.
     failure: Reject undeclared engines, retired identities, and public exposure of internal backends.
@@ -492,12 +348,8 @@ units:
         target: definition.nimi.runtime.local-compute.local-engine-plane
   - id: rule.nimi.runtime.local-compute.r033
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Engine runtime modes are two
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local engine runtime mode admits exactly ATTACHED_ENDPOINT and SUPERVISED, sidecar admits only ATTACHED_ENDPOINT, and llama, media, and speech admit both modes.
     condition: Whenever an engine runtime mode is declared or resolved.
     failure: Reject undeclared modes and supervised sidecar operation.
@@ -506,12 +358,8 @@ units:
         target: definition.nimi.runtime.local-compute.local-engine-plane
   - id: rule.nimi.runtime.local-compute.r034
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Attached endpoints are explicit and proven
     modality: must
-    scope:
-      - runtime.local-compute
     statement: An attached-endpoint engine requires an explicitly provided valid endpoint with no silently restored loopback default, Runtime never starts, stops, or restarts the external process, the attached endpoint must expose its engine's canonical API surface, an attached speech endpoint never projects as the ordinary-user default local speech path, and Runtime fails closed when it cannot prove the attached endpoint can execute the current logical model.
     condition: Whenever an attached-endpoint engine is configured or consumed.
     failure: Fail closed on missing endpoints, unproven execution capability, and default-path projection.
@@ -520,12 +368,8 @@ units:
         target: definition.nimi.runtime.local-compute.local-engine-plane
   - id: rule.nimi.runtime.local-compute.r035
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Supervised processes are managed with bounded recovery
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A supervised engine is forked, monitored, and reclaimed by Runtime, shuts down with a graceful termination signal escalated to kill after timeout, restarts with exponential backoff from a two-second base with jitter for at most five attempts before marking UNHEALTHY, and a stale recorded pid is terminated only when Runtime proves it still belongs to the current supervised engine binary while unprovable identity limits cleanup to tracking files.
     condition: Whenever a supervised engine process is started, restarted, or reclaimed.
     failure: Reject unbounded restarts and termination of unverified processes.
@@ -534,12 +378,8 @@ units:
         target: definition.nimi.runtime.local-compute.local-engine-plane
   - id: rule.nimi.runtime.local-compute.r036
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Supervised materialization root is data-plane bound
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Managed engine binaries and runtime environments land only under the data-plane environments root in per-engine per-version directories with an atomically written registry file, home-directory roots never serve as parallel materialization truth, and missing data root configuration fails materialization closed without a home fallback.
     condition: Whenever a managed engine binary or environment is materialized.
     failure: Fail closed without home-directory fallback or a second root truth.
@@ -548,12 +388,8 @@ units:
         target: definition.nimi.runtime.local-compute.local-engine-plane
   - id: rule.nimi.runtime.local-compute.r037
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Bootstrap downloads have a closed redirect policy
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Supervised engine bootstrap downloads follow only https-to-https redirects, allow same-host redirects, allow github.com release assets to redirect only to the explicit GitHub release-chain hosts github.com, objects.githubusercontent.com, and release-assets.githubusercontent.com, fail closed on every other redirect, and llama supervised bootstrap uses the official ggml-org llama.cpp release pack landing the llama-server binary.
     condition: Whenever a supervised engine bootstrap artifact is downloaded.
     failure: Fail closed on undeclared redirect targets or unofficial bootstrap sources.
@@ -562,12 +398,8 @@ units:
         target: definition.nimi.runtime.local-compute.local-engine-plane
   - id: rule.nimi.runtime.local-compute.r038
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Default endpoints are fixed and honest
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Engine default endpoints come only from the canonical local engine catalog table with supervised llama and speech allowed fixed default loopback ports, supervised media allowed one only when asset-level host support admits supervised mode, and sidecar having none, a supervised default port conflict fails explicitly without drifting to neighboring ports or a dynamic port mode, an attached-endpoint install or start with an empty endpoint fails closed with AI_LOCAL_ENDPOINT_REQUIRED, the canonical local image path on an unsupported host fails closed with AI_LOCAL_MODEL_UNAVAILABLE instead of demanding an endpoint, and a supervised endpoint may stay temporarily empty before the engine manager yields the real endpoint while empty never counts as ready.
     condition: Whenever engine endpoints are defaulted, bound, or validated.
     failure: Fail closed with the exact typed reason instead of port drift or endpoint demands.
@@ -576,12 +408,8 @@ units:
         target: definition.nimi.runtime.local-compute.engine-protocol-health-plane
   - id: rule.nimi.runtime.local-compute.r039
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: llama and sidecar protocol baselines are fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The llama engine serves the canonical chat completions, embeddings, and model listing HTTP surface and carries only text and understanding capabilities, the sidecar engine serves the canonical music generation HTTP surface and stays outside standard supervised health probing with attached availability failing closed at real music requests, backend names passed to the managed llama engine admit only llama-cpp, whisper-ggml, and stablediffusion-ggml without arbitrary passthrough, and no user-facing surface directly exposes workflow assembly, companion model composition, or pipeline DAGs.
     condition: Whenever llama or sidecar protocol surfaces are dispatched or projected.
     failure: Reject undeclared endpoints, capability bleed, arbitrary backend passthrough, and user-facing DAG exposure.
@@ -590,12 +418,8 @@ units:
         target: definition.nimi.runtime.local-compute.engine-protocol-health-plane
   - id: rule.nimi.runtime.local-compute.r040
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: llama health is a ladder not a flag
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A reachable llama model listing proves only process reachability, unreachable endpoints, connection failures, probe timeouts, and bootstrap failures fail closed with structured detail retained, text generation and embedding readiness additionally require at least one minimal execution or warmup success whose first failure preserves phase, exit code, or stderr summary, a verified non-resident model absent from the listing projects ACTIVE with COLD warmth when the engine responded and is never demoted for nonresidency alone, and image and audio understanding additionally verify companion artifact completeness.
     condition: Whenever llama engine or model health is judged.
     failure: Fail closed with structured detail instead of reachability-derived readiness.
@@ -604,12 +428,8 @@ units:
         target: definition.nimi.runtime.local-compute.engine-protocol-health-plane
   - id: rule.nimi.runtime.local-compute.r041
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Unhealthy recovery probing is persistent and decaying
     modality: must
-    scope:
-      - runtime.local-compute
     statement: An UNHEALTHY local model or service is reprobed at the default eight-second interval aligned with the provider probe default, returns to ACTIVE after three consecutive probe successes, retries without a maximum count until explicit stop or removal, decays the interval to sixty seconds after seven hundred twenty consecutive failures and to five minutes after twenty-four cumulative hours, resets to the default interval on any success, and resets the consecutive success count on any failure.
     condition: Whenever unhealthy local recovery probing runs.
     failure: Reject abandoned recovery, undeclared intervals, and success counting across failures.
@@ -618,12 +438,8 @@ units:
         target: definition.nimi.runtime.local-compute.engine-protocol-health-plane
   - id: rule.nimi.runtime.local-compute.r042
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Speech readiness is layered and bounded
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local plain-speech truth distinguishes provider reachability, engine readiness, bundle readiness, and capability route readiness with no layer implying the next, bundle readiness proves only environment and host prerequisites without implying capability slices are materialized, missing capability slices project a fail-closed state requiring explicit download confirmation rather than silently starting bootstrap or downloads, transcription and synthesis readiness each require driver and primary artifact completeness plus an admitted target model with consistent catalog projection and matching capability rows before projecting admitted local ready, placeholder hosts stay non-ready on the canonical speech surface until the admitted execution plane materializes, and speech temp files keep a bounded lifecycle while reference audio, transcription text, and voice design prompts never enter long-term retention through generic logging.
     condition: Whenever local speech readiness is judged or projected.
     failure: Fail closed per layer instead of promoting reachability or placeholders to admitted success.
@@ -632,12 +448,8 @@ units:
         target: definition.nimi.runtime.local-compute.engine-protocol-health-plane
   - id: rule.nimi.runtime.local-compute.r043
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Attached engine credentials use custody references
     modality: must
-    scope:
-      - runtime.local-compute
     statement: An attached engine endpoint requiring a credential stores only an opaque credential reference resolved inside Runtime service-principal custody, inline API keys, environment-variable key fields, request injection, and user-session vaults are forbidden, local supervised engines normally require no API key with any upstream requirement satisfied only from Runtime-owned custody, and a credential-free engine is never treated as unconfigured for lacking a credential reference.
     condition: Whenever local engine credentials are stored or resolved.
     failure: Reject inline credential material and unconfigured classification of credential-free engines.
@@ -646,12 +458,8 @@ units:
         target: definition.nimi.runtime.local-compute.engine-protocol-health-plane
   - id: rule.nimi.runtime.local-compute.r044
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Engine HTTP failures map to fixed gRPC codes
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local engine HTTP responses map 400 to INVALID_ARGUMENT, 401 and 403 to PERMISSION_DENIED, 404 to NOT_FOUND, 408 to DEADLINE_EXCEEDED, 429 to UNAVAILABLE, 500 to INTERNAL, and 502, 503, and 504 to UNAVAILABLE, with unlisted 4xx as INVALID_ARGUMENT and unlisted 5xx as UNAVAILABLE.
     condition: Whenever a local engine HTTP failure is mapped to a gRPC status.
     failure: Reject mappings outside the fixed table.
@@ -660,12 +468,8 @@ units:
         target: definition.nimi.runtime.local-compute.engine-protocol-health-plane
   - id: rule.nimi.runtime.local-compute.r045
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Stream downgrade is detected and simulated honestly
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A streaming request answered with HTTP 404, 405, or 501, a non-event-stream content type, or an error body indicating unsupported streaming is treated as no native streaming support, the downgrade re-executes without streaming and emits the full response in twenty-four-character slices with a shorter final slice, terminal metadata marks stream_simulated true with the stream-fallback audit tag, simulated events still satisfy canonical stream event semantics, a speech synthesis downgrade also projects voice_output_mode simulated_stream, and simulated output never satisfies native realtime acceptance.
     condition: Whenever an engine cannot serve a requested stream natively.
     failure: Reject silent downgrade, unmarked simulation, and simulated output claiming native realtime.
@@ -674,61 +478,36 @@ units:
         target: definition.nimi.runtime.local-compute.engine-protocol-health-plane
   - id: definition.nimi.runtime.local-compute.accelerator-dependency-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime accelerator dependency plane
     meaning: The Runtime accelerator dependency plane owns shared accelerator dependency readiness for supervised local execution, including CUDA user-space runtime source policy, accelerator profile and dependency projection boundaries, dependency resolver states, selected source records, dependency job and repair semantics, and supervised process environment constraints.
-    relations: []
   - id: definition.nimi.runtime.local-compute.topology-resolver-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local topology resolver plane
     meaning: The Runtime local topology resolver plane owns canonical topology resolution for local assets, including matrix resolver matching and conflict semantics, topology and product state filtering, admission gates, image topology classification, canonical media supervised selection arbitration, media supervised modes, the internal media lifecycle, and local error attribution.
-    relations: []
   - id: definition.nimi.runtime.local-compute.runtime-environment-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local engine runtime environment plane
     meaning: The Runtime local engine runtime environment plane owns typed llama engine configuration, supervised llama residency truth, text-model selectability relaxation, managed image backend package admission, native-binary image execution, managed Python pipeline runtime management, the daemon core readiness boundary against local bootstrap work, and the local environment setup plan authority.
-    relations: []
   - id: definition.nimi.runtime.local-compute.speech-engine-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local speech engine plane
     meaning: The Runtime local speech engine plane owns the baseline local speech family lines, default capability lanes, split speech environment topology, and the supervised bundle-shaped product posture of the ordinary-user local speech path.
-    relations: []
   - id: definition.nimi.runtime.local-compute.consumer-activation-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local consumer activation plane
     meaning: The Runtime local consumer activation plane owns local environment activation gate requests and responses, dependency environment key derivation, activation state mapping, process-local activation deltas, activation reason ownership, consumer and pack registry lockstep, forbidden ready inputs, and first-run baseline readiness evidence.
-    relations: []
   - id: definition.nimi.runtime.local-compute.environment-materializer-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local environment materializer plane
     meaning: The Runtime local environment materializer plane owns the admitted materializer families, materializer job execution and verification, the materializer projection and command surface, download progress projection, and install-level plan resolution for local environment dependencies.
-    relations: []
   - id: definition.nimi.runtime.local-compute.profile-application-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime local profile application plane
     meaning: The Runtime local profile application plane owns local execution declaration resolution, the profile apply pipeline and rollback, local state persistence, adapter routing, policy gates, node catalog generation, durable execution identity supersession, companion occurrence binding, and profile entry overrides.
-    relations: []
   - id: rule.nimi.runtime.local-compute.r046
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Accelerator dependency readiness is Runtime owned
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Runtime owns shared accelerator dependency readiness for supervised local execution, CUDA user-space runtime readiness is never owned by image assets, engines, package installers, Desktop, or SDK, ordinary users are never required to install CUDA Toolkit, configure CUDA_PATH or CUDA_HOME, or place nvcc on PATH before an admitted Windows NVIDIA local execution path, accelerator profile and dependency tables stay accelerator-specific projections of canonical local environment authority preserving distinct failed, unsupported, repair_required, and cancelled semantics without becoming parallel consumer authority, image topology tables may reference dependency and consumer ids without owning CUDA source selection, installation, repair, or selected source records, and Desktop, SDK, and app code only project runtime dependency truth without probing, installing, or inferring CUDA readiness.
     condition: Whenever accelerator dependency readiness is owned, projected, or consumed.
     failure: Reject consumer-side probing, parallel accelerator authority, and ordinary-user toolkit installation requirements.
@@ -737,12 +516,8 @@ units:
         target: definition.nimi.runtime.local-compute.accelerator-dependency-plane
   - id: rule.nimi.runtime.local-compute.r047
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Windows NVIDIA CUDA source policy is system first
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Windows NVIDIA CUDA source selection tries a compatible system CUDA user-space runtime proven from canonicalized allowlisted evidence, then a previously verified runtime-managed CUDA dependency under the Runtime dependency root, then a declared managed dependency package after explicit user confirmation for first network materialization, system source proof is positive across source identity, canonical root, required DLL and file set, version metadata or binary version, driver compatibility, and selected source record creation, PATH serves only as a hint and never selects a source by DLL precedence alone, and model directories, import directories, and arbitrary user-selected directories are rejected as CUDA DLL sources.
     condition: Whenever a Windows NVIDIA CUDA user-space runtime source is resolved.
     failure: Fail closed without a verified source instead of accepting unproven or precedence-derived sources.
@@ -751,12 +526,8 @@ units:
         target: definition.nimi.runtime.local-compute.accelerator-dependency-plane
   - id: rule.nimi.runtime.local-compute.r048
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed accelerator sources require complete proof
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Managed accelerator source proof includes the declared package source, archive hash verification, staged extraction, required artifact set verification, version and driver compatibility where available, atomic promotion, repair metadata, and a selected source record created before any consumer activation.
     condition: Whenever a managed accelerator dependency is materialized or promoted.
     failure: Reject activation on any missing proof element instead of promoting a partially verified source.
@@ -765,12 +536,8 @@ units:
         target: definition.nimi.runtime.local-compute.accelerator-dependency-plane
   - id: rule.nimi.runtime.local-compute.r049
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Dependency resolver states are closed and fail closed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Dependency resolver state admits exactly unknown, ready_system, ready_managed, materializable_requires_confirmation, queued, downloading, verifying, installing, repair_required, failed, unsupported, and cancelled projected through stable install, health, and audit detail, materializable_requires_confirmation may appear as installable or review-needed setup but never becomes ACTIVE or health success, activation and ready health for accelerator-backed consumers require ready_system or ready_managed, and failed, cancelled, and repair_required project as fail-closed dependency setup or repair detail rather than topology unsupported or pseudo-success.
     condition: Whenever accelerator dependency state is resolved or projected.
     failure: Reject undeclared states and ready projections without a ready state.
@@ -779,12 +546,8 @@ units:
         target: definition.nimi.runtime.local-compute.accelerator-dependency-plane
   - id: rule.nimi.runtime.local-compute.r050
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Selected source records are single and shared
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Exactly one active selected source record exists per dependency environment, all engine consumers in the same dependency environment reference that record without independently re-resolving a different source, record invalidation happens only through runtime verification failure, explicit repair, dependency removal, host profile incompatibility, or required artifact loss, and failed verification never produces a fallback ready state without a new verified selected source record.
     condition: Whenever selected source records are created, referenced, or invalidated.
     failure: Reject duplicate active records, independent re-resolution, and fallback ready states.
@@ -793,12 +556,8 @@ units:
         target: definition.nimi.runtime.local-compute.accelerator-dependency-plane
   - id: rule.nimi.runtime.local-compute.r051
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Dependency jobs are explicit with repair locks
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Dependency setup is idempotent for the same dependency environment while a job is active with duplicate consumer requests attaching to the same active job id, cancellation is explicit and stops before promotion, repair locks exclude activation using the corrupt dependency until Runtime verification restores a ready state, repair never collapses into unsupported or ready without verification, and automatic reinstall is forbidden unless the current confirmation policy admits it for that repair case.
     condition: Whenever accelerator dependency jobs run, cancel, or repair.
     failure: Reject implicit cancellation, activation through repair locks, and unadmitted automatic reinstalls.
@@ -807,12 +566,8 @@ units:
         target: definition.nimi.runtime.local-compute.accelerator-dependency-plane
   - id: rule.nimi.runtime.local-compute.r052
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Dependency environment mutation is process local
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Runtime may prepend a selected dependency directory only to the supervised engine child process PATH, never mutates machine PATH, user PATH, shell profiles, system CUDA configuration, global Python, or package-manager global state, canonicalizes dependency paths before use, and records selected source and verification detail in runtime-private audit and health detail.
     condition: Whenever a supervised engine process environment is prepared.
     failure: Reject persistent host environment mutation and uncanonicalized dependency paths.
@@ -821,12 +576,8 @@ units:
         target: definition.nimi.runtime.local-compute.accelerator-dependency-plane
   - id: rule.nimi.runtime.local-compute.r053
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Canonical topology resolution is unique and ordered
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Each image asset hits at most one canonical topology selection on the current host, canonical resolution matches in the fixed order of host constraint match, asset family, profile kind, artifact formats, capability support, topology state filtering, product state filtering, and admission gate judgment, and when multiple entries still match after canonical resolution Runtime returns a configuration conflict error entering audit detail that blocks install, start, and health success rather than picking one arbitrarily.
     condition: Whenever canonical local topology resolution runs.
     failure: Reject multi-selection results and arbitrary conflict picks.
@@ -835,12 +586,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r054
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Topology and product states filter resolution
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Entries with topology state removed never participate in canonical resolution, deprecated entries participate only in legacy migration or repair judgment when no defined entry matches and never become a new-install default, only product state supported enters install recommendation, activation, and ready health success, proposed matches return recognized-but-not-admitted fail-closed semantics, and unsupported matches return recognized-but-unsupported fail-closed semantics.
     condition: Whenever topology or product state filters apply during resolution.
     failure: Fail closed with the recognized state semantics instead of promoting deprecated, proposed, or unsupported entries.
@@ -849,12 +596,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r055
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Resolver inputs are layered and authored constraints validated
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Canonical topology resolution is driven only by runtime-native canonical inputs covering host platform, asset manifest facts, kind, capabilities, asset family, artifact formats, profile kind, bundle completeness, and slot and materialization truth, the legacy hints of engine config backend and preferred engine serve only migration normalization and expire once family, profile, and materialization are normalized, preferred engine stays a public display field rather than a topology fact, the authored execution backend and model family fields are the only admitted public authored local backend and model-lineage inputs mapped to admitted registry rows before resolution with bare family, asset family, backend family, dependency family, or preferred engine fields rejected as substitute authoring fields, authored constraints conflicting with resolver output, dependency family, or asset topology fail closed without inferred overwrite, and missing canonical facts fail closed or enter migration-needed or repair-required semantics without promoting legacy hints to truth.
     condition: Whenever resolver inputs or descriptor-authored constraints are evaluated.
     failure: Reject hint-driven resolution, substitute authoring fields, and inferred overwrites of authored constraints.
@@ -863,12 +606,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r056
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Resolver output is complete
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Resolver output carries at least the entry id, product state, backend class, backend family, control plane, execution plane, supported capabilities, catalog comparable identity, and compatibility detail.
     condition: Whenever a canonical topology resolution result is returned.
     failure: Reject resolver results missing declared output fields.
@@ -877,12 +616,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r057
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Admission gates bind only proposed topologies
     modality: must
-    scope:
-      - runtime.local-compute
     statement: An admission gate appears only on product state proposed entries, admission gate token values come only from explicit canonical registration rather than table comments or lone table entries, the sole registered admission contract is apple-mps-image-poc admitting only the workflow safetensors image to diffusers python pipeline topology as an Apple Silicon proof of concept, and passing the gate requires promoting the entry to product state supported and removing the gate token in the same spec cutover so no passed-but-gated state persists in stable tables.
     condition: Whenever an admission gate is declared or evaluated.
     failure: Reject gates on non-proposed entries, unregistered gate tokens, and passed gates left in place.
@@ -891,12 +626,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r058
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Image topology classification is fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A single-file gguf main model classifies as gguf_image, a single-file safetensors main model without workflow bundle evidence classifies as safetensors_native_image, a model index or equivalent workflow bundle completeness hit classifies as workflow_safetensors_image, artifact roles describe only bundle-internal roles and never upgrade a single-file safetensors to a workflow topology by being non-empty, and a safetensors_native_image or workflow_safetensors_image match whose product state is not supported keeps the SUPERVISED contract and fails closed with AI_LOCAL_MODEL_UNAVAILABLE plus compatibility detail without switching to ATTACHED_ENDPOINT.
     condition: Whenever a local image asset topology is classified.
     failure: Reject role-driven upgrades and endpoint-mode escapes from unsupported topologies.
@@ -905,12 +636,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r059
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: One canonical media supervised selection per state root
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Each runtime state root holds at most one canonical local media supervised active selection, multiple image asset installs may exist while only one selection owns activation, arbitration prefers a supported active selection and never auto-activates proposed or unsupported entries, importing another image topology while a selection is active installs inert without taking over the canonical media path, re-arbitration after removal or unhealth selects only within the supported set, repair never changes active ownership unless explicit re-arbitration conditions are met, and one host never runs GGUF proxy execution and safetensors pipeline supervised media instances sharing the canonical product path simultaneously.
     condition: Whenever canonical media supervised selection or arbitration changes.
     failure: Reject parallel active selections, automatic takeover by imports, and out-of-set re-arbitration.
@@ -919,12 +646,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r060
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Media supervised modes share one HTTP surface
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The media supervisor distinguishes proxy_execution serving the runtime-owned native-binary image path from pipeline_supervised serving the runtime-owned python-pipeline image path driven by the NIMI_MEDIA_MODE environment variable, resolver output with backend class native_binary maps to proxy_execution and python_pipeline maps to pipeline_supervised, both modes share the canonical HTTP surface of GET /healthz, GET /v1/catalog, and POST /v1/media/image/generate with identically shaped request bodies and artifact response envelopes while mode differences stay in runtime-private detail, proxy_execution image generation fails closed unless connected to the runtime-owned direct execution contract and never fabricates success through llama routes or legacy control planes, and llama model import is outside the canonical image supervised contract.
     condition: Whenever a media supervised mode is selected or its HTTP surface dispatched.
     failure: Reject undeclared modes, shape divergence between modes, and legacy control-plane fabrication.
@@ -933,12 +656,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r061
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Internal media lifecycle is a closed ladder
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The runtime-private local media lifecycle moves resolved to materialized to installed to control_plane_ready to execution_plane_ready to active with degraded and repair_required as degradation states, admitted transitions are only the declared ladder plus active to degraded, active to repair_required, degraded to active, degraded to repair_required, repair_required to resolved, repair_required to materialized, and repair_required to installed with no skipped intermediate states, public projection maps installed to INSTALLED, active to ACTIVE, single-plane readiness and degraded and repair_required to UNHEALTHY, and resolved and materialized to no external state promotion, and persistence covers only installed, repair_required, and active selection ownership while plane readiness and degraded stay runtime aggregation and resolved and materialized stay audit-only detail.
     condition: Whenever the internal local media lifecycle transitions or projects.
     failure: Reject undeclared transitions, skipped states, and public projection outside the stable lifecycle values.
@@ -947,12 +666,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r062
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Dual-plane readiness gates execution within budgets
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Media execution is allowed only when the control plane and execution plane are simultaneously ready as active, any single-plane readiness, starting, restarting, or failed combination projects degraded or repair_required and fails execution closed, single-plane engines keep the same lifecycle state literals without a compressed private state machine, startup budgets fix native-binary image execution plane readiness at one hundred eighty seconds and python-pipeline supervised readiness at three hundred seconds with Python dependency preparation and venv install as separate bootstrap budgets outside the pipeline window, and exceeding a startup budget without ready proof ends starting or restarting rather than waiting indefinitely.
     condition: Whenever local media readiness is aggregated or startup budgets elapse.
     failure: Fail execution closed on partial readiness and terminate over-budget starting states.
@@ -961,12 +676,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r063
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Local error attribution is prioritized and typed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local engine error attribution follows the priority chain of compatibility before startup before health before execution, the internal reason key set is exactly manifest_completeness_failure, bootstrap_failure, plane_not_ready, execution_failure, python_version_incompatible, python_runtime_broken, python_dependency_install_failed, pipeline_load_timeout, catalog_identity_mismatch, profile_backend_mismatch, profile_model_family_mismatch, workflow_required_component_missing, and workflow_backend_unsupported shared across audit, health, and structured error detail, install on an unsupported host or on a recognized topology with unsupported or unadmitted proposed product state maps to AI_LOCAL_MODEL_UNAVAILABLE, a missing or unhealthy required slot at profile resolution maps to AI_INPUT_INVALID, an invalid import manifest schema maps to AI_LOCAL_MANIFEST_SCHEMA_INVALID, slot absence never degrades into ignoring the slot, static catalog listings never prove readiness, dual-plane failures carry one stable primary reason code with secondary plane information only in secondary detail, and every repair_required to resolved transition writes an audit event carrying the old entry id, the re-resolution reason, the triggering entry point, and the timestamp.
     condition: Whenever local engine failures are attributed or mapped.
     failure: Reject unregistered internal reason keys, multi-primary errors, and unaudited re-resolution transitions.
@@ -975,12 +686,8 @@ units:
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
   - id: rule.nimi.runtime.local-compute.r064
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Llama engine config parameter space is typed and closed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The llama engine config namespace admits typed optional keys where ctx_size is an integer bounded 512 through 1048576 projecting --ctx-size, cache_type_k and cache_type_v take the closed cache quantization enum projecting --cache-type-k and --cache-type-v, flash_attn is tri-state on, off, or auto projecting --flash-attn, mmproj is an existing relative gguf path projecting --mmproj, and n_gpu_layers is a non-negative integer projecting --n-gpu-layers, invalid values for known keys fail registration closed rather than being silently dropped, unknown keys inside the namespace are ignored for forward compatibility while entering audit detail, an unset ctx_size leaves the server default without runtime enlargement of the context window, mmproj resolves relative to the models root and never escapes it, and multiple mmproj candidates in the bundle file list without an explicit mmproj selection fail registration closed.
     condition: Whenever llama engine configuration is registered or projected to the supervised command line.
     failure: Fail registration closed on invalid known values, path escapes, and ambiguous mmproj candidates.
@@ -989,12 +696,8 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r065
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Supervised llama residency projects LocalWarmState
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Public supervised llama residency truth projects only LocalWarmState where COLD means installed and routable without current residency, WARMING means loading, switching, or ready proving is in progress, READY means a serviceable resident worker currently hits the model, and FAILED means the latest load, switch, or ready proof failed, no parallel public residency enum exists, ACTIVE expresses routability backed by proven or on-demand execution rather than residency, endpoint, bootstrap, bundle, or minimal execution failures are never wrapped as ACTIVE with COLD warmth, COLD never expresses probe failure, eviction detail stays runtime-private, every llama request explicitly binds its target model with same-model requests reusing the same resident worker and cross-model switches explicitly coordinated by Runtime failing closed when unsafe, and static manifest or configuration order never implicitly selects the current model.
     condition: Whenever supervised llama residency is projected or a resident worker is selected or switched.
     failure: Reject parallel residency enums, failure wrapped as cold, and manifest-order implicit selection.
@@ -1003,12 +706,8 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r066
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Text-model selectability relaxation is text scoped
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local models in UNHEALTHY or REMOVED status are never exposed as selectable options, local chat and text models in INSTALLED or ACTIVE status may be selected with Runtime warming an INSTALLED model to proven execution before continuing the request, and this on-demand warm relaxation applies only to chat and text paths with image generation, video generation, and speech paths not inheriting it unless their own runtime contract declares on-demand warm semantics.
     condition: Whenever local model selectability or on-demand warm relaxation is evaluated.
     failure: Reject unhealthy or removed selectability and undeclared relaxation inheritance.
@@ -1017,12 +716,8 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r067
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Managed image backend packages have one canonical source
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The managed image backend package registry is the single normative source for runtime-owned image backend package materialization, package refs are never inferred from ad hoc code branches or engine command-line backend installers, a host tuple may carry multiple package source entries while exactly one supported entry stays canonical for default resolution on that tuple, proposed package entries are runtime-private experimental sources selected only by an explicit runtime-private selector and never auto-selected, implicitly promoted, or used as hidden fallback when the canonical source is unavailable or slow, current admission supports the darwin arm64 Apple stablediffusion-ggml tuple through the canonical LocalAI-derived OCI payload with the official direct archive staying runtime-private experimental, supports the windows amd64 NVIDIA stablediffusion-ggml tuple through the runtime-owned direct archive package and wrapper launch path with CUDA resolved as a shared accelerator dependency before activation or health success, and keeps the linux amd64 NVIDIA tuple unsupported until a published runtime-owned package exists, and a topology recognized in the supervised backend matrix with unsupported package admission fails closed without silently promoting the host tuple.
     condition: Whenever a managed image backend package source is resolved or admitted.
     failure: Fail closed on unadmitted tuples instead of inferring, promoting, or falling back to experimental sources.
@@ -1031,12 +726,8 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r068
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Native-binary image execution is direct
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Canonical native-binary image execution uses the managed image backend gRPC contract directly through LoadModel, GenerateImage, and Free, the canonical media surface remains the app-facing HTTP surface for image execution and health projection, native-binary success never depends on proxy import support, and llama model import is never part of the canonical native-binary image path on any supported host tuple.
     condition: Whenever native-binary image execution or its control surface is dispatched.
     failure: Reject proxy-import dependencies and llama import participation in the canonical path.
@@ -1045,12 +736,8 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r069
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Python pipeline runtime management is fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The python-pipeline backend uses uv as the sole Python bootstrap pipeline without a second bootstrap implementation, the managed Python version is fixed at 3.12, the venv is shared per supervised media engine version rather than created per model and lives under the data-plane environments root in the per-engine per-version python directory without home-directory roots, the venv binds engine version, Python version, package set lock hash, host platform tuple, and the python-pipeline backend class with any binding factor change triggering rebuild, creation stages then verifies then atomically promotes with verification failure entering rebuild or fail-close, budgets fix Python runtime creation at one hundred twenty seconds, dependency install at six hundred seconds, and pipeline warmup at three hundred seconds, retry applies only to transient network transfer failures and never treats ABI incompatibility, missing wheels, or import errors as retryable success paths, no implicit offline fallback exists with wheel sources declared explicitly by engine bootstrap config, and the venv is owned by the runtime engine supervisor with cleanup only through engine version retirement, explicit repair or maintenance, or atomic reclamation.
     condition: Whenever a managed Python pipeline runtime is created, verified, rebuilt, or cleaned.
     failure: Reject parallel bootstrap paths, unbound venvs, retry of non-transient failures, and undeclared wheel sources.
@@ -1059,12 +746,8 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r070
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Daemon core readiness excludes local bootstrap work
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Daemon STARTING covers only bounded core initialization of parsed and validated config, opened stores, serving or ready gRPC and HTTP servers, and constructed core services, the daemon never remains STARTING while performing local engine downloads, accelerator dependency materialization, Python environment creation, Torch or diffusers dependency install, model warmup or minimal execution, provider loopback health probes, or repair jobs, those tasks run as Runtime-owned background jobs or health maintainers whose failures may set DEGRADED, provider-unhealthy detail, local asset setup or repair states, or dependency confirmation and failure states without making RuntimeLocalService, RuntimeAuditService, or config and status surfaces unavailable, and a startup background task failing before READY still transitions the daemon through READY before projecting DEGRADED so consumers observe a consistent service-available state with explicit degradation detail.
     condition: Whenever daemon readiness overlaps local engine, dependency, or model bootstrap work.
     failure: Reject STARTING states held open by bootstrap work and core surfaces hidden by local failures.
@@ -1073,12 +756,8 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r071
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Local environment setup unit is the plan
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Runtime owns local environment setup truth whose unit is a Runtime local environment plan rather than a model row, engine installer, Desktop workflow, package-manager command, developer script, or provider health probe, plans resolve the requested compute pack or capability, installed and imported assets, host profile, consumer requirements, dependency source policy, and current selected source records into dependency state, confirmation requirements, activation gates, repair requirements, and product-safe Desktop projection, managed dependency families cover the CUDA runtime, native engine packages, uv, managed Python, venv, package sets, Torch wheels, model assets, and companion assets rather than CUDA alone, system sources require positive canonicalized proof and managed sources live under Runtime-owned roots, and cloud API setup, account and session, provider connector configuration, and Runtime core status never require local engines, Python, Torch, CUDA, models, or accelerator dependency materialization.
     condition: Whenever local environment setup is planned or cloud-only usage is evaluated.
     failure: Reject setup truth outside plans and local dependency requirements imposed on cloud-only usage.
@@ -1087,12 +766,8 @@ units:
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.r072
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Speech baseline family lines and lanes are fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The local speech baseline is the Qwen3 family line where qwen3_asr is the default local transcription family with ordinary-user default lane Qwen3-ASR-0.6B and qwen3_tts is the default local synthesis and workflow family with plain synthesis default lane Qwen3-TTS-12Hz-0.6B-CustomVoice, clone workflow default lane Qwen3-TTS-12Hz-0.6B-Base, and design workflow default lane Qwen3-TTS-12Hz-1.7B-VoiceDesign, voice clone and voice design workflows promote to local truth only after their real local workflow execution plane is explicitly cutover admitted, and the baseline admitted local workflow family boundary stays qwen3_tts without widening into generic local workflow truth.
     condition: Whenever local speech families, default lanes, or workflow admission are projected.
     failure: Reject undeclared default lanes and workflow promotion before explicit admission.
@@ -1101,12 +776,8 @@ units:
         target: definition.nimi.runtime.local-compute.speech-engine-plane
   - id: rule.nimi.runtime.local-compute.r073
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Speech environment topology is split per family line
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Baseline local Qwen3 speech environments are explicitly split supervised environments where qwen3_tts synthesis and workflow checkpoints share one qwen3_tts environment line and qwen3_asr uses an independent qwen3_asr environment line, Runtime never assumes the two families co-install in one canonical supervised environment, and Qwen3-ASR-1.7B remains only an optional premium candidate never auto-materialized as the ordinary-user canonical default before an independent premium admission.
     condition: Whenever local speech environments are materialized or speech defaults are selected.
     failure: Reject co-installed canonical speech environments and unadmitted premium defaults.
@@ -1115,12 +786,8 @@ units:
         target: definition.nimi.runtime.local-compute.speech-engine-plane
   - id: rule.nimi.runtime.local-compute.r074
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Canonical local speech is supervised and bundle shaped
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The ordinary-user canonical local speech path is fixed to the speech engine in SUPERVISED mode projected as a bundle-shaped local speech setup surface rather than generic verified model rows or independent environment, bootstrap, and host install objects, speech in ATTACHED_ENDPOINT mode exists only as an advanced self-hosted path never product-equivalent to supervised, and capability materialization stays lazy per requested capability where transcription materializes only the admitted qwen3_asr slice, plain synthesis materializes only the admitted qwen3_tts plain synthesis slice, and future admitted voice workflow capabilities materialize their own slices without prefetch through plain synthesis or transcription requests.
     condition: Whenever the ordinary-user local speech path is projected or a speech capability materializes.
     failure: Reject generic-row projection, supervised-equivalent attached posture, and cross-capability prefetch.
@@ -1129,12 +796,8 @@ units:
         target: definition.nimi.runtime.local-compute.speech-engine-plane
   - id: rule.nimi.runtime.local-compute.r075
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Activation is consumer keyed and Runtime owned
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local environment consumer activation is consumer-keyed and Runtime-owned where the consumer id names a Runtime activation consumer rather than an app, module, or feature requirement owner, an AI scope reference, or a UI consumer, a pack id may accompany a request only as projection context after route resolution or setup planning has already selected a consumer with pack arbitration staying upstream of activation, consumers never select sources, create selected source records, run installers, repair dependencies, mutate PATH or global Python or package-manager state, or project readiness and only consume activation gate responses and selected source record projections, and activation consumers never serve as live AIConfig slice identity or requirement declarations with requirement-to-consumer mapping owned as explicit projection metadata by the descriptor readiness and SDK requirement boundaries.
     condition: Whenever a local environment activation consumer is declared, requested, or mapped.
     failure: Reject consumer-created setup truth and consumer identity reuse as configuration identity.
@@ -1143,12 +806,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r076
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Activation request identity vocabulary is fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: An activation request carries the consumer id, an optional projection pack id, the host profile id, platform tuple, and runtime data root, the asset id for the model asset family, and the companion asset id, companion kind, and parent asset id for the companion family, the asset id is the semantic installable identity taken from the catalog local-plane variant identity for verified assets and from the manifest asset id for explicit imports, the local asset id stays a Runtime installed-record handle usable by lifecycle calls and as a lookup hint that Runtime resolves to the asset id before writing dependency identity or selected-source truth, a model id is a catalog or route selector that never substitutes for the asset id in dependency identity, the selected source record id stays a Runtime-private proof pointer projectable for diagnostics and audit without becoming reusable model binding identity, and local asset ids, UI row ids, transfer ids, consumer ids, engine-private paths, and route-local handles stay projection only.
     condition: Whenever an activation request or dependency identity is composed.
     failure: Reject projection handles or catalog selectors written as dependency identity.
@@ -1157,12 +816,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r077
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Environment keys derive per dependency family
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Runtime derives one dependency environment key per required dependency family from canonical dependency authority where the CUDA accelerator runtime keys on dependency id, host profile id, platform tuple, and runtime data root, the native llama engine package keys on engine id, package variant, platform tuple, and data root, the native stablediffusion-ggml engine package adds the backend family, the uv tool keys on tool id, platform tuple, and data root, the Python runtime keys on Python version, platform tuple, and data root, the venv keys on engine id, backend family, Python version, package lock hash, platform tuple, and data root, the package set keys on engine id, backend family, package lock hash, platform tuple, and data root, the Torch wheel keys on Torch version, accelerator plane, CUDA ABI, platform tuple, and data root, the model asset keys on asset id, model family, and data root, and the companion asset keys on asset id, parent asset id, companion kind, and data root, dependency environment identity is canonical with consumer membership projected through the activation gate and the record selected consumers, consumer scope is not key material unless a dependency family explicitly admits consumer-scoped selected source ownership, and the model and companion families persist semantic identities without local record handles, route-local handles, or string namespaces.
     condition: Whenever a dependency environment key is derived or persisted.
     failure: Reject keys composed from undeclared fields or projection handles.
@@ -1171,12 +826,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r078
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Activation response and ready condition are fixed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: RuntimeLocalService exposes activation gates through the named logical operation ResolveLocalEnvironmentConsumerActivation whose response carries the consumer id and projection pack id, the activation state, ordered blocking dependencies, dependency entries with family, dependency id, environment key, required flag, selected source record id, source kind, canonical root, dependency state, reason code, and bounded diagnostic detail, process-local activation environment deltas, and audit metadata including host profile and platform tuple, and the response is ready only when every required dependency is ready_system or ready_managed and every referenced selected source record passes repair, compatibility, and verification checks.
     condition: Whenever consumer activation is resolved or its response composed.
     failure: Reject incomplete responses and ready projections with unverified or non-ready dependencies.
@@ -1185,12 +836,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r079
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Activation state mapping is prioritized
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Activation state resolves in the priority order of unsupported, then repair_required, then failed, then cancelled, then setup_in_progress, then setup_required, then ready, the queued, downloading, verifying, and installing dependency states project setup_in_progress, the unknown and needs_confirmation states project setup_required, and non-ready states never project active, degraded-ready, best-effort-ready, endpoint-ready, or import-ready.
     condition: Whenever dependency states map to an activation state.
     failure: Reject out-of-priority mappings and ready-like projections of non-ready states.
@@ -1199,12 +846,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r080
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Activation deltas are process local only
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Activation deltas are process-local and consumable only after selected source verification succeeds, the admitted deltas are the child-process PATH prepend for selected CUDA runtime artifacts, executable path and canonical root references for native engine packages, the uv, Python interpreter, venv root, package environment, and wheel references for Python pipelines, and selected model and companion asset paths, and deltas are never readiness proof and never write user PATH, machine PATH, shell profiles, system CUDA, global Python, package-manager global state, or engine-private persistent setup state.
     condition: Whenever activation environment deltas are produced or consumed.
     failure: Reject unverified delta consumption, persistent mutation, and readiness inferred from deltas.
@@ -1213,12 +856,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r081
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Activation reasons have declared owners
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Activation reason codes live in the canonical activation gate reason registry with each code declaring ownership by a dependency family, a selected source record state, or a host-capability projection and implementations never inventing unregistered activation reason codes, vulkan_runtime_unavailable and metal_runtime_unavailable are host-capability projection reasons that admit no Vulkan or Metal dependency materializers and create no selected source records, and speech driver readiness belongs to python package-set verification evidence with speech consumers using python_package_set_missing rather than a separate engine-local speech driver installer.
     condition: Whenever activation reason codes are declared, emitted, or consumed.
     failure: Reject unregistered reason codes and materializers implied from projection reasons.
@@ -1227,12 +866,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r082
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Consumer and pack registries stay lockstep
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Consumer requirement authority, local compute pack consumer references, and the activation contract stay in lockstep with no orphaned consumer ids in either direction, pack-level optional dependency families are Desktop and setup projection only and never weaken consumer-level required dependency evaluation once a specific consumer is selected, and cloud-only usage issues no local consumer activation request and resolves no local environment dependencies.
     condition: Whenever consumer requirements, pack references, or cloud-only posture are evaluated.
     failure: Reject orphaned consumer ids and pack-level weakening of required evaluation.
@@ -1241,12 +876,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r083
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Activation ready never derives from side effects
     modality: must_not
-    scope:
-      - runtime.local-compute
     statement: Runtime projects activation ready from file existence, directory presence, endpoint reachability, transfer completion, package directory presence, PATH precedence, import success, import directory contents, script exit, process liveness, warmup success, or previous health success without a ready selected source record.
     condition: Whenever activation readiness evidence is evaluated.
     failure: Fail closed without a ready selected source record.
@@ -1255,12 +886,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r084
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: First-run baseline evidence is activation derived
     modality: must
-    scope:
-      - runtime.local-compute
     statement: RuntimeLocalService owns the runtime baseline reference for product first-run ready admission as durable evidence rather than a route probe id, file path, process health result, or renderer-supplied string, the reference is valid only when it resolves the selected first-run local factory profile reference and install level, the selected runtime data root reference, all required dependency families and selected source record ids for the selected baseline, activation responses showing every required dependency ready_system or ready_managed for each required consumer, the materialization job terminal evidence or system-source verification evidence behind the selected records, and the observation time, Runtime verifier identity, and audit sequence, materialization success alone is never readiness with the reference minted only after activation succeeds for the selected baseline and previous materialization terminal states never reused without fresh activation verification, and file existence, endpoint reachability, route health checks, process liveness, import success, transfer completion, script exit, warmup success, or previous health success never mint or satisfy the reference.
     condition: Whenever first-run baseline readiness evidence is minted or validated.
     failure: Reject references lacking activation evidence and side-effect minting paths.
@@ -1269,12 +896,8 @@ units:
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
   - id: rule.nimi.runtime.local-compute.r085
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Materializers are the only materialization path
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Runtime materializers are the only admitted product path for materializing local environment dependency families, the admitted families are exactly the CUDA accelerator runtime, native llama engine package, native stablediffusion-ggml engine package, uv tool, Python runtime, venv, Python package set, Torch wheel, model asset, and companion asset families, a materializer is a RuntimeLocalService-owned job executor consuming a resolved dependency environment, source policy, source manifest, confirmation disposition, and current selected source record that stages artifacts under Runtime-owned roots, verifies family-specific evidence, and promotes a selected source record only after verification succeeds, and materializers are never Desktop workflows, engine-local installers, developer scripts, package-manager commands, PATH helpers, transfer records, endpoint probes, or model rows.
     condition: Whenever a local environment dependency family is materialized.
     failure: Reject materialization outside the admitted families or Runtime materializer executors.
@@ -1283,12 +906,8 @@ units:
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r086
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Passive surfaces never start heavy materialization
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Engine startup, Python pipeline startup, route resolution, provider health checks, passive import review, SDK reads, Desktop page load, and background maintenance never perform first heavy or network materialization, missing uv, Python runtime, venv, package set, Torch wheel, native engine package, model asset, or companion asset readiness projects Runtime setup, confirmation, failed, unsupported, cancelled, or repair state, ordinary users are never instructed to install these dependencies through a system package manager, global Python environment, user PATH, machine PATH, shell profile, or engine-private directory, and visible terminal or external package-manager flows exist only as diagnostic export never as dependency state truth.
     condition: Whenever a passive surface encounters missing local dependencies.
     failure: Reject silent heavy materialization and ordinary-user manual installation instructions.
@@ -1297,12 +916,8 @@ units:
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r087
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Import-derived records are model families only
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Explicit local imports may produce selected source records only for the model asset and companion asset families, imported paths never become Python, uv, CUDA, DLL, package-manager, Torch, or native engine package roots, and native stablediffusion-ggml source candidates link to the managed image backend package registry while selected source record promotion stays owned by the local environment materializer without inference from engine startup branches, command-line backend installers, or ad hoc code paths.
     condition: Whenever imports or package registries interact with selected source records.
     failure: Reject import-derived non-model records and promotion outside the materializer.
@@ -1311,12 +926,8 @@ units:
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r088
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Materializer projection preserves non-ready states
     modality: must
-    scope:
-      - runtime.local-compute
     statement: RuntimeLocalService owns the app-facing materializer projection and command surface that reads the materializer registry for dependency families, resolves source candidates and source manifests from Runtime authority, projects current selected source summaries with bounded diagnostics, projects confirmation payloads covering the dependency family, known size, storage category, and no-system-mutation policy before first network or storage-heavy materialization, starts, observes, cancels, retries, and repairs materializer jobs by dependency environment and Runtime job id, and projects activation gate failures without probing or installing dependencies, the projection preserves the non-ready distinction among needs_confirmation, queued, downloading, verifying, installing, repair_required, failed, unsupported, and cancelled, and product-facing setup-required or confirmation text stays a projection of needs_confirmation never a ready state.
     condition: Whenever the materializer projection or command surface is served.
     failure: Reject collapsed non-ready states and confirmation text treated as readiness.
@@ -1325,12 +936,8 @@ units:
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r089
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Terminal jobs carry typed dispositions
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Terminal dependency jobs project typed reason code and recovery disposition fields in addition to bounded diagnostic detail, failure detail stays human and debug context that SDK, Desktop, tester, and app consumers never parse to decide retry, auto-recovery, repair, or setup-state transitions, Runtime owns the classification of interrupted, manual-retry, repair-required, unsupported, and not-retryable outcomes, and local transfer records appear only as progress or diagnostic detail never targeting materializer commands, creating selected source records, or projecting readiness.
     condition: Whenever a dependency job terminates or transfer detail is projected.
     failure: Reject untyped terminals, consumer-parsed failure text, and transfer-driven readiness.
@@ -1339,12 +946,8 @@ units:
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r090
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Download progress projection is bounded and honest
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The dependency job projection carries bytes received as fetched on-disk bytes including any resumed prefix, bytes total as the known final size or zero when unknown, percent as an integer zero through one hundred projected only when the total is known with unknown totals rendering an indeterminate affordance rather than a fabricated percentage, speed in bytes per second computed only from positive observed bytes over positive elapsed time and otherwise absent, and ETA seconds projected only when total, speed, and remaining bytes are all positive and otherwise absent, the fields are meaningful only while a job actively transfers in downloading or verifying and project zero or absent for every other state without back-filling, carry-over, or fabrication, consumers gate percentage, rate, and ETA display on the transferring states and treat zero rate or ETA as not yet known rather than stalled, and the progress projection is an additive non-breaking detail that never changes job lifecycle, selected-source promotion, activation, or readiness semantics with bytes never promoting, selecting, or substituting for verification evidence.
     condition: Whenever dependency job download progress is projected or rendered.
     failure: Reject fabricated progress values and progress-derived readiness or selection.
@@ -1353,12 +956,8 @@ units:
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r091
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Install-level plan resolution is deterministic
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local environment plan resolution accepts an optional install level of minimal or recommended where a set install level without an explicit asset id resolves the pack model asset and companion asset dependencies internally through the deterministic curated-preset resolver from the preset plus host posture, an explicit asset id always wins and an unset install level preserves explicit-identity behavior, a compute pack may host multiple preset model slots so install-level resolution emits one model asset dependency per resolved hosted-slot capability each carrying its resolver-filled asset id and one companion dependency per resolved companion of those slots without key collisions because model asset keys derive from the asset id, the pack to hosted-capability relation is explicit Runtime authority mapping the local text pack to text generation, the local speech pack to transcription plus synthesis, and the local native image pack to image generation and is never keyed on consumer scope, and a resolver fail-close leaves the dependency in unsupported state carrying the typed resolver reason code and a non-empty stable pack default dependency id never projected as a ready or startable dependency.
     condition: Whenever install-level plan resolution runs or its dependencies are emitted.
     failure: Reject nondeterministic slot resolution, consumer-scope keying, and startable unresolved dependencies.
@@ -1367,12 +966,8 @@ units:
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
   - id: rule.nimi.runtime.local-compute.r092
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Profile execution declarations resolve in fixed order
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local execution declarations admit required entries that must be satisfiable or resolution fails with a reason code, optional entries that skip with a warning when unavailable, alternatives groups selecting one member preferring the preferred entry id then declaration order and failing when all members are unavailable, and preferred mappings from capability to entry id that only influence alternative selection priority, resolution walks required then optional then alternatives, and the resulting local execution plan carries the selection rationale and preflight decisions.
     condition: Whenever a local execution declaration set is resolved.
     failure: Fail resolution closed on unsatisfiable required entries instead of silent skips.
@@ -1381,12 +976,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r093
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Profile surface normalizes unified asset entries
     modality: must
-    scope:
-      - runtime.local-compute
     statement: ResolveProfile receives a single local profile descriptor and normalizes its asset entries into a local execution plan, every entry is an asset entry carrying an asset kind from the closed set of chat, image, video, tts, stt, embedding, vae, clip, lora, controlnet, and auxiliary plus an optional engine slot that passive assets must carry, runnable entries with kinds chat, image, video, tts, stt, or embedding and no engine slot enter the execution resolver producing Service and Node bindings, passive entries participate in unified asset resolution with paths injected through their engine slot at workflow execution, ApplyProfile installs runnable assets before passive assets through the unified install and import entry points, the daemon executes only the profile passed to it with profile enumeration owned by the desktop or app host, and a capability filter executes only entries matching the capability or declaring none.
     condition: Whenever a local profile is resolved or applied.
     failure: Reject undeclared asset kinds, slotless passive entries, and daemon-side profile enumeration.
@@ -1395,12 +986,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r094
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Apply pipeline has four staged results
     modality: must
-    scope:
-      - runtime.local-compute
     statement: ApplyProfile executes the resolved local execution plan in four stages where preflight recollects the device profile and validates hardware compatibility and port availability, install executes the unified install and import entry points and persists state, bootstrap starts local services with attached-endpoint mode performing connection validation only, and health runs engine-specific probing with media and speech probing their canonical health and catalog endpoints, and every stage yields a stage result carrying the stage, ok flag, reason code, and detail.
     condition: Whenever a profile apply pipeline executes.
     failure: Reject skipped stages and stage outcomes without typed stage results.
@@ -1409,12 +996,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r095
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Apply failure rolls back in reverse
     modality: must
-    scope:
-      - runtime.local-compute
     statement: When any apply stage fails Runtime cleans up the completed stage side effects in reverse order removing the models and services installed by the run, marks the result rollback applied, carries both the original failure and the rollback failure reason codes without attempting a second rollback when rollback itself fails, and confines rollback to runtime-internal registration state from the install stage without deleting externally downloaded assets.
     condition: Whenever a profile apply stage fails.
     failure: Reject partial cleanup claims and rollback that deletes external artifacts.
@@ -1423,12 +1006,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r096
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Local state persists atomically with bounded audit
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Local model state persists to the single configured runtime local-state file written atomically through a temporary file and rename, the format carries schemaVersion 2 and ignores unknown fields for forward compatibility, persisted asset and service records retain the internal engine runtime mode so an explicit attached loopback is never confused with a recommended supervised loopback, local audit events append with a default five-thousand-entry capacity overridable by daemon configuration and FIFO eviction beyond it, and every install, remove, start, stop, and health state change triggers persistence.
     condition: Whenever local asset or service state changes or is reloaded.
     failure: Reject non-atomic writes, dropped engine runtime mode, and unbounded audit growth.
@@ -1437,12 +1016,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r097
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Adapter routing is table driven exact first
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Node adapter selection follows the canonical local adapter routing table where llama chat, text generation, embedding, and image and audio understanding capabilities route to the llama native adapter, media image generation, image editing, video generation, and image-to-video route to the media native adapter, speech transcription and synthesis route to the speech native adapter, sidecar music routes to the sidecar music adapter, and the wildcard engine and capability pair routes to the OpenAI-compatible adapter, with exact matches taking precedence over wildcards.
     condition: Whenever a node adapter is selected.
     failure: Reject adapter selection outside the canonical routing table or wildcard-over-exact ordering.
@@ -1451,12 +1026,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r098
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Policy gates are explicit and typed
     modality: must
-    scope:
-      - runtime.local-compute
     statement: A local node policy gate identifier conditionally forbids a provider and capability combination making the gated node unavailable with a reason code, a host-known provider and capability combination without support carries a gate identifier in the provider.capability.unsupported style and never continues exposing a native adapter, gate information passes to audit and callers through local provider hints, and the hint-level gate identifier and the structured audit gate context express different granularities without requiring type alignment.
     condition: Whenever a local policy gate is set, projected, or audited.
     failure: Reject gated nodes projected available and unsupported combinations exposing native adapters.
@@ -1465,12 +1036,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r099
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Node catalogs generate from active services
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Node catalog listing generates live from services in ACTIVE status producing one node per service capability with node identity in the service id colon capability form, provider fields exist only as compatibility projections from the engine which stays the local execution truth source, the adapter follows the canonical routing table, availability requires health plus absence of policy gates, llama nodes additionally require a resolvable bundle, complete primary artifacts, and capability probe success, media and speech nodes require their canonical catalog probe with a ready entry comparable to the target logical model id and otherwise project unavailable and fail closed, descriptor-backed workflow nodes match the validated backend and family and may expose selected runtime-private implementation detail without silently substituting a different authored backend or family, media provider hints expose the runtime support class following the actual managed backend rather than a coarse engine-wide host classification, provider hints expose the local default rank ordering for the current host and capability, and listing supports capability, service, and provider filters.
     condition: Whenever a node catalog is generated or filtered.
     failure: Reject persisted catalogs, probe-free availability, and silent backend substitution.
@@ -1479,12 +1046,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r100
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Durable identity supersedes prefix routing
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Durable local execution identity supersedes raw model id prefix routing which stays readable only as retired migration input or catalog and display metadata, execution, health, warm, generate, lease, and resident load resolve a durable v2 local reference through the profile binding id or readiness reference before selecting engine or provider facts, engine-first local defaults never silently switch models across families with fallback admitted only within the declared engine set of the same logical model, descriptor-backed profile workflows admit no implicit backend fallback and fail closed with profile and workflow readiness detail and no live AIConfig write for required slices, an unexecutable media path fails closed without pretending ready or silently falling back to cloud or provider aliases, and voice clone and voice design workflows are never projected as canonical local speech success before explicit local workflow admission.
     condition: Whenever local execution identity or engine fallback is resolved.
     failure: Reject prefix-derived execution truth, cross-family silent fallback, and alias rescue.
@@ -1493,12 +1056,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r101
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Companion occurrences are ordered and validated
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Profile workflow companion binding is occurrence-based carrying a stable occurrence id, explicit order, admitted role, runtime-private engine slot, portable asset binding reference, required policy, backend-admitted weight and options, and optional applicability constraints, passive assets used by a workflow appear through occurrences with a missing required occurrence role or slot failing closed with AI_LOCAL_ASSET_SLOT_MISSING, runnable main assets are never represented as companion occurrences with slot semantics on them failing closed with AI_LOCAL_ASSET_SLOT_FORBIDDEN, the same engine slot repeats only with distinct occurrence ids and explicit order while slot maps keyed only by engine slot are no longer authoritative for descriptor-backed workflows, engine slot value domains are backend-defined and validated against the authored backend and family with unsupported roles or options failing closed rather than skipped or defaulted, Runtime resolves ordered occurrences into backend injection parameters preserving order, duplicate use, required policy, weight, and options before execution, an uninstalled or unhealthy required occurrence asset fails workflow readiness without marking the shared reusable main asset globally unhealthy, passive asset paths resolve from the asset manifest parent and entry never from the asset id, logical model id, or local-import source repos, and legacy unordered slot-map entries are consumed only as migration input normalized into ordered occurrences before prepare, materialization, cache-key calculation, or execution failing closed when identity or order cannot be preserved.
     condition: Whenever profile workflow companion occurrences are declared, normalized, or resolved.
     failure: Fail closed with the exact typed slot reasons instead of skipping, defaulting, or poisoning shared assets.
@@ -1507,12 +1066,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r102
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Profile overrides are bounded to engine parameters
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Profile entry overrides may cover only engine-specific execution parameters and never the model parameter, download file lists, any path field, or engine slot bindings, an attempted protected-field override fails ResolveProfile closed with AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN, overrides apply after runtime slot path injection and before engine request construction, overrides never trigger asset reinstallation or service restart and affect only the single workflow execution, and entries without overrides use the asset default parameters.
     condition: Whenever profile entry overrides are declared or applied.
     failure: Fail closed on protected-field overrides instead of applying or ignoring them.
@@ -1521,12 +1076,8 @@ units:
         target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r103
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Asset kind registry is closed and proto aligned
     modality: must
-    scope:
-      - runtime.local-compute
     statement: The local asset kind registry admits exactly the proto LocalAssetKind values chat, image, video, tts, stt, and embedding as runnable kinds numbered one through six and vae, clip, lora, controlnet, and auxiliary as passive kinds numbered ten through fourteen, each runnable kind maps to exactly one capability token with chat to chat, image to image.generate, video to video.generate, tts to audio.synthesize, stt to audio.transcribe, and embedding to text.embed, and passive kinds carry no capability token and are never directly scheduled or invoked.
     condition: Whenever a local asset kind is declared, persisted, or mapped to a capability token.
     failure: Reject undeclared asset kinds, runnable kinds without their declared capability token, and scheduled or invoked passive kinds.
@@ -1535,12 +1086,8 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r104
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Capability tokens resolve to asset kinds first match wins
     modality: must
-    scope:
-      - runtime.local-compute
     statement: Capability token to asset kind resolution during asset registration and profile resolution walks canonical tokens before local manifest tokens with first match winning, canonical tokens map chat, text.generate, text.generate.vision, text.generate.audio, and text.generate.video to chat, text.embed to embedding, image.generate and image.edit to image, video.generate to video, audio.synthesize, voice_workflow.voice_clone, and voice_workflow.voice_design to tts, audio.transcribe to stt, and music.generate and music.generate.iteration to auxiliary, local manifest tokens map embedding, image, video, tts, and stt to their same-named kinds and music to auxiliary, and the offline migration inputs llm to chat plus vae, clip, controlnet, lora, and auxiliary to their same-named kinds are consumed only by offline migration tooling and never accepted as legacy artifact-kind aliases on runtime or public asset contracts.
     condition: Whenever a capability or manifest token is resolved to a local asset kind.
     failure: Reject token mappings outside the declared closed table and legacy alias acceptance on runtime or public surfaces.

@@ -1,55 +1,35 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.memory-world
 units:
   - id: definition.nimi.runtime.memory-world.canonical-memory-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime canonical memory plane
     meaning: The Runtime canonical memory plane owns RuntimeAgentService-side canonical memory semantics for agent-facing memory scopes, including canonical review ownership and scheduling, the read-only canonical review status projection, runtime-private chat track sidecar consumption, the runtime-private canonical truth read boundary, dual-phase review commit coordination, and the stabilization boundary between chat and life conversational evidence and canonical memory candidate admission.
-    relations: []
   - id: definition.nimi.runtime.memory-world.memory-service-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime cognition memory service plane
     meaning: The Runtime cognition memory service plane owns the runtime-facing retained memory topology through RuntimeCognitionService and the retained runtime-private memory depth, including bank scope and isolation truth, the provider-agnostic typed memory boundary, embedding profile identity and the memory embedding consume split, the closed public memory operation family, canonical bind and cutover boundaries, replication state, lifecycle, and backlog truth, derived projection lineage and cascade, and retain-time duplicate suppression.
-    relations: []
   - id: definition.nimi.runtime.memory-world.memory-substrate-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime memory substrate plane
     meaning: The Runtime memory substrate plane owns the runtime-private binding between retained runtime-private memory depth and any future admitted memory provider, including provider admission state, the runtime-owned locator and identity overlay, the provider feature floor, substrate failure and replay semantics, public boundary preservation, the RealmSyncBridge ingress boundary, and the runtime-owned derived replay boundary above provider-native storage.
-    relations: []
   - id: definition.nimi.runtime.memory-world.knowledge-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime knowledge projection plane
     meaning: The Runtime knowledge projection plane owns the runtime-local knowledge projection family absorbed into RuntimeCognitionService after the RuntimeKnowledgeService retirement, including knowledge bank and page lifecycle, keyword and hybrid retrieval, same-bank graph and backlink relations, single-document ingest with task polling, workspace binding authorization, the knowledge action scope matrix, and the explicit deferral set for unadmitted knowledge expansions.
-    relations: []
   - id: definition.nimi.runtime.memory-world.scheduling-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime scheduling judgement plane
     meaning: The Runtime scheduling judgement plane owns the non-blocking preflight scheduling evaluation model over the runtime execution semaphore baseline, including the closed judgement state enum, the batch Peek contract, aggregate fold and merge semantics, shared occupancy telemetry, denied hard rules, advisory risk states, the Peek and Acquire relationship, and target-scoped capability and resource hint semantics.
-    relations: []
   - id: definition.nimi.runtime.memory-world.world-evolution-plane
     kind: definition
-    owner: team.runtime
-    lifecycle: active
     title: Runtime world evolution plane
     meaning: The Runtime world evolution plane owns runtime-local World Evolution Engine execution semantics, including the execution event envelope home, execution stage separation, recorded replay, checkpoint recovery, supervision and fault-isolation outcomes, commit-request staging toward Realm-owned commit authority, and the workflow partial reuse boundary, while Realm remains the referenced canonical truth owner for shared world state and history.
-    relations: []
   - id: rule.nimi.runtime.memory-world.r001
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Canonical review authority is Runtime owned
     modality: must
-    scope:
-      - runtime.memory-world
     statement: RuntimeAgentService owns canonical review for agent-facing memory scopes including review scheduling, review token-budget admission, review trigger policy, review executor selection, and truth candidate admission and supersession policy, canonical review for AGENT_CORE, AGENT_DYADIC, and admitted WORLD_SHARED scopes executes through a RuntimeAgentService-owned runtime-private review path using a dedicated runtime-private review executor contract rather than an extension of the admitted life turn result contract, retired public Reflect semantics are never reintroduced as the canonical review scheduler, admitted review output is limited to narrative candidates, truth candidates, optional relation candidates, summary, token usage, and review-window metadata carried on the APML canonical-review root admitted by the runtime agent participation output wire authority with no JSON executor output compatibility, internal library extraction of review storage mechanics transfers no review ownership, scheduling, admission policy, or recovery semantics, and truth candidate admission and conflict handling remain RuntimeAgentService-owned even when retained memory depth persists the resulting state.
     condition: Whenever canonical review is scheduled, executed, or its output admitted.
     failure: Reject review semantics owned outside RuntimeAgentService and out-of-boundary review output.
@@ -58,12 +38,8 @@ units:
         target: definition.nimi.runtime.memory-world.canonical-memory-plane
   - id: rule.nimi.runtime.memory-world.r002
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Review status projection is narrow and read only
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The canonical review status projection is bank-level scheduler and follow-up observability limited to the validated canonical bank locator, review executor availability, the last committed review follow-up id, checkpoint basis, and completion time, the next eligibility time derived from runtime-owned review cadence policy, and whether a recoverable runtime review run blocks fresh scheduling, it derives only from RuntimeAgentService-owned review persistence, committed follow-up rows, and review cadence constants and is never derived by SDKs or apps from memory metadata, summaries, timestamps, UI state, or app-local caches, it never exposes admitted truth state, narrative bodies, prepared review outcomes, or model-facing canonical review input or output payloads, it admits no mutation, redaction, forget, retire, or review execution command, recoverable prepared or memory_committed review runs surface as explicit blocking state rather than ordinary eligibility or pseudo-success, and missing canonical bank state surfaces as explicit BANK_UNAVAILABLE readiness rather than caller-synthesized lifecycle state.
     condition: Whenever canonical review status is projected or consumed.
     failure: Reject widened projections, consumer-derived status, and synthesized lifecycle state.
@@ -72,12 +48,8 @@ units:
         target: definition.nimi.runtime.memory-world.canonical-memory-plane
   - id: rule.nimi.runtime.memory-world.r003
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Chat sidecar consumption is validated and bounded
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Runtime-private chat track sidecar parsing and validation remain runtime-owned with renderer or client code never the semantic owner of sidecar payloads, admitted sidecar output is limited to posture patch, emotion update, hook cancellations, typed HookIntent, and canonical memory candidates carried on the APML chat-track-sidecar root admitted by the runtime agent participation output wire authority with no JSON executor output compatibility, sidecar output never admits proactive initiate-chat semantics, arbitrary state mutation, direct world or user mutation, or free-form scheduling logic, typed HookIntent and canonical memory candidates returned by the sidecar pass the same runtime-owned validators used elsewhere on RuntimeAgentService, and invalid sidecar output fails closed without silently mutating committed posture, hook, or memory truth.
     condition: Whenever a chat track sidecar result is parsed or applied.
     failure: Fail closed on invalid sidecar output instead of silent commitment.
@@ -86,12 +58,8 @@ units:
         target: definition.nimi.runtime.memory-world.canonical-memory-plane
   - id: rule.nimi.runtime.memory-world.r004
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Canonical truth reads use the private typed facade
     modality: must
-    scope:
-      - runtime.memory-world
     statement: RuntimeAgentService consumes admitted truths, narrative context, canonical review inputs, and review checkpoints only through the runtime-private typed read boundary provided by retained runtime-private memory depth and never by direct database access, runtime-private truth read surfaces return typed runtime contract data rather than raw store rows or provider-native blobs, the facade may be implemented by a runtime-owned internal memory library only behind the retained runtime-private memory boundary, and prompt assembly may inject admitted truths and narrative context from this read path without that creating a public truth API.
     condition: Whenever canonical truth or review input is read for runtime agent execution.
     failure: Reject direct store access, raw row exposure, and public truth API creation.
@@ -100,12 +68,8 @@ units:
         target: definition.nimi.runtime.memory-world.canonical-memory-plane
   - id: rule.nimi.runtime.memory-world.r005
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Review commit coordination is dual phase and idempotent
     modality: must
-    scope:
-      - runtime.memory-world
     statement: RuntimeAgentService submits canonical review outcomes through a single runtime-private commit request identified by review_run_id, retained runtime-private memory depth commits all review-owned narrative, truth, and lineage mutations atomically and idempotently for that review_run_id, RuntimeAgentService publishes follow-up checkpoint, hook, or event truth only after that commit succeeds, the admitted coordination model is idempotent dual-phase coordination and never distributed transaction coupling across Agent Core and retained memory depth, internal library extraction preserves this coordination model rather than collapsing RuntimeAgentService into direct store mutation, and review recovery and coordination never absorb backlog or replay ownership or mutate pending replay truth outside the retained memory depth boundary.
     condition: Whenever a canonical review run commits or recovers.
     failure: Reject non-atomic commits, publication before commit, and coordination-side backlog ownership.
@@ -114,12 +78,8 @@ units:
         target: definition.nimi.runtime.memory-world.canonical-memory-plane
   - id: rule.nimi.runtime.memory-world.r006
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Evidence stabilizes before canonical admission
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Chat transcript, conversation continuity, and life-turn conversational evidence are source evidence inputs and never canonical memory truth by default, runtime-private chat sidecar and life turn outputs emit canonical memory candidates only after RuntimeAgentService-owned stabilization over the current evidence window, explicit same-window self-correction or contradiction is not emitted by default as two conflicting durable canonical candidates from the same evidence window, candidate source_event_id and provenance preserve evidence lineage without implying every intermediate utterance becomes durable memory truth, retain-time dedup remains a downstream concern over stabilized candidates and never the primary owner of immediate conversational correction, and truth admission, supersession, and later derived projection updates remain the downstream path for cross-window correction after durable memory has been committed.
     condition: Whenever conversational evidence approaches canonical memory candidate admission.
     failure: Reject raw transcript persistence as truth and unstabilized conflicting candidates.
@@ -128,12 +88,8 @@ units:
         target: definition.nimi.runtime.memory-world.canonical-memory-plane
   - id: rule.nimi.runtime.memory-world.r007
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Standalone cognition ownership stays outside
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Runtime memory, runtime knowledge projection, and RuntimeAgentService consumption never own standalone cognition semantics, runtime consumption of standalone cognition kernels, prompt context, or advisory outputs remains adapter-owned rather than semantic ownership, runtime never redefines the cognition object model, cleanup semantics, or standalone public surface by implementation convention, runtime memory and knowledge never absorb cognition kernel, prompt, working-state, or routine ownership by implementation convenience, and overlapping record or page mechanics never make retained runtime memory or the retired runtime knowledge topology the continuing owner of cognition memory or knowledge projections.
     condition: Whenever runtime consumes or overlaps with standalone cognition semantics.
     failure: Reject runtime redefinition or absorption of cognition-owned semantics.
@@ -146,12 +102,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r008
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Cognition service is the sole public memory owner
     modality: must
-    scope:
-      - runtime.memory-world
     statement: RuntimeCognitionService is the sole admitted runtime-facing cognition owner surface replacing RuntimeMemoryService and RuntimeKnowledgeService, no second runtime-facing memory or knowledge owner surface remains admitted in steady state beside it, retained runtime-private memory depth stays explicit so topology replacement never collapses RuntimeAgentService, bank and access, provider, replication, workflow, or canonical review truth into cognition by implication, and working memory such as prompt assembly state, tool traces, turn plans, and other runtime execution scratch state remains outside retained runtime memory truth.
     condition: Whenever runtime-facing memory or knowledge topology is defined or consumed.
     failure: Reject second owner surfaces and implicit truth collapse into cognition.
@@ -160,12 +112,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r009
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Memory bank scope and isolation are fixed
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Every memory unit belongs to exactly one bank and banks are isolated from one another, the scope-typed bank locator family carries dedicated owner branches for AGENT_CORE, AGENT_DYADIC, and WORLD_SHARED as canonical agent-facing scopes and APP_PRIVATE and WORKSPACE_PRIVATE as infra-only scopes as pinned in the runtime memory bank scope table, public app-facing bank creation is admitted only for APP_PRIVATE and WORKSPACE_PRIVATE while canonical agent-facing scopes are provisioned only by runtime-owned internal paths, infra scopes are never collapsed into canonical agent memory, WORLD_SHARED continuity is keyed by world with account able to constrain access but never becoming the physical truth owner, internal typed-principal normalization preserves the admitted public locator family, owner-role meaning, and locator-key compatibility, and cross-scope owner combinations never appear as a normal public contract form.
     condition: Whenever a memory bank is created, addressed, or its scope interpreted.
     failure: Reject cross-scope owner shapes, public canonical creation, and account-owned world truth.
@@ -174,12 +122,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r010
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Memory provider boundary stays typed and internal
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Runtime-facing memory RPC and SDK surfaces expose Nimi-owned operation names and types through RuntimeCognitionService, primary semantic memory payloads use Nimi-owned typed messages with dynamic envelopes limited to metadata, attributes, or extensions fields, the typed memory record family reserves episodic, semantic, and observational records rather than collapsing durable memory into free-form blob payloads, provider-native wire shapes, bank config fields, and provider-specific storage semantics remain internal, extracting memory mechanics into runtime-owned internal libraries is not provider admission and creates no public engine-facing naming or proto layer, memory is explicit opt-in rather than a baseline product capability with the default experimental substrate being runtime-managed Hindsight when enabled without an attached override, retired public Reflect is never reintroduced as a substrate-owned pseudo-review surface, and provider engines never own account authn, app authz, agent ownership, or canonical memory semantics.
     condition: Whenever the runtime memory provider boundary is exposed or crossed.
     failure: Reject provider-native public shapes and provider-owned auth or canonical semantics.
@@ -188,12 +132,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r011
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Embedding profile identity is immutable and fail closed
     modality: must
-    scope:
-      - runtime.memory-world
     statement: A bank may bind embedding_profile null and remains valid operational memory truth without embedding-backed retain, recall, or dedup behavior, a bound non-null profile carries at least provider, model_id, dimension, distance_metric, version, and migration_policy and becomes part of bank identity, bank writes and embedding-backed recalls use the same bound profile with provider engines never silently switching embedding models, any material change to bound profile identity is a bank-identity change rather than route retargeting whose first admitted switching form is runtime-owned create-new-bank-or-generation rebuild plus explicit cutover never silent in-place mutation, runtime-owned embedding execution is the only admitted embedding authority, the resolved profile dimension authority is the runtime model catalog so a text.embed model with no admitted catalog dimension fails close rather than fabricating a dimension or silently retargeting, an execution vector length mismatching the resolved profile dimension fails close and never mutates the resolved profile to match an observed length, and supervised default Hindsight embedding runs through a runtime-owned llama OpenAI-compatible loopback rather than direct external embedding provider configuration.
     condition: Whenever an embedding profile is bound, changed, resolved, or executed against.
     failure: Fail close on identity drift, dimension gaps, and vector mismatch instead of mutation.
@@ -202,12 +142,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r012
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Embedding intent and resolved truth are split
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Runtime Agent AI Config owns the agent-instance committed text.embed consume intent for memory, cognition, activity and query, knowledge and retrieval, and future local agent consume paths keyed once per Runtime Local Agent instance using v2 target refs with the retired provider plus model_id durable memory identity not readmitted, Desktop and host surfaces render controls and submit typed mutations through Runtime and SDK only and never own user-editable memory embedding source or binding persistence, standalone cognition may retain standalone profile authority for non-runtime use while RuntimeCognitionService persists no independent runtime embedding intent, runtime is the only admitted owner of resolved embedding profile, binding legality and readiness, bank identity, rebuild, migration, and cutover state, the resolved profile preserves the typed runtime execution binding carrying connector_id, remote_model_catalog_id, provider_model_id, and provider for cloud source or the v2 local binding through profile_binding_id or readiness_ref for local source in addition to provider, model, and dimension facts, runtime embedding execution consumes that typed binding and fails close when it is absent rather than reconstructing a target from version, raw model_id, or the retired connector and model pair, and renderer-local heuristics, local-asset presence checks, or host convenience projections are never reinterpreted as runtime bank truth.
     condition: Whenever memory embedding intent is committed, resolved, or executed.
     failure: Fail close on missing typed bindings and reject host-owned intent persistence.
@@ -216,12 +152,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r013
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Realm replication keeps local authority and observable conflicts
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Runtime local memory is the operational authority while Realm remains the replicated persistence and governance plane whose ownership is defined by Realm authority and referenced not redefined here, RealmSyncBridge is runtime-owned and provider-independent, replication into Realm preserves explicit provenance and version history, conflict handling stays observable and auditable with silent overwrite merge never admitted, app or SDK code never bypasses runtime to mutate agent canonical memory once runtime-owned memory authority is active, moderation or governance invalidation committed in Realm propagates down into runtime local memory, and runtime never continues serving a locally cached canonical memory item as valid after observing a replicated invalidation nor overrides or ignores an admitted replicated governance decision.
     condition: Whenever runtime memory replicates to or observes governance from Realm.
     failure: Reject silent merges, bypass writes, and served-after-invalidation reads.
@@ -230,12 +162,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r014
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Public memory family is closed on cognition
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The runtime-facing public memory family is exactly CreateBank, GetBank, ListBanks, DeleteBank, Retain, Recall, History, DeleteMemory, and SubscribeMemoryEvents admitted only on RuntimeCognitionService and never written back as a separate future public service, Reflect is retired from the public steady-state surface and survives only as a re-audit baseline for the cutover, app-facing access remains infra-scoped while canonical agent-facing scopes stay runtime-private and are never widened back into a public memory service by migration convenience, app-facing bank creation may omit an embedding profile with the null-profile truth preserved, runtime-facing memory reads may expose additive narrative projections while canonical truth, review admission, and replication truth remain outside the public service surface, and internal library extraction never recreates RuntimeMemoryService as a second public owner surface.
     condition: Whenever the public memory operation family is exposed or extended.
     failure: Reject out-of-family public operations and canonical scope widening.
@@ -244,12 +172,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r015
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Canonical bind and cutover stay on typed runtime paths
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The private loopback HTTP convenience path for canonical bind is not the admitted steady-state product contract, Desktop and app consumers read and write Runtime Local Agent memory embedding consume intent only through Runtime Agent AI Config typed SDK surfaces, they inspect resolved memory embedding state and request canonical bank bind, rebuild, or cutover only through admitted runtime memory and RuntimeCognitionService typed surfaces, the public cognition memory family is never expanded by migration convenience just to expose canonical agent-facing bank control, and canonical agent-facing bind, rebuild, and cutover semantics remain on runtime-private typed paths owned by retained runtime-private memory depth.
     condition: Whenever canonical bank bind, rebuild, or cutover is requested by a host.
     failure: Reject convenience transports and public family expansion for canonical control.
@@ -258,12 +182,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r016
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Private embedding operation family is minimal and explicit
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Retained runtime-private memory depth provides exactly the typed logical operations InspectMemoryEmbeddingState, RequestCanonicalMemoryEmbeddingBind, and RequestMemoryEmbeddingCutover as a runtime-private typed boundary rather than a new public RPC family or a second embedding intent owner, hosts never persist or replay the text.embed intent through localStorage, renderer stores, app-local config files, or per-request snapshots, InspectMemoryEmbeddingState returns typed runtime contract data covering at least the current intent resolution verdict and config_revision, the resolved embedding profile identity or a fail-close unavailable result, current canonical bank binding status, pending rebuild, generation, or cutover state, and explicit unavailable or blocked reasons, request payloads carry explicit runtime target identity whenever host-facing config scope cannot uniquely determine the canonical bank lifecycle owner with no inference from active app scope, renderer-local selected agent, or convenience default bank, RequestCanonicalMemoryEmbeddingBind performs only runtime-owned bind admission executing first canonical bind when the bank is unbound and the intent resolves, an idempotent no-op or typed already-bound success when the resolved profile matches existing bank identity without minting second bank truth, and the runtime-owned rebuild or generation path expressing the switch as pending cutover on material identity change never silent in-place rebinding, host bridges may expose these operations as host logical methods while retained runtime-private memory depth stays the semantic owner, and RequestMemoryEmbeddingCutover commits explicit cutover only when the admitted rebuild or generation result is ready and fails close otherwise.
     condition: Whenever the runtime-private memory embedding operation family is invoked.
     failure: Fail close on unready cutover and reject inferred targets and host intent replay.
@@ -272,12 +192,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r017
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Memory unavailability fails closed with explicit reasons
     modality: must
-    scope:
-      - runtime.memory-world
     statement: When the explicitly enabled memory engine, embedding bridge, or required local memory substrate is unavailable, dependent RPCs fail with UNAVAILABLE and the explicit runtime reason stays explicit including AI_LOCAL_SERVICE_UNAVAILABLE when the managed local memory service is unavailable, no substitute provider, synthetic success payload, or degraded shadow engine masks the failure, introducing a runtime-owned internal library boundary never weakens or reinterprets these fail-close outcomes, provider-dependent operations surface the same UNAVAILABLE failure family when no admitted memory provider is installed, and when Realm replication is unavailable local operational writes continue only when local admission succeeds and sync backlog remains observable never hidden as fully synchronized success.
     condition: Whenever a required memory substrate, engine, or replication path is unavailable.
     failure: Fail with explicit UNAVAILABLE reasons instead of substitutes or pseudo-success.
@@ -286,12 +202,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r018
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Replication state is typed with observable outcomes
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Append-only commit lineage is the default replication model, each replicated write retains an observable version basis for merge or invalidation handling, replication state remains externally distinguishable as at least PENDING, SYNCED, CONFLICT, or INVALIDATED as pinned in the runtime memory replication outcome table, governance or moderation invalidation from Realm produces an explicit invalidation outcome rather than silent disappearance, and implementation-facing transport exposes typed replication state, conflict detail, and invalidation detail families as first-class runtime contract data never provider-native opaque text.
     condition: Whenever memory replication state is recorded or exposed.
     failure: Reject silent disappearance and opaque untyped replication state.
@@ -300,12 +212,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r019
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Replication lifecycle transitions are committed truth
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Replication observation ingress is runtime-private and requires no new public RPC surface, runtime mutates replication state only through admitted typed MemoryReplicationState families never free-form provider blobs, committed replication transitions update the authoritative record replication state before publication so read APIs and event replay observe the same truth, MEMORY_EVENT_TYPE_REPLICATION_UPDATED originates from the committed record mutation path never snapshot inference or accepted-write decoration, admitted transitions are PENDING to SYNCED, CONFLICT, or INVALIDATED and CONFLICT to SYNCED or INVALIDATED with SYNCED and INVALIDATED terminal unless a later rule explicitly admits otherwise, and invalidated records fail closed out of default history and recall visibility until the caller explicitly opts into invalidated results.
     condition: Whenever a replication lifecycle transition is committed or published.
     failure: Reject undeclared transitions, decorated events, and default invalidated visibility.
@@ -314,12 +222,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r020
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Replication backlog is committed single-owner truth
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The replication backlog for canonical memory records whose replication remains operationally pending is runtime-local committed state never transient goroutine state or inferred scheduler memory, canonical writes admitting replication pending enqueue exactly one backlog item for the bank locator plus memory_id pair in the same committed local mutation path, infra scopes never enter the replication backlog, backlog items retain at least local version, basis version, enqueue time, last attempt time, attempt count, and local backlog status, backlog claim and replay ownership remains on retained runtime-private memory depth with internal helper extraction creating no second backlog or replay owner, backlog truth remains deferred bridge telemetry never product-ready cloud sync until a later Realm memory redesign admits real bridge transport, runtime-private bridge loops claim backlog items for single-owner processing only on explicit internal paths with normal daemon startup implying no active Realm synchronization, and terminal replication outcomes remove or terminalize the corresponding backlog item in the same committed state transition.
     condition: Whenever replication backlog items are enqueued, claimed, or terminalized.
     failure: Reject duplicate or infra backlog items, second owners, and implied active sync.
@@ -328,12 +232,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r021
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Derived projections keep lineage and cascade fail closed
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Retained runtime-private memory depth owns narrative projection storage, local truth storage, source-junction lineage for derived outputs, and cascade mutation of derived outputs after canonical delete, invalidation, or supersession while owning neither canonical review scheduling, truth admission policy, nor posture policy, derived projections retain explicit lineage back to canonical source records as a non-optional property committed before publication of derived results, lineage rows soft-deactivate on cascade rather than hard-deleting audit history by default, canonical delete, governance invalidation, or admitted dyadic delete invalidates dependent derived outputs immediately and fails them closed out of default serving paths, canonical supersession prefers stale over silent delete for derived outputs whose canonical source lineage remains valid unless a stricter invalidation rule applies, invalidated and stale are not interchangeable with stale narrative projections remaining additive explicitly stale adaptation lag never silently treated as an admitted truth row or canonical source record, later runtime-owned review or decay policy may suppress, replace, or down-rank stale projections without silently promoting narrative projection into canonical memory, and runtime-facing cognition recall may expose admitted narrative projections while admitted truths remain runtime-private and are consumed through RuntimeAgentService-owned internal paths only.
     condition: Whenever derived memory projections are stored, cascaded, or served.
     failure: Reject lineage-free derivations, silent promotion, and default invalidated serving.
@@ -342,12 +242,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r022
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Retain-time duplicate suppression is narrow and conservative
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Retain-time duplicate suppression is admitted only for banks with a non-null bound embedding profile, remains same-bank only without widening into cross-bank matching, remains conservative reusing an existing retained row only when the runtime can determine a stabilized semantic candidate is materially the same memory under the admitted first-slice rule of strict normalized semantic subject, predicate, and object equality inside the same eligible bank, returns the existing retained row in RetainResponse rather than mutating that row in place, preserves existing canonical row immutability without silently rewriting prior payload, provenance, or version lineage, requires no updates or extends relation admission, owns neither dialogue-window stabilization before candidate admission nor in-place canonical rewriting nor structural relation admission, and never publishes MEMORY_EVENT_TYPE_RECORD_RETAINED as if a new canonical row were inserted when reusing an existing retained row.
     condition: Whenever retain-time duplicate suppression evaluates a stabilized candidate.
     failure: Reject cross-bank or aggressive matching, in-place rewrites, and false retain events.
@@ -356,12 +252,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r023
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: No memory substrate provider is currently admitted
     modality: must
-    scope:
-      - runtime.memory-world
     statement: RuntimeMemorySubstrate is the runtime-private implementation contract binding retained runtime-private memory depth to any future admitted memory provider, no built-in runtime memory provider is currently admitted, runtime ships no default supervised or attached memory substrate path under runtime internal code, runtime config never advertises provider-specific memory bootstrap fields as active authority, provider-backed memory projects through retained memory depth and the absorbed cognition memory family only when a future substrate is explicitly admitted, extracting runtime memory logic into internal libraries remains an overlay refactor never a provider admission event and by itself admits no provider, public engine identity, or public wire contract, and any future memory provider admission requires later dedicated runtime authority.
     condition: Whenever memory substrate admission state is evaluated or extended.
     failure: Reject default substrate paths, advertised bootstrap fields, and implied admission.
@@ -370,12 +262,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-substrate-plane
   - id: rule.nimi.runtime.memory-world.r024
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Runtime owns the locator and identity overlay
     modality: must
-    scope:
-      - runtime.memory-world
     statement: No provider owns Nimi locator truth or typed memory identity, runtime preserves the authoritative mapping from scope-typed bank locator to provider bank_id, the authoritative embedding profile bound to each bank, and authoritative typed record identity for retained runtime memory records even when the provider stores only provider-native memory units, internal typed-principal normalization of locator identity remains deterministic and compatibility-preserving with the admitted public locator family, and a provider-returned retained or recalled item that does not map back to an admitted runtime-owned bank or typed record identity fails close or is explicitly suppressed never silently widened into public truth.
     condition: Whenever provider-backed memory state maps to runtime identity.
     failure: Fail close or suppress unmappable items instead of widening provider data.
@@ -384,12 +272,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-substrate-plane
   - id: rule.nimi.runtime.memory-world.r025
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Substrate feature floor is the only dependency
     modality: must
-    scope:
-      - runtime.memory-world
     statement: A future admitted memory provider exposes a runtime-private feature floor covering bank lifecycle list, create-or-update, get profile, and delete plus memory retain, recall, list memories, and clear bank memories, and retained runtime-private memory depth assumes only that admitted feature floor never undocumented provider-native endpoints.
     condition: Whenever substrate capabilities are assumed or consumed.
     failure: Reject dependencies on undocumented provider-native endpoints.
@@ -398,12 +282,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-substrate-plane
   - id: rule.nimi.runtime.memory-world.r026
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Substrate failure and replay stay deterministic
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Provider-dependent memory operations fail with UNAVAILABLE when no admitted memory provider is installed, runtime never uses a substitute provider, shadow engine, or synthetic success path when no admitted provider exists, when runtime-owned typed records are deleted or invalidated and the provider cannot perform an admitted per-record delete runtime rebuilds provider state only through explicit runtime-owned replay from the surviving authoritative overlay, and replay remains deterministic from runtime-owned bank plus record truth never rehydrated from provider-native blobs as canonical truth.
     condition: Whenever substrate operations fail or provider state is rebuilt.
     failure: Fail UNAVAILABLE and replay deterministically instead of synthetic paths.
@@ -412,12 +292,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-substrate-plane
   - id: rule.nimi.runtime.memory-world.r027
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Public boundary survives substrate internals
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Public memory and agent-service RPC surfaces emit Nimi-owned typed payloads only, provider-native wire shapes remain runtime-private, internal extraction into a runtime-owned overlay library creates no second public engine-facing contract, proto package, or provider-style identity boundary, and provider-backed reflect or recall results project into Nimi typed families only through projection boundaries staying in runtime-owned internal code.
     condition: Whenever substrate-backed results cross the public boundary.
     failure: Reject provider-native public exposure and second engine-facing contracts.
@@ -426,12 +302,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-substrate-plane
   - id: rule.nimi.runtime.memory-world.r028
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: RealmSyncBridge ingress is committed and inactive by default
     modality: must
-    scope:
-      - runtime.memory-world
     statement: RealmSyncBridge remains a runtime-private ingress and egress boundary above the admitted local memory substrate, runtime-private downlink observations from Realm or governance enter local memory truth only through the same committed replication mutation path admitted for replication lifecycle transitions, bridge ingress feeds only admitted typed replication outcomes with provider-native or transport-native blobs never mutating runtime memory truth directly, backlog and outbox ownership remains with retained runtime-private memory depth with the bridge never a second source of pending replication truth and moving that ownership requiring a later redesign rather than routine internal extraction, real endpoint, transport, and polling policy remain deferred for the current local-only phase so runtime never implies active Realm memory sync without a later admitted redesign, and any future bridge implementation preserves the same committed runtime-owned mutation path and fail-close semantics.
     condition: Whenever Realm-facing memory ingress or egress is designed or observed.
     failure: Reject direct blob mutation, second backlog owners, and implied active sync.
@@ -440,12 +312,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-substrate-plane
   - id: rule.nimi.runtime.memory-world.r029
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Derived replay lineage stays above provider storage
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Provider-native substrates never own derived projection lineage, review idempotency, or truth admission state, runtime-owned source-junction lineage and committed review-run identity remain above provider-native storage semantics, provider-backed state rebuilds replay only from committed canonical records plus committed runtime-owned derived-projection truth with provider-native reflect output never becoming canonical or derived authority by itself, provider-native storage never becomes the source of truth for admitted narrative or truth lineage or review_run_id idempotency, and extraction of replay, lineage, or review-commit mechanics into runtime-owned internal libraries leaves the library an implementation carrier only with admitted authority, fail-close semantics, deterministic replay and rebuild ownership, and backlog ownership remaining runtime-owned unless a later redesign explicitly reopens that boundary.
     condition: Whenever derived lineage or review identity meets provider storage.
     failure: Reject provider-owned lineage, idempotency, or admission truth.
@@ -454,12 +322,8 @@ units:
         target: definition.nimi.runtime.memory-world.memory-substrate-plane
   - id: rule.nimi.runtime.memory-world.r030
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Knowledge topology is retired into cognition
     modality: must
-    scope:
-      - runtime.memory-world
     statement: RuntimeKnowledgeService is retired as a runtime-facing public service topology with the knowledge projection slice absorbed into RuntimeCognitionService, runtime-facing knowledge bank, page, relation, search, and ingest truth originates from cognition storage through the cognition typed scope registry, runtime backend code maintains no parallel in-memory bank state, page index, relation table, or ingest task map, the knowledge_snapshot persistence schema is retired and runtime persistence never creates, registers, loads, or writes any table or blob bound to that name, retired internal knowledgeservice naming is never reintroduced with new internal helpers consuming the cognition typed scope registry directly, no compat shim, migration loader, or dual-read fallback is admitted with pre-cutover history available only through Git, the absorbed family still owns no Realm or shared knowledge truth, knowledge replication or sync backlog truth, canonical agent-facing knowledge policy, AgentCore prompt-assembly knowledge lanes, or cross-service citation and relation truth, and the retired Desktop Runtime Config knowledge management surface is never revived with future cognition UX requiring new product admission.
     condition: Whenever runtime knowledge topology or its implementation home is defined.
     failure: Reject parallel knowledge state, retired schema revival, and shimmed topology.
@@ -468,12 +332,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r031
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Knowledge bank scope and owner boundary are fixed
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Baseline public knowledge scopes are exactly APP_PRIVATE and WORKSPACE_PRIVATE while the baseline public surface rejects AGENT_CORE, AGENT_DYADIC, and WORLD_SHARED, every knowledge page belongs to exactly one knowledge bank, every knowledge bank uses an admitted typed owner shape rather than free-form scope plus owner_id, APP_PRIVATE knowledge banks are app-owned and WORKSPACE_PRIVATE knowledge banks are workspace-owned, illegal scope and owner combinations fail close, and page access inherits bank authorization with the baseline admitting no separate page owner model.
     condition: Whenever a knowledge bank or page scope is created or authorized.
     failure: Fail close on rejected scopes and illegal owner combinations.
@@ -482,12 +342,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r032
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Absorbed knowledge operation family is closed
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The absorbed knowledge family on RuntimeCognitionService is exactly CreateKnowledgeBank, GetKnowledgeBank, ListKnowledgeBanks, DeleteKnowledgeBank, PutPage, GetPage, ListPages, DeletePage, SearchKeyword, SearchHybrid, AddLink, RemoveLink, ListLinks, ListBacklinks, TraverseGraph, IngestDocument, and GetIngestTask replacing the older design-first index draft as the admitted design authority, CreateKnowledgeBank and DeleteKnowledgeBank are admitted only for baseline infra scopes, PutPage creates or updates one page inside one admitted bank, DeletePage is page-level and DeleteKnowledgeBank is bank-level delete, ListKnowledgeBanks and ListPages are paginated list surfaces, SearchKeyword remains the baseline lexical surface and SearchHybrid the only hybrid retrieval expansion, the graph and backlink expansion admits only same-bank page-to-page graph and backlink surfaces, the ingest expansion admits only single-document async ingest returning one ingest task plus explicit polling through GetIngestTask as the only progress surface with no ingest event streams or batch task lists, public proto, runtime implementation, CLI, and SDK projection align to this admitted surface through RuntimeCognitionService, and legacy BuildIndex, SearchIndex, and DeleteIndex names remain migration-only never stable public contract.
     condition: Whenever the knowledge operation family is exposed or extended.
     failure: Reject out-of-family operations and legacy index names as stable contract.
@@ -496,12 +352,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r033
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Knowledge search semantics are bounded per surface
     modality: must
-    scope:
-      - runtime.memory-world
     statement: SearchKeyword remains lexical and FTS-only requiring no embedding profile and admitting no vector search, no hybrid search or RRF fusion, no graph expansion, and no multi-query expansion, SearchHybrid combines lexical and vector-backed recall and may fuse or dedup internally without implying graph expansion, AgentCore admission, or shared truth, SearchHybrid fails close when hybrid retrieval capability is unavailable and never silently downgrades to SearchKeyword, and search results remain runtime-local knowledge hits implying no AgentCore or canonical-memory admission.
     condition: Whenever knowledge keyword or hybrid search executes.
     failure: Fail close on unavailable hybrid capability instead of silent downgrade.
@@ -510,12 +362,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r034
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Graph and backlink relations stay same-bank
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Knowledge links are directed page-to-page relations inside exactly one admitted bank, public graph surfaces reject cross-bank and cross-service relation truth, page existence and bank authorization are validated before graph reads or writes, link_type is caller-provided and non-empty with blank relation types not admitted, duplicate same-bank relations with the same from_page_id, to_page_id, and link_type fail close, self-links fail close, ListLinks and ListBacklinks are paginated read surfaces returning outgoing and incoming links for one page inside one admitted bank, TraverseGraph is a paginated breadth-first graph read from one root page with explicit bounded depth failing close on invalid depth, and graph hits remain runtime-local knowledge projections implying no citation redesign, canonical truth, or AgentCore admission.
     condition: Whenever knowledge graph or backlink surfaces are read or written.
     failure: Fail close on cross-bank relations, duplicates, self-links, and invalid depth.
@@ -524,12 +372,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r035
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Ingest is single-document with explicit task truth
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Knowledge ingest admits only single-document ingest never multi-document batch ingest, IngestDocument validates bank existence and bank authorization before accepting a task and fails close on invalid envelopes without silently coercing missing bank_id, slug, or content, accepted ingest work is a runtime-local knowledge ingest task with explicit status and progress_percent, GetIngestTask returns task state by explicit task_id failing close on missing task ids, ingest task completion may create or update one page inside one admitted bank, the ingest expansion admits no timeline, version, or revert semantics and no cross-bank ingest, cross-service citation, shared truth, or AgentCore admission, and progress is poll-based implying no workflow-service reuse or server-stream task events.
     condition: Whenever a knowledge document is ingested or its task polled.
     failure: Fail close on invalid envelopes and missing tasks instead of coercion.
@@ -538,12 +382,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r036
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Knowledge supporting floors stay explicit and audited
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Knowledge bank and page authorization is bank-scoped and fails close, ListKnowledgeBanks, ListPages, ListLinks, ListBacklinks, and TraverseGraph use admitted runtime pagination semantics, admitted write paths covering CreateKnowledgeBank, DeleteKnowledgeBank, PutPage, DeletePage, AddLink, RemoveLink, and IngestDocument emit runtime audit events, admitted baseline failures map to explicit knowledge reason codes, SearchHybrid pagination semantics and unavailable states stay explicit, graph and backlink writes remain same-bank only and auditable, ingest task reads and writes remain runtime-local, explicit, and auditable, and when page writes affect durable hybrid retrieval readiness the resulting indexing side-effect posture is explicit and auditable.
     condition: Whenever knowledge surfaces authorize, paginate, audit, or fail.
     failure: Reject unaudited writes, implicit pagination, and unmapped failures.
@@ -552,12 +392,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r037
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workspace knowledge authorizes only through binding
     modality: must
-    scope:
-      - runtime.memory-world
     statement: WORKSPACE_PRIVATE knowledge banks are positively authorized only through an explicit workspace binding attachment on KnowledgeRequestContext plus an internal account-owned workspace binding resolver allow decision reached by the fixed path of a workspace-owned bank target, a carried workspace binding attachment, a KnowledgeAuthorizer decision, delegation to the internal account resolver, and a resolver ALLOW after checking binding, caller relation, account state, membership projection, target workspace, and required scopes with any missing step denying, APP_PRIVATE remains app-owned and is never authorized by workspace binding, the attachment is required for create, read, list, write, delete, graph, search, ingest, and task polling paths, KnowledgeRequestContext app_id and subject_user_id are compatibility context only never resolver identity, authorization proof, account truth, subject truth, or membership truth, runtime-authenticated caller identity for resolver consumption comes from the runtime protocol envelope x-nimi-app-id and x-nimi-app-instance-id with device identity derived or verified by runtime account and app registry state never from attachment fields, SDK or Desktop cache, or caller body payload, cognition never reads account persistence, Realm membership state, or app local cache to authorize WORKSPACE_PRIVATE, and resolver denies map to typed knowledge or workspace binding reason codes and fail closed.
     condition: Whenever WORKSPACE_PRIVATE knowledge access is authorized.
     failure: Deny on any missing step with typed reason codes instead of implicit allow.
@@ -566,12 +402,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r038
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Knowledge action scopes imply narrowly without wide enumeration
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The admitted knowledge action-to-scope matrix is pinned in the knowledge action scope matrix table, runtime.knowledge.admin authorizes admin actions and also satisfies read and write requirements, runtime.knowledge.write authorizes write actions and also satisfies read requirements, runtime.knowledge.read authorizes read actions only, no caller enumerates all workspace-owned banks across workspaces, ListKnowledgeBanks without a workspace binding attachment returns no WORKSPACE_PRIVATE banks, an explicit workspace filter requires a matching workspace binding attachment and resolver allow decision with mismatch failing closed or returning the explicitly specified empty result per the RPC reason-code mapping never silently widening, SearchKeyword, SearchHybrid, graph reads, page reads, and link reads authorize the resolved bank before returning results, GetIngestTask resolves the task to its bank and workspace owner before returning progress so task-id-only polling never bypasses workspace binding, and write and admin actions validate bank authorization before mutating storage or accepting ingest work.
     condition: Whenever knowledge actions are scoped, listed, or searched.
     failure: Fail closed on scope mismatch instead of widening or cross-workspace enumeration.
@@ -580,12 +412,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r039
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Deferred knowledge expansions stay excluded
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Shared-truth and Realm knowledge replication, AGENT_CORE, AGENT_DYADIC, and WORLD_SHARED knowledge scopes, the AgentCore QueryAgentMemory knowledge expansion, Layer 1K, consolidation and dream cycles, public reindex or ingest admin surfaces, richer ingest admin and batch progress protocols, timeline management, version history and revert, and relation-based memory-to-knowledge citation redesign remain explicitly deferred and are implemented only through later explicit authority.
     condition: Whenever a deferred knowledge expansion seeks implementation.
     failure: Reject the expansion until explicit new authority admits it.
@@ -594,12 +422,8 @@ units:
         target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r040
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Scheduling judgement states are a closed enum
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The scheduling judgement state enum is exactly runnable, queue_required, preemption_risk, slowdown_risk, denied, and unknown, denied is the only terminal state blocking Acquire while the other five remain advisory and never block execution, unknown is returned only when the scheduler genuinely lacks evaluation information and never masks an evaluable but unimplemented judgement, and enum value widening requires explicit authority change.
     condition: Whenever a scheduling judgement state is produced or interpreted.
     failure: Reject out-of-enum states and unknown used as a mask.
@@ -608,12 +432,8 @@ units:
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r041
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Peek is a non-blocking batch evaluation
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Peek is a non-blocking preflight scheduling evaluation whose atomic unit is one SchedulingEvaluationTarget representing a concrete executable capability path with target-scoped target_id, profile_id, and resourceHint never scope-global configuration, whose aggregate unit is a batch of targets under one appID sharing Acquire appID semantics with a single-target request the degenerate batch form, Peek never blocks waiting for a slot and never mutates scheduler state by acquiring, releasing, or queueing, its result is an instantaneous snapshot with no consistency guarantee against later Acquire outcomes in either direction, it returns state unknown rather than erroring when the scheduler is unavailable, it remains an optional advisory step with Acquire the authoritative slot acquisition callable without a prior Peek and a denied result advising against Acquire without scheduler enforcement, its judgement may be captured into execution snapshots without becoming an Acquire precondition, and the scheduling proto direction is repeated SchedulingEvaluationTarget requests with shared batch occupancy, aggregate judgement, and optional repeated per-target judgements never a long-lived dual-track singular request shape.
     condition: Whenever Peek evaluates scheduling feasibility.
     failure: Reject blocking or state-mutating Peek and dual-track singular canonical shapes.
@@ -622,12 +442,8 @@ units:
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r042
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Aggregate judgements fold by fixed precedence
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Each target receives an independently computed atomic judgement and the aggregate state is the highest-precedence state in the batch under the fixed precedence denied, queue_required, preemption_risk, slowdown_risk, unknown, runnable, unknown is never promoted or projected as runnable, a single-target aggregate equals that target judgement with aggregate and atomic results never contradicting, per-target judgements when returned correspond one-to-one to atomic targets with the aggregate never replacing the target judgement as semantic source, aggregate detail renders the contributor targets matching the aggregate state in stable capability, target_id, and profile_id order joined with semicolons and appends an ordered unevaluated-targets suffix when a non-unknown aggregate coexists with unknown targets, and aggregate resourceWarnings are the stable-order exact-string deduplicated union of target warnings with no synthesized warning categories.
     condition: Whenever batch judgements fold into an aggregate result.
     failure: Reject precedence violations, promoted unknown, and synthesized warnings.
@@ -636,12 +452,8 @@ units:
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r043
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Occupancy telemetry is a shared consistent snapshot
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Peek and Acquire results carry an occupancy snapshot with globalUsed, globalCap, appUsed, and appCap, occupancy values update atomically on slot acquire and release and reads stay lock-free or short-critical-section without blocking the execution path, one batch Peek samples exactly one scheduler occupancy observation point whose shared snapshot is referenced by the aggregate and every per-target judgement with embedded copies byte-equal to the shared batch occupancy and no target-local occupancy timeline, and an implementation assembling batch results from repeated single-target peeks returns an aggregate only when all atomic occupancies are fully identical and otherwise fails close to aggregate state unknown without fabricating a merged occupancy.
     condition: Whenever occupancy telemetry is sampled or embedded in judgements.
     failure: Fail close to unknown instead of fabricated or inconsistent occupancy.
@@ -650,12 +462,8 @@ units:
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r044
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Denied comes only from hard target-local conditions
     modality: must
-    scope:
-      - runtime.memory-world
     statement: denied is returned only when a local model requires a GPU the collected device profile lacks, disk free space is below the configured safety threshold, or a required dependency preflight decision resolved through the runtime profile registry and ResolveProfile preflight logic reports ok=false for a target carrying target_id and profile_id, denied always carries a detail explaining the concrete reason, denied is never used for transient failures which remain Acquire context cancellation concerns, denied derives from current device state cached no longer than one Peek call, the runtime profile registry fills through ResolveProfile calls registering the requested LocalProfileDescriptor for later dependency lookup, a target missing profile_id or whose profile is unregistered or cannot be evaluated skips the dependency check because unable-to-evaluate never equals infeasible, one target dependency denial never contaminates another target atomic judgement, and aggregate denied arises only through the formal fold applying whenever any target in the batch is denied even when others are runnable or advisory.
     condition: Whenever a denied judgement is produced or folded.
     failure: Reject fabricated denials, detail-free denials, and batch side-channel denied.
@@ -664,12 +472,8 @@ units:
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r045
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Risk states stay advisory with honest gaps
     modality: must
-    scope:
-      - runtime.memory-world
     statement: preemption_risk is returned only when a slot is available but the aggregate resource demand of running tasks plus the new task estimated demand exceeds the device resource warning threshold, slowdown_risk is returned only when a slot is available but currently available VRAM, RAM, or disk falls below per-capability advisory thresholds, risk state thresholds are configurable through admitted runtime configuration paths never hardcoded, risk states never block execution and pass only as advisory warnings to consumers, and when required resource telemetry or footprint tracking is absent the judgement returns unknown never a promoted runnable masking the evaluation gap.
     condition: Whenever risk-state heuristics evaluate a target.
     failure: Reject hardcoded thresholds, blocking risk states, and masked evaluation gaps.
@@ -678,12 +482,8 @@ units:
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r046
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Capability and resource hints stay target scoped
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Capability, target_id, profile_id, and resourceHint semantics are target-scoped on repeated SchedulingEvaluationTarget entries with singular request fields never treated as the final canonical shape, resourceHint carries only estimatedVramBytes, estimatedRamBytes, estimatedDiskBytes, and engine describing its own target and never widens into scope-global or batch-global hint fields, resource heuristics derive from configuration or device profile derivation never hardcoded fixed values, capability may filter dependency feasibility checks and resourceHint may feed slowdown and preemption risk evaluation for the owning target, and a missing profile_id or a profile not found in the registry never fabricates denied.
     condition: Whenever scheduling capability or resource hints are declared or evaluated.
     failure: Reject global hint fields, hardcoded heuristics, and fabricated denials.
@@ -692,12 +492,8 @@ units:
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r047
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: World evolution semantics are Runtime owned
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Runtime owns World Evolution Engine execution semantics covering the execution-event semantic home, replay semantics, checkpoint semantics, supervision and fault-isolation semantics, effect-stage and transition-ordering semantics, and commit-request staging, these families stay runtime-owned because they depend on runtime-local scheduling, runtime-local effect execution, and runtime-local evidence handling rather than bridge access or placement topology, platform authority owns placement and cross-layer boundary text only, SDK remains downstream projection only, and Realm remains the canonical truth owner for shared world state and history whose semantics are referenced never redefined here.
     condition: Whenever World Evolution Engine semantic ownership is claimed or placed.
     failure: Reject ownership migration to SDK, platform, or Realm and Realm redefinition.
@@ -706,12 +502,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r048
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Execution evidence stays runtime local
     modality: must
-    scope:
-      - runtime.memory-world
     statement: World Evolution Engine execution events, replay metadata, checkpoint metadata, supervision state, effect-stage evidence, and operator-facing execution correlation remain runtime-local non-canonical evidence under Runtime semantic ownership and are never represented as Realm shared present-state truth or Realm canonical happened-fact truth.
     condition: Whenever world evolution execution evidence is stored or projected.
     failure: Reject representation of runtime-local evidence as Realm truth.
@@ -720,12 +512,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r049
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Event contracts reuse without parallel truth
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Any stable World Evolution Engine execution event or envelope contract has its semantic home in this runtime authority rather than workflow, audit, SDK projection, or platform boundary text, such a contract reuses Realm provenance anchors, Realm commit-envelope anchors, and runtime audit correlation floors rather than duplicating them, and no expansion introduces a second commit-envelope contract, a second run-mode vocabulary, a second effectClass vocabulary, a second canonical history contract, or a second audit-truth contract nor redefines Realm run-mode authority, the Realm effectClass vocabulary, Realm commit-envelope authority, or the runtime audit-record schema as semantic truth.
     condition: Whenever a world evolution event or envelope contract is introduced or expanded.
     failure: Reject parallel truth families and Realm or audit redefinition.
@@ -734,12 +522,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r050
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Commit, history, and audit boundaries hold
     modality: must
-    scope:
-      - runtime.memory-world
     statement: Realm commit authorization and the commit authorization matrix remain Realm-governed, Realm history append remains Realm-governed, runtime audit remains observability and correlation authority, shared kernel commit semantics are limited to adapter-bound commit requests never a new write contract, shared kernel history semantics are limited to explicit append candidates or derived commit artifacts never automatic history truth, and shared kernel replay and checkpoint evidence is never represented as the canonical audit ledger.
     condition: Whenever world evolution work approaches commit, history, or audit authority.
     failure: Reject new write contracts, automatic history truth, and ledger substitution.
@@ -748,12 +532,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r051
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Workflow reuse is substrate only
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The runtime workflow DAG, task, node, and output event model is not the semantic owner of the World Evolution Engine, allowed reuse is limited to implementation substrate such as the workflow status vocabulary, the ordered runtime-local stream traits of sequence, trace_id, timestamp, reason_code, and terminal close behavior, stream transport and subscriber lifecycle, and internal dispatch or queue helpers hidden beneath this authority, workflow, task, node, edge, callback_ref, external_async, route_policy, and fallback are forbidden as top-level world evolution semantics, workflow DAG identity is never exposed as shared kernel semantic identity, workflow output events are never promoted into shared kernel canonical event truth, workflow node payloads and payload Struct alone are never a stable semantic envelope, and an implementation reusing workflow substrate first projects all externally relevant semantics into the world evolution event, stage, checkpoint, replay, supervision, and commit-request vocabulary.
     condition: Whenever workflow substrate is reused for world evolution execution.
     failure: Reject workflow vocabulary and event promotion as world evolution truth.
@@ -762,12 +542,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r052
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Canonical runtime event shape is minimal and closed
     modality: must
-    scope:
-      - runtime.memory-world
     statement: The World Evolution Engine event envelope carries eventId, worldId, appId, sessionId, traceId, tick, timestamp, eventKind, stage from the fixed stage vocabulary, actorRefs reused from Realm provenance, causation, correlation, Realm-compatible effectClass, reason, and evidenceRefs, additional event-kind payload remains subordinate to the envelope with payload Struct alone never treated as semantic truth, and schemaId, schemaVersion, scope, runMode, Realm commit authorization results, and history-append authorization results are not canonical runtime event fields and appear only when a later stage derives a commit-request or history-append candidate.
     condition: Whenever a world evolution event envelope is defined or emitted.
     failure: Reject envelope field widening and payload-as-truth events.
@@ -776,12 +552,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r053
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Execution stages separate with fixed ordering
     modality: must
-    scope:
-      - runtime.memory-world
     statement: World evolution execution uses the fixed semantic stage boundary INGRESS, NORMALIZE, SCHEDULE, DISPATCH, TRANSITION, EFFECT, COMMIT_REQUEST, CHECKPOINT, and TERMINAL, TRANSITION owns runtime-local state evolution and may derive effect intents without executing external effects, EFFECT executes external or observable work without redefining the transition result after the fact, COMMIT_REQUEST may derive Realm-facing mutation candidates without itself claiming canonical Realm mutation authority, CHECKPOINT may persist runtime-local recovery state without being represented as Realm shared present or history truth, and implementations may optimize or batch internal steps only while preserving this semantic ordering.
     condition: Whenever world evolution execution stages run or are reordered.
     failure: Reject cross-stage authority leaks and broken semantic ordering.
@@ -790,12 +562,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r054
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Replay is recorded and fail closed
     modality: must
-    scope:
-      - runtime.memory-world
     statement: World evolution replay semantics are fixed to recorded replay consuming recorded runtime execution events, recorded supervision outcomes, recorded commit-request outcomes, and recorded checkpoint artifacts, replay never silently substitutes fresh inference, fresh route selection, or fresh fallback decisions in place of recorded execution evidence, missing required replay evidence fails close rather than synthesizing a pseudo-success path, and re-inference replay or hybrid replay stays outside the canonical runtime contract until later explicit authority.
     condition: Whenever world evolution execution is replayed.
     failure: Fail close on missing evidence instead of fresh substitution.
@@ -804,12 +572,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r055
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Checkpoints are recovery artifacts only
     modality: must
-    scope:
-      - runtime.memory-world
     statement: A world evolution checkpoint is a runtime-local recovery artifact containing only runtime-local state required to resume scheduling or supervision plus references to prior runtime event ids, prior commit-request outcomes, and prior checkpoint ids, a checkpoint is never treated as Realm world state, Realm world history, a substitute for commit authorization, or a substitute for audit truth, checkpoint restore restores runtime-local execution context only, and any Realm-visible mutation after restore requires a newly staged explicitly authorized commit path.
     condition: Whenever a checkpoint is written, read, or restored.
     failure: Reject checkpoint promotion to Realm truth or authorization substitute.
@@ -818,12 +582,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r056
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Supervision outcomes are closed and honest
     modality: must
-    scope:
-      - runtime.memory-world
     statement: World evolution supervision uses the closed outcome set CONTINUE, DEFER, ABORT, and QUARANTINE, optional re-attempt behavior exists only as an internal runtime strategy preserving the same semantic input, the same execution mode, and the same authority boundary, a re-attempt never becomes route migration, fallback migration, or hidden owner migration, and supervision outcomes are runtime-local execution truth represented in runtime events or checkpoint evidence never in Realm canonical truth.
     condition: Whenever supervision decides or re-attempts world evolution work.
     failure: Reject out-of-set outcomes and migration disguised as re-attempt.
@@ -832,12 +592,8 @@ units:
         target: definition.nimi.runtime.memory-world.world-evolution-plane
   - id: rule.nimi.runtime.memory-world.r057
     kind: rule
-    owner: team.runtime
-    lifecycle: active
     title: Commit requests stage losslessly under Realm authority
     modality: must
-    scope:
-      - runtime.memory-world
     statement: A commit-request candidate derives only at COMMIT_REQUEST stage as a lossless projection to the Realm commit envelope fields worldId, appId, sessionId, effectClass, scope, schemaId, schemaVersion, actorRefs, reason, and evidenceRefs, runtime may attach sidecar staging metadata such as sourceEventIds, traceId, tick, causation, correlation, and checkpoint or supervision references that remains runtime-local only and never becomes a second commit-envelope contract, runtime never invents a new runMode vocabulary and never self-authorizes commit eligibility outside the Realm commit authorization matrix, REPLAY and any non-CANON_MUTATION runtime-local continuity path never stage shared-history append as if they were CANON_MUTATION, and missing Realm envelope fields or unverifiable provenance fail close before the candidate is presented as a valid commit path.
     condition: Whenever a Realm-facing commit-request candidate is staged.
     failure: Fail close on missing fields and reject self-authorized or mislabeled staging.

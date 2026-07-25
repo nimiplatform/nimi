@@ -1,62 +1,39 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.platform
+scope: platform.app-ecosystem
 units:
   - id: definition.nimi.platform.app-ecosystem.agent-identity
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Durable agent identity
     meaning: Durable account-scoped agent identity consists of AgentFamilyId, AgentPersonaId, and AgentProjectionRef rather than app-local identity truth.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.agent-projection
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: App-specific agent projection
     meaning: An AgentProjectionRef is a stable revocable app-isolated view of one persona bound to a Runtime-derived app principal, an owner-issued selected-Agent handle or selector, and the corresponding public permission decision and owner policy.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.agent-family-model
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Agent family, persona, and projection model
     meaning: One agent family may contain multiple personas, one persona may be referenced by multiple app projections, and each projection preserves app-to-app isolation.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.conversation-anchor
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: ConversationAnchor continuity
     meaning: ConversationAnchor is the Runtime continuity identity to which an agent chat conversation is bound across product surfaces.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.chat-history
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Agent chat transcript and history
     meaning: Desktop-hosted Home owns display, replay, and local caching of agent chat transcript and history, whose content is not memory truth.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.chat-derived-memory
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Chat-derived memory projection
     meaning: A chat-derived memory projection records its ConversationAnchor, source app identity, target persona identity, and Realm audit event reference under the chat_derived.projection.admitted policy.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.projection-lifecycle
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Agent projection lifecycle
     meaning: Agent projection validity follows the corresponding grant and owner-policy lifecycle, including app installation, permission grant, and account session state.
-    relations: []
   - id: rule.nimi.platform.app-ecosystem.p-agid-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-001 account-scoped durable identity
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Agent identity remains account-scoped durable truth on the Realm canonical surface and includes AgentFamilyId, AgentPersonaId, and AgentProjectionRef.
     condition: Whenever agent identity is created, persisted, or projected to an app.
     failure: Reject identity that lacks the durable primitive set or is not resolved from the canonical surface.
@@ -65,12 +42,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-identity
   - id: rule.nimi.platform.app-ecosystem.p-agid-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-001 no parallel app identity schema
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: An app defines or persists a parallel agent identity schema.
     condition: Whenever an app consumes agent identity.
     failure: Reject the parallel schema and provide only the account-scoped projection.
@@ -79,12 +52,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-identity
   - id: rule.nimi.platform.app-ecosystem.p-agid-002a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-002 family persona projection semantics
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Family, persona, and projection relationships preserve multiple personas per family, multiple app projections per persona, and app-isolated views bound to the Runtime-derived principal, owner-issued selector, and public permission decision.
     condition: Whenever a persona is projected to an app.
     failure: Reject a projection that violates cardinality, isolation, principal, selector, or permission-decision semantics.
@@ -95,12 +64,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-projection
   - id: rule.nimi.platform.app-ecosystem.p-agid-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-002 no raw cross-app persona sharing
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Apps share raw persona identity material across app boundaries through cache, convention, or an inferred channel.
     condition: Whenever more than one app references the same persona.
     failure: Reject raw sharing and require a Realm-issued projection for each app.
@@ -109,12 +74,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-projection
   - id: rule.nimi.platform.app-ecosystem.p-agid-003a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-003 stable selector-bound projection
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Each app-specific persona projection is stable, revocable, and bound to the Runtime-derived app principal, owner-issued selected-Agent handle, corresponding permission decision, and owner policy.
     condition: Whenever an app receives or uses a persona projection.
     failure: Fail closed when any binding is missing, stale, or revoked.
@@ -123,12 +84,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-projection
   - id: rule.nimi.platform.app-ecosystem.p-agid-003b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-003 no raw identity authorization or projection reuse
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: An app submits raw app, account, principal, or agent identity as authorization fact or reuses a projection across a principal or selector.
     condition: Whenever an app authorizes an operation with an agent projection.
     failure: Reject the operation and require the exact bound projection and owner decision.
@@ -137,12 +94,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-projection
   - id: rule.nimi.platform.app-ecosystem.p-agid-004a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-004 ConversationAnchor continuity binding
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every agent chat conversation binds to Runtime ConversationAnchor and uses Runtime continuity semantics across surfaces.
     condition: Whenever an agent chat conversation is created, resumed, or moved across surfaces.
     failure: Reject continuity without a valid Runtime ConversationAnchor.
@@ -151,12 +104,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.conversation-anchor
   - id: rule.nimi.platform.app-ecosystem.p-agid-004b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-004 no renderer-local anchor
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Home, Desktop, or SDK replaces ConversationAnchor binding with renderer-local state or chat-local cache.
     condition: Whenever conversation continuity is stored or resolved.
     failure: Reject the local substitute and resolve the Runtime anchor.
@@ -165,12 +114,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.conversation-anchor
   - id: rule.nimi.platform.app-ecosystem.p-agid-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-005 no app-local identity mint
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: An app, shell, or SDK consumer creates AgentFamilyId, AgentPersonaId, or AgentProjectionRef, writes app-local user state into canonical identity fields, or defaults to a persona string when a projection is absent.
     condition: Whenever a consumer creates, updates, or resolves agent identity.
     failure: Reject the mint, write, or fallback and require an admitted projection.
@@ -179,12 +124,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-identity
   - id: rule.nimi.platform.app-ecosystem.p-agid-006a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-006 transcript and history owner boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Desktop-hosted Home owns agent chat transcript display, replay, and local cache and keeps transcript content non-authoritative for memory truth.
     condition: Whenever agent chat transcript or history is displayed, replayed, cached, or interpreted.
     failure: Reject ownership outside Home or any direct elevation of transcript content into memory truth.
@@ -193,12 +134,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.chat-history
   - id: rule.nimi.platform.app-ecosystem.p-agid-006b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-006 protected transcript consumption
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Transcript or history cache is automatically elevated to Cognition memory without chat_derived.projection.admitted policy or is read directly by an external app without permission and memory-access authorization.
     condition: Whenever transcript or history cache is projected into memory or exposed externally.
     failure: Deny the projection or read until the required policy and authorizations succeed.
@@ -209,12 +146,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.chat-history
   - id: rule.nimi.platform.app-ecosystem.p-agid-007a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-007 admitted chat-derived memory
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Conversion from chat context to memory truth is triggered only by chat_derived.projection.admitted policy and records ConversationAnchor, source app id, target persona id, and Realm audit event reference.
     condition: Whenever chat context is converted into memory truth.
     failure: Reject the conversion when policy or any required provenance field is absent.
@@ -223,12 +156,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.chat-derived-memory
   - id: rule.nimi.platform.app-ecosystem.p-agid-007b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-007 no passive memory creation
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A background job, passive cache, or chat replay automatically creates memory truth.
     condition: Whenever chat-derived memory creation is attempted.
     failure: Deny creation until the admitted policy explicitly triggers a projection.
@@ -237,12 +166,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.chat-derived-memory
   - id: rule.nimi.platform.app-ecosystem.p-agid-008a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-008 projection follows grant lifecycle
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: App uninstall invalidates that app's projections, permission-grant revocation invalidates corresponding projections, and account exit invalidates all account projections.
     condition: Whenever app, grant, or account lifecycle changes.
     failure: Invalidate affected projections before further use.
@@ -251,12 +176,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.projection-lifecycle
   - id: rule.nimi.platform.app-ecosystem.p-agid-008b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AGID-008 no orphan projection
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: An orphaned projection or a projection without a valid grant remains usable.
     condition: Whenever projection validity is resolved.
     failure: Fail closed and invalidate the projection.
@@ -265,68 +186,40 @@ units:
         target: definition.nimi.platform.app-ecosystem.projection-lifecycle
   - id: definition.nimi.platform.app-ecosystem.app-permission
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: App permission
     meaning: An app permission is one canonical public identifier for a user-recognizable intent to access protected Nimi-owned, Realm-owned, Agent-owned, Cognition-owned, or another app's resource, with exactly one decision owner and no parallel public scope or operation vocabulary.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.permission-grant
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Permission grant
     meaning: A permission grant is owner-held decision truth whose positive use remains bound to the protected-carrier-derived app principal, current account and OS-user anchor where applicable, canonical public permission, owner-issued selector, exact internal mapping, current owner policy, and lifecycle revision.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.app-authority-class
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: App action authority class
     meaning: Every app action belongs to exactly one mutually exclusive authority class from base_entitlement, user_permission, one_shot_consent, app_owned_authority, and os_right; review, launch, route availability, and feature flags are not authority classes.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.local-app-principal
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Local app principal
     meaning: A local app principal is a random non-reused Runtime-derived security subject partitioned by the local OS-user anchor and kept distinct from display app identity, provenance, trust tier, project approval, process session, and permission truth.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.local-app-provenance
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Local app provenance
     meaning: Local app provenance is the closed verified, user_imported, or local_development Runtime-derived record classification, with local_development as the sole mutable third-party class and bundled components excluded.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.protected-local-transport
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Protected-local transport
     meaning: Protected-local transport is launchd socket-activated filesystem Unix-domain-socket carriage admitted only after mutual process, audit-token, user-session, code-signature, executable-vnode, liveness, release-role, boot-epoch, and session-generation verification completes before protocol or credential bytes.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.executable-trust-set
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Executable trust set
     meaning: An executable trust set is the fixed-path Platform-release-root-signed role-record set binding each admitted executable role to canonical record content, exact signed bytes, release generation, architecture, entitlements, designated requirement, signing identity, SHA-256, CDHash, expiry, and rollback state.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.macos-protected-admission
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: macOS protected admission
     meaning: macOS protected admission is one conjunctive native admission for the same signed candidate, joining the fixed application, launchd service, dedicated principal, Runtime-only custody, protected-local transport, verified Desktop carrier, and independently admitted supervised local host without becoming portable fallback or Mac-only SDK, permission, or product truth.
-    relations: []
   - id: rule.nimi.platform.app-ecosystem.p-perm-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-001 canonical product permission vocabulary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Platform exposes only the catalog's canonical public permission vocabulary, where each permission expresses one user-recognizable product intent and has exactly one decision owner; backend owners may expand it into internal checks but never expose a parallel public vocabulary based on RPCs, endpoints, scopes, tables, paths, or resource fingerprints.
     condition: Whenever a third-party app permission is declared, displayed, requested, or enforced.
     failure: Reject any non-canonical identifier or parallel public vocabulary.
@@ -335,12 +228,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-002a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-002 closed catalog and current admission
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is empty and all sixteen catalog rows remain reserved while zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
     condition: Whenever manifest permission eligibility or requestability is evaluated.
     failure: Deny unknown, reserved, legacy-scope, Runtime-operation, and endpoint-string identifiers without preventing a zero-permission app from running.
@@ -349,12 +238,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-002 no partial permission admission
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A catalog edit, manifest declaration, CRUD endpoint, or mock approval surface alone makes a reserved public permission admitted.
     condition: Whenever a catalog row is proposed to move to admitted.
     failure: Keep the row reserved until the complete P-PERM-017 owner slice lands atomically.
@@ -363,12 +248,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-003a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-003 public posture and app request boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: App-facing posture is exactly prompt, pending, granted, denied, or unavailable; an app may inspect only its own posture and request one admitted permission with a user-facing reason, and cannot approve, revoke, mint, carry, or inspect owner-internal decision records.
     condition: Whenever permission posture or request controls are exposed to an app.
     failure: Reject a posture outside the closed set or any app attempt to exercise owner decision authority.
@@ -377,12 +258,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-003b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-003 durable owner lifecycle
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: An admitted durable owner lifecycle uses monotonic revisions and only pending, granted, denied, expired, or revoked internal states; expired and revoked history remains owner and audit truth rather than app workflow API, and no positive Runtime-local permission lifecycle or store exists until admitted.
     condition: Whenever durable permission decision state is implemented or projected.
     failure: Deny use of non-monotonic, non-canonical, app-owned, or unadmitted Runtime-local lifecycle state.
@@ -391,12 +268,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-004a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-004 owner audit binding
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every admitted durable decision transition and one-shot handle issuance or consumption emits a distinct owner audit event binding owner-derived subject, calling app principal, display app id, public permission id, selector digest, old and new posture or one-shot action, trigger, timestamp, and owner revision; protected operation or resource identity appears only in protected owner audit.
     condition: Whenever an admitted decision transitions or a one-shot handle is issued or consumed.
     failure: Fail the affected positive path closed if its complete distinct audit event cannot be persisted.
@@ -405,12 +278,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-004b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-004 no secret-bearing or coalesced audit
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Permission audit logs credentials, raw tokens, or reusable proofs, or silently coalesces events across decisions.
     condition: Whenever permission audit is recorded.
     failure: Reject the positive transition or one-shot action and emit no secret-bearing or coalesced record.
@@ -419,12 +288,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-005a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-005 fail-closed user permission evaluation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A user_permission operation requires an admitted identifier, manifest eligibility, current owner decision, owner-issued selector, exact permission-to-operation mapping, and current domain-owner resource policy; any missing, denied, expired, revoked, mismatched, or unavailable fact denies, and publisher tier, review, first-party identity, provenance, or session existence cannot widen the decision.
     condition: Whenever a protected operation is evaluated as user_permission.
     failure: Deny the protected operation without fallback authorization.
@@ -433,12 +298,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-005b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-005 bounded base entitlement
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A base_entitlement remains available without a user permission but enforces its principal, session, account, path, and quota boundaries.
     condition: Whenever an app invokes a base entitlement.
     failure: Deny use outside any base-entitlement boundary without manufacturing a permission requirement.
@@ -447,12 +308,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-authority-class
   - id: rule.nimi.platform.app-ecosystem.p-perm-005c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-005 non-forgeable one-shot consent
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A one_shot_consent operation requires an owner-issued non-forgeable handle, and a caller-supplied resource identifier carries no authority.
     condition: Whenever a one-shot protected resource operation is attempted.
     failure: Deny absent, forged, expired, replayed, or caller-constructed proof.
@@ -461,12 +318,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-authority-class
   - id: rule.nimi.platform.app-ecosystem.p-perm-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-006 owner-brokered cross-app resource
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Cross-app access has no generic durable grant; a source app or canonical resource owner exports through an admitted broker whose owner-controlled picker produces one bounded one-shot handle audited against source app, target app, and resource owner, while files, sockets, host bridges, and path conventions provide no substitute and shared_resources.open remains reserved until the broker is complete.
     condition: Whenever one app requests another app's resource.
     failure: Deny access unless the admitted broker issues the exact one-shot handle.
@@ -477,12 +330,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-007a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-007 exact public request shapes
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Manifest permission declaration is exactly an id and bounded explanatory reason, Runtime request is exactly permissionId and bounded explanatory reason, the reason carries no authority, protected carrier supplies app id, account, OS-user anchor, and principal, and the canonical owner picker supplies any selector.
     condition: Whenever a public manifest or Runtime permission request is accepted.
     failure: Reject extra authority-bearing fields, an unbounded reason, or caller-supplied identity or selector facts.
@@ -491,12 +340,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-007b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-007 no internal authorization fields on public surfaces
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Public manifests, SDKs, Kit bridges, or ordinary UI expose scope family or name, qualifier, operation id, resource ref, selector digest, decision id, account, principal, session identity, token, or credential.
     condition: Whenever a public permission surface is defined or rendered.
     failure: Remove the internal field and fail closed rather than accepting it from the app.
@@ -505,12 +350,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-008 AI metering is mandatory owner policy
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every cloud or local AI execution emits typed usage and obeys Runtime budget, rate, route, and credential policy; metering is not a requestable or user-disableable permission, and reserved ai.background remains unavailable until activity visibility, budget ceiling, and cancellation are complete.
     condition: Whenever an app initiates or continues AI execution.
     failure: Deny execution that cannot satisfy mandatory owner policy or attempts unadmitted background continuation.
@@ -519,12 +360,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-authority-class
   - id: rule.nimi.platform.app-ecosystem.p-perm-009
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-009 first-party entitlements stay distinct
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Built-in Nimi products use exact service entitlements admitted by their owning contracts, never synthetic third-party permissions or seeded permission-ledger rows; first-party status cannot widen third-party permission or bypass OS privacy, user preference, account policy, or owner checks.
     condition: Whenever first-party product access is authorized or projected.
     failure: Reject synthetic permission state and enforce the exact first-party entitlement and all independent checks.
@@ -533,12 +370,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-authority-class
   - id: rule.nimi.platform.app-ecosystem.p-perm-010
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-010 decision-owner boundaries
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Cloud account, OAuth, Realm-owned decisions, domain data, and endpoint enforcement are decided on the Realm surface; Runtime decides local identity, session, Runtime-owned decisions, and local enforcement; Cognition decides memory and knowledge policy; Platform standardizes only catalog and projection, copies no backend truth, and one user intent receives no duplicate approval from multiple owners.
     condition: Whenever permission ownership, enforcement, or projection is allocated.
     failure: Reject copied owner truth, a parallel decision owner, or duplicate approval flow.
@@ -549,12 +382,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-011a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-011 app-private storage authority
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: An app needs no Nimi permission for its own SQLite, JSON, media, settings, cache, or product routes; Runtime-mediated private JSON is a base_entitlement constrained to the live principal and account partition, canonical relative paths, quota, and escape and symlink policy, while native app storage is app_owned_authority under actual OS rights and disclosed sandbox posture.
     condition: Whenever an app uses private storage or product-local routes.
     failure: Reject storage outside the class boundary without inventing a generic Nimi storage permission.
@@ -563,12 +392,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-authority-class
   - id: rule.nimi.platform.app-ecosystem.p-perm-011b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-011 external files remain picker-bound
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Reserved files.open and files.save use one-shot native picker handles, another app's resource uses shared_resources.open, and none creates generic filesystem permission.
     condition: Whenever an app requests an external file or another app's stored resource.
     failure: Deny access until the applicable permission and one-shot broker are admitted.
@@ -577,12 +402,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-012
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-012 preferences do not mint permission
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A first-party preference configures only an already-admitted product surface, never a third-party permission; signed-out, disabled, suppressed, or unavailable owner state produces typed suppression, and reserved notification permission cannot be inferred from preference state.
     condition: Whenever a first-party preference affects protected product behavior.
     failure: Suppress the behavior with a typed result instead of minting or inferring permission.
@@ -591,12 +412,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-013a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-013 local identity and permission separation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Project or package approval creates only a random non-reused principal and provenance record, launch creates only a process-bound session, and neither creates or widens permission; a valid zero-permission session may inspect its own posture and use base entitlements but cannot enumerate protected inventory to manufacture a selector.
     condition: Whenever a local app is approved, launched, or operates without granted permissions.
     failure: Deny any inferred permission, protected inventory enumeration, or caller-manufactured selector.
@@ -607,12 +424,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-013b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-013 future Runtime permission binding
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Any later-admitted Runtime-owned permission lifecycle binds OS-user anchor, current account, opaque app principal, public permission id, and owner selector digest, and each protected endpoint re-reads current decision and owner policy; display app id and trust tier are never positive keys.
     condition: Whenever a Runtime-owned public permission is admitted and used.
     failure: Deny the endpoint when exact current binding and policy cannot be re-read.
@@ -623,12 +436,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-014
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-014 source materialization is first-party
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: realm.source_materialize remains an authenticated first-party operation using Runtime's current account, one typed CharacterSourceRefV3, and fresh audience-bound challenge; canonical source, world, dependency, visibility, and readiness truth are reloaded on the Realm surface, Runtime verifies current JWKS, purpose, audience, challenge, source, closure, limits, replay, and account generation on the short-lived signed Packet v3 before atomic commit, and the flow accepts no app id, permission id, scope, qualifier, accessGrantId, decision id, caller-selected Realm endpoint, synthetic same-bearer grant, retired snapshot authorization, or agents.interact input.
     condition: Whenever Realm source materialization is requested or consumed.
     failure: Reject materialization unless the first-party challenge, canonical reload, complete packet verification, and atomic commit succeed.
@@ -637,12 +446,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-authority-class
   - id: rule.nimi.platform.app-ecosystem.p-perm-015a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-015 closed mutually exclusive authority classes
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every app action resolves to exactly one of base_entitlement, user_permission, one_shot_consent, app_owned_authority, or os_right with the class's catalog, prompt, and durable-row semantics; review, launch, route availability, and feature flags cannot create a sixth class.
     condition: Whenever an app action is classified for authorization.
     failure: Reject an unclassified, multiply classified, or invented-class action.
@@ -651,12 +456,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-authority-class
   - id: rule.nimi.platform.app-ecosystem.p-perm-015b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-015 no protected-operation relabeling
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: An app-owned command proxies a protected Nimi operation, or a protected operation is labeled app_owned_authority or base_entitlement.
     condition: Whenever commands or protected operations are classified.
     failure: Reject the proxy or misclassification and require the protected owner's admitted authorization path.
@@ -665,12 +466,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-authority-class
   - id: rule.nimi.platform.app-ecosystem.p-perm-016a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-016 public intent with exact internal enforcement
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: One public permission may expand only inside its owner into exact operations, provenance checks, quotas, budgets, rates, and policies, and every call still enforces least privilege while the public surface remains one human-recognizable intent.
     condition: Whenever a public permission maps to internal enforcement.
     failure: Deny calls lacking exact internal checks without exposing those checks as public permissions.
@@ -679,12 +476,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-016b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-016 no internal-resource approval UX
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Users are prompted to approve individual RPC methods, conversation anchors, turns, streams, or internal file operations, or apps and renderers construct or display internal operation or resource identities.
     condition: Whenever permission UX or app-visible authorization data is produced.
     failure: Reject the internalized UX and expose only the canonical recognizable intent.
@@ -693,12 +486,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-perm-017a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-017 atomic owner-complete admission
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Public permission admission atomically includes catalog row, one decision owner, manifest validation, owner selector, durable decision or one-shot proof, closed internal mapping, enforcement at every endpoint, SDK and Kit surface, just-in-time approval UI, and audit; durable permissions also include settings and revoke UI, while one-shot consent includes exact preview, selection, expiry, single consumption, cancellation, and replay rejection and creates no durable settings row.
     condition: Whenever a public permission row moves to admitted.
     failure: Keep the permission reserved if any conjunct is absent or non-atomic.
@@ -709,12 +498,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-017b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-017 bounded permission UX
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Permission UX presents one decision per recognizable intent and selected resource set, gives a normal app using only its own data zero Nimi permission prompts, and forbids install-time permission walls, method-level prompts, hidden scope or qualifier editors, raw resource ids, and duplicate Runtime and Realm approvals.
     condition: Whenever install, launch, or just-in-time permission UX is rendered.
     failure: Reject an over-broad, duplicated, internalized, or unnecessary prompt flow.
@@ -723,12 +508,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-napp-030a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-030 complete listing-closure field set
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The existing P-NAPP-009 ordinary-visible listing predicate evaluates at projection time the conjunction of admitted admission_status, ordinary-visible visibility, resolved trust tier, package kind, release descriptor, permission requirements including an empty list, Runtime registration mode, storage policy, and absence of unsupported or blocked fail-close from host, Runtime, or the Realm surface.
     condition: Whenever an Apps listing row is projected.
     failure: Exclude the row from ordinary-visible projection when any conjunct is absent, unresolved, or negative.
@@ -737,12 +518,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-030b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-030 no parallel or reduced listing predicate
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A listing implementation creates a predicate parallel to P-NAPP-009, removes a listing-closure conjunct, or treats one resolved field as implied by another.
     condition: Whenever the ordinary-visible listing predicate is implemented or changed.
     failure: Fail the row out of ordinary-visible projection and restore the single complete conjunction.
@@ -751,12 +528,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-031
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-031 unified inventory preserves owner projections
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Desktop and SDK inventory preserves inspectable catalog, account, and local_record source identities as distinct owner projections, keeps current permission posture separate, and never joins by display app id in a way that merges principals, permissions, storage, audience, sessions, or turns one source fact into another.
     condition: Whenever Apps inventory rows are composed or joined.
     failure: Reject a merged or source-erasing inventory projection.
@@ -767,12 +540,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-napp-032
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-032 local record creation boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A mutable project enters only through local_development, an immutable package remains unavailable until its opaque-lineage mapping is admitted, and workspace adoption or scanning, file presence, package installation, cloned source, process liveness, app-local specs, aliases, and inventory-only rows cannot create a principal, local record, provenance, permission decision, launch lease, or session.
     condition: Whenever a local app record or positive local authority is created.
     failure: Deny creation unless the admitted provenance-specific path supplies every required fact.
@@ -783,12 +552,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-035a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-035 explicit local development authorization
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: local_development is the sole mutable third-party provenance class and uses the common principal, launch and session, permission, and owner-operation coordinator; the global Developer Mode grants nothing, and first project authorization requires fresh presence plus explicit run_once or allow_project consent.
     condition: Whenever a mutable third-party project is authorized.
     failure: Deny authorization or launch without the exact explicit consent path.
@@ -799,12 +564,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-035b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-035 bound development consent and permission requirements
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Development authorization binds canonical project-root file identity, declared app id, permission-requirement fingerprint, current account, fixed shell and entry policy, and consent; manifest permissions contain only admitted public id and reason requirements, carry request eligibility only, and with the current empty admitted set any non-empty list fails before approval.
     condition: Whenever run_once or allow_project is created or reused.
     failure: Deny consent creation or reuse on any binding mismatch or unadmitted permission requirement.
@@ -815,12 +576,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-035c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-035 lease renewal and consent invalidation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every build or host replacement receives a new lease, process binding, and local-app session; exact allow_project consent may survive controlled HMR, rebuild, restart, supervisor replacement, Desktop restart, and Runtime restart, upgrade, or reinstall, while Runtime boot epoch and supervisor-run identity remain session inputs rather than durable consent inputs; account switch, mode-off, supervisor end, or Runtime replacement revokes live carriers, and revoke, bound-field mismatch, risk expansion, copied project, or integrity failure invalidates or requires fresh approval; run_once ends with supervisor run or any invalidation.
     condition: Whenever development host, account, Runtime, supervisor, project, or authorization state changes.
     failure: Revoke affected live carriers and deny reuse unless every durable consent binding remains exact.
@@ -831,12 +588,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-035d
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-035 stable protected consent custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Runtime-owned allow_project consent remains under the stable protected service authority root outside candidate and product-data roots; candidate installation may rebuild candidate-local principal or record projections from it but cannot replace, copy, or reinterpret the consent store, and mode-off, absent account, or absent supervisor never makes it auto-run.
     condition: Whenever local-development consent is stored, projected, or reused.
     failure: Deny use of consent from mutable candidate or product-data custody and require exact protected-store verification before explicit launch reuse.
@@ -845,12 +598,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-035e
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-035 zero-permission app authority remains valid
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A local-development app using only its native host, app-owned OS storage, bounded app-private base entitlement, or exact app-owned native commands remains valid with an empty public permission list; those authorities do not enter the permission fingerprint, native-host changes remain bound by host and payload digest, shell and entry, process, and project generation checks, protected operations cannot be tunneled through native commands, and any later change to admitted public requirements triggers the existing reapproval flow.
     condition: Whenever local-development requirements or app-owned commands are evaluated.
     failure: Reject a tunneled protected operation or stale fingerprint without inventing Nimi permissions for app-owned authority.
@@ -861,12 +610,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-permission
   - id: rule.nimi.platform.app-ecosystem.p-napp-035f
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-035 development host custody and disclosure
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Controlled-account development remains Runtime-mediated and receives no token, bearer, stronger permission, persistent managed logon, or boot autostart; UI discloses that Nimi permissions do not constrain all ordinary OS rights of native code, including the admitted Windows ordinary-rights disclosure where applicable, renderer receives no raw filesystem, account, credential, partition, or generic host proxy, and exact Electron or Tauri host commands remain app authority only.
     condition: Whenever a local-development host is launched or its authority is disclosed.
     failure: Deny secret or generic-host exposure and present the applicable OS-rights disclosure.
@@ -877,12 +622,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-principal
   - id: rule.nimi.platform.app-ecosystem.p-napp-036a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-036 closed local provenance
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The local trust-class table closes third-party provenance to verified, user_imported, and local_development with its transition seams and bundled-component exclusions; provenance is Runtime-derived record state, cannot be selected or upgraded by a request, and has no Nimi API permission effect.
     condition: Whenever local app provenance is assigned, changed, or consumed.
     failure: Reject an unknown, caller-selected, permission-bearing, or invalidly transitioned provenance class.
@@ -891,12 +632,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-036b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-036 principal and immutable lineage boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Runtime derives the random non-reused local_app_principal_id under local_os_user_anchor; opaque immutable lineage, attestation refs, provenance revision, execution-profile ref, and host and payload digest slots remain fixed, later package mapping cannot reshape them, promotion invalidates leases and sessions without creating permission, and shipped Zhiyu remains bundled while its integration build uses an isolated development principal.
     condition: Whenever a local principal, immutable lineage, promotion, or bundled integration identity is handled.
     failure: Reject reused or caller-derived principal identity, slot reshaping, permission creation by promotion, or bundled and development principal conflation.
@@ -907,12 +644,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-037a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 conjunctive production component graph
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: macOS production admission requires the same signed and notarized fixed-path Nimi.app, administrator-approved SMAppService registration, launchd system LaunchDaemon, dedicated non-login Runtime principal, Runtime-only System Keychain custody, launchd-owned protected sockets, mutually verified Desktop main carrier, host-only Kit carrier and typed SDK consumers, supervised independently signed local host, and Runtime-authenticated Realm broker; macOS is neither a compile-target claim nor portable fallback, and an ad-hoc signature, same-user daemon, ordinary localhost listener, or manually started foreground Runtime cannot advance posture.
     condition: Whenever macOS protected-local production posture is projected.
     failure: Keep requirements_only_fail_closed_pending_native_admission and deny protected protocol access when any component or binding is absent.
@@ -921,12 +654,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 non-product carrier-4 graph
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The only tracked macOS local-development profile is non-product fresh carrier-4, joining a user-domain machine-local CA and stable P-256 role leaves, unprivileged hardened-runtime signing and release records, explicit administrator install through a keyless root helper, root-owned atomic candidate activation, dedicated _nimiruntimedev launchd principal, Runtime-only operational custody and protected socket, signed Nimi Dev Desktop, and signed supervised Local App Host Dev; Team ID, notarization, Gatekeeper, Developer ID, SMAppService, production, and Tauri claims remain absent.
     condition: Whenever the tracked non-product macOS development profile is built, installed, launched, or projected.
     failure: Keep local_development_candidate_fail_closed_pending_real_acceptance and reject any production-strength or cross-carrier claim.
@@ -935,12 +664,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 separated signing identity and custody authorities
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Development signing authority, per-build executable identity, and Runtime custody remain separate; private signing keys stay only in the dedicated user-domain signing Keychain before elevation and are unreadable by installer, Runtime, Desktop, renderer, and app, while every build is pinned by SHA-256, CDHash, release record, architecture, entitlements, generation, and expiry and Runtime secrets bind the stable Runtime role and exact installed release lineage.
     condition: Whenever a protected-local development candidate is signed, installed, or admitted.
     failure: Reject a candidate with merged authority, exposed signing key, incomplete build pin, or custody not bound to exact Runtime trust.
@@ -951,12 +676,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037d
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 keyless verify-install helper
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The privileged helper only verifies and installs a preverified candidate, holds no signing key or certificate authority, cannot sign, issue, rotate, or self-rotate, repeats exact release-record, signature, designated-requirement, leaf-SPKI, absent-Team-ID, hardened-runtime, architecture, entitlement, SHA-256, CDHash, same-vnode, and fixed-path checks before atomic activation, and has a closed source list that does not discover or compile the whole security directory.
     condition: Whenever the non-product candidate crosses the privileged install boundary.
     failure: Abort before activation on an extra helper authority, source, mutable input, or failed repeated check.
@@ -965,12 +686,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.executable-trust-set
   - id: rule.nimi.platform.app-ecosystem.p-napp-037e
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 fresh-install state closure
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Fresh carrier-4 install begins only when service, principal, plist, payload, sockets, Runtime custody, and install journal are all absent; one root-owned mode-0600 journal may witness the irreversible transaction, any unknown or partial state keeps listeners closed and requires explicitly confirmed exact reset without automatic recovery, and development Runtime update remains not admitted.
     condition: Whenever a carrier-4 fresh install or reset is considered.
     failure: Deny mutation or listener activation and report repair or explicit-reset requirement for any non-fresh or partial state.
@@ -979,12 +696,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037f
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 unsupported carriers fail before mutation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Carrier 2, carrier 3, legacy, and unknown profiles fail as legacy-local-dev-profile-not-supported before signing, elevation, Keychain, OpenDirectory, launchd, or filesystem mutation; normal carrier-4 commands neither repair nor migrate them, the helper has no legacy parser or deletion path, explicit reset owns only the current Nimi Dev namespace, and no reusable migration, rotation, overlap, proof, or multi-WAL recovery path exists.
     condition: Whenever a normal carrier-4 command observes profile or namespace state.
     failure: Return legacy-local-dev-profile-not-supported before any mutation.
@@ -993,12 +706,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037g
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 OpenDirectory service-principal creation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The development service principal is created only through public OpenDirectory APIs using one collision-free equal UID and GID in 450 through 499, distinct canonical user and group UUIDs fsynced in the root journal before mutation, group then user complete birth dictionaries, immutable GeneratedUID, password *, hidden state, /var/empty home, /usr/bin/false shell, no authentication, credential, secure-token, Kerberos, writer-delegation, or explicit group-membership attributes, and no explicit attachment to any other group.
     condition: Whenever the development service user and group are created.
     failure: Roll back or report runtime-service-repair-required on any collision, incomplete witness, forbidden attribute, malformed negative value, or membership.
@@ -1007,12 +716,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037h
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 exact service-principal verification
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Installer synchronization is followed by exact raw OpenDirectory and POSIX projection validation including forbidden-attribute and explicit-membership absence; binary or malformed negative attributes count as present, computed baseline groups are not hard-coded as machine-independent truth, and non-root inability to read protected attributes reports privileged verification required rather than trusted status.
     condition: Whenever service-principal trust is established or reported.
     failure: Deny trusted status on unreadable, malformed, ambiguous, mismatched, or incompletely verified principal state.
@@ -1021,12 +726,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037i
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 identity-bound recovery and rollback
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Recovery deletes user before group only when name, UID and GID, and both GeneratedUID values match the fsynced witness, then verifies absence; query failure, ambiguity, mismatch, or unproved deletion preserves the journal and reports runtime-service-repair-required, cleanup derives actual postconditions, stops at first failed observed-effect cleanup, and removes the journal, RuntimeDev boundary, and recovery helper only after launchd, sockets, custody, payload, staging, and complete principal state are absent and fsynced, with the helper removed last; an exact durable principal is never removed merely because a candidate update failed.
     condition: Whenever principal creation, install, reset, or uninstall rolls back or recovers.
     failure: Stop cleanup, retain the exact recovery witness, and report repair required on the first unverified state.
@@ -1035,12 +736,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037j
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 single privileged transaction lock
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every privileged install, restart, reset, and uninstall holds one non-blocking exclusive flock on the same exact open root-owned RuntimeDev boundary directory for its full transaction; no pathname lock or removable inode creates parallel serialization truth, user-domain signing and unprovisioning remain outside this lock and gain no installer authority, and dscl, sysadminctl, dsimport, and direct dslocal writes are forbidden mutation fallbacks.
     condition: Whenever privileged RuntimeDev state is mutated.
     failure: Deny mutation on lock contention, replacement boundary, or fallback mutation path.
@@ -1049,12 +746,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037k
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 development retains protected transport invariants
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Carrier-4 retains production LOCAL_PEERTOKEN, LOCAL_PEERPID, audit-session, real and effective UID, pidversion and start identity, static and dynamic SecCode, exact identifier, designated requirement, leaf and hash, hardened-runtime, vnode and liveness, mutual peer verification, active-console, boot-epoch, session-generation, restart, account-change, revoke, and verified-supervisor checks; it omits only production Team ID, notarization, Gatekeeper, and SMAppService assertions, direct launchctl bootstrap is allowed only for this root-owned non-product LaunchDaemon, and no public TCP endpoint, app-held Runtime token, renderer secret, app-level REST or gRPC bypass, or Mac-only SDK or permission truth exists.
     condition: Whenever carrier-4 protected transport admits a process or connection.
     failure: Deny connection or profile promotion when any retained invariant fails or a production omission is claimed.
@@ -1063,12 +756,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-037l
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 production service and custody installation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Production uses SMAppService daemon registration and launchd lifecycle from installer-fixed /Applications/Nimi.app and embedded LaunchDaemon plist with fixed BundleProgram; signed installation provisions the dedicated non-login principal and root-owned Runtime boundary with a principal-owned mode-0700 state child, and invokes only the sealed fixed Runtime executable as real root in no-input custody-provision mode after exact role, outer seal, dynamic code, CDHash, designated-requirement, and same-open-vnode digest checks.
     condition: Whenever production Runtime service or custody is provisioned or registered.
     failure: Abort registration and custody mutation on any path, principal, seal, role, code, vnode, or execution-mode mismatch.
@@ -1079,12 +768,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037m
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 protected state initialization and locking
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Custody provisioning and Runtime lock the same principal-owned mode-0600 regular runtime.lock vnode for their full state-access lifetime; fresh initialization requires lock, ledger, auxiliary files, Keychain MAC key, and anchor all absent and no unrelated state entry, existing validation requires all present with exact metadata and cryptographic integrity, and partial, busy, or replacement state requires explicit repair without silent reset.
     condition: Whenever Runtime protected state is initialized, opened, or validated.
     failure: Deny state access and listener activation on any mixed, busy, replaced, or untrusted state.
@@ -1093,12 +778,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037n
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 atomic custody genesis and release generation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Fresh custody creates one 32-byte CSPRNG record-MAC key and matching genesis ledger and Keychain anchor, fsyncs ledger and directory, discloses no secret, removes on failure only artifacts proven created by that transaction, leaves incomplete rollback repair-required, and admits the exact installed Runtime role generation before provision success so downgrade or rebind fails before registration.
     condition: Whenever fresh Runtime custody is initialized.
     failure: Fail closed with repair-required state unless genesis, durability, rollback ownership, and exact release generation all complete.
@@ -1107,12 +788,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.executable-trust-set
   - id: rule.nimi.platform.app-ecosystem.p-napp-037o
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 production principal and lifecycle exclusions
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The production installer validates or creates one collision-free equal UID and GID in 200 through 499 for hidden _nimiruntime with /var/empty home, /usr/bin/false shell, disabled password, and no supplementary groups; mismatches are repair-required and identities are never repurposed, while LaunchAgent, Login Item, user-session daemon, Desktop child Runtime, and foreground development server are not equivalent profiles and Desktop quit leaves production Runtime running.
     condition: Whenever production service identity or lifecycle equivalence is evaluated.
     failure: Deny service admission or report repair required for identity mismatch or substitute lifecycle.
@@ -1121,12 +798,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037p
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 mutual socket peer verification before bytes
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Runtime derives peer identity from connected-socket LOCAL_PEERTOKEN and LOCAL_PEERPID, correlates user, audit session, PID, dynamic SecCode, exact role trust, hardened runtime, canonical executable vnode and active login, retains process-exit, exec, and vnode mutation witnesses, and revokes on user or session change; the peer symmetrically verifies launchd Runtime PID, audit token, dynamic code, exact role record, installed vnode, liveness, boot epoch, and rotation before either side sends protocol or credential bytes.
     condition: Whenever a protected-local socket connection is accepted or retained.
     failure: Close the connection before protocol bytes on any absent, stale, replaced, mismatched, or revoked fact.
@@ -1137,12 +810,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-037q
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 non-self-referential release records
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Mutually verifying executables do not compile role CDHashes or embed the final Desktop CDHash inside the same outer resource seal; after final sign, notarize, and staple, the guarded pipeline measures the same open vnode and emits one canonical release-root-signed record per role into the fixed root-owned non-writable protected-local trust directory, packages exact app and records together, keeps state as a non-replacing sibling, and uses installer serialization with Runtime booted out before postinstall custody-lock validation.
     condition: Whenever production macOS role records and package payload are built or installed.
     failure: Reject self-referential, pre-final, mutable-path, replaceable, or app-and-record-mismatched trust material.
@@ -1151,12 +820,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.executable-trust-set
   - id: rule.nimi.platform.app-ecosystem.p-napp-037r
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 fixed trust-record selection and update activation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Record signature supplies content authority, signed installer plus fixed root-owned path supplies installation authority, and outer-bundle validation independently proves running seal; peer, environment, argv, renderer, app manifest, app resources, and user-writable paths cannot select records, and missing, noncanonical, expired, incompatible, rollback, wrong-role, digest, CDHash, ownership, or seal state fails before bytes; update postinstall never activates, and later Desktop lifecycle honors asynchronous unregister, exact re-registration, and user-owned approval status.
     condition: Whenever a role trust record is selected, an updated package is validated, or service activation follows update.
     failure: Deny activation and report installer repair required for any mixed or untrusted record and executable set.
@@ -1165,12 +830,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.executable-trust-set
   - id: rule.nimi.platform.app-ecosystem.p-napp-037s
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 release-root signing custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Runtime and Desktop embed only the stable release-root public key and key id; the builder never receives the private key through argv, environment, repository, or artifact and sends only canonical payload bytes and public key id over stdin to the fixed root-owned non-writable same-Team signer service, which owns HSM or Keychain custody and returns only Ed25519 signature, and the builder verifies every result before packaging.
     condition: Whenever a protected-local role record is signed.
     failure: Fail the release on private-key exposure, replaced or unavailable signer service, or signature verification failure.
@@ -1179,12 +840,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.executable-trust-set
   - id: rule.nimi.platform.app-ecosystem.p-napp-037t
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 Keychain-anchored generation high-water mark
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Runtime's protected append-only ledger stores a Keychain-anchored per-role release-generation high-water mark, advances only after exact running role passes dynamic-code and same-open-vnode verification, rejects generation reuse for different bytes and lower generations across restart and reinstall, and cannot be reset by app files, Desktop cache, or installer receipt.
     condition: Whenever a Runtime, Desktop, or supervised host role generation is admitted.
     failure: Deny rollback, rebind, or reset and preserve the prior high-water truth.
@@ -1193,12 +850,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.executable-trust-set
   - id: rule.nimi.platform.app-ecosystem.p-napp-037u
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 launchd-owned fixed sockets
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Desktop control and local-app host use only canonical /private/var/run/nimi/runtime-desktop.sock and runtime-local-app.sock, created and retained by the signed launchd Sockets profile as root:staff mode-0660 beneath root-owned non-writable ancestry; Runtime adopts exactly one matching descriptor after dropping privilege and never owns or replaces the path, while symlinks, preexisting non-sockets, app listeners, wrong metadata, descriptor mismatch, or vnode replacement fail closed and pathname reachability never replaces peer identity checks.
     condition: Whenever launchd sockets are created, adopted, or used.
     failure: Keep listeners closed or close the connection on any path, descriptor, vnode, or metadata mismatch.
@@ -1207,12 +860,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-037v
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 two-stage supervised host admission
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Verified Desktop starts the exact Runtime-approved local host suspended with posix_spawn and retains its child witness; Runtime binds suspended PID, start identity, executable vnode, dynamic code, project and capability and shell policy, and liveness, then after resume re-verifies full socket audit token and pidversion and atomically correlates the pre-bind witness before promotion, denying PID reuse, exec, replacement, copied or changed project, changed manifest, or host outside the live supervisor.
     condition: Whenever a local-development host process is launched and promotes its socket.
     failure: Terminate or deny promotion on any witness mismatch or supervisor loss.
@@ -1223,12 +872,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-037w
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 independently signed Electron host
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Production Electron local development uses its own signed and notarized Nimi Local App Host with distinct identifier and designated requirement, never generic npm Electron, ad-hoc Electron, Desktop executable, helper, or Node process; Chromium requires sandbox true, contextIsolation true, nodeIntegration false, and CDP absent except in an explicitly signed loopback-only acceptance variant with isolated non-authorizing user data.
     condition: Whenever an Electron local-development host is admitted or launched.
     failure: Deny launch or protected connection for a forbidden host, insecure Chromium setting, or non-isolated CDP profile.
@@ -1237,12 +882,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.executable-trust-set
   - id: rule.nimi.platform.app-ecosystem.p-napp-037x
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 opaque Electron partition
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Desktop creates each production Electron host a mode-0700 user-data directory under the fixed active-user profile root with an opaque one-way domain-separated leaf that reveals no authorization, account, project, app, epoch, or session input; exact live authorization may reuse it across controlled replacement, new authorization gets a different partition, the partition is app-owned data rather than grant or trust root, and symlinked, wrong-owner, non-directory, or accessible ancestry is rejected.
     condition: Whenever an Electron user-data partition is selected or reused.
     failure: Deny host launch until an exact private opaque partition is established.
@@ -1253,12 +894,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-principal
   - id: rule.nimi.platform.app-ecosystem.p-napp-037y
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 independent Tauri admission
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Tauri remains independently fail-closed and requires its own signed Rust carrier, WKWebView origin proof, command-registration audit, and updater and install proof; Electron admission cannot make Tauri positive.
     condition: Whenever a Tauri protected-local claim or connection is evaluated.
     failure: Keep Tauri unavailable until its independent native security chain is complete.
@@ -1267,12 +904,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037z
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 sealed protected Node-API carrier
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Each signed host resolves the only protected Node-API carrier directly from Contents/Resources/nimi-native/protected-local, never project node_modules, NODE_PATH, environment, argv, or manifest; its native image matches Developer ID Team and hardened-runtime library validation, and normalized Electron Info.plist disables arbitrary ATS, admits only required supervised local network transport, and omits usage strings for unadmitted camera, microphone, Bluetooth, and audio-capture OS rights.
     condition: Whenever the protected Node-API carrier or Electron release metadata is loaded.
     failure: Deny load or release on replaceable carrier input, signature mismatch, broad transport, or unadmitted usage string; an entitlement or usage string never grants Nimi authority.
@@ -1283,12 +916,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-037aa
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 Runtime-only System Keychain custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Runtime alone reads System Keychain custody, validates item ACL against its exact designated requirement on every open, and fails before listeners when missing, locked, inaccessible, or restored with different ACL; Desktop, apps, renderer, login Keychain, and shared storage cannot read it, Secure Enclave is not required for symmetric ledger material, reinstall preserves custody only for the same admitted role and lineage, reset or rotation is explicit repair, and logout or account switch revokes session state without redefining durable machine custody.
     condition: Whenever protected Runtime custody is opened, preserved, reset, or rotated.
     failure: Keep listeners closed and require explicit repair on custody or ACL failure.
@@ -1297,12 +926,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-037ab
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-037 typed negative posture and unchanged permission classes
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Incomplete macOS admission projects the exact applicable runtime-service-unavailable, runtime-service-untrusted, runtime-service-repair-required, runtime-restarted, process-replaced, account-changed, or session-revoked state without collapsing trust or repair into availability; protected-local admission does not alter P-PERM authority classes, app-owned storage and exact commands remain app_owned_authority, Runtime-mediated private access remains base_entitlement, all sixteen permissions remain reserved, and macOS privacy surfaces remain independent os_right decisions.
     condition: Whenever macOS protected-local posture or app authority is projected.
     failure: Return the exact negative state and deny protected access without minting permission or changing authority class.
@@ -1313,82 +938,48 @@ units:
         target: definition.nimi.platform.app-ecosystem.macos-protected-admission
   - id: definition.nimi.platform.app-ecosystem.catalog-admission
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Verified app catalog admission
     meaning: Verified app catalog admission is Platform-owned immutable release discovery and review truth for the closed package-kind set and is distinct from Runtime-owned local identity, provenance, grants, leases, processes, sessions, and runnable truth.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.registry-row
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Verified app registry row
     meaning: A verified app registry row is the closed Platform schema joining canonical app identity, publisher and trust references, release and update references, AI and capability requirements, permission requirements, Runtime registration mode, storage policy, health projection, visibility, and admission status.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.release-descriptor
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Immutable third-party release descriptor
     meaning: An immutable third-party release descriptor is canonical Platform-owned versioned package-discovery truth whose closed publisher, source, artifact, assurance, Runtime, permission, storage, update, rollback-review, decision, and support fields resolve before admission.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.health-repair-projection
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: App health and repair projection
     meaning: App health and repair projection is exactly unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, repair-required, or stale-projection as distinct fail-closed posture.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.immutable-package-seam
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Immutable package integration seam
     meaning: The immutable package integration seam consists only of opaque immutable_lineage_id, provenance_attestation_refs, provenance_revision, execution_profile_ref, host_executable_digest, and payload_root_digest slots without positive package operations or readiness.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.publisher-identity
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Admitted publisher identity
     meaning: Admitted publisher identity is reviewer-confirmed descriptor truth anchored by a GitHub user or organization namespace, a closed assurance value, and assurance-required verified domain and KYC references.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.storage-posture
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Third-party app storage posture
     meaning: Third-party app storage posture is exactly nimi-mediated-default with the Runtime-derived bounded private-storage template or app-owned-os-storage with explicit OS-path disclosure.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.review-decision
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Terminal app admission review decision
     meaning: A terminal app admission review decision is exactly approved, revision-requested, rejected, or kill-switched and records final security disposition without redefining the owning review state machine or adjudicator policy.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.support-manifest
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Admitted app support manifest
     meaning: An admitted app support manifest is the canonical descriptor block containing typed diagnostics fields, redaction rules, user-visible issue categories, escalation route, kill-switch visibility, and recovery instructions.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.catalog-admission-track
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Verified catalog admission track
     meaning: A verified catalog admission track classifies catalog review only, admits ordinary-release-proof as the sole third-party descriptor track, and never represents local development, user import, CI fixture posture, or local runnable truth.
-    relations: []
   - id: rule.nimi.platform.app-ecosystem.p-napp-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-001 catalog authority and package kind
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Platform owns verified catalog and release admission and the package-kind set whose sole value is nimi-app, Runtime owns runnable truth for verified, user_imported, and local_development, catalog absence permits a future zero-permission local import, and catalog presence creates no principal, record, grant, lease, or session.
     condition: Whenever package admission or local runnable posture is resolved.
     failure: Reject another package kind or local authority inferred from catalog presence or absence.
@@ -1399,12 +990,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-001 shared content packs are not installable apps
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A shared Nimi Content Pack is admitted as an installable product unit.
     condition: Whenever an installable package kind is evaluated.
     failure: Deny admission as an installable app.
@@ -1413,12 +1000,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-002a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-002 complete registry row schema
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every verified registry row contains app_id, display_label, publisher, trust_tier_ref, package_kind, package_signature_policy_ref, update_channel_ref, ai_profile_selection_ref, capability_set_refs, ai_capability_requirement_refs, local_compute_pack_refs, runtime_registration_mode, permission_requirements, health_repair_projection, ordinary_visibility, release_descriptor_ref, install_storage_policy_ref, and admission_status with every reference resolving to its admitted owner row.
     condition: Whenever a verified registry row is admitted or consumed.
     failure: Fail admission closed when a field or reference is missing or unresolved.
@@ -1427,12 +1010,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-002 closed registry field semantics
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A registry row uses nimi-app, app-managed registration, permission items shaped only as id and reason with an empty list valid for install, launch, and app-owned UI, ordinary_visibility from ordinary-visible, hidden-internal, developer-only, or not-admitted-visible, admission_status from admitted, gated_by_avatar_master_gate, deferred, or retired, and Apps shows only ordinary-visible admitted rows; permission readiness is not admission or launch status.
     condition: Whenever registry values or visibility are evaluated.
     failure: Reject an unknown value, malformed permission item, permission-readiness status, or improperly visible row.
@@ -1443,12 +1022,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-003 alias-driven AI profile selection
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: ai_profile_selection_ref resolves to an admitted factory AIProfile alias or profileId, and a registry row contains no embedded provider, connector, engine, or model identifier constant because vendor preference is alias-driven.
     condition: Whenever AI profile selection metadata is admitted.
     failure: Reject an unresolved reference or embedded vendor identifier.
@@ -1457,12 +1032,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-004 trust-tier reference boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: trust_tier_ref is exactly nimi-first-party, nimi-verified-partner, or nimi-community unless explicit authority admits an extension, remains distinct from verified, user_imported, and local_development provenance, and never grants, denies, widens, or narrows a Nimi API permission.
     condition: Whenever trust tier, provenance, or permission is resolved.
     failure: Reject an unknown tier or any tier, provenance, or permission conflation.
@@ -1475,12 +1046,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-005a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-005 requirement reference closure
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: capability_set_refs, ai_capability_requirement_refs, and local_compute_pack_refs resolve respectively to admitted Platform capability vocabulary, SDK app, module, and feature required or optional AI setup declarations, and Runtime local environment packs before admission and remain three distinct meanings rather than one consumer concept.
     condition: Whenever app capability or compute requirements are admitted.
     failure: Fail admission on an unresolved reference or collapsed meaning.
@@ -1489,12 +1056,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-005b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-005 no activation or secret material
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A registry row, manifest, or app-local specification carries Runtime activation consumer_id as app requirement ownership or declares local paths, selected source records, materialization evidence, route bindings, provider health, scheduler state, or connector secrets.
     condition: Whenever app requirement metadata is authored or consumed.
     failure: Reject the authority-crossing or secret-bearing metadata.
@@ -1503,12 +1066,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-006 Runtime registration ownership
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Runtime exclusively owns registration, local principal and record, enforcement, and process and session supervision, while a registry row records only verified release input and Platform admission never replaces Runtime registration semantics.
     condition: Whenever verified release input is projected locally.
     failure: Reject Platform-owned runnable truth or replacement Runtime semantics.
@@ -1519,12 +1078,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-principal
   - id: rule.nimi.platform.app-ecosystem.p-napp-007
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-007 package trust and update boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Platform owns catalog signature, attestation, and update metadata, package mapping into opaque lineage, attestation, execution-profile, and digest slots remains unavailable until admitted, and updates neither mutate the Runtime-selected source record nor introduce parallel package trust.
     condition: Whenever verified package trust or update metadata meets local state.
     failure: Deny unmapped package use, selected-source mutation, or parallel trust.
@@ -1533,12 +1088,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.immutable-package-seam
   - id: rule.nimi.platform.app-ecosystem.p-napp-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-008 explicit fail-closed health projection
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: health_repair_projection distinguishes unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, repair-required, and stale-projection, never collapses distinct reasons into unavailable, and never infers ready from file existence, endpoint reachability, process liveness, or transfer completion.
     condition: Whenever health, repair, or readiness is projected.
     failure: Deny ready and return the exact applicable negative state.
@@ -1547,12 +1098,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.health-repair-projection
   - id: rule.nimi.platform.app-ecosystem.p-napp-009a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-009 owner-only authority allocation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Platform owns catalog, release, publisher and review posture, permission vocabulary, and provenance taxonomy; Runtime and canonical domain owners retain principals, records, grants, launch, sessions, credentials, and operations; app-tools owns only authoring and build orchestration; Desktop is only the current protected launcher implementation; and Apps consumes only admitted registry, package, and SDK projection satisfying the complete listing closure.
     condition: Whenever app authority or ordinary visibility is allocated.
     failure: Reject ownership or visibility outside the canonical owner projection.
@@ -1563,12 +1110,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-principal
   - id: rule.nimi.platform.app-ecosystem.p-napp-009b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-009 metadata grants no authority
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: App id, catalog row, tier, manifest, renderer metadata, host description, Desktop, or app-tools grants privilege or runnable identity or owns admission, marketplace, economy, or package trust truth, or Apps reads source workspace, app-local specifications, or unadmitted rows to decide visibility.
     condition: Whenever authority or Apps visibility is resolved.
     failure: Deny the inferred authority or visibility.
@@ -1579,12 +1122,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-principal
   - id: rule.nimi.platform.app-ecosystem.p-napp-010
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-010 orthogonal app-slice admission
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: App-slice audit and subordinate-authority admission remains orthogonal to public catalog admission, a first-party app may hold both rows, and neither substitutes for the other.
     condition: Whenever both admission surfaces are evaluated.
     failure: Reject substitution or merger of either authority.
@@ -1593,12 +1132,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-011
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-011 bundled seed and mutable-build isolation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The catalog may retain admitted bundled Avatar, Realm Persona Studio, Realm World Studio, and Zhiyu rows with owner posture without third-party redesign or provenance, shipped Avatar and Zhiyu retain owner caller semantics, Zhiyu's mutable integration build uses an isolated local_development principal inheriting no bundled identity, permission, storage, audience, session, Agent, or memory state, and no bundled row creates an external principal or package readiness.
     condition: Whenever bundled rows or mutable integration builds are handled.
     failure: Reject redesign, third-party mapping, inherited state, external principal, or inferred readiness.
@@ -1609,12 +1144,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-012a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-012 identity surface mapping
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Platform owns canonical app_id display and routing mapping, Runtime resolves protected permission, storage, audience, session, and audit through random non-reused local_app_principal_id within local_os_user_anchor, and protected calls use Runtime-derived principal and session context rather than app_id, app_instance_id, or device_id.
     condition: Whenever display identity maps to a protected surface.
     failure: Reject a protected key or call derived from display identity.
@@ -1623,12 +1154,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-principal
   - id: rule.nimi.platform.app-ecosystem.p-napp-012b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-012 canonical identity syntax and bundle mapping
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: app_id is lowercase dot-separated with segments starting and ending in ASCII lowercase letters or digits and containing only internal lowercase letters, digits, or hyphens, underscore is forbidden, and Tauri identifier is only an OS bundle, signing, and update identifier derived exactly as ai.nimi.apps.<app_id> without AI semantics.
     condition: Whenever app_id or a Tauri identifier is admitted.
     failure: Reject invalid syntax or a non-derived or overloaded bundle identifier.
@@ -1637,12 +1164,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-012c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-012 no side-namespace identity
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Active source, scaffold state, Runtime caller behavior, or Tauri configuration uses app.nimi.*, dev.nimi.*, or another side namespace as active identity or encodes development or test posture into canonical app_id.
     condition: Whenever an active app identity is authored or consumed.
     failure: Reject the side namespace and keep non-product posture in Runtime-owned mode, record, build profile, or non-product evidence.
@@ -1651,12 +1174,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-013a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-013 immutable admission closure
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A verified third-party admission closes registry metadata, permission and Runtime requirements, AI profile requirements, exact version, immutable source, release descriptor, artifact digest and size, applicable signature or provenance, and storage policy in one immutable release record that owns discovery and attestation input only.
     condition: Whenever a third-party release is admitted.
     failure: Fail closed when any package or schema fact is absent or mutable.
@@ -1665,12 +1184,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-013b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-013 source is not runnable authority
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Repository ownership, package name, source directory, app-local specification, direct npm or npx, mutable branch or tag, clone, build, run, or installer execution creates immutable local truth, principal, grant, or session; mutable source uses local_development and immutable import remains unavailable until admitted.
     condition: Whenever source presence is interpreted locally.
     failure: Deny local authority and route mutable source through local_development.
@@ -1681,12 +1196,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-014a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-014 immutable descriptor and digest verification
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every catalog version resolves an immutable descriptor with exact app_id, version, source kind and ref, artifact locator, SHA-256, size, signature or provenance ref, Runtime kind and entry, permissions, and storage policy, and future mapping downloads only from that source, hashes bytes before unpack, registration, or execution, compares SHA-256, and continues manifest, permission, Runtime, and storage validation only after a match.
     condition: Whenever a catalog version or immutable mapping is admitted.
     failure: Fail closed before unpacking on missing fields, wrong source, or digest mismatch.
@@ -1697,12 +1208,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-014b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-014 descriptor and hash are not package safety
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: The descriptor is treated as immutable package format, hostile-byte inspector, or fixed-AppHost authority, enables user_imported installation before admission, or treats hash match alone as safety proof.
     condition: Whenever descriptor or digest success is interpreted.
     failure: Keep installation unavailable and require every independent validation.
@@ -1711,12 +1218,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.immutable-package-seam
   - id: rule.nimi.platform.app-ecosystem.p-napp-015a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-015 principal-rooted app storage
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Mediated storage is selected nimi_data/apps/<local_app_principal_id>/releases/<version>, data, cache, and tmp, Runtime alone resolves the principal, uninstall or project revoke tombstones it, retained durable data becomes orphaned and delete-only, deletion requires explicit fresh-presence confirmation, and reinstall or reauthorization never rebinds it.
     condition: Whenever app storage is resolved or lifecycle changes.
     failure: Deny caller-derived roots, implicit deletion, or orphan rebinding.
@@ -1727,12 +1230,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.storage-posture
   - id: rule.nimi.platform.app-ecosystem.p-napp-015b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-015 bounded install and uninstall
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Ordinary installation writes outside principal roots except through admitted Runtime dependency or materialization, or uninstall implicitly deletes shared models, Runtime dependencies, account data, or another app's data.
     condition: Whenever an app is installed or uninstalled.
     failure: Reject the write or unrelated deletion.
@@ -1741,12 +1240,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.storage-posture
   - id: rule.nimi.platform.app-ecosystem.p-napp-018a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-018 complete third-party descriptor
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every third-party descriptor resolves descriptor_id, app_id, exact version, ordinary-release-proof, publisher namespace, kind, assurance, domain, and KYC ref, immutable source kind and ref, artifact locator, digest, size, provenance ref and mirror ref, build, dependency, and platform-signing assurance, nimi-app Runtime kind, entry and sandbox refs, exact permissions including empty, storage policy, update channel, rollback marker, terminal review decision, and support manifest.
     condition: Whenever a third-party descriptor is admitted.
     failure: Fail closed when a required field or reference is missing, malformed, mutable, or unresolved.
@@ -1755,12 +1250,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-018b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-018 descriptor is canonical truth
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Descriptor truth is collapsed into a developer manifest or parallel artifact, or a developer manifest is treated as admission truth.
     condition: Whenever descriptor truth is authored or consumed.
     failure: Reject parallel truth and consume only the Platform descriptor.
@@ -1769,12 +1260,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-019a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-019 opaque immutable seam
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The local kernel admits only the six opaque seam slots and keeps size partition, dates, installed version, rollback candidate, active release pointer, install evidence, job, storage root, signer envelope, import, update, promotion, repair, positive operation, and readiness unavailable.
     condition: Whenever immutable package state is projected before separate admission.
     failure: Return typed unavailable and reject additional positive state.
@@ -1783,12 +1270,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.immutable-package-seam
   - id: rule.nimi.platform.app-ecosystem.p-napp-019b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-019 frozen schema and non-local metadata
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Future package mapping renames, splits, merges, or adds identity-bearing principal, record, grant, lease, process, or session fields, admits detailed package evidence without separate authority, or interprets catalog version, size, date, or rollback metadata as local package, principal, install, launch, grant, promotion, or rollback truth.
     condition: Whenever package mapping or catalog metadata is projected.
     failure: Reject schema change, undeclared evidence, or inferred local truth.
@@ -1797,12 +1280,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.immutable-package-seam
   - id: rule.nimi.platform.app-ecosystem.p-napp-020
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-020 publisher identity requirements
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every third-party descriptor carries publisher.github_namespace and publisher.namespace_kind from user or org, domain-verified and identity-verified carry a non-null DNS-verifiable domain bound to the GitHub organization namespace, and manifest fields, repository ownership, or package name never substitutes for reviewer-confirmed publisher truth.
     condition: Whenever publisher identity is admitted.
     failure: Return publisher_identity_missing for absent or invalid namespace facts and verified_domain_unresolved for absent, unresolvable, or unbound domain.
@@ -1811,12 +1290,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.publisher-identity
   - id: rule.nimi.platform.app-ecosystem.p-napp-021
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-021 assurance enum and KYC deferral
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Assurance is exactly pseudonymous with GitHub anchor, domain-verified with DNS-verified org, or identity-verified with KYC-verified entity, the latter two require org, identity-verified requires a non-null reference through a separately admitted KYC pipeline, and assurance is never silently upgraded, downgraded, or mutated but requires new descriptor admission.
     condition: Whenever publisher assurance is admitted or changed.
     failure: Return publisher_identity_missing for invalid namespace binding or kyc_pipeline_not_yet_admitted for unresolved KYC and reject in-place mutation.
@@ -1825,12 +1300,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.publisher-identity
   - id: rule.nimi.platform.app-ecosystem.p-napp-022
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-022 pre-mirror reference and license closure
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every third-party descriptor resolves artifact_mirror_ref to a Nimi-controlled immutable mirror locator and has mirror_license_cleared true before mirroring, keeps the ref stable across substrate migration, and preserves artifact_mirror_ref_unresolved and mirror_license_unclear as distinct pre-mirror failures.
     condition: Whenever an artifact is admitted for mirroring.
     failure: Return the exact failure and perform no mirror mutation.
@@ -1839,12 +1310,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-023
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-023 third-party build assurance
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Third-party build_assurance is exactly nimi-built, reproducible-verified, or developer-attested, checksum-pinned remains restricted to first-party, internal, and developer-testing classes, and build assurance is review and display input rather than standalone automated install or runnable authority.
     condition: Whenever third-party build assurance is admitted or consumed.
     failure: Return build_assurance_third_party_violation for checksum-pinned or another invalid value and deny local-positive inference.
@@ -1853,12 +1320,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-024a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-024 platform signing assurance schema
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every third-party descriptor carries macos_notarization from notarized, not-applicable, or not-required-internal, macos_developer_id_subject present unless not-applicable, windows_code_signing from signed, not-applicable, or not-required-internal, installer_signature from signed or unsigned-internal-only, entitlements_ref as admitted ref or null, and signing_subject as nimi or publisher.
     condition: Whenever platform signing assurance is admitted.
     failure: Fail closed when the sub-object or a typed subfield is missing or inconsistent.
@@ -1867,12 +1330,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-024b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-024 ordinary signing and non-authority boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Ordinary-user third-party macOS resolves notarized and Windows resolves signed with no not-applicable or internal-only substitute, while signing fields remain catalog input that creates no package signing identity, principal, record, install, import, update, promotion, launch, ordinary visibility from non-product tracks, package readiness, or new admission_status value and future mapping uses only the opaque seam.
     condition: Whenever ordinary release signing assurance is admitted or projected.
     failure: Return platform_signing_required for insufficient signing and deny every local-positive or enum-extension claim.
@@ -1885,12 +1344,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-025a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-025 terminal review decision semantics
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every third-party descriptor records review.decision as approved, revision-requested, rejected, or kill-switched, only approved posture advances positive catalog admission, and rejected or kill-switched posture remains fail-closed.
     condition: Whenever terminal review disposition is enforced.
     failure: Reject an unknown decision or positive admission without approved posture.
@@ -1899,12 +1354,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-napp-025b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-025 terminal subset preserves review ownership
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: submitted or under-review appears as terminal review.decision, or this descriptor schema redefines the owning review-state set or tier-to-adjudicator policy.
     condition: Whenever review decision schema is consumed.
     failure: Reject the transient value or policy redefinition.
@@ -1913,12 +1364,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-napp-026
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-026 complete canonical support manifest
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every third-party descriptor carries a non-empty support block with typed diagnostics_bundle_fields, redaction_rules, user_visible_issue_categories, escalation_path, kill_switch_visibility, and recovery_instructions, and Runtime never infers those fields from a developer manifest, file existence, process liveness, or endpoint reachability.
     condition: Whenever support truth is admitted or projected.
     failure: Return support_manifest_incomplete for absent or incomplete fields and fail inferred support truth closed.
@@ -1927,12 +1374,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.support-manifest
   - id: rule.nimi.platform.app-ecosystem.p-napp-027a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-027 closed storage posture and template
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: storage_policy_ref.kind is exactly nimi-mediated-default or app-owned-os-storage with no in-place third value, and mediated posture resolves exactly selected nimi_data/apps/<local_app_principal_id>/releases/<version>, data, cache, and tmp using the Runtime-derived principal while materialization remains unavailable until package mapping is admitted.
     condition: Whenever storage posture is admitted or resolved.
     failure: Return storage_policy_kind_unresolved for invalid kind or nimi_mediated_storage_unresolved for unresolved template and typed unavailable for premature materialization.
@@ -1943,12 +1386,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.storage-posture
   - id: rule.nimi.platform.app-ecosystem.p-napp-027b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-027 storage authority classes
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The calling app's mediated partition is base_entitlement requiring live principal, session, account, path, type, quota, and symlink policy rather than a file permission or grant, cross-app and destructive retained-data access is excluded, and app-owned OS storage is accepted at every trust tier with disclosure, native schemas and commands outside protected-operation grants, and only an opaque session partition handle when needed.
     condition: Whenever either storage posture is authorized.
     failure: Deny access outside the exact authority class, invented grant, or raw account or credential exposure without rejecting app-owned posture itself.
@@ -1959,12 +1398,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.storage-posture
   - id: rule.nimi.platform.app-ecosystem.p-napp-028a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-028 OS storage disclosure invariant
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: app-owned-os-storage carries a non-empty reviewer-visible and user-visible os_storage_disclosure whose entries contain typed path_pattern, purpose, and expected_size_band, while nimi-mediated-default carries no such field and the disjoint shapes use os_storage_disclosure_missing for either symmetric violation.
     condition: Whenever storage posture and disclosure are validated.
     failure: Fail admission closed with os_storage_disclosure_missing.
@@ -1973,12 +1408,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.storage-posture
   - id: rule.nimi.platform.app-ecosystem.p-napp-028b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-028 disclosure is not mutation authority
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Runtime immutable uninstall, update, or repair unilaterally touches an os_storage_disclosure path.
     condition: Whenever lifecycle operations encounter disclosed app-owned paths.
     failure: Preserve the path and inform the user that clean-uninstall coverage is outside Nimi mediation.
@@ -1987,12 +1418,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.storage-posture
   - id: rule.nimi.platform.app-ecosystem.p-napp-029a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-029 public source by trust tier
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every nimi-verified-partner or nimi-community descriptor resolves registry source_repo_url to a publicly visible GitHub repository at admission while nimi-first-party remains unconstrained, and an unresolvable URL is a distinct failure from source_repo_visibility_violation.
     condition: Whenever source URL and visibility are evaluated.
     failure: Return the distinct URL-resolution reason or source_repo_visibility_violation for a resolved non-public repository.
@@ -2003,12 +1430,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-029b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-029 immutable source posture
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Source visibility enforcement redefines the trust-tier vocabulary or source_repo_url or repository visibility posture is mutated in place after admission.
     condition: Whenever admitted source posture changes.
     failure: Preserve the tier vocabulary and require new descriptor admission.
@@ -2017,12 +1440,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-napp-033
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-033 catalog track boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Tracks classify catalog review only, ordinary-release-proof is the sole third-party track, CI descriptors create no runnable truth, local_development is not a catalog track, user_imported is not simulated by a fixture, and positive immutable behavior remains unavailable until admitted.
     condition: Whenever an admission track is interpreted.
     failure: Reject a non-admitted track or local-positive inference.
@@ -2033,12 +1452,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.immutable-package-seam
   - id: rule.nimi.platform.app-ecosystem.p-napp-034a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-034 protected launch prerequisites
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A positive third-party session requires same-OS fixed Runtime, Runtime-derived local_app_control, PrepareLocalAppLaunch, native peer, process, and executable proof, exact principal, record, provenance, generation, account, and boot epoch; the lease is non-durable and absent from renderer and app state; and shortcuts target only the verified launcher selected by the launch profile.
     condition: Whenever a protected local session launches.
     failure: Deny launch on any missing prerequisite or launcher binding.
@@ -2049,12 +1464,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-034b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-034 platform-specific fail-closed launch
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Windows is the current positive launch row, macOS and Linux remain requirements-only until independently admitted, Desktop is implementation rather than owner, names remain host-neutral, and ordinary gRPC, endpoint or environment selection, app id, caller metadata, copied lease, raw self-launch, and direct Runtime process launch never substitute while OpenDesktopSession remains unchanged and Desktop-specific.
     condition: Whenever a platform profile or substitute path is evaluated.
     failure: Fail unsupported platforms and substitute paths closed before session creation.
@@ -2063,12 +1474,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-038
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-038 registry membership and identity closure
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Only an app id represented by exactly one complete valid registry row is an admitted catalog product app, each registry app_id and release_descriptor_ref binding is unique, and unknown, duplicate, incomplete, or unresolved rows create neither catalog admission nor ordinary Apps visibility.
     condition: Whenever registry membership, catalog product admission, or ordinary Apps visibility is resolved.
     failure: Deny catalog admission and ordinary visibility until one unique complete row and every owned reference resolve.
@@ -2079,12 +1486,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-039
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-NAPP-039 stable trust-tier transitions
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The publisher trust-tier vocabulary remains the closed stable set nimi-first-party, nimi-verified-partner, and nimi-community; a tier id is never renamed, rotated, or silently reassigned, and any publisher tier change requires a new catalog and release admission that re-resolves the tier's signature, identity-assurance, source-visibility, review, and kill-switch references without changing local principal, provenance, grant, or permission truth.
     condition: Whenever a trust tier is defined, assigned, or changed.
     failure: Reject an unknown or mutated tier and deny transition until the new admission and every tier-owned reference resolve.
@@ -2097,12 +1500,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-perm-018
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PERM-018 closed permission catalog row schema
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every public permission catalog row has one canonical permission_id, admission posture, authority class, decision owner, manifest eligibility, decision mode, selector owner and shape, user-recognizable semantics, and explicit incomplete-admission blocker, with owner-specific invariants when applicable; missing, duplicate, unknown, inconsistent, or unresolved fields never make the permission requestable, and a Realm-owned row remains reference-only Platform metadata whose decision and enforcement stay on the Realm surface.
     condition: Whenever a public permission catalog row is authored, projected, declared, requested, or enforced.
     failure: Keep the permission unavailable and deny declaration or use until the unique complete owner-consistent row and its atomic owner slice are admitted.
@@ -2113,12 +1512,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-audit-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AUDIT-001 admission outcomes preserve required truth
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A third-party admission outcome is positive only when the exact immutable candidate and manifest inputs satisfy schema, digest, provenance, license, dependency, composite audit, review, and canonical registry-and-descriptor admission truth, and no mutable-source, present-fields-only, self-attested, AI-only, app-local, repository, or package-name shortcut may project a pass.
     condition: Whenever a third-party candidate admission outcome is produced.
     failure: Fail admission closed with the applicable typed reason when required truth is absent or a shortcut is attempted.
@@ -2129,12 +1524,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-audit-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AUDIT-002 complete vendor-neutral audit risk classes
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every third-party admission resolves independent vendor-neutral risk coverage for malicious packages, known vulnerabilities, static analysis, repository security posture, malware reputation, and AI semantic or malice triage against the exact reviewed commit and admitted artifact, with each class supplied by a replaceable admitted adapter and no class collapsed or omitted.
     condition: Whenever third-party audit security coverage is evaluated.
     failure: Fail admission closed with audit_class_coverage_missing when a class, admitted adapter, exact commit binding, or exact artifact binding is absent.
@@ -2145,12 +1536,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-audit-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AUDIT-003 AI and self-attested evidence cannot decide admission
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: AI triage alone or developer-supplied scanner output substitutes for complete Nimi-run risk coverage or an admitted adjudicator, and developer context is represented as authoritative scanner evidence or an admission verdict.
     condition: Whenever AI triage or developer-supplied audit context is consumed for third-party admission.
     failure: Fail admission closed with ai_only_review_forbidden or self_attested_scan_forbidden as applicable.
@@ -2159,12 +1546,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-audit-004a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AUDIT-004 community admission risk classification
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The Nimi-run AI-audit descriptor diff classifies every nimi-community admission into exactly one risk class before adjudication, with a new app or any permission-requirement, publisher-namespace, namespace-kind, or build-assurance change classified manual and only a clean descriptor diff preserving all of those fields classified automated.
     condition: Whenever a nimi-community candidate is classified for adjudication.
     failure: Fail admission closed with solo_reviewer_classification_unresolved when the diff is absent, ambiguous, or outside the automated-class boundary.
@@ -2177,12 +1560,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-audit-004b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AUDIT-004 adjudicator floors and escalation
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The risk classification never changes nimi-first-party internal review or the nimi-verified-partner full-manual floor, while a nimi-community manual class uses human adjudication and its automated class uses the Nimi-run automated gate only while every scanner and AI-triage risk signal remains clear.
     condition: Whenever risk classification influences adjudicator selection.
     failure: Fail admission closed with tier_floor_violation for a weakened tier floor and escalate a flagged or risk-elevating community candidate to human adjudication.
@@ -2193,12 +1572,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-audit-005-p-dev-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AUDIT-005 and P-DEV-003 developer audit is context only
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A developer-side audit dry-run or local self-check is treated as an admission gate or as Nimi-run scanner output, even when its typed output accompanies a submission as developer-supplied context.
     condition: Whenever developer-side audit output is consumed.
     failure: Fail admission closed with developer_side_audit_not_gate and require authoritative coverage against the exact reviewed commit and admitted artifact.
@@ -2207,12 +1582,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-audit-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-AUDIT-006 review decision security binding
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A terminal third-party review decision is Nimi-owned, distinct from developer-authored manifest truth, and binds the exact candidate, complete risk-class coverage, AI model identity and version when AI triage applies, deterministic scanner results, adjudicator kind and identity, and decision time without collapsing evidence meanings or redefining terminal decision semantics.
     condition: Whenever a terminal third-party review decision is admitted or enforced.
     failure: Fail admission closed when any required binding is absent, developer-inferred, collapsed, or inconsistent with the admitted decision schema.
@@ -2223,12 +1594,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-dev-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DEV-004 immutable candidate submission
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A submitted candidate artifact is built from either a protected immutable Git tag resolved to an unchangeable commit SHA or a reviewed commit SHA, records that exact source reference in submitted manifest input, and carries it unchanged into the immutable admitted release descriptor.
     condition: Whenever a third-party candidate artifact is submitted or admitted.
     failure: Fail admission closed with mutable_submission_artifact for a branch, unprotected tag, dist-tag, version range, latest projection, or any other mutable resolver.
@@ -2237,12 +1604,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-dev-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DEV-006 production Developer Mode security boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The single production Developer Mode defaults off and grants nothing; first project authorization requires Runtime-owned fresh presence and exactly run_once or allow_project bound to OS-user anchor, isolated principal, canonical project identity, declared app id, exact capability fingerprint, current account, and fixed shell and entry policy, while all controlled replacements rotate launch and session proof without widening durable consent.
     condition: Whenever a mutable local_development project is authorized or reauthorized.
     failure: Deny authorization or consent reuse when mode, presence, choice, or any durable binding is absent or mismatched.
@@ -2253,12 +1616,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-dev-006b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-DEV-006 production Developer Mode revocation and custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Mode off, account change, supervisor termination, or Runtime replacement revokes live sessions and run-once authority without auto-running preserved exact allow_project consent, and a development project receives only Runtime-mediated owner-policy access with no credential, portable proof, generic protected proxy, persistent managed logon, or boot autostart while product UX continuously discloses project, account, risk, and unconstrained ordinary OS rights.
     condition: Whenever Developer Mode lifecycle, project access, or production disclosure is evaluated.
     failure: Revoke affected carriers, deny secret or generic-proxy exposure, and require fresh approval after project, account, capability, risk, shell, entry, or origin mismatch.
@@ -2271,40 +1630,24 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: definition.nimi.platform.app-ecosystem.scaffold-custody
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Scaffold authoring and custody boundary
     meaning: Scaffold custody is the Platform-owned command and generated-boundary surface that creates developer inputs while leaving app product code, public admission, protected identity, grants, sessions, and owner projections with their admitted owners.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.ecosystem-economy-boundary
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Ecosystem economy non-admission boundary
     meaning: The ecosystem economy boundary keeps take-rate, billing, paid-app, subscription, developer-economics, creator-economics, and AI-spend policy unadmitted on the Platform ecosystem surface until a separate owner-complete specification cut.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.proposal-record
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Non-executing proposal intake record
     meaning: A proposal record is Platform-owned durable intake truth for a conversation-originated request, its closed kind and review state, source reference, selected owner, next review step, reason, and audit reference, and carries no admission, installation, grant, or execution authority.
-    relations: []
   - id: definition.nimi.platform.app-ecosystem.mod-extension-retirement
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Public mod and extension retirement boundary
     meaning: The mod-extension retirement boundary permanently excludes public Mod, Extension, Hook, shared content-pack, and equivalent aliased installable surfaces from current Nimi product admission while keeping app-internal content under its app or admitted domain owner.
-    relations: []
   - id: rule.nimi.platform.app-ecosystem.p-scaf-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-001 scaffold and app product ownership
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Platform owns app scaffolding, and a generated app owns only its app-specific product logic, routes, state, and feature behavior after the scaffold places the admitted boundaries.
     condition: Whenever a generated app repository is created or maintained.
     failure: Reject scaffold output or app code that crosses the owner boundary.
@@ -2313,12 +1656,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-001 upstream admission and no shadow ownership
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Scaffolding generates only inputs for the upstream developer workflow and never makes generated product code a shadow owner for public app admission, Runtime account custody or registration, SDK client semantics, Realm login, permission grants, or Kit shell behavior.
     condition: Whenever scaffold output enters an owner workflow or consumes an owner surface.
     failure: Deny the shadow authority and require the upstream owner decision or public projection.
@@ -2327,12 +1666,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-002a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-002 accepted bootstrap command and dependency boundaries
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: App authoring remains under nimi-app create, init, doctor, and update; standalone Rust shell consumption uses the published nimi-shell-tauri channel only after its public mechanics are admitted, and workspace consumption uses its admitted Cargo path dependency.
     condition: Whenever the app-authoring command or Rust-shell dependency surface is selected.
     failure: Reject a Runtime CLI takeover, unadmitted publication claim, or dependency path outside the applicable boundary.
@@ -2341,12 +1676,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-002 host-neutral client and workspace admission boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Generated third-party apps consume one host-neutral SDK client through an injected local_app_host carrier without selecting caller mode, trust class, endpoint, principal, grant, lease, or session, and only explicit workspace app scaffolding may write app-slice admission under its existing owner while standalone scaffolding writes no admitted truth.
     condition: Whenever scaffolding composes SDK access or app-slice inputs.
     failure: Reject caller-selected protected facts or scaffold-authored admission outside the explicit workspace boundary.
@@ -2355,12 +1686,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-002c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-002 production development path and accepted-input stability
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Local development uses production Developer Mode, an isolated local_development principal, the fixed service, the shared grant evaluator, and a host-private local-app session, forbids daemon, mock-auth, disabled-gate, pseudo-success, and first-party-self-declaration shortcuts, and does not reopen the accepted A0 through A5 boundaries without an explicit superseding specification cut.
     condition: Whenever scaffolded local development or compatibility behavior is implemented.
     failure: Fail closed on any shortcut or unsuperseded compatibility alternative.
@@ -2369,12 +1696,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-004 submitted manifest is not descriptor truth
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Scaffolding may generate nimi.app.yaml only as labeled developer-submitted input for the owner review flow and never as release-descriptor, registry, review, mirror, ordinary-install, or public-admission truth.
     condition: Whenever a scaffold generates, labels, or consumes nimi.app.yaml.
     failure: Reject any positive owner truth inferred from the submitted manifest.
@@ -2385,12 +1708,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-006 permission declarations are review input only
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Generated permission declarations are closed transparency and review input only, while readiness and launch consume current owner grant or promptable-grant projections and never treat a declaration as a grant, entitlement, launch authorization, AI-spend authorization, or denial bypass.
     condition: Whenever scaffolded permission input is generated or used.
     failure: Deny protected use until the admitted owner projection authorizes it.
@@ -2401,12 +1720,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-008 app-authoring command family
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The public developer-repository authoring command family is exactly nimi-app create, nimi-app init, nimi-app doctor, and nimi-app update, and the Runtime nimi CLI does not own scaffold templates, build inputs, publishing, admission, doctor, or update semantics.
     condition: Whenever an app-authoring command is exposed or assigned an owner.
     failure: Reject an additional command owner or Runtime CLI ownership of the authoring surface.
@@ -2415,12 +1730,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-009a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-009 create and init custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: nimi-app create writes only the source skeleton and explicit initialization intent, while nimi-app init consumes installed dependencies, performs pinned deterministic package projection sync, and writes scaffold-owned lock and developer-input state without template-copying package projections, hidden postinstall mutation, or interactive project reconstruction.
     condition: Whenever create or init mutates a developer repository.
     failure: Abort on uninstalled, hidden, interactive, template-owned, or out-of-custody mutation.
@@ -2429,12 +1740,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-009b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-009 update preservation and non-admission output
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: nimi-app update changes only scaffold-managed glue through admitted dependency updates and codemods, preserves app-owned product code, fails closed on conflicts or mixed and stale projection state, and no init, doctor, update, audit, reachability, file, or build result becomes public admission, installed-app health, launch, rollback, update, or kill-switch truth.
     condition: Whenever scaffold maintenance output is produced or interpreted.
     failure: Stop the mutation on unsafe state and reject every projected owner-lifecycle claim.
@@ -2443,12 +1750,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-010
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-010 package projection custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Package-owned .nimi config, contract, and methodology projections remain externally package-owned, generated repositories consume them through admitted sync, host-local truth stays inside the generated repository's .nimi boundary, and local evidence, lifecycle reports, or package projections do not become semantic truth without an admitted projection flow.
     condition: Whenever generated repository projections or host-local truth are synchronized or interpreted.
     failure: Reject copied, re-owned, out-of-boundary, or falsely promoted projection content.
@@ -2457,12 +1760,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-012
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-012 separate scaffold and admission surfaces
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Public app admission, app-slice admission, and developer-repository scaffold shape remain separate owner surfaces; standalone scaffolding writes no admitted truth, explicit workspace scaffolding may write only owner-admitted app-slice input, and neither admission surface substitutes for the other or creates registry, descriptor, mirror, review, visibility, install, or kill-switch truth.
     condition: Whenever scaffolding creates or projects admission-related content.
     failure: Reject cross-surface substitution or scaffold-created public truth.
@@ -2473,12 +1772,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-013
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-013 model-test feature non-availability
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Default scaffold content imports, fabricates, or edits a kit/features/model-test package surface before that feature is admitted and available, or presents a planned feature as shipped.
     condition: Whenever default scaffold content or examples are generated.
     failure: Remove the unadmitted surface and use only admitted SDK, Kit, Runtime, or app-owned placeholder areas.
@@ -2487,12 +1782,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-016a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-016 protected launch and session custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Scaffolded third-party paths consume PrepareLocalAppLaunch and request-empty OpenLocalAppSession while principal, provenance, execution profile, lease, process proof, account and permission revisions, boot epoch, and session material remain inside Runtime and the native carrier and never enter SDK constructors or renderer input.
     condition: Whenever a scaffolded third-party app opens a protected local session.
     failure: Deny launch or session creation when protected facts are app-supplied or exposed.
@@ -2501,12 +1792,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-016b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-016 host bridge composition and fail-closed status
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Generated source composes the SDK local-app client with the Kit host surface in one scaffold-managed module, uses the common contract across fixed production and development carriers without merging their profiles, returns typed unavailable for inapplicable operations, and never constructs caller identity or self-reports launch, descriptor, host, account, session, token, or grant truth.
     condition: Whenever generated source composes or reports local-app host access.
     failure: Return typed unavailable and reject app-supplied or self-reported protected truth.
@@ -2515,12 +1802,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-018a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-018 official local development launcher
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Fresh scaffolds expose their dev and dev:shell package scripts through the same official nimi-app dev launcher, whose authority is limited to parsing, validation, build coordination, and safe status and cannot issue authorization, grants, tickets, sessions, protected endpoints, credentials, release trust, or product evidence.
     condition: Whenever a scaffolded local-development command runs.
     failure: Reject a private launcher or any launcher-created protected authority.
@@ -2529,12 +1812,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-018b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-018 production path and bypass prohibition
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: The positive development command requests Desktop production Developer Mode, fresh project presence, isolated principal, and supervised fixed-service launch, receives only stable status or failure, and rejects direct Tauri, manual Electron, generic proxy, token or session custody, app-owned authorization, caller-selected Runtime inputs, private launchers, registration bypasses, and protected-operation-positive renderer-only development.
     condition: Whenever local development attempts to reach protected operations.
     failure: Fail closed before protected access and route the request through the official supervised path.
@@ -2543,12 +1822,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-018c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SCAF-018 synchronization preserves app custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Scaffold synchronization keeps the official launcher reference deterministic, never overwrites app-owned product files, and applies the same launcher, Kit, and Runtime boundary to tester and external app consumers.
     condition: Whenever launcher glue is synchronized or consumed.
     failure: Reject non-deterministic glue, product-file overwrite, or consumer-specific authority bypass.
@@ -2557,12 +1832,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-eco-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-001 ecosystem expansion scope
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Platform ecosystem expansion covers third-party onboarding, trust-tier policy, future world and game app classes, the future Engine SDK seam, economy non-admission, and negative strategic gates without replacing app admission, permission, or retired extension authority.
     condition: Whenever ecosystem expansion policy is authored or applied.
     failure: Reject scope outside this boundary or replacement of an existing owner surface.
@@ -2575,12 +1846,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.mod-extension-retirement
   - id: rule.nimi.platform.app-ecosystem.p-eco-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-002 third-party registry onboarding
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A third-party developer enters only through one complete Nimi App registry row with partner or community trust tier, owner-resolved review posture, nimi-app package kind, and all required app-admission fields, never through a shared content-pack channel or registry-bypass alias.
     condition: Whenever a third-party ecosystem candidate is onboarded.
     failure: Deny onboarding until the unique complete registry path succeeds.
@@ -2591,12 +1858,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-eco-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-003 closed trust-tier expansion
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Ecosystem expansion fills policy references only for the existing nimi-first-party, nimi-verified-partner, and nimi-community tiers and admits no fourth public tier without an explicit specification cut.
     condition: Whenever ecosystem trust-tier policy expands.
     failure: Reject a new or mutated public tier absent the explicit cut.
@@ -2605,12 +1868,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
   - id: rule.nimi.platform.app-ecosystem.p-eco-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-004 typed review posture reference
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Ecosystem review posture references the closed submitted, under-review, revision-requested, approved, rejected, and kill-switched states, applies internal review to first-party, full manual review to verified partners, and automated review with manual kill-switch eligibility to community, with no silent transition and no automatic recovery from kill-switched.
     condition: Whenever ecosystem review posture is projected or changed.
     failure: Reject an unknown state, tier-policy mismatch, silent transition, or terminal-state recovery.
@@ -2619,12 +1878,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-eco-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-005 future world and game app boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A future world or game app remains a Nimi App registry candidate, and any cross-world or cross-game flow requires the existing permission lifecycle and an admitted projection while retaining source app, target app, and AIScopeRef references on the Realm audit surface; raw sharing and first-party trust inheritance are forbidden.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the registry, owner permission, projection, audit reference, and trust-tier boundary.
@@ -2635,12 +1890,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
   - id: rule.nimi.platform.app-ecosystem.p-eco-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-006 Engine SDK public-surface seam
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A future Engine SDK is placed on the Platform seam and consumes Runtime and Realm authority only through SDK public surfaces, while Runtime retains implementation semantics and the Engine SDK never imports Runtime internals, Realm private client or transport, Cognition private endpoints, or replaces any canonical owner.
     condition: Whenever an Engine SDK integration is designed or implemented.
     failure: Reject the private import, private endpoint, or owner substitution.
@@ -2649,12 +1900,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
   - id: rule.nimi.platform.app-ecosystem.p-eco-007
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-007 economy policy remains unadmitted
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Platform ecosystem authority decides take-rate, billing, paid-app, subscription, creator or developer economics, or cloud and Runtime AI-spend policy, or disguises such a decision as pricing copy, registry metadata, or an app-local setting.
     condition: Until a separate specification cut identifies the economy owner, scope, audit, and enforcement boundary.
     failure: Keep the economy decision unadmitted and require the owner-complete cut.
@@ -2663,12 +1910,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.ecosystem-economy-boundary
   - id: rule.nimi.platform.app-ecosystem.p-eco-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-008 no Steam-copy strategic posture
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Product positioning, registry rows, admission review, or ecosystem marketing uses a Workshop clone, trading-card or achievement grind, collectible badge or platform inventory, family-sharing clone, Big-Picture clone, screenshot or video social-feed clone, or a friends or invite clone outside Realm social authority as Nimi's primary justification or strategic posture.
     condition: Whenever ecosystem product strategy or messaging is produced.
     failure: Reject the clone-based posture and preserve the Realm social owner boundary.
@@ -2677,12 +1920,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
   - id: rule.nimi.platform.app-ecosystem.p-eco-010
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-ECO-010 cross-cutting owner invariants
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Ecosystem expansion preserves fail-closed permission decisions, provider-neutral and model-neutral selection, Apps non-ownership, the single ordinary-user truth after hard cut, the agent-identity floor, and every existing Platform, Runtime, Realm, Cognition, and SDK owner boundary.
     condition: Whenever ecosystem capability expands.
     failure: Deny expansion that bypasses or weakens any referenced invariant.
@@ -2695,12 +1934,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
   - id: rule.nimi.platform.app-ecosystem.p-prop-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-001 durable intake and non-execution
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: A first-party durable request, queued capability, review item, or future handoff uses the Platform-owned proposal record, and creating, updating, submitting, or closing it installs nothing, registers no service, grants no permission, loads no code, starts no workflow, invokes no tool, selects no provider or model, mutates no external user data, and exposes no release.
     condition: Whenever conversation-originated proposal intake becomes durable or changes state.
     failure: Reject the parallel intake or attempted side effect and preserve only proposal-record mutation.
@@ -2709,12 +1944,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-001 no local proposal truth or admission proof
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: App-local tables, renderer state, transcripts, files, or UI cards become durable proposal truth, or a proposal record proves a capability, workflow, app, tool, permission, package, or release admitted.
     condition: Whenever proposal state or downstream eligibility is resolved.
     failure: Discard the local or inferred truth and require the Platform record followed by owner review.
@@ -2723,12 +1954,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-002 closed proposal record shape
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every proposal record carries Platform-minted proposal_id, closed proposal_kind, source_conversation_anchor_id, requester_subject_ref, owner_domain, requested_capability_ref, policy-selected risk_tier, explicit required_permission_refs including an empty list, non-executing next_review_step, closed state, reason_code, audit_ref, and created_at, with the identity, kind, owner, state, reason, audit, and creation fields also required for rejected requests.
     condition: Whenever a proposal record is created, read, or updated.
     failure: Reject an incomplete, app-minted, open-valued, or malformed record.
@@ -2737,12 +1964,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-002 non-executable record contents
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A proposal record carries executable code, prompt bodies, provider or model names, install commands, hidden grants, unreviewed package locators, local filesystem paths, or app-local admission flags.
     condition: Whenever proposal record content is accepted.
     failure: Reject the forbidden content and keep any rejected summary bounded and redacted.
@@ -2751,12 +1974,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-003 closed proposal kinds and retired aliases
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: proposal_kind is exactly capability_proposal, workflow_draft_request, nimi_app_request, delegated_tool_request, or rejected_request with their intake-only meanings, and any new kind requires a Platform authority change and synchronized projections.
     condition: Whenever proposal kind is assigned or extended.
     failure: Reject an unknown kind, and classify a Mod, Extension, content-pack, plugin, worker, VM, hook, shared-package, or equivalent retired alias as rejected_request or blocked with a typed reason.
@@ -2767,12 +1986,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-004a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-004 closed intake state machine
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Proposal state is exactly draft, submitted, under-review, revision-requested, rejected, accepted-for-admission, or blocked, every transition sets a typed reason_code and updates audit_ref, and these remain intake states rather than app-admission review states.
     condition: Whenever proposal state is created or transitioned.
     failure: Reject an unknown, unaudited, reasonless, or admission-schema-substituting transition.
@@ -2781,12 +1996,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-004b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-004 accepted-for-admission is not approval
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: accepted-for-admission is treated as approved, admitted, installed, enabled, granted, running, or ordinary-user-visible.
     condition: Whenever an accepted proposal is handed to a downstream owner.
     failure: Preserve intake-only status and require the downstream owner's admitted process.
@@ -2795,12 +2006,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-005 owner-review handoff only
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every proposal handoff names an owner and non-executing next step, and the owner independently validates it; app requests use the existing developer, registry, and audit admission path, delegated-tool requests wait for Runtime owner acceptance and all consent, and workflow drafts remain blocked with a missing-authority reference while execution authority is absent.
     condition: Whenever proposal intake hands a request to another owner.
     failure: Block the handoff before install, execution, provider or model selection, permission grant, release promotion, hidden runner creation, or bypass of owner validation.
@@ -2809,12 +2016,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-006 conversation reference without transcript custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: source_conversation_anchor_id remains a provenance-only reference to conversation continuity, any request summary is bounded, redacted when needed, and review-only, and the proposal record stores no raw transcript, private memory, provider trace, account secret, or app-owned conversation state.
     condition: Whenever proposal intake references source conversation material.
     failure: Reject transferred owner content and retain only the bounded reference or redacted review input.
@@ -2825,12 +2028,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-007
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-007 typed transition audit
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: Every proposal creation and transition returns an owner-issued audit_ref whose audit or pending record binds proposal_id, applicable from_state, to_state, transition_cause, decided_at, and adjudicator reference, and unavailable audit fails closed or returns blocked with proposal_audit_unavailable without synthetic app-issued references.
     condition: Whenever a proposal is created or changes state.
     failure: Fail the operation or return the typed blocked result when the complete owner audit reference cannot be produced.
@@ -2839,12 +2038,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-prop-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PROP-008 typed SDK and app consumer boundary
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: SDK proposal projections preserve the closed shape and non-execution semantics, apps render only returned Platform state and fail closed on absent, rejected, or blocked results, and neither SDK nor apps create a parallel durable state machine, bypass intake through REST, files, renderer persistence, or Runtime private imports, or hardcode providers, models, execution paths, or retired aliases.
     condition: Whenever SDK or app consumers create, read, update, or render proposals.
     failure: Reject the bypass or hardcoded projection and return the owner result or typed failure.
@@ -2853,12 +2048,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.proposal-record
   - id: rule.nimi.platform.app-ecosystem.p-moex-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MOEX-001 public mod and extension non-admission
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A Public Mod or Public Extension is admitted as an external installable, distributable, or user-authorized product category, including through a registry, SDK, Apps, install gateway, release channel, or alias.
     condition: Whenever an external product category or public ecosystem entry is proposed.
     failure: Deny admission and preserve the retired boundary.
@@ -2867,12 +2058,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.mod-extension-retirement
   - id: rule.nimi.platform.app-ecosystem.p-moex-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MOEX-002 retired Mod and Hook surfaces stay retired
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: A retired Mod, Hook, runtime-mod, or SDK mod surface returns as an ordinary-user entry, Nimi App, ecosystem entry, public SDK or API promise, compatibility layer, or reserved namespace without a new explicit admission that reuses none of the retired authority files, paths, or names.
     condition: Whenever a retired surface or equivalent proposal is introduced.
     failure: Reject the reintroduced or compatibility surface and require a new non-reusing admission.
@@ -2881,12 +2068,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.mod-extension-retirement
   - id: rule.nimi.platform.app-ecosystem.p-moex-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MOEX-003 no shared Nimi Content Pack channel
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Nimi creates or admits a shared Nimi Content Pack product or cross-app general content-package channel through Registry, Apps, SDK, or an alias.
     condition: Whenever a shared content channel is proposed or classified.
     failure: Deny the channel and treat the proposal as a request to reopen explicit authority.
@@ -2895,12 +2078,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.mod-extension-retirement
   - id: rule.nimi.platform.app-ecosystem.p-moex-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MOEX-004 app-internal content custody
     modality: must
-    scope:
-      - platform.app-ecosystem
     statement: App-internal Avatar, Live2D, VRM, voice, persona, prompt, knowledge, workflow, and other content packages remain owned by their app or explicitly admitted domain authority and are never classified as a Nimi App, Mod, Extension, or shared content channel.
     condition: Whenever an app-internal content package is owned or classified.
     failure: Restore app or domain custody and reject the public or shared classification.
@@ -2909,12 +2088,8 @@ units:
         target: definition.nimi.platform.app-ecosystem.mod-extension-retirement
   - id: rule.nimi.platform.app-ecosystem.p-moex-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MOEX-005 retired Asset Market cannot silently return
     modality: must_not
-    scope:
-      - platform.app-ecosystem
     statement: Asset Market returns as first-party app admission, backend or projection behavior, or active product authority without a new explicit admission row and newly authored authority.
     condition: Whenever an Asset Market surface is proposed after retirement.
     failure: Deny the revival until a complete new admission is authored.

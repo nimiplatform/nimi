@@ -1,48 +1,31 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.cognition
+scope: cognition.runtime-bridge
 units:
   - id: definition.nimi.cognition.runtime-bridge.domain
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-016 C-COG-033 C-COG-036 cognition runtime bridge domain
     meaning: The cognition runtime bridge is the Cognition-owned adapter, overlap, scope-registry, authorization-seam, and resolution boundary through which Runtime consumes standalone cognition without acquiring cognition semantics or transferring Runtime account, bank, provider, review, replication, lifecycle, or execution truth into Cognition.
-    relations: []
   - id: definition.nimi.cognition.runtime-bridge.upgrade-floor
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-034 C-COG-037 C-COG-038 runtime overlap upgrade floor
     meaning: The runtime overlap upgrade floor is the closed capability comparison that maps each overlapping Runtime memory or knowledge concern to an equal-or-stronger standalone Cognition owner surface while preserving explicit fail-closed behavior and retained Runtime-private depth.
-    relations: []
   - id: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-059 runtime knowledge bank scope registry
     meaning: The cognition knowledge scope registry is the sole Cognition-owned typed identity, metadata, and storage-cascade authority for runtime_knowledge_bank scopes used by RuntimeCognitionService knowledge operations.
-    relations: []
   - id: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-060 KnowledgeAuthorizer seam
     meaning: KnowledgeAuthorizer is the Cognition-owned fail-closed adapter seam that submits a typed workspace knowledge authorization question to the Runtime account workspace binding resolver without owning account, workspace membership, caller authentication, or Realm truth.
-    relations: []
   - id: definition.nimi.cognition.runtime-bridge.embedding-resolution
     kind: definition
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-061 runtime embedding resolution adapter
     meaning: The runtime embedding resolution adapter is the Cognition-owned fail-closed consumer of Runtime-owned committed text.embed intent and resolved execution readiness, while standalone non-Runtime embedding configuration remains separate Cognition truth.
-    relations: []
   - id: rule.nimi.cognition.runtime-bridge.r001
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-016 C-COG-033 bridge ownership matrix
     modality: must
-    scope:
-      - cognition.runtime-bridge
     statement: Cognition fully owns local model kernels, working state, prompt serving, and standalone cleanup, owns standalone local memory and knowledge semantics, and owns no Runtime bank lifecycle, provider, review, or replication truth; Runtime consumption is adapter-only, Runtime memory and knowledge republication uses RuntimeCognitionService with retained Runtime-private depth, and the Runtime-side non-ownership and topology constraints remain exactly those in rule.nimi.runtime.memory-world.r007, rule.nimi.runtime.memory-world.r008, and rule.nimi.runtime.memory-world.r030 rather than duplicate Cognition authority.
     condition: Whenever a Runtime and Cognition overlap concern is owned, consumed, republished, or implemented.
     failure: Reject owner inversion, shared semantic owner state, revived RuntimeMemoryService or RuntimeKnowledgeService topology, and Runtime redefinition of Cognition kernels, serving order, working state, or digest semantics.
@@ -51,12 +34,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.domain
   - id: rule.nimi.cognition.runtime-bridge.r002
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-034 C-COG-037 C-COG-038 closed no-downgrade capability mapping
     modality: must
-    scope:
-      - cognition.runtime-bridge
     statement: The overlap mapping covers memory mutation and retrieval through MemoryService Save, Delete, Load, List, SearchLexical, and SearchViews against rule.nimi.runtime.memory-world.r014, memory history and derived serving through MemoryService History, LoadView, ListViews, and SearchViews against rule.nimi.runtime.memory-world.r021, memory delete visibility against rule.nimi.runtime.memory-world.r018 and rule.nimi.runtime.memory-world.r019, memory failure against rule.nimi.runtime.memory-world.r017, knowledge page lifecycle through KnowledgeService Save, Load, List, Delete, and History against rule.nimi.runtime.memory-world.r032, lexical and hybrid retrieval through SearchLexical and SearchHybrid against rule.nimi.runtime.memory-world.r033, graph behavior through PutRelation, DeleteRelation, ListRelations, ListBacklinks, and Traverse against rule.nimi.runtime.memory-world.r034, ingest through IngestDocument and GetIngestTask against rule.nimi.runtime.memory-world.r035, and knowledge failure behavior against rule.nimi.runtime.memory-world.r036, with the standalone surfaces preserving the equal-or-stronger semantics in rule.nimi.cognition.standalone-services.r022 through rule.nimi.cognition.standalone-services.r028.
     condition: Whenever standalone Cognition claims parity or upgrade for a Runtime-overlapping memory or knowledge capability.
     failure: Reject a missing overlap concern, method-name or terminology parity without semantic closure, hidden retained Runtime-private depth, weaker lifecycle or retrieval posture, silent capability fallback, or smaller vague surface presented as parity.
@@ -65,12 +44,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.upgrade-floor
   - id: rule.nimi.cognition.runtime-bridge.r003
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-035 runtime-independent cognition viability
     modality: must_not
-    scope:
-      - cognition.runtime-bridge
     statement: Standalone Cognition mutation, retrieval, persistence, prompt serving, cleanup, or semantic completion depends on Runtime installation, linkage, lifecycle, replication, provider, review, bank, or adapter truth.
     condition: Whenever standalone Cognition operates or is claimed complete.
     failure: Keep the Cognition capability unavailable or incomplete until its Cognition-owned semantics remain valid without Runtime presence.
@@ -79,12 +54,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.domain
   - id: rule.nimi.cognition.runtime-bridge.r004
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-036 explicit adapter consumption
     modality: must
-    scope:
-      - cognition.runtime-bridge
     statement: Runtime consumes Cognition artifacts, formatted context, and advisory outputs only through explicit bridge adapters that preserve Cognition object, storage, prompt-lane, lifecycle, and cleanup authority, while Runtime-owned services retain their own account, bank, provider, review, replication, backlog, and lifecycle state without a shared semantic database or lane.
     condition: Whenever Runtime consumes or republishes standalone Cognition output.
     failure: Reject direct dependence on Cognition internal storage layout, adapter-first ownership, dual-owner republication, or silently shared owner state.
@@ -93,12 +64,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.domain
   - id: rule.nimi.cognition.runtime-bridge.r005
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-059 typed runtime knowledge bank identity
     modality: must
-    scope:
-      - cognition.runtime-bridge
     statement: KnowledgeScopeRegistry is the Cognition root accessor and registers exactly one runtime_knowledge_bank scope for each Runtime-facing knowledge bank, derives every scope identifier through typed registry provenance rather than string concatenation, admits only APP_PRIVATE app owners and WORKSPACE_PRIVATE workspace owners, and rejects AGENT_CORE, AGENT_DYADIC, WORLD_SHARED, Retain, Recall, and History use on this scope kind, while Runtime owner-shape constraints remain exactly those in rule.nimi.runtime.memory-world.r031 and Runtime retirement remains exactly that in rule.nimi.runtime.memory-world.r030.
     condition: Whenever a Runtime-facing knowledge bank is registered, addressed, exposed, or used by a knowledge operation.
     failure: Reject duplicate, ad-hoc, unregistered, agent-bound, or illegally owned runtime knowledge bank scopes before storage access.
@@ -107,12 +74,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
   - id: rule.nimi.cognition.runtime-bridge.r006
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-059 typed metadata and atomic cascade
     modality: must
-    scope:
-      - cognition.runtime-bridge
     statement: Every runtime_knowledge_bank scope carries display_name, owner_kind, owner_key, owner_json, created_at, and updated_at as typed registry metadata, and deleting the scope removes its page, relation, embedding, history, ingest-task, and full-text-search state in one storage transaction without legacy snapshot rereads or orphan rows.
     condition: Whenever runtime knowledge bank metadata is read or a registered runtime knowledge bank scope is deleted.
     failure: Fail the operation without partial success when typed metadata is missing or the complete cascade cannot commit atomically.
@@ -121,12 +84,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
   - id: rule.nimi.cognition.runtime-bridge.r007
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-060 workspace authorization enters through KnowledgeAuthorizer
     modality: must
-    scope:
-      - cognition.runtime-bridge
     statement: Every WORKSPACE_PRIVATE create, read, list, write, delete, graph, search, ingest, and task-polling path invokes KnowledgeAuthorizer before returning or mutating bank data, KnowledgeAuthorizer is the only Cognition-side consumer of the Runtime account workspace binding resolver, and the Runtime invocation and allow-decision path remains exactly that in rule.nimi.runtime.memory-world.r037.
     condition: Whenever a WORKSPACE_PRIVATE knowledge operation is requested.
     failure: Deny before read or mutation when the seam, attachment, resolver, or positive allow decision is absent or unavailable.
@@ -135,12 +94,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
   - id: rule.nimi.cognition.runtime-bridge.r008
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-060 typed authorization inputs and no fallback
     modality: must
-    scope:
-      - cognition.runtime-bridge
     statement: Cognition passes target owner kind, target workspace id, the x-nimi-app-id and x-nimi-app-instance-id Runtime-authenticated caller context, workspace binding attachment, knowledge action, and required scopes to KnowledgeAuthorizer, accepts device identity only when derived or verified by Runtime account and app registry state, and never reads account persistence, account custody, workspace membership, Realm membership, app-local cache, subject_user_id, fixtures, or request-body device fields as authorization truth.
     condition: Whenever KnowledgeAuthorizer constructs or resolves a workspace authorization decision.
     failure: Deny with the typed knowledge or workspace-binding reason when any input is missing, mismatched, denied, or unavailable and never downgrade to APP_PRIVATE, anonymous, fixture, subject, or legacy behavior.
@@ -149,12 +104,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
   - id: rule.nimi.cognition.runtime-bridge.r009
     kind: rule
-    owner: team.cognition
-    lifecycle: active
     title: C-COG-061 Runtime Agent embedding intent stays reference only
     modality: must
-    scope:
-      - cognition.runtime-bridge
     statement: The runtime bridge persists no Runtime-facing embedding intent, binding configuration, or derived cache that can outlive or override Runtime Agent AI Config, consumes only Runtime-owned committed text.embed intent and resolved execution state governed by rule.nimi.runtime.memory-world.r012, carries or traces every readiness, bank-bind, rebuild, and cutover projection to config_revision as governed by rule.nimi.runtime.memory-world.r016, keeps standalone non-Runtime configuration separate, and never imports it as Runtime Local Agent truth.
     condition: Whenever the Cognition bridge resolves or projects Runtime embedding readiness or execution state.
     failure: Fail closed when committed intent, config_revision, admitted typed execution binding, or readiness is absent or unresolved and never reconstruct, retarget, cache, or silently downgrade the embedding path.

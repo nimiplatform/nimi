@@ -1,104 +1,63 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.platform
+scope: platform.product-lifecycle
 units:
   - id: definition.nimi.platform.product-lifecycle.cold-start-state
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Cold-start projection state
     meaning: A cold-start projection state describes product posture after process start and before every required account, Runtime, local dependency, app-registry, and factory-AI-profile-selection authority is ready; its closed fail-closed values are unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, and stale-projection.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.product-control-record
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Runtime-owned product-control record
     meaning: The installed product shell product-control record is the small local ordinary-readiness control record at <runtime_owner_state_root>/nimi.json with schemaVersion, installId, productVersion, state, dataRoot, firstRun, pointers, and repair; its closed states are not_logged_in, config_missing, data_root_missing, data_root_selected, ai_environment_unconfigured, local_ai_profile_selected_assets_missing, local_ai_profile_selected_environment_not_ready, local_ai_assets_downloaded_environment_not_ready, local_ai_ready, repair_required, blocked, and ready_for_use.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.nimi-data-root
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: User-selected nimi_data root
     meaning: The nimi_data root is an absolute user-selected writable large-data-plane root containing models, dependencies, environments, principal-partitioned app releases and data, account data, cache, logs, audit, generated data, and temporary data.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.first-run-lifecycle
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: First-run product lifecycle
     meaning: First run is the product-control workflow from missing or incomplete local product state through a user-confirmed local Minimal or Recommended baseline to ready_for_use and ordinary product entry.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.runtime-service-configuration
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Runtime service configuration boundary
     meaning: Production Runtime configuration is protected state owned by the isolated Runtime operating-system service principal, while product control communicates only through exact typed protected operations and never owns physical Runtime configuration paths.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Signed development checkpoint lineage
     meaning: A dev_kernel_checkpoint lineage is a non-release, non-promotable service-owned development state lineage identified by an exact signed trial id, a first-install developmentStateCandidateId, and a cryptographically random acceptanceRoundId, with runtimeCandidateId independently replaceable and verifiable.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.governed-local-config-family
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Governed local configuration family
     meaning: The governed local configuration family contains <runtime_owner_state_root>/nimi.json owned by the product-control schema authority, ~/.nimi/runtime/default.json owned by the Runtime default-seed schema authority, and ~/.nimi/profiles/factory-index.json owned by the factory-AI-profile-index schema authority; Runtime service configuration and protected local-app state are outside this interactive-user family.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.current-schema-repair
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Current-schema repair outcome
     meaning: Current-schema validation accepts only an owner-declared current positive integer schemaVersion and otherwise produces a typed repair_required or blocked outcome without read-time writes, guessed repair, partial readiness, silent recreation, or data orphaning.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.nimi-data-ownership
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: nimi_data ownership and cleanup boundary
     meaning: Each first-level nimi_data directory has one canonical owner and cleanup rule, with Runtime management paths owning models, dependencies, and environments, Runtime-private principals partitioning app data, and explicit user, export, or deletion policy protecting durable account and app data.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.home-surface
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Nimi Home surface
     meaning: Nimi Home is the Platform-owned product-entry and shell ontology currently rendered by the Desktop-hosted shell; it projects other owners without acquiring their truth, while Desktop owns shell information architecture and implementation and Web retains its separate entry boundary.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.home-placement
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Nimi Home placement set
     meaning: The Nimi Home placement set contains first-run, apps, agent-chat, runtime-health, app-health, account, settings, diagnostics, developer-mode, and failure-projection, each with an explicit source authority and forbidden ownership.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.home-agent-chat
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Home Agent Chat projection
     meaning: Agent Chat inside Nimi Home is an in-shell reference surface that carries explicit AI scope identity but does not own transcript, history, identity, grant, memory, or ConversationAnchor truth.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.home-apps
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Home Apps projection
     meaning: The Apps surface is an ordinary-visible projection of admitted app registry, package, typed client, registration, and enforcement truth; Library and Discovery are lower-level or historical projection names rather than the ordinary primary navigation label.
-    relations: []
   - id: rule.nimi.platform.product-lifecycle.p-cold-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-001 closed cold-start state set
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Nimi Home projects only a value from the closed cold-start projection state set before every required upstream authority is ready.
     condition: During cold start while any required authority is not ready.
     failure: Reject any state outside the closed set and project the precise fail-closed state.
@@ -107,12 +66,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.cold-start-state
   - id: rule.nimi.platform.product-lifecycle.p-cold-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-001 no fabricated readiness
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Nimi Home projects empty success, best-effort-ready, a guessed default, anonymous success as authenticated, or a latest-known projection as ready.
     condition: Before every required upstream authority is ready.
     failure: Fail closed to the precise non-ready cold-start state.
@@ -121,12 +76,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.cold-start-state
   - id: rule.nimi.platform.product-lifecycle.p-cold-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-002 process-start owner split
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The Desktop-hosted Home may render the shell, load packaged release metadata, and display non-ready state at process start, but claims Runtime, account, model, app, or memory readiness only from the corresponding authority projection.
     condition: When the product process starts.
     failure: Withhold the readiness claim and display a precise non-ready state.
@@ -137,12 +88,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-cold-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-003 Runtime bootstrap boundary
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Desktop substitutes for the Runtime-owned packaged daemon, falls back through PATH, fabricates its version, or conceals an exact bootstrap failure.
     condition: When Desktop starts or observes Runtime bootstrap.
     failure: Start or observe only the packaged daemon and expose the exact failure.
@@ -151,12 +98,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
   - id: rule.nimi.platform.product-lifecycle.p-cold-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-004 unauthenticated account boundary
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Renderer state takes durable token custody or represents anonymous posture as authenticated success.
     condition: When the account is unauthenticated.
     failure: Preserve Runtime custody and show sign-in, skip, or precise local posture from the account projection.
@@ -165,12 +108,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.cold-start-state
   - id: rule.nimi.platform.product-lifecycle.p-cold-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-005 Runtime-owned host capability detection
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Home probes GPU, CUDA, or Python capability or implements host-capability installer logic.
     condition: When host capability is detected for cold start or setup.
     failure: Require the Runtime-probed host profile projection and expose unavailable status when it is absent.
@@ -179,12 +118,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-cold-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-006 factory AI profile selection boundary
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: UI code embeds provider or model constants to select the factory AI profile instead of consuming Runtime evidence through Platform-owned selection policy and applying the selected profile to AI configuration.
     condition: When first run selects or applies a factory AI profile.
     failure: Reject the UI-local selection and require the policy-produced profile reference.
@@ -193,12 +128,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-007
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-007 Runtime-owned local dependency setup
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Home directly downloads, verifies, or repairs local dependencies instead of using Runtime materializer plan, confirmation, job, verification, and promotion operations.
     condition: When local dependency setup is required.
     failure: Reject the Home-local operation and route setup through Runtime materializers.
@@ -207,12 +138,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-008 admitted app projection
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Home derives first-app or Apps discovery truth locally instead of projecting admitted ordinary-visible registry entries with explicit unknown or unavailable state.
     condition: When first-app or Apps state is projected.
     failure: Reject app-local discovery truth and use the Platform registry projection.
@@ -221,12 +148,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-apps
   - id: rule.nimi.platform.product-lifecycle.p-cold-009a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-009 fixed product-control owner and location
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The Runtime-owned product-control record resides at <runtime_owner_state_root>/nimi.json, and production binds that root to the installer-verified service state root without request, environment, argv, renderer, interactive-user-home, repository spec, Runtime config, Desktop cache, or app-local substitution or fallback.
     condition: Whenever installed-product readiness state is read or written.
     failure: Reject the substitute owner or root and route missing or invalid canonical state to config_missing or repair.
@@ -235,12 +158,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-009b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-009 closed product-control schema and states
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The product-control record contains every defined control field and uses only the closed product-control state set.
     condition: Whenever a product-control record is created, read, transitioned, or persisted.
     failure: Reject the invalid record and enter config_missing, repair_required, or blocked as applicable.
@@ -249,12 +168,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-010a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-010 data-root selection precedes heavy mutation
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: First run records an absolute user-selected nimi_data path in the canonical product-control record and verifies writability and required root-directory creation before heavy download, dependency installation, app-package installation, model materialization, or environment setup begins.
     condition: Before the first heavy first-run mutation.
     failure: Block the mutation and remain in a non-ready data-root state.
@@ -265,12 +180,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-010b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-010 no silent data-root default
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: First run silently defaults nimi_data to ~/.nimi/data or treats a Desktop path record as readiness truth before reconciliation into the canonical product-control record.
     condition: When first run proposes, selects, or restores a data root.
     failure: Require explicit user selection or canonical reconciliation and remain non-ready.
@@ -279,12 +190,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-cold-010c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-010 principal-partitioned app storage
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: An app id becomes a positive storage key, a non-Runtime surface controls an app storage partition, or the displayed nimi_data skeleton admits immutable app release materialization before the source-defined 0P milestone.
     condition: When app storage beneath nimi_data is addressed or projected.
     failure: Reject the path and require the Runtime-private local-app-principal partition.
@@ -293,12 +200,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-cold-011a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-011 local install levels
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: First run presents Minimal and Recommended rather than raw provider, model, dependency, or routing choices; Minimal supplies local text and chat plus basic local speech-to-text and text-to-speech, while Recommended is device-aware and adds only admitted local embedding, image, or GPU support backed by Runtime evidence and user confirmation.
     condition: When first run offers or resolves an install level.
     failure: Reject a raw, non-local, unconfirmed, or unsupported plan.
@@ -307,12 +210,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-011b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-011 ordinary-shell readiness floor
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Ordinary shell entry requires ready_for_use backed by login, a valid product-control record, selected nimi_data, Account Default Profile, built-in AI configurations, Runtime baseline readiness, and execution verification.
     condition: When first run attempts to enter ordinary product use.
     failure: Deny ordinary shell entry and remain in the precise first-run state.
@@ -323,12 +222,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-011c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-011 no cloud or app-pack readiness substitute
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Cloud API, cloud-only, cloud-first, hybrid, connector setup, video generation, or app-specific pack setup satisfies first-run readiness.
     condition: When first-run readiness is evaluated.
     failure: Reject the substitute and require the local baseline.
@@ -337,12 +232,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-012a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-012 ready entry target
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: After ready_for_use, Desktop opens ordinary product use at Chat to Nimi Chat while Home remains the feed surface rather than the ready entry target.
     condition: When first run completes successfully.
     failure: Keep the product out of ordinary entry until the canonical target can open.
@@ -353,12 +244,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-cold-012b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-012 authenticated ordinary shell
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Desktop renders ordinary shell normal use while account state is not_logged_in or treats anonymous Runtime or debug posture as authenticated readiness.
     condition: Until a Runtime account-session projection exists.
     failure: Route the user to login or recovery-only state.
@@ -367,12 +254,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-013a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-013 service-owned Runtime configuration
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Production Runtime configuration remains at the isolated Runtime service principal protected location, product control sends selected nimi_data only through an exact typed protected operation, and Runtime stores dataRootRef and managed roots in service-owned state without exposing physical configuration paths as product-control pointers.
     condition: When product control configures the Runtime data root.
     failure: Reject the update unless the protected operation and service-owned state boundary hold.
@@ -383,12 +266,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
   - id: rule.nimi.platform.product-lifecycle.p-cold-013b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-013 Windows data-root access security
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: On Windows, the native Desktop host uses the shared Kit protected-local adapter to prepare the user-owned selected tree for the exact fixed NimiRuntime service SID before the typed operation, grants inheritable access only to that tree, rejects reparse-point roots, and requires independent Runtime verification and recording.
     condition: When Windows first run prepares service access to selected nimi_data.
     failure: Fail closed before configuration or mutation when any identity, ownership, inheritance, root-integrity, or Runtime-verification condition fails.
@@ -399,12 +278,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
   - id: rule.nimi.platform.product-lifecycle.p-cold-013c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-013 no alternate Runtime configuration truth
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Renderer ACL mutation, broad service or user grants, a test-only principal, ~/.nimi/config.json, retired ~/.nimi/runtime/config.json, the product-control record, Desktop cache, environment, argv, renderer metadata, or imported pre-hardcut Runtime configuration or credentials becomes Runtime security or configuration truth.
     condition: When production Runtime configuration or selected-root access is established or repaired.
     failure: Reject the source or grant; on ambiguity require fresh service configuration.
@@ -413,12 +288,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
   - id: rule.nimi.platform.product-lifecycle.p-cold-014a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 canonical first-run semantics
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The canonical first-run state model explicitly records product states, entry conditions, allowed user actions, exit conditions, and user-facing copy floor.
     condition: Whenever first-run workflow semantics are defined or changed.
     failure: Reject an incomplete state model.
@@ -427,12 +298,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 Desktop consumes product-control semantics
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Desktop first-run UI consumes canonical product-control state semantics and uses generic cold-start diagnostics only as secondary status.
     condition: When Desktop renders first run.
     failure: Reject a UI state that replaces the workflow with diagnostic status.
@@ -441,12 +308,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 no collapsed or technical first-run state
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Desktop collapses first run into generic ready, available, or done states or presents technical enum names as primary user-facing copy.
     condition: When Desktop projects a first-run state.
     failure: Require the exact workflow state and admitted user-facing copy.
@@ -455,12 +318,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-015a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 readiness transition schema invariants
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Every transition to ready_for_use validates selected nimi_data, local install level, Account Default Profile, built-in AI configuration references, Runtime baseline reference, and execution verification reference against the canonical product-control record schema.
     condition: When a product-control transition targets ready_for_use.
     failure: Reject the transition and retain or enter the precise repair or first-run state.
@@ -469,12 +328,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 no readiness proxy
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Runtime config, Desktop path cache, file existence, transfer completion, import success, endpoint probe, script exit, or renderer-local state satisfies product readiness without the ready_for_use product-control record and its required verification references.
     condition: When product readiness is evaluated.
     failure: Reject the proxy and remain non-ready.
@@ -483,12 +338,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 development lineage continuity
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The first real dev_kernel_checkpoint installation creates Product Control under a service-owned development lineage, later signed Runtime candidate updates preserve its signed trial id, developmentStateCandidateId, and acceptanceRoundId while independently replacing and verifying runtimeCandidateId, and Product Control, Runtime local state, audit, model registry, generated identity, and durable grants remain bound to that lineage.
     condition: When a signed development checkpoint is first installed or updated.
     failure: Reject a candidate or state binding that breaks lineage continuity.
@@ -497,12 +348,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
   - id: rule.nimi.platform.product-lifecycle.p-cold-015d
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 persistent completed first run
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Runtime restart, binary update, installer Install, an existing record, or a damaged record silently creates a fresh lineage or resets completed first run in place.
     condition: When a checkpoint lineage restarts, updates, installs, or encounters existing or damaged state.
     failure: Preserve completed state, use the normal repair state machine, and require an explicit destructive repair or reset for a fresh lineage.
@@ -511,12 +358,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
   - id: rule.nimi.platform.product-lifecycle.p-cold-015e
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 protected checkpoint identity inputs
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: HOME, USERPROFILE, TEMP, renderer state, endpoint, environment, argv, or a request field selects protected lineage or round identity, and the signed checkpoint profile affects anything beyond the visible directory proposal, lineage Runtime data-plane roots, and explicit user selection through the normal typed Product Control operation.
     condition: When checkpoint identity or data-root proposal is derived.
     failure: Reject the unprotected input or profile effect.
@@ -527,12 +370,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-cold-015f
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 protected development data-root proposal
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Runtime uses an explicit signed-installer absolute development data-root binding as its protected lineage-bound proposal and root, otherwise derives the proposal from the verified interactive Windows SID operating-system profile mapping plus signed trial id and build-record-verified Runtime candidate id; Desktop prefers that Runtime projection, and explicit user confirmation through the normal typed operation alone selects or writes dataRoot.
     condition: When a signed checkpoint proposes or selects a development data root.
     failure: Reject a reconstructed, unverified, or unconfirmed root and leave dataRoot unset.
@@ -543,12 +382,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-cold-015g
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 isolated checkpoint state and payload reuse
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: An explicit development data-root binding imports Product Control, account, audit, model-registry, or generated-identity state from another Runtime partition, or existing payload files or an older local-state record alone satisfies first run without independent current-candidate catalog-hash, manifest, compatibility, and activation-readiness verification recorded in isolated service-owned state.
     condition: When a checkpoint binds a development root or reuses model, dependency, or environment payload bytes.
     failure: Reject imported authority and require independent verification and new isolated evidence.
@@ -557,12 +392,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
   - id: rule.nimi.platform.product-lifecycle.p-cold-015h
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 checkpoint cannot become product bypass
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: The dev_kernel_checkpoint profile becomes release, becomes promotable to product close, bypasses product readiness, or provides a parallel Product Control store.
     condition: Whenever the checkpoint profile is interpreted or used.
     failure: Reject promotion, bypass, or parallel state and retain non-release non-promotable status.
@@ -571,12 +402,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
   - id: rule.nimi.platform.product-lifecycle.p-cold-016-owner
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-016 Runtime-owned finalization operation
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Renderer or Desktop shell writes ready_for_use, mints verification references, declares references valid, performs product-control validation, or writes the canonical product-control record; bounded native operating-system helpers do not transfer this authority from the Runtime-owned typed product-control finalization operation.
     condition: When final readiness is requested, validated, or persisted.
     failure: Reject the non-Runtime finalization and leave the product non-ready.
@@ -585,12 +412,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-closure
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD upstream authority remains fail closed
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Home predicts or defaults any required upstream account, Runtime, app-registry, permission, AI-profile, or first-party integration authority to ready before that owner projects readiness.
     condition: When a required upstream authority is not ready.
     failure: Project the corresponding precise non-ready state.
@@ -599,12 +422,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.cold-start-state
   - id: rule.nimi.platform.product-lifecycle.p-mig-family
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG governed-family admission
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A new interactive-user local configuration file participates in ordinary readiness without an explicit family membership and schema owner, or Runtime service configuration or protected local-app state is treated as a member.
     condition: When a local configuration file is introduced or resolved.
     failure: Treat the file as ungoverned and deny ordinary readiness use.
@@ -613,12 +432,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.governed-local-config-family
   - id: rule.nimi.platform.product-lifecycle.p-mig-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-001 mandatory positive integer schema version
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Every governed local configuration file has a root integer schemaVersion greater than zero as its migration-entry identity.
     condition: Whenever a governed file is read or admitted to ordinary readiness.
     failure: Treat a missing, non-integer, zero, or negative value as unknown schema and route it to typed repair.
@@ -629,12 +444,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.governed-local-config-family
   - id: rule.nimi.platform.product-lifecycle.p-mig-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-002 exact current-version read
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: A governed-file reader first compares schemaVersion with that file owner's current supported version, accepts only equality, and routes both older and unknown future versions to repair_required without automatic upgrade.
     condition: Whenever a governed file is read.
     failure: Fail closed to typed repair before ordinary readiness.
@@ -643,12 +454,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.current-schema-repair
   - id: rule.nimi.platform.product-lifecycle.p-mig-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-002 no guessed schema recovery
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A reader guesses repair for an unknown schemaVersion, fills default fields, degrades to partial availability, or projects best-effort state as ready.
     condition: When schemaVersion is unsupported or unknown.
     failure: Preserve the file and route to repair_required.
@@ -657,12 +464,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.current-schema-repair
   - id: rule.nimi.platform.product-lifecycle.p-mig-003a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-003 shared current-schema framework
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The governed family uses one shared current-schema validation and typed repair-routing framework that accepts only the owner-declared current version while leaving field schema, pointer validation, repair, and regeneration semantics to each file owner.
     condition: Whenever a governed file is validated or routed for repair.
     failure: Reject a divergent version gate or owner-boundary violation.
@@ -673,12 +476,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.governed-local-config-family
   - id: rule.nimi.platform.product-lifecycle.p-mig-003b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-003 read failures never write
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Reading, parsing, version checking, or structural validation modifies a governed file, creates a backup, or writes default fields on failure.
     condition: During governed-file read or validation.
     failure: Leave on-disk state unchanged and return the typed repair outcome.
@@ -687,12 +486,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.current-schema-repair
   - id: rule.nimi.platform.product-lifecycle.p-mig-003c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-003 schema bump requires prior owner authority
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: A real post-launch schema bump is preceded by the schema owner's admitted authority and migration packet, and older versions remain fail-closed to repair until then.
     condition: When a governed schema version changes.
     failure: Reject the bump and any old-version ordinary readiness path.
@@ -701,12 +496,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.current-schema-repair
   - id: rule.nimi.platform.product-lifecycle.p-mig-003d
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-003 retired Runtime config excluded
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: The framework registers, inspects, repairs, migrates, recreates, or imports retired ~/.nimi/runtime/config.json or consumes any field beyond the separately authorized bounded development-updater dataRootRef read.
     condition: When interactive-user configuration is discovered, validated, repaired, or migrated.
     failure: Reject the retired file as a family member or production Runtime source.
@@ -717,12 +508,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
   - id: rule.nimi.platform.product-lifecycle.p-mig-003e
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-003 retired app and grant stores excluded
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: The framework registers, repairs, recreates, dual-reads, or dual-writes retired interactive-user app registry, package, inventory, or permission-grant files instead of resolving protected local-app owner state from Runtime-owned stores under the verified operating-system-user partition.
     condition: When local-app owner state is discovered or repaired.
     failure: Reject the retired store and require Runtime-owned protected state.
@@ -731,12 +518,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.governed-local-config-family
   - id: rule.nimi.platform.product-lifecycle.p-mig-003f
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-003 no parallel schema upgrader
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A second schema-upgrade implementation reads old versions, automatically fills fields, rewrites files, retains migration backups, or treats old versions as ordinary ready.
     condition: When a governed file uses the shared framework.
     failure: Remove the parallel path and route the old version to typed repair.
@@ -745,12 +528,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.current-schema-repair
   - id: rule.nimi.platform.product-lifecycle.p-mig-004a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-004 typed repair routing
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Parse failure, unknown schemaVersion, or an unresolved pointer to local configuration or nimi_data produces typed repair state rather than a raw renderer error; product control uses config_missing, repair_required, or blocked, and another governed file uses repair_required or blocked normalized to a product repair entry.
     condition: When a governed file cannot be safely read.
     failure: Fail closed before readiness and expose only the typed repair route.
@@ -761,12 +540,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-mig-004b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-004 no silent pointer recreation
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A reader silently recreates a broken pointer or modifies its file when doing so may orphan existing nimi_data, app, account, model, or dependency data.
     condition: When a governed-file pointer is broken.
     failure: Preserve disk state and route to repair_required or blocked until explicit repair confirms no orphaning.
@@ -775,12 +550,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.current-schema-repair
   - id: rule.nimi.platform.product-lifecycle.p-mig-005a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-005 no-orphaning repair invariant
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Every governed-file repair or rebuild preserves authoritative pointers to existing user, app, account, model, dependency, and environment data and fails closed to repair_required or blocked until an explicit impact-aware repair restores consistency.
     condition: When repair or rebuild could change a data pointer.
     failure: Stop before mutation and expose the typed repair state.
@@ -791,12 +562,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-mig-005b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-005 no empty-root recovery or ordinary relocation
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Missing configuration is recovered with a default pointer to a new empty directory while a prior selected data root exists, or ordinary migration, reconnection, or pointer rewrite is offered before data-root relocation authority is admitted.
     condition: When configuration is missing or a prior data root is detected.
     failure: Enter blocked or repair_required without rewriting the pointer.
@@ -807,12 +574,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-mig-006a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-006 canonical directory ownership
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Every cleanup, deletion, or repair beneath nimi_data follows the canonical owner and cleanup rule for that first-level directory.
     condition: When any nimi_data subtree is mutated for cleanup, deletion, or repair.
     failure: Reject the operation when owner or cleanup policy does not authorize it.
@@ -821,12 +584,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
   - id: rule.nimi.platform.product-lifecycle.p-mig-006b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-006 protected durable directory semantics
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Models, dependencies, and environments change only through Runtime management or job paths; app principal data remains delete-only after record removal or tombstone until explicit user deletion; and durable account data requires explicit user, export, or delete policy.
     condition: When protected nimi_data content changes or its owning record is removed.
     failure: Deny an ownerless, implicit, or unconfirmed durable-data mutation.
@@ -835,12 +594,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
   - id: rule.nimi.platform.product-lifecycle.p-mig-006c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-006 no renderer or uninstall bypass
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Desktop shell, Support, or renderer directly mutates models, dependencies, or environments, or app uninstall implicitly deletes shared models, Runtime dependencies, account data, or another app's data.
     condition: When a UI surface cleans, repairs, or uninstalls local content.
     failure: Reject the bypass and route the operation to the owning management path.
@@ -849,12 +604,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
   - id: rule.nimi.platform.product-lifecycle.p-mig-007a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-007 relocation requires admitted administration
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Post-first-run data-root relocation exists only as an admitted Support or Admin capability with an owner, impact preview, typed state machine, pointer commit last, Runtime configuration resynchronization, and no-orphaning semantics.
     condition: When post-first-run data-root movement is proposed or performed.
     failure: Reject relocation until the complete administrative boundary is admitted.
@@ -865,12 +616,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-mig-007b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-007 no ordinary relocation rewrite
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Ordinary Desktop settings, renderer, or first-run product control implements post-first-run relocation as silent pointer rewrite, ordinary reselection, or silent Runtime configuration resynchronization.
     condition: When a user attempts to change data root after first run.
     failure: Deny the ordinary path and require the admitted Support or Admin capability.
@@ -879,12 +626,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-mig-008a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-008 destructive cleanup confirmation floor
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Cleanup that may delete user, app, or account data, including generated artifacts and release payloads, presents an impact preview and obtains explicit confirmation before execution while following the directory cleanup rule.
     condition: Before potentially destructive cleanup executes.
     failure: Block cleanup until preview, confirmation, and owner policy are satisfied.
@@ -893,12 +636,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
   - id: rule.nimi.platform.product-lifecycle.p-mig-008b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-008 cache exception stays classified
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A cleanup path deletes non-cache persistent user, app, or account data without impact preview and explicit confirmation; a cache or temporary cleanup bypasses its canonical cleanup classification even when confirmation is optional.
     condition: When cleanup executes.
     failure: Reject the deletion and preserve the data.
@@ -907,12 +646,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
   - id: rule.nimi.platform.product-lifecycle.p-home-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-001 product-entry ownership split
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Nimi Home expresses only Platform-owned product-entry and shell ontology, placement, and cross-domain projection permission; Desktop owns shell information architecture and implementation, and Web remains a separate entry boundary unless explicitly admitted otherwise.
     condition: Whenever Nimi Home scope or ownership is defined.
     failure: Reject ownership that moves Desktop implementation or Web entry authority into Nimi Home.
@@ -921,12 +656,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-001 no parallel Home kernel
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A parallel .nimi/spec/home kernel is created.
     condition: Whenever Home authority is organized.
     failure: Reject the parallel authority surface.
@@ -935,12 +666,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-001c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-001 no second authority meaning for Home
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: The Nimi Home name is reused as a schema, registry, table-column, IPC-command, or file-path segment to create a second authority meaning.
     condition: Whenever a product identifier is introduced.
     failure: Reject the duplicate authority name.
@@ -949,12 +676,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-002 hosted-shell binding
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: The Desktop-hosted shell rewrites Nimi Home ontology instead of implementing the Platform-owned placement through Desktop-owned shell contracts.
     condition: When Desktop renders or changes Nimi Home.
     failure: Reject the Desktop-local ontology and retain the hosted-shell owner split.
@@ -963,12 +686,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-003 non-owner boundaries
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Nimi Home owns installer, downloader, materializer, selected-source, Runtime model catalog, host capability, local compute pack, Realm account, Realm cloud, Realm world, Realm economy, Realm social, cognition memory, knowledge artifact, Avatar kernel, shared content-pack channel, or cross-app agent-identity truth.
     condition: Whenever Nimi Home consumes or presents a cross-domain projection.
     failure: Reject Home ownership and require a neutral projection from the corresponding owner.
@@ -977,12 +696,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-004 explicit Home placement boundaries
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Desktop-owned shell placement projects exactly the defined Home placement set, and every surface declares its source authority and forbidden ownership rather than acting as an undeclared generic multi-authority surface.
     condition: Whenever a Home surface is registered or rendered.
     failure: Reject an unknown, ownerless, or generic surface.
@@ -991,12 +706,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-placement
   - id: rule.nimi.platform.product-lifecycle.p-home-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-005 policy-produced AI profile consumption
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Home, first-run, shell, or first-party app AI-profile binding embeds provider, connector, engine, or model strings instead of applying the Platform-policy-produced factory AI profile reference through typed AI configuration with an explicit scope reference.
     condition: When Nimi Home or first run binds an AI profile.
     failure: Reject the embedded binding and require the policy-produced reference.
@@ -1005,12 +716,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-006 Agent Chat placement is non-owning
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Home Agent Chat becomes more than an in-shell reference placement or owns transcript, history, chat-derived memory, cross-app agent identity, grant, memory, or ConversationAnchor truth.
     condition: When Agent Chat is placed or used in Nimi Home.
     failure: Reject the ownership and retain neutral projection from the corresponding owner.
@@ -1019,12 +726,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-agent-chat
   - id: rule.nimi.platform.product-lifecycle.p-home-007
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-007 explicit AI scope identity
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Every Agent Chat execution path and every other Nimi Home path invoking Runtime AI execution carries an explicit canonical AI scope reference.
     condition: Whenever Nimi Home invokes Runtime AI execution.
     failure: Reject execution before Runtime invocation when the scope reference is absent.
@@ -1033,12 +736,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-agent-chat
   - id: rule.nimi.platform.product-lifecycle.p-home-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-008 no private implementation path
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Nimi Home code imports Runtime internals, a Realm private client or private transport, or SDK private internals.
     condition: Whenever Nimi Home code accesses another layer.
     failure: Reject the import and require the public typed projection.
@@ -1047,12 +746,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-009a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-009 Apps projection and label
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Apps consumes admitted app registry and package projections, typed app-client projection, and Runtime registration and enforcement projection, and uses Apps as the ordinary primary navigation label rather than Library or Discovery.
     condition: When the Apps surface is populated or labeled.
     failure: Reject an unbacked projection or noncanonical primary label.
@@ -1061,12 +756,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-apps
   - id: rule.nimi.platform.product-lifecycle.p-home-009b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-009 Apps does not own external truth
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Apps owns admission, marketplace, economy, package-trust, or a second app-discovery truth plane.
     condition: Whenever Apps consumes or presents app information.
     failure: Reject the local truth and require the owning projection.
@@ -1075,12 +766,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-apps
   - id: rule.nimi.platform.product-lifecycle.p-home-009c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-009 admitted ordinary visibility only
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Apps derives ordinary visibility from app-local specification, workspace source, or an unadmitted registry row, or displays Avatar in ordinary Apps.
     condition: When Apps decides ordinary-visible entries.
     failure: Exclude the entry unless an admitted registry projection authorizes visibility.
@@ -1089,12 +776,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-apps
   - id: rule.nimi.platform.product-lifecycle.p-home-009d
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-009 no displaced app truth or recursive naming
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Hiding Avatar moves package, install, or update truth into Agent Chat, or the shell introduces a Home tab named Home as recursive authority.
     condition: When app truth is placed or Home navigation is named.
     failure: Reject the displaced truth or recursive name and retain the canonical owner and placement.
@@ -1105,12 +788,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-010a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-010 actionable product-control first screen
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The first Nimi Home screen is actionable product control and, when cold-start state is fail closed, directly offers applicable settings, setup, account, Runtime health, or Apps controls.
     condition: When Nimi Home renders its first screen.
     failure: Replace the screen with an actionable fail-closed product-control surface.
@@ -1121,12 +800,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-010b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-HOME-010 no non-product first screen
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: The first Nimi Home screen is marketing copy, a landing page, or a third-party placeholder.
     condition: When Nimi Home renders its first screen.
     failure: Reject the screen and show actionable product control.
@@ -1135,47 +810,28 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: definition.nimi.platform.product-lifecycle.release-bundle
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Nimi release bundle
     meaning: A Nimi release bundle is one coordinated atomic product release identity comprising the Desktop-host shell release, its exact signed Runtime service release compatibility, and admitted version, update-channel, signature, and rollback metadata.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.update-channel
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Nimi update channel
     meaning: A Nimi update channel is the Platform-owned stable or beta release identity together with its configured updater endpoint, verification public-key policy, compatibility gates, and rollback policy.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.web-release-surface
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: Web release surface
     meaning: The Web release surface consists of the first-party Nimi site and web-shell adapters under apps/web and the release-distribution gateway under apps/install-gateway, while the independently owned Simulator remains a separate product and artifact.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.first-party-app-registration
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: First-party app registration
     meaning: First-party app registration is the single registry-backed launch relationship in which an admitted first-party app is launched through the typed Nimi App client and Runtime registers the app instance in the registry-declared mode before protected product state is read.
-    relations: []
   - id: definition.nimi.platform.product-lifecycle.first-party-migration-state
     kind: definition
-    owner: team.platform
-    lifecycle: active
     title: First-party migration state
     meaning: The closed first-party migration state set is migration-pending, migration-in-progress, migration-failed, migration-blocked, migration-recoverable, and migration-completed.
-    relations: []
   - id: rule.nimi.platform.product-lifecycle.p-supd-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-001 Platform owns self-update policy
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Platform exclusively owns Nimi self-update policy, update-channel identity, trust posture, compatibility gates, and rollback policy; Desktop, Home, SDK consumers, and first-party apps do not create alternatives, and Runtime materializers do not install models or local dependencies through self-update.
     condition: Whenever Nimi self-update policy or execution is defined.
     failure: Reject the non-Platform policy or materializer operation and leave update state fail closed.
@@ -1184,12 +840,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-supd-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-002 Home owns the self-update user surface
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Nimi Home owns user-facing update discovery, consent, progress, restart, rollback, and diagnostic projection while consuming rather than inventing channel, endpoint, public-key, and fail-closed policy.
     condition: Whenever self-update is presented to a user.
     failure: Reject the non-Home surface or locally invented policy and project the precise unavailable or failure state.
@@ -1200,12 +852,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-supd-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-003 Runtime owns daemon handoff
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Runtime owns daemon lifecycle handoff, stop, start, restart status, and post-update local health, but self-update handoff does not replace selected-source-record, model-catalog, or local-dependency updates.
     condition: When Nimi self-update hands off or evaluates the Runtime service.
     failure: Stop the update and expose the exact handoff or health failure without mutating local-environment truth.
@@ -1216,12 +864,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-supd-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-004 app and product updates stay distinct
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Nimi self-update substitutes for an app-package update, or an app-package update substitutes for Nimi self-update.
     condition: Whenever a product or app update is selected or applied.
     failure: Reject the cross-surface update and route it to its owning update surface.
@@ -1232,12 +876,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.release-bundle
   - id: rule.nimi.platform.product-lifecycle.p-supd-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-005 self-update does not mutate local-environment truth
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Nimi self-update mutates the Runtime-owned selected source record, local-environment dependency state, or model and dependency download, verification, promotion, or activation truth.
     condition: During any self-update operation.
     failure: Reject the mutation and preserve the independently owned local-environment state.
@@ -1246,12 +886,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-supd-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-006 self-update fails closed
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Missing release evidence, verification failure, signature mismatch, required rollback, unreachable daemon handoff, or failed compatibility produces an explicit failed, rollback-required, verification-failed, unsupported, or stale-projection state rather than silent update, skipped verification, or latest-as-ready projection.
     condition: When any self-update prerequisite or operation fails.
     failure: Stop update progression and project the precise fail-closed state and reason class.
@@ -1262,12 +898,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-supd-007a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-007 Desktop implementation is subordinate
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Desktop-hosted update mechanics remain an implementation layer beneath Platform product self-update policy and preserve signed compatibility with the independently installed Runtime service; Desktop update contracts never become a peer policy owner.
     condition: Whenever Desktop implements or describes Nimi self-update.
     failure: Reject the peer owner or incompatible implementation and retain Platform policy ownership.
@@ -1278,12 +910,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-supd-007b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-007 Runtime service update custody
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A Desktop bundle, host framework, renderer, or Kit component carries, stages, executes, selects, or probes a production Runtime binary, or installs, updates, rolls back, or activates Runtime outside the signed service installer or updater and operating-system service manager.
     condition: When a production Runtime release is installed, updated, rolled back, or activated.
     failure: Reject the payload or operation and preserve the existing verified Runtime service.
@@ -1294,12 +922,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
   - id: rule.nimi.platform.product-lifecycle.p-supd-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-SUPD-008 no Web self-update path
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: The current Web release surface presents or executes a Web self-update path.
     condition: Unless future canonical authority explicitly admits Web self-update.
     failure: Reject the path as unsupported and return a fail-closed state.
@@ -1308,12 +932,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PKGREL-001 Nimi is the only installable product name
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Nimi is the only user-facing installable product identity; Desktop does not become product identity in UI, package metadata, manifests, channels, registry schemas, or IPC names, and Launcher remains only an internal capability-category term.
     condition: Whenever installable-product identity is named or serialized.
     failure: Reject the non-Nimi identity from the product surface.
@@ -1322,12 +942,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.release-bundle
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PKGREL-002 atomic release identity
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Every Nimi installation or update preserves one atomic release identity across the Desktop-host shell, exact signed Runtime compatibility, and admitted release metadata, and no hot patch, partial replacement, or out-of-band Runtime replacement may produce an unsynchronized identity.
     condition: Whenever a Nimi release is assembled, installed, or updated.
     failure: Reject or roll back the release before activation when atomic identity or compatibility is not preserved.
@@ -1336,12 +952,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.release-bundle
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PKGREL-003 closed release channels
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Product release-channel identity is limited to stable and beta, and UI, SDK, and apps consume that identity without creating channel strings as product truth.
     condition: Whenever a release channel is selected, emitted, or consumed.
     failure: Reject an unknown or locally invented channel identity.
@@ -1350,12 +962,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PKGREL-004 updater endpoint and public-key policy
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Platform owns updater endpoint and public-key configuration; key rotation requires explicit canonical admission of its rotation signal, grace window, and old-key invalidation condition, and builders, Runtime, SDKs, and apps cannot dynamically inject or switch either policy.
     condition: Whenever updater trust configuration is established or rotated.
     failure: Reject the unadmitted endpoint, key, rotation, or dynamic override and stop update verification.
@@ -1364,12 +972,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PKGREL-005 install gateway handoff boundary
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The Web install gateway distributes Nimi packages and verification material and hands off to the native installer, but does not materialize Runtime environments, install models or dependencies, persist selected-source state, or mutate PATH, shell profiles, system Python, system CUDA, or package-manager global state.
     condition: Whenever the Web install gateway handles installation.
     failure: Reject the out-of-scope mutation and keep installation unstarted or failed.
@@ -1380,12 +984,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-006
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PKGREL-006 release failures expose reason classes
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Every release or update failure exposes an explicit Nimi Home fail-closed state traceable to a specific reason class rather than hiding the failure behind a generic latest-version-unavailable field.
     condition: Whenever a release or update path fails.
     failure: Keep the release inactive and project the specific failure state and reason class.
@@ -1396,12 +996,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.release-bundle
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-007
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PKGREL-007 three update surfaces remain distinct
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Nimi self-update, app updates, or Runtime local-dependency updates silently mutates either other update surface's source of truth.
     condition: Whenever any of the three update surfaces operates.
     failure: Reject the cross-surface mutation and preserve each owner's prior truth.
@@ -1412,12 +1008,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.update-channel
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-PKGREL-008 no packaging identity split
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Packaging, release, and update identity is split into an unrecorded subordinate owner, or a Web-only installation or update identity is introduced without explicit canonical Web release admission.
     condition: Whenever release ownership or a new release form is introduced.
     failure: Reject the split or new identity until canonical admission exists.
@@ -1428,12 +1020,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-001a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-001 Web surface ownership
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The first-party Web site, static legal pages, Cloudflare function adapters, and web-shell adapters remain Platform-owned release surfaces rather than app-local subordinate specification truth.
     condition: Whenever Web release ownership is assigned.
     failure: Reject the app-local owner and retain Platform ownership.
@@ -1442,12 +1030,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-001b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-001 Simulator remains independent
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Web becomes the Simulator shell, module registry, state engine, source materializer, build owner, or evidence owner instead of exposing only a typed navigation link to the independent deployment.
     condition: When Web links to or integrates with the Simulator.
     failure: Reject the ownership merge and preserve separate products and artifacts.
@@ -1456,12 +1040,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-002a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-002 public Web adapter boundary
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Web shell mode imports Tauri APIs, Desktop-private renderer aliases, Runtime internals, local-filesystem behavior, Desktop CORS bypass, or private IPC instead of public-for-Web surfaces, Web adapters, and native browser fetch.
     condition: Whenever Web shell mode consumes a Desktop-shaped capability.
     failure: Reject the private capability and return unsupported when no public adapter exists.
@@ -1470,12 +1050,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-002b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-002 unsupported Desktop release behavior fails closed
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Unsupported Desktop-only release and self-update operations return an explicit unsupported state rather than pseudo-success in Web shell mode.
     condition: When Web shell mode encounters a Desktop-only release operation.
     failure: Reject the operation and preserve the unsupported state.
@@ -1484,12 +1060,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-002c
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-002 client-only browser boundary
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Web shell bootstrap is client-only without server-side rendering or service-worker cache, uses same-origin deployment unless an admitted adapter supplies another origin, replaces native deep links with browser OAuth redirect, and keeps raw bearer tokens memory-only while persisting only non-sensitive session metadata.
     condition: Whenever Web shell mode bootstraps or authenticates.
     failure: Reject the unsupported bootstrap, unadmitted origin, native deep link, or persistent raw token.
@@ -1498,12 +1070,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-002d
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-002 Simulator is not a shell mode
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Web adds Simulator to the Desktop-or-Web shell-mode identity, imports selected Simulator app source, or merges Web and Simulator into one module graph.
     condition: Whenever shell modes or Web build inputs are defined.
     failure: Reject the mode or import and preserve separate artifacts.
@@ -1512,12 +1080,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-003 install gateway ownership
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The install gateway owns install scripts, platform manifests, updater metadata, and release-feed projection, obtains release data from the admitted GitHub release source, validates platform archive checksums explicitly, and never treats generated distribution copies as source truth.
     condition: Whenever release distribution data is produced or served.
     failure: Reject unadmitted, unchecked, or generated-copy truth and fail distribution closed.
@@ -1526,12 +1090,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-004a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-004 Cloudflare adapters do not invent truth
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A Cloudflare Worker or Pages function under Web or the install gateway invents Runtime, SDK, account-service, Desktop, or release truth outside an admitted source contract.
     condition: Whenever a Cloudflare adapter proxies or projects data.
     failure: Reject the projection and return an explicit unavailable or upstream-failure state.
@@ -1540,12 +1100,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-004b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-WEB-004 Simulator deployment separation
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Simulator relies on a Cloudflare function as a hidden real-capability backend, or cross-origin navigation merges its build, credentials, content-security policy, environment schema, or release evidence with Web.
     condition: When Simulator and Web are deployed or linked.
     failure: Reject the hidden backend or merged deployment authority and preserve independent artifacts.
@@ -1554,12 +1110,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-fpi-001
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-001 registered first-party hardcut targets only
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: First-party hardcut closure uses only currently admitted registry rows, presently nimi.avatar, and does not substitute a deferred first-party app for an admitted target.
     condition: Whenever first-party hardcut scope or closure is evaluated.
     failure: Reject an unadmitted or deferred target.
@@ -1568,12 +1120,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-fpi-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-002 single registry and typed lifecycle client
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: First-party installation, launch, update, uninstall, health, and repair consume one admitted registry row through the typed Nimi App client; Desktop and first-party apps do not create a second lifecycle truth or app-local installer.
     condition: Whenever a first-party app lifecycle operation runs.
     failure: Reject the parallel truth or local installer and route the operation through the registry-backed client.
@@ -1584,12 +1132,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-apps
   - id: rule.nimi.platform.product-lifecycle.p-fpi-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-003 first-party AI profile hint consumption
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: A first-party app applies its registry AI-profile selection reference to a scope-bound typed AI configuration and does not embed provider, connector, engine, or model constants as factory binding truth.
     condition: When first-party AI configuration is selected or applied.
     failure: Reject the embedded binding and require the registry reference and explicit scope.
@@ -1598,12 +1142,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-fpi-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-004 first-party permission classification
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: First-party publisher or review status creates a seed grant, expands third-party permission, disguises account, session, metering, profile, or storage as a grant, or proxies a protected operation through ad hoc IPC; registry permissions declare only admitted user-facing public permissions, while built-in operations, app-private storage, and app-owned commands retain their owning contracts.
     condition: Whenever a first-party app requests or receives authority.
     failure: Reject the grant, permission expansion, disguise, or proxy before execution.
@@ -1612,12 +1152,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-fpi-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-005 Runtime registration relationship
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Typed app launch with app identity and scope triggers Runtime registration in the registry-declared app-managed mode; the app neither calls a private registration RPC nor sandboxes or supervises the process in its launch path.
     condition: Whenever a first-party app launches.
     failure: Reject launch until typed registration succeeds in the declared mode.
@@ -1626,12 +1162,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-fpi-006a
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-006 Avatar admission and visibility
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The default nimi.avatar row remains admitted while ordinary Apps visibility remains hidden-internal.
     condition: Whenever Avatar admission or ordinary visibility is projected.
     failure: Reject a non-admitted registration or ordinary-visible projection.
@@ -1642,12 +1174,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-apps
   - id: rule.nimi.platform.product-lifecycle.p-fpi-006b
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-006 Avatar registers before protected reads
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Avatar launch registers the local first-party Runtime app instance before reading account-session status, and account, agent, permission, and storage checks continue to fail closed through owning Runtime and Platform registry truth without standalone, parallel-admission, or app-local session-shim bypass.
     condition: Whenever the default Avatar app launches or reads protected state.
     failure: Reject the read or launch until registration and owning projections succeed.
@@ -1656,12 +1184,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-fpi-007
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-007 no standalone ordinary-user truth
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: After hard cut, Avatar retains a standalone ordinary-user install, launch, update, or package channel outside the Nimi App registry; source-development launch remains allowed only under the explicit developer marker boundary.
     condition: Whenever Avatar is packaged, installed, launched, or updated after hard cut.
     failure: Reject the standalone ordinary-user path and require registry-owned lifecycle truth.
@@ -1670,12 +1194,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-fpi-008
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPI-008 Avatar kernel authority stays canonical
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Avatar kernel authority remains under the canonical Avatar specification, while first-party integration adds only registry, typed-client, and migration relationships and never reclassifies the kernel as app-local subordinate truth.
     condition: Whenever Avatar authority or integration ownership is organized.
     failure: Reject relocation or app-slice reclassification and preserve canonical Avatar ownership.
@@ -1684,12 +1204,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-fpm-002
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPM-002 closed fail-closed migration states
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: UI, SDK, and app projections use and distinguish only the closed first-party migration state set and never collapse failure reasons into unavailable or project silent success.
     condition: Whenever first-party migration state is entered or projected.
     failure: Reject the invalid or collapsed state and retain the precise fail-closed migration state.
@@ -1698,12 +1214,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-migration-state
   - id: rule.nimi.platform.product-lifecycle.p-fpm-003
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPM-003 no silent user-state reset
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Migration failure silently resets, clears, or rewrites existing standalone user state, creates a fresh app identity, reports empty success, or leaves orphaned user state without a recovery path.
     condition: When first-party migration fails or is interrupted.
     failure: Preserve existing state and enter an explicit recoverable, failed, or blocked state with a reconciliation path.
@@ -1712,12 +1224,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-migration-state
   - id: rule.nimi.platform.product-lifecycle.p-fpm-004
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPM-004 source-development marker boundary
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Standalone source-development launch requires an explicit developer execution marker and never appears in an ordinary-user package, a release-channel default, or a staging channel as ordinary-user product truth.
     condition: Whenever a first-party app launches from source development.
     failure: Reject the launch or package when the marker is absent or leaks into ordinary-user truth.
@@ -1726,12 +1234,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-fpm-005
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-FPM-005 zero dual-track after cutover
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A standalone first-party variant remains an ordinary-user product entry after its hard cut while the Nimi-managed variant is active.
     condition: After the first-party target's cutover condition is met.
     failure: Disable the standalone ordinary-user entry and preserve only Nimi-managed product truth.
@@ -1740,12 +1244,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-party-app-registration
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-not-logged-in
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 not_logged_in transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The not_logged_in state is entered only when no authenticated Runtime account-session projection exists, permits only sign_in and admitted recovery, exits only when an authenticated account session exists, and presents copy no weaker than Sign in to use Nimi.
     condition: Whenever first run evaluates or renders not_logged_in.
     failure: Reject any other entry, action, exit, or weaker copy and remain not_logged_in.
@@ -1754,12 +1254,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-config-missing
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 config_missing transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The config_missing state is entered only when the canonical product-control record is missing or unparsable, permits no user action, exits only after creating a valid empty product-control record or enters blocked, and presents copy no weaker than Nimi is creating its local product record.
     condition: Whenever first run evaluates or renders config_missing.
     failure: Reject any other entry, action, exit, or weaker copy and remain config_missing or enter blocked.
@@ -1768,12 +1264,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-data-root-missing
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 data_root_missing transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The data_root_missing state is entered only when product control exists without a valid nimi_data root, permits only folder choice, storage-role review, and confirmation, exits only after absolute writable selection, exact service-principal access preparation, independent Runtime verification, canonical recording, and required-directory creation, and presents copy no weaker than Choose where Nimi stores models, apps, and large local data.
     condition: Whenever first run evaluates or renders data_root_missing.
     failure: Reject any other entry, action, exit, or weaker copy and remain data_root_missing.
@@ -1782,12 +1274,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-data-root-selected
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 data_root_selected transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The data_root_selected state is entered only when nimi_data is recorded and writable but no default AI-environment proposal exists, permits only waiting, scan retry, and pre-heavy-setup nimi_data change, exits only when device, operating-system, storage, and Runtime-managed-environment evidence is collected or fails closed, and presents copy no weaker than Nimi is checking this device.
     condition: Whenever first run evaluates or renders data_root_selected.
     failure: Reject any other entry, action, exit, or weaker copy and remain data_root_selected or enter the precise failure state.
@@ -1796,12 +1284,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-ai-environment-unconfigured
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 ai_environment_unconfigured transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The ai_environment_unconfigured state is entered only when evidence supports a local baseline but no materialization plan is confirmed, permits only Minimal or Recommended choice, size-time-capability review, confirmation, and pre-heavy-setup data-root change, exits only when the user confirms a concrete initialization plan, and presents copy no weaker than Choose how much of the local Nimi environment to install.
     condition: Whenever first run evaluates or renders ai_environment_unconfigured.
     failure: Reject any other entry, action, exit, or weaker copy and remain ai_environment_unconfigured.
@@ -1810,12 +1294,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-assets-missing
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 local_ai_profile_selected_assets_missing transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The local_ai_profile_selected_assets_missing state is entered only when a confirmed profile requires absent local assets, permits only safe pause, safe cancellation, failed-job retry, and detail viewing, exits only after required assets are downloaded, verified, and placed under selected nimi_data, and presents copy no weaker than Nimi is downloading and verifying required local models and dependencies.
     condition: Whenever first run evaluates or renders local_ai_profile_selected_assets_missing.
     failure: Reject any other entry, action, exit, or weaker copy and remain in the precise non-ready state.
@@ -1824,12 +1304,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-environment-not-ready
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 local_ai_profile_selected_environment_not_ready transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The local_ai_profile_selected_environment_not_ready state is entered only when the profile and asset plan are known but managed environment or dependencies are absent or unverified, permits only retry, repair, and detail viewing, exits only after Runtime verifies managed environment, dependencies, and activation evidence, and presents copy no weaker than Nimi is preparing its managed local environment.
     condition: Whenever first run evaluates or renders local_ai_profile_selected_environment_not_ready.
     failure: Reject any other entry, action, exit, or weaker copy and remain in the precise non-ready state.
@@ -1838,12 +1314,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-assets-downloaded
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 local_ai_assets_downloaded_environment_not_ready transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The local_ai_assets_downloaded_environment_not_ready state is entered only when assets exist but activation or environment readiness still fails, permits only dependency repair, activation retry, and failure-detail viewing, exits only after Runtime activation and readiness succeeds or a non-recoverable error enters blocked, and presents copy no weaker than Nimi has the files, but the local environment still needs repair.
     condition: Whenever first run evaluates or renders local_ai_assets_downloaded_environment_not_ready.
     failure: Reject any other entry, action, exit, or weaker copy and remain in repair setup or enter blocked.
@@ -1852,12 +1324,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-local-ai-ready
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 local_ai_ready transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The local_ai_ready state is entered only when Runtime baseline evidence exists but required account-profile, built-in AI-configuration, or execution evidence remains unverified, permits only waiting and failed-finalization retry, exits only after every named owner resolves account, data-root, AI-configuration, Runtime-baseline, and execution references, and presents copy no weaker than Nimi is finishing your default AI setup.
     condition: Whenever first run evaluates or renders local_ai_ready.
     failure: Reject any other entry, action, exit, or weaker copy and remain local_ai_ready or enter blocked.
@@ -1866,12 +1334,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-repair-required
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 repair_required transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The repair_required state is entered only when a previously valid required component is missing, stale, corrupted, unverifiable, or inconsistent, permits only repair, retry, log export, and admitted data-root migration, exits only to the appropriate setup state or ready_for_use after evidence restoration, and presents copy no weaker than Nimi needs to repair a required local component before normal use.
     condition: Whenever first run evaluates or renders repair_required.
     failure: Reject any other entry, action, exit, or weaker copy and remain repair_required.
@@ -1880,12 +1344,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-blocked
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 blocked transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The blocked state is entered only when Nimi cannot safely create product control, use the data root, validate account or session, or materialize the baseline, permits only available retry, relevant alternate-root choice, log export, and support, exits only after resolving the cause and re-evaluating from the earliest affected state, and presents copy no weaker than Nimi cannot continue safely yet.
     condition: Whenever first run evaluates or renders blocked.
     failure: Reject any other entry, action, exit, or weaker copy and remain blocked.
@@ -1894,12 +1354,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-ready-for-use
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 ready_for_use transition closure from first-run-state-machine
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The ready_for_use state is entered only by atomic backend product-control admission after canonical owner-order verification of login, config, nimi_data, accountDefaultProfileRef, builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef, permits only ordinary Nimi use and optional Runtime changes, exits only when invalid owner evidence routes to repair_required, blocked, or not_logged_in, and presents copy no weaker than Nimi is ready.
     condition: Whenever first run evaluates or renders ready_for_use.
     failure: Reject any other entry, action, exit, or weaker copy and retain or enter the precise non-ready state.
@@ -1908,12 +1364,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-forbidden-ready-inputs
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-014 closed forbidden readiness inputs from first-run-state-machine
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Renderer-local state, localStorage, renderer-provided string references, generic chat scope, Runtime route health, endpoint probes, file existence, Runtime configuration alone, cloud API, cloud-only, cloud-first, or hybrid profiles, video-generation packs, connector setup, or app-specific packs establish ready_for_use.
     condition: Whenever first-run readiness is evaluated.
     failure: Reject the positive input and remain in the earliest affected non-ready state.
@@ -1922,12 +1374,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-wire-shape
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema required wire shape
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Product control uses schemaVersion 1 and requires schemaVersion, installId, productVersion, state, dataRoot, firstRun, pointers, and repair as top-level fields.
     condition: Whenever the product-control record is created, read, transitioned, or persisted.
     failure: Reject the record and route to config_missing, repair_required, or blocked.
@@ -1936,12 +1384,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-data-root-wire-shape
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema dataRoot wire shape
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Product control requires dataRoot in every state from data_root_selected through ready_for_use, with absolute user-selected path, status limited to selected, ready, or repair_required, selectedAt selection timestamp, and verifiedAt writability and directory-verification timestamp.
     condition: Whenever product control is in a state that requires dataRoot.
     failure: Reject the record and remain in or enter the precise data-root or repair state.
@@ -1950,12 +1394,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-first-run-wire-shape
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema firstRun wire shape
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: The firstRun object carries installLevel limited to minimal or recommended, aiProfileAlias, boolean completed, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, non-empty builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef.
     condition: Whenever the product-control firstRun object is created, validated, or persisted.
     failure: Reject the invalid object and remain in or enter the precise first-run or repair state.
@@ -1964,12 +1404,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-record-identity
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema installId immutability
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: Runtime candidate rotation, restart, update, or installer Install changes installId, resets grants, abandons selected payloads, or creates a fresh product-control lineage without an explicit destructive repair or reset.
     condition: When an existing product-control lineage is resumed, repaired, or updated.
     failure: Reject the replacement and preserve the existing installId and durable lineage.
@@ -1978,12 +1414,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-ready-write
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema atomic readiness writes
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: A ready_for_use write is atomic with firstRun.completed true and completedAt, failed verification leaves the earliest affected non-ready state, retries reuse evidence only while every owner still validates it, and later invalidation routes to repair_required, blocked, or not_logged_in according to the failed owner.
     condition: Whenever readiness is written, retried, repaired, or invalidated.
     failure: Reject the write or retry and preserve the precise non-ready state.
@@ -1992,12 +1424,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-016-composition-order
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-016 product-control-record-schema readiness composition order
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Readiness admission composes product-control shape and selected data root, authenticated Runtime account session, account default-profile evidence, selected local first-run factory profile, Runtime baseline readiness, built-in AI-configuration evidence, Runtime baseline execution evidence, and atomic record write in that order.
     condition: Whenever the backend admits ready_for_use.
     failure: Reject out-of-order or incomplete admission and retain the earliest affected non-ready state.
@@ -2006,12 +1434,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-data-root-proposal
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema development dataRootProposal boundary
     modality: must_not
-    scope:
-      - platform.product-lifecycle
     statement: A dev_kernel_checkpoint dataRootProposal is persisted as a product-control field, selects dataRoot, imports prior registry or readiness, or derives from home, userprofile, temp, renderer state, environment, argv, endpoint, or request fields.
     condition: When a development checkpoint proposes a data root.
     failure: Reject the proposal unless it remains visible and confirmable only and is independently selected through the protected operation.
@@ -2020,12 +1444,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-account-profile-ref
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema accountDefaultProfileRef projection
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: accountDefaultProfileRef resolves as a durable local Account Default Profile record bound to authenticated account_id and selected dataRootRef and projects account_id, dataRootRef, profile_id_default, profile version or hash, source_policy_ref, source_catalog_version, and createdAt or updatedAt.
     condition: Whenever accountDefaultProfileRef contributes to ready_for_use.
     failure: Reject unresolved, string-only, renderer, SDK-cache, app-cache, Realm-token, Realm-profile, subject-id, or decoded-claim evidence and remain local_ai_ready or blocked.
@@ -2034,12 +1454,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-built-in-config-refs
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema builtInAiConfigRefs projection
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: builtInAiConfigRefs contains durable committed full AIConfig records for desktop.chat.nimi and desktop.chat.agent and each projects scopeRef, AI-profile reference or hash, AIConfig version or hash, writer identity, and committedAt.
     condition: Whenever builtInAiConfigRefs contributes to ready_for_use.
     failure: Reject generic scope, renderer, localStorage, current-tab, route-health, or string-only scope evidence and remain local_ai_ready or blocked.
@@ -2048,12 +1464,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-runtime-baseline-ref
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema runtimeBaselineRef projection
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: runtimeBaselineRef resolves as durable RuntimeLocalService activation-readiness evidence and projects selected local factory AIProfile reference, install level, Runtime data root or dataRootRef, required dependency families, selected source-record ids, activation-ready responses, materialization or system-source verification, observed_at, and Runtime audit sequence.
     condition: Whenever runtimeBaselineRef contributes to ready_for_use.
     failure: Reject materialization success, file existence, endpoint or route health, process liveness, import success, or previous health alone and remain environment-not-ready or repair_required.
@@ -2062,12 +1474,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-execution-evidence-ref
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-COLD-015 product-control-record-schema executionEvidenceRef projection
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: executionEvidenceRef resolves as durable Runtime execution proof and projects selected local factory AIProfile reference, install level, runtimeBaselineRef, dataRootRef, local execution-target evidence, selected baseline-capability proof, submit-specific scheduling judgment when evaluated, terminal result, timestamps, and Runtime audit sequence, with Minimal proving local text chat, basic speech-to-text, and basic text-to-speech execution.
     condition: Whenever executionEvidenceRef contributes to ready_for_use.
     failure: Reject Desktop snapshot, aggregate probe, route health, warmup-only, cloud, hybrid, video, connector, or app-pack evidence and remain local_ai_ready or blocked.
@@ -2076,12 +1484,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-mig-registry-closure
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-001 and P-MIG-003 local-config-file-registry closure
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Only explicitly registered governed-family members participate in shared current-schema validation or ordinary readiness, and each member declares its schema owner and framework authority before admission.
     condition: Whenever a local configuration file is discovered, registered, validated, or used for readiness.
     failure: Exclude an unregistered or ownerless file and deny ordinary readiness use.
@@ -2090,12 +1494,8 @@ units:
         target: definition.nimi.platform.product-lifecycle.governed-local-config-family
   - id: rule.nimi.platform.product-lifecycle.p-mig-006-directory-declarations
     kind: rule
-    owner: team.platform
-    lifecycle: active
     title: P-MIG-006 nimi-data-directory-ownership declaration closure
     modality: must
-    scope:
-      - platform.product-lifecycle
     statement: Every first-level nimi_data directory declares one canonical owner and one cleanup rule before any cleanup, deletion, or repair operation is admitted.
     condition: Whenever a first-level nimi_data directory or its mutation policy is defined.
     failure: Reject an ownerless or cleanup-rule-free directory and every operation against it.

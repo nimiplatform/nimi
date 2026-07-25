@@ -1,34 +1,23 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.desktop
+scope: desktop.ai-consumption
 units:
   - id: definition.nimi.desktop.ai-consumption.profile-config
     kind: definition
-    owner: team.desktop
-    lifecycle: active
     title: Desktop AI profile configuration consumption surface
     meaning: The Desktop AI profile configuration consumption surface is the typed SDK and host projection for scope-owned AIProfile templates, full materialized AIConfig intent, adjacent scope-owned live configuration, and owner-sliced AISnapshot execution evidence; Desktop owns placement and interaction for its resident scopes but not global configuration, Runtime facts, credentials, Agent Chat execution, or another scope's persistence.
-    relations: []
   - id: definition.nimi.desktop.ai-consumption.llm-adapter
     kind: definition
-    owner: team.desktop
-    lifecycle: active
     title: Desktop LLM adaptation consumption surface
     meaning: The Desktop LLM adaptation consumption surface is the Runtime-aligned provider, route, credential, local-health, media, audit, trace, and world-generation projection consumed through typed SDK surfaces without Desktop-owned provider execution, route inference, credential custody, or Agent Chat orchestration.
-    relations: []
   - id: definition.nimi.desktop.ai-consumption.streaming
     kind: definition
-    owner: team.desktop
-    lifecycle: active
     title: Desktop streaming consumption surface
     meaning: The Desktop streaming consumption surface owns renderer subscription lifecycle, incremental presentation, explicit cancellation, timeout, interruption, backpressure, job progress, and retry affordances while Runtime and SDK own stream protocols, Agent outputs, actions, continuations, jobs, presentation timelines, and execution truth.
-    relations: []
   - id: rule.nimi.desktop.ai-consumption.r001
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Durable AI target identity uses v2 references
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop AIProfile and AIConfig consumers use v2 durable target references; a local-runtime reference carries version=v2 and exactly one of profile_binding_id or readiness_ref, and a cloud reference carries remote_model_catalog_id plus provider_model_id and connector_id with provider when available.
     condition: Whenever Desktop stores, applies, exports, imports, or projects durable AI target identity.
     failure: Reject targetId, profileId, localModelId, goRuntimeLocalModelId, bare asset identifiers, and connector_id plus provider model_id as durable target identity.
@@ -37,12 +26,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r002
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AI configuration has three non-fallback tiers
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: AIProfile remains a portable scope-agnostic template, AIConfig remains the full live intent bound to one AIScopeRef, and AISnapshot remains immutable per-execution configuration and Runtime evidence; none is consumed as a fallback for another or written back into another tier.
     condition: Whenever Desktop consumes AI configuration or execution evidence.
     failure: Reject profile-as-live-config, live rereads in place of a snapshot, snapshot-to-config writes, and snapshot-to-profile writes.
@@ -51,12 +36,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r003
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Desktop remains a scoped configuration consumer
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: The AIScopeRef owner owns canonical AIConfig intent, persistence, subscription, and read-write behavior, Runtime owns facts, readiness, materialization, route feasibility, and execution evidence, SDK owns typed projection, and Desktop owns only placement and editing interaction for admitted desktop-resident scopes.
     condition: Whenever renderer, Chat, Settings, Runtime Config, or another Desktop surface reads or mutates AI configuration.
     failure: Reject renderer-local, Desktop-local, cross-app, cross-module, or cross-feature persistence as canonical AIConfig truth.
@@ -65,12 +46,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r004
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIProfile carries complete portable slice intent
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Each AIProfile capability slice carries stable slice identity, canonical capability, execution mode, contract state, required or optional readiness policy, default parameters, editable-field bounds, patterned local or cloud binding intent, portable source and ordered companion occurrence intent, policy and style metadata, and title, description, and tags.
     condition: Whenever Desktop imports, exports, previews, applies, or edits an AIProfile.
     failure: Reject a profile that omits required portable slice intent or cannot preserve ordered occurrence and editable-field semantics.
@@ -79,12 +56,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r005
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIProfile excludes machine and execution truth
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: An AIProfile contains a concrete AIScopeRef, machine residency, install or dependency result, device feasibility, host engine path, live health, RuntimeRouteBinding, selected Runtime binding or source evidence, materialization or workflow identity, scheduler state, provider health or quota, or credential material.
     condition: Whenever a portable AIProfile payload is created or accepted.
     failure: Drop the non-portable field through an admitted portable-intent projection or reject the payload when safe filtering cannot be proven.
@@ -93,12 +66,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r006
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIProfile and Runtime local profiles remain non-isomorphic
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: A portable AIProfile may reference, compose, or derive one or more Runtime local profiles without assuming one-to-one identity, and any local Runtime selection is represented only by the admitted v2 compact local-runtime target reference.
     condition: Whenever Desktop relates a portable profile to installable Runtime dependencies or execution packages.
     failure: Reject machine-local installation identity and pre-v2 local logical references in the portable profile or materialized AIConfig.
@@ -107,12 +76,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r007
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIConfig is full and scope-bound
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Every live AIConfig binds exactly one canonical AIScopeRef and is the full materialized configuration for that scope's declared app, module, or feature capability requirements without partial overlays, cross-scope fallback chains, disabled placeholders, or unresolved required slices.
     condition: Whenever a live AIConfig is committed, read, subscribed, or presented.
     failure: Keep the prior valid config or report typed setup-required with no live config instead of accepting a partial or inherited config.
@@ -121,12 +86,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r008
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIConfig preserves its canonical envelope
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: AIConfig contains scopeRef, per-capability materialized configuration, and an optional profileOrigin used only for user-facing provenance; sharing schema subsets with AIProfile does not change the bound live-config owner semantics.
     condition: Whenever Desktop serializes or projects an AIConfig.
     failure: Reject an envelope without exact scope identity or one that treats profileOrigin as a live shared binding.
@@ -135,12 +96,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r009
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIConfig capability payload stays compact
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: AIConfig capability entries contain only consumer requirement and capability identity, source profile and slice identity, admitted mode-specific v2 compact target references, slice-bounded editable parameters, and profile origin content, hash, and version evidence owned by the scope.
     condition: Whenever a capability entry is materialized or persisted in AIConfig.
     failure: Reject a capability entry that lacks admitted target identity or exceeds the compact intent boundary.
@@ -149,12 +106,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r010
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIConfig excludes Runtime and credential evidence
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: AIConfig persists RuntimeRouteBinding, Runtime selectedBindings evidence, route endpoints, local paths, selected source records, install or materialization records, workflow binding identity, backend package or Python, Torch, CUDA details, provider health, scheduler state, raw secrets, tokens, API keys, or credential payloads.
     condition: Whenever Desktop writes or exports live AIConfig.
     failure: Reject the write and retain the Runtime-owned facts or credentials solely in their typed owner projection.
@@ -163,12 +116,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r011
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIConfig does not absorb Agent Chat behavior
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop promotes Agent Chat behavior settings, turn planning, prompt or context assembly, message or action outputs, voice workflows, media execution, memory policy, or Runtime Agent projections into top-level AIConfig truth.
     condition: Whenever Desktop models or edits AIConfig.
     failure: Consume the Runtime and SDK Agent projection and keep AIConfig limited to configuration intent.
@@ -177,12 +126,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r012
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Adjacent live config requires a distinct owner boundary
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: A live setting remains adjacent to AIConfig.capabilities only when it is user-editable, scope-keyed, durably persisted and subscribed by its scope owner, affects a Runtime-owned bank, substrate, or retained-memory behavior rather than ordinary turn capability truth, and would otherwise confuse capability and Runtime bank ownership; memory embedding config is the admitted instance.
     condition: Whenever Desktop places a scope-owned AI setting outside AIConfig.capabilities.
     failure: Reject an adjacent surface that lacks all boundary conditions or silently folds Runtime bank truth into capability selection.
@@ -191,12 +136,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r013
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Adjacent config carries intent through typed projection only
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Memory embedding and any admitted adjacent config carry only user intent such as source kind and binding reference through typed SDK or host projection, while Runtime retains resolved profile, readiness, bind result, bank identity, migration, and cutover truth.
     condition: Whenever Desktop reads or writes adjacent live configuration.
     failure: Reject renderer-local state, Desktop-local storage, private loopback endpoints, and Runtime evidence as adjacent config authority.
@@ -205,12 +146,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r014
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AISnapshot is an owner-sliced execution envelope
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Each AISnapshot records a ULID executionId, exact scopeRef, immutable AIConfig content or hash evidence, the conversation capability execution slice, nullable Runtime evidence, and ISO8601 createdAt; scope owners own config evidence identity, Runtime owns execution evidence slices, and SDK owns typed projection.
     condition: Whenever a Desktop-consumed turn or job starts.
     failure: Reject an ownerless, consumer-local, mutable, or field-incomplete execution snapshot.
@@ -219,12 +156,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r015
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Executions read only their captured snapshot
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: A running turn or job reads only its captured AISnapshot, never uses it as recovery or fallback, never rereads live AIConfig in its place, and never writes the snapshot back to config or profile.
     condition: From execution start through terminal completion.
     failure: Stop the execution path or preserve the original snapshot instead of changing configuration evidence in flight.
@@ -233,12 +166,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r016
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Production snapshots are durably projected
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop snapshot record and read behavior uses typed SDK storage projection and does not represent a renderer-memory ring buffer as durable execution evidence; process memory is limited to explicit test or development harnesses.
     condition: Whenever Desktop records or reads AISnapshot evidence in production.
     failure: Reject renderer-memory-only production evidence and report snapshot persistence as unavailable.
@@ -247,12 +176,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r017
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Profile apply is atomic full overwrite
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Applying AIProfile to a scope atomically materializes a full replacement AIConfig without merge, partial patch, or shared profile reference, and protects concurrent apply with a scope-level version or compare-and-swap check.
     condition: Whenever a profile apply commit is requested.
     failure: Commit the entire new config or leave the prior config unchanged.
@@ -261,12 +186,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r018
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Apply readiness failures preserve valid config
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Invalid schema or any unresolved required capability, Runtime, dependency, credential, manual association, backend, source, or readiness prerequisite returns a typed setup-required no-live-config outcome and preserves the prior valid AIConfig; unresolved optional slices are omitted and explicitly projected as optional-unavailable.
     condition: Whenever Desktop previews or commits profile materialization.
     failure: Reject placeholder required slices, null or disabled capability rows, and partial replacement.
@@ -275,12 +196,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r019
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Apply cannot manufacture executability
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop writes syntactically valid live AIConfig before import, preview, probe, or prepare proves required slice eligibility, or deletes failed capability fields to report successful apply.
     condition: Whenever profile application eligibility has not been proven.
     failure: Keep the live config unchanged and surface typed setup-required status.
@@ -289,12 +206,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r020
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Global active profile is prohibited
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop defines a global active profile, a singleton live AIConfig shared by scopes, or fallback inheritance between scopes; global state is limited to the profile catalog and consumer-local active-editor convenience.
     condition: Whenever profile selection or active-scope state is modeled.
     failure: Preserve independent scope-keyed AIConfig and reject the global live binding.
@@ -303,12 +216,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r021
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Portable export preserves authored intent
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: AIProfile export preserves capability and slice identity, execution mode, contract and readiness policy, local and cloud constraints, source and manual association intent, expected integrity, ordered companion occurrence data, parameters, editable fields, policy, style, and profile UX metadata.
     condition: Whenever Desktop exports or shares an AIProfile.
     failure: Reject an export that loses required authored intent or occurrence ordering.
@@ -317,12 +226,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r022
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Live-config export filters non-portable evidence
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Exporting live config to AIProfile uses a portable-intent projection that may copy profile refs, slice IDs, editable parameters, and admitted compact logical refs but drops or fails closed on routes, sources, installs, paths, materialization, provider health, scheduler, and credential evidence.
     condition: Whenever Desktop derives a portable profile from live AIConfig.
     failure: Reject direct copying of AIConfig capabilities when the portable boundary cannot be proven.
@@ -331,12 +236,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r023
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: imageProfileRef is hard-cut into capability intent
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Image profile selection exists only as image workflow or capability slice intent with source profile and admitted v2 compact target references inside AIConfig capabilities; defaultRefs.imageProfileRef and a replacement localProfileRef-only top-level concept do not exist.
     condition: Whenever Desktop migrates, reads, writes, or displays image-related AI configuration.
     failure: Reject the legacy field without a compatibility layer and require migration to the admitted capability slice shape.
@@ -345,12 +246,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r024
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Snapshot capture occurs per turn or job
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop consumes a new AISnapshot at each turn or job start, and later live-config edits affect only later executions rather than an already-started execution; session-level permanent snapshot binding is absent.
     condition: Whenever execution configuration is captured or changed.
     failure: Reject session-wide binding and in-flight configuration drift.
@@ -359,12 +256,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r025
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AIConfig and AISnapshot remain the conversation capability umbrella
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Conversation capability selection and derived projection remain an AIConfig capabilities submodel, execution capability evidence remains AISnapshot.conversationCapabilitySlice, and voice workflow and Runtime-fields boundaries remain subordinate invariants; Desktop Agent projection remains adjacent presentation authority rather than configuration truth.
     condition: Whenever Desktop composes conversation capability and AI configuration models.
     failure: Reject peer ownership between the legacy capability model and the three-tier model or absorption of Agent presentation truth into configuration.
@@ -373,12 +266,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r026
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Mutations remain local to their owned tier and scope
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Editing AIProfile affects only future applies, while user customization changes only the selected scope's full materialized AIConfig and may preserve profileOrigin solely as provenance; the scope owner exposes one typed authority surface to Desktop consumers.
     condition: Whenever Desktop edits a profile or scope configuration.
     failure: Reject reverse mutation from AIConfig into AIProfile, implicit reapply, or a consumer-specific persistence owner.
@@ -387,12 +276,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r027
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AI configuration probes preserve three classes
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop distinguishes static schema validation, Runtime availability for route, provider, and engine, and resource feasibility for device capacity, and consumes each through the formal scope-owned AIConfig projection.
     condition: Whenever profile or config readiness is probed or presented.
     failure: Reject raw low-level Runtime or scheduler calls as product-facing probe authority and preserve the typed probe class.
@@ -401,12 +286,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r028
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Aggregate and submit scheduling judgements stay distinct
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: probeFeasibility for a scope carries the aggregate judgement over relevant local targets, while submit guard and snapshot capture use the exact submit target judgement; unavailable Peek produces null schedulingJudgement and degraded aggregate status, and aggregate or unknown state never becomes runnable execution evidence.
     condition: Whenever Desktop probes feasibility, guards submission, or captures Runtime scheduling evidence.
     failure: Reject reuse of a primary local profile or aggregate result as submit-target proof.
@@ -415,12 +296,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r029
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Probe presentation preserves specific status
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop presents schema, availability, and feasibility failures distinctly and, when a scheduling judgement exists, displays queue, slowdown, or denial meaning rather than only a generic aggregate unavailable status.
     condition: Whenever probe results are shown or used by submission UI.
     failure: Reject a generic label that hides the probe class or turns unknown into runnable.
@@ -429,12 +306,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r030
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Built-in chat config materializes through atomic apply
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: First run applies the selected local baseline factory AIProfile independently to desktop.chat.nimi and desktop.chat.agent through the scope owner's SDK and Runtime boundary only after every required consumer slice is ready.
     condition: Whenever first-run built-in chat configuration is materialized.
     failure: Fail first-run finalization closed if either exact scope cannot commit a full materialized AIConfig.
@@ -443,12 +316,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r031
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Built-in config evidence is backend-verifiable
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Each built-in evidence item binds exact scopeRef, applied profile ref and hash, committed AIConfig version or content hash, responsible scope owner or SDK writer identity, and committedAt, and product-control refs resolve through SDK, Runtime, or Kit projection to that full config and exact Runtime readiness evidence.
     condition: Whenever built-in AIConfig evidence is recorded or verified.
     failure: Reject string-only, unresolved, partial, mismatched-scope, or renderer-local evidence.
@@ -457,12 +326,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r032
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Built-in config has no inferred success or fallback scope
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop derives built-in AIConfig success from renderer state, localStorage, route health, selected tab, conversation state, runtimeBaselineRef, execution evidence payloads, or route-shaped selected bindings; shares a fallback scope between built-in chats; or hardcodes provider, connector, engine, or model identity.
     condition: Whenever built-in first-run configuration or readiness is evaluated.
     failure: Preserve setup-required with no live config and keep first-run non-finalized.
@@ -471,12 +336,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r033
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Apply preview is typed and non-committing
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Apply preview accepts exact scopeRef and AIProfile, returns a typed full before-to-after AIConfig diff with explicit null before for first creation and the base version or content hash, and remains a separate non-committing operation from explicit atomic apply.
     condition: Whenever Desktop previews profile application.
     failure: Reject a free-form, partial, mutating, implicitly queued, or implicitly committed preview.
@@ -485,12 +346,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r034
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Preview isolation and readiness fail closed
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Preview does not persist config, notify live subscribers, recompute live capability projection, create AISnapshot, or mutate AIProfile; invalid schema and required-readiness blockers return typed error or setup-required without a committable after, while non-blocking probes may remain warnings.
     condition: Whenever preview computes or returns a result.
     failure: Reject side effects, partial diffs, failed-slice deletion, and blocker-as-warning pseudo-success.
@@ -499,12 +356,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r035
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Preview and commit preserve version freshness
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Preview and commit produce equivalent full materialization only for the same profile version and config base, and commit rejects a stale preview through the scope-level version or compare-and-swap guard without treating preview as a lock.
     condition: Whenever live AIConfig changes between preview and commit.
     failure: Recompute preview or reject commit instead of writing a stale after value.
@@ -513,12 +366,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r036
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Managed provider adaptation uses Runtime normalization
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop Phase 1 routes managed provider requests with connector_id for Runtime credential resolution, sends Runtime-normalized provider identity for presentation and routing, and carries runtimeModelType for chat, image, video, text-to-speech, speech-to-text, or embedding capability; inline credential metadata remains unavailable.
     condition: Whenever Desktop constructs an AI provider request.
     failure: Reject inline credentials, unnormalized provider routing, and connector_id used as durable cloud target identity.
@@ -527,12 +376,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r037
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Local adapter endpoint absence remains explicit
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: localProviderEndpoint, localProviderModel, and localOpenAiEndpoint are only Runtime-projected local binding metadata, and an empty endpoint means the current route has no corresponding local binding.
     condition: Whenever Desktop presents or consumes local adapter binding metadata.
     failure: Report the route as unconfigured rather than inventing a loopback endpoint or model.
@@ -541,12 +386,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r038
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Cloud provider execution remains Runtime-only
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop restores a provider adapter factory, directly calls provider model-list or health APIs, or bypasses the Runtime ConnectorService and SDK route facade for cloud execution.
     condition: Whenever a cloud connector path is used.
     failure: Keep execution unavailable until the typed Runtime-owned connector and route projection succeeds.
@@ -555,12 +396,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r039
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Agent route resolution fails closed
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop core does not own an Agent Chat route API, and route resolution without agentId, with control-plane failure, or with invalid payload returns failure without a synthesized LOCAL or AGENT_LOCAL success route.
     condition: Whenever Desktop requests or receives Agent Chat route resolution.
     failure: Reject the turn route and present the typed Runtime failure.
@@ -569,12 +406,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r040
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: LLM execution consumes resolved route projection
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop LLM execution consumes the SDK route facade's resolved projection and does not infer source, engine, model identity, warm candidate, or fallback policy from provider, model, endpoint, Runtime fields, connector defaults, setup state, or launcher state.
     condition: Whenever an LLM execution route is selected or presented.
     failure: Keep execution blocked until the Runtime-owned resolved route is available.
@@ -583,12 +416,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r041
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Agent Chat execution stays on Runtime Agent APIs
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop wraps a local kernel Agent turn, assembles prompts, synthesizes state deltas, memory writes, or audit events, or replaces Runtime Agent truth with a local mode enum.
     condition: Whenever Desktop submits or consumes an Agent Chat turn.
     failure: Route typed user intent through Runtime Agent APIs and consume the SDK projection.
@@ -597,12 +426,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r042
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Connector credentials never enter the renderer
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop sends only connectorId as the managed credential handle, Runtime loads and decrypts credential material, and credentialRefId is absent from the request and configuration surface.
     condition: Whenever a remote AI request requires credentials.
     failure: Reject raw secret, token, key, OAuth payload, or retired credentialRefId transport through Desktop.
@@ -611,12 +436,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r043
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Local text health consumes authoritative Runtime records
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Local text generation and embedding health first resolves an authoritative RuntimeLocalService local-model record; active and installed may execute or warm on demand, while degraded, unavailable, unhealthy, removed, and missing remain unreachable.
     condition: Whenever Desktop checks local text model health or sendability.
     failure: Report unconfigured or unreachable when the authoritative record is absent or non-runnable.
@@ -625,12 +446,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r044
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Health checks cannot infer success from endpoint metadata
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop treats host snapshots, recommendation feeds, route remnants, an OpenAI-compatible models response, or a fabricated loopback endpoint as sufficient local text health; media and speech instead consume their admitted engine-specific endpoint protocol.
     condition: Whenever an on-demand local health result is calculated.
     failure: Return an explicit unconfigured or unreachable snapshot while Runtime retains persistent route and health authority.
@@ -639,12 +456,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r045
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Speech uses the typed Runtime media surface
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop speech consumption uses runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, and runtime.media.stt.transcribe through SDK projection without an independent Desktop speech engine facade.
     condition: Whenever Desktop lists voices, synthesizes or streams speech, or transcribes audio.
     failure: Reject direct engine or provider execution outside the typed Runtime media surface.
@@ -653,12 +466,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r046
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Voice capabilities resolve routes independently
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: audio.synthesize selects a binding before media calls, and voice clone and voice design each perform their own list-options, resolve, health-check, and describe sequence before submitting a Runtime media job; no voice workflow reuses audio.synthesize route truth.
     condition: Whenever Desktop invokes audio synthesis, voice clone, or voice design.
     failure: Fail closed on missing binding or resolved model instead of returning an empty voice list as success.
@@ -667,12 +476,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r047
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Voice adaptation does not own Agent voice truth
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop LLM adaptation decides Agent voice workflow admission, voice identity, workflow return path, voice action execution, playback-ready outcome, voice session, transcript, or caption semantics.
     condition: Whenever Agent Chat consumes a voice projection.
     failure: Render only the admitted Runtime Agent and Voice projection.
@@ -681,12 +486,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r048
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Renderer inference audit remains supplemental
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: A Desktop inference audit event records event type, local or cloud source, modality, adapter, policy gate, traceId, routeSource, and reasonCode and is appended through RuntimeLocalService, while Runtime remains the durable audit owner with request, trace, user, and usage context.
     condition: Whenever Desktop records a renderer-observed inference decision or failure.
     failure: Reject credential-bearing audit data and do not present the renderer record as complete Runtime audit truth.
@@ -695,12 +496,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r049
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Cross-modality trace identity remains continuous
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop returns one traceId across text, image, video, speech, transcription, and embedding, aligns promptTraceId to that identity when retained, generates a trace when Runtime omits one, and includes traceId, modality, route source, and reason code in inference audit projection.
     condition: Whenever Desktop consumes an AI execution response or records its audit projection.
     failure: Reject an untraceable Desktop execution result or repair the missing trace before presentation and audit handoff.
@@ -709,12 +506,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r050
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: World generation remains Runtime-only
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop resolves routes, submits, polls, and fetches generated worlds only through Runtime surfaces, uses connector_id solely as a remote credential handle, and treats a provider viewer URL only as external handoff.
     condition: Whenever Desktop consumes world.generate.
     failure: Reject direct provider upload, generate, operation, or get-world HTTP calls and any Desktop claim over provider execution truth.
@@ -723,12 +516,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r051
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Streaming subscriptions always reach cleanup
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: A text or speech stream follows subscribe, zero or more non-terminal deltas, exactly one done or error outcome, and cleanup; done extracts usage and completion state, while cleanup releases subscription resources and removes progress indication after every outcome.
     condition: Whenever Desktop consumes StreamScenario output.
     failure: Mark the stream interrupted and clean up instead of leaving a live subscription or progress indicator.
@@ -737,12 +526,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r052
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Stream rendering cannot invent Agent outputs
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop stream consumption splits, merges, reorders, or fabricates assistant messages, actions, voice actions, prompt payloads, deferred continuations, HookIntent decisions, continuation timers, interruption rules, or recursive chain limits outside Runtime-owned projection truth.
     condition: Whenever an Agent Chat stream includes message, action, modality, or deferred-continuation projection.
     failure: Preserve the exact Runtime-resolved relation and keep missing output absent.
@@ -751,12 +536,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r053
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Text deltas render incrementally
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop appends each text_delta to the current message, keeps a typing indicator only while the stream is active, relies on the Runtime minimum 32-byte chunk contract without a second semantic buffer, and hides token usage when the terminal usage value is -1.
     condition: Whenever Desktop renders streamed text.
     failure: Reject whole-message replacement, stale progress indication, fabricated usage, or chunk reassembly that changes semantic order.
@@ -765,12 +546,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r054
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: First-chunk delay is visibly bounded
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop displays an explicit waiting warning when a StreamScenario first chunk has not arrived within 10 seconds and does not leave the surface in silent indefinite loading.
     condition: Whenever a stream is subscribed but no chunk has arrived.
     failure: Show the waiting or timeout projection while preserving the active stream state until Runtime terminates or the user cancels.
@@ -779,12 +556,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r055
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Stream errors preserve partial presentation
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Pre-subscription failures use structured error projection, post-subscription interruption preserves rendered text and adds an interrupted state with retry affordance, and terminal nonzero reason codes remain mapped typed failures including general provider, timeout, and broken-stream reasons for speech.
     condition: Whenever stream establishment or transport fails.
     failure: Reject clearing partial content, reporting completion, or hiding the typed reason.
@@ -793,12 +566,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r056
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Interrupted execution streams are never replayed implicitly
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop or SDK silently reconnects, resumes, or replays an interrupted non-idempotent text, speech, or Scenario execution stream.
     condition: Whenever an execution stream ends before its admitted terminal outcome.
     failure: Preserve partial output and require an explicit user retry or a separately admitted recovery operation.
@@ -807,12 +576,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r057
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: User cancellation is explicit and non-error
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: User stop aborts the active stream, preserves rendered content, marks it stopped, returns the UI to ready without entering an error boundary, and permits a new request only after the prior stream is done or canceled; Runtime total timeout terminates the stream through its typed terminal path.
     condition: Whenever a user stops generation or a stream reaches total timeout.
     failure: Reject concurrent streams for one chat and clean up a canceled stream without reporting successful completion.
@@ -821,12 +586,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r058
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: ScenarioJob streams use terminal-state closure
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: SubscribeScenarioJobEvents consumes zero or more job snapshots, recognizes COMPLETED, FAILED, CANCELED, or TIMEOUT as terminal, expects normal stream close after terminal state, and never expects a text-stream done=true frame.
     condition: Whenever Desktop subscribes to ScenarioJob events.
     failure: Reject text-stream terminal semantics and clean up when the terminal job snapshot and normal close are observed.
@@ -835,12 +596,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r059
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: ScenarioJob progress and outcomes remain typed
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop replaces older job state with each latest snapshot, accepts repeated RUNNING events, prioritizes progress_percent with current and total steps as supplemental detail, presents completed artifacts, typed failure with retry, canceled history, or timeout retry guidance, and fetches artifacts only after COMPLETED.
     condition: Whenever a ScenarioJob event or terminal state is rendered.
     failure: Reject regressed progress, hidden terminal state, pre-completion artifact success, and generic completion for failure or cancellation.
@@ -849,12 +606,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r060
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Job streams do not own modality action truth
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: ScenarioJob consumption decides whether an image, voice, video, or other action exists or owns pending invalidation, prompt semantics, or modality execution admission.
     condition: Whenever a job stream corresponds to a modality action.
     failure: Consume only an already-admitted Runtime action and its job lifecycle.
@@ -863,12 +616,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r061
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: AI operation indicators align with Runtime timeouts
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop aligns indicators to 30 seconds for text generation, 10 seconds for streaming first chunk, 120 seconds for total text stream, 20 seconds for text embedding, 45 seconds for speech synthesis stream, 120 seconds for image job submission, 300 seconds for video job submission, and 90 seconds for speech-to-text job submission.
     condition: Whenever Desktop starts an AI operation covered by the Runtime timeout hierarchy.
     failure: Stop indefinite loading and project Runtime deadline-exceeded with the typed provider-timeout reason without claiming completion.
@@ -877,12 +626,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r062
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Mode C audit export is not a current Desktop stream
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop Phase 1 consumes the eof=true ExportAuditEvents Mode C stream before a separately admitted typed consumer surface exists.
     condition: Whenever Desktop stream capabilities are exposed.
     failure: Keep Mode C unavailable rather than approximating its end-of-file protocol.
@@ -891,12 +636,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r063
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Current health projection does not require Mode D
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop Phase 1 obtains Runtime connection health from the Runtime bridge status projection, local LLM health from the admitted on-demand check, and provider health from typed connector testing, while SubscribeAppMessages remains unavailable.
     condition: Whenever Desktop needs current health or app-message projection.
     failure: Reject a private or broad Mode D stream as a substitute for the admitted typed paths.
@@ -905,12 +646,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r064
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Long-lived subscription cancellation is a disconnect
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: A directly admitted Mode D consumer treats server CANCELLED during daemon stop or resource loss as normal disconnection, never as successful data completion, and rebuilds only by an explicit Desktop policy or after runtime.connected rather than hidden SDK continuation.
     condition: Whenever a long-lived subscription stream is directly consumed.
     failure: Clean up and expose disconnected state until an admitted resubscription policy runs.
@@ -919,12 +656,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r065
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Backpressure closure stays interrupted
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: RESOURCE_EXHAUSTED or non-user CANCELLED preserves partial content, marks the stream interrupted, retains traceId, and offers explicit retry without replaying non-idempotent execution; only long-lived subscription streams may rebuild under their admitted policy.
     condition: Whenever Runtime closes a stream because its server queue exceeds budget.
     failure: Reject completed status, lost trace, cleared output, or automatic execution replay.
@@ -933,12 +666,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r066
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: ScenarioJob disconnect recovery is bounded
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: After ScenarioJob subscription loss, Desktop polls GetScenarioJob every 2 seconds for at most 30 attempts and 60 seconds, stops on a typed terminal state, shows reconnecting during recovery, and shows unknown status after the bound expires.
     condition: Whenever an observable ScenarioJob loses its event stream before terminal state.
     failure: Stop bounded polling without inventing terminal state or replaying the job.
@@ -947,12 +676,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r067
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: ScenarioJob cancellation is asynchronous acknowledgement
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: CancelScenarioJob success means only that cancellation was accepted, Desktop shows canceling until a CANCELED terminal event, a non-cancellable result remains a typed failure, and GetScenarioArtifacts is called only after COMPLETED.
     condition: Whenever a user cancels or fetches results for a ScenarioJob.
     failure: Reject immediate canceled or completed success without the corresponding terminal state.
@@ -961,12 +686,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r068
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Job observability survives connector deletion
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop continues to show GetScenarioJob and event history after the job's connector is deleted, and projects credential invalidation as FAILED with the typed provider-authentication reason.
     condition: Whenever connector state changes while a ScenarioJob remains observable or executing.
     failure: Reject disappearance of job history and do not report credential failure as cancellation or completion.
@@ -975,12 +696,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r069
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: PresentationTimeline requires typed Runtime projection
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop consumes PresentationTimeline only after Runtime admits its concrete schema and SDK exposes typed data, aligns rendering only to Runtime timebase and offsets, and preserves agent_id, conversation_anchor_id, turn_id, and stream_id linkage in Avatar handoff and diagnostics.
     condition: Whenever a stream carries presentation timeline metadata.
     failure: Keep timeline behavior unavailable or diagnostic-only until the typed projection and linkage are complete.
@@ -989,12 +706,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r070
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Timeline cancellation and proof remain owner-bounded
     modality: must_not
-    scope:
-      - desktop.ai-consumption
     statement: Desktop leaves voice, lipsync, or Avatar motion running after Runtime stream interrupt, bypasses typed timeline projection through broad events or app-local namespaces, or treats renderer-only evidence as Avatar speak or lipsync proof.
     condition: Whenever timeline-bearing presentation is canceled, handed off, or verified.
     failure: Stop dependent presentation on Runtime interrupt and require Avatar-owned render proof.
@@ -1003,12 +716,8 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r071
     kind: rule
-    owner: team.desktop
-    lifecycle: active
     title: Interactive profile apply previews without gating direct commit
     modality: must
-    scope:
-      - desktop.ai-consumption
     statement: Desktop interactive profile-apply UX presents an explicit typed preview for user confirmation before invoking atomic commit, while commit remains a separate explicit operation that can be invoked without a prior preview and preview never invokes or queues commit.
     condition: Whenever a user applies an AIProfile through the ordinary Desktop UI or a consumer invokes profile-apply commit directly.
     failure: Block an interactive commit that skipped confirmation preview, but do not reject an otherwise valid direct commit solely because no preview was called; never treat preview as commit authority.

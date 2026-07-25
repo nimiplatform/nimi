@@ -1,90 +1,55 @@
-format: nimicoding.authority/v1
+format: nimicoding.authority/v2
+owner: team.nimi2d
+scope: nimi2d.asset-package
 units:
   - id: definition.nimi.nimi2d.asset-package.domain
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-001 N2D-AUTH-007 Nimi2D asset-package domain
     meaning: The Nimi2D asset-package domain owns first-party Nimi2D layer-input, package-manifest, asset, topology, wardrobe, capability-tier, typed-reject, and renderability semantics without owning upstream generation supply or downstream Avatar execution.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.layer-input
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-010 N2D-INPUT-011 layer-input manifest
     meaning: A Nimi2D layer-input manifest is the closed version-1 nimi.nimi2d.layer-input wire document for already-layered RGBA assets, explicit canvas geometry, labels, ordering, hints, and fail-closed upstream provenance.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.package-manifest
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-001 N2D-PKG-002 package manifest
     meaning: A Nimi2D package manifest is the closed version-1 nimi.nimi2d.package wire document for a character_package, wardrobe_asset_package, prop_package, or scene_package and its package geometry, assets, topology, wardrobe, governance, lineage, integrity, and capability claims.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.base-body
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-BODY-001 N2D-BODY-002 N2D-BODY-003 base body
     meaning: A Nimi2D base body is the sole detail-neutral and non-renderable owner of one character package's main skeleton, stable topology, anchors, slots, morphology, deformation topology, and action-topology references.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.wardrobe
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-WARD-001 N2D-WARD-010 wardrobe asset
     meaning: A Nimi2D wardrobe asset is a default outfit, outfit, accessory, hair variant, held prop, or scene layer that binds to an admitted compatible topology without owning the main rig.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.capability-tier
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-001 N2D-TIER-002 asset capability tier
     meaning: A Nimi2D capability tier is a validator-proven package asset claim from the closed tier and channel matrix and is not a claim of Avatar readiness, Runtime execution, renderer features, product readiness, creator-format compatibility, or Live2D parity.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.renderability
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-GOV-001 N2D-GOV-002 renderability state
     meaning: Nimi2D renderability is the package-owned distinction among character states renderable_with_default_outfit and renderable_with_selected_outfit, non-character states renderable_scene and renderable_prop, and non-visible states admission_rejected, non_renderable_incomplete, redacted_non_pixel_topology, and no_render, with no renderable_base_body state.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.diagnostics
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-003 closed layer-input diagnostics
     meaning: The NIMI2D_LAYER_INPUT_* namespace is the closed Nimi2D-owned online diagnostic enum for layer-input admission failures and does not widen Runtime, Avatar, Desktop, SDK, APML, MCP, or A2A ontology.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.reference-player
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-011 reference package player
     meaning: A Nimi2D reference package player is bounded package-proof infrastructure that parses an admitted package, builds renderer-independent plans, renders and advances deterministic proof frames, applies bounded semantic fixtures, drives tier-1 jaw-amplitude proof, and exposes package-inspection snapshots without establishing production readiness.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.external-boundaries
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-003 N2D-AUTH-004 N2D-AUTH-005 sibling-owner boundaries
     meaning: Avatar owns projection mapping, scheduling, carrier and backend execution, Runtime owns presentation and stream truth, Desktop owns stream UI lifecycle, Platform owns package-authority admission, Realm product surfaces remain non-owners, and upstream systems own pixel-derived generation and classification decisions.
-    relations: []
   - id: definition.nimi.nimi2d.asset-package.generation-supply-gap
     kind: definition
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-001 deferred generation-supply boundary
     meaning: Codex Image2 provider request and artifact semantics plus Generation Bench corpus, replay, metric, gate, and result semantics are intentionally outside this W1 asset-package container and remain unavailable here pending the Nimi2D generation-supply authority wave.
-    relations: []
   - id: rule.nimi.nimi2d.asset-package.r001
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-001 N2D-AUTH-007 owner-true package semantics
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Nimi2D alone defines the admitted asset-package manifests, layers, assets, main-rig topology, anchors, slots, morphology, wardrobe bindings, capability claims, renderability states, and typed package-input rejects implemented by the independent @nimiplatform/nimi2d package.
     condition: Whenever Nimi2D package meaning or ownership is specified, implemented, consumed, or changed.
     failure: Reject package-local, Avatar, Runtime, Desktop, Realm, or code-location inference that creates a parallel owner for these semantics.
@@ -93,12 +58,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.domain
   - id: rule.nimi.nimi2d.asset-package.r002
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-002 N2D-INPUT-001 raw-image and APML stop boundary
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: Nimi2D package generation accepts a raw image, prompt, URL, model-output blob, PSD, SVG, editor document, raw APML, or public APML syntax as package input or package truth.
     condition: Whenever package generation or admission begins.
     failure: Stop before generation or admission and return the matching typed rejection without repair, conversion, or fallback success.
@@ -109,12 +70,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r003
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-003 N2D-AUTH-004 N2D-AUTH-005 sibling execution ownership
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: Nimi2D owns production Avatar composer, route, scheduler, smoothing, blend, hit-region, audio-consumer, lipsync, renderer or carrier execution, Runtime projection, timeline, stream or interrupt truth, or Desktop stream lifecycle and prompt semantics.
     condition: Whenever an admitted package channel or reference helper is consumed by another product surface.
     failure: Keep the concern reference-only and require the typed result from its Avatar, Runtime, or Desktop owner without a Nimi2D fallback.
@@ -123,12 +80,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.external-boundaries
   - id: rule.nimi.nimi2d.asset-package.r004
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-006 package authority and P-PKG admission
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: Package membership, implementation location, reference-player exports, runtime helper exports, or Realm Persona Studio establishes Nimi2D semantic authority or bypasses the canonical Platform authority-admission owner for any future package-local authority root.
     condition: Whenever package code, exports, a product surface, or a future package-local specification is used as an authority claim.
     failure: Reject the inferred authority, retain canonical product truth under .nimi/spec, and require Platform-owned authority admission before any package-local authority exists.
@@ -139,12 +92,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.external-boundaries
   - id: rule.nimi.nimi2d.asset-package.r005
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-011 reference-player ceiling
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Reference-player parsing, render planning, first-party rendering, deterministic proof frames, bounded semantic fixtures, tier-1 jaw-amplitude proof, snapshots, and alpha probes remain package-readiness proof only, and Avatar owns every mapping from Runtime projection and every production execution result when it consumes them.
     condition: Whenever a Nimi2D reference helper executes or its result is reported.
     failure: Reject any result presented as Runtime truth, Avatar runtime readiness, production scheduling, carrier readiness, visual acceptance, or release admission.
@@ -155,12 +104,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.reference-player
   - id: rule.nimi.nimi2d.asset-package.r006
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-002 N2D-INPUT-061 upstream provenance lineage
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Layer input carries non-empty opaque layer_generation_ref, identity_preservation_ref, and content_admission_ref, permits identity non-applicability lineage for prop_item and scene_item, and carries both source and per-layer occlusion evidence when any layer is filled_by_upstream.
     condition: Whenever layer input is admitted.
     failure: Return NIMI2D_LAYER_INPUT_SOURCE_EVIDENCE_MISSING or NIMI2D_LAYER_INPUT_OCCLUSION_EVIDENCE_MISSING without claiming that Nimi2D performed segmentation, inpainting, identity preservation, or content classification.
@@ -171,12 +116,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r007
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-003 fail-closed intake
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: Layer-input admission infers labels, anchors, slots, coordinates, order, paths, or future fields, mutates assets, fills occlusion, converts pixel format, repairs invalid input, or emits a generated rig, renderer, backend, or Avatar channel.
     condition: Whenever layer input is incomplete, malformed, unknown, unsupported, or outside admitted bounds.
     failure: Reject before package generation with exactly one applicable closed NIMI2D_LAYER_INPUT_* code and no warning-only or fallback success.
@@ -187,12 +128,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r008
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-010 N2D-INPUT-011 closed layer-input identity
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: A layer-input document has exactly manifest_kind, schema_version, input_id, input_kind, canvas, coordinate_space, source_evidence, layers, draw_order, global_anchor_hints, and global_slot_hints; manifest_kind is nimi.nimi2d.layer-input, schema_version is 1, input_id matches ^n2d_layer_input_[a-z0-9][a-z0-9_-]{2,63}$ for the exact manifest and asset digests, and input_kind is exactly character_skin, wardrobe_item, accessory_item, prop_item, or scene_item.
     condition: Whenever a layer-input manifest is parsed or selected.
     failure: Return the matching manifest, schema-version, or coverage rejection on any missing, unknown, merged, unstable, or malformed field or value.
@@ -201,12 +138,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r009
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-020 N2D-INPUT-023 canvas coordinate and bounds wire
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Layer-input canvas has positive integer width_px and height_px with transparent background; coordinate_space is exactly top_left, px, x_right_y_down, and reject; all coordinates are integer canvas pixels; each layer has closed placement_px x and y plus closed texture_bounds_px and visible_bounds_px x, y, width, and height; texture bounds fit decoded dimensions; and visible bounds fit texture bounds and the canvas after placement.
     condition: Whenever layer geometry, anchor points, or slot bounds are admitted.
     failure: Return NIMI2D_LAYER_INPUT_CANVAS_INVALID, NIMI2D_LAYER_INPUT_LAYER_BOUNDS_INVALID, NIMI2D_LAYER_INPUT_ANCHOR_OUT_OF_BOUNDS, or NIMI2D_LAYER_INPUT_SLOT_HINT_INVALID without coordinate repair.
@@ -215,12 +148,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r010
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-021 N2D-INPUT-022 decoded RGBA asset facts
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Every layer asset has a normalized in-directory relative ref, 64-character lowercase hexadecimal sha256, literal png format, positive width_px, height_px, and byte_size, literal srgb color_space, literal straight alpha_mode, and false premultiplied_alpha, and decoded local bytes independently match the digest, dimensions, PNG format, and 8-bit RGBA facts.
     condition: Whenever a layer asset is admitted.
     failure: Return the matching invalid-ref, missing, hash-mismatch, unsupported-format, non-RGBA, color-space, or alpha-mode rejection without trusting manifest claims alone.
@@ -229,12 +158,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r011
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-030 N2D-INPUT-032 closed layer labels and hints
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Each unique layer_id matches ^layer_[a-z0-9][a-z0-9_-]{1,63}$ and carries one or more labels from exactly head, face, eye, brow, mouth, nose, ear, hair, neck, torso, arm, hand, leg, foot, body, outfit, accessory, prop, scene, shadow, or effect; optional side_hint is exactly left, right, center, bilateral, or none; and optional part_hints use only hair_front, hair_back, eye_left, eye_right, brow_left, brow_right, mouth_upper, mouth_lower, hand_left, hand_right, arm_left, arm_right, leg_left, leg_right, outfit_upper, outfit_lower, outfit_full, accessory_head, accessory_face, accessory_hand, prop_hand, scene_back, or scene_front.
     condition: Whenever a layer record is admitted.
     failure: Return the matching duplicate-id, missing-label, or unknown-label rejection without inferring more detailed topology.
@@ -243,12 +168,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r012
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-031 minimum semantic coverage
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: character_skin includes at least one body or torso, one head or face, one eye, one mouth, and one outfit label; wardrobe_item includes outfit; accessory_item includes accessory; prop_item includes prop; and scene_item includes scene.
     condition: Whenever input-kind semantic coverage is validated.
     failure: Return NIMI2D_LAYER_INPUT_REQUIRED_SEMANTIC_COVERAGE_MISSING without pixel-shape inference.
@@ -257,12 +178,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r013
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-040 explicit draw order
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: draw_order contains every layer_id exactly once in lower-index-first order and is never inferred from file name, label, bounds, or timestamp.
     condition: Whenever layer order is admitted or consumed.
     failure: Return NIMI2D_LAYER_INPUT_DRAW_ORDER_INVALID on an absent, duplicate, missing, or unknown id without reordering.
@@ -271,12 +188,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r014
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-050 N2D-INPUT-051 global anchor and slot hints
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Global hints are non-empty closed records with unique matching anchor_ or slot_hint_ identifiers, bounded point_px or bounds_px, source exactly upstream_manual, upstream_model, or upstream_hybrid, optional confidence from zero through one, and optional valid layer_refs; character_skin has body_root, neck_base, head_center, face_center, left_eye_center, right_eye_center, and mouth_center anchors; other kinds have an attachment_point or scene_origin anchor; and wardrobe, accessory, prop, and scene inputs respectively have an outfit_upper, outfit_lower, or outfit_full slot, an accessory_head, accessory_face, or accessory_hand slot, prop_hand, or scene_back or scene_front.
     condition: Whenever global anchor or slot hints are admitted.
     failure: Return the matching missing-anchor, out-of-bounds-anchor, or invalid-slot-hint rejection without treating hints as solved rig topology.
@@ -285,12 +198,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r015
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-060 upstream-complete occlusion
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Every layer declares occlusion_fill exactly not_applicable or filled_by_upstream, and filled_by_upstream carries a non-empty opaque occlusion_evidence_ref plus source_evidence.occlusion_completion_ref.
     condition: Whenever layer occlusion state is admitted.
     failure: Return NIMI2D_LAYER_INPUT_OCCLUSION_FILL_INVALID or NIMI2D_LAYER_INPUT_OCCLUSION_EVIDENCE_MISSING without inpainting or hiding incomplete pixels.
@@ -299,12 +208,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r016
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-003 reject codes for manifest assets and geometry
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: The closed diagnostics map missing manifest to NIMI2D_LAYER_INPUT_MANIFEST_MISSING, malformed or open schema to NIMI2D_LAYER_INPUT_MANIFEST_INVALID, non-version-1 schema to NIMI2D_LAYER_INPUT_SCHEMA_VERSION_UNSUPPORTED, raw-image-like intake to NIMI2D_LAYER_INPUT_RAW_IMAGE_FORBIDDEN, unsafe refs to NIMI2D_LAYER_INPUT_ASSET_REF_INVALID, absent assets to NIMI2D_LAYER_INPUT_ASSET_MISSING, digest mismatch to NIMI2D_LAYER_INPUT_ASSET_HASH_MISMATCH, non-PNG format to NIMI2D_LAYER_INPUT_ASSET_FORMAT_UNSUPPORTED, non-RGBA decode to NIMI2D_LAYER_INPUT_ASSET_NOT_RGBA, non-sRGB facts to NIMI2D_LAYER_INPUT_COLOR_SPACE_UNSUPPORTED, non-straight or premultiplied alpha to NIMI2D_LAYER_INPUT_ALPHA_MODE_UNSUPPORTED, invalid coordinates to NIMI2D_LAYER_INPUT_CANVAS_INVALID, duplicate ids to NIMI2D_LAYER_INPUT_LAYER_ID_DUPLICATE, and invalid placement or rectangles to NIMI2D_LAYER_INPUT_LAYER_BOUNDS_INVALID.
     condition: Whenever one of these layer-input failures is observed.
     failure: Reject with the mapped code and no fallback success; an unknown code requires prior authority admission.
@@ -313,12 +218,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.diagnostics
   - id: rule.nimi.nimi2d.asset-package.r017
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-003 reject codes for semantics evidence and ownership
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: The closed diagnostics map invalid draw order to NIMI2D_LAYER_INPUT_DRAW_ORDER_INVALID, absent labels to NIMI2D_LAYER_INPUT_SEMANTIC_LABEL_MISSING, unknown labels to NIMI2D_LAYER_INPUT_SEMANTIC_LABEL_UNKNOWN, missing kind coverage to NIMI2D_LAYER_INPUT_REQUIRED_SEMANTIC_COVERAGE_MISSING, invalid occlusion state to NIMI2D_LAYER_INPUT_OCCLUSION_FILL_INVALID, missing occlusion lineage to NIMI2D_LAYER_INPUT_OCCLUSION_EVIDENCE_MISSING, missing layer-generation, identity, or content lineage to NIMI2D_LAYER_INPUT_SOURCE_EVIDENCE_MISSING, missing required anchors to NIMI2D_LAYER_INPUT_ANCHOR_HINT_MISSING, out-of-bounds anchors to NIMI2D_LAYER_INPUT_ANCHOR_OUT_OF_BOUNDS, invalid slots to NIMI2D_LAYER_INPUT_SLOT_HINT_INVALID, and Runtime or backend fields to NIMI2D_LAYER_INPUT_FORBIDDEN_RUNTIME_FIELD.
     condition: Whenever one of these layer-input failures is observed.
     failure: Reject with the mapped code and no fallback success; Avatar and Desktop may display the code but cannot reinterpret it.
@@ -327,12 +228,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.diagnostics
   - id: rule.nimi.nimi2d.asset-package.r018
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-BODY-001 N2D-BODY-011 N2D-BODY-012 sole reusable rig
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: A character package has exactly one current base-body topology generated once and reused by many wardrobe assets, while a topology variation requires a new base body and package readmission and no outfit, accessory, prop, scene, renderer, UI, or Avatar backend becomes a second main-rig owner.
     condition: Whenever character topology is generated, reused, varied, or bound.
     failure: Reject duplicate or forked skeleton, anchor, slot, morphology, deformation, or action-topology ownership.
@@ -341,12 +238,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.base-body
   - id: rule.nimi.nimi2d.asset-package.r019
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-BODY-002 N2D-BODY-003 detail-neutral non-renderable body
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: A base body becomes visible success, preview, thumbnail, pixel debug, export, fallback, or Avatar handoff, carries nipples, genital or pubic detail, erotic markings, or other display sexual detail, or omits morphology materially needed for fit, slot geometry, or motion topology merely to simplify governance.
     condition: Whenever base-body data is generated, admitted, displayed, or handed off.
     failure: Reject the package or visible state and retain complete fit-relevant morphology with zero display sexual detail.
@@ -357,12 +250,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.renderability
   - id: rule.nimi.nimi2d.asset-package.r020
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-BODY-010 topology identity
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Every base body declares topology_id nimi.nimi2d.base-body.topology, topology_version 1, slot_taxonomy_ref .nimi/spec/canonical/nimi2d/asset-package.authority.yaml, skeleton_id, and morphology_profile_id, and a change to required anchors, required slots, skeleton ownership, or wardrobe compatibility increments topology_version before use.
     condition: Whenever a base-body topology is admitted or compatibly evolved.
     failure: Reject missing, mismatched, or silently changed topology identity.
@@ -371,12 +260,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.base-body
   - id: rule.nimi.nimi2d.asset-package.r021
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-BODY-020 N2D-BODY-021 N2D-BODY-022 skeleton anchors and slots
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Base-body skeleton coverage includes root, torso, neck, head, face, jaw, eyes, shoulders, arms, hands, hips, legs, and feet; solved anchors include body_root, neck_base, head_center, face_center, left_eye_center, right_eye_center, mouth_center, left_shoulder, right_shoulder, left_hand, right_hand, and hip_center; and solved slots include head, face, hair, neck, torso, hip, left_arm, right_arm, left_hand, right_hand, left_leg, right_leg, left_foot, right_foot, outfit_upper, outfit_lower, outfit_full, accessory_head, accessory_face, accessory_hand, and prop_hand.
     condition: Whenever character package topology is solved or admitted.
     failure: Reject a missing required region, anchor, or slot and never conflate source hints with solved topology or runtime route identifiers.
@@ -385,12 +270,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.base-body
   - id: rule.nimi.nimi2d.asset-package.r022
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-BODY-030 N2D-BODY-031 morphology fit
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: The morphology profile records height ratio, head-to-body proportion, shoulder width, torso width, waist-to-hip relation, chest volume and silhouette, limb-length ratios, and hand and foot scale, and wardrobe generation references that topology and profile instead of deriving fit only from a flat rendering.
     condition: Whenever morphology or wardrobe fit is generated or validated.
     failure: Reject a fit claim with missing required morphology, display sexual detail, or avoidable flat-image-only derivation.
@@ -401,12 +282,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r023
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-BODY-040 N2D-BODY-041 deformation and action topology
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Base-body deformation topology contains only asset regions, constraints, attachment influences, and local hierarchy needed to solve channels, and stable action-topology names bind to the base-body topology rather than an outfit.
     condition: Whenever deformation or action topology is declared or consumed.
     failure: Reject outfit-owned action topology or any asset record that defines frame scheduling, stream semantics, backend routes, blend logic, or renderer parameter APIs.
@@ -417,12 +294,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.external-boundaries
   - id: rule.nimi.nimi2d.asset-package.r024
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-WARD-002 N2D-WARD-003 N2D-WARD-004 reusable atomic wardrobe
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Wardrobe assets are generated once for a compatible topology and selected only from admitted assets; every renderable character has a valid bound default_outfit before its first visible frame; and a switch retains the prior valid outfit until the replacement is validated, bound, and display-ready, otherwise ending at the prior outfit or no_render.
     condition: Whenever wardrobe is generated, selected, switched, or first rendered.
     failure: Reject runtime generation, missing default outfit, partial switch, naked intermediate frame, or lower-quality success.
@@ -433,12 +306,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r025
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-WARD-010 N2D-WARD-011 compatibility and closed slots
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Every wardrobe asset declares wardrobe_asset_id, wardrobe_kind, compatible_topology_id, compatible_topology_version, slot_bindings, coverage, and source_evidence_ref; topology identity and version exactly match the current base body; and bindings use only base-body-exposed admitted slots with no duplicate exclusive binding or missing required slot.
     condition: Whenever a wardrobe asset is admitted or bound.
     failure: Reject an incomplete, incompatible, unknown, duplicate-exclusive, or missing-required binding without compatibility-range inference.
@@ -449,12 +318,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r026
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-WARD-012 N2D-WARD-020 N2D-WARD-021 kinds and coverage
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Wardrobe kind is exactly default_outfit, outfit, accessory, hair_variant, held_prop, or scene_layer; coverage uses only upper, lower, full, hands, feet, head, face, hair, prop, or scene; only default_outfit and outfit satisfy character outfit renderability; and scene_layer owns neither character rig nor runtime scene execution.
     condition: Whenever wardrobe kind, coverage, outfit satisfaction, or scene ownership is determined.
     failure: Reject an unknown kind or coverage, accessory-only outfit claim, or scene-layer ownership transfer.
@@ -463,12 +328,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r027
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-WARD-030 N2D-WARD-031 subordinate attachment rig
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Outfit, accessory, hair_variant, held_prop, and scene_layer may carry cloth, hair, accessory, prop-follow, or parallax local attachment motion only when subordinate to a base-body slot or anchor and represented as asset capability.
     condition: Whenever local attachment rig data is admitted or consumed.
     failure: Reject a second main or posture skeleton, action-topology owner, runtime composer, physics-engine selection, scheduler, backend route, or PixiJS implementation claim.
@@ -479,12 +340,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r028
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-WARD-040 N2D-WARD-041 N2D-WARD-042 layering and base validity
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Slot exclusivity follows the closed taxonomy, stackable bindings require explicit coverage and draw order, wardrobe draw order is package-manifest truth rather than filename, timestamp, or slot-name inference, and base-body validity is established before outfit binding.
     condition: Whenever wardrobe conflicts, ordering, or package validity are resolved.
     failure: Reject an exclusive conflict, ambiguous order, inferred order, or outfit-masked invalid base body.
@@ -495,12 +352,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r029
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-WARD-011 closed slot compatibility catalog
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Head permits hair_variant or accessory exclusively; face permits stackable accessory; hair permits hair_variant or accessory exclusively; neck permits stackable outfit, default_outfit, or accessory; torso, hip, outfit_upper, outfit_lower, and outfit_full permit exclusive outfit or default_outfit; each arm and leg permits exclusive outfit, default_outfit, or accessory on arms and outfit or default_outfit on legs; each hand permits stackable outfit, default_outfit, accessory, or held_prop; each foot permits stackable outfit, default_outfit, or accessory; accessory_head permits stackable accessory or hair_variant; accessory_face permits stackable accessory; accessory_hand permits stackable accessory or held_prop; prop_hand permits stackable held_prop; and optional scene_back and scene_front permit stackable scene_layer.
     condition: Whenever slot compatibility or exclusivity is validated.
     failure: Reject any binding outside the closed mapping or any unknown slot or wardrobe kind.
@@ -509,12 +362,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r030
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-003 N2D-AUTH-008 default tier target
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: The default acceptable generated asset target is tier-1_agent_basic, while tier-0_static_layered may describe a constrained non-default asset but cannot prove the default generated-asset claim.
     condition: Whenever a generated target or default-success claim is selected.
     failure: Reject tier-0 or an unproven tier presented as default generated success.
@@ -523,12 +372,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.capability-tier
   - id: rule.nimi.nimi2d.asset-package.r031
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-004 N2D-TIER-005 N2D-AUTH-009 mouth capability boundary
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Tier 1 requires mouth open and close, amplitude-driven movement, and safe closed-mouth reset without AEIOU shapes, and true viseme requires distinct validated shape channels at tier 2 or above while any separately admitted Avatar-local audio capability remains Avatar-owned.
     condition: Whenever mouth or viseme capability is claimed.
     failure: Reject tier-1 true-viseme overclaim or unvalidated tier-2 viseme evidence.
@@ -539,12 +384,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.external-boundaries
   - id: rule.nimi.nimi2d.asset-package.r032
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-006 no Live2D parity
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: Any Nimi2D tier is described as Live2D-equivalent, Cubism-equivalent, professional creator-rig-equivalent, or external creator-format compatibility.
     condition: Whenever a tier or package quality claim is presented.
     failure: Reject the parity claim and retain automatic agent-aware asset capability as the bounded claim.
@@ -553,12 +394,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.capability-tier
   - id: rule.nimi.nimi2d.asset-package.r033
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-010 N2D-TIER-011 N2D-TIER-012 N2D-TIER-013 tier closure
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Tier 0 proves layer-input lineage, non-renderable base topology, bound default outfit, wardrobe slots, static order, and governance; tier 1 additionally proves discrete expressions, blink, jaw-amplitude mouth, gaze anchors, idle, listen, speak, think, and greet primitive refs, safe bounds, and wardrobe reuse; tier 2 additionally proves true viseme shapes, expression interpolation, gesture overlays, secondary attachment motion, and stronger gaze and head-follow channels; and tier 3 additionally proves full-body poses and gestures, coordinated limb, torso, and head deformation, wardrobe-aware masks, richer attachment motion, and broad-posture safety clamps.
     condition: Whenever a proven tier is computed or reported.
     failure: Reject a tier missing any mandatory capability or presented as runtime composition readiness.
@@ -567,12 +404,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.capability-tier
   - id: rule.nimi.nimi2d.asset-package.r034
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-014 reserved deformation extension
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: tier-N_reserved_deformation_extension is used as a current target, benchmark, package proven_tier, success claim, or parity claim before separate exact channel, validation, and compatibility admission.
     condition: Whenever the reserved tier is encountered.
     failure: Reject the claim as unavailable rather than inferring extension semantics.
@@ -581,12 +414,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.capability-tier
   - id: rule.nimi.nimi2d.asset-package.r035
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-020 closed capability consistency matrix
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: The matrix has exactly dispositions mandatory, optional, unsupported, out_of_scope, and forbidden; tier 0 makes layer_input_lineage, base_body_topology, default_outfit_binding, and static_draw_order mandatory, wardrobe_reuse, discrete_expression_set, and local_attachment_secondary_motion optional, and every other asset channel unsupported; tier 1 makes those first four plus wardrobe_reuse, discrete_expression_set, blink_eye_open_close, gaze_anchor_channels, jaw_amplitude_mouth, motion_primitive_refs, and safe_motion_bounds mandatory, expression_interpolation, gesture_overlay_channels, local_attachment_secondary_motion, and wardrobe_aware_deformation_masks optional, and aeiou_viseme_shapes, full_body_pose_families, and full_body_gesture_primitives unsupported; tier 2 makes every tier-1 mandatory channel plus expression_interpolation, aeiou_viseme_shapes, gesture_overlay_channels, and local_attachment_secondary_motion mandatory and full_body_pose_families, full_body_gesture_primitives, and wardrobe_aware_deformation_masks optional; tier 3 makes every asset channel mandatory; runtime_live_action_composer is out_of_scope for every tier; live2d_parity_claim is forbidden for every tier; and tier-N makes all asset and runtime channels out_of_scope and parity forbidden.
     condition: Whenever channel disposition or tier consistency is determined.
     failure: Reject an unknown channel or disposition and any claim inconsistent with the closed matrix.
@@ -595,12 +424,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.capability-tier
   - id: rule.nimi.nimi2d.asset-package.r036
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-021 requested and proven tier separation
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: A manifest may request an admitted tier, but package validation computes the proven tier from retained capability.channel_evidence attestations against every mandatory matrix channel and never counts a partial, unknown, or unverified channel.
     condition: Whenever capability claims are admitted or recomputed.
     failure: Reject an overclaim or record only the lower fully proven tier without presenting the requested tier as success.
@@ -611,12 +436,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r037
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-TIER-022 package-channel proof ceiling
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: Tier channels or reference-player replay define or prove production stream composition, blend trees, scheduling, hit testing, audio consumption, renderer APIs, or Avatar runtime readiness.
     condition: Whenever an asset channel or proof replay is consumed or reported.
     failure: Keep the result as package capability evidence and return unsupported for any unowned production claim.
@@ -627,12 +448,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.reference-player
   - id: rule.nimi.nimi2d.asset-package.r038
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-001 N2D-PKG-002 closed package identity
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: A package has exactly required manifest_kind, schema_version, package_id, package_version, package_kind, canvas, source, integrity, governance, capability, base_body, wardrobe, render_layers, and assets plus optional scenes; manifest_kind is nimi.nimi2d.package, schema_version is 1, package_id matches ^n2d_pkg_[a-z0-9][a-z0-9_-]{2,63}$, package_version is semantic versioning, canvas dimensions are positive integers, package_kind is closed, and only character_package has a non-null base_body.
     condition: Whenever a package manifest is parsed or selected.
     failure: Reject unknown, merged, missing, malformed, or kind-incompatible fields without fallback package identity.
@@ -641,12 +458,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r039
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-010 N2D-PKG-013 base-body manifest section
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: A character base_body section is closed to base_body_id, topology_id, topology_version, slot_taxonomy_ref, skeleton_id, anchor_set_id, slot_set_id, anchors, slots, morphology_profile_id, deformation_topology_id, action_topology_ref, owns_main_rig true, renderable false, detail_neutral true, and layer_refs classified base_body_layer, while non-character kinds set base_body null.
     condition: Whenever package base-body structure or layer ownership is admitted.
     failure: Reject a missing solved topology field, wrong literal, visible base-body claim, non-character main rig, or layer ownership mismatch.
@@ -657,12 +470,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r040
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-011 N2D-PKG-012 wardrobe manifest section
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Wardrobe is closed to default_outfit_ref and assets; every asset carries wardrobe_asset_id, closed wardrobe_kind, topology id and version, owns_main_rig false, slot_bindings, closed coverage, draw_order_group, classified layer_refs, and optional local_attachment_rig_ref; character_package requires a valid referenced default_outfit; and prop and scene packages use an empty wardrobe object.
     condition: Whenever package wardrobe structure is admitted.
     failure: Reject missing default outfit, incompatible topology, main-rig ownership, invalid slot or class, unknown field, or kind-incompatible wardrobe structure.
@@ -673,12 +482,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r041
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-014 render-layer geometry and masks
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Each render layer is closed to layer_ref, asset_id, layer_kind, contiguous unique zero-based draw_order_index, package-canvas placement_px, layer-texture texture_bounds_px and visible_bounds_px, and optional mask; it covers every base-body and wardrobe layer ref exactly once; visible bounds fit texture bounds; texture bounds fit the asset; and a mask is exactly alpha_mask_asset, an alpha_mask_layer asset_id, alpha channel, and mask-texture bounds fitting that asset and matching the owning texture rectangle size.
     condition: Whenever package geometry is admitted or consumed.
     failure: Reject absent, duplicate, discontinuous, out-of-bounds, mismatched, or renderer-local recovered geometry or masks.
@@ -687,12 +492,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r042
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-015 self-describing assets
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Every asset has asset_id, asset_kind exactly base_body_layer, wardrobe_layer, accessory_layer, prop_layer, scene_layer, alpha_mask_layer, or metadata, a package-root-relative non-escaping ref, 64-character lowercase hexadecimal sha256, png format, positive width_px, height_px, and byte_size, srgb color_space, straight alpha_mode, and false premultiplied_alpha, and materialized bytes independently match existence, digest, byte length, dimensions, PNG, and 8-bit RGBA facts.
     condition: Whenever a package is materialized or an asset is admitted.
     failure: Reject the package before rendering on any missing, unsafe, mismatched, unsupported, or non-RGBA asset; renderer rejection remains only a final defense.
@@ -701,12 +502,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r043
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-020 N2D-PKG-021 retained source and channel lineage
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Package source is closed to layer_input_ref, layer_generation_ref, optional occlusion_completion_ref, identity_preservation_ref, and content_admission_ref, all as opaque provenance lineage, while capability.channel_evidence remains a closed map keyed by matrix channels whose mandatory proven-tier entries carry validation attestations.
     condition: Whenever package source or capability lineage is recorded or consumed.
     failure: Reject missing required lineage, forged channel keys, or an ownership claim that treats provenance as Nimi2D segmentation, inpainting, identity, content-classification, or Generation Bench truth.
@@ -717,12 +514,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r044
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-030 N2D-PKG-031 package tier claims
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: capability is closed to requested_tier, proven_tier, literal channel_matrix_ref .nimi/spec/canonical/nimi2d/asset-package.authority.yaml, and channel_evidence; requested and proven tiers use only tiers zero through three; proven tier is validator-computed; and tier 1 permits jaw-amplitude evidence but prohibits AEIOU viseme evidence.
     condition: Whenever package capability is parsed, validated, or reported.
     failure: Reject self-declared success, reserved tier use, unknown channel, missing mandatory attestation, or tier-1 true-viseme overclaim.
@@ -733,12 +526,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r045
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-032 forbidden runtime fields
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: A package manifest contains blend_tree, runtime_composer, performance_stream, avatar_route_id, backend_kind, pixi_runtime, raw_apml, apml, runtime_timeline, audio_consumer, hit_region_runtime, or an equivalent execution field.
     condition: Whenever any package field is parsed or evolved.
     failure: Reject the package as an authority-boundary violation without ignoring the field or interpreting it as metadata.
@@ -749,12 +538,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r046
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-040 N2D-PKG-041 governance manifest section
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Governance is closed to base_body_renderable false, default_outfit_required true for character packages, adult_capability unavailable_v1, a non-empty content_admission_ref matching source lineage, and underage_body_content exactly rejected_or_not_present.
     condition: Whenever package governance is admitted.
     failure: Reject missing, ambiguous, contradictory, adult-capable, or renderable-base-body governance without downgrade.
@@ -765,12 +550,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.renderability
   - id: rule.nimi.nimi2d.asset-package.r047
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-GOV-001 N2D-GOV-002 no outfit no render
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: A character package without a valid bound outfit produces pixels through a renderer, inspector, validator, thumbnail, export, import preview, error, loading, degraded, CLI, debug, reference-player, or Avatar handoff path.
     condition: Whenever a character package may become visible.
     failure: Retain a still-valid prior outfit, bind the valid default outfit before the first frame, show only a non-pixel redacted topology diagram, emit no pixels, or reject admission.
@@ -781,12 +562,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.renderability
   - id: rule.nimi.nimi2d.asset-package.r048
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-GOV-003 N2D-GOV-004 atomicity across all surfaces
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Outfit switches are atomic across visible frames, thumbnails, exports, diagnostics, and package proof, with the old valid outfit active until the new one is validated, bound, and ready, and debug topology diagrams contain no base-body, outfit-hidden-body, or adult pixels.
     condition: Whenever an outfit changes or a diagnostic surface visualizes topology.
     failure: Return to the prior valid outfit or no_render and reject any naked intermediate or pixel-derived topology bypass.
@@ -795,12 +572,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.renderability
   - id: rule.nimi.nimi2d.asset-package.r049
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-GOV-010 N2D-GOV-011 morphology and detail separation
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Base-body morphology retains proportions, shoulder width, waist-to-hip relation, chest volume, position, and silhouette, limb lengths, joints, and head and face placement when they materially improve outfit fit, slots, or motion, while excluding nipples, genital or pubic detail, erotic markings, and any display detail that does not materially improve those functions.
     condition: Whenever base-body morphology or detail is generated or admitted.
     failure: Reject both unnecessary sexual detail and governance-driven removal of fit-relevant morphology.
@@ -809,12 +582,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.base-body
   - id: rule.nimi.nimi2d.asset-package.r050
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-GOV-020 N2D-GOV-021 N2D-GOV-022 content admission
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Accepted layer input and packages preserve a current content_admission_ref; evidence identifying an underage-looking character in body-content generation scope is a hard reject; and missing, ambiguous, or review-required evidence fails closed without Nimi2D inferring age or identity from pixels, names, prompts, labels, or outfits.
     condition: Whenever content evidence is admitted or a package may become renderable.
     failure: Reject without hiding, cropping, blurring, outfitting, reclassifying, or otherwise converting the prohibited or unresolved state into success.
@@ -825,12 +594,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.renderability
   - id: rule.nimi.nimi2d.asset-package.r051
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-GOV-030 N2D-GOV-031 N2D-GOV-032 N2D-AUTH-010 adult-v1 unavailable
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: Version 1 distributes or admits adult outfit assets, exposes adult toggles, treats adult rendering as success, claims adult package capability, or models adult content by revealing, exporting, or reducing opacity over the detail-neutral base body.
     condition: Whenever adult-oriented content or capability is proposed, packaged, rendered, or distributed.
     failure: Return unavailable_v1 and require separate future authority for content admission, distribution, region, age gate, product UI, and package capability before any adult-oriented outfit can exist.
@@ -839,12 +604,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.renderability
   - id: rule.nimi.nimi2d.asset-package.r052
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-GOV-040 N2D-GOV-041 product and Avatar non-ownership
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: Realm Persona Studio or another product UI becomes package truth, or Nimi2D renderability defines Avatar rendering, live-action composition, carrier behavior, scheduling, hit testing, or lipsync execution.
     condition: Whenever a product UI produces input or displays diagnostics or Avatar consumes package invariants.
     failure: Preserve Nimi2D package admission as owner truth, keep product and Avatar concerns reference-only, and accept only owner-typed downstream execution results.
@@ -855,12 +616,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.renderability
   - id: rule.nimi.nimi2d.asset-package.r053
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-BODY-021 N2D-WARD-011 closed topology classification catalog
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Anchor classes map body_root, neck_base, and hip_center to body_core, head_center to head, face_center, both eye centers, and mouth_center to face, both shoulders and both hands to limb, attachment_point to attachment, and scene_origin to scene; slot classes are body_core owned by base_body with wardrobe forbidden, facial owned by base_body with accessory-only binding, limb owned by base_body with outfit-or-accessory binding, outfit owned by base_body with outfit binding, accessory owned by base_body with accessory binding, prop owned by base_body with prop binding, and scene owned by package_scene with scene_layer binding.
     condition: Whenever anchor class, slot class, topology ownership, or wardrobe-binding class is resolved.
     failure: Reject an unknown or reclassified anchor, slot, owner, or binding class without open-string extension.
@@ -871,12 +628,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.wardrobe
   - id: rule.nimi.nimi2d.asset-package.r054
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-PKG-001 N2D-PKG-010 package integrity and solved topology wire
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Package integrity is closed to a 64-character lowercase hexadecimal package_digest_sha256 and positive integer asset_count; every solved anchor record is closed to an admitted kind and point_px; every solved slot record is closed to an admitted kind and bounds_px; and optional scenes contain display assets only with no character-rig ownership.
     condition: Whenever package integrity, solved topology records, or scene records are admitted.
     failure: Reject malformed, open, unknown, or ownership-conflicting integrity, anchor, slot, or scene data.
@@ -887,12 +640,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.package-manifest
   - id: rule.nimi.nimi2d.asset-package.r055
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-AUTH-002 provider artifact admission stop
     modality: must_not
-    scope:
-      - nimi2d.asset-package
     statement: An upstream Image2 provider artifact or workflow result becomes formal Nimi2D package admission merely because it carries image resources or provenance.
     condition: Whenever upstream generation supply hands material to asset-package intake.
     failure: Treat the material only as source lineage until a conforming layer input and package pass W1 admission, and keep Generation Bench or provider closure unavailable until the generation-supply authority wave.
@@ -903,12 +652,8 @@ units:
         target: definition.nimi.nimi2d.asset-package.layer-input
   - id: rule.nimi.nimi2d.asset-package.r056
     kind: rule
-    owner: team.nimi2d
-    lifecycle: active
     title: N2D-INPUT-050 N2D-INPUT-051 closed hint wire catalogs
     modality: must
-    scope:
-      - nimi2d.asset-package
     statement: Anchor identifiers match ^anchor_[a-z0-9][a-z0-9_-]{1,63}$ and kinds are exactly body_root, neck_base, head_center, face_center, left_eye_center, right_eye_center, mouth_center, attachment_point, or scene_origin; slot-hint identifiers match ^slot_hint_[a-z0-9][a-z0-9_-]{1,63}$ and kinds are exactly head, face, hair, neck, torso, hip, left_arm, right_arm, left_hand, right_hand, left_leg, right_leg, left_foot, right_foot, outfit_upper, outfit_lower, outfit_full, accessory_head, accessory_face, accessory_hand, prop_hand, scene_back, or scene_front.
     condition: Whenever a layer-input hint identifier or kind is parsed.
     failure: Return the matching anchor or slot rejection for an unknown, duplicate, malformed, or open value.
