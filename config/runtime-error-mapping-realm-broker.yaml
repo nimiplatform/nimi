@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration (active consumer contract).
+# Normative authority: .nimi/spec/runtime/rpc-foundations.authority.yaml
+# External Realm authority (cross-repo): realm:spec/realm/core.authority.yaml
 table_family: owner_matrix
 owner: runtime
 matrix_id: runtime_error_mapping_matrix

@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration (active consumer contract).
+# Normative authority: .nimi/spec/runtime/rpc-foundations.authority.yaml
+# External Realm authority (cross-repo): realm:spec/realm/world-state.authority.yaml + realm:spec/realm/world-history.authority.yaml
 version: 4
 table_family: protocol_surface
 owner: runtime

@@ -29,7 +29,7 @@ function formatGo(source) {
 }
 
 function operationPolicy(realm) {
-  const table = readYaml('config/spec-frozen/sdks/tables/realm-private-operation-carriers.yaml');
+  const table = readYaml('config/sdks-realm-private-operation-carriers.yaml');
   if (table?.protocol_id !== 'sdk_realm_private_operation_carriers') {
     fail('private-operation table identity drift');
   }

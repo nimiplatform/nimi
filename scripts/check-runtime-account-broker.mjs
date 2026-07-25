@@ -75,7 +75,7 @@ function checkRuntimePermissionMatrix() {
   if (platformBinding?.binding_name !== 'verified_platform_transport') fail('permission matrix platform binding is not verified_platform_transport');
   if (platformBinding?.transport_matrix_ref !== 'protected-local-rpc-transport-matrix.yaml#verified_platform_transport') fail('permission matrix verified transport bundle ref drift');
   if (platformBinding?.profile_resolution !== 'same_os') fail('permission matrix platform profile resolution is not same_os');
-  if (Object.keys(protectedOriginBindings).sort().join(',') !== 'protected_desktop_control_origin,protected_local_app_origin') fail('permission matrix protected origin binding vocabulary drift');
+  if (Object.keys(protectedOriginBindings).sort().join(',') !== 'protected_bundled_avatar_origin,protected_desktop_control_origin,protected_local_app_origin') fail('permission matrix protected origin binding vocabulary drift');
   for (const [requirement, transportClass] of [
     ['protected_desktop_control_origin', 'desktop_control'],
     ['protected_local_app_origin', 'local_app_host'],
@@ -90,10 +90,12 @@ function checkRuntimePermissionMatrix() {
     || platformBinding?.coverage?.missing_or_ambiguous_binding !== 'fail_generation') {
     fail('permission matrix platform binding coverage is incomplete');
   }
-  const preservedBundled = platformBinding?.preserved_non_matrix_requirement;
-  if (preservedBundled?.requirement !== 'protected_bundled_origin'
-    || preservedBundled?.disposition !== 'existing_bundled_first_party_authority_unchanged'
-    || preservedBundled?.protected_local_transport_matrix_membership !== 'excluded') {
+  const bundledBoundary = platformBinding?.bundled_profile_boundary;
+  if (bundledBoundary?.generic_requirement !== 'protected_bundled_origin'
+    || bundledBoundary?.generic_disposition !== 'unchanged_and_not_transport_admitted'
+    || bundledBoundary?.admitted_profile_requirement !== 'protected_bundled_avatar_origin'
+    || bundledBoundary?.admitted_profile_ref !== 'first-party-protected-runtime-profiles.yaml#bundled_avatar_v1'
+    || bundledBoundary?.missing_or_other_profile !== 'deny') {
     fail('permission matrix bundled first-party authority was reinterpreted as a protected-local transport binding');
   }
   const assertProtectedRequirementsResolve = (label, decision) => {
@@ -115,8 +117,17 @@ function checkRuntimePermissionMatrix() {
   const desktop = matrixCaller(document, 'desktop_account_and_local_app_control');
   const firstParty = matrixCaller(document, 'local_first_party_app');
   const localApp = matrixCaller(document, 'local_app');
-  const avatar = matrixCaller(document, 'binding_only_avatar');
-  assertCallerDecision(avatar, 'deny_all');
+  const avatar = matrixCaller(document, 'desktop_supervised_bundled_avatar');
+  assertDecision(avatar, 'GetAccountSessionStatus', 'allow_when');
+  assertDecision(avatar, 'SubscribeAccountSessionEvents', 'allow_when');
+  assertDecision(avatar, 'InvokeRealmUnary', 'allow_when');
+  for (const method of ['BeginLogin', 'CompleteLogin', 'Logout', 'SwitchAccount', 'IssueScopedAppBinding', 'GetLocalAppPermissionStatus', 'RequestLocalAppPermission']) {
+    assertDecision(avatar, method, 'deny');
+  }
+  const avatarRealmUnary = avatar?.methods?.InvokeRealmUnary?.requirements ?? [];
+  for (const requirement of ['protected_bundled_avatar_origin', 'fixed_bundled_avatar_profile', 'fixed_host_bound_caller_envelope', 'current_authenticated_account', 'exact_bundled_avatar_broker_operation']) {
+    if (!avatarRealmUnary.includes(requirement)) fail(`bundled avatar realm unary missing requirement ${requirement}`);
+  }
   for (const method of ['BeginLogin', 'CompleteLogin', 'Logout', 'SwitchAccount']) {
     assertDecision(desktop, method, 'allow_when');
     assertDecision(firstParty, method, 'deny');
@@ -163,7 +174,7 @@ function checkRuntimeCallerEnvelope() {
 }
 
 function checkRuntimeBrokerPolicy() {
-  const policy = parse(read('config/spec-frozen/runtime/tables/realm-broker-operations.yaml'), { merge: true });
+  const policy = parse(read('config/runtime-realm-broker-operations.yaml'), { merge: true });
   const operations = policy.operations ?? [];
   const expectedOperationIDs = [
     'WorldCoreController_discoverPersonaCharacters',

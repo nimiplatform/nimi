@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration (active consumer contract).
+# Normative authority: .nimi/spec/sdks/realm-consumer.authority.yaml
+# External Realm authority (cross-repo): realm:spec/realm/oauth.authority.yaml + realm:spec/realm/core.authority.yaml
 version: 2
 table_family: protocol_surface
 protocol_id: sdk_realm_private_operation_carriers
