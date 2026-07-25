@@ -301,6 +301,16 @@ func TestRunRuntimeDoctorPlainTextShowsNextStepWhenRuntimeUnavailable(t *testing
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:1")
 
+	statusCalls := 0
+	previousProvider := doctorStatusProvider
+	doctorStatusProvider = func() (daemonctl.Status, error) {
+		statusCalls++
+		return daemonctl.Status{Mode: daemonctl.ModeStopped, Process: "stopped"}, nil
+	}
+	defer func() {
+		doctorStatusProvider = previousProvider
+	}()
+
 	output, err := captureStdoutFromRun(func() error {
 		return runRuntimeDoctor(nil)
 	})
@@ -310,8 +320,15 @@ func TestRunRuntimeDoctorPlainTextShowsNextStepWhenRuntimeUnavailable(t *testing
 	if !strings.Contains(output, "Nimi Doctor") {
 		t.Fatalf("missing doctor header: %q", output)
 	}
-	if !strings.Contains(output, "nimi start") {
+	legacyAdvice := "Run 'nimi start' for background mode, or 'nimi serve' in another terminal."
+	if !strings.Contains(output, legacyAdvice) {
+		t.Fatalf("missing legacy runtime advice: %q", output)
+	}
+	if !strings.Contains(output, "\nNext\n\n  nimi start") {
 		t.Fatalf("missing next-step runtime hint: %q", output)
+	}
+	if statusCalls != 1 {
+		t.Fatalf("doctor status provider calls = %d, want 1", statusCalls)
 	}
 }
 

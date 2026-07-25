@@ -61,10 +61,15 @@ func runRuntimeDoctor(args []string) error {
 		items = append(items, doctorItem{Name: "runtime config", Value: "load", Status: "warn", Detail: cfgErr.Error()})
 	}
 
+	runtimeStatus, statusErr := doctorStatusProvider()
 	healthPayload, healthErr := entrypoint.FetchRuntimeHealthGRPC(grpcAddr, 3*time.Second)
 	if healthErr != nil {
-		items = append(items, doctorItem{Name: "gRPC daemon", Value: grpcAddr, Status: "warn", Detail: "Run 'nimi start' for background mode, or 'nimi serve' in another terminal."})
-		nextStep = "nimi start"
+		if statusErr == nil && runtimeStatus.Process == "running" && runtimeStatus.Mode == daemonctl.ModeProtectedService {
+			items = append(items, doctorItem{Name: "gRPC daemon", Value: grpcAddr, Status: "warn", Detail: fmt.Sprintf("Protected Runtime service is running; local gRPC health probe failed at %s; the daemon is managed by the Windows service (check config gRPC address or service logs).", grpcAddr)})
+		} else {
+			items = append(items, doctorItem{Name: "gRPC daemon", Value: grpcAddr, Status: "warn", Detail: "Run 'nimi start' for background mode, or 'nimi serve' in another terminal."})
+			nextStep = "nimi start"
+		}
 	} else {
 		status := strings.TrimSpace(fmt.Sprint(healthPayload["status"]))
 		if status == "" {
@@ -107,7 +112,7 @@ func runRuntimeDoctor(args []string) error {
 		}
 	}
 
-	if runtimeStatus, err := doctorStatusProvider(); err == nil && runtimeStatus.Process == "running" {
+	if statusErr == nil && runtimeStatus.Process == "running" {
 		items = append(items, doctorItem{
 			Name:   "runtime mode",
 			Value:  runtimeStatus.Mode.String(),

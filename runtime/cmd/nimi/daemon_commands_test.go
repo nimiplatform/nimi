@@ -196,6 +196,45 @@ func TestRunRuntimeStartProtectedServiceOmitsLegacyTransportFields(t *testing.T)
 	}
 }
 
+func TestRunRuntimeDoctorProtectedServiceProbeFailureOmitsStartAdvice(t *testing.T) {
+	setCmdTestHome(t, t.TempDir())
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:1")
+
+	statusCalls := 0
+	previousProvider := doctorStatusProvider
+	doctorStatusProvider = func() (daemonctl.Status, error) {
+		statusCalls++
+		return daemonctl.Status{
+			Mode:    daemonctl.ModeProtectedService,
+			Process: "running",
+		}, nil
+	}
+	defer func() {
+		doctorStatusProvider = previousProvider
+	}()
+
+	output, err := captureStdoutFromRun(func() error {
+		return runRuntimeDoctor(nil)
+	})
+	if err != nil {
+		t.Fatalf("runRuntimeDoctor: %v", err)
+	}
+	protectedAdvice := "Protected Runtime service is running; local gRPC health probe failed at 127.0.0.1:1; the daemon is managed by the Windows service (check config gRPC address or service logs)."
+	if !strings.Contains(output, protectedAdvice) {
+		t.Fatalf("missing protected-service runtime advice: %q", output)
+	}
+	if strings.Contains(output, "Run 'nimi start'") || strings.Contains(output, "\nNext\n\n  nimi start\n") {
+		t.Fatalf("protected-service advice must not recommend nimi start: %q", output)
+	}
+	if !strings.Contains(output, "runtime mode:") || !strings.Contains(output, daemonctl.ModeProtectedService.String()) {
+		t.Fatalf("missing protected-service runtime mode: %q", output)
+	}
+	if statusCalls != 1 {
+		t.Fatalf("doctor status provider calls = %d, want 1", statusCalls)
+	}
+}
+
 func TestRunRuntimeProviderTestRuntimeUnavailableHint(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:1")
 
