@@ -8,6 +8,7 @@
 //   - error:*:          untyped bootstrap failures
 //   - relaunch-pending: desktop-pushed launch context update; ready surface unmounted
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { AvatarAppState } from './app-store.js';
 
 export type CompositionState =
@@ -65,7 +66,7 @@ const READY_DRIVER_STATUSES = new Set<string>(['running', 'starting']);
 function isExplicitRealmTransportUnavailable(binding: AvatarAppState['runtime']['binding']): boolean {
   return binding.stage === 'realm_connectivity'
     && binding.source === 'realm'
-    && binding.reasonCode === 'REALM_UNAVAILABLE';
+    && binding.reasonCode === ReasonCode.REALM_UNAVAILABLE;
 }
 
 function readNormalizedString(value: string | null | undefined): string | null {

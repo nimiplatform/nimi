@@ -135,7 +135,7 @@ describe('deriveCompositionState', () => {
       runtimeBinding: {
         status: 'unavailable',
         reason: 'realm_connectivity: REALM_UNAVAILABLE / retry_realm_operation_when_available',
-        reasonCode: 'REALM_UNAVAILABLE',
+        reasonCode: ReasonCode.REALM_UNAVAILABLE,
         accountReasonCode: 'BROKER_REALM_UNAVAILABLE',
         actionHint: 'retry_realm_operation_when_available',
         stage: 'realm_connectivity',
@@ -147,7 +147,7 @@ describe('deriveCompositionState', () => {
     expect(state).toMatchObject({
       state: 'degraded_cloud_offline',
       variant: 'degraded',
-      reasonCode: 'REALM_UNAVAILABLE',
+      reasonCode: ReasonCode.REALM_UNAVAILABLE,
       source: 'realm',
       ready: false,
     });

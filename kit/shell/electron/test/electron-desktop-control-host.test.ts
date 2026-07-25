@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
+
 import {
   createNimiElectronDesktopControlHostForBinding,
   isElectronDesktopAccountProductMethod,
@@ -200,7 +202,7 @@ describe('Electron verified Desktop control host', () => {
     const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding({
       desktopAccountProductUnary: async () => ({
         status: 'error',
-        reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+        reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
         retryable: false,
       }),
     }));
@@ -214,7 +216,7 @@ describe('Electron verified Desktop control host', () => {
       desktopSenderAuthorized: true,
     })).rejects.toMatchObject({
       code: 'runtime-permission-denied',
-      reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
       details: { retryable: false },
     });
   });

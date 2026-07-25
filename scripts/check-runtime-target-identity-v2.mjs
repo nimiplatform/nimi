@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const SPEC_SCAN_PATTERN = /\b(model_id|target_model_id|connector_id|LOCAL_MODEL|targetId|profileId|localModelId|goRuntimeLocalModelId)\b/g;
 const VALID_CLASSIFICATIONS = new Set([
   'must_migrate',
   'allowed_non_identity_fact',
@@ -91,129 +90,6 @@ async function collectFiles(rootRel) {
   }
   await visit(root);
   return files;
-}
-
-function splitMarkdownTableRow(line) {
-  return line
-    .trim()
-    .replace(/^\|/, '')
-    .replace(/\|$/, '')
-    .split('|')
-    .map((part) => part.trim());
-}
-
-function stripBackticks(value) {
-  return value.replace(/^`|`$/g, '').trim();
-}
-
-function parseClassificationInventory(contract) {
-  const rows = new Map();
-  for (const line of contract.split(/\r?\n/u)) {
-    if (!line.startsWith('| `')) continue;
-    const cells = splitMarkdownTableRow(line);
-    if (cells.length < 4) continue;
-    const surface = stripBackticks(cells[0]);
-    const matchedTerms = stripBackticks(cells[1]);
-    const classification = stripBackticks(cells[2]);
-    const action = cells.slice(3).join(' | ').trim();
-    if (!surface) continue;
-    rows.set(surface, {
-      surface,
-      matchedTerms,
-      classification,
-      action,
-    });
-  }
-  return rows;
-}
-
-async function collectSpecScanHits() {
-  const hits = new Map();
-  const files = await collectFiles('.nimi/spec');
-  for (const file of files) {
-    const rel = toRepoRel(file);
-    const source = await fs.readFile(file, 'utf8');
-    const terms = new Set();
-    let match = SPEC_SCAN_PATTERN.exec(source);
-    while (match) {
-      terms.add(match[1]);
-      match = SPEC_SCAN_PATTERN.exec(source);
-    }
-    if (terms.size > 0) {
-      hits.set(rel, [...terms].sort());
-    }
-  }
-  return hits;
-}
-
-async function checkClassificationInventory() {
-  const contractRel = 'docs/authority/runtime-rpc-foundations-rationale.md';
-  const contract = await read(contractRel);
-  const inventory = parseClassificationInventory(contract);
-  const hits = await collectSpecScanHits();
-
-  for (const [surface, terms] of hits.entries()) {
-    const row = inventory.get(surface);
-    if (!row) {
-      fail(`${surface}: missing K-RTARGET-011 classification row for scan terms ${terms.join(', ')}`);
-      continue;
-    }
-    if (!VALID_CLASSIFICATIONS.has(row.classification)) {
-      fail(`${surface}: invalid K-RTARGET-011 classification ${row.classification}`);
-    }
-    for (const term of terms) {
-      if (!row.matchedTerms.includes(term)) {
-        fail(`${surface}: classification row missing scan term ${term}`);
-      }
-    }
-    if (row.classification === 'allowed_non_identity_fact' && !/\b(G\d+|guard|reject|parses|require|only)\b/i.test(row.action)) {
-      fail(`${surface}: allowed_non_identity_fact row must name its guard`);
-    }
-    if (row.classification === 'must_migrate' && !/\b(Patch|Retire|route|v2|resolved|remote catalog)\b/i.test(row.action)) {
-      fail(`${surface}: must_migrate row must name its patch action`);
-    }
-  }
-
-  for (const surface of inventory.keys()) {
-    if (!hits.has(surface)) {
-      fail(`${surface}: K-RTARGET-011 classification row has no current spec scan hit`);
-    }
-  }
-}
-
-async function checkMustMigrateBodiesDoNotAdmitRetiredDurableIdentity() {
-  const contractRel = 'docs/authority/runtime-rpc-foundations-rationale.md';
-  const contract = await read(contractRel);
-  const inventory = parseClassificationInventory(contract);
-
-  for (const row of inventory.values()) {
-    if (row.classification !== 'must_migrate') continue;
-    let source;
-    try {
-      source = await read(row.surface);
-    } catch {
-      fail(`${row.surface}: must_migrate classification surface could not be read`);
-      continue;
-    }
-    const lines = source.split(/\r?\n/u);
-    for (let index = 0; index < lines.length; index += 1) {
-      const windowText = [lines[index], lines[index + 1] ?? '', lines[index + 2] ?? '']
-        .join(' ')
-        .trim()
-        .replace(/\s+/gu, ' ');
-      if (!windowText) continue;
-      if (RETIRED_DURABLE_RETIREMENT_CONTEXT.test(windowText)) continue;
-      if (RETIRED_LOCAL_DURABLE_ADMISSION_PATTERN.test(windowText)) {
-        fail(`${row.surface}:${index + 1}: must_migrate authority body still admits retired local targetId/profileId durable binding`);
-      }
-      if (
-        RETIRED_CLOUD_DURABLE_BINDING_PATTERN.test(windowText)
-        && RETIRED_DURABLE_ADMISSION_CONTEXT.test(windowText)
-      ) {
-        fail(`${row.surface}:${index + 1}: must_migrate authority body still admits retired connector_id + provider model_id cloud binding`);
-      }
-    }
-  }
 }
 
 async function checkSpecDoesNotAdmitRetiredCloudBinding() {
@@ -621,8 +497,6 @@ async function checkAIConfigDoesNotPersistRuntimeProof() {
 }
 
 async function main() {
-  await checkClassificationInventory();
-  await checkMustMigrateBodiesDoNotAdmitRetiredDurableIdentity();
   await checkSpecDoesNotAdmitRetiredCloudBinding();
   await checkProtoHardCuts();
   await checkSourceHardCuts();

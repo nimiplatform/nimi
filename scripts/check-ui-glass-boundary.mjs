@@ -319,7 +319,7 @@ function main() {
     if (!fs.existsSync(absRoot)) continue;
     for (const abs of walk(absRoot)) {
       const ext = path.extname(abs);
-      const rel = path.relative(repoRoot, abs);
+      const rel = path.relative(repoRoot, abs).split(path.sep).join('/');
       let res = [];
       if (EXT_JSX.has(ext)) {
         const src = fs.readFileSync(abs, 'utf8');
