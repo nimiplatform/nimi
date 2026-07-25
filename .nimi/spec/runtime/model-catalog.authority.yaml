@@ -280,9 +280,9 @@ units:
     kind: rule
     title: Video capability blocks are complete
     modality: must
-    statement: Every video.generate model declares a video_generation block containing modes, input_roles, limits, options, and outputs, the minimum mode set is t2v, i2v_first_frame, i2v_first_last, and i2v_reference, input_roles model the per-mode allowed canonical role sets consumed together with the mode-level minimum role constraints so every requested role belongs to the mode's allowed set, count caps come only from limits rather than role existence, and outputs declare video_url and last_frame_url availability explicitly.
-    condition: Whenever a video capability block is authored or validated.
-    failure: Reject incomplete video blocks and role or output truth inferred from provider documentation.
+    statement: Every video.generate model declares a video_generation block containing modes, input_roles, limits, options, and outputs, the modes set is non-empty and each member comes only from the closed canonical set t2v, i2v_first_frame, i2v_first_last, and i2v_reference, every declared mode carries its input_roles, limits, options, and outputs coverage so every requested role belongs to the declared mode's allowed set, a request naming an undeclared mode is rejected, count caps come only from limits rather than role existence, outputs declare video_url and last_frame_url availability explicitly, and any journey that needs the full canonical mode set expresses that in a selection policy rather than as a per-model catalog fact.
+    condition: Whenever a video capability block is authored or validated, or a video request names a mode.
+    failure: Reject an empty or non-canonical modes set, a declared mode without its role, limit, option, and output coverage, a request for an undeclared mode, and role or output truth inferred from provider documentation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane

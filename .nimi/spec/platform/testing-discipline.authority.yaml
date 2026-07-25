@@ -153,14 +153,9 @@ units:
         target: definition.nimi.platform.testing-discipline.semantic-review-verdict
   - id: rule.nimi.platform.testing-discipline.r014
     kind: rule
+    lifecycle: removed
     title: Generated semantic review defaults to unreviewed
-    modality: must
-    statement: Every generated LocalAgent report and review dimension initializes review status to unreviewed with empty review notes and uses only unreviewed, accepted, or needs_adjustment as review status.
-    condition: Whenever a LocalAgent semantic review record is generated.
-    failure: Reject generated accepted or needs_adjustment status, generated non-empty review notes, and status outside the closed set.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.testing-discipline.semantic-review-verdict
+    reason: Removed with the conversation-report pipeline it governed - e02c8ec84 deleted every report producer and schema, r012 already recorded the pipeline as zombie authority, and no generated review record exists for this rule to constrain; a future report product must build new authority from its own artifact, schema, and producer rather than revive this carrierless rule.
   - id: rule.nimi.platform.testing-discipline.r015
     kind: rule
     title: Semantic automation cannot change authoritative disposition

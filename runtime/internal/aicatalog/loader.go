@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -315,12 +316,38 @@ func inferProviderFromFilename(filename string) string {
 	return normalizeProvider(base)
 }
 
+// The closed canonical video mode vocabulary from
+// rule.nimi.runtime.model-catalog.r026: models declare a non-empty subset.
+var canonicalVideoModes = map[string]struct{}{
+	"t2v":             {},
+	"i2v_first_frame": {},
+	"i2v_first_last":  {},
+	"i2v_reference":   {},
+}
+
 func validateVideoGenerationCapability(provider string, modelID string, video *VideoGenerationCapability) error {
 	if video == nil {
 		return nil
 	}
 	if len(video.Modes) == 0 {
 		return fmt.Errorf("model %s:%s video_generation.modes must not be empty", provider, modelID)
+	}
+	// The authority contract is a non-empty subset of the closed canonical
+	// mode set with full coverage per declared mode; a mode outside the set
+	// or a declared mode without input roles is catalog authoring error, not
+	// a provider capability to be inferred around.
+	for _, mode := range video.Modes {
+		if _, ok := canonicalVideoModes[mode]; !ok {
+			return fmt.Errorf("model %s:%s video_generation.modes contains non-canonical mode %q", provider, modelID, mode)
+		}
+		if len(video.InputRoles[mode]) == 0 {
+			return fmt.Errorf("model %s:%s video_generation.input_roles missing declared mode %q", provider, modelID, mode)
+		}
+	}
+	for mode := range video.InputRoles {
+		if !slices.Contains(video.Modes, mode) {
+			return fmt.Errorf("model %s:%s video_generation.input_roles declares undeclared mode %q", provider, modelID, mode)
+		}
 	}
 	if len(video.InputRoles) == 0 {
 		return fmt.Errorf("model %s:%s video_generation.input_roles must not be empty", provider, modelID)
