@@ -218,6 +218,7 @@
     "check:desktop-cloud-runtime-only": "node scripts/check-desktop-cloud-runtime-only.mjs",
     "check:desktop-runtime-client-closure": "node scripts/check-desktop-runtime-client-closure.mjs",
     "check:desktop-chat-authority-anti-patterns": "node scripts/check-desktop-chat-authority-anti-patterns.mjs",
+    "check:no-legacy-cloud-provider-keys": "node scripts/check-no-legacy-cloud-provider-keys.mjs",
     "check:desktop-local-runtime-helper-boundary": "node scripts/check-desktop-local-runtime-helper-boundary.mjs",
     "check:no-local-ai-private-calls": "node scripts/check-no-local-ai-private-calls.mjs",
     "check:no-local-ai-tauri-commands": "node scripts/check-no-local-ai-tauri-commands.mjs",
