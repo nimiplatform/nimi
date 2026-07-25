@@ -17,6 +17,9 @@ import { promisify } from 'node:util';
 const run = promisify(execFile);
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TIMEOUT_MS = 300_000;
+// The cost-deferred tier is slow by definition; the Go service suite alone
+// runs past the default and would otherwise report as a timeout, not a result.
+const COST_TIMEOUT_MS = 1_500_000;
 
 // Environment-blocked gates: their result here would say nothing about the
 // code, because the input they need is absent from a clean local checkout.
@@ -105,12 +108,13 @@ const ciReachable = ciReachableKeys();
 const red = [];
 const failedToStart = [];
 for (const key of selected) {
+  const timeout = COST_DEFERRED.has(key) ? COST_TIMEOUT_MS : TIMEOUT_MS;
   try {
-    await run('pnpm', [key], { cwd: repoRoot, timeout: TIMEOUT_MS, shell: true, maxBuffer: 64 * 1024 * 1024 });
+    await run('pnpm', [key], { cwd: repoRoot, timeout, shell: true, maxBuffer: 64 * 1024 * 1024 });
     process.stdout.write(`green ${key}\n`);
   } catch (error) {
     if (error.killed) {
-      failedToStart.push({ key, detail: `timed out after ${TIMEOUT_MS}ms` });
+      failedToStart.push({ key, detail: `timed out after ${timeout}ms` });
       process.stdout.write(`TIMEOUT ${key}\n`);
       continue;
     }
