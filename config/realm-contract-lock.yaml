@@ -132,12 +132,18 @@ compact_vectors:
 producer_admission:
   tracked_only: true
   head_policy: identical_admitted_inputs
-  semantic_file_bundle_sha256: e9ae56aee644f615cc184a1b85b3943626f18297986f0e57bb96011e6f78f4e1
+  semantic_file_bundle_sha256: 84ce9e9b15d9759201fec62369c6e828f1ab1e916adbbfd7855260c9f1765a63
   semantic_files:
     - path: .nimi/spec/realm/core.authority.yaml
       sha256: d25c7e6d4a81caad80472b6468f53e92f37f298315ece3f59f04426925ac0820
     - path: .nimi/spec/realm/permission-grant.authority.yaml
       sha256: 8982c0906b6cd78edb1008aca9bf7326a0f7af79402e5eb9db90148902bd9b1a
+    - path: .nimi/spec/realm/feed.authority.yaml
+      sha256: 1b2e75a908f2b46e21e3f5a9d9a3c0499c86b2efbd35d6162381a7f757aa686a
+    - path: .nimi/spec/realm/asset.authority.yaml
+      sha256: d77097c297aa211323f4ab91784987c4fbed46086bb9af87bf373433064afae2
+    - path: .nimi/spec/realm/oauth.authority.yaml
+      sha256: 6f99b1ce9eef6d643f1383a4f68410e8b7e8777263e91f0273509f1f8e58e9ce
     - path: packages/nimi-forge/src/contracts/realm-character-core.ts
       sha256: 2bf1232abc1ba3eb29ef2d851bf8adc12b6c5576f5affa0c4499ff3005c80a38
     - artifactId: source-materialization-service
