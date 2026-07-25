@@ -172,10 +172,15 @@ go vet ./...
 Cognition authority and implementation are now aligned for cognition-local
 standalone completion closeout.
 
-`C-COG-004`, `C-COG-023`, `C-COG-032`, and `C-COG-045` are currently `covered`
-in `/.nimi/spec/cognition/kernel/tables/rule-evidence.yaml`, with direct
-behavior evidence for public lifecycle mutation, citation/provenance integrity,
-typed digest persistence, and authoritative worker-path cleanup.
+`C-COG-004`, `C-COG-023`, `C-COG-032`, and `C-COG-045` are stated in
+`.nimi/spec/cognition/standalone-services.authority.yaml`, covering public
+lifecycle mutation, citation/provenance integrity, typed digest persistence,
+and authoritative worker-path cleanup.
+
+Their coverage state was once recorded in a per-rule evidence registry. That
+registry was retired with the file-by-file evidence model and has no
+replacement coordinate, so this document makes no current coverage claim for
+them; the historical evidence exists only in Git history.
 
 This is a cognition-local completion claim only. Repo-wide human-doc
 projections and broader standalone project closeout remain separate governance

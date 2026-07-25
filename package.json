@@ -315,7 +315,8 @@
     "check:no-public-mod-extension-admission": "node scripts/check-no-public-mod-extension-admission.mjs",
     "check:p-moex-anti-targets": "node scripts/check-p-moex-anti-targets.mjs",
     "kit:preview": "pnpm --filter @nimiplatform/kit preview",
-    "check:kit-visual-audit": "pnpm --filter @nimiplatform/kit audit:ui"
+    "check:kit-visual-audit": "pnpm --filter @nimiplatform/kit audit:ui",
+    "check:web-landing-generated": "cd apps/web && node scripts/generate-landing-data.mjs --check"
   },
   "dependencies": {
     "yaml": "^2.9.0"

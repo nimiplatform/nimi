@@ -84,6 +84,8 @@ jobs:
         run: pnpm check:sdk-release-contracts
       - name: gate.sdk.version-matrix
         run: pnpm check:sdk-version-matrix
+      - name: gate.web.landing-generated
+        run: pnpm check:web-landing-generated
       - name: gate.security.package-license-matrix
         run: pnpm check:package-license-matrix
 

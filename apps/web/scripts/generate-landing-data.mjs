@@ -396,9 +396,30 @@ function main() {
 
   applyJoinPolicy(catalogResult.providerNames, capResult.providerNames);
 
-  writeFileSync(ADMITTED_PROVIDERS_OUT, catalogResult.body);
-  writeFileSync(PROVIDER_CAPABILITIES_OUT, capResult.body);
-  writeFileSync(INDEX_OUT, generateIndexBarrel(catalog.sha256, capabilities.sha256));
+  const outputs = [
+    [ADMITTED_PROVIDERS_OUT, catalogResult.body],
+    [PROVIDER_CAPABILITIES_OUT, capResult.body],
+    [INDEX_OUT, generateIndexBarrel(catalog.sha256, capabilities.sha256)],
+  ];
+
+  // --check compares bytes without writing. Without it the only way drift
+  // surfaced was a build leaving the working tree dirty, which is not a gate:
+  // these artifacts recorded a stale source sha256 for as long as nobody
+  // happened to run a build and read `git status`.
+  if (process.argv.includes('--check')) {
+    const drifted = outputs
+      .filter(([target, body]) => readFileSync(target, 'utf8') !== body)
+      .map(([target]) => repoRelativePath(target));
+    if (drifted.length > 0) {
+      process.stderr.write(`generate-landing-data: generated artifact drift: ${drifted.join(', ')}\n`);
+      process.stderr.write('  re-run node scripts/generate-landing-data.mjs from apps/web/\n');
+      process.exit(1);
+    }
+    process.stdout.write('generate-landing-data: generated artifacts current\n');
+    return;
+  }
+
+  for (const [target, body] of outputs) writeFileSync(target, body);
 
   process.stdout.write(
     `generate-landing-data: wrote ${catalogResult.count} ADMITTED_PROVIDERS, ` +
