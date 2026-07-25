@@ -3,39 +3,39 @@
 package connector
 
 type ProviderAuthProfileSpec struct {
-	ID               string
-	AuthKind         string
+	ID string
+	AuthKind string
 	AllowedProviders []string
-	HeaderBehavior   string
-	SourceRule       string
+	HeaderBehavior string
+	SourceRule string
 }
 
 var GeneratedProviderAuthProfiles = map[string]ProviderAuthProfileSpec{
 	"anthropic": {
-		ID:       "anthropic",
+		ID: "anthropic",
 		AuthKind: "oauth_managed",
 		AllowedProviders: []string{
 			"anthropic",
 		},
 		HeaderBehavior: "anthropic",
-		SourceRule:     "K-CONN-002",
+		SourceRule: "K-CONN-002",
 	},
 	"openai_codex": {
-		ID:       "openai_codex",
+		ID: "openai_codex",
 		AuthKind: "oauth_managed",
 		AllowedProviders: []string{
 			"openai_codex",
 		},
 		HeaderBehavior: "codex_oauth",
-		SourceRule:     "K-CONN-002",
+		SourceRule: "K-CONN-002",
 	},
 	"qwen_oauth": {
-		ID:       "qwen_oauth",
+		ID: "qwen_oauth",
 		AuthKind: "oauth_managed",
 		AllowedProviders: []string{
 			"openai_compatible",
 		},
 		HeaderBehavior: "none",
-		SourceRule:     "K-CONN-002",
+		SourceRule: "K-CONN-002",
 	},
 }
