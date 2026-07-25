@@ -110,7 +110,10 @@ test('live matrix reads provider catalog from demoted config table', () => {
   const source = readFileSync(new URL('./run-live-test-matrix.mjs', import.meta.url), 'utf8');
 
   assert.match(source, /config\/runtime-provider-catalog\.yaml/);
-  assert.doesNotMatch(source, /['"`]\.nimi\/spec\/runtime\/kernel\/tables\/provider-catalog\.yaml['"`]/);
+  // Broader than the one retired path this used to name: the matrix must not
+  // read the authority corpus at all. Naming the old coordinate kept a dead
+  // path alive in the source and only guarded the one spelling of it.
+  assert.doesNotMatch(source, /\.nimi\/spec\//);
 });
 
 test('live matrix fails closed on declared cells with no test result', () => {

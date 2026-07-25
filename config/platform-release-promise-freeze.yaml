@@ -66,7 +66,7 @@ capabilities:
     owner_domain: runtime
     authority_refs:
       - .nimi/spec/runtime/protected-session.authority.yaml#K-ACCSVC-001
-      - .nimi/spec/realm/external-realm.md#R-OAUTH-001
+      - realm:spec/realm/oauth.authority.yaml#rule.realm.oauth.r001
       - .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r013
     login_requirement: realm_login_required
     public_promise: Runtime owns local first-party account session truth; Realm owns OAuth authorization; Desktop renders login state only.
@@ -82,8 +82,8 @@ capabilities:
     posture: supported
     owner_domain: realm
     authority_refs:
-      - .nimi/spec/realm/external-realm.md#R-SOC-001
-      - .nimi/spec/realm/external-realm.md#R-CHAT-001
+      - realm:spec/realm/social.authority.yaml#rule.realm.social.r001
+      - realm:spec/realm/chat.authority.yaml#rule.realm.chat.r001
       - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-139
     login_requirement: realm_login_required
     public_promise: Realm-owned ecosystem identity covers authenticated social, group, WorldCharacter, PersonaCharacter, and CharacterSourceRefV3 truth; Runtime alone acquires and verifies Packet v3 and owns local executable LocalAgent identity, SnapshotV2, provenance, context compilation, and lifecycle.
@@ -321,8 +321,8 @@ capabilities:
     posture: partial
     owner_domain: realm
     authority_refs:
-      - .nimi/spec/realm/external-realm.md#R-CHAT-001
-      - .nimi/spec/realm/external-realm.md#R-CHAT-011
+      - realm:spec/realm/chat.authority.yaml#rule.realm.chat.r001
+      - realm:spec/realm/chat.authority.yaml#rule.realm.chat.r011
       - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-076
     login_requirement: realm_login_required
     public_promise: Realm Chat owns authenticated group thread/message truth; Runtime may return Realm group message candidates only, and Realm owns candidate commit.

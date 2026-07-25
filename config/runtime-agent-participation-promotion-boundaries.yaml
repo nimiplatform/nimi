@@ -85,9 +85,9 @@ promotion_targets:
   - id: REALM_GROUP_TRANSCRIPT
     source_rule: K-AGCORE-104
     owner_authority:
-      - .nimi/spec/realm/external-realm.md
+      - realm:spec/realm/chat.authority.yaml
     owner_rule_families:
-      - R-CHAT-*
+      - rule.realm.chat.*
     admitted_source_profiles:
       - realm_group_source
     forbidden_source_profiles:

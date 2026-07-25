@@ -40,9 +40,11 @@ domain_future_seams:
       - contract: .nimi/spec/runtime/memory-world.authority.yaml
         owner_rule_range: K-WEV-001..016
         posture: runtime_local_world_execution_evidence_only
-      - contract: .nimi/spec/realm/external-realm.md
+      - contract: realm:spec/realm/transit.authority.yaml
+        owner_unit: definition.realm.transit
         posture: realm_world_transit_truth_reference_only
-      - contract: .nimi/spec/realm/external-realm.md
+      - contract: realm:spec/realm/world-state.authority.yaml
+        owner_unit: definition.realm.world-state
         posture: realm_world_truth_reference_only
     required_context_blocks:
       - world_context_ref

@@ -13,7 +13,7 @@ boundary work, read:
 
 1. `AGENTS.md`
 2. nearest app `AGENTS.md`
-3. `.nimi/spec/INDEX.md`
+3. `.nimi/spec/platform/app-ecosystem.authority.yaml`
 4. `docs/authority/platform-app-ecosystem-rationale.md`
 5. `docs/authority/platform-app-ecosystem-rationale.md`
 6. `docs/authority/platform-authority-admission-rationale.md`

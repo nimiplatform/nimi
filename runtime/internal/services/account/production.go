@@ -388,9 +388,10 @@ func workspaceMembershipSnapshotsFromProjections(in []*runtimev1.WorkspaceMember
 }
 
 // AuthorizationURL constructs the realm OAuth 2.0 authorize URL the user
-// agent must visit. The shape is normative against
-// .nimi/spec/realm/external-realm.md (R-OAUTH-002 /
-// R-OAUTH-003 / R-OAUTH-005 / R-OAUTH-011): response_type=code,
+// agent must visit. The shape is normative against the externally owned
+// realm:spec/realm/oauth.authority.yaml (rule.realm.oauth.r002 /
+// rule.realm.oauth.r003 / rule.realm.oauth.r005 /
+// rule.realm.oauth.r011): response_type=code,
 // client_id, redirect_uri, code_challenge, code_challenge_method=S256,
 // state. No desktop_callback / desktop_state web-relay fragment is
 // admitted.

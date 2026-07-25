@@ -13,18 +13,15 @@ without prior conversation context.
 ## Required Reading Order
 
 1. Root `AGENTS.md`.
-2. `.nimi/spec/INDEX.md`.
-3. `.nimi/spec/sdks/kernel/index.md`.
-4. `.nimi/spec/sdks/client-core.authority.yaml`.
-5. `.nimi/spec/sdks/client-core.authority.yaml`.
-6. `.nimi/spec/sdks/feature-clients.authority.yaml`.
-7. `docs/authority/sdks-testing-gates-rationale.md`.
-8. `.nimi/spec/sdks/client-core.authority.yaml`.
-9. `.nimi/spec/sdks/realm-consumer.authority.yaml`.
-10. `.nimi/spec/sdks/feature-clients.authority.yaml`.
-11. `.nimi/spec/sdks/client-core.authority.yaml`.
-12. `config/sdks-runtime-method-groups.yaml`.
-13. `docs/authority/sdks-testing-gates-rationale.md`.
+2. `.nimi/spec/sdks/client-core.authority.yaml`.
+3. `.nimi/spec/sdks/feature-clients.authority.yaml`.
+4. `.nimi/spec/sdks/realm-consumer.authority.yaml`.
+5. `config/sdks-runtime-method-groups.yaml`.
+
+The three containers above carry the whole SDK authority surface; earlier
+revisions of this list repeated them because it was written against the
+per-file kernel layout. `docs/authority/sdks-testing-gates-rationale.md` is
+retired prose kept for history and is not part of the reading order.
 
 ## Final Architecture
 

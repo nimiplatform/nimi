@@ -171,6 +171,8 @@ contract 发生有意变化，必须先完成 runtime / sdk 对齐，再重建 b
 ## References
 
 - Runtime reference: [docs/reference/runtime.md](../docs/reference/runtime.md)
-- Runtime domain spec: [.nimi/spec/runtime](../.nimi/spec/runtime)
-- Runtime kernel contracts: [.nimi/spec/runtime/kernel](../.nimi/spec/runtime/kernel)
+- Runtime domain authority: [.nimi/spec/runtime](../.nimi/spec/runtime) — one
+  container per area; `rpc-foundations.authority.yaml` and
+  `protected-session.authority.yaml` carry the transport and session contracts
+  that the per-file `kernel/` tree used to hold.
 - Contributor workflow: [CONTRIBUTING.md](../CONTRIBUTING.md)
