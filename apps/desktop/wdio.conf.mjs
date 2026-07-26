@@ -58,6 +58,52 @@ async function collectRendererDebugLogs() {
   }
 }
 
+async function preflightLiveProductControl() {
+  if (process.env.NIMI_E2E_PRODUCT_CONTROL_PREFLIGHT !== 'ready') {
+    return;
+  }
+  const result = await browser.execute(async () => {
+    const hook = globalThis.window?.__NIMI_TAURI_RUNTIME__;
+    if (!hook || typeof hook.invoke !== 'function') {
+      return {
+        ok: false,
+        error: 'standard Desktop Tauri Runtime bridge is unavailable',
+      };
+    }
+    try {
+      const projection = await hook.invoke('product_control_record_get', {});
+      return { ok: true, projection };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+  if (!result?.ok) {
+    throw new Error(
+      `live Runtime Product Control preflight failed: ${String(result?.error || 'unknown error')}`,
+    );
+  }
+  const projection = result.projection;
+  const dataRootStatus = String(projection?.record?.dataRoot?.status || '');
+  if (
+    projection?.exists !== true
+    || projection?.state !== 'ready_for_use'
+    || dataRootStatus !== 'ready'
+  ) {
+    throw new Error(
+      'live Runtime Product Control preflight requires an existing ready_for_use '
+      + `~/.nimi/nimi.json record; got ${JSON.stringify({
+        exists: projection?.exists,
+        state: projection?.state,
+        dataRootStatus,
+        error: projection?.error,
+      })}`,
+    );
+  }
+}
+
 function loadArtifactPolicy() {
   const manifestPath = String(process.env.NIMI_E2E_ARTIFACT_MANIFEST || '').trim();
   if (!manifestPath) {
@@ -111,6 +157,9 @@ export const config = {
       },
     },
   ],
+  before: async function () {
+    await preflightLiveProductControl();
+  },
   beforeTest: async function () {
     await installRendererErrorHooks();
   },

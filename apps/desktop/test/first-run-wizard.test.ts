@@ -9,7 +9,6 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   ProductControlWorkflow,
   resolveProductControlActionFailure,
-  resolveProjectedDataRootPick,
   resolveProductControlWorkflowError,
 } from '../src/shell/renderer/first-run/product-control-workflow.js';
 import type { DesktopRendererClockView } from '../src/shell/renderer/renderer/contract.js';
@@ -140,7 +139,6 @@ function projectionFor(
     path: '/tmp/home/.nimi/nimi.json',
     exists: state !== 'config_missing',
     state,
-    dataRootProposal: null,
     error: null,
     record: {
       schemaVersion: 1,
@@ -162,7 +160,7 @@ function projectionFor(
         executionEvidenceRef: null,
         ...override.firstRun,
       },
-      pointers: { runtimeConfigPath: '/tmp/home/.nimi/runtime/config.json' },
+      pointers: {},
       repair: { required: state === 'repair_required', reason: null },
       ...override,
     },
@@ -306,61 +304,52 @@ test('data-root selection consumes Runtime restart disposition through the typed
   assert.doesNotMatch(bridgeSource, /Stop-Service|Start-Service|WriteFile|runtimeConfigPath/);
 });
 
-test('the Storage phase prefers the Runtime checkpoint proposal and keeps the OS default as production fallback', () => {
-  // The workflow proposes the OS-conventional default so the field is never
-  // empty, but it is only a candidate — the user still confirms it through
-  // selectProductDataRoot. The renderer never records or fabricates a path.
+test('the Storage phase starts without a guessed path and only accepts a record or explicit folder pick', () => {
   const workflowSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
     'utf8',
   );
-  assert.match(workflowSource, /projection\?\.dataRootProposal\?\.path/);
-  assert.match(workflowSource, /if \(runtimeDataRootProposal\) return/);
-  assert.match(workflowSource, /firstRun\.defaultDataRootDirectory/);
-
-  // The bridge call is read-only and fails closed: no Tauri runtime or a
-  // non-string payload yields a null proposal, never a fabricated path.
   const bridgeSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
     'utf8',
   );
-  assert.match(bridgeSource, /product_control_default_data_root_directory/);
-  assert.match(bridgeSource, /defaultProductDataRootDirectory/);
+  const firstRunPortSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/renderer/first-run-port.ts'),
+    'utf8',
+  );
+  const tauriSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src-tauri/src/desktop_product_control.rs'),
+    'utf8',
+  );
+  const electronSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src-electron/main.ts'),
+    'utf8',
+  );
+  const bundledAvatarHostSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src-electron/bundled-avatar-host.ts'),
+    'utf8',
+  );
 
-  // The proposal command is a read-only path resolver: its name is not in the
-  // `product_control_record_*` family, so it cannot mutate the record —
-  // P-COLD-010 keeps recording with selectProductDataRoot after user confirm.
-  assert.doesNotMatch(bridgeSource, /product_control_record_default_data_root/);
-});
-
-test('the Runtime data-root proposal replaces only the renderer fallback, never a user pick or record', () => {
-  assert.deepEqual(resolveProjectedDataRootPick({
-    currentPath: 'C:\\Users\\admin\\Nimi',
-    currentAuthority: 'fallback',
-    recordedPath: null,
-    runtimeProposalPath: 'C:\\service-owned-trial\\Nimi',
-  }), {
-    path: 'C:\\service-owned-trial\\Nimi',
-    authority: 'runtime',
-  });
-  assert.deepEqual(resolveProjectedDataRootPick({
-    currentPath: 'D:\\UserPick',
-    currentAuthority: 'user',
-    recordedPath: null,
-    runtimeProposalPath: 'C:\\service-owned-trial\\Nimi',
-  }), {
-    path: 'D:\\UserPick',
-    authority: 'user',
-  });
-  assert.deepEqual(resolveProjectedDataRootPick({
-    currentPath: 'D:\\UserPick',
-    currentAuthority: 'user',
-    recordedPath: 'E:\\Recorded',
-    runtimeProposalPath: 'C:\\service-owned-trial\\Nimi',
-  }), {
-    path: 'E:\\Recorded',
-    authority: 'record',
-  });
+  assert.match(workflowSource, /projection\?\.record\?\.dataRoot\?\.path \?\? null/);
+  assert.match(workflowSource, /firstRun\.pickDataRootDirectory/);
+  assert.match(workflowSource, /firstRun\.selectDataRoot/);
+  for (const source of [workflowSource, bridgeSource, firstRunPortSource, tauriSource, electronSource]) {
+    assert.doesNotMatch(
+      source,
+      /defaultDataRootDirectory|defaultProductDataRootDirectory|product_control_default_data_root_directory|runtimeDataRootProposal|resolveProjectedDataRootPick/,
+    );
+  }
+  assert.doesNotMatch(electronSource, /app\.getPath\('home'\), 'Nimi'/);
+  assert.doesNotMatch(
+    electronSource,
+    /NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT|standard-shell-data|app\.getPath\('userData'\)/,
+  );
+  assert.match(
+    electronSource,
+    /resolveAppPrivateDataRoot:[\s\S]*'apps',[\s\S]*'nimi\.avatar',[\s\S]*'data'/,
+  );
+  assert.match(bundledAvatarHostSource, /source: 'product-control-projection'/);
+  assert.doesNotMatch(bundledAvatarHostSource, /runtime-launch-projection|durableDataRoot/);
 });
 
 // --- Install-level cards --------------------------------------------------

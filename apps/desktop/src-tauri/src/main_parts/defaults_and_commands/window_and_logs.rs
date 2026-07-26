@@ -162,7 +162,6 @@ fn avatar_runtime_env_pairs_from_storage_roots(
         ),
     ];
     for key in [
-        "NIMI_RUNTIME_CONFIG_PATH",
         "NIMI_RUNTIME_GRPC_ADDR",
         "NIMI_RUNTIME_HTTP_ADDR",
         "NIMI_RUNTIME_LOCAL_STATE_PATH",

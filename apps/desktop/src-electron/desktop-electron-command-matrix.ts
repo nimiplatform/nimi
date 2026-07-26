@@ -36,7 +36,6 @@ export const DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS = [
 ] as const;
 
 export const DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_COMMANDS = [
-  'product_control_default_data_root_directory',
   'product_control_record_get',
   'product_control_selected_data_root_get',
   'product_control_record_ensure_created',

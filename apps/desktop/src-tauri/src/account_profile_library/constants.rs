@@ -11,7 +11,7 @@ pub(crate) const PROFILE_REVISION_FACTORY_SEED: &str = "factory_seed";
 pub(crate) const PROFILE_REVISION_LOCAL_EDIT: &str = "local_edit";
 pub(crate) const PROFILE_REVISION_LOCAL_REPLACEMENT: &str = "local_replacement";
 /// Account Default Profile `source.kind` per the product manual
-/// `~/.nimi/accounts/<account-id>/profiles/default.json` schema.
+/// `<dataRoot>/accounts/<account-id>/profiles/default.json` schema.
 pub(crate) const ACCOUNT_DEFAULT_PROFILE_SOURCE_KIND: &str = "factory-policy";
 /// Manual fixed `displayName` for the seeded Account Default Profile template.
 pub(crate) const ACCOUNT_DEFAULT_PROFILE_DISPLAY_NAME: &str = "Default Profile";

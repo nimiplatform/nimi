@@ -56,35 +56,14 @@ pub fn resolve_nimi_dir() -> Result<PathBuf, String> {
 }
 
 pub fn resolve_nimi_data_dir() -> Result<PathBuf, String> {
-    #[cfg(test)]
-    {
-        crate::desktop_product_control::selected_product_data_root()
-    }
-    #[cfg(not(test))]
-    {
-        tauri::async_runtime::block_on(async {
-            crate::desktop_product_control::runtime_selected_product_data_root().await
-        })
-    }
-}
-
-/// Resolves the OS-conventional `nimi_data` location *proposed* to the user
-/// during first-run Storage selection: a `Nimi` folder in the user home.
-///
-/// This is only a proposal surfaced as a pre-filled, user-visible value — not
-/// a readiness default. It does not create the directory, does not record
-/// anything, and is never wired into `resolve_nimi_data_dir`. The user reviews
-/// this path on the `data_root_missing` screen and must explicitly confirm it;
-/// `select_product_data_root` remains the sole owner of recording and
-/// fail-closed validation (`P-COLD-010`).
-pub fn default_data_root_proposal() -> Result<PathBuf, String> {
-    let home = resolve_home_dir().ok_or_else(|| "无法获取用户 home 目录".to_string())?;
-    Ok(normalize_absolute_path(&home.join("Nimi")))
+    tauri::async_runtime::block_on(async {
+        crate::desktop_product_control::runtime_validated_nimi_data_root().await
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{default_data_root_proposal, resolve_nimi_data_dir, resolve_nimi_dir};
+    use super::resolve_nimi_dir;
     use crate::test_support::with_env;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -100,31 +79,12 @@ mod tests {
     }
 
     #[test]
-    fn missing_product_control_record_does_not_select_default_nimi_data() {
-        let home = temp_home("default-data-dir");
+    fn product_control_directory_is_fixed_under_user_home() {
+        let home = temp_home("control-root");
         with_env(&[("HOME", home.to_str())], || {
-            let nimi_dir = resolve_nimi_dir().expect("nimi dir");
-            let error = resolve_nimi_data_dir().expect_err("missing product data root");
-
+            let nimi_dir = resolve_nimi_dir().expect("nimi control directory");
             assert_eq!(nimi_dir, home.join(".nimi"));
-            assert!(error.contains("~/.nimi/nimi.json is missing"));
-        });
-    }
-
-    #[test]
-    fn default_data_root_proposal_proposes_nimi_folder_in_home_without_creating_it() {
-        let home = temp_home("default-proposal");
-        with_env(&[("HOME", home.to_str())], || {
-            let proposed = default_data_root_proposal().expect("default proposal");
-            // The proposal is a `Nimi` folder in the user home — never the
-            // `~/.nimi/data` location P-COLD-010 forbids as a silent default.
-            assert_eq!(proposed, home.join("Nimi"));
-            assert_ne!(proposed, home.join(".nimi").join("data"));
-            // It is only a proposal: the directory is not created here, and no
-            // product-control record is written. Recording stays with
-            // `select_product_data_root` after explicit user confirmation.
-            assert!(!proposed.exists());
-            assert!(!home.join(".nimi").join("nimi.json").exists());
+            assert!(nimi_dir.is_dir());
         });
     }
 }

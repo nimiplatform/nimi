@@ -1,4 +1,3 @@
-use crate::desktop_product_control::ProductControlRecord;
 use crate::desktop_release::DesktopReleaseInfo;
 use crate::runtime_bridge::{
     RuntimeBridgeDaemonStatus, RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
@@ -26,10 +25,6 @@ pub fn runtime_bridge_status_override() -> Result<Option<RuntimeBridgeDaemonStat
 }
 
 pub fn desktop_release_info_override() -> Result<Option<DesktopReleaseInfo>, String> {
-    Ok(None)
-}
-
-pub fn product_control_record_override() -> Result<Option<ProductControlRecord>, String> {
     Ok(None)
 }
 

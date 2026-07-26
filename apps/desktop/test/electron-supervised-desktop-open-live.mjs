@@ -15,7 +15,7 @@ const evidenceRoot = path.resolve(
   process.env.NIMI_DESKTOP_OPEN_LIVE_EVIDENCE_ROOT
     || path.join(repoRoot, '.nimi/local/acceptance/desktop-open-electron-playwright'),
 );
-const desktopDataRoot = path.join(evidenceRoot, 'desktop-data');
+const desktopLocalAssetRoot = path.join(evidenceRoot, 'desktop-local-assets');
 const zhiyuDataRoot = path.join(evidenceRoot, 'zhiyu-data');
 const desktopRequire = createRequire(path.join(desktopRoot, 'package.json'));
 const electronVersion = desktopRequire('electron/package.json').version;
@@ -35,7 +35,7 @@ const expectedDataRoot = String(
   process.env.NIMI_DESKTOP_OPEN_LIVE_EXPECTED_DATA_ROOT || '',
 ).trim();
 
-fs.mkdirSync(desktopDataRoot, { recursive: true });
+fs.mkdirSync(desktopLocalAssetRoot, { recursive: true });
 fs.mkdirSync(zhiyuDataRoot, { recursive: true });
 runBundleMode('--acceptance');
 
@@ -67,8 +67,7 @@ try {
       NIMI_DEV_KERNEL_CHECKPOINT: '1',
       NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT: String(zhiyuCdpPort),
       NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT: zhiyuDataRoot,
-      NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: path.join(desktopDataRoot, 'standard-shell-data'),
-      NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: path.join(desktopDataRoot, 'standard-shell-data'),
+      NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: desktopLocalAssetRoot,
     },
   });
   const desktopPage = await app.firstWindow();

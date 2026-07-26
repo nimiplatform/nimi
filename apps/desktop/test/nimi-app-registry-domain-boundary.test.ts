@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 function readRepo(path: string): string {
@@ -43,32 +43,25 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(localConfigRegistry, /retired user-local app projections are not/);
   });
 
-  it('keeps Desktop Tauri apps projections as Kit-backed materializers only', () => {
-    const registryProjection = readRepo('apps/desktop/src-tauri/src/apps_registry_projection.rs');
-    const packagesProjection = readRepo('apps/desktop/src-tauri/src/apps_packages_projection.rs');
+  it('keeps the Apps registry materializer in Kit without app-local duplicate modules', () => {
     const kitPlatformProjection = readRepo('kit/shell/tauri/src/standard_platform_projection.rs');
     const desktopBootstrap = readRepo('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
     const desktopMain = readRepo('apps/desktop/src-tauri/src/main.rs');
 
-    assert.match(registryProjection, /nimi_shell_tauri::capabilities::platform_projection::apps_registry/);
-    assert.match(registryProjection, /build_apps_registry_record/);
-    assert.match(registryProjection, /materialize_apps_registry_projection/);
-    assert.match(registryProjection, /read_apps_registry_projection/);
-    assert.doesNotMatch(registryProjection, /struct\s+AppsRegistryRow/);
-    assert.doesNotMatch(registryProjection, /PLATFORM_NIMI_APP_REGISTRY_ROWS\s*:/);
-
-    assert.match(packagesProjection, /nimi_shell_tauri::capabilities::platform_projection::apps_packages/);
-    assert.match(packagesProjection, /validate_apps_packages_record/);
-    assert.match(packagesProjection, /GetAppPackageReadiness/);
-    assert.doesNotMatch(packagesProjection, /selected_product_data_root/);
-    assert.doesNotMatch(packagesProjection, /install-evidence\.json|build_apps_packages_record_from_runtime_install_evidence/);
-    assert.doesNotMatch(packagesProjection, /struct\s+RuntimeInstallEvidence/);
-    assert.doesNotMatch(packagesProjection, /const\s+PACKAGE_STATE_/);
-    assert.doesNotMatch(packagesProjection, /package\.(?:data_root|cache_root|temp_root|install_root)/);
+    assert.equal(
+      existsSync(new URL('../src-tauri/src/apps_registry_projection.rs', import.meta.url)),
+      false,
+    );
+    assert.equal(
+      existsSync(new URL('../src-tauri/src/apps_packages_projection.rs', import.meta.url)),
+      false,
+    );
 
     assert.match(kitPlatformProjection, /materialize_apps_registry_projection/);
     assert.match(kitPlatformProjection, /build_apps_bridge_projection/);
-    assert.match(kitPlatformProjection, /APPS_PACKAGES_POINTER/);
+    assert.match(kitPlatformProjection, /resolve_nimi_data_dir/);
+    assert.doesNotMatch(kitPlatformProjection, /APPS_PACKAGES_POINTER/);
+    assert.doesNotMatch(kitPlatformProjection, /registry_path:\s*Option|packages_path/);
     assert.doesNotMatch(kitPlatformProjection, /ensure_apps_packages/);
     assert.doesNotMatch(kitPlatformProjection, /struct\s+BridgeRegistryRow/);
     assert.doesNotMatch(kitPlatformProjection, /struct\s+BridgeReleaseDescriptorRow/);
@@ -76,6 +69,7 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.doesNotMatch(kitPlatformProjection, /storage_roots|storageRoots/);
     assert.doesNotMatch(desktopBootstrap, /apps_bridge_projection_get/);
     assert.doesNotMatch(desktopMain, /apps_bridge_projection/);
+    assert.doesNotMatch(desktopMain, /apps_registry_projection|apps_packages_projection/);
   });
 
   it('keeps Desktop renderer Apps as SDK and Runtime consumers', () => {

@@ -1,5 +1,4 @@
-use crate::desktop_paths::resolve_nimi_dir;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub(crate) fn validate_account_id(account_id: &str) -> Result<String, String> {
     let normalized = account_id.trim();
@@ -27,14 +26,17 @@ fn account_path_segment(account_id: &str) -> String {
 
 /// On-disk path of an account's durable Account Default Profile library record.
 ///
-/// P-AIPS-013 fixes this at `~/.nimi/accounts/<account-id>/profiles/default.json`
-/// — the `~/.nimi` CONTROL root, not the user-selected `nimi_data` DATA root.
-/// The account id is percent-encoded into the directory segment. The selected
-/// data root it was provisioned against is recorded as the record's
-/// `dataRootRef` field, not as the location it lives under.
-pub fn account_default_profile_path(account_id: &str) -> Result<PathBuf, String> {
+/// P-AIPS-013 fixes this at
+/// `<dataRoot>/accounts/<account-id>/profiles/default.json`. The canonical
+/// `dataRoot` is resolved by Product Control before entering this library; the
+/// library never discovers a root or falls back to the Product Control
+/// directory. The account id is percent-encoded into the directory segment.
+pub fn account_default_profile_path(data_root: &Path, account_id: &str) -> Result<PathBuf, String> {
+    if !data_root.is_absolute() {
+        return Err("canonical data_root must be absolute".to_string());
+    }
     let normalized_account = validate_account_id(account_id)?;
-    Ok(resolve_nimi_dir()?
+    Ok(data_root
         .join("accounts")
         .join(account_path_segment(&normalized_account))
         .join("profiles")

@@ -45,7 +45,7 @@ pub fn read_account_default_profile_ai_profile(
     data_root: &Path,
     authenticated_account_id: &str,
 ) -> Result<AccountDefaultProfileAIProfile, String> {
-    let path = account_default_profile_path(authenticated_account_id)?;
+    let path = account_default_profile_path(data_root, authenticated_account_id)?;
     let expected_data_root_ref = data_root_ref(data_root)?;
     let record = read_profile_record(&path)?;
     verify_record_fields(&record, authenticated_account_id, &expected_data_root_ref)?;
@@ -71,7 +71,7 @@ pub fn verify_account_default_profile_ref(
     authenticated_account_id: &str,
     account_default_profile_ref: &str,
 ) -> Result<AccountDefaultProfileEvidence, String> {
-    let path = account_default_profile_path(authenticated_account_id)?;
+    let path = account_default_profile_path(data_root, authenticated_account_id)?;
     let expected_data_root_ref = data_root_ref(data_root)?;
     let record = read_profile_record(&path)?;
     verify_record_fields(&record, authenticated_account_id, &expected_data_root_ref)?;
@@ -90,7 +90,7 @@ pub fn ensure_account_default_profile(
     selected_ai_profile_alias: &str,
     install_level: &str,
 ) -> Result<AccountDefaultProfileEvidence, String> {
-    let path = account_default_profile_path(authenticated_account_id)?;
+    let path = account_default_profile_path(data_root, authenticated_account_id)?;
     let expected_data_root_ref = data_root_ref(data_root)?;
     let selected_row =
         verify_first_run_factory_ai_profile(selected_ai_profile_alias, install_level)?;

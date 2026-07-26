@@ -19,7 +19,7 @@ export type AppsBridgeProjection = NimiAppBridgeProjection;
 /**
  * Invoke the standard `platformProjection.get` shell command.
  *
- * Ensures `~/.nimi/apps/registry.json` is materialized, then returns the SDK
+ * Ensures `<dataRoot>/apps/registry.json` is materialized, then returns the SDK
  * Nimi App registry/descriptor loader payloads. Package readiness is read
  * through Runtime `GetAppPackageReadiness`, not this shell projection.
  * Requires a standard shell host; Desktop does not keep an app-local fallback.

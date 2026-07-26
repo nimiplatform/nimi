@@ -57,10 +57,7 @@ export function DataManagementPage() {
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
-  const [resolvedNimiDir, setResolvedNimiDir] = useState('');
-  const [resolvedNimiDataDir, setResolvedNimiDataDir] = useState('');
-  const [resolvedLocalModelsDir, setResolvedLocalModelsDir] = useState('');
-  const [resolvedLocalRuntimeStatePath, setResolvedLocalRuntimeStatePath] = useState('');
+  const [resolvedDataRoot, setResolvedDataRoot] = useState('');
   const [storage, setStorage] = useState<StorageSnapshot>({
     queryCacheBytes: 0,
     localStorageBytes: 0,
@@ -86,10 +83,7 @@ export function DataManagementPage() {
   }, [refreshStorageSnapshot]);
 
   const applyStorageDirs = useCallback((dirs: DesktopRendererStorageDirs) => {
-    setResolvedNimiDir(dirs.nimiDir);
-    setResolvedNimiDataDir(dirs.nimiDataDir);
-    setResolvedLocalModelsDir(dirs.localModelsDir);
-    setResolvedLocalRuntimeStatePath(dirs.localRuntimeStatePath);
+    setResolvedDataRoot(dirs.dataRoot);
   }, []);
 
   useEffect(() => {
@@ -209,10 +203,7 @@ export function DataManagementPage() {
         <SectionTitle>{t('DataManagement.dataDirTitle')}</SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
           <div className="space-y-1 text-xs text-gray-500">
-            <p>{t('DataManagement.nimiDirLabel')}: <span className="break-all text-gray-700">{resolvedNimiDir || '-'}</span></p>
-            <p>{t('DataManagement.nimiDataDirLabel')}: <span className="break-all text-gray-700">{resolvedNimiDataDir || '-'}</span></p>
-            <p>{t('DataManagement.localModelsDirLabel')}: <span className="break-all text-gray-700">{resolvedLocalModelsDir || '-'}</span></p>
-            <p>{t('DataManagement.localRuntimeStatePathLabel')}: <span className="break-all text-gray-700">{resolvedLocalRuntimeStatePath || '-'}</span></p>
+            <p>{t('DataManagement.dataRootLabel')}: <span className="break-all text-gray-700">{resolvedDataRoot || '-'}</span></p>
           </div>
           <p className="text-xs text-amber-700">
             {t('DataManagement.dataDirHelp')}

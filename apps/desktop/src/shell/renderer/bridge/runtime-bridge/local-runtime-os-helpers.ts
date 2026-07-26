@@ -47,7 +47,7 @@ function isStandardRevealNotFound(error: unknown): boolean {
 }
 
 async function localRuntimeModelsRoot(): Promise<string> {
-  const root = (await getDesktopStorageDirs()).localModelsDir.trim();
+  const root = (await getDesktopStorageDirs()).modelsDir.trim();
   if (!root) {
     throw new Error('Local runtime models root is unavailable');
   }

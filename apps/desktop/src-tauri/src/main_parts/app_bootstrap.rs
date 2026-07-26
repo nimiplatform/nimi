@@ -349,7 +349,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_product_control::product_control_record_ensure_created,
             crate::desktop_product_control::product_control_record_select_data_root,
             crate::desktop_product_control::product_control_record_complete_first_run_device_environment_scan,
-            crate::desktop_product_control::product_control_default_data_root_directory,
             crate::desktop_product_control::product_control_record_set_first_run_install_level,
             crate::desktop_product_control::product_control_record_ensure_account_default_profile,
             crate::desktop_product_control::product_control_record_prepare_first_run_local_ai_ready,
@@ -415,7 +414,8 @@ pub(crate) fn run() {
                     if label == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
                         set_desktop_open_intent_ready(app_handle, false);
                         tauri::async_runtime::spawn(async {
-                            nimi_shell_tauri::capabilities::runtime::invalidate_desktop_host().await;
+                            nimi_shell_tauri::capabilities::runtime::invalidate_desktop_host()
+                                .await;
                         });
                     }
                 }

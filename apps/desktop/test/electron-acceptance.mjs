@@ -21,10 +21,12 @@ test('unsigned Desktop Electron fails closed without the protected carrier while
     : false,
 }, async () => {
   await withTempDir('acceptance', async (tmpRoot) => {
-    const dataRoot = path.join(tmpRoot, 'data');
+    const staleAppOwnedDataRoot = path.join(tmpRoot, 'stale-app-owned-data');
     const assetRoot = path.join(tmpRoot, 'assets');
     const assetPath = path.join(assetRoot, 'preview.txt');
-    const runtimeConfigPath = path.join(dataRoot, 'runtime', 'config.json');
+    // Deliberate negative canary: this retired app-owned path must never become
+    // Runtime config or Product Control authority.
+    const runtimeConfigPath = path.join(staleAppOwnedDataRoot, 'runtime', 'config.json');
     await mkdir(assetRoot, { recursive: true });
     await mkdir(path.dirname(runtimeConfigPath), { recursive: true });
     await writeFile(assetPath, 'desktop asset preview', 'utf8');
@@ -39,7 +41,6 @@ test('unsigned Desktop Electron fails closed without the protected carrier while
       args: [mainEntry],
       env: acceptanceEnvironment({
         NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererAcceptanceUrl,
-        NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: assetRoot,
         NIMI_REALM_URL: 'http://localhost',
         NIMI_REALTIME_URL: 'ws://localhost:3003',
@@ -154,21 +155,21 @@ test('unsigned Desktop Electron fails closed without the protected carrier while
         relativePath: 'settings/profile.json',
       });
       assert.equal(dataPathError.code, 'capability-unavailable');
-      assert.equal(dataPathError.reasonCode, 'electron-standard-data-root-binding-missing');
-      assert.equal(dataPathError.actionHint, 'provide_runtime_attested_standard_data_root_binding');
+      assert.equal(dataPathError.reasonCode, 'electron-product-control-data-root-unavailable');
+      assert.equal(dataPathError.actionHint, 'complete_or_repair_canonical_product_control');
 
       const storageWriteError = await captureInvokeError(page, 'storage.writeJson', {
         relativePath: 'settings/profile.json',
         value: { schemaVersion: 1, shell: 'electron-desktop' },
       });
       assert.equal(storageWriteError.code, 'capability-unavailable');
-      assert.equal(storageWriteError.reasonCode, 'electron-standard-data-root-binding-missing');
+      assert.equal(storageWriteError.reasonCode, 'electron-product-control-data-root-unavailable');
 
       const storageReadError = await captureInvokeError(page, 'storage.readJson', {
         relativePath: 'settings/profile.json',
       });
       assert.equal(storageReadError.code, 'capability-unavailable');
-      assert.equal(storageReadError.reasonCode, 'electron-standard-data-root-binding-missing');
+      assert.equal(storageReadError.reasonCode, 'electron-product-control-data-root-unavailable');
 
       const assetResult = await page.evaluate(async ({ command, assetPath: inputPath }) => {
         const result = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { path: inputPath });
@@ -203,33 +204,11 @@ test('unsigned Desktop Electron fails closed without the protected carrier while
       });
       assert.deepEqual(avatarAssetResult, assetResult);
 
-      const missingAiConfig = await captureInvokeError(page, 'ai-config.get', { scopeRef: 'desktop.scope.chat' });
-      assert.equal(missingAiConfig.code, 'not-found');
-      assert.equal(missingAiConfig.reasonCode, 'electron-ai-config-scope-not-found');
-
-      const aiConfig = {
-        schemaVersion: 1,
+      const aiConfigError = await captureInvokeError(page, 'ai-config.get', {
         scopeRef: 'desktop.scope.chat',
-        profileOrigin: { kind: 'factory-profile', alias: 'local-gpu' },
-        capabilities: {
-          targetRefs: {
-            'text.generate': { kind: 'local-runtime', readinessRef: 'execution:desktop-electron-acceptance' },
-          },
-        },
-      };
-      const aiConfigSet = await invokeShell(page, 'ai-config.set', {
-        scopeRef: 'desktop.scope.chat',
-        config: aiConfig,
       });
-      assert.deepEqual(aiConfigSet, {
-        scopeRef: 'desktop.scope.chat',
-        config: aiConfig,
-      });
-      const aiConfigGet = await invokeShell(page, 'ai-config.get', { scopeRef: 'desktop.scope.chat' });
-      assert.deepEqual(aiConfigGet, {
-        scopeRef: 'desktop.scope.chat',
-        config: aiConfig,
-      });
+      assert.equal(aiConfigError.code, 'capability-unavailable');
+      assert.equal(aiConfigError.reasonCode, 'electron-product-control-data-root-unavailable');
 
       const focusResult = await invokeShell(page, 'shell-ui.focusMainWindow', {});
       assert.deepEqual(focusResult, {});
@@ -245,14 +224,12 @@ test('Desktop Electron config.get cannot fall back to an app-owned runtime confi
     ? 'macOS CDP is admitted only on the installed signed acceptance carrier'
     : false,
 }, async () => {
-  await withTempDir('missing-config', async (tmpRoot) => {
-    const dataRoot = path.join(tmpRoot, 'data');
+  await withTempDir('missing-config', async () => {
     const app = await electron.launch({
       executablePath: electronExecutablePath,
       args: [mainEntry],
       env: acceptanceEnvironment({
         NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererAcceptanceUrl,
-        NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
       }),
     });
     try {

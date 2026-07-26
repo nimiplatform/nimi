@@ -2,8 +2,6 @@
 
 use serde::Deserialize;
 
-#[cfg(test)]
-pub use nimi_shell_tauri::capabilities::data::enforce_data_root_layout;
 use nimi_shell_tauri::capabilities::data::{
     execute_directory_cleanup, plan_directory_cleanup, CleanupOutcome, CleanupPlan,
 };
@@ -22,7 +20,7 @@ pub struct NimiDataCleanupPayload {
 /// `nimi_data` directory. Deletes nothing.
 #[tauri::command]
 pub async fn nimi_data_cleanup_plan(directory: String) -> Result<CleanupPlan, String> {
-    let data_root = crate::desktop_product_control::runtime_selected_product_data_root().await?;
+    let data_root = crate::desktop_product_control::runtime_validated_nimi_data_root().await?;
     run_blocking(move || plan_directory_cleanup(&data_root, &directory)).await
 }
 
@@ -33,7 +31,7 @@ pub async fn nimi_data_cleanup_plan(directory: String) -> Result<CleanupPlan, St
 pub async fn nimi_data_cleanup_execute(
     payload: NimiDataCleanupPayload,
 ) -> Result<CleanupOutcome, String> {
-    let data_root = crate::desktop_product_control::runtime_selected_product_data_root().await?;
+    let data_root = crate::desktop_product_control::runtime_validated_nimi_data_root().await?;
     run_blocking(move || {
         execute_directory_cleanup(
             &data_root,

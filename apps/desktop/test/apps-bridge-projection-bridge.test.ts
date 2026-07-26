@@ -51,8 +51,6 @@ test('Desktop apps bridge projection no longer references app-local Tauri comman
 
 function appsBridgeRecordFixture(): Record<string, unknown> {
   return {
-    registryPath: '/Users/test/.nimi/apps/registry.json',
-    packagesPath: '/Users/test/.nimi/apps/packages.json',
     registryRows: [{
       appId: 'nimi.example-app',
       appKind: 'nimi-app',

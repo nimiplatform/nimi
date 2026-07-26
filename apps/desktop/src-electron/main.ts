@@ -1,13 +1,14 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { mkdir } from 'node:fs/promises';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
 import {
   NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION,
+  NimiElectronShellHostError,
   createElectronShellFileProtocolHost,
   createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
+  type NimiElectronAIConfigStore,
   type NimiElectronFileDialogOpenPayload,
   type NimiElectronFileDialogOpenResult,
   type NimiElectronShellFileProtocolHost,
@@ -117,8 +118,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
     localAssetProtocolHost.registerProtocolHandler();
-    const standardDataRoot = resolveStandardDataRoot();
-    await mkdir(standardDataRoot, { recursive: true });
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
       homeDirectory: app.getPath('home'),
       focusMainWindow: focusDesktopMainWindow,
@@ -129,12 +128,20 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       emitIntent: emitDesktopOpenIntent,
     });
     const productControlHost = createDesktopElectronProductControlHost();
+    const resolveProductControlDataRoot = createDesktopProductControlDataRootResolver(
+      productControlHost.resolveSelectedDataRoot,
+    );
     bundledAvatarHost = await createDesktopElectronBundledAvatarHost({
       rendererUrl: bundledAvatarRendererUrl,
       preloadPath,
-      appPrivateDataRoot: path.join(app.getPath('userData'), 'bundled-avatar', 'standard-shell-data'),
+      resolveAppPrivateDataRoot: async () => path.join(
+        await resolveProductControlDataRoot(),
+        'apps',
+        'nimi.avatar',
+        'data',
+      ),
       localAssetProtocolHost,
-      resolveSelectedDataRoot: productControlHost.resolveSelectedDataRoot,
+      resolveSelectedDataRoot: resolveProductControlDataRoot,
       devRendererRoot: ELECTRON_DEVELOPMENT_BUILD
         ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
         : undefined,
@@ -162,14 +169,14 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ...desktopOpenIntentHost.commandHandlers,
         ...productControlHost.commandHandlers,
         ...bundledAvatarHost.desktopCommandHandlers,
-        product_control_default_data_root_directory: () => path.resolve(app.getPath('home'), 'Nimi'),
       },
       standardShellHost: {
         allowAllStandardShellCommands: true,
-        // Runtime-owned app storage is outside authority package #2a. Omitting
-        // the binding keeps storage commands typed unavailable instead of
-        // reopening the retired public-TCP GetAppStorage fallback.
-        localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
+        standardDataRootBinding: {
+          source: 'product-control-projection',
+          resolveDataRoot: resolveProductControlDataRoot,
+        },
+        localAssetRoots: resolveStandardLocalAssetRoots(),
         localAssetProtocolHost,
         openFileDialog: openDesktopStandardFileDialog,
         openExternalUrl: openDesktopExternalUrl,
@@ -178,7 +185,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         runtimeTrustedCaller: {
           mode: 'desktop-shell',
         },
-        aiConfigStore: createDesktopAiConfigStore(standardDataRoot),
+        aiConfigStore: createDesktopAiConfigStore(resolveProductControlDataRoot),
       },
       bundledAvatarHost: bundledAvatarHost.runtimeBridgeHost,
     });
@@ -376,19 +383,12 @@ function isDesktopRendererUrl(url: string): boolean {
   return isAllowedElectronRendererUrl(url, allowedRendererUrls());
 }
 
-function resolveStandardDataRoot(): string {
-  const fromEnv = ELECTRON_DEVELOPMENT_BUILD
-    ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT)
-    : '';
-  return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
-}
-
-function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
+function resolveStandardLocalAssetRoots(): string[] {
   const fromEnv = ELECTRON_DEVELOPMENT_BUILD
     ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS)
     : '';
   if (!fromEnv) {
-    return [dataRoot, app.getPath('downloads')].map((filePath) => path.resolve(filePath));
+    return [path.resolve(app.getPath('downloads'))];
   }
   return fromEnv
     .split(path.delimiter)
@@ -397,11 +397,50 @@ function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
     .map((filePath) => path.resolve(filePath));
 }
 
-function createDesktopAiConfigStore(dataRoot: string) {
-  return createNimiElectronFileAIConfigStore({
-    dataRoot,
+function createDesktopAiConfigStore(
+  resolveDataRoot: () => Promise<string>,
+): NimiElectronAIConfigStore {
+  const currentStore = async () => createNimiElectronFileAIConfigStore({
+    dataRoot: await resolveDataRoot(),
     storeLabel: 'desktop AI Config',
   });
+  return {
+    get: async (input) => (await currentStore()).get(input),
+    set: async (input) => (await currentStore()).set(input),
+  };
+}
+
+function createDesktopProductControlDataRootResolver(
+  resolveSelectedDataRoot: () => Promise<string>,
+): () => Promise<string> {
+  return async () => {
+    try {
+      const dataRoot = await resolveSelectedDataRoot();
+      if (!path.isAbsolute(dataRoot)) {
+        throw new NimiElectronShellHostError({
+          code: 'host-internal-error',
+          message: 'Desktop canonical Product Control data root is not absolute',
+          reasonCode: 'electron-product-control-data-root-invalid',
+          actionHint: 'repair_canonical_product_control_data_root',
+          details: { valueType: typeof dataRoot },
+        });
+      }
+      return dataRoot;
+    } catch (error) {
+      if (error instanceof NimiElectronShellHostError) {
+        throw error;
+      }
+      throw new NimiElectronShellHostError({
+        code: 'capability-unavailable',
+        message: 'Desktop canonical Product Control data root is unavailable',
+        reasonCode: 'electron-product-control-data-root-unavailable',
+        actionHint: 'complete_or_repair_canonical_product_control',
+        details: {
+          cause: error instanceof Error ? error.message : String(error ?? ''),
+        },
+      });
+    }
+  };
 }
 
 async function openDesktopExternalUrl(url: string): Promise<void> {

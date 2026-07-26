@@ -10,12 +10,11 @@ mod account;
 #[path = "operations_built_in_ai_config.rs"]
 mod built_in_ai_config;
 #[cfg(test)]
-#[path = "operations_test_support.rs"]
-mod operations_test_support;
-#[cfg(test)]
 #[path = "operations_tests.rs"]
 mod tests;
 
+use super::record::{ProductControlRecord, ProductControlRecordProjection, ProductControlState};
+use super::record_store::{selected_data_root_path, usable_product_control_record_for};
 pub(crate) use account::authenticated_runtime_account_id;
 pub use account::{
     ensure_account_default_profile_for_product_control, read_account_default_profile_for_scope_init,
@@ -28,15 +27,6 @@ pub(super) use account::{
 pub use built_in_ai_config::{
     read_built_in_ai_config_for_scope_init, ProductBuiltInAiConfigScopePayload,
 };
-#[cfg(test)]
-pub(crate) use operations_test_support::complete_first_run_device_environment_scan_with_profile;
-#[cfg(test)]
-pub use operations_test_support::{
-    ensure_product_control_record_created, select_product_data_root, set_first_run_install_level,
-};
-
-use super::record::{ProductControlRecord, ProductControlRecordProjection, ProductControlState};
-use super::record_store::selected_data_root_path;
 
 fn to_json<T: Serialize>(value: &T, label: &str) -> Result<String, String> {
     serde_json::to_string(value).map_err(|error| format!("serialize {label}: {error}"))
@@ -44,20 +34,13 @@ fn to_json<T: Serialize>(value: &T, label: &str) -> Result<String, String> {
 
 async fn runtime_product_control_record_for(action: &str) -> Result<ProductControlRecord, String> {
     let projection = super::product_control_record_get().await?;
-    projection.record.ok_or_else(|| {
-        projection
-            .error
-            .unwrap_or_else(|| format!("product-control record is required before {action}"))
-    })
+    usable_product_control_record_for(projection, action)
 }
 
 fn selected_data_root_for(record: &ProductControlRecord, action: &str) -> Result<PathBuf, String> {
     selected_data_root_path(record)
         .ok_or_else(|| format!("selected nimi_data is required before {action}"))
 }
-
-// Test-only local product-control record mutator.
-// Production code must route product-control state changes through RuntimeLocalService.
 
 fn first_run_factory_profile_ref(install_level: &str) -> String {
     format!(

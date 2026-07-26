@@ -145,7 +145,6 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_E2E_AUTH_SESSION_STORAGE",
         "NIMI_E2E_AUTH_SESSION_MASTER_KEY",
         "NIMI_E2E_PROFILE",
-        "NIMI_RUNTIME_CONFIG_PATH",
         "NIMI_RUNTIME_GRPC_ADDR",
         "NIMI_RUNTIME_HTTP_ADDR",
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
@@ -176,54 +175,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     let avatar_cache_root = avatar_app_root.join("cache");
     let avatar_temp_root = avatar_app_root.join("tmp");
     let fixture_path = fixture_dir.join("fixture.json");
-    let selected_data_root_json =
-        serde_json::to_string(&selected_data_root.to_string_lossy().to_string())
-            .expect("encode selected data root path");
-    fs::write(
-        &fixture_path,
-        format!(
-            r#"{{
-  "tauriFixture": {{
-    "productControlRecord": {{
-      "schemaVersion": 1,
-      "installId": "e2e-ready-install",
-      "productVersion": "0.1.0",
-      "state": "ready_for_use",
-      "dataRoot": {{
-        "path": {},
-        "status": "ready",
-        "selectedAt": "2026-03-15T00:00:00.000Z",
-        "verifiedAt": "2026-03-15T00:00:00.000Z",
-        "selectedAtUnixMs": 1773532800000,
-        "verifiedAtUnixMs": 1773532800000
-      }},
-      "firstRun": {{
-        "installLevel": "minimal",
-        "aiProfileAlias": "local-speech-ready",
-        "completed": true,
-        "completedAt": "2026-03-15T00:00:00.000Z",
-        "initializationPlanId": "e2e-first-run-plan",
-        "baselineProfileRef": "aiprofile/nimi.first-run.local-factory.minimal@1",
-        "baselineCommitId": "e2e-fixture",
-        "accountDefaultProfileRef": "account-default:e2e",
-        "builtInAiConfigRefs": ["ai-config:nimi-chat:e2e"],
-        "runtimeBaselineRef": "runtime-baseline:e2e",
-        "executionEvidenceRef": "e2e-ready-entry"
-      }},
-      "pointers": {{
-        "runtimeConfigPath": "/tmp/nimi-e2e-runtime/config.json"
-      }},
-      "repair": {{
-        "required": false,
-        "reason": null
-      }}
-    }}
-  }}
-}}"#,
-            selected_data_root_json
-        ),
-    )
-    .expect("write fixture");
+    fs::write(&fixture_path, "{\"tauriFixture\":{}}\n").expect("write fixture");
     std::env::remove_var("NIMI_E2E_FIXTURE_PATH");
     std::env::set_var("HOME", home_dir.as_os_str());
     std::env::set_var("NIMI_REALM_URL", "http://127.0.0.1:50803");
@@ -244,10 +196,6 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     std::env::set_var("NIMI_E2E_AUTH_SESSION_MASTER_KEY", "master-key");
     std::env::set_var("NIMI_E2E_PROFILE", "boot.anonymous.login-screen");
     std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
-    std::env::set_var(
-        "NIMI_RUNTIME_CONFIG_PATH",
-        fixture_dir.join("runtime-config.json").as_os_str(),
-    );
     std::env::set_var("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:51801");
     std::env::set_var("NIMI_RUNTIME_HTTP_ADDR", "127.0.0.1:51802");
     std::env::set_var(
@@ -290,13 +238,6 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     assert!(pairs.contains(&(
         "NIMI_E2E_FIXTURE_PATH",
         fixture_path.to_string_lossy().to_string()
-    )));
-    assert!(pairs.contains(&(
-        "NIMI_RUNTIME_CONFIG_PATH",
-        fixture_dir
-            .join("runtime-config.json")
-            .to_string_lossy()
-            .to_string()
     )));
     assert!(pairs.contains(&("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:51801".to_string())));
     assert!(pairs.contains(&("NIMI_RUNTIME_HTTP_ADDR", "127.0.0.1:51802".to_string())));

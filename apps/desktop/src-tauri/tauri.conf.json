@@ -33,10 +33,7 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$HOME/.nimi/data/avatar-resources/resources/**",
-          "$HOME/.nimi/data/chat-agent-backdrops/assets/**"
-        ]
+        "scope": []
       },
       "csp": "default-src 'self' ipc:; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob: file: asset: http://asset.localhost; media-src 'self' https: data: blob: file: asset: http://asset.localhost; font-src 'self' data: asset: http://asset.localhost; connect-src 'self' https: data: asset: http://asset.localhost http://ipc.localhost http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;",
       "devCsp": "default-src 'self' ipc:; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob: file: asset: http://asset.localhost; media-src 'self' https: data: blob: file: asset: http://asset.localhost; font-src 'self' data: asset: http://asset.localhost; connect-src 'self' https: data: asset: http://asset.localhost http://ipc.localhost http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;"

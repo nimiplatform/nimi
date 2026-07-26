@@ -5,7 +5,7 @@
  *
  * These functions are the renderer's bridge to the `account_profile_library_*`
  * Tauri commands. The account profile library file family
- * (`~/.nimi/accounts/<account-id>/profiles/{ index.json, user/, imported/ }`,
+ * (`<dataRoot>/accounts/<account-id>/profiles/{ index.json, user/, imported/ }`,
  * `account_profile_library_files.rs`) is the single source of truth; this
  * bridge only reads/writes it and parses the host projection fail-closed.
  */

@@ -41,7 +41,7 @@ export type DesktopElectronBundledAvatarHost = {
 export type CreateDesktopElectronBundledAvatarHostInput = {
   readonly rendererUrl: string;
   readonly preloadPath: string;
-  readonly appPrivateDataRoot: string;
+  readonly resolveAppPrivateDataRoot: () => Promise<string>;
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
   readonly resolveSelectedDataRoot: () => Promise<string>;
   readonly devRendererRoot?: string;
@@ -51,9 +51,12 @@ export async function createDesktopElectronBundledAvatarHost(
   input: CreateDesktopElectronBundledAvatarHostInput,
 ): Promise<DesktopElectronBundledAvatarHost> {
   const rendererUrl = normalizeAbsoluteUrl(input.rendererUrl, 'bundled Avatar renderer URL');
-  const appPrivateDataRoot = path.resolve(input.appPrivateDataRoot);
-  await mkdir(appPrivateDataRoot, { recursive: true });
-  const localAssetRoots = [appPrivateDataRoot];
+  const resolveAppPrivateDataRoot = async (): Promise<string> => {
+    const appPrivateDataRoot = path.resolve(await input.resolveAppPrivateDataRoot());
+    await mkdir(appPrivateDataRoot, { recursive: true });
+    return appPrivateDataRoot;
+  };
+  const localAssetRoots: string[] = [];
   const assetHost = createNimiElectronBundledAvatarAssetHost({
     resolveSelectedDataRoot: input.resolveSelectedDataRoot,
     localAssetProtocolHost: input.localAssetProtocolHost,
@@ -240,12 +243,12 @@ export async function createDesktopElectronBundledAvatarHost(
         scaleFactor: display.scaleFactor || 1,
       };
     },
-    nimi_avatar_record_evidence: ({ payload }) => recordEvidence(
-      appPrivateDataRoot,
+    nimi_avatar_record_evidence: async ({ payload }) => recordEvidence(
+      await resolveAppPrivateDataRoot(),
       exactNestedPayload(payload, 'nimi_avatar_record_evidence'),
     ),
-    nimi_avatar_write_evidence_artifact: ({ payload }) => writeEvidenceArtifact(
-      appPrivateDataRoot,
+    nimi_avatar_write_evidence_artifact: async ({ payload }) => writeEvidenceArtifact(
+      await resolveAppPrivateDataRoot(),
       exactNestedPayload(payload, 'nimi_avatar_write_evidence_artifact'),
     ),
   };
@@ -268,9 +271,8 @@ export async function createDesktopElectronBundledAvatarHost(
     standardShellHost: {
       capabilitySetRef: NIMI_BUNDLED_AVATAR_STANDARD_SHELL_CAPABILITY_SET_ID,
       standardDataRootBinding: {
-        source: 'runtime-launch-projection',
-        durableDataRoot: appPrivateDataRoot,
-        projectionRef: 'desktop-supervised-bundled-avatar-app-private-v1',
+        source: 'product-control-projection',
+        resolveDataRoot: resolveAppPrivateDataRoot,
       },
       localAssetRoots,
       localAssetProtocolHost: input.localAssetProtocolHost,

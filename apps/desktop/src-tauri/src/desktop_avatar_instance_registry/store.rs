@@ -228,7 +228,9 @@ fn list_instances_from_file_at(
         .collect())
 }
 
-pub(crate) fn list_instances(agent_id: &str) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
+pub(crate) fn list_instances(
+    agent_id: &str,
+) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
     let path = registry_path()?;
     let file = load_registry_from_path(&path)?;
     list_instances_from_file(file, agent_id)
@@ -564,7 +566,9 @@ mod tests {
 
     #[test]
     fn agent_selector_rejects_missing_bare_and_malformed_refs() {
-        assert!(validate_agent_id("").expect_err("missing agent").contains("agentId"));
+        assert!(validate_agent_id("")
+            .expect_err("missing agent")
+            .contains("agentId"));
         assert!(validate_agent_id("agent-1")
             .expect_err("bare agent")
             .contains("local-agent:"));

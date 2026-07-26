@@ -3,7 +3,6 @@ use super::{
     verify_account_default_profile_ref, AccountDefaultProfileRecord,
     PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
 };
-use crate::test_support::with_env;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -14,21 +13,6 @@ fn unique_suffix() -> u128 {
         .as_nanos()
 }
 
-/// Isolated `~/.nimi` control-root home for one test. P-AIPS-013 fixes the
-/// Account Default Profile under `~/.nimi/accounts/...`, so the test pins
-/// `HOME` to a fresh temp directory before exercising the library.
-fn temp_home(prefix: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "nimi-account-profile-home-{prefix}-{}",
-        unique_suffix()
-    ));
-    std::fs::create_dir_all(&dir).expect("create temp home");
-    dir
-}
-
-/// Isolated user-selected `nimi_data` DATA root for one test. The data root
-/// is only the binding assertion recorded as `dataRootRef`; the Account
-/// Default Profile record no longer LIVES under it.
 fn temp_data_root(prefix: &str) -> PathBuf {
     let dir =
         std::env::temp_dir().join(format!("nimi-account-profile-{prefix}-{}", unique_suffix()));
@@ -36,11 +20,11 @@ fn temp_data_root(prefix: &str) -> PathBuf {
     dir
 }
 
-/// Run `body` with `HOME` pinned to a fresh control-root home so
-/// `account_default_profile_path` resolves `<home>/.nimi/accounts/...`.
-fn with_isolated_home<R>(prefix: &str, body: impl FnOnce(&Path) -> R) -> R {
-    let home = temp_home(prefix);
-    with_env(&[("HOME", home.to_str())], || body(&home))
+/// Run `body` with one explicit canonical data root. Account storage must be
+/// derived from this argument and may not discover a root from HOME.
+fn with_data_root<R>(prefix: &str, body: impl FnOnce(&Path) -> R) -> R {
+    let root = temp_data_root(prefix);
+    body(&root)
 }
 
 fn read_record(path: &std::path::Path) -> AccountDefaultProfileRecord {
@@ -123,13 +107,10 @@ fn add_legacy_text_embed_to_factory_seed(record: &mut AccountDefaultProfileRecor
 }
 
 #[test]
-fn creates_default_profile_under_nimi_control_root_accounts() {
-    with_isolated_home("create", |home| {
-        // P-AIPS-013: the Account Default Profile lives under the `~/.nimi`
-        // CONTROL root, not under the user-selected `nimi_data` DATA root.
-        let root = temp_data_root("create");
+fn creates_default_profile_under_canonical_data_root_accounts() {
+    with_data_root("create", |root| {
         let evidence = ensure_account_default_profile(
-            &root,
+            root,
             "account:abc.def+1",
             "local-speech-ready",
             "minimal",
@@ -139,12 +120,11 @@ fn creates_default_profile_under_nimi_control_root_accounts() {
         assert_eq!(evidence.account_id, "account:abc.def+1");
         assert_eq!(
             evidence.data_root_ref,
-            data_root_ref(&root).expect("data root ref")
+            data_root_ref(root).expect("data root ref")
         );
-        let profile_path = account_default_profile_path("account:abc.def+1").expect("profile path");
-        // The record resolves under `~/.nimi/accounts/...`, never the data root.
-        assert!(profile_path.starts_with(home.join(".nimi").join("accounts")));
-        assert!(!profile_path.starts_with(&root));
+        let profile_path =
+            account_default_profile_path(root, "account:abc.def+1").expect("profile path");
+        assert!(profile_path.starts_with(root.join("accounts")));
         assert!(profile_path.exists());
         let record = read_record(&profile_path);
         // Manual-named conformant fields.
@@ -213,11 +193,9 @@ fn creates_default_profile_under_nimi_control_root_accounts() {
             record.factory_seed_profile_payload_hash
         );
         assert_eq!(record.profile_revision.revision_kind, "factory_seed");
-        // dataRootRef stays recorded inside the record as the binding
-        // assertion, even though the record no longer LIVES under it.
         assert_eq!(
             record.data_root_ref,
-            data_root_ref(&root).expect("data root ref")
+            data_root_ref(root).expect("data root ref")
         );
         assert_eq!(
             record.factory_provenance.source_catalog_id,
@@ -242,12 +220,11 @@ fn creates_default_profile_under_nimi_control_root_accounts() {
 
 #[test]
 fn restores_existing_valid_profile_without_overwriting_for_new_selection() {
-    with_isolated_home("restore", |_home| {
-        let root = temp_data_root("restore");
+    with_data_root("restore", |root| {
         let first =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("first ensure");
-        let path = account_default_profile_path("account_1").expect("profile path");
+        let path = account_default_profile_path(root, "account_1").expect("profile path");
         let mut edited_record = read_record(&path);
         apply_local_payload_change(
             &mut edited_record,
@@ -259,7 +236,7 @@ fn restores_existing_valid_profile_without_overwriting_for_new_selection() {
             super::evidence_from_record(&path, &edited_record).expect("edited evidence");
         let raw_before = std::fs::read_to_string(&path).expect("read before");
         let restored =
-            ensure_account_default_profile(&root, "account_1", "local-gpu", "recommended")
+            ensure_account_default_profile(root, "account_1", "local-gpu", "recommended")
                 .expect("restore existing");
         let raw_after = std::fs::read_to_string(&path).expect("read after");
         assert_eq!(
@@ -276,18 +253,17 @@ fn restores_existing_valid_profile_without_overwriting_for_new_selection() {
 
 #[test]
 fn reseeds_unedited_factory_profile_after_factory_catalog_drift() {
-    with_isolated_home("reseed-factory-drift", |_home| {
-        let root = temp_data_root("reseed-factory-drift");
+    with_data_root("reseed-factory-drift", |root| {
         let first =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("first ensure");
-        let path = account_default_profile_path("account_1").expect("profile path");
+        let path = account_default_profile_path(root, "account_1").expect("profile path");
         let mut stale_record = read_record(&path);
         add_legacy_text_embed_to_factory_seed(&mut stale_record);
         write_record(&path, &stale_record);
 
         let reseeded =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("reseed stale factory profile");
         let next_record = read_record(&path);
 
@@ -318,11 +294,10 @@ fn reseeds_unedited_factory_profile_after_factory_catalog_drift() {
 
 #[test]
 fn catalog_drift_does_not_overwrite_locally_edited_default_profile() {
-    with_isolated_home("edited-factory-drift", |_home| {
-        let root = temp_data_root("edited-factory-drift");
-        ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+    with_data_root("edited-factory-drift", |root| {
+        ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
             .expect("first ensure");
-        let path = account_default_profile_path("account_1").expect("profile path");
+        let path = account_default_profile_path(root, "account_1").expect("profile path");
         let mut edited_record = read_record(&path);
         apply_local_payload_change(
             &mut edited_record,
@@ -348,7 +323,7 @@ fn catalog_drift_does_not_overwrite_locally_edited_default_profile() {
         let raw_before = std::fs::read_to_string(&path).expect("read before");
 
         let error =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect_err("edited stale profile must fail closed");
         let raw_after = std::fs::read_to_string(&path).expect("read after");
 
@@ -359,10 +334,9 @@ fn catalog_drift_does_not_overwrite_locally_edited_default_profile() {
 
 #[test]
 fn verifier_rejects_missing_string_only_wrong_account_and_wrong_data_root_refs() {
-    with_isolated_home("negative", |_home| {
-        let root = temp_data_root("negative");
+    with_data_root("negative", |root| {
         let missing = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             "account-default-profile:v1:string-only",
         )
@@ -370,33 +344,32 @@ fn verifier_rejects_missing_string_only_wrong_account_and_wrong_data_root_refs()
         assert!(missing.contains("missing or unreadable"));
 
         let evidence =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("ensure profile");
         let string_only = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             "account-default-profile:v1:string-only",
         )
         .expect_err("string-only ref must fail");
         assert!(string_only.contains("string-only"));
 
-        // Wrong account resolves to a different `~/.nimi/accounts/<id>`
-        // directory, so the record is missing for that account.
         let wrong_account = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_2",
             &evidence.account_default_profile_ref,
         )
         .expect_err("wrong account must fail");
         assert!(wrong_account.contains("missing or unreadable"));
 
-        // The record path is keyed off the `~/.nimi` control root, not the
-        // data root, so a different selected data root reaches the same
-        // record file — the recorded `dataRootRef` binding assertion must
-        // still fail closed against the mismatched selected data root.
         let other_root = temp_data_root("other-root");
+        let path = account_default_profile_path(root, "account_1").expect("profile path");
+        let mut wrong_root_record = read_record(&path);
+        wrong_root_record.data_root_ref = data_root_ref(&other_root).expect("other data root ref");
+        refresh_content_hash(&mut wrong_root_record);
+        write_record(&path, &wrong_root_record);
         let wrong_root = verify_account_default_profile_ref(
-            &other_root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -414,14 +387,13 @@ fn verifier_rejects_realm_token_shaped_refs_as_account_default_profile_truth() {
     // record already seeded, each realm-token-shaped value must still be
     // rejected as caller-provided / not owner-minted — a realm session
     // artifact is never product readiness truth.
-    with_isolated_home("realm-token-negative", |_home| {
-        let root = temp_data_root("realm-token-negative");
+    with_data_root("realm-token-negative", |root| {
         let evidence =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("ensure profile");
         // sanity: the owner-minted ref still verifies.
         verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -438,7 +410,7 @@ fn verifier_rejects_realm_token_shaped_refs_as_account_default_profile_truth() {
             "{\"sub\":\"account_1\",\"scope\":\"realm.profile\"}",
         ];
         for realm_ref in realm_token_shaped_refs {
-            let error = verify_account_default_profile_ref(&root, "account_1", realm_ref)
+            let error = verify_account_default_profile_ref(root, "account_1", realm_ref)
                 .expect_err("realm-token-shaped ref must be rejected as truth");
             assert!(
                 error.contains("caller-provided, stale, or string-only"),
@@ -450,32 +422,31 @@ fn verifier_rejects_realm_token_shaped_refs_as_account_default_profile_truth() {
 
 #[test]
 fn verifier_rejects_source_and_hash_tampering() {
-    with_isolated_home("tamper", |_home| {
-        let root = temp_data_root("tamper");
+    with_data_root("tamper", |root| {
         let evidence =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("ensure profile");
-        let path = account_default_profile_path("account_1").expect("profile path");
+        let path = account_default_profile_path(root, "account_1").expect("profile path");
 
         let mut record = read_record(&path);
         record.source.policy_ref.clear();
         write_record(&path, &record);
         let source_policy = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
         .expect_err("source policy must fail");
         assert!(source_policy.contains("source policy"));
 
-        ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+        ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
             .expect_err("invalid existing profile must fail closed instead of overwrite");
         let mut record = read_record(&path);
         record.source.policy_ref = super::PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string();
         record.source.catalog_version = PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION + 1;
         write_record(&path, &record);
         let source_catalog = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -487,7 +458,7 @@ fn verifier_rejects_source_and_hash_tampering() {
         record.content_hash = "sha256:bad".to_string();
         write_record(&path, &record);
         let hash = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -498,12 +469,11 @@ fn verifier_rejects_source_and_hash_tampering() {
 
 #[test]
 fn verifier_rejects_missing_payload_payload_hash_mismatch_and_missing_provenance() {
-    with_isolated_home("payload-negative", |_home| {
-        let root = temp_data_root("payload-negative");
+    with_data_root("payload-negative", |root| {
         let evidence =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("ensure profile");
-        let path = account_default_profile_path("account_1").expect("profile path");
+        let path = account_default_profile_path(root, "account_1").expect("profile path");
         let valid_record = read_record(&path);
 
         // The manual-conformant record nests the AIProfile payload inside
@@ -516,7 +486,7 @@ fn verifier_rejects_missing_payload_payload_hash_mismatch_and_missing_provenance
             .remove("profile");
         write_json(&path, missing_payload);
         let missing_payload_error = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -531,7 +501,7 @@ fn verifier_rejects_missing_payload_payload_hash_mismatch_and_missing_provenance
         refresh_content_hash(&mut payload_hash_mismatch);
         write_record(&path, &payload_hash_mismatch);
         let payload_hash_error = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -545,7 +515,7 @@ fn verifier_rejects_missing_payload_payload_hash_mismatch_and_missing_provenance
             .remove("factoryProvenance");
         write_json(&path, missing_provenance);
         let missing_provenance_error = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -560,7 +530,7 @@ fn verifier_rejects_missing_payload_payload_hash_mismatch_and_missing_provenance
         refresh_content_hash(&mut provenance_hash_mismatch);
         write_record(&path, &provenance_hash_mismatch);
         let provenance_hash_error = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -577,7 +547,7 @@ fn verifier_rejects_missing_payload_payload_hash_mismatch_and_missing_provenance
         refresh_content_hash(&mut malformed_payload);
         write_record(&path, &malformed_payload);
         let malformed_payload_error = verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &evidence.account_default_profile_ref,
         )
@@ -588,12 +558,11 @@ fn verifier_rejects_missing_payload_payload_hash_mismatch_and_missing_provenance
 
 #[test]
 fn locally_edited_payload_verifies_with_revision_provenance_and_hashes() {
-    with_isolated_home("payload-seed", |_home| {
-        let root = temp_data_root("payload-seed");
+    with_data_root("payload-seed", |root| {
         let evidence =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("ensure profile");
-        let path = account_default_profile_path("account_1").expect("profile path");
+        let path = account_default_profile_path(root, "account_1").expect("profile path");
         let mut record = read_record(&path);
         assert_eq!(record.profile.payload, record.factory_seed_profile_payload);
         apply_local_payload_change(
@@ -608,7 +577,7 @@ fn locally_edited_payload_verifies_with_revision_provenance_and_hashes() {
         let edited_evidence = super::evidence_from_record(&path, &record).expect("edited evidence");
 
         verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &edited_evidence.account_default_profile_ref,
         )
@@ -622,10 +591,9 @@ fn locally_edited_payload_verifies_with_revision_provenance_and_hashes() {
 
 #[test]
 fn replacing_account_default_profile_does_not_mutate_scope_bound_ai_config_fixture() {
-    with_isolated_home("aiconfig-isolation", |_home| {
-        let root = temp_data_root("aiconfig-isolation");
+    with_data_root("aiconfig-isolation", |root| {
         let evidence =
-            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            ensure_account_default_profile(root, "account_1", "local-speech-ready", "minimal")
                 .expect("ensure profile");
         let ai_config = serde_json::json!({
             "schemaVersion": 1,
@@ -647,7 +615,7 @@ fn replacing_account_default_profile_does_not_mutate_scope_bound_ai_config_fixtu
         write_json(&ai_config_path, ai_config.clone());
         let ai_config_raw_before = std::fs::read_to_string(&ai_config_path).expect("ai config");
 
-        let path = account_default_profile_path("account_1").expect("profile path");
+        let path = account_default_profile_path(root, "account_1").expect("profile path");
         let mut replacement = read_record(&path);
         apply_local_payload_change(
             &mut replacement,
@@ -658,7 +626,7 @@ fn replacing_account_default_profile_does_not_mutate_scope_bound_ai_config_fixtu
         let replacement_evidence =
             super::evidence_from_record(&path, &replacement).expect("replacement evidence");
         verify_account_default_profile_ref(
-            &root,
+            root,
             "account_1",
             &replacement_evidence.account_default_profile_ref,
         )

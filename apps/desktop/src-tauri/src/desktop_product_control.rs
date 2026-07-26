@@ -1,8 +1,9 @@
-//! Runtime-owned product-control projection adapter.
+//! Runtime-validated canonical Product Control projection adapter.
 //!
 //! Desktop Tauri commands forward reads and mutations to RuntimeLocalService;
-//! Desktop may render projections and request admission, but it does not own
-//! product-control state authority.
+//! Runtime resolves `~/.nimi/nimi.json`, independently validates its data-root
+//! binding, and returns typed projections. Desktop may render projections and
+//! request admission, but it does not own Product Control authority.
 //!
 //! Split by responsibility into cohesive submodules; this module root composes
 //! them and exposes the stable Tauri command surface. The backend
@@ -10,22 +11,10 @@
 //! `desktop_product_control_admission` module.
 
 mod operations;
-#[cfg(test)]
-mod paths;
-#[cfg(test)]
-mod pointers;
-#[cfg(test)]
-mod projection;
-#[cfg(test)]
-mod ready_verification;
 mod record;
 mod record_store;
 
 pub use operations::*;
-#[cfg(test)]
-pub use paths::*;
-#[cfg(test)]
-pub use projection::*;
 pub use record::*;
 pub(crate) use record_store::*;
 
@@ -151,21 +140,77 @@ pub async fn product_control_selected_data_root_get(
     .await
 }
 
-pub(crate) async fn runtime_selected_product_data_root() -> Result<std::path::PathBuf, String> {
-    let projection = product_control_selected_data_root_get().await?;
-    let data_root = projection.data_root.ok_or_else(|| {
-        projection.error.unwrap_or_else(|| {
+fn nimi_data_root_from_projection(
+    projection: &ProductControlSelectedDataRootProjection,
+) -> Result<std::path::PathBuf, String> {
+    if !projection.exists {
+        return Err(projection.error.clone().unwrap_or_else(|| {
+            "canonical Product Control record is required before this Desktop operation".to_string()
+        }));
+    }
+    if matches!(
+        projection.state,
+        ProductControlState::ConfigMissing
+            | ProductControlState::DataRootMissing
+            | ProductControlState::RepairRequired
+            | ProductControlState::Blocked
+    ) {
+        return Err(format!(
+            "canonical Product Control state {:?} forbids Desktop data-root use",
+            projection.state
+        ));
+    }
+    let data_root = projection.data_root.as_ref().ok_or_else(|| {
+        projection.error.clone().unwrap_or_else(|| {
             "selected nimi_data is required before this Desktop operation".to_string()
         })
     })?;
+    if !matches!(
+        data_root.status,
+        ProductDataRootStatus::Selected | ProductDataRootStatus::Ready
+    ) {
+        return Err(
+            "canonical Product Control dataRoot is not selected or ready for Desktop use"
+                .to_string(),
+        );
+    }
+    if projection.state == ProductControlState::ReadyForUse
+        && data_root.status != ProductDataRootStatus::Ready
+    {
+        return Err(
+            "canonical Product Control ready_for_use requires dataRoot.status=ready".to_string(),
+        );
+    }
     let path = std::path::PathBuf::from(data_root.path.trim());
     if !path.is_absolute() {
         return Err(format!(
-            "Runtime selected nimi_data path must be absolute, got: {}",
+            "canonical Product Control dataRoot.path must be absolute, got: {}",
             path.display()
         ));
     }
-    Ok(path)
+    Ok(crate::desktop_paths::normalize_desktop_absolute_path(&path))
+}
+
+pub(crate) async fn runtime_validated_nimi_data_root() -> Result<std::path::PathBuf, String> {
+    let projection = product_control_selected_data_root_get().await?;
+    nimi_data_root_from_projection(&projection)
+}
+
+#[cfg(target_os = "windows")]
+fn prepare_selected_data_root_for_runtime(data_root: &str) -> Result<(), String> {
+    nimi_shell_tauri::prepare_fixed_runtime_data_root(std::path::Path::new(data_root)).map_err(
+        |error| {
+            format!(
+                "prepare selected nimi_data root for fixed Runtime service ({}): {error}",
+                error.stage()
+            )
+        },
+    )
+}
+
+#[cfg(not(target_os = "windows"))]
+fn prepare_selected_data_root_for_runtime(_data_root: &str) -> Result<(), String> {
+    Ok(())
 }
 
 #[tauri::command]
@@ -184,6 +229,9 @@ pub async fn product_control_record_select_data_root(
     payload: ProductDataRootSelectPayload,
 ) -> Result<ProductControlRecordProjection, String> {
     let data_root = payload.data_root.trim().to_string();
+    log_product_control_stage("select-data-root-native-prepare-start");
+    prepare_selected_data_root_for_runtime(&data_root)?;
+    log_product_control_stage("select-data-root-native-prepare-ready");
     log_product_control_stage("select-data-root-runtime-start");
     let projection = invoke_product_control_projection_json(
         nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID,
@@ -195,21 +243,6 @@ pub async fn product_control_record_select_data_root(
     .await?;
     log_product_control_stage("select-data-root-runtime-ready");
     Ok(projection)
-}
-
-/// Resolves the OS-conventional default `nimi_data` directory the first-run
-/// Storage phase pre-fills as the recommended location.
-///
-/// This is a read-only proposal: it neither creates the directory nor mutates
-/// the product-control record. The renderer pre-fills the returned absolute
-/// path so the Storage phase never starts from an empty field, and the user
-/// still explicitly confirms it through `product_control_record_select_data_root`,
-/// which owns recording and fail-closed validation (`P-COLD-010`).
-#[tauri::command]
-pub fn product_control_default_data_root_directory() -> Result<String, String> {
-    Ok(crate::desktop_paths::default_data_root_proposal()?
-        .display()
-        .to_string())
 }
 
 #[tauri::command]
@@ -279,423 +312,106 @@ pub async fn built_in_ai_config_for_scope_init(
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_first_run_device_environment_scan_with_profile,
-        ensure_product_control_record_created, product_control_record_path,
-        read_product_control_projection, read_selected_product_data_root_projection,
-        select_product_data_root, selected_product_data_root, set_first_run_install_level,
-        ProductControlState,
+        nimi_data_root_from_projection, ProductControlSelectedDataRootProjection,
+        ProductControlState, ProductDataRootRecord, ProductDataRootStatus,
     };
-    use crate::test_support::with_env;
-    use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::path::{Path, PathBuf};
 
-    fn temp_home(prefix: &str) -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time")
-            .as_nanos();
-        let dir = std::env::temp_dir().join(format!("nimi-product-control-{prefix}-{unique}"));
-        std::fs::create_dir_all(&dir).expect("create temp home");
-        dir
-    }
-
-    fn collected_device_profile() -> crate::runtime_bridge::generated::LocalDeviceProfile {
-        crate::runtime_bridge::generated::LocalDeviceProfile {
-            os: "darwin".to_string(),
-            arch: "arm64".to_string(),
-            ..Default::default()
+    fn selected_projection(
+        data_root_path: &Path,
+        status: ProductDataRootStatus,
+    ) -> ProductControlSelectedDataRootProjection {
+        ProductControlSelectedDataRootProjection {
+            path: std::env::temp_dir()
+                .join("control-plane")
+                .join("nimi.json")
+                .display()
+                .to_string(),
+            exists: true,
+            state: ProductControlState::DataRootSelected,
+            data_root: Some(ProductDataRootRecord {
+                path: data_root_path.display().to_string(),
+                status,
+                selected_at: "2026-07-26T00:00:00.000Z".to_string(),
+                verified_at: "2026-07-26T00:00:00.000Z".to_string(),
+                selected_at_unix_ms: 1,
+                verified_at_unix_ms: 1,
+            }),
+            error: None,
         }
     }
 
     #[test]
-    fn missing_control_record_routes_config_missing_without_writing() {
-        let home = temp_home("missing");
-        with_env(&[("HOME", home.to_str())], || {
-            let projection = read_product_control_projection().expect("projection");
-            assert!(!projection.exists);
-            assert_eq!(projection.state, ProductControlState::ConfigMissing);
-            assert!(projection.record.is_none());
-            assert!(projection
-                .error
-                .unwrap_or_default()
-                .contains("first-run data-root selection"));
-            assert_eq!(
-                product_control_record_path().expect("path"),
-                home.join(".nimi").join("nimi.json")
-            );
-            assert!(!home.join(".nimi").join("nimi.json").exists());
-        });
+    fn selected_data_root_adapter_uses_nested_data_root_for_selected_and_ready_states() {
+        let data_root = std::env::temp_dir().join("nimi-data");
+        for status in [
+            ProductDataRootStatus::Selected,
+            ProductDataRootStatus::Ready,
+        ] {
+            let projection = selected_projection(&data_root, status);
+            let resolved = nimi_data_root_from_projection(&projection).expect("selected data root");
+            assert_eq!(resolved, data_root);
+            assert_ne!(resolved, PathBuf::from(&projection.path));
+        }
     }
 
     #[test]
-    fn internal_creation_writes_empty_data_root_missing_record() {
-        let home = temp_home("ensure-created");
-        with_env(&[("HOME", home.to_str())], || {
-            let projection =
-                ensure_product_control_record_created().expect("ensure product control record");
-            assert!(projection.exists);
-            assert_eq!(projection.state, ProductControlState::DataRootMissing);
-            assert!(projection.record.expect("record").data_root.is_none());
-            assert!(home.join(".nimi").join("nimi.json").exists());
-        });
+    fn selected_data_root_adapter_rejects_repair_state() {
+        let data_root = std::env::temp_dir().join("nimi-data");
+        let projection = selected_projection(&data_root, ProductDataRootStatus::RepairRequired);
+
+        let error =
+            nimi_data_root_from_projection(&projection).expect_err("repair state must fail closed");
+
+        assert!(error.contains("not selected or ready"));
     }
 
     #[test]
-    fn selecting_data_root_writes_control_record_and_required_layout() {
-        let home = temp_home("select-root");
-        let root = home.join("chosen-nimi-data");
-        with_env(&[("HOME", home.to_str())], || {
-            let projection =
-                select_product_data_root(root.to_str().expect("root")).expect("select root");
-            assert!(projection.exists);
-            assert_eq!(projection.state, ProductControlState::DataRootSelected);
-            assert_eq!(selected_product_data_root().expect("selected"), root);
-            assert!(root.join("models").exists());
-            assert!(root.join("apps").exists());
-            assert!(
-                !home
-                    .join(".nimi")
-                    .join("profiles")
-                    .join("factory-index.json")
-                    .exists(),
-                "product-control pointer resolution must not materialize the factory projection"
-            );
-            assert!(
-                !home
-                    .join(".nimi")
-                    .join("apps")
-                    .join("registry.json")
-                    .exists(),
-                "product-control pointer resolution must not materialize the apps registry"
-            );
-            let record = projection.record.expect("record");
-            assert_eq!(
-                record.data_root.expect("data root").status,
-                super::ProductDataRootStatus::Selected
-            );
-            assert!(home.join(".nimi").join("nimi.json").exists());
-        });
-    }
-    #[test]
-    fn install_level_requires_selected_data_root_and_local_level() {
-        let home = temp_home("install-level");
-        with_env(&[("HOME", home.to_str())], || {
-            let missing = set_first_run_install_level("minimal", None).expect_err("missing root");
-            assert!(missing.contains("select nimi_data"));
-            let root = home.join("chosen-nimi-data");
-            select_product_data_root(root.to_str().expect("root")).expect("select root");
-            let invalid =
-                set_first_run_install_level("cloud-first", None).expect_err("invalid level");
-            assert!(invalid.contains("minimal or recommended"));
-            let missing_alias =
-                set_first_run_install_level("minimal", None).expect_err("missing alias");
-            assert!(missing_alias.contains("aiProfileAlias"));
-            let cloud_alias =
-                set_first_run_install_level("minimal", Some("cloud-first".to_string()))
-                    .expect_err("cloud alias");
-            assert!(cloud_alias.contains("not admitted for first-run"));
-            let projection =
-                set_first_run_install_level("recommended", Some("local-speech-ready".to_string()))
-                    .expect("set install level");
-            assert_eq!(
-                projection.state,
-                ProductControlState::AiEnvironmentUnconfigured
-            );
-            let record = projection.record.expect("record");
-            assert_eq!(
-                record.first_run.install_level.as_deref(),
-                Some("recommended")
-            );
-        });
+    fn selected_data_root_adapter_rejects_unusable_projection_state() {
+        let data_root = std::env::temp_dir().join("nimi-data");
+        for state in [
+            ProductControlState::ConfigMissing,
+            ProductControlState::DataRootMissing,
+            ProductControlState::RepairRequired,
+            ProductControlState::Blocked,
+        ] {
+            let mut projection =
+                selected_projection(&data_root, ProductDataRootStatus::Selected);
+            projection.state = state;
+            let error = nimi_data_root_from_projection(&projection)
+                .expect_err("unusable projection state must fail closed");
+            assert!(error.contains("forbids Desktop data-root use"));
+        }
+
+        let mut inconsistent =
+            selected_projection(&data_root, ProductDataRootStatus::Selected);
+        inconsistent.state = ProductControlState::ReadyForUse;
+        let error = nimi_data_root_from_projection(&inconsistent)
+            .expect_err("ready state with selected status must fail closed");
+        assert!(error.contains("requires dataRoot.status=ready"));
     }
 
     #[test]
-    fn device_environment_scan_completion_advances_after_data_root_only() {
-        let home = temp_home("device-scan");
-        with_env(&[("HOME", home.to_str())], || {
-            let missing =
-                complete_first_run_device_environment_scan_with_profile(collected_device_profile())
-                    .expect_err("missing root");
-            assert!(missing.contains("select nimi_data"));
-            let root = home.join("chosen-nimi-data");
-            select_product_data_root(root.to_str().expect("root")).expect("select root");
+    fn selected_data_root_adapter_rejects_relative_or_missing_data_root() {
+        let relative =
+            selected_projection(Path::new("relative-data"), ProductDataRootStatus::Ready);
+        let relative_error = nimi_data_root_from_projection(&relative)
+            .expect_err("relative data root must fail closed");
+        assert!(relative_error.contains("must be absolute"));
 
-            let projection =
-                complete_first_run_device_environment_scan_with_profile(collected_device_profile())
-                    .expect("complete scan");
-            assert_eq!(
-                projection.state,
-                ProductControlState::AiEnvironmentUnconfigured
-            );
-            let idempotent =
-                complete_first_run_device_environment_scan_with_profile(collected_device_profile())
-                    .expect("complete scan again");
-            assert_eq!(
-                idempotent.state,
-                ProductControlState::AiEnvironmentUnconfigured
-            );
-
-            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
-                .expect("set install level");
-            let control_path = product_control_record_path().expect("path");
-            let mut record = super::read_existing_record(&control_path)
-                .expect("read")
-                .expect("record");
-            record.state = ProductControlState::LocalAiProfileSelectedAssetsMissing;
-            super::write_record(&control_path, &record).expect("write setup fixture");
-            let invalid =
-                complete_first_run_device_environment_scan_with_profile(collected_device_profile())
-                    .expect_err("wrong state");
-            assert!(invalid.contains("can only complete after data-root selection"));
-        });
-    }
-
-    #[test]
-    fn data_root_can_only_be_reselected_before_heavy_setup_evidence() {
-        let home = temp_home("reselect-root");
-        let first_root = home.join("first-nimi-data");
-        let second_root = home.join("second-nimi-data");
-        let late_root = home.join("late-nimi-data");
-        with_env(&[("HOME", home.to_str())], || {
-            select_product_data_root(first_root.to_str().expect("first root"))
-                .expect("select first root");
-            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
-                .expect("install level");
-
-            let reselection = select_product_data_root(second_root.to_str().expect("second root"))
-                .expect("early reselection");
-            assert_eq!(reselection.state, ProductControlState::DataRootSelected);
-            assert_eq!(selected_product_data_root().expect("selected"), second_root);
-
-            let control_path = product_control_record_path().expect("path");
-            let mut record = super::read_existing_record(&control_path)
-                .expect("read")
-                .expect("record");
-            record.state = ProductControlState::LocalAiProfileSelectedAssetsMissing;
-            record.first_run.initialization_plan_id = Some("plan-1".to_string());
-            super::write_record(&control_path, &record).expect("write heavy setup record");
-
-            let error = select_product_data_root(late_root.to_str().expect("late root"))
-                .expect_err("late reselection must fail");
-            assert!(error.contains("data-root selection is first-run only"));
-            assert_eq!(selected_product_data_root().expect("selected"), second_root);
-        });
-    }
-
-    #[test]
-    fn unknown_product_control_fields_route_repair_required() {
-        let home = temp_home("unknown-field");
-        let root = home.join("chosen-nimi-data");
-        with_env(&[("HOME", home.to_str())], || {
-            select_product_data_root(root.to_str().expect("root")).expect("select root");
-            let control_path = product_control_record_path().expect("path");
-            let mut record = serde_json::from_str::<serde_json::Value>(
-                &std::fs::read_to_string(&control_path).expect("read record"),
-            )
-            .expect("parse record");
-            record
-                .as_object_mut()
-                .expect("object")
-                .insert("legacyShadow".to_string(), serde_json::Value::Bool(true));
-            let raw = serde_json::to_string_pretty(&record).expect("json");
-            std::fs::write(&control_path, &raw).expect("write unknown field");
-
-            let projection = read_product_control_projection().expect("projection");
-            assert_eq!(projection.state, ProductControlState::RepairRequired);
-            assert!(projection.record.is_none());
-            assert!(projection
-                .error
-                .unwrap_or_default()
-                .contains("unknown field"));
-            assert_eq!(
-                std::fs::read_to_string(&control_path).expect("read after"),
-                raw
-            );
-        });
-    }
-
-    #[test]
-    fn stale_data_root_record_routes_repair_required_without_recreating_pointers() {
-        // Cross-layer acceptance (manual scenario 5 + the migration gate): an
-        // existing product-control record with a stale / corrupt shape — here a
-        // record that selected a data root but no longer carries the
-        // dataRoot.path the state requires — must route to repair_required and
-        // must NOT be silently replaced with a fresh data_root_missing record.
-        // Silently recreating the pointers would orphan the user's existing
-        // data root. read-for-entry fails closed: state=repair_required,
-        // record=None, and the on-disk file is left byte-for-byte intact for
-        // the admitted repair flow.
-        let home = temp_home("stale-data-root");
-        with_env(&[("HOME", home.to_str())], || {
-            let root = home.join("chosen-nimi-data");
-            select_product_data_root(root.to_str().expect("root")).expect("select root");
-            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
-                .expect("install level");
-            let control_path = product_control_record_path().expect("path");
-
-            // Corrupt the record into a stale shape: a data-root-bearing state
-            // with the dataRoot pointer dropped. validate_record rejects this,
-            // so read-for-entry must route to repair_required.
-            let mut record = serde_json::from_str::<serde_json::Value>(
-                &std::fs::read_to_string(&control_path).expect("read record"),
-            )
-            .expect("parse record");
-            record
-                .as_object_mut()
-                .expect("object")
-                .insert("dataRoot".to_string(), serde_json::Value::Null);
-            let stale_raw = serde_json::to_string_pretty(&record).expect("json");
-            std::fs::write(&control_path, &stale_raw).expect("write stale record");
-
-            let projection = read_product_control_projection().expect("projection");
-            assert_eq!(projection.state, ProductControlState::RepairRequired);
-            // The migration gate does not hand back a recreated record.
-            assert!(projection.record.is_none());
-            assert!(projection
-                .error
-                .clone()
-                .unwrap_or_default()
-                .contains("dataRoot.path"));
-            // The on-disk file is untouched — no silent pointer recreation that
-            // would orphan the user's selected data root.
-            let after_raw = std::fs::read_to_string(&control_path).expect("read after");
-            assert_eq!(after_raw, stale_raw);
-        });
-    }
-
-    #[test]
-    fn invalid_existing_install_level_routes_repair_required_without_overwrite() {
-        let home = temp_home("invalid-install-level");
-        let root = home.join("chosen-nimi-data");
-        with_env(&[("HOME", home.to_str())], || {
-            select_product_data_root(root.to_str().expect("root")).expect("select root");
-            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
-                .expect("install level");
-            let control_path = product_control_record_path().expect("path");
-            let mut record = serde_json::from_str::<serde_json::Value>(
-                &std::fs::read_to_string(&control_path).expect("read record"),
-            )
-            .expect("parse record");
-            record
-                .as_object_mut()
-                .expect("object")
-                .get_mut("firstRun")
-                .expect("firstRun")
-                .as_object_mut()
-                .expect("firstRun object")
-                .insert(
-                    "installLevel".to_string(),
-                    serde_json::Value::String("cloud-first".to_string()),
-                );
-            let corrupt_raw = serde_json::to_string_pretty(&record).expect("json");
-            std::fs::write(&control_path, &corrupt_raw).expect("write corrupt install level");
-
-            let projection = read_product_control_projection().expect("projection");
-            assert_eq!(projection.state, ProductControlState::RepairRequired);
-            assert!(projection.record.is_none());
-            assert!(projection
-                .error
-                .clone()
-                .unwrap_or_default()
-                .contains("firstRun.installLevel"));
-            assert_eq!(
-                std::fs::read_to_string(&control_path).expect("read after"),
-                corrupt_raw
-            );
-        });
-    }
-
-    #[test]
-    fn fabricated_ready_for_use_record_fails_closed_without_owner_verification() {
-        let home = temp_home("ready");
-        with_env(&[("HOME", home.to_str())], || {
-            let root = home.join("chosen-nimi-data");
-            select_product_data_root(root.to_str().expect("root")).expect("select root");
-            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
-                .expect("install level");
-            let control_path = product_control_record_path().expect("path");
-            let mut record = super::read_existing_record(&control_path)
-                .expect("read")
-                .expect("record");
-            record.state = ProductControlState::ReadyForUse;
-            record.first_run.completed = true;
-            record.first_run.completed_at = Some("2026-05-20T00:00:00.000Z".to_string());
-            record.first_run.initialization_plan_id = Some("plan-1".to_string());
-            record.first_run.baseline_profile_ref = Some("profile:local-baseline".to_string());
-            record.first_run.baseline_commit_id = Some("commit-1".to_string());
-            record.first_run.account_default_profile_ref =
-                Some("account-profile:default".to_string());
-            record.first_run.built_in_ai_config_refs = vec!["aiconfig:chat".to_string()];
-            record.first_run.runtime_baseline_ref = Some("runtime-baseline:local".to_string());
-            record.first_run.execution_evidence_ref = Some("execution:probe-1".to_string());
-            if let Some(data_root) = record.data_root.as_mut() {
-                data_root.status = super::ProductDataRootStatus::Ready;
-            }
-            std::fs::write(
-                &control_path,
-                serde_json::to_string_pretty(&record).expect("json"),
-            )
-            .expect("write fabricated ready");
-            // A fabricated ready_for_use record — every evidence field is
-            // populated but no ref was minted by an owner — must read back as
-            // a non-ready state. read-for-entry re-resolves the locally-owned
-            // refs (accountDefaultProfileRef, builtInAiConfigRefs) through
-            // their owner/verifier; with no backing owner records the read
-            // routes to LocalAiReady and never surfaces ready_for_use.
-            let projection = read_product_control_projection().expect("projection");
-            assert_ne!(projection.state, ProductControlState::ReadyForUse);
-            assert_eq!(projection.state, ProductControlState::LocalAiReady);
-            assert!(projection.record.is_none());
-            assert!(projection
-                .error
-                .unwrap_or_default()
-                .contains("owner admission verification"));
-        });
-    }
-
-    #[test]
-    fn selected_data_root_projection_does_not_run_ready_admission_verification() {
-        let home = temp_home("selected-root-ready");
-        with_env(&[("HOME", home.to_str())], || {
-            let root = home.join("chosen-nimi-data");
-            select_product_data_root(root.to_str().expect("root")).expect("select root");
-            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
-                .expect("install level");
-            let control_path = product_control_record_path().expect("path");
-            let mut record = super::read_existing_record(&control_path)
-                .expect("read")
-                .expect("record");
-            record.state = ProductControlState::ReadyForUse;
-            record.first_run.completed = true;
-            record.first_run.completed_at = Some("2026-05-20T00:00:00.000Z".to_string());
-            record.first_run.initialization_plan_id = Some("plan-1".to_string());
-            record.first_run.baseline_profile_ref = Some("profile:local-baseline".to_string());
-            record.first_run.baseline_commit_id = Some("commit-1".to_string());
-            record.first_run.account_default_profile_ref =
-                Some("account-profile:default".to_string());
-            record.first_run.built_in_ai_config_refs = vec!["aiconfig:chat".to_string()];
-            record.first_run.runtime_baseline_ref = Some("runtime-baseline:local".to_string());
-            record.first_run.execution_evidence_ref = Some("execution:probe-1".to_string());
-            if let Some(data_root) = record.data_root.as_mut() {
-                data_root.status = super::ProductDataRootStatus::Ready;
-            }
-            std::fs::write(
-                &control_path,
-                serde_json::to_string_pretty(&record).expect("json"),
-            )
-            .expect("write fabricated ready");
-
-            let entry_projection = read_product_control_projection().expect("entry projection");
-            assert_ne!(entry_projection.state, ProductControlState::ReadyForUse);
-            assert!(entry_projection.record.is_none());
-
-            let selected = read_selected_product_data_root_projection().expect("selected root");
-            assert_eq!(selected.state, ProductControlState::ReadyForUse);
-            assert_eq!(
-                selected.data_root.expect("data root").path,
-                root.to_string_lossy()
-            );
-            assert!(selected.error.is_none());
-        });
+        let missing = ProductControlSelectedDataRootProjection {
+            path: std::env::temp_dir()
+                .join("control-plane")
+                .join("nimi.json")
+                .display()
+                .to_string(),
+            exists: false,
+            state: ProductControlState::ConfigMissing,
+            data_root: None,
+            error: Some("canonical Product Control record is missing".to_string()),
+        };
+        let missing_error = nimi_data_root_from_projection(&missing)
+            .expect_err("missing canonical record must fail closed");
+        assert_eq!(missing_error, "canonical Product Control record is missing");
     }
 }

@@ -4,9 +4,6 @@ use nimi_shell_tauri::capabilities::runtime as runtime_bridge;
 mod account_profile_library;
 mod account_profile_library_commands;
 mod account_profile_library_files;
-mod apps_packages_projection;
-#[cfg(test)]
-mod apps_registry_projection;
 mod chat_ai_store;
 mod desktop_ai_config_library;
 mod desktop_avatar_instance_registry;

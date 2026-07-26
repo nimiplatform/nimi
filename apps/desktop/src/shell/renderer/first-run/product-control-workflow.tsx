@@ -97,21 +97,6 @@ function formatSetupDuration(ms: number): string {
   return `${seconds}s`;
 }
 
-export type FirstRunDataRootPickAuthority = 'record' | 'runtime' | 'user' | 'fallback';
-
-export function resolveProjectedDataRootPick(input: {
-  readonly currentPath: string | null;
-  readonly currentAuthority: FirstRunDataRootPickAuthority;
-  readonly recordedPath: string | null;
-  readonly runtimeProposalPath: string | null;
-}): { readonly path: string | null; readonly authority: FirstRunDataRootPickAuthority } {
-  if (input.recordedPath) return { path: input.recordedPath, authority: 'record' };
-  if (input.runtimeProposalPath && input.currentAuthority !== 'user') {
-    return { path: input.runtimeProposalPath, authority: 'runtime' };
-  }
-  return { path: input.currentPath, authority: input.currentAuthority };
-}
-
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
   const { t } = useTranslation();
   const clock = props.clock;
@@ -137,16 +122,8 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   );
   const [observerError, setObserverError] = useState<string | null>(null);
   const error = resolveProductControlWorkflowError(actionError, observerError, projection?.error);
-  const runtimeDataRootProposal = projection?.dataRootProposal?.path ?? null;
-  const pickedPathAuthorityRef = useRef<FirstRunDataRootPickAuthority>(
-    projection?.record?.dataRoot?.path
-      ? 'record'
-      : runtimeDataRootProposal
-        ? 'runtime'
-        : 'fallback',
-  );
   const [pickedPath, setPickedPath] = useState<string | null>(
-    projection?.record?.dataRoot?.path ?? runtimeDataRootProposal,
+    projection?.record?.dataRoot?.path ?? null,
   );
   const [materialization, setMaterialization] = useState<NimiFirstRunMaterializationProjection | null>(null);
 
@@ -220,22 +197,12 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     };
   }, [clock, setupVisible]);
 
-  // A recorded Product Control root always wins. Before recording, the
-  // Runtime-owned proposal supersedes only the renderer fallback; an explicit
-  // user folder pick remains stable until it is confirmed.
+  // A recorded Product Control dataRoot always wins. Before recording, the
+  // field remains empty until the user explicitly chooses a folder.
   useEffect(() => {
     const recorded = projection?.record?.dataRoot?.path;
-    setPickedPath((currentPath) => {
-      const next = resolveProjectedDataRootPick({
-        currentPath,
-        currentAuthority: pickedPathAuthorityRef.current,
-        recordedPath: recorded ?? null,
-        runtimeProposalPath: runtimeDataRootProposal,
-      });
-      pickedPathAuthorityRef.current = next.authority;
-      return next.path;
-    });
-  }, [projection, runtimeDataRootProposal]);
+    if (recorded) setPickedPath(recorded);
+  }, [projection?.record?.dataRoot?.path]);
 
   // `config_missing` is an internal first-run state: the backend creates the
   // empty product-control record, then the user-visible Storage phase starts
@@ -269,31 +236,6 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       disposed = true;
     };
   }, [state, notifyProjectionChange, t]);
-
-  // Production keeps the OS-conventional path as a renderer fallback only
-  // when Runtime supplies no checkpoint proposal. It never records a path and
-  // cannot override a Runtime projection or an explicit user pick.
-  useEffect(() => {
-    if (runtimeDataRootProposal) return;
-    let disposed = false;
-    void (async () => {
-      try {
-        const proposed = await firstRun.defaultDataRootDirectory();
-        if (!disposed && proposed) {
-          setPickedPath((current) => {
-            if (current) return current;
-            pickedPathAuthorityRef.current = 'fallback';
-            return proposed;
-          });
-        }
-      } catch {
-        // Fail-closed: leave the field empty; the folder picker stays available.
-      }
-    })();
-    return () => {
-      disposed = true;
-    };
-  }, [firstRun, runtimeDataRootProposal]);
 
   const { deviceSummary, deviceScanSettled, retryDeviceScan } = useFirstRunDeviceScan(
     selectedDataRoot,
@@ -357,7 +299,6 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     try {
       const picked = await firstRun.pickDataRootDirectory();
       if (picked) {
-        pickedPathAuthorityRef.current = 'user';
         setPickedPath(picked);
       }
     } catch (nextError) {

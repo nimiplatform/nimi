@@ -118,10 +118,6 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
             label={t('Support.repairProductState')}
             value={t(`${NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY[control.state]}.title`)}
           />
-          <SupportInfoRow
-            label={t('Support.repairRecordPath')}
-            value={control.path || t('Support.valueUnknown')}
-          />
         </div>
         {repairReason ? (
           <p
@@ -143,43 +139,8 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
         ) : null}
       </SupportCard>
 
-      <SupportPointerCard control={control} />
-
       <SupportDataRootCleanupCard dirs={dirs} dirsError={dirsError} />
     </SupportSectionShell>
-  );
-}
-
-/**
- * Broken-pointer surface (`rule.nimi.desktop.product-surfaces.r024` / `P-MIG-004`). Renders the `~/.nimi`
- * governed-config pointer set from the product-control record so the user can
- * see which pointer is unresolved. It never recreates a pointer — silent
- * recreation would orphan the user's data root.
- */
-function SupportPointerCard(props: { control: NimiProductControlRecordProjection }) {
-  const { t } = useTranslation();
-  const pointers = props.control.record?.pointers;
-  if (!pointers) {
-    return null;
-  }
-  const rows: Array<{ label: string; value: string }> = [
-    { label: t('Support.repairPointerRuntimeConfig'), value: pointers.runtimeConfigPath ?? t('Support.valueMissing') },
-    { label: t('Support.repairPointerFactoryProfileIndex'), value: pointers.factoryProfileIndex ?? t('Support.valueMissing') },
-    { label: t('Support.repairPointerAppRegistry'), value: pointers.appRegistry ?? t('Support.valueMissing') },
-    { label: t('Support.repairPointerAppPackages'), value: pointers.appPackages ?? t('Support.valueMissing') },
-  ];
-  return (
-    <SupportCard
-      title={t('Support.repairPointersTitle')}
-      description={t('Support.repairPointersDescription')}
-      testId="support-repair-pointers"
-    >
-      <div className="divide-y divide-[var(--nimi-border-subtle)]">
-        {rows.map((row) => (
-          <SupportInfoRow key={row.label} label={row.label} value={row.value} />
-        ))}
-      </div>
-    </SupportCard>
   );
 }
 
@@ -274,7 +235,7 @@ function SupportDataRootCleanupCard(props: {
       ) : null}
       {props.dirs ? (
         <p className="mb-3 break-all text-xs text-[var(--nimi-text-secondary)]">
-          {t('Support.repairCleanupDataRootLabel')}: {props.dirs.nimiDataDir}
+          {t('Support.repairCleanupDataRootLabel')}: {props.dirs.dataRoot}
         </p>
       ) : null}
       <div className="flex flex-col gap-3">

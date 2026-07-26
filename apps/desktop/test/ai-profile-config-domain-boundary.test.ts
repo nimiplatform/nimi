@@ -102,10 +102,15 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   assert.doesNotMatch(localConfigRegistry, /schema_owner: account_profile_library/);
   assert.match(policy, /id: definition\.nimi\.platform\.core-protocol\.account-default-profile/);
   assert.match(policy, /The Account Default Profile is the durable account-scoped local profile-library record/);
-  assert.match(policy, /seeded or restored during first-run and never sourced from Realm identity material or an ambient projection/);
+  assert.match(
+    policy,
+    /at <dataRoot>\/accounts\/<account-id>\/profiles\/default\.json, where dataRoot is resolved only from ~\/\.nimi\/nimi\.json/,
+  );
+  assert.match(policy, /never sourced from Realm identity material, an ambient projection, or a caller-supplied root/);
 
   assert.match(accountProfileLibrary, /account_default_profile_path/);
-  assert.match(accountProfileLibrary, /~\/\.nimi\/accounts\/<account-id>\/profiles\/default\.json/);
+  assert.match(accountProfileLibrary, /account_default_profile_path\(data_root,/);
+  assert.doesNotMatch(accountProfileLibrary, /resolve_nimi_dir/);
   assert.match(accountProfileLibrary, /verify_first_run_factory_ai_profile/);
   assert.match(accountProfileLibrary, /data_root_ref/);
   assert.match(accountProfileLibrary, /factory seed AIProfile payload/);
@@ -118,6 +123,8 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   assert.match(accountProfileFiles, /create_account_profile_library_entry/);
   assert.match(accountProfileFiles, /import_account_profile_library_entries/);
   assert.match(accountProfileFiles, /export_account_profile_library_entries/);
+  assert.match(accountProfileFiles, /account_profile_library_dir\(\s*data_root:/);
+  assert.doesNotMatch(accountProfileFiles, /resolve_nimi_dir|~\/\.nimi\/accounts/);
   assert.doesNotMatch(accountProfileFiles, /aiConfig|aiProfile\.apply/);
 
   assert.match(accountProfileBridge, /from '@nimiplatform\/sdk\/ai'/);

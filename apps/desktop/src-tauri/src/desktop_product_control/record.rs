@@ -1,12 +1,7 @@
-//! Product-control record (`~/.nimi/nimi.json`) type surface: the persisted
-//! schema, the renderer-facing projection, and the Tauri command payloads.
+//! Product-control projection types and Tauri command payloads consumed from
+//! the Runtime-validated canonical `~/.nimi/nimi.json` record.
 
 use serde::{Deserialize, Serialize};
-
-#[cfg(test)]
-pub(crate) const PRODUCT_CONTROL_FILE_NAME: &str = "nimi.json";
-#[cfg(test)]
-pub(crate) const PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -69,24 +64,12 @@ pub struct ProductFirstRunRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ProductPointersRecord {
-    pub runtime_config_path: Option<String>,
     /// Discoverability pointer to `~/.nimi/profiles/factory-index.json`, the
     /// installed projection of the official Platform factory profile catalog
-    /// (`factory_profile_index.rs`). Like `runtime_config_path`, this is a
-    /// non-owner discovery pointer: the factory profile index is a read-only
+    /// (`factory_profile_index.rs`). This is a non-owner discovery pointer: the factory profile index is a read-only
     /// catalog projection, not product readiness truth, and it is never the
     /// Account Default Profile library.
     pub factory_profile_index: Option<String>,
-    /// Discoverability pointer to `~/.nimi/apps/registry.json`, the installed
-    /// projection of the admitted ordinary Nimi App registry
-    /// (`apps_registry_projection.rs`). Non-owner discovery pointer: the
-    /// registry projection is a read-only catalog projection, not product
-    /// readiness truth. This is the manual `pointers.appRegistry` value.
-    pub app_registry: Option<String>,
-    /// Discoverability pointer to `~/.nimi/apps/packages.json`. Runtime
-    /// `GetAppPackageReadiness` owns package readiness; this pointer is not a
-    /// readiness source. This is the manual `pointers.appPackages` value.
-    pub app_packages: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

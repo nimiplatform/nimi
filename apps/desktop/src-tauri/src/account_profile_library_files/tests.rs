@@ -1,5 +1,4 @@
 use super::*;
-use crate::test_support::with_env;
 use std::path::PathBuf;
 
 fn unique_suffix() -> u128 {
@@ -9,18 +8,18 @@ fn unique_suffix() -> u128 {
         .as_nanos()
 }
 
-fn temp_home(prefix: &str) -> PathBuf {
+fn temp_data_root(prefix: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
-        "nimi-account-profile-library-{prefix}-{}",
+        "nimi-account-profile-library-data-root-{prefix}-{}",
         unique_suffix()
     ));
-    std::fs::create_dir_all(&dir).expect("create temp home");
+    std::fs::create_dir_all(&dir).expect("create temp data root");
     dir
 }
 
-fn with_isolated_home<R>(prefix: &str, body: impl FnOnce() -> R) -> R {
-    let home = temp_home(prefix);
-    with_env(&[("HOME", home.to_str())], body)
+fn with_data_root<R>(prefix: &str, body: impl FnOnce(&Path) -> R) -> R {
+    let root = temp_data_root(prefix);
+    body(&root)
 }
 
 fn sample_payload(profile_id: &str, title: &str) -> LibraryAIProfilePayload {
@@ -62,8 +61,9 @@ fn legacy_binding_payload(profile_id: &str, title: &str) -> LibraryAIProfilePayl
 
 #[test]
 fn create_writes_user_directory_and_index() {
-    with_isolated_home("create", || {
+    with_data_root("create", |root| {
         let projection = create_account_profile_library_entry(
+            root,
             "account_1",
             sample_payload("custom-alpha", "Alpha"),
         )
@@ -84,10 +84,12 @@ fn create_writes_user_directory_and_index() {
             Some(&serde_json::json!({ "temperature": 0.2 }))
         );
 
-        let user_path = library_profile_path("account_1", "user", "custom-alpha").expect("path");
+        let user_path =
+            library_profile_path(root, "account_1", "user", "custom-alpha").expect("path");
         assert!(user_path.exists());
         // Index is re-derived and committed.
-        let index_path = library_index_path("account_1").expect("index path");
+        let index_path = library_index_path(root, "account_1").expect("index path");
+        assert!(index_path.starts_with(root.join("accounts")));
         assert!(index_path.exists());
         assert!(projection
             .index
@@ -99,13 +101,16 @@ fn create_writes_user_directory_and_index() {
 
 #[test]
 fn reserved_default_id_cannot_be_created_or_deleted() {
-    with_isolated_home("reserved", || {
-        let create_error =
-            create_account_profile_library_entry("account_1", sample_payload("default", "Default"))
-                .expect_err("reserved id must fail");
+    with_data_root("reserved", |root| {
+        let create_error = create_account_profile_library_entry(
+            root,
+            "account_1",
+            sample_payload("default", "Default"),
+        )
+        .expect_err("reserved id must fail");
         assert!(create_error.contains("reserved"));
 
-        let delete_error = delete_account_profile_library_entry("account_1", "default")
+        let delete_error = delete_account_profile_library_entry(root, "account_1", "default")
             .expect_err("reserved id delete must fail");
         assert!(delete_error.contains("reserved"));
     });
@@ -113,29 +118,38 @@ fn reserved_default_id_cannot_be_created_or_deleted() {
 
 #[test]
 fn rejects_sdk_forbidden_binding_payload_before_writing_file() {
-    with_isolated_home("binding-negative", || {
+    with_data_root("binding-negative", |root| {
         let error = create_account_profile_library_entry(
+            root,
             "account_1",
             legacy_binding_payload("custom-binding", "Binding"),
         )
         .expect_err("SDK-forbidden binding field must fail");
         assert!(error.contains("binding"));
-        let user_path = library_profile_path("account_1", "user", "custom-binding").expect("path");
+        let user_path =
+            library_profile_path(root, "account_1", "user", "custom-binding").expect("path");
         assert!(!user_path.exists());
     });
 }
 
 #[test]
 fn edit_preserves_created_at_and_advances_updated_at() {
-    with_isolated_home("edit", || {
-        create_account_profile_library_entry("account_1", sample_payload("custom-edit", "V1"))
-            .expect("create");
-        let path = library_profile_path("account_1", "user", "custom-edit").expect("path");
+    with_data_root("edit", |root| {
+        create_account_profile_library_entry(
+            root,
+            "account_1",
+            sample_payload("custom-edit", "V1"),
+        )
+        .expect("create");
+        let path = library_profile_path(root, "account_1", "user", "custom-edit").expect("path");
         let created = read_library_profile_record(&path).expect("read").created_at;
 
-        let edited =
-            edit_account_profile_library_entry("account_1", sample_payload("custom-edit", "V2"))
-                .expect("edit");
+        let edited = edit_account_profile_library_entry(
+            root,
+            "account_1",
+            sample_payload("custom-edit", "V2"),
+        )
+        .expect("edit");
         let profile = edited
             .profiles
             .iter()
@@ -148,18 +162,22 @@ fn edit_preserves_created_at_and_advances_updated_at() {
 
 #[test]
 fn edit_missing_profile_fails_closed() {
-    with_isolated_home("edit-missing", || {
-        let error =
-            edit_account_profile_library_entry("account_1", sample_payload("custom-missing", "X"))
-                .expect_err("missing profile must fail");
+    with_data_root("edit-missing", |root| {
+        let error = edit_account_profile_library_entry(
+            root,
+            "account_1",
+            sample_payload("custom-missing", "X"),
+        )
+        .expect_err("missing profile must fail");
         assert!(error.contains("was not found"));
     });
 }
 
 #[test]
 fn import_writes_imported_directory_and_rejects_collisions() {
-    with_isolated_home("import", || {
+    with_data_root("import", |root| {
         let projection = import_account_profile_library_entries(
+            root,
             "account_1",
             vec![
                 sample_payload("import-a", "Import A"),
@@ -175,6 +193,7 @@ fn import_writes_imported_directory_and_rejects_collisions() {
 
         // Re-importing a colliding id fails closed (no partial success).
         let collision = import_account_profile_library_entries(
+            root,
             "account_1",
             vec![sample_payload("import-a", "Again")],
         )
@@ -185,8 +204,9 @@ fn import_writes_imported_directory_and_rejects_collisions() {
 
 #[test]
 fn import_rejects_duplicate_ids_within_payload() {
-    with_isolated_home("import-dup", || {
+    with_data_root("import-dup", |root| {
         let error = import_account_profile_library_entries(
+            root,
             "account_1",
             vec![sample_payload("dup", "One"), sample_payload("dup", "Two")],
         )
@@ -197,8 +217,9 @@ fn import_rejects_duplicate_ids_within_payload() {
 
 #[test]
 fn import_rejects_reserved_default_id() {
-    with_isolated_home("import-reserved", || {
+    with_data_root("import-reserved", |root| {
         let error = import_account_profile_library_entries(
+            root,
             "account_1",
             vec![sample_payload("default", "Default")],
         )
@@ -209,38 +230,42 @@ fn import_rejects_reserved_default_id() {
 
 #[test]
 fn export_returns_requested_profiles_and_fails_on_unknown_id() {
-    with_isolated_home("export", || {
-        create_account_profile_library_entry("account_1", sample_payload("exp-a", "Exp A"))
+    with_data_root("export", |root| {
+        create_account_profile_library_entry(root, "account_1", sample_payload("exp-a", "Exp A"))
             .expect("create a");
-        create_account_profile_library_entry("account_1", sample_payload("exp-b", "Exp B"))
+        create_account_profile_library_entry(root, "account_1", sample_payload("exp-b", "Exp B"))
             .expect("create b");
 
-        let all =
-            export_account_profile_library_entries("account_1", Vec::new()).expect("export all");
+        let all = export_account_profile_library_entries(root, "account_1", Vec::new())
+            .expect("export all");
         assert_eq!(all.len(), 2);
 
-        let one = export_account_profile_library_entries("account_1", vec!["exp-a".to_string()])
-            .expect("export one");
+        let one =
+            export_account_profile_library_entries(root, "account_1", vec!["exp-a".to_string()])
+                .expect("export one");
         assert_eq!(one.len(), 1);
         assert_eq!(one[0].profile_id, "exp-a");
 
-        let unknown =
-            export_account_profile_library_entries("account_1", vec!["exp-missing".to_string()])
-                .expect_err("unknown export must fail");
+        let unknown = export_account_profile_library_entries(
+            root,
+            "account_1",
+            vec!["exp-missing".to_string()],
+        )
+        .expect_err("unknown export must fail");
         assert!(unknown.contains("was not found"));
     });
 }
 
 #[test]
 fn delete_removes_record_and_reindexes() {
-    with_isolated_home("delete", || {
-        create_account_profile_library_entry("account_1", sample_payload("del-a", "Del A"))
+    with_data_root("delete", |root| {
+        create_account_profile_library_entry(root, "account_1", sample_payload("del-a", "Del A"))
             .expect("create");
-        let path = library_profile_path("account_1", "user", "del-a").expect("path");
+        let path = library_profile_path(root, "account_1", "user", "del-a").expect("path");
         assert!(path.exists());
 
         let projection =
-            delete_account_profile_library_entry("account_1", "del-a").expect("delete");
+            delete_account_profile_library_entry(root, "account_1", "del-a").expect("delete");
         assert!(!path.exists());
         assert!(projection.profiles.is_empty());
         assert!(!projection
@@ -253,10 +278,10 @@ fn delete_removes_record_and_reindexes() {
 
 #[test]
 fn list_includes_account_default_index_row_when_default_json_exists() {
-    with_isolated_home("default-row", || {
+    with_data_root("default-row", |root| {
         // Seed a stand-in Account Default Profile record. The library index
         // must project a non-removable, non-editable `account-default` row.
-        let library_dir = account_profile_library_dir("account_1").expect("dir");
+        let library_dir = account_profile_library_dir(root, "account_1").expect("dir");
         std::fs::create_dir_all(&library_dir).expect("mkdir");
         std::fs::write(
             library_dir.join("default.json"),
@@ -269,7 +294,7 @@ fn list_includes_account_default_index_row_when_default_json_exists() {
         )
         .expect("write default");
 
-        let projection = list_account_profile_library("account_1").expect("list");
+        let projection = list_account_profile_library(root, "account_1").expect("list");
         let default_row = projection
             .index
             .entries
@@ -286,11 +311,11 @@ fn list_includes_account_default_index_row_when_default_json_exists() {
 
 #[test]
 fn malformed_record_fails_closed_on_scan() {
-    with_isolated_home("malformed", || {
-        let dir = library_origin_dir("account_1", "user").expect("dir");
+    with_data_root("malformed", |root| {
+        let dir = library_origin_dir(root, "account_1", "user").expect("dir");
         std::fs::create_dir_all(&dir).expect("mkdir");
         std::fs::write(dir.join("broken.json"), "{ not json").expect("write broken");
-        let error = list_account_profile_library("account_1")
+        let error = list_account_profile_library(root, "account_1")
             .expect_err("malformed record must fail closed");
         assert!(error.contains("cannot be parsed"));
     });

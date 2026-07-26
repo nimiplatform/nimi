@@ -26,7 +26,6 @@ export function createDesktopSimulatorProductControlPort(
       exists: true,
       state: 'ready_for_use' as const,
       record: null,
-      dataRootProposal: null,
       error: null,
       configMutation: null,
     });
@@ -38,7 +37,6 @@ export function createDesktopSimulatorProductControlPort(
     available: () => true,
     getRecord: async () => read(),
     ensureRecordCreated: async () => unavailable(),
-    defaultDataRootDirectory: async () => unavailable(),
     reconcileSetupState: async () => unavailable(),
     pickDataRootDirectory: async () => unavailable(),
     selectDataRoot: async () => unavailable(),

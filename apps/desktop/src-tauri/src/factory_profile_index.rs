@@ -12,7 +12,7 @@
 //! It is never hand-edited and never carries user edits.
 //!
 //! It is NOT the user's editable profile library and it does NOT own or mutate
-//! the Account Default Profile (`~/.nimi/accounts/<id>/profiles/default.json`,
+//! the Account Default Profile (`<dataRoot>/accounts/<id>/profiles/default.json`,
 //! `account_profile_library.rs`). Any seed/restore of the Account Default
 //! Profile from this index is an explicit product flow owned elsewhere; this
 //! module never writes account-scoped records.
@@ -308,11 +308,11 @@ mod tests {
     fn regeneration_does_not_touch_account_default_profile() {
         let home = temp_home("account-isolation");
         with_env(&[("HOME", home.to_str())], || {
-            // Seed a stand-in Account Default Profile record under the account
-            // control root. The factory index projection must never read,
+            // Seed a stand-in Account Default Profile under a distinct explicit
+            // data root. The control-root factory index must never read,
             // overwrite, or otherwise mutate it.
             let account_default_profile = home
-                .join(".nimi")
+                .join("canonical-data-root")
                 .join("accounts")
                 .join("account_1")
                 .join("profiles")

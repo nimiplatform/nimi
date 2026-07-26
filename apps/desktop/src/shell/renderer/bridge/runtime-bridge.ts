@@ -24,7 +24,6 @@ import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
 import {
   admitProductReadyForUse,
-  defaultProductDataRootDirectory,
   completeProductFirstRunDeviceEnvironmentScan,
   ensureProductControlRecordCreated,
   getAccountDefaultProfileForScopeInit,
@@ -135,7 +134,6 @@ export {
   getProductControlSelectedDataRoot,
   ensureProductControlRecordCreated,
   pickProductDataRootDirectory,
-  defaultProductDataRootDirectory,
   completeProductFirstRunDeviceEnvironmentScan,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,

@@ -1,7 +1,3 @@
-use crate::desktop_product_control::{
-    ProductControlRecord, ProductControlRecordProjection, ProductControlSelectedDataRootProjection,
-    ProductControlState,
-};
 use crate::desktop_release::DesktopReleaseInfo;
 use crate::runtime_bridge::{
     generated as runtime_bridge_generated, RuntimeBridgeAccountEventsOpenPayload,
@@ -12,7 +8,7 @@ use crate::runtime_bridge::{
 use crate::RuntimeDefaults;
 use base64::Engine;
 use prost::Message;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::fs;
 use std::io::Write;
 use std::sync::{Mutex, OnceLock};
@@ -28,13 +24,12 @@ struct DesktopE2EFixtureManifest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct DesktopE2ETauriFixture {
     bootstrap_error: Option<String>,
     runtime_defaults: Option<RuntimeDefaults>,
     runtime_bridge_status: Option<RuntimeBridgeDaemonStatus>,
     desktop_release_info: Option<DesktopReleaseInfo>,
-    product_control_record: Option<ProductControlRecord>,
     confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
 }
 
@@ -119,278 +114,6 @@ fn append_backend_log(message: &str) {
     append_backend_log_message(message);
 }
 
-fn product_control_projection_path() -> Result<String, String> {
-    Ok(crate::desktop_paths::resolve_nimi_dir()?
-        .join("nimi.json")
-        .display()
-        .to_string())
-}
-
-fn product_control_record_from_fixture(
-    manifest: &DesktopE2EFixtureManifest,
-) -> Option<ProductControlRecord> {
-    manifest
-        .tauri_fixture
-        .as_ref()
-        .and_then(|fixture| fixture.product_control_record.clone())
-}
-
-fn encode_product_control_projection<Projection>(
-    projection: Projection,
-) -> Result<RuntimeBridgeUnaryResult, String>
-where
-    Projection: Serialize,
-{
-    let json = serde_json::to_string(&projection)
-        .map_err(|error| format!("DESKTOP_E2E_PRODUCT_CONTROL_FIXTURE_JSON_FAILED: {error}"))?;
-    Ok(encode_unary_response(
-        runtime_bridge_generated::ProductControlProjectionJson { json },
-    ))
-}
-
-fn runtime_product_control_record_response(
-    manifest: &DesktopE2EFixtureManifest,
-) -> Result<RuntimeBridgeUnaryResult, String> {
-    let path = product_control_projection_path()?;
-    let projection = if let Some(record) = product_control_record_from_fixture(manifest) {
-        ProductControlRecordProjection {
-            path,
-            exists: true,
-            state: record.state.clone(),
-            record: Some(record),
-            error: None,
-        }
-    } else {
-        ProductControlRecordProjection {
-            path,
-            exists: false,
-            state: ProductControlState::ConfigMissing,
-            record: None,
-            error: Some(
-                "~/.nimi/nimi.json is missing; first-run data-root selection has not initialized product control"
-                    .to_string(),
-            ),
-        }
-    };
-    encode_product_control_projection(projection)
-}
-
-fn runtime_product_control_selected_data_root_response(
-    manifest: &DesktopE2EFixtureManifest,
-) -> Result<RuntimeBridgeUnaryResult, String> {
-    let path = product_control_projection_path()?;
-    let projection = if let Some(record) = product_control_record_from_fixture(manifest) {
-        let data_root = crate::desktop_product_control::selected_data_root_path(&record)
-            .map(|_| record.data_root.clone())
-            .unwrap_or(None);
-        let error = if data_root.is_some() {
-            None
-        } else {
-            Some("~/.nimi/nimi.json has no selected absolute dataRoot.path".to_string())
-        };
-        ProductControlSelectedDataRootProjection {
-            path,
-            exists: true,
-            state: record.state,
-            data_root,
-            error,
-        }
-    } else {
-        ProductControlSelectedDataRootProjection {
-            path,
-            exists: false,
-            state: ProductControlState::ConfigMissing,
-            data_root: None,
-            error: Some(
-                "~/.nimi/nimi.json is missing; selected nimi_data is not ready".to_string(),
-            ),
-        }
-    };
-    encode_product_control_projection(projection)
-}
-
-fn execution_evidence_blocked_response(
-    reason_code: &str,
-    detail: impl Into<String>,
-) -> RuntimeBridgeUnaryResult {
-    encode_unary_response(
-        runtime_bridge_generated::ResolveFirstRunExecutionEvidenceResponse {
-            r#ref: None,
-            state: "local_ai_blocked".to_string(),
-            reason_code: reason_code.to_string(),
-            detail: detail.into(),
-        },
-    )
-}
-
-fn expected_field_matches(expected: &str, actual: &str) -> bool {
-    let expected = expected.trim();
-    expected.is_empty() || expected == actual.trim()
-}
-
-fn execution_evidence_proof(
-    capability: &str,
-    scenario_type: runtime_bridge_generated::ScenarioType,
-    consumer_id: &str,
-    bound_asset_id: &str,
-    local_route_target: &str,
-) -> runtime_bridge_generated::ExecutionBaselineCapabilityProof {
-    runtime_bridge_generated::ExecutionBaselineCapabilityProof {
-        capability: capability.to_string(),
-        scenario_type: scenario_type as i32,
-        bound_consumer_id: consumer_id.to_string(),
-        bound_asset_id: bound_asset_id.to_string(),
-        local_route_target: local_route_target.to_string(),
-        route_policy: runtime_bridge_generated::RoutePolicy::Local as i32,
-        model_resolved: bound_asset_id.to_string(),
-        terminal_result: "local_executed".to_string(),
-        reason_code: "FIRST_RUN_EXECUTION_PROOF_READY".to_string(),
-        trace_id: format!("e2e-trace:{consumer_id}"),
-        executed_at: "2026-03-15T00:00:00.000Z".to_string(),
-    }
-}
-
-fn execution_evidence_ref_from_record(
-    record: &ProductControlRecord,
-    execution_evidence_ref: &str,
-    runtime_baseline_ref: &str,
-    data_root_ref: &str,
-    install_level: &str,
-) -> runtime_bridge_generated::ExecutionEvidenceRef {
-    runtime_bridge_generated::ExecutionEvidenceRef {
-        execution_evidence_ref: execution_evidence_ref.to_string(),
-        selected_local_factory_ai_profile_ref: record
-            .first_run
-            .baseline_profile_ref
-            .clone()
-            .unwrap_or_else(|| format!("factory:{}", install_level.trim())),
-        install_level: install_level.to_string(),
-        runtime_baseline_ref: runtime_baseline_ref.to_string(),
-        data_root_ref: data_root_ref.to_string(),
-        local_execution_target_evidence: vec!["local".to_string(), "speech".to_string()],
-        selected_baseline_capability_proof: vec![
-            execution_evidence_proof(
-                "local_text_chat_execution",
-                runtime_bridge_generated::ScenarioType::TextGenerate,
-                "llama.cpp.cpu",
-                "e2e-local-text-model",
-                "local",
-            ),
-            execution_evidence_proof(
-                "local_basic_stt_execution",
-                runtime_bridge_generated::ScenarioType::SpeechTranscribe,
-                "speech.qwen3-asr.python",
-                "e2e-local-asr-model",
-                "speech",
-            ),
-            execution_evidence_proof(
-                "local_basic_tts_execution",
-                runtime_bridge_generated::ScenarioType::SpeechSynthesize,
-                "speech.qwen3-tts.python",
-                "e2e-local-tts-model",
-                "speech",
-            ),
-        ],
-        submit_specific_scheduling_judgement: None,
-        terminal_result: "local_ai_ready".to_string(),
-        observed_at: "2026-03-15T00:00:00.000Z".to_string(),
-        runtime_audit_sequence: vec!["desktop-e2e-fixture:first-run-execution".to_string()],
-        runtime_verifier_identity: "desktop-e2e-fixture-runtime".to_string(),
-    }
-}
-
-fn runtime_first_run_execution_evidence_response(
-    payload: &RuntimeBridgeUnaryPayload,
-    manifest: &DesktopE2EFixtureManifest,
-) -> Result<RuntimeBridgeUnaryResult, String> {
-    let request: runtime_bridge_generated::ResolveFirstRunExecutionEvidenceRequest =
-        decode_unary_request(payload)?;
-    let Some(record) = product_control_record_from_fixture(manifest) else {
-        return Ok(execution_evidence_blocked_response(
-            "PRODUCT_CONTROL_RECORD_MISSING",
-            "~/.nimi/nimi.json fixture is missing",
-        ));
-    };
-    if !matches!(
-        record.state,
-        ProductControlState::LocalAiReady | ProductControlState::ReadyForUse
-    ) {
-        return Ok(execution_evidence_blocked_response(
-            "PRODUCT_CONTROL_NOT_LOCAL_AI_READY",
-            format!("product-control state is {:?}", record.state),
-        ));
-    }
-    let execution_evidence_ref = record
-        .first_run
-        .execution_evidence_ref
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            "DESKTOP_E2E_EXECUTION_EVIDENCE_FIXTURE_MISSING_EXECUTION_REF".to_string()
-        })?;
-    let runtime_baseline_ref = record
-        .first_run
-        .runtime_baseline_ref
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| "DESKTOP_E2E_EXECUTION_EVIDENCE_FIXTURE_MISSING_BASELINE_REF".to_string())?;
-    let install_level = record
-        .first_run
-        .install_level
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            "DESKTOP_E2E_EXECUTION_EVIDENCE_FIXTURE_MISSING_INSTALL_LEVEL".to_string()
-        })?;
-    let data_root_ref = crate::desktop_product_control::selected_data_root_path(&record)
-        .map(|path| path.display().to_string())
-        .ok_or_else(|| "DESKTOP_E2E_EXECUTION_EVIDENCE_FIXTURE_MISSING_DATA_ROOT".to_string())?;
-
-    if request.execution_evidence_ref.trim() != execution_evidence_ref {
-        return Ok(execution_evidence_blocked_response(
-            "EXECUTION_EVIDENCE_REF_MISMATCH",
-            "requested executionEvidenceRef does not match product-control record",
-        ));
-    }
-    if !expected_field_matches(&request.expected_runtime_baseline_ref, runtime_baseline_ref) {
-        return Ok(execution_evidence_blocked_response(
-            "RUNTIME_BASELINE_REF_MISMATCH",
-            "expected runtimeBaselineRef does not match product-control record",
-        ));
-    }
-    if !expected_field_matches(&request.expected_data_root_ref, &data_root_ref) {
-        return Ok(execution_evidence_blocked_response(
-            "DATA_ROOT_REF_MISMATCH",
-            "expected dataRootRef does not match selected product data root",
-        ));
-    }
-    if !expected_field_matches(&request.expected_install_level, install_level) {
-        return Ok(execution_evidence_blocked_response(
-            "INSTALL_LEVEL_MISMATCH",
-            "expected install level does not match product-control record",
-        ));
-    }
-
-    Ok(encode_unary_response(
-        runtime_bridge_generated::ResolveFirstRunExecutionEvidenceResponse {
-            r#ref: Some(execution_evidence_ref_from_record(
-                &record,
-                execution_evidence_ref,
-                runtime_baseline_ref,
-                &data_root_ref,
-                install_level,
-            )),
-            state: "local_ai_ready".to_string(),
-            reason_code: "FIRST_RUN_EXECUTION_EVIDENCE_READY".to_string(),
-            detail: "desktop e2e fixture execution evidence matched product-control record"
-                .to_string(),
-        },
-    ))
-}
-
 pub(super) fn encode_unary_response<Response>(response: Response) -> RuntimeBridgeUnaryResult
 where
     Response: Message,
@@ -464,18 +187,6 @@ pub fn runtime_bridge_unary_override(
             projection.is_some()
         ));
         runtime_account_app_inventory_response(projection).map(Some)
-    }
-    nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID => {
-        append_backend_log("runtime_product_control_fixture method=getProductControlRecord accepted=true");
-        runtime_product_control_record_response(&manifest).map(Some)
-    }
-    nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID => {
-        append_backend_log("runtime_product_control_fixture method=getProductControlSelectedDataRoot accepted=true");
-        runtime_product_control_selected_data_root_response(&manifest).map(Some)
-    }
-    nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID => {
-        append_backend_log("runtime_product_control_fixture method=resolveFirstRunExecutionEvidence accepted=true");
-        runtime_first_run_execution_evidence_response(payload, &manifest).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=false authority=0p-unavailable");
@@ -640,17 +351,6 @@ pub fn desktop_release_info_override() -> Result<Option<DesktopReleaseInfo>, Str
         info.is_some()
     ));
     Ok(info)
-}
-
-pub fn product_control_record_override() -> Result<Option<ProductControlRecord>, String> {
-    let record = load_fixture_manifest()?
-        .and_then(|manifest| manifest.tauri_fixture)
-        .and_then(|fixture| fixture.product_control_record);
-    append_backend_log(&format!(
-        "product_control_record_override override_present={}",
-        record.is_some()
-    ));
-    Ok(record)
 }
 
 pub fn next_confirm_dialog_override() -> Result<Option<bool>, String> {

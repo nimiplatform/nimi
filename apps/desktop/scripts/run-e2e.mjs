@@ -109,8 +109,6 @@ function buildScenarioManifest({ scenarioId, profile, fixtureOrigin, artifactsDi
   }, {
     __FIXTURE_ORIGIN__: fixtureOrigin,
     __REPO_ROOT__: repoRoot,
-    __E2E_DATA_ROOT__: path.join(artifactsDir, 'nimi-data'),
-    __E2E_RUNTIME_CONFIG_PATH__: path.join(artifactsDir, 'runtime', 'config.json'),
   });
 }
 
@@ -521,6 +519,7 @@ async function runScenario(scenarioId, runIndex) {
   const artifactManifestPath = path.join(artifactsDir, 'artifact-manifest.json');
 
   const profile = loadProfileDefinition(profilePathForScenario(scenarioId));
+  const requiresReadyProductControl = Boolean(profile.realmFixture?.currentUser);
   writeJson(scenarioManifestPath, {
     scenarioId,
     realmFixture: profile.realmFixture || {},
@@ -579,6 +578,7 @@ async function runScenario(scenarioId, runIndex) {
     driver_port: driverPort,
     native_driver_port: nativeDriverPort,
     e2e_home_dir: path.relative(repoRoot, e2eHomeDir),
+    product_control_source: requiresReadyProductControl ? 'live-runtime' : 'not-required',
     artifact_policy: scenarioManifest.artifactPolicy || {},
     parity_captures: [],
   });
@@ -618,6 +618,7 @@ async function runScenario(scenarioId, runIndex) {
           NIMI_E2E_FIXTURE_PATH: scenarioManifestPath,
           NIMI_E2E_ARTIFACT_MANIFEST: artifactManifestPath,
           NIMI_E2E_HOME_DIR: e2eHomeDir,
+          NIMI_E2E_PRODUCT_CONTROL_PREFLIGHT: requiresReadyProductControl ? 'ready' : '',
         },
       },
     );

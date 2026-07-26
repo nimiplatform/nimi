@@ -57,7 +57,7 @@ pub struct AccountDefaultProfileRevisionProvenance {
 
 /// Manual-named nested `source` object for the Account Default Profile record.
 ///
-/// Product manual `~/.nimi/accounts/<account-id>/profiles/default.json` schema:
+/// `<dataRoot>/accounts/<account-id>/profiles/default.json` schema:
 /// `source { kind: "factory-policy", policyRef, catalogVersion }`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

@@ -104,7 +104,7 @@ test('dev-kernel Electron runner invokes pnpm through the portable Node CLI carr
 test('dev-kernel Electron runner confines standard local assets to the isolated trial root', () => {
   assert.match(
     devKernelElectronRunnerSource,
-    /NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: path\.join\(desktopUserDataRoot, 'standard-shell-data'\)/,
+    /NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: path\.join\(desktopUserDataRoot, 'local-assets'\)/,
   );
 });
 

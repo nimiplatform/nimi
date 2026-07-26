@@ -73,7 +73,7 @@ export type DesktopElectronProductControlHost = {
     readonly command: string;
     readonly payload: Readonly<Record<string, unknown>>;
   }) => Promise<unknown>>>;
-  /** Runtime-protected selected product data root for Desktop-owned native adapters. */
+  /** Runtime-validated selected data root from the canonical Product Control record. */
   readonly resolveSelectedDataRoot: () => Promise<string>;
 };
 
@@ -168,10 +168,13 @@ class ElectronProductControlHost {
 
   async resolveSelectedDataRoot(): Promise<string> {
     const projection = await this.selectedDataRoot();
-    const selectedPath = String(projection.path || projection.dataRoot?.path || '').trim();
+    const selectedPath = String(projection.dataRoot?.path || '').trim();
+    const status = String(projection.dataRoot?.status || '');
     if (
       !projection.exists
-      || projection.dataRoot?.status !== 'selected'
+      || ['config_missing', 'data_root_missing', 'repair_required', 'blocked'].includes(projection.state)
+      || !['selected', 'ready'].includes(status)
+      || (projection.state === 'ready_for_use' && status !== 'ready')
       || !selectedPath
     ) {
       throw new Error('desktop-product-control-selected-data-root-unavailable');
@@ -439,8 +442,18 @@ class ElectronProductControlHost {
 }
 
 function requireRecord(projection: NimiProductControlRecordProjection, action: string): NimiProductControlRecord {
-  if (!projection.record) throw new Error(projection.error || `product-control-record-required:${action}`);
-  return projection.record;
+  const record = projection.record;
+  if (
+    !projection.exists
+    || projection.error
+    || !record
+    || ['config_missing', 'data_root_missing', 'repair_required', 'blocked'].includes(projection.state)
+    || ['repair_required', 'blocked'].includes(record.state)
+    || record.repair.required
+  ) {
+    throw new Error(`desktop-product-control-projection-unusable:${action}`);
+  }
+  return record;
 }
 
 function requireFirstRun(record: NimiProductControlRecord): NimiProductControlRecord['firstRun'] {
@@ -451,6 +464,14 @@ function requireFirstRun(record: NimiProductControlRecord): NimiProductControlRe
 }
 
 function requireDataRoot(record: NimiProductControlRecord): string {
+  if (
+    !record.dataRoot
+    || !['selected', 'ready'].includes(record.dataRoot.status)
+    || ['repair_required', 'blocked'].includes(record.state)
+    || record.repair.required
+  ) {
+    throw new Error('desktop-product-control-projection-unusable:dataRoot');
+  }
   return requiredText(record.dataRoot?.path, 'selected nimi_data');
 }
 

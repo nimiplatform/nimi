@@ -99,29 +99,6 @@ export async function pickProductDataRootDirectory(): Promise<string | null> {
   }));
 }
 
-/**
- * Resolves the OS-conventional default `nimi_data` directory proposed during
- * first-run Storage selection.
- *
- * This is a read-only proposal — it neither creates the directory nor mutates
- * the product-control record. The renderer pre-fills the returned absolute
- * path so the Storage phase never starts from an empty field; the user still
- * explicitly confirms it via {@link selectProductDataRoot}, the sole owner of
- * recording and fail-closed validation (P-COLD-010). Outside the Tauri runtime
- * — and on any non-string payload — it resolves to `null` so the field fails
- * closed (empty) rather than showing a fabricated path.
- */
-export async function defaultProductDataRootDirectory(): Promise<string | null> {
-  if (!hasShellHostInvoke()) return null;
-  return invokeChecked('product_control_default_data_root_directory', {}, (value) => {
-    if (typeof value !== 'string') {
-      throw new Error('product_control_default_data_root_directory returned invalid payload');
-    }
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  });
-}
-
 export async function setProductFirstRunInstallLevel(input: {
   installLevel: 'minimal' | 'recommended';
   aiProfileAlias?: string | null;

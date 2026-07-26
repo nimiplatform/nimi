@@ -16,11 +16,14 @@ export type DesktopRendererStorageUsage = {
 };
 
 export type DesktopRendererStorageDirs = {
-  readonly nimiDir: string;
-  readonly nimiDataDir: string;
-  readonly localModelsDir: string;
-  readonly localRuntimeStatePath: string;
+  readonly dataRoot: string;
+  readonly modelsDir: string;
+  readonly dependenciesDir: string;
+  readonly environmentsDir: string;
+  readonly appsDir: string;
+  readonly accountsDir: string;
   readonly logsDir: string;
+  readonly auditDir: string;
 };
 
 export const DEFAULT_PERFORMANCE_PREFERENCES: PerformancePreferences = Object.freeze({

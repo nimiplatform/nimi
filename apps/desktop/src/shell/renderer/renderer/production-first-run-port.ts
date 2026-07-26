@@ -21,7 +21,6 @@ export function createDesktopProductionFirstRunPort(): DesktopRendererFirstRunPo
   return Object.freeze({
     available: desktopBridge.hasShellHostInvoke,
     ensureRecordCreated: desktopBridge.ensureProductControlRecordCreated,
-    defaultDataRootDirectory: desktopBridge.defaultProductDataRootDirectory,
     reconcileSetupState: desktopBridge.reconcileProductFirstRunSetupState,
     pickDataRootDirectory: desktopBridge.pickProductDataRootDirectory,
     selectDataRoot: desktopBridge.selectProductDataRoot,

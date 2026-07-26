@@ -70,8 +70,8 @@ async function captureDesktop(input = {}) {
   const packaged = typeof input.packagedLayoutApp === 'string';
   const label = packaged ? 'packaged-desktop' : 'desktop';
   const userDataRoot = await privateTempRoot(label);
-  const standardDataRoot = path.join(userDataRoot, 'standard-shell-data');
-  await mkdir(standardDataRoot, { recursive: true, mode: 0o700 });
+  const localAssetRoot = path.join(userDataRoot, 'local-assets');
+  await mkdir(localAssetRoot, { recursive: true, mode: 0o700 });
   const rendererUrl = new URL(pathToFileURL(path.join(desktopRoot, 'dist', 'index.html')).toString());
   rendererUrl.searchParams.set('nimiDesktopElectronAcceptance', '1');
   const executablePath = packaged
@@ -85,8 +85,7 @@ async function captureDesktop(input = {}) {
     ],
     env: acceptanceEnvironment(packaged ? {} : {
       NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererUrl.toString(),
-      NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: standardDataRoot,
-      NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: standardDataRoot,
+      NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,
       NIMI_REALM_URL: 'http://127.0.0.1:3002',
       NIMI_REALTIME_URL: 'ws://127.0.0.1:3003',
     }),
@@ -160,8 +159,6 @@ async function captureDesktop(input = {}) {
 
 async function captureZhiyu(label, screenshots) {
   const userDataRoot = await privateTempRoot(`zhiyu-${label}`);
-  const dataRoot = path.join(userDataRoot, 'standard-shell-data');
-  await mkdir(dataRoot, { recursive: true, mode: 0o700 });
   const rendererUrl = new URL(pathToFileURL(path.join(zhiyuRoot, 'dist', 'index.html')).toString());
   rendererUrl.searchParams.set('nimiElectronSdkAcceptance', '1');
   const executablePath = createRequire(path.join(zhiyuRoot, 'package.json'))('electron');
@@ -170,8 +167,6 @@ async function captureZhiyu(label, screenshots) {
     args: [path.join(zhiyuRoot, 'dist-electron', 'main.js'), `--user-data-dir=${userDataRoot}`],
     env: acceptanceEnvironment({
       NIMI_ZHIYU_ELECTRON_RENDERER_URL: rendererUrl.toString(),
-      NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
-      NIMI_ZHIYU_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: dataRoot,
     }),
   });
   const processId = app.process().pid;

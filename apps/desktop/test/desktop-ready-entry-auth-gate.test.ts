@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
@@ -63,12 +63,6 @@ const productControlRootSource = readFileSync(
 const productControlOperationsSource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control/operations.rs'),
   'utf8',
-).concat(
-  '\n',
-  readFileSync(
-    resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control/operations_test_support.rs'),
-    'utf8',
-  ),
 );
 const productControlRecordStoreSource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control/record_store.rs'),
@@ -192,35 +186,31 @@ test('Wave 7: Desktop admission adapter does not mirror Runtime ready authority 
   assert.doesNotMatch(productControlAdmissionSource, /#\[cfg\(test\)\]/);
 });
 
-test('Wave 7: Desktop product-control source keeps Runtime as authority', () => {
-  assert.match(productControlRootSource, /Runtime-owned product-control projection adapter/);
+test('Wave 7: Desktop product-control source uses one Runtime adapter in production and tests', () => {
+  assert.match(productControlRootSource, /Runtime-validated canonical Product Control projection adapter/);
   assert.match(productControlRootSource, /Desktop Tauri commands forward reads and mutations to RuntimeLocalService/);
   assert.doesNotMatch(productControlRootSource, /lifecycle truth surface/);
   assert.match(productControlRootSource, /RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID/);
   assert.match(productControlRootSource, /RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID/);
 
-  for (const helperName of [
-    'ensure_product_control_record_created',
-    'select_product_data_root',
-    'set_first_run_install_level',
-    'complete_first_run_device_environment_scan_with_profile',
+  assert.match(productControlRootSource, /nimi_data_root_from_projection/);
+  assert.match(productControlRootSource, /ProductDataRootStatus::Selected \| ProductDataRootStatus::Ready/);
+  assert.doesNotMatch(productControlOperationsSource, /operations_test_support/);
+  assert.doesNotMatch(productControlRecordStoreSource, /write_record|read_existing_record|empty_record/);
+
+  for (const removed of [
+    'operations_test_support.rs',
+    'paths.rs',
+    'pointers.rs',
+    'projection.rs',
+    'ready_verification.rs',
   ]) {
-    assert.match(
-      productControlOperationsSource,
-      new RegExp(
-        [
-          'Test-only local product-control record mutator\\.',
-          'Production code must route product-control state changes through RuntimeLocalService\\.',
-          '#\\[cfg\\(test\\)\\]',
-          `(?:pub(?:\\(crate\\))?\\s+)?fn ${helperName}`,
-        ].join('[\\s\\S]*?'),
-      ),
+    assert.equal(
+      existsSync(resolve(import.meta.dirname, `../src-tauri/src/desktop_product_control/${removed}`)),
+      false,
+      `${removed} must not reintroduce a test-only Product Control topology`,
     );
   }
-  assert.match(
-    productControlRecordStoreSource,
-    /Test-only local product-control record writer\.[\s\S]*?Production code must not write product-control authority outside RuntimeLocalService\.[\s\S]*?#\[cfg\(test\)\][\s\S]*?fn write_record/,
-  );
 });
 
 test('Wave 7: first-run finalization requests admission and routes on the projection', () => {
@@ -434,7 +424,6 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
       exists: true,
       state,
       record: null,
-      dataRootProposal: null,
       error: state === 'repair_required' ? 'repair gate' : null,
     };
     assert.equal(
@@ -448,7 +437,6 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
     exists: true,
     state: 'ready_for_use',
     record: null,
-    dataRootProposal: null,
     error: null,
   };
   assert.equal(deriveOrdinaryShellAdmission(backendReady), 'ready');

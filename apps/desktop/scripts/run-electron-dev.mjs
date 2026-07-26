@@ -36,7 +36,7 @@ const electronBin = resolveSignedDesktopDevCarrier({
   existsSync,
 });
 const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
-const standardDataRoot = path.join(profileRoot, 'standard-shell-data');
+const localAssetRoot = path.join(profileRoot, 'local-assets');
 const children = new Set();
 const SIGNAL_EXIT_CODES = new Map([
   ['SIGINT', 130],
@@ -80,7 +80,7 @@ async function runWindowsDesktopDev() {
     ensureSdkDistForDesktopDev();
     const signingIdentity = requireWindowsDevSigningIdentity({ cwd: workspaceRoot });
     requireWindowsDevSignedFiles([electronBin], signingIdentity.certificateSha256, { cwd: workspaceRoot });
-    mkdirSync(standardDataRoot, { recursive: true });
+    mkdirSync(localAssetRoot, { recursive: true });
     if (!avatarOnly) {
       spawnRenderer();
       await waitForUrl(rendererUrl, 45_000);
@@ -108,8 +108,7 @@ async function runWindowsDesktopDev() {
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID: avatarAgentId,
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID:
           process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID || '',
-        NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: standardDataRoot,
-        NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: standardDataRoot,
+        NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,
       },
     });
     const exitCode = await waitForExit(electron);

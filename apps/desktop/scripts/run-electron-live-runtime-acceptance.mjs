@@ -47,8 +47,8 @@ const visualEvidenceRoot = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_LIVE_
 const protectedRuntimeTransportRef = 'protected-desktop-control';
 const offlineStripTestId = OFFLINE_STRIP_TEST_ID;
 const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
-const standardDataRoot = path.join(profileRoot, 'standard-shell-data');
-mkdirSync(standardDataRoot, { recursive: true });
+const localAssetRoot = path.join(profileRoot, 'local-assets');
+mkdirSync(localAssetRoot, { recursive: true });
 const acceptanceStartedAt = performance.now();
 const timings = {};
 const markTiming = (label) => {
@@ -61,8 +61,7 @@ const app = await electron.launch({
   env: {
     ...process.env,
     NIMI_DESKTOP_ELECTRON_RENDERER_URL: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL) || rendererLiveUrl,
-    NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: standardDataRoot,
-    NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: standardDataRoot,
+    NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,
   },
 });
 markTiming('electronLaunchedMs');

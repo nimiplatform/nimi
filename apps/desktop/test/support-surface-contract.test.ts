@@ -160,10 +160,10 @@ test('rule.nimi.desktop.product-surfaces.r024: repair delegates cleanup to the m
   assert.match(source, /NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION/);
 });
 
-test('rule.nimi.desktop.product-surfaces.r024: repair surfaces config pointers without recreating them', () => {
+test('rule.nimi.desktop.product-surfaces.r024: repair does not recreate retired config-pointer UI', () => {
   const source = readDesktop(SECTION_FILES.repair);
-  assert.match(source, /SupportPointerCard/);
-  // No pointer-write / recreate path in the repair sub-area.
+  assert.doesNotMatch(source, /SupportPointerCard/);
+  // No pointer-write, root-selection, or recreate path in the repair sub-area.
   assert.doesNotMatch(source, /selectProductDataRoot|setProductFirstRun/);
 });
 

@@ -16,7 +16,6 @@ export type DesktopFirstRunMaterializationInput = {
 export interface DesktopRendererFirstRunPort {
   available(): boolean;
   ensureRecordCreated(): Promise<NimiProductControlRecordProjection>;
-  defaultDataRootDirectory(): Promise<string | null>;
   reconcileSetupState(): Promise<NimiProductControlRecordProjection>;
   pickDataRootDirectory(): Promise<string | null>;
   selectDataRoot(path: string): Promise<NimiProductControlRecordProjection>;
@@ -48,7 +47,6 @@ export function createUnavailableDesktopFirstRunPort(code: string): DesktopRende
   return Object.freeze({
     available: () => false,
     ensureRecordCreated: async () => rejected(),
-    defaultDataRootDirectory: async () => rejected(),
     reconcileSetupState: async () => rejected(),
     pickDataRootDirectory: async () => rejected(),
     selectDataRoot: async () => rejected(),

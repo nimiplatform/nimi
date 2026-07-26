@@ -29,6 +29,18 @@ const authenticatedBaseProfile = JSON.parse(fs.readFileSync(
   path.join(root, 'e2e/fixtures/profiles/_authenticated-base.json'),
   'utf8',
 ));
+const desktopE2eFixtureSource = fs.readFileSync(
+  path.join(root, 'src-tauri/src/desktop_e2e_fixture/enabled.rs'),
+  'utf8',
+);
+const desktopE2eFixtureTestsSource = fs.readFileSync(
+  path.join(root, 'src-tauri/src/desktop_e2e_fixture/fixture_tests.rs'),
+  'utf8',
+);
+const desktopAvatarHandoffTestsSource = fs.readFileSync(
+  path.join(root, 'src-tauri/src/main_parts/defaults_and_commands/window_and_logs_tests.rs'),
+  'utf8',
+);
 const authenticatedBootSpecSource = fs.readFileSync(
   path.join(root, 'e2e/specs/boot.authenticated.main-shell.e2e.mjs'),
   'utf8',
@@ -139,6 +151,30 @@ test('offline recovery smoke targets Realm REST reachability, not runtime releas
 
 test('desktop E2E runner builds the fixture surface only through an explicit Cargo feature', () => {
   assert.match(runnerSource, /'--features',\s*'desktop-e2e-fixture'/);
+});
+
+test('desktop E2E cannot synthesize Product Control or first-run execution evidence', () => {
+  assert.equal(authenticatedBaseProfile.tauriFixture?.productControlRecord, undefined);
+  assert.doesNotMatch(desktopAvatarHandoffTestsSource, /productControlRecord/);
+  for (const source of [desktopE2eFixtureSource, desktopE2eFixtureTestsSource]) {
+    assert.doesNotMatch(source, /product_control_record_from_fixture/);
+    assert.doesNotMatch(source, /runtime_product_control_record_response/);
+    assert.doesNotMatch(source, /runtime_product_control_selected_data_root_response/);
+    assert.doesNotMatch(source, /runtime_first_run_execution_evidence_response/);
+    assert.doesNotMatch(source, /RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID/);
+    assert.doesNotMatch(source, /RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID/);
+    assert.doesNotMatch(source, /RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID/);
+    assert.doesNotMatch(source, /desktop-e2e-fixture:first-run-execution/);
+  }
+  assert.match(
+    desktopE2eFixtureSource,
+    /#\[serde\(rename_all = "camelCase", deny_unknown_fields\)\]\s*struct DesktopE2ETauriFixture/,
+  );
+  assert.doesNotMatch(runnerSource, /__E2E_DATA_ROOT__/);
+  assert.doesNotMatch(runnerSource, /__E2E_RUNTIME_CONFIG_PATH__/);
+  assert.match(runnerSource, /product_control_source: requiresReadyProductControl \? 'live-runtime' : 'not-required'/);
+  assert.match(wdioConfigSource, /hook\.invoke\('product_control_record_get', \{\}\)/);
+  assert.match(wdioConfigSource, /projection\?\.state !== 'ready_for_use'/);
 });
 
 test('desktop E2E runner launches WDIO from the desktop package dependency context', () => {

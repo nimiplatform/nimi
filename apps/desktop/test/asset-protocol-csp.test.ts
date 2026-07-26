@@ -119,7 +119,7 @@ test('desktop dev CSP keeps production script restrictions while HMR is disabled
   );
 });
 
-test('desktop asset protocol is enabled for local avatar resource loading', () => {
+test('desktop asset protocol starts empty and admits only resolved files dynamically', () => {
   assert.equal(
     assetProtocol?.enable,
     true,
@@ -129,8 +129,9 @@ test('desktop asset protocol is enabled for local avatar resource loading', () =
     Array.isArray(assetProtocol?.scope),
     'assetProtocol.scope must be configured',
   );
-  assert.ok(
-    (assetProtocol?.scope || []).includes('$HOME/.nimi/data/avatar-resources/resources/**'),
-    'assetProtocol.scope must admit the managed desktop avatar resource root',
+  assert.deepEqual(
+    assetProtocol?.scope,
+    [],
+    'static home-relative scopes would bypass Product Control dataRoot discovery',
   );
 });

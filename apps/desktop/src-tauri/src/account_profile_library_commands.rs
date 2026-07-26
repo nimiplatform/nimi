@@ -4,7 +4,7 @@
 //!
 //! These commands are the renderer's ONLY write/read path to the account
 //! profile library. The library file family
-//! (`~/.nimi/accounts/<account-id>/profiles/{ index.json, user/, imported/ }`,
+//! (`<dataRoot>/accounts/<account-id>/profiles/{ index.json, user/, imported/ }`,
 //! `account_profile_library_files.rs`) is the single source of truth — the
 //! renderer holds only a read-through projection, never a parallel store.
 //!
@@ -54,10 +54,13 @@ pub struct AccountProfileLibraryDeletePayload {
 /// List the account profile library and re-derive `index.json` from disk.
 #[tauri::command]
 pub async fn account_profile_library_list() -> Result<AccountProfileLibraryProjection, String> {
+    let data_root = crate::desktop_product_control::runtime_validated_nimi_data_root().await?;
     let account_id = authenticated_runtime_account_id().await?;
-    tauri::async_runtime::spawn_blocking(move || list_account_profile_library(&account_id))
-        .await
-        .map_err(|error| format!("account_profile_library_list worker failed: {error}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        list_account_profile_library(&data_root, &account_id)
+    })
+    .await
+    .map_err(|error| format!("account_profile_library_list worker failed: {error}"))?
 }
 
 /// Create a new user-authored library profile under `user/`.
@@ -65,9 +68,10 @@ pub async fn account_profile_library_list() -> Result<AccountProfileLibraryProje
 pub async fn account_profile_library_create(
     payload: AccountProfileLibraryEntryPayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
+    let data_root = crate::desktop_product_control::runtime_validated_nimi_data_root().await?;
     let account_id = authenticated_runtime_account_id().await?;
     tauri::async_runtime::spawn_blocking(move || {
-        create_account_profile_library_entry(&account_id, payload.profile)
+        create_account_profile_library_entry(&data_root, &account_id, payload.profile)
     })
     .await
     .map_err(|error| format!("account_profile_library_create worker failed: {error}"))?
@@ -78,9 +82,10 @@ pub async fn account_profile_library_create(
 pub async fn account_profile_library_edit(
     payload: AccountProfileLibraryEntryPayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
+    let data_root = crate::desktop_product_control::runtime_validated_nimi_data_root().await?;
     let account_id = authenticated_runtime_account_id().await?;
     tauri::async_runtime::spawn_blocking(move || {
-        edit_account_profile_library_entry(&account_id, payload.profile)
+        edit_account_profile_library_entry(&data_root, &account_id, payload.profile)
     })
     .await
     .map_err(|error| format!("account_profile_library_edit worker failed: {error}"))?
@@ -91,9 +96,10 @@ pub async fn account_profile_library_edit(
 pub async fn account_profile_library_import(
     payload: AccountProfileLibraryImportPayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
+    let data_root = crate::desktop_product_control::runtime_validated_nimi_data_root().await?;
     let account_id = authenticated_runtime_account_id().await?;
     tauri::async_runtime::spawn_blocking(move || {
-        import_account_profile_library_entries(&account_id, payload.profiles)
+        import_account_profile_library_entries(&data_root, &account_id, payload.profiles)
     })
     .await
     .map_err(|error| format!("account_profile_library_import worker failed: {error}"))?
@@ -104,9 +110,10 @@ pub async fn account_profile_library_import(
 pub async fn account_profile_library_export(
     payload: AccountProfileLibraryExportPayload,
 ) -> Result<Vec<LibraryAIProfilePayload>, String> {
+    let data_root = crate::desktop_product_control::runtime_validated_nimi_data_root().await?;
     let account_id = authenticated_runtime_account_id().await?;
     tauri::async_runtime::spawn_blocking(move || {
-        export_account_profile_library_entries(&account_id, payload.profile_ids)
+        export_account_profile_library_entries(&data_root, &account_id, payload.profile_ids)
     })
     .await
     .map_err(|error| format!("account_profile_library_export worker failed: {error}"))?
@@ -117,9 +124,10 @@ pub async fn account_profile_library_export(
 pub async fn account_profile_library_delete(
     payload: AccountProfileLibraryDeletePayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
+    let data_root = crate::desktop_product_control::runtime_validated_nimi_data_root().await?;
     let account_id = authenticated_runtime_account_id().await?;
     tauri::async_runtime::spawn_blocking(move || {
-        delete_account_profile_library_entry(&account_id, &payload.profile_id)
+        delete_account_profile_library_entry(&data_root, &account_id, &payload.profile_id)
     })
     .await
     .map_err(|error| format!("account_profile_library_delete worker failed: {error}"))?

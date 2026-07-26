@@ -101,7 +101,10 @@ test('config_missing is an internal transient and does not expose the data-root 
   assert.match(storagePhaseSource, /props\.transient/);
   assert.match(storagePhaseSource, /first-run-storage-choose-folder/);
   assert.match(workflowSource, /firstRun\.ensureRecordCreated/);
-  assert.match(desktopProductControlSource, /empty_record\(ProductControlState::DataRootMissing\)/);
+  assert.match(
+    desktopProductControlSource,
+    /RUNTIME_LOCAL_ENSURE_PRODUCT_CONTROL_RECORD_CREATED_METHOD_ID/,
+  );
 });
 
 test('first-run readiness includes product control record and selected data root gates', () => {
@@ -127,25 +130,28 @@ test('product control ready_for_use has no production renderer/Tauri admission s
   assert.doesNotMatch(desktopProductControlSource, /ProductReadyForUsePayload/);
   assert.doesNotMatch(desktopProductControlSource, /mark_ready_for_use/);
   assert.doesNotMatch(desktopProductControlSource, /product_control_record_mark_ready_for_use/);
-  assert.match(desktopProductControlSource, /ready_for_use failed owner admission verification/);
+  assert.match(desktopProductControlSource, /RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID/);
+  assert.doesNotMatch(desktopProductControlSource, /read_existing_record|write_record/);
   assert.doesNotMatch(productControlBridgeSource, /markProductReadyForUse/);
   assert.doesNotMatch(productControlBridgeSource, /product_control_record_mark_ready_for_use/);
   assert.match(productControlBridgeSource, /reconcileProductFirstRunSetupState/);
   assert.doesNotMatch(productControlBridgeSource, /setProductFirstRunSetupState/);
 });
 
-test('Desktop product control record owns selected data root; desktop paths no longer default readiness to ~/.nimi/data', () => {
-  assert.match(desktopProductControlSource, /PRODUCT_CONTROL_FILE_NAME: &str = "nimi\.json"/);
-  assert.match(desktopProductControlSource, /ConfigMissing/);
-  assert.match(desktopProductControlSource, /empty_record\(ProductControlState::DataRootMissing\)/);
-  assert.match(desktopProductControlSource, /select_product_data_root/);
-  assert.match(desktopProductControlSource, /ensure_data_root_layout/);
-  // `resolve_nimi_data_dir` — the readiness path — still requires the
-  // user-selected product data root and never silently defaults.
-  assert.match(desktopPathsSource, /selected_product_data_root/);
-  // The OS-default `nimi_data` *proposal* helper is admitted as a first-run
-  // pre-fill only: it resolves a `Nimi` home folder the user reviews and
-  // confirms, never a silent `~/.nimi/data` readiness default.
-  assert.match(desktopPathsSource, /fn default_data_root_proposal/);
-  assert.doesNotMatch(desktopPathsSource, /join\(NIMI_DATA_DIR_NAME\)/);
+test('Desktop resolves selected data root through the same Runtime projection adapter in tests and production', () => {
+  assert.match(
+    desktopProductControlSource,
+    /RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID/,
+  );
+  assert.match(desktopProductControlSource, /nimi_data_root_from_projection/);
+  assert.match(
+    desktopProductControlSource,
+    /ProductDataRootStatus::Selected \| ProductDataRootStatus::Ready/,
+  );
+  assert.match(desktopPathsSource, /runtime_validated_nimi_data_root/);
+  assert.doesNotMatch(
+    desktopPathsSource,
+    /crate::desktop_product_control::selected_product_data_root\(\)/,
+  );
+  assert.doesNotMatch(desktopPathsSource, /default_data_root_proposal|join\("Nimi"\)|join\("data"\)/);
 });

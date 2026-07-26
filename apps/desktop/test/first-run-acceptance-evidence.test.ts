@@ -118,7 +118,6 @@ function projectionFor(
     path: '/tmp/home/.nimi/nimi.json',
     exists: state !== 'config_missing',
     state,
-    dataRootProposal: null,
     error: null,
     record: {
       schemaVersion: 1,
@@ -140,7 +139,7 @@ function projectionFor(
         executionEvidenceRef: null,
         ...override.firstRun,
       },
-      pointers: { runtimeConfigPath: '/tmp/home/.nimi/runtime/config.json' },
+      pointers: {},
       repair: { required: state === 'repair_required', reason: null },
       ...override,
     },
@@ -425,7 +424,11 @@ test('ready_for_use has no production renderer/Tauri mark-ready shortcut and rou
   assert.doesNotMatch(rendererBridgeSource, /markProductReadyForUse/);
   assert.doesNotMatch(desktopProductControlSource, /ProductReadyForUsePayload/);
   assert.doesNotMatch(desktopProductControlSource, /product_control_record_mark_ready_for_use/);
-  assert.match(desktopProductControlSource, /ready_for_use failed owner admission verification/);
+  assert.match(
+    desktopProductControlSource,
+    /RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID/,
+  );
+  assert.doesNotMatch(desktopProductControlSource, /read_existing_record|write_record/);
   // the admission keystone command/module is the only entry point that writes ready_for_use.
   assert.match(desktopMainSource, /mod desktop_product_control_admission;/);
   assert.match(appBootstrapSource, /product_control_record_admit_ready_for_use/);

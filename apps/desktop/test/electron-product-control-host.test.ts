@@ -29,7 +29,7 @@ const RECORD_ACCOUNT = '/nimi.runtime.v1.RuntimeLocalService/RecordProductContro
 
 function projectionJson(state = 'data_root_selected'): string {
   return JSON.stringify({
-    path: 'C:\\ProgramData\\Nimi\\Runtime\\Protected\\users\\sid\\nimi.json',
+    path: 'C:\\Users\\tester\\.nimi\\nimi.json',
     exists: true,
     state,
     record: {
@@ -58,14 +58,14 @@ function projectionJson(state = 'data_root_selected'): string {
   });
 }
 
-test('Electron Product Control host maps every renderer command to an exact protected Runtime method', async () => {
+test('Electron Product Control host maps every renderer command to an exact Runtime method', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
   const control: DesktopProductControlTransport = {
     machineProductUnary: async (input) => {
       calls.push({ methodId: input.methodId, requestBytes: input.requestBytes });
       const json = input.methodId === GET_SELECTED_DATA_ROOT
         ? JSON.stringify({
-            path: 'C:\\ProgramData\\Nimi\\Runtime\\Protected\\nimi.json',
+            path: 'C:\\Users\\tester\\.nimi\\nimi.json',
             exists: true,
             state: 'ready_for_use',
             dataRoot: {
@@ -137,6 +137,152 @@ test('Electron Product Control host maps every renderer command to an exact prot
     SetProductControlFirstRunInstallLevelRequest.fromBinary(calls[5]!.requestBytes),
     { installLevel: 'minimal', aiProfileAlias: 'local-speech-ready' },
   );
+});
+
+test('Electron selected data-root resolver uses only dataRoot.path and accepts selected or ready', async () => {
+  function hostFor(
+    status: 'selected' | 'ready',
+    dataRoot: unknown,
+    state = status === 'ready' ? 'ready_for_use' : 'data_root_selected',
+  ) {
+    return createDesktopElectronProductControlHost({
+      control: {
+        machineProductUnary: async (input) => {
+          assert.equal(input.methodId, GET_SELECTED_DATA_ROOT);
+          const json = JSON.stringify({
+            path: 'C:\\decoy-that-is-the-control-record\\nimi.json',
+            exists: true,
+            state,
+            dataRoot,
+            error: null,
+          });
+          return ProductControlProjectionJson.toBinary(
+            ProductControlProjectionJson.create({ json }),
+          );
+        },
+      },
+    });
+  }
+
+  for (const status of ['selected', 'ready'] as const) {
+    const host = hostFor(status, {
+      path: 'D:\\NimiData',
+      status,
+      selectedAt: '2026-07-14T00:00:00.000Z',
+      verifiedAt: '2026-07-14T00:00:00.000Z',
+      selectedAtUnixMs: 1,
+      verifiedAtUnixMs: 1,
+    });
+    assert.equal(await host.resolveSelectedDataRoot(), 'D:\\NimiData');
+  }
+
+  await assert.rejects(
+    hostFor('ready', null).resolveSelectedDataRoot(),
+    /desktop-product-control-selected-data-root-unavailable/u,
+  );
+
+  for (const [state, status] of [
+    ['config_missing', 'selected'],
+    ['data_root_missing', 'selected'],
+    ['repair_required', 'selected'],
+    ['blocked', 'ready'],
+    ['ready_for_use', 'selected'],
+  ] as const) {
+    await assert.rejects(
+      hostFor(status, {
+        path: 'D:\\MustNotLeak',
+        status,
+        selectedAt: '2026-07-14T00:00:00.000Z',
+        verifiedAt: '2026-07-14T00:00:00.000Z',
+        selectedAtUnixMs: 1,
+        verifiedAtUnixMs: 1,
+      }, state).resolveSelectedDataRoot(),
+      /desktop-product-control-selected-data-root-unavailable/u,
+    );
+  }
+});
+
+test('Electron evidence commands reject repair-required Product Control before side effects', async () => {
+  const methodCalls: string[] = [];
+  let accountCalls = 0;
+  let evidenceCalls = 0;
+  const repairProjection = JSON.stringify({
+    path: 'C:\\Users\\tester\\.nimi\\nimi.json',
+    exists: true,
+    state: 'repair_required',
+    record: {
+      schemaVersion: 1,
+      installId: 'install-repair',
+      productVersion: '1',
+      state: 'repair_required',
+      dataRoot: {
+        path: 'D:\\MustNotUse',
+        status: 'repair_required',
+        selectedAt: '2026-07-14T00:00:00.000Z',
+        verifiedAt: '2026-07-14T00:00:00.000Z',
+        selectedAtUnixMs: 1,
+        verifiedAtUnixMs: 1,
+      },
+      firstRun: {
+        installLevel: 'minimal',
+        aiProfileAlias: 'local-speech-ready',
+        completed: false,
+        builtInAiConfigRefs: [],
+      },
+      pointers: {},
+      repair: {
+        required: true,
+        reason: 'derived state requires repair',
+      },
+    },
+    error: 'Product Control requires repair',
+  });
+  const host = createDesktopElectronProductControlHost({
+    control: {
+      machineProductUnary: async (input) => {
+        methodCalls.push(input.methodId);
+        return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({
+          json: repairProjection,
+        }));
+      },
+    },
+    account: {
+      invoke: async () => {
+        accountCalls += 1;
+        return {
+          state: 'authenticated',
+          accountProjection: {
+            accountId: 'account-repair',
+            displayName: 'Account Repair',
+            realmEnvironmentId: 'production',
+          },
+        };
+      },
+      close: () => {},
+    },
+    evidence: {
+      ensureAccountDefaultProfile: () => {
+        evidenceCalls += 1;
+        return { accountDefaultProfileRef: 'must-not-record' };
+      },
+      readAccountDefaultProfile: () => { throw new Error('not-called'); },
+      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
+      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
+      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+    },
+  });
+
+  await assert.rejects(
+    host.commandHandlers.product_control_record_ensure_account_default_profile({
+      command: 'product_control_record_ensure_account_default_profile',
+      payload: {},
+    }),
+    /desktop-product-control-projection-unusable/u,
+  );
+  assert.deepEqual(methodCalls, [GET_RECORD]);
+  assert.equal(accountCalls, 0);
+  assert.equal(evidenceCalls, 0);
 });
 
 test('Electron Product Control host rejects extra renderer fields before protected transport', async () => {

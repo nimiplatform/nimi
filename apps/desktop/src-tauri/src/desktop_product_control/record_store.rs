@@ -1,177 +1,64 @@
-//! Product-control record construction, structural validation, atomic
-//! persistence, and the selected `nimi_data` data-root layout.
+//! Product-control record helpers shared by the Runtime projection adapters.
 
 use crate::desktop_paths::normalize_desktop_absolute_path;
-#[cfg(test)]
-use std::fs;
-#[cfg(test)]
-use std::path::Path;
 use std::path::PathBuf;
 
-#[cfg(test)]
-use super::paths::{new_install_id, now_unix_ms, product_version};
-#[cfg(test)]
-use super::pointers::resolve_product_pointers;
-use super::record::ProductControlRecord;
-#[cfg(test)]
 use super::record::{
-    ProductControlState, ProductDataRootStatus, ProductFirstRunRecord, ProductRepairRecord,
-    PRODUCT_CONTROL_SCHEMA_VERSION,
+    ProductControlRecord, ProductControlRecordProjection, ProductControlState,
+    ProductDataRootStatus,
 };
 
-#[cfg(test)]
-pub(crate) fn empty_record(state: ProductControlState) -> Result<ProductControlRecord, String> {
-    Ok(ProductControlRecord {
-        schema_version: PRODUCT_CONTROL_SCHEMA_VERSION,
-        install_id: new_install_id(),
-        product_version: product_version(),
-        state,
-        data_root: None,
-        first_run: ProductFirstRunRecord::default(),
-        pointers: resolve_product_pointers()?,
-        repair: ProductRepairRecord::default(),
-    })
-}
-
-#[cfg(test)]
-pub(crate) fn read_existing_record(path: &Path) -> Result<Option<ProductControlRecord>, String> {
-    if !path.exists() {
-        return Ok(None);
-    }
-    let raw = fs::read_to_string(path)
-        .map_err(|error| format!("读取 ~/.nimi/nimi.json 失败 ({}): {error}", path.display()))?;
-    let record = serde_json::from_str::<ProductControlRecord>(&raw)
-        .map_err(|error| format!("解析 ~/.nimi/nimi.json 失败 ({}): {error}", path.display()))?;
-    validate_record(&record)?;
-    Ok(Some(record))
-}
-
-/// Structural validation of `~/.nimi/nimi.json`.
-///
-/// `ready_for_use` is admission-gated, not hard-rejected: a `ready_for_use`
-/// record must carry the full `ready-evidence-required` field set
-/// (`product-control-record-schema.yaml`). This is a shape gate only — it does
-/// NOT trust the refs as valid. Owner re-verification of every first-run
-/// evidence ref happens at read-for-entry in
-/// [`read_product_control_projection`](super::projection::read_product_control_projection)
-/// (local owners) and in the backend `AdmitProductReadyForUse` operation (all
-/// four owners, P-COLD-016). A `ready_for_use` record with populated-but-
-/// unverified refs, or a direct file edit, still fails closed to a non-ready
-/// state because the refs never resolve through their owners.
-#[cfg(test)]
-fn validate_record(record: &ProductControlRecord) -> Result<(), String> {
-    if record.schema_version != PRODUCT_CONTROL_SCHEMA_VERSION {
+pub(crate) fn usable_product_control_record_for(
+    projection: ProductControlRecordProjection,
+    action: &str,
+) -> Result<ProductControlRecord, String> {
+    if !projection.exists
+        || projection.error.is_some()
+        || matches!(
+            projection.state,
+            ProductControlState::ConfigMissing
+                | ProductControlState::DataRootMissing
+                | ProductControlState::RepairRequired
+                | ProductControlState::Blocked
+        )
+    {
         return Err(format!(
-            "unsupported ~/.nimi/nimi.json schemaVersion={} expected={PRODUCT_CONTROL_SCHEMA_VERSION}",
-            record.schema_version
+            "Product Control projection is unusable before {action}"
         ));
     }
-    if record.install_id.trim().is_empty() {
-        return Err("~/.nimi/nimi.json installId is required".to_string());
-    }
-    if record.product_version.trim().is_empty() {
-        return Err("~/.nimi/nimi.json productVersion is required".to_string());
-    }
-    if matches!(
-        record.state,
-        ProductControlState::DataRootSelected
-            | ProductControlState::AiEnvironmentUnconfigured
-            | ProductControlState::LocalAiProfileSelectedAssetsMissing
-            | ProductControlState::LocalAiProfileSelectedEnvironmentNotReady
-            | ProductControlState::LocalAiAssetsDownloadedEnvironmentNotReady
-            | ProductControlState::LocalAiReady
-            | ProductControlState::ReadyForUse
-    ) && selected_data_root_path(record).is_none()
+    let record = projection
+        .record
+        .ok_or_else(|| format!("product-control record is required before {action}"))?;
+    if record.repair.required
+        || matches!(
+            &record.state,
+            ProductControlState::RepairRequired | ProductControlState::Blocked
+        )
     {
-        return Err("~/.nimi/nimi.json state requires dataRoot.path".to_string());
+        return Err(format!(
+            "Product Control projection is unusable before {action}"
+        ));
     }
-    if let Some(data_root) = record.data_root.as_ref() {
-        if data_root.selected_at.trim().is_empty() || data_root.verified_at.trim().is_empty() {
-            return Err(
-                "~/.nimi/nimi.json dataRoot requires selectedAt and verifiedAt".to_string(),
-            );
-        }
-    }
-    if let Some(install_level) = record.first_run.install_level.as_deref() {
-        if !matches!(install_level.trim(), "minimal" | "recommended") {
-            return Err(
-                "~/.nimi/nimi.json firstRun.installLevel must be minimal or recommended"
-                    .to_string(),
-            );
-        }
-    }
-    if matches!(record.state, ProductControlState::ReadyForUse) {
-        validate_ready_for_use_shape(record)?;
-    }
-    Ok(())
-}
-
-/// Shape gate for a `ready_for_use` record: every `ready-evidence-required`
-/// field must be present and non-empty, and `dataRoot.status` must be `ready`.
-///
-/// This guarantees a `ready_for_use` record is structurally complete before it
-/// is admitted for owner re-verification; it never asserts the refs are valid.
-#[cfg(test)]
-fn validate_ready_for_use_shape(record: &ProductControlRecord) -> Result<(), String> {
-    let data_root = record
-        .data_root
-        .as_ref()
-        .ok_or_else(|| "~/.nimi/nimi.json ready_for_use requires dataRoot".to_string())?;
-    if !matches!(data_root.status, ProductDataRootStatus::Ready) {
-        return Err("~/.nimi/nimi.json ready_for_use requires dataRoot.status=ready".to_string());
-    }
-    let first_run = &record.first_run;
-    if !first_run.completed {
-        return Err("~/.nimi/nimi.json ready_for_use requires firstRun.completed=true".to_string());
-    }
-    let required_present = first_run
-        .completed_at
-        .as_deref()
-        .is_some_and(|value| !value.trim().is_empty())
-        && first_run
-            .install_level
-            .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
-        && first_run
-            .initialization_plan_id
-            .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
-        && first_run
-            .baseline_profile_ref
-            .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
-        && first_run
-            .baseline_commit_id
-            .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
-        && first_run
-            .account_default_profile_ref
-            .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
-        && !first_run.built_in_ai_config_refs.is_empty()
-        && first_run
-            .built_in_ai_config_refs
-            .iter()
-            .all(|value| !value.trim().is_empty())
-        && first_run
-            .runtime_baseline_ref
-            .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
-        && first_run
-            .execution_evidence_ref
-            .as_deref()
-            .is_some_and(|value| !value.trim().is_empty());
-    if !required_present {
-        return Err(
-            "~/.nimi/nimi.json ready_for_use requires the full first-run ready evidence field set"
-                .to_string(),
-        );
-    }
-    Ok(())
+    Ok(record)
 }
 
 pub(crate) fn selected_data_root_path(record: &ProductControlRecord) -> Option<PathBuf> {
-    let value = record.data_root.as_ref()?.path.trim();
+    if record.repair.required
+        || matches!(
+            &record.state,
+            ProductControlState::RepairRequired | ProductControlState::Blocked
+        )
+    {
+        return None;
+    }
+    let data_root = record.data_root.as_ref()?;
+    if !matches!(
+        &data_root.status,
+        ProductDataRootStatus::Selected | ProductDataRootStatus::Ready
+    ) {
+        return None;
+    }
+    let value = data_root.path.trim();
     if value.is_empty() {
         return None;
     }
@@ -182,38 +69,71 @@ pub(crate) fn selected_data_root_path(record: &ProductControlRecord) -> Option<P
     Some(normalize_desktop_absolute_path(&path))
 }
 
-// Test-only local product-control record writer.
-// Production code must not write product-control authority outside RuntimeLocalService.
 #[cfg(test)]
-pub(crate) fn write_record(path: &Path, record: &ProductControlRecord) -> Result<(), String> {
-    validate_record(record)?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("创建 ~/.nimi 目录失败 ({}): {error}", parent.display()))?;
-    }
-    let raw = serde_json::to_string_pretty(record)
-        .map_err(|error| format!("序列化 ~/.nimi/nimi.json 失败: {error}"))?;
-    let tmp_path =
-        path.with_extension(format!("json.tmp.{}.{}", std::process::id(), now_unix_ms()));
-    fs::write(&tmp_path, raw).map_err(|error| {
-        format!(
-            "写入 ~/.nimi/nimi.json 临时文件失败 ({}): {error}",
-            tmp_path.display()
-        )
-    })?;
-    fs::rename(&tmp_path, path)
-        .map_err(|error| format!("提交 ~/.nimi/nimi.json 失败 ({}): {error}", path.display()))?;
-    Ok(())
-}
+mod tests {
+    use super::{selected_data_root_path, usable_product_control_record_for};
+    use crate::desktop_product_control::{
+        ProductControlRecord, ProductControlRecordProjection, ProductControlState,
+    };
 
-/// Materialize the `nimi_data` data-root layout.
-///
-/// Delegates to [`crate::nimi_data_directory::enforce_data_root_layout`], the
-/// single authoritative `P-MIG-006` layout builder: it creates exactly the
-/// first-level directories declared in the `nimi_data` directory ownership
-/// matrix (`tables/nimi-data-directory-ownership.yaml`), so the on-disk layout
-/// can never drift from the kernel ownership table.
-#[cfg(test)]
-pub(crate) fn ensure_data_root_layout(path: &Path) -> Result<(), String> {
-    crate::nimi_data_directory::enforce_data_root_layout(path)
+    fn repair_record(must_not_use: &std::path::Path) -> ProductControlRecord {
+        serde_json::from_value::<ProductControlRecord>(serde_json::json!({
+            "schemaVersion": 1,
+            "installId": "install-repair",
+            "productVersion": "1",
+            "state": "repair_required",
+            "dataRoot": {
+                "path": must_not_use,
+                "status": "repair_required",
+                "selectedAt": "2026-07-26T00:00:00.000Z",
+                "verifiedAt": "2026-07-26T00:00:00.000Z",
+                "selectedAtUnixMs": 1,
+                "verifiedAtUnixMs": 1
+            },
+            "firstRun": {
+                "installLevel": "minimal",
+                "aiProfileAlias": "local-speech-ready",
+                "completed": false,
+                "builtInAiConfigRefs": []
+            },
+            "pointers": {},
+            "repair": {
+                "required": true,
+                "reason": "derived state requires repair"
+            }
+        }))
+        .expect("repair fixture")
+    }
+
+    #[test]
+    fn repair_required_record_does_not_expose_data_root_path() {
+        let must_not_use = std::env::temp_dir().join("MustNotUse");
+        let record = repair_record(&must_not_use);
+
+        assert!(
+            selected_data_root_path(&record).is_none(),
+            "repair-required record exposed {}",
+            must_not_use.display()
+        );
+    }
+
+    #[test]
+    fn repair_projection_is_rejected_before_record_use() {
+        let must_not_use = std::env::temp_dir().join("MustNotUse");
+        let projection = ProductControlRecordProjection {
+            path: std::env::temp_dir()
+                .join(".nimi")
+                .join("nimi.json")
+                .display()
+                .to_string(),
+            exists: true,
+            state: ProductControlState::RepairRequired,
+            record: Some(repair_record(&must_not_use)),
+            error: Some("Product Control requires repair".to_string()),
+        };
+
+        let error = usable_product_control_record_for(projection, "ready admission")
+            .expect_err("repair projection must fail closed");
+        assert!(error.contains("projection is unusable"));
+    }
 }

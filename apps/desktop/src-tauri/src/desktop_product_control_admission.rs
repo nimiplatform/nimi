@@ -5,7 +5,8 @@
 //! cannot read directly, then submits that evidence to Runtime's admitted RPC.
 
 use crate::desktop_product_control::{
-    authenticated_runtime_account_id, selected_data_root_path, ProductControlRecordProjection,
+    authenticated_runtime_account_id, selected_data_root_path, usable_product_control_record_for,
+    ProductControlRecordProjection,
 };
 
 const RUNTIME_EXECUTION_RESOLVE_METHOD_ID: &str =
@@ -23,9 +24,7 @@ const RUNTIME_EXECUTION_STATE_READY: &str = "local_ai_ready";
 pub async fn product_control_record_admit_ready_for_use(
 ) -> Result<ProductControlRecordProjection, String> {
     let projection = crate::desktop_product_control::product_control_record_get().await?;
-    let record = projection
-        .record
-        .ok_or_else(|| "product-control record is required before ready admission".to_string())?;
+    let record = usable_product_control_record_for(projection, "ready admission")?;
     let data_root = selected_data_root_path(&record)
         .ok_or_else(|| "selected nimi_data is required before ready admission".to_string())?;
     let account_id = authenticated_runtime_account_id().await?;

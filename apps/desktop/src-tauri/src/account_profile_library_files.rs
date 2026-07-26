@@ -2,11 +2,12 @@
 //!
 //! Spec authority:
 //!   - `P-AIPS-013` Account Default Profile Local Library Evidence — fixes the
-//!     account profile library under `~/.nimi/accounts/<account-id>/profiles/`
+//!     account profile library under
+//!     `<dataRoot>/accounts/<account-id>/profiles/`
 //!     and forbids renderer profile state / SDK cache / app-local cache as
 //!     profile-library truth.
 //!   - Product manual "User-Local Config And Data Roots" — the account profile
-//!     library is `~/.nimi/accounts/<account-id>/profiles/{ index.json,
+//!     library is `<dataRoot>/accounts/<account-id>/profiles/{ index.json,
 //!     default.json, user/, imported/ }`.
 //!
 //! This module owns the EDITABLE library family: the `index.json` library
@@ -25,7 +26,6 @@
 //!   - the `default` profile id is reserved for the Account Default Profile and
 //!     cannot be created, edited, imported, or deleted through this module.
 
-use crate::desktop_paths::resolve_nimi_dir;
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -134,22 +134,26 @@ fn account_path_segment(account_id: &str) -> String {
 }
 
 /// Resolve the account profile library root
-/// (`~/.nimi/accounts/<account-id>/profiles/`). P-AIPS-013 fixes the library
-/// under the `~/.nimi` CONTROL root, not the user-selected `nimi_data` root.
-pub fn account_profile_library_dir(account_id: &str) -> Result<PathBuf, String> {
+/// (`<dataRoot>/accounts/<account-id>/profiles/`). The caller must pass the
+/// canonical Product Control data root; this file family never discovers or
+/// guesses a root.
+pub fn account_profile_library_dir(data_root: &Path, account_id: &str) -> Result<PathBuf, String> {
+    if !data_root.is_absolute() {
+        return Err("canonical data_root must be absolute".to_string());
+    }
     let normalized_account = validate_account_id(account_id)?;
-    Ok(resolve_nimi_dir()?
+    Ok(data_root
         .join("accounts")
         .join(account_path_segment(&normalized_account))
         .join("profiles"))
 }
 
-fn library_index_path(account_id: &str) -> Result<PathBuf, String> {
-    Ok(account_profile_library_dir(account_id)?.join(LIBRARY_INDEX_FILE))
+fn library_index_path(data_root: &Path, account_id: &str) -> Result<PathBuf, String> {
+    Ok(account_profile_library_dir(data_root, account_id)?.join(LIBRARY_INDEX_FILE))
 }
 
-fn library_origin_dir(account_id: &str, origin: &str) -> Result<PathBuf, String> {
-    Ok(account_profile_library_dir(account_id)?.join(origin))
+fn library_origin_dir(data_root: &Path, account_id: &str, origin: &str) -> Result<PathBuf, String> {
+    Ok(account_profile_library_dir(data_root, account_id)?.join(origin))
 }
 
 /// Profile id validation. The id must be a safe path segment and must never
@@ -191,13 +195,17 @@ fn validate_origin(origin: &str) -> Result<String, String> {
 }
 
 fn library_profile_path(
+    data_root: &Path,
     account_id: &str,
     origin: &str,
     profile_id: &str,
 ) -> Result<PathBuf, String> {
     let normalized_origin = validate_origin(origin)?;
     let normalized_id = validate_library_profile_id(profile_id)?;
-    Ok(library_origin_dir(account_id, &normalized_origin)?.join(format!("{normalized_id}.json")))
+    Ok(
+        library_origin_dir(data_root, account_id, &normalized_origin)?
+            .join(format!("{normalized_id}.json")),
+    )
 }
 
 fn is_path_like_string(value: &str) -> bool {
@@ -392,10 +400,11 @@ struct ScannedLibraryProfile {
 /// Scan one editable origin directory (`user/` or `imported/`) and return every
 /// valid `<profileId>.json` record. A malformed record fails closed.
 fn scan_origin_directory(
+    data_root: &Path,
     account_id: &str,
     origin: &str,
 ) -> Result<Vec<ScannedLibraryProfile>, String> {
-    let dir = library_origin_dir(account_id, origin)?;
+    let dir = library_origin_dir(data_root, account_id, origin)?;
     if !dir.exists() {
         return Ok(Vec::new());
     }
@@ -463,8 +472,12 @@ fn scan_origin_directory(
 /// The Account Default Profile is owned by `account_profile_library.rs`; this
 /// module only reads its `displayName` to project the non-removable index row.
 /// Returns `None` when `default.json` does not exist yet.
-fn read_account_default_index_row(account_id: &str) -> Result<Option<LibraryIndexEntry>, String> {
-    let path = account_profile_library_dir(account_id)?.join(ACCOUNT_DEFAULT_PROFILE_FILE);
+fn read_account_default_index_row(
+    data_root: &Path,
+    account_id: &str,
+) -> Result<Option<LibraryIndexEntry>, String> {
+    let path =
+        account_profile_library_dir(data_root, account_id)?.join(ACCOUNT_DEFAULT_PROFILE_FILE);
     if !path.exists() {
         return Ok(None);
     }
@@ -511,16 +524,18 @@ fn read_account_default_index_row(account_id: &str) -> Result<Option<LibraryInde
 /// disk and re-commit `index.json`. The index is always re-derived — it is a
 /// deterministic projection of the file family, never hand-maintained.
 fn derive_and_commit_library_projection(
+    data_root: &Path,
     account_id: &str,
 ) -> Result<AccountProfileLibraryProjection, String> {
     let normalized_account = validate_account_id(account_id)?;
-    let library_dir = account_profile_library_dir(&normalized_account)?;
+    let library_dir = account_profile_library_dir(data_root, &normalized_account)?;
 
-    let user_profiles = scan_origin_directory(&normalized_account, LIBRARY_ORIGIN_USER)?;
-    let imported_profiles = scan_origin_directory(&normalized_account, LIBRARY_ORIGIN_IMPORTED)?;
+    let user_profiles = scan_origin_directory(data_root, &normalized_account, LIBRARY_ORIGIN_USER)?;
+    let imported_profiles =
+        scan_origin_directory(data_root, &normalized_account, LIBRARY_ORIGIN_IMPORTED)?;
 
     let mut entries: Vec<LibraryIndexEntry> = Vec::new();
-    if let Some(default_entry) = read_account_default_index_row(&normalized_account)? {
+    if let Some(default_entry) = read_account_default_index_row(data_root, &normalized_account)? {
         entries.push(default_entry);
     }
     let mut projections: Vec<LibraryProfileProjection> = Vec::new();
@@ -552,7 +567,7 @@ fn derive_and_commit_library_projection(
         entries,
     };
     write_json_atomic(
-        &library_index_path(&normalized_account)?,
+        &library_index_path(data_root, &normalized_account)?,
         &index,
         "account profile library index",
     )?;
@@ -572,21 +587,23 @@ fn derive_and_commit_library_projection(
 /// List the account profile library: re-derive `index.json` from disk and
 /// return the index plus every editable library profile payload.
 pub fn list_account_profile_library(
+    data_root: &Path,
     account_id: &str,
 ) -> Result<AccountProfileLibraryProjection, String> {
-    derive_and_commit_library_projection(account_id)
+    derive_and_commit_library_projection(data_root, account_id)
 }
 
 /// Resolve the on-disk record path of an existing editable library profile by
 /// scanning both `user/` and `imported/`. Fails closed when the id is not found
 /// in either editable origin.
 fn locate_editable_profile(
+    data_root: &Path,
     account_id: &str,
     profile_id: &str,
 ) -> Result<(String, PathBuf), String> {
     let normalized_id = validate_library_profile_id(profile_id)?;
     for origin in [LIBRARY_ORIGIN_USER, LIBRARY_ORIGIN_IMPORTED] {
-        let path = library_profile_path(account_id, origin, &normalized_id)?;
+        let path = library_profile_path(data_root, account_id, origin, &normalized_id)?;
         if path.exists() {
             return Ok((origin.to_string(), path));
         }
@@ -601,13 +618,14 @@ fn locate_editable_profile(
 /// Fails closed when the id collides with an existing library profile or with
 /// the reserved Account Default Profile id.
 pub fn create_account_profile_library_entry(
+    data_root: &Path,
     account_id: &str,
     profile: LibraryAIProfilePayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
     let normalized_account = validate_account_id(account_id)?;
     let normalized_id = validate_library_profile_id(&profile.profile_id)?;
     validate_library_ai_profile_payload(&profile, &normalized_id)?;
-    if locate_editable_profile(&normalized_account, &normalized_id).is_ok() {
+    if locate_editable_profile(data_root, &normalized_account, &normalized_id).is_ok() {
         return Err(format!(
             "library profile `{normalized_id}` already exists; edit it instead of recreating"
         ));
@@ -621,9 +639,14 @@ pub fn create_account_profile_library_entry(
         created_at: now.clone(),
         updated_at: now,
     };
-    let path = library_profile_path(&normalized_account, LIBRARY_ORIGIN_USER, &normalized_id)?;
+    let path = library_profile_path(
+        data_root,
+        &normalized_account,
+        LIBRARY_ORIGIN_USER,
+        &normalized_id,
+    )?;
     write_json_atomic(&path, &record, "library profile record")?;
-    derive_and_commit_library_projection(&normalized_account)
+    derive_and_commit_library_projection(data_root, &normalized_account)
 }
 
 /// Edit an existing editable library profile in place. The profile keeps its
@@ -632,13 +655,14 @@ pub fn create_account_profile_library_entry(
 /// The Account Default Profile (`default` id) is never editable through this
 /// module — it has its own owner.
 pub fn edit_account_profile_library_entry(
+    data_root: &Path,
     account_id: &str,
     profile: LibraryAIProfilePayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
     let normalized_account = validate_account_id(account_id)?;
     let normalized_id = validate_library_profile_id(&profile.profile_id)?;
     validate_library_ai_profile_payload(&profile, &normalized_id)?;
-    let (origin, path) = locate_editable_profile(&normalized_account, &normalized_id)?;
+    let (origin, path) = locate_editable_profile(data_root, &normalized_account, &normalized_id)?;
     let existing = read_library_profile_record(&path)?;
     let record = LibraryProfileRecord {
         schema_version: LIBRARY_ENTRY_SCHEMA_VERSION,
@@ -649,7 +673,7 @@ pub fn edit_account_profile_library_entry(
         updated_at: now_iso_timestamp(),
     };
     write_json_atomic(&path, &record, "library profile record")?;
-    derive_and_commit_library_projection(&normalized_account)
+    derive_and_commit_library_projection(data_root, &normalized_account)
 }
 
 /// Import one or more profiles into the library `imported/` directory.
@@ -659,6 +683,7 @@ pub fn edit_account_profile_library_entry(
 /// Account Default Profile id is rejected. The whole import fails closed if any
 /// candidate is invalid — no partial pseudo-success.
 pub fn import_account_profile_library_entries(
+    data_root: &Path,
     account_id: &str,
     profiles: Vec<LibraryAIProfilePayload>,
 ) -> Result<AccountProfileLibraryProjection, String> {
@@ -676,7 +701,7 @@ pub fn import_account_profile_library_entries(
                 "import payload has a duplicate profile id `{normalized_id}`"
             ));
         }
-        if locate_editable_profile(&normalized_account, &normalized_id).is_ok() {
+        if locate_editable_profile(data_root, &normalized_account, &normalized_id).is_ok() {
             return Err(format!(
                 "library profile `{normalized_id}` already exists; cannot import over it"
             ));
@@ -694,11 +719,15 @@ pub fn import_account_profile_library_entries(
             created_at: now.clone(),
             updated_at: now.clone(),
         };
-        let path =
-            library_profile_path(&normalized_account, LIBRARY_ORIGIN_IMPORTED, &normalized_id)?;
+        let path = library_profile_path(
+            data_root,
+            &normalized_account,
+            LIBRARY_ORIGIN_IMPORTED,
+            &normalized_id,
+        )?;
         write_json_atomic(&path, &record, "library profile record")?;
     }
-    derive_and_commit_library_projection(&normalized_account)
+    derive_and_commit_library_projection(data_root, &normalized_account)
 }
 
 /// Export the editable library profiles as their portable AIProfile payloads.
@@ -707,10 +736,11 @@ pub fn import_account_profile_library_entries(
 /// otherwise only the requested ids are exported and an unknown id fails
 /// closed. The Account Default Profile is never part of this export.
 pub fn export_account_profile_library_entries(
+    data_root: &Path,
     account_id: &str,
     profile_ids: Vec<String>,
 ) -> Result<Vec<LibraryAIProfilePayload>, String> {
-    let projection = derive_and_commit_library_projection(account_id)?;
+    let projection = derive_and_commit_library_projection(data_root, account_id)?;
     if profile_ids.is_empty() {
         return Ok(projection
             .profiles
@@ -734,19 +764,20 @@ pub fn export_account_profile_library_entries(
 /// Delete an editable library profile. The Account Default Profile (`default`
 /// id) is non-removable and can never be deleted through this module.
 pub fn delete_account_profile_library_entry(
+    data_root: &Path,
     account_id: &str,
     profile_id: &str,
 ) -> Result<AccountProfileLibraryProjection, String> {
     let normalized_account = validate_account_id(account_id)?;
     let normalized_id = validate_library_profile_id(profile_id)?;
-    let (_origin, path) = locate_editable_profile(&normalized_account, &normalized_id)?;
+    let (_origin, path) = locate_editable_profile(data_root, &normalized_account, &normalized_id)?;
     fs::remove_file(&path).map_err(|error| {
         format!(
             "delete library profile record failed ({}): {error}",
             path.display()
         )
     })?;
-    derive_and_commit_library_projection(&normalized_account)
+    derive_and_commit_library_projection(data_root, &normalized_account)
 }
 
 #[cfg(test)]

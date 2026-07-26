@@ -57,13 +57,10 @@ async function withTauriShellInvoke<T>(
   }
 }
 
-test('product-control data-root picker uses Kit standard file dialog without treating the default proposal as startDirectory', async () => {
+test('product-control data-root picker uses Kit standard file dialog without a guessed startDirectory', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
   await withTauriShellInvoke(async (command, payload) => {
     calls.push({ command, payload });
-    if (command === 'product_control_default_data_root_directory') {
-      return 'D:/nimi-data-default';
-    }
     return { canceled: false, paths: ['D:/nimi-data'] };
   }, async () => {
     await assert.doesNotReject(async () => {
