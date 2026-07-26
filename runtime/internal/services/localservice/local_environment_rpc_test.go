@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -32,8 +33,58 @@ func TestResolveLocalEnvironmentPlanProjectsSetupRequired(t *testing.T) {
 	if len(plan.GetDependencies()) == 0 {
 		t.Fatal("expected dependencies")
 	}
+	if plan.GetRuntimeDataRoot() != svc.localEnvironmentRuntimeDataRoot() {
+		t.Fatalf("plan data root = %q, want Product Control-derived %q", plan.GetRuntimeDataRoot(), svc.localEnvironmentRuntimeDataRoot())
+	}
 	if !plan.GetDependencies()[0].GetConfirmationRequired() {
 		t.Fatal("expected missing selected source record to require confirmation")
+	}
+}
+
+func TestLocalEnvironmentRPCRejectsRootDifferentFromProductControl(t *testing.T) {
+	svc := newTestService(t)
+	divergent := filepath.Join(t.TempDir(), "caller-selected-root")
+	cases := []struct {
+		name string
+		call func() error
+	}{
+		{
+			name: "plan",
+			call: func() error {
+				_, err := svc.ResolveLocalEnvironmentPlan(context.Background(), &runtimev1.ResolveLocalEnvironmentPlanRequest{
+					PackId:          "local-text",
+					RuntimeDataRoot: divergent,
+				})
+				return err
+			},
+		},
+		{
+			name: "activation gate",
+			call: func() error {
+				_, err := svc.ResolveLocalEnvironmentActivationGate(context.Background(), &runtimev1.ResolveLocalEnvironmentActivationGateRequest{
+					ConsumerId:      "llama.cpp.cpu",
+					RuntimeDataRoot: divergent,
+				})
+				return err
+			},
+		},
+		{
+			name: "baseline mint",
+			call: func() error {
+				_, err := svc.MintRuntimeBaselineReadiness(context.Background(), &runtimev1.MintRuntimeBaselineReadinessRequest{
+					RuntimeDataRootOrDataRootRef: divergent,
+				})
+				return err
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.call()
+			if err == nil || !strings.Contains(err.Error(), "does not match Product Control dataRoot.path") {
+				t.Fatalf("divergent root error = %v", err)
+			}
+		})
 	}
 }
 

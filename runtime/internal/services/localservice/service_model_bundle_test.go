@@ -129,7 +129,7 @@ func TestStartLocalModelRejectsLegacyManagedBundleWithoutDesktopRepair(t *testin
 			models:    []string{"local-import/Qwen3-4B-Q4_K_M"},
 		}
 	})
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
 
@@ -169,7 +169,7 @@ func TestStartLocalModelRejectsLegacyManagedBundleWithoutDesktopRepair(t *testin
 	svc.persistStateLocked()
 	svc.mu.Unlock()
 
-	desktopDir := filepath.Join(homeDir, ".nimi", "data", "models", "resolved", filepath.FromSlash(model.GetLogicalModelId()))
+	desktopDir := filepath.Join(homeDir, "selected-nimi-data", "models", "resolved", filepath.FromSlash(model.GetLogicalModelId()))
 	if err := os.MkdirAll(desktopDir, 0o755); err != nil {
 		t.Fatalf("mkdir desktop bundle dir: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestStartLocalModelInvalidManagedBundleTransitionsUnhealthy(t *testing.T) {
 			models:    []string{"local-import/Qwen3-4B-Q4_K_M"},
 		}
 	})
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
 
@@ -282,7 +282,7 @@ func TestRestoreStateDoesNotHealLegacyManagedLocalImportRecord(t *testing.T) {
 	entry := "Qwen3-4B-Q4_K_M.gguf"
 	writeLegacyRuntimeLocalStateForTest(t, statePath, localModelID, modelID, entry, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY)
 
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	writeManagedGGUFBundleForTest(t, modelsRoot, "nimi/local-import-qwen3-4b-q4-k-m", modelID, entry)
 
 	svc := newTestServiceWithProbe(t, nil)
@@ -317,7 +317,7 @@ func TestRestoreStateDoesNotHealLegacyManagedLocalImportRecordWithNormalizedMani
 	entry := "Qwen3-4B-Q4_K_M.gguf"
 	writeLegacyRuntimeLocalStateForTest(t, statePath, localModelID, recordModelID, entry, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY)
 
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	writeManagedGGUFBundleForTest(t, modelsRoot, "nimi/local-import-qwen3-4b-q4-k-m", manifestModelID, entry)
 
 	svc := newTestServiceWithProbe(t, nil)
@@ -349,7 +349,7 @@ func TestStartLocalModelRejectsLegacyRecordFromDesktopBundle(t *testing.T) {
 	modelID := "local/local-import/Qwen3-4B-Q4_K_M"
 	entry := "Qwen3-4B-Q4_K_M.gguf"
 	writeLegacyRuntimeLocalStateForTest(t, statePath, localModelID, modelID, entry, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY)
-	writeManagedGGUFBundleForTest(t, filepath.Join(homeDir, ".nimi", "data", "models"), "nimi/local-import-qwen3-4b-q4-k-m", modelID, entry)
+	writeManagedGGUFBundleForTest(t, filepath.Join(homeDir, "selected-nimi-data", "models"), "nimi/local-import-qwen3-4b-q4-k-m", modelID, entry)
 
 	svc, err := New(newTestService(t).logger, nil, statePath, 0)
 	if err != nil {
@@ -365,7 +365,7 @@ func TestStartLocalModelRejectsLegacyRecordFromDesktopBundle(t *testing.T) {
 			models:    []string{"local-import/Qwen3-4B-Q4_K_M"},
 		}
 	}
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
 
@@ -394,7 +394,7 @@ func TestCheckLocalModelHealthRejectsLegacyUnhealthyRecord(t *testing.T) {
 	entry := "Qwen3-4B-Q4_K_M.gguf"
 	writeLegacyRuntimeLocalStateForTest(t, statePath, localModelID, modelID, entry, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY)
 
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	writeManagedGGUFBundleForTest(t, modelsRoot, "nimi/local-import-qwen3-4b-q4-k-m", modelID, entry)
 
 	svc, err := New(newTestService(t).logger, nil, statePath, 0)
@@ -439,7 +439,7 @@ func TestListLocalModelsDoesNotNormalizeManagedUnhealthyRecord(t *testing.T) {
 	modelID := "local/local-import/Qwen3-4B-Q4_K_M"
 	logicalModelID := "nimi/local-import-qwen3-4b-q4-k-m"
 	entry := "Qwen3-4B-Q4_K_M.gguf"
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	manifestPath := writeManagedGGUFBundleForTest(t, modelsRoot, logicalModelID, "local-import/Qwen3-4B-Q4_K_M", entry)
 	writeManagedRuntimeLocalStateForTest(t, statePath, localModelID, modelID, logicalModelID, manifestPath, entry, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
 
@@ -488,7 +488,7 @@ func TestListLocalModelsDoesNotHealManagedAttachedRuntimeMode(t *testing.T) {
 	modelID := "local/local-import/Qwen3-4B-Q4_K_M"
 	logicalModelID := "nimi/local-import-qwen3-4b-q4-k-m"
 	entry := "Qwen3-4B-Q4_K_M.gguf"
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	manifestPath := writeManagedGGUFBundleForTest(t, modelsRoot, logicalModelID, "local-import/Qwen3-4B-Q4_K_M", entry)
 	writeManagedRuntimeLocalStateForTest(t, statePath, localModelID, modelID, logicalModelID, manifestPath, entry, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT)
 
@@ -533,7 +533,7 @@ func TestManagedMediaImageHealingNormalizesSupervisedEndpoint(t *testing.T) {
 	t.Setenv("HOME", homeDir)
 
 	svc := newTestService(t)
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	modelID := "local-import/z_image_turbo-Q4_K"
 	logicalModelID := "nimi/local-import-z-image-turbo-q4-k"
 	entry := "z_image_turbo-Q4_K.gguf"
@@ -679,7 +679,7 @@ func TestEnsureManagedLocalModelBundleReadyAcceptsVerifiedCatalogLogicalModelID(
 	t.Setenv("HOME", homeDir)
 
 	svc := newTestService(t)
-	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	logicalModelID := "gemma-4-e2b-it-local"
 	modelID := "local.chat.gemma-4-e2b-it.q8-0"

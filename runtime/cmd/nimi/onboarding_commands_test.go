@@ -34,8 +34,11 @@ func TestRunRuntimeVersionJSON(t *testing.T) {
 	if got := asString(payload["nimi"]); got == "" {
 		t.Fatalf("expected nimi version in payload: %#v", payload)
 	}
-	if got := asString(payload["config"]); got == "" {
-		t.Fatalf("expected config path in payload: %#v", payload)
+	if _, exists := payload["config"]; exists {
+		t.Fatalf("version must not expose a default Runtime config path: %#v", payload)
+	}
+	if _, exists := payload["nonProductionPortableConfig"]; exists {
+		t.Fatalf("version must not invent a portable config path: %#v", payload)
 	}
 }
 
@@ -55,7 +58,7 @@ func TestRunRuntimeInitMovedToNimiAppCreate(t *testing.T) {
 func TestRunRuntimeProviderSetListUnset(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", cmdTestPortableConfigPath(homeDir))
 
 	setOutput, err := captureStdoutFromRun(func() error {
 		return runRuntimeProvider([]string{
@@ -136,7 +139,7 @@ func TestRunRuntimeProviderSetListUnset(t *testing.T) {
 func TestRunRuntimeProviderListPlainTextShowsNextStepWhenEmpty(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", cmdTestPortableConfigPath(homeDir))
 
 	output, err := captureStdoutFromRun(func() error {
 		return runRuntimeProvider([]string{"list"})
@@ -298,7 +301,7 @@ func TestRunRuntimeDoctorJSON(t *testing.T) {
 func TestRunRuntimeDoctorPlainTextShowsNextStepWhenRuntimeUnavailable(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", cmdTestPortableConfigPath(homeDir))
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:1")
 
 	statusCalls := 0
@@ -440,7 +443,7 @@ func TestRunTopLevelRunCloudInteractiveCredentialCapture(t *testing.T) {
 	defer shutdown()
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", cmdTestPortableConfigPath(homeDir))
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", addr)
 
 	restoreInteractive := onboardingInteractiveTerminal

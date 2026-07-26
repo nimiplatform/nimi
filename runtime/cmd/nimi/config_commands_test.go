@@ -28,7 +28,7 @@ func TestRunRuntimeConfigInitGetValidate(t *testing.T) {
 	}
 	initPayload := parseJSONMap(t, initOutput)
 	configPath := asString(initPayload["path"])
-	if configPath != filepath.Join(homeDir, ".nimi/runtime/config.json") {
+	if configPath != cmdTestPortableConfigPath(homeDir) {
 		t.Fatalf("config path mismatch: got=%q", configPath)
 	}
 	if _, statErr := os.Stat(configPath); statErr != nil {
@@ -62,6 +62,15 @@ func TestRunRuntimeConfigInitGetValidate(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeConfigUnavailableWithoutExplicitPortablePath(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+
+	err := runRuntimeConfig([]string{"get", "--json"})
+	if err == nil || !strings.Contains(err.Error(), "portable Runtime config is unavailable") {
+		t.Fatalf("config get error = %v, want explicit portable-config requirement", err)
+	}
+}
+
 func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
@@ -89,7 +98,7 @@ func TestRunRuntimeConfigSetAllowsInlineProviderAPIKey(t *testing.T) {
 		t.Fatalf("set reasonCode mismatch: %s", setOutput)
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	cfg, loadErr := config.LoadFileConfig(cfgPath)
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
@@ -154,7 +163,7 @@ func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
 		t.Fatalf("set reasonCode mismatch: %s", setOutput)
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	cfg, loadErr := config.LoadFileConfig(cfgPath)
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
@@ -170,7 +179,7 @@ func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeConfigSetDataRootRefRequiresRestart(t *testing.T) {
+func TestRunRuntimeConfigRejectsProductControlOwnedDataRootFields(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
@@ -180,32 +189,88 @@ func TestRunRuntimeConfigSetDataRootRefRequiresRestart(t *testing.T) {
 		t.Fatalf("init config: %v", err)
 	}
 
-	setOutput, err := captureStdoutFromRun(func() error {
-		return runRuntimeConfig([]string{
-			"set",
-			"--set", "dataRootRef=~/runtime/nimi-data",
-			"--set", "managedRoots.models=~/runtime/nimi-data/models",
-			"--json",
-		})
-	})
-	if err != nil {
-		t.Fatalf("runRuntimeConfig set dataRootRef: %v", err)
+	fields := []string{
+		"dataRootRef",
+		"localModelsPath",
+		"managedRoots.models",
+		"managedRoots.dependencies",
+		"managedRoots.environments",
+		"managedRoots.apps",
+		"managedRoots.accounts",
+		"managedRoots.logs",
+		"managedRoots.audit",
 	}
-	setPayload := parseJSONMap(t, setOutput)
-	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
-		t.Fatalf("set reasonCode mismatch: %s", setOutput)
+	for _, field := range fields {
+		t.Run("set "+field, func(t *testing.T) {
+			err := runRuntimeConfig([]string{"set", "--set", field + "=C:\\user-selected-second-root", "--json"})
+			if err == nil || !strings.Contains(err.Error(), "Product Control") {
+				t.Fatalf("set %s error = %v", field, err)
+			}
+		})
+		t.Run("unset "+field, func(t *testing.T) {
+			err := runRuntimeConfig([]string{"set", "--unset", field, "--json"})
+			if err == nil || !strings.Contains(err.Error(), "Product Control") {
+				t.Fatalf("unset %s error = %v", field, err)
+			}
+		})
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	cfg, loadErr := config.LoadFileConfig(cfgPath)
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
 	}
-	if cfg.DataRootRef != "~/runtime/nimi-data" {
-		t.Fatalf("dataRootRef mismatch: got=%q", cfg.DataRootRef)
+	if cfg.DataRootRef != "" {
+		t.Fatalf("rejected dataRootRef mutation persisted: got=%q", cfg.DataRootRef)
 	}
-	if cfg.ManagedRoots == nil || cfg.ManagedRoots.Models != "~/runtime/nimi-data/models" {
-		t.Fatalf("managedRoots.models mismatch: %#v", cfg.ManagedRoots)
+	if cfg.ManagedRoots != nil &&
+		(strings.TrimSpace(cfg.ManagedRoots.Models) != "" ||
+			strings.TrimSpace(cfg.ManagedRoots.Dependencies) != "" ||
+			strings.TrimSpace(cfg.ManagedRoots.Environments) != "" ||
+			strings.TrimSpace(cfg.ManagedRoots.Apps) != "" ||
+			strings.TrimSpace(cfg.ManagedRoots.Accounts) != "" ||
+			strings.TrimSpace(cfg.ManagedRoots.Logs) != "" ||
+			strings.TrimSpace(cfg.ManagedRoots.Audit) != "") {
+		t.Fatalf("rejected managedRoots mutation persisted: %#v", cfg.ManagedRoots)
+	}
+}
+
+func TestRunRuntimeConfigRejectsFullDocumentDataRootMutation(t *testing.T) {
+	homeDir := t.TempDir()
+	setCmdTestHome(t, homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+	inputPath := filepath.Join(t.TempDir(), "mutated-config.json")
+	input := `{
+  "schemaVersion": 1,
+  "dataRootRef": "C:\\caller-selected-root",
+  "managedRoots": {
+    "models": "C:\\caller-selected-root\\models",
+    "dependencies": "C:\\caller-selected-root\\dependencies",
+    "environments": "C:\\caller-selected-root\\environments",
+    "apps": "C:\\caller-selected-root\\apps",
+    "accounts": "C:\\caller-selected-root\\accounts",
+    "logs": "C:\\caller-selected-root\\logs",
+    "audit": "C:\\caller-selected-root\\audit"
+  }
+}`
+	if err := os.WriteFile(inputPath, []byte(input), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := runRuntimeConfig([]string{"set", "--file", inputPath, "--json"})
+	if err == nil || !strings.Contains(err.Error(), "Product Control-owned") {
+		t.Fatalf("full-document data-root mutation error = %v", err)
+	}
+	cfg, loadErr := config.LoadFileConfig(cmdTestPortableConfigPath(homeDir))
+	if loadErr != nil {
+		t.Fatal(loadErr)
+	}
+	if cfg.DataRootRef != "" {
+		t.Fatalf("rejected full-document dataRootRef persisted: %q", cfg.DataRootRef)
 	}
 }
 
@@ -235,7 +300,7 @@ func TestRunRuntimeConfigPreservesAppRegistryPath(t *testing.T) {
 		t.Fatalf("set reasonCode mismatch: %s", setOutput)
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	cfg, loadErr := config.LoadFileConfig(cfgPath)
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
@@ -295,7 +360,7 @@ func TestRunRuntimeConfigSetLocalModelsPathRejected(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected localModelsPath rejection")
 	}
-	if !strings.Contains(err.Error(), "localModelsPath is no longer settable") {
+	if !strings.Contains(err.Error(), "localModelsPath is Product Control-derived") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -328,7 +393,7 @@ func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 		t.Fatalf("set reasonCode mismatch: %s", setOutput)
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	cfg, loadErr := config.LoadFileConfig(cfgPath)
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
@@ -389,7 +454,7 @@ func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
 		t.Fatalf("unset reasonCode mismatch: %s", unsetOutput)
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	cfg, loadErr := config.LoadFileConfig(cfgPath)
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
@@ -465,7 +530,7 @@ func TestRunRuntimeConfigSetAcceptsLoopbackHTTPJWKSURL(t *testing.T) {
 		t.Fatalf("expected loopback http jwks url to be accepted, got: %v", err)
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	cfg, loadErr := config.LoadFileConfig(cfgPath)
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
@@ -503,7 +568,7 @@ func TestRunRuntimeConfigSetReturnsWriteLocked(t *testing.T) {
 		t.Fatalf("init config: %v", err)
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	lockPath := cfgPath + ".lock"
 	if err := os.WriteFile(lockPath, []byte("lock"), 0o600); err != nil {
 		t.Fatalf("write lock file: %v", err)
@@ -572,7 +637,7 @@ func TestRunRuntimeConfigSetConcurrentWriteConflict(t *testing.T) {
 		t.Fatalf("first set should succeed, got: %v", firstErr)
 	}
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	fileCfg, err := config.LoadFileConfig(cfgPath)
 	if err != nil {
 		t.Fatalf("LoadFileConfig after concurrent set: %v", err)
@@ -621,7 +686,7 @@ func TestRunRuntimeConfigValidateFailsOnInvalidSchema(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
-	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfgPath := cmdTestPortableConfigPath(homeDir)
 	if err := os.MkdirAll(filepath.Dir(cfgPath), 0o755); err != nil {
 		t.Fatalf("mkdir config dir: %v", err)
 	}
@@ -721,4 +786,9 @@ func clearRuntimeConfigCommandEnv(t *testing.T) {
 	for _, key := range keys {
 		t.Setenv(key, "")
 	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("resolve test home: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", cmdTestPortableConfigPath(home))
 }

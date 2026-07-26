@@ -64,28 +64,26 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		cfg.LocalStatePath = value
 		return nil
 	case "localModelsPath":
-		return fmt.Errorf("localModelsPath is no longer settable; use dataRootRef or managedRoots.models")
+		return fmt.Errorf("localModelsPath is Product Control-derived and cannot be set")
 	case "dataRootRef":
-		cfg.DataRootRef = value
-		return nil
+		return fmt.Errorf("dataRootRef is Product Control-owned and cannot be set")
 	case "appRegistryPath":
 		cfg.AppRegistryPath = value
 		return nil
 	case "managedRoots.models":
-		ensureManagedRootsConfig(cfg).Models = value
-		return nil
+		return fmt.Errorf("managedRoots.models is Product Control-derived and cannot be set")
 	case "managedRoots.dependencies":
-		ensureManagedRootsConfig(cfg).Dependencies = value
-		return nil
+		return fmt.Errorf("managedRoots.dependencies is Product Control-derived and cannot be set")
 	case "managedRoots.environments":
-		ensureManagedRootsConfig(cfg).Environments = value
-		return nil
+		return fmt.Errorf("managedRoots.environments is Product Control-derived and cannot be set")
+	case "managedRoots.apps":
+		return fmt.Errorf("managedRoots.apps is Product Control-derived and cannot be set")
+	case "managedRoots.accounts":
+		return fmt.Errorf("managedRoots.accounts is Product Control-derived and cannot be set")
 	case "managedRoots.logs":
-		ensureManagedRootsConfig(cfg).Logs = value
-		return nil
+		return fmt.Errorf("managedRoots.logs is Product Control-derived and cannot be set")
 	case "managedRoots.audit":
-		ensureManagedRootsConfig(cfg).Audit = value
-		return nil
+		return fmt.Errorf("managedRoots.audit is Product Control-derived and cannot be set")
 	case "defaultLocalTextModel":
 		cfg.DefaultLocalTextModel = strings.TrimSpace(value)
 		return nil
@@ -285,33 +283,26 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		cfg.LocalStatePath = defaultCfg.LocalStatePath
 		return nil
 	case "localModelsPath":
-		return fmt.Errorf("localModelsPath is no longer settable; use dataRootRef or managedRoots.models")
+		return fmt.Errorf("localModelsPath is Product Control-derived and cannot be unset")
 	case "dataRootRef":
-		cfg.DataRootRef = defaultCfg.DataRootRef
-		return nil
+		return fmt.Errorf("dataRootRef is Product Control-owned and cannot be unset")
 	case "appRegistryPath":
 		cfg.AppRegistryPath = defaultCfg.AppRegistryPath
 		return nil
 	case "managedRoots.models":
-		ensureManagedRootsConfig(cfg).Models = ""
-		pruneEmptyManagedRootsConfig(cfg)
-		return nil
+		return fmt.Errorf("managedRoots.models is Product Control-derived and cannot be unset")
 	case "managedRoots.dependencies":
-		ensureManagedRootsConfig(cfg).Dependencies = ""
-		pruneEmptyManagedRootsConfig(cfg)
-		return nil
+		return fmt.Errorf("managedRoots.dependencies is Product Control-derived and cannot be unset")
 	case "managedRoots.environments":
-		ensureManagedRootsConfig(cfg).Environments = ""
-		pruneEmptyManagedRootsConfig(cfg)
-		return nil
+		return fmt.Errorf("managedRoots.environments is Product Control-derived and cannot be unset")
+	case "managedRoots.apps":
+		return fmt.Errorf("managedRoots.apps is Product Control-derived and cannot be unset")
+	case "managedRoots.accounts":
+		return fmt.Errorf("managedRoots.accounts is Product Control-derived and cannot be unset")
 	case "managedRoots.logs":
-		ensureManagedRootsConfig(cfg).Logs = ""
-		pruneEmptyManagedRootsConfig(cfg)
-		return nil
+		return fmt.Errorf("managedRoots.logs is Product Control-derived and cannot be unset")
 	case "managedRoots.audit":
-		ensureManagedRootsConfig(cfg).Audit = ""
-		pruneEmptyManagedRootsConfig(cfg)
-		return nil
+		return fmt.Errorf("managedRoots.audit is Product Control-derived and cannot be unset")
 	case "defaultLocalTextModel":
 		cfg.DefaultLocalTextModel = strings.TrimSpace(defaultCfg.DefaultLocalTextModel)
 		return nil

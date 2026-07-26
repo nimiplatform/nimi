@@ -56,6 +56,24 @@ func TestVerifiedSIDPartitionFailsClosedAcrossRestart(t *testing.T) {
 	}
 }
 
+func TestVerifiedMacOSInteractiveUserRetainsOnlyValidatedPlatformSources(t *testing.T) {
+	identity, err := ValidateVerifiedMacOSInteractiveUser(501, 42)
+	if err != nil {
+		t.Fatalf("validate macOS interactive user: %v", err)
+	}
+	euid, auditSessionID, ok := identity.MacOSInteractiveUser()
+	if !ok || euid != 501 || auditSessionID != 42 {
+		t.Fatalf("macOS identity sources = (%d, %d, %v)", euid, auditSessionID, ok)
+	}
+	windowsIdentity, err := ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok := windowsIdentity.MacOSInteractiveUser(); ok {
+		t.Fatal("Windows identity exposed macOS platform sources")
+	}
+}
+
 func TestPrincipalLineageAndRandomNonReuse(t *testing.T) {
 	ctx := context.Background()
 	entropyA := bytes.Repeat([]byte{0x11}, 32)

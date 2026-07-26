@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -79,6 +80,9 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.ManagedRoots.Models != "" {
 		t.Fatalf("managed models root should fail closed without dataRootRef: got=%q", cfg.ManagedRoots.Models)
 	}
+	if cfg.ManagedRoots.Apps != "" || cfg.ManagedRoots.Accounts != "" {
+		t.Fatalf("managed app/account roots should fail closed without dataRootRef: %+v", cfg.ManagedRoots)
+	}
 
 	if cfg.AIHealthIntervalSeconds != 8 {
 		t.Fatalf("aiHealthIntervalSeconds default mismatch: got=%d want=8", cfg.AIHealthIntervalSeconds)
@@ -129,10 +133,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "httpAddr": "127.0.0.1:50002",
   "shutdownTimeoutSeconds": 13,
   "localStatePath": "~/runtime/custom-state.json",
-  "dataRootRef": "~/runtime/nimi-data",
-  "managedRoots": {
-    "models": "~/runtime/nimi-data/custom-models"
-  },
   "appRegistryPath": "~/runtime/nimi-app-registry.yaml",
   "defaultCloudProvider": "gemini",
   "aiHttpTimeoutSeconds": 21,
@@ -170,11 +170,9 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if cfg.LocalStatePath != filepath.Join(homeDir, "runtime/custom-state.json") {
 		t.Fatalf("local runtime state path mismatch: %q", cfg.LocalStatePath)
 	}
-	if cfg.DataRootRef != filepath.Join(homeDir, "runtime/nimi-data") {
-		t.Fatalf("dataRootRef mismatch: %q", cfg.DataRootRef)
-	}
-	if cfg.LocalModelsPath != filepath.Join(homeDir, "runtime/nimi-data/custom-models") {
-		t.Fatalf("local models path mismatch: %q", cfg.LocalModelsPath)
+	if cfg.DataRootRef != "" || cfg.LocalModelsPath != "" ||
+		cfg.ManagedRoots != (ManagedRootsConfig{}) {
+		t.Fatalf("portable Runtime config must not select Product Control roots: %+v", cfg)
 	}
 	if cfg.AppRegistryPath != filepath.Join(homeDir, "runtime/nimi-app-registry.yaml") {
 		t.Fatalf("app registry path mismatch: %q", cfg.AppRegistryPath)
@@ -204,6 +202,28 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	}
 	if got := strings.TrimSpace(target.BaseURL); got != defaultCloudGeminiBaseURL {
 		t.Fatalf("gemini base mismatch: %q", got)
+	}
+}
+
+func TestLoadRejectsProductControlOwnedFieldsFromPortableRuntimeConfig(t *testing.T) {
+	for name, extra := range map[string]string{
+		"data root":    `"dataRootRef":"C:\\caller-selected-root"`,
+		"managed root": `"managedRoots":{"models":"C:\\caller-selected-root\\models"}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+			body := fmt.Sprintf(`{"schemaVersion":1,%s}`, extra)
+			if err := os.WriteFile(configPath, []byte(body), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+			clearRuntimeConfigEnv(t)
+
+			_, err := Load()
+			if err == nil || !strings.Contains(err.Error(), "Product Control") {
+				t.Fatalf("Load error = %v, want Product Control-owned field rejection", err)
+			}
+		})
 	}
 }
 
@@ -796,6 +816,22 @@ func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
 	}
 	if _, statErr := os.Stat(filepath.Join(homeDir, ".nimi/runtime/config.json")); !os.IsNotExist(statErr) {
 		t.Fatalf("canonical config should not be auto-created")
+	}
+}
+
+func TestLoadRejectsExplicitRetiredRuntimeConfigPath(t *testing.T) {
+	homeDir := t.TempDir()
+	setRuntimeTestHome(t, homeDir)
+	retiredPath := filepath.Join(homeDir, ".nimi", "runtime", "config.json")
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", retiredPath)
+	clearRuntimeConfigEnv(t)
+
+	if got := RuntimeConfigPath(); got != "" {
+		t.Fatalf("RuntimeConfigPath exposed retired path: %q", got)
+	}
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "retired and forbidden") {
+		t.Fatalf("Load error = %v, want explicit retired-path rejection", err)
 	}
 }
 

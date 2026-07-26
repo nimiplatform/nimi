@@ -85,28 +85,6 @@ func TestWindowsNonReleaseBuildProfilesAreMutuallyExclusive(t *testing.T) {
 	}
 }
 
-func TestValidateWindowsAcceptanceDataRootRejectsReparseAncestor(t *testing.T) {
-	directRoot := filepath.Join(t.TempDir(), "direct", "nimi-data")
-	if err := os.MkdirAll(directRoot, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := validateWindowsAcceptanceDataRoot(directRoot); err != nil {
-		t.Fatalf("direct development data root rejected: %v", err)
-	}
-
-	targetRoot := filepath.Join(t.TempDir(), "target")
-	if err := os.MkdirAll(filepath.Join(targetRoot, "nested"), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	linkRoot := filepath.Join(t.TempDir(), "linked")
-	if err := os.Symlink(targetRoot, linkRoot); err != nil {
-		t.Skipf("Windows symlink privilege unavailable: %v", err)
-	}
-	if err := validateWindowsAcceptanceDataRoot(filepath.Join(linkRoot, "nested")); err == nil {
-		t.Fatal("development data root with a reparse-point ancestor was accepted")
-	}
-}
-
 func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *testing.T) {
 	previousFlag := windowsNonReleaseAcceptanceProfileEnabled
 	previousSigner := protectedlocal.WindowsProductionSignerCertSHA256
@@ -122,7 +100,7 @@ func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *t
 		t.Fatal(err)
 	}
 	profile := windowsAcceptanceProfile{
-		SchemaVersion:               5,
+		SchemaVersion:               6,
 		Checkpoint:                  windowsAcceptanceCheckpoint,
 		NonRelease:                  true,
 		TrialID:                     "dev-kernel-checkpoint",
@@ -140,8 +118,6 @@ func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *t
 		ExpiresAt:                   time.Now().UTC().Add(time.Hour).Format(time.RFC3339),
 		SignerCertificateSHA256:     protectedlocal.WindowsProductionSignerCertSHA256,
 	}
-	developmentDataRoot := t.TempDir()
-	profile.DevelopmentDataRootRef = developmentDataRoot
 	runtimeHash, err := windowsRuntimeExecutableSHA256()
 	if err != nil {
 		t.Fatal(err)
@@ -202,50 +178,33 @@ func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *t
 		t.Fatalf("load non-release checkpoint config: %v", err)
 	}
 	wantRoot := filepath.Join(root, "acceptance-runs", profile.TrialID, profile.DevelopmentStateCandidateID, profile.AcceptanceRoundID, "runtime")
-	if filepath.Dir(cfg.LocalStatePath) != wantRoot || cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") || cfg.ManagedRoots.Dependencies != filepath.Join(developmentDataRoot, "dependencies") || cfg.AccountRealmBaseURL != windowsDevKernelAccountRealmURL || cfg.AuthJWTIssuer != windowsDevKernelAccountRealmURL || cfg.AccountAuthorizationURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/authorize" || cfg.AccountTokenURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/token" || !cfg.AllowLoopbackProviderEndpoint || cfg.NonReleaseDevKernelCheckpoint == nil || cfg.NonReleaseDevKernelCheckpoint.LocalAgentRef != profile.LocalAgentRef || cfg.NonReleaseDevKernelCheckpoint.AcceptanceRoundID != profile.AcceptanceRoundID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentStateCandidateID != profile.DevelopmentStateCandidateID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentDataRootRef != developmentDataRoot {
+	if filepath.Dir(cfg.LocalStatePath) != wantRoot || cfg.DataRootRef != "" || cfg.LocalModelsPath != "" || cfg.ManagedRoots != (config.ManagedRootsConfig{}) || cfg.AccountRealmBaseURL != windowsDevKernelAccountRealmURL || cfg.AuthJWTIssuer != windowsDevKernelAccountRealmURL || cfg.AccountAuthorizationURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/authorize" || cfg.AccountTokenURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/token" || !cfg.AllowLoopbackProviderEndpoint || cfg.NonReleaseDevKernelCheckpoint == nil || cfg.NonReleaseDevKernelCheckpoint.LocalAgentRef != profile.LocalAgentRef || cfg.NonReleaseDevKernelCheckpoint.AcceptanceRoundID != profile.AcceptanceRoundID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentStateCandidateID != profile.DevelopmentStateCandidateID {
 		t.Fatalf("checkpoint config did not retain its bounded service root: %+v", cfg)
 	}
 	serviceConfigPath := filepath.Join(wantRoot, config.ServiceOwnedConfigFilename)
+	developmentDataRoot := t.TempDir()
 	if changed, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, developmentDataRoot); err != nil || !changed {
-		t.Fatalf("write selected service-owned data root changed=%v err=%v", changed, err)
+		t.Fatalf("write Product Control-derived service data root changed=%v err=%v", changed, err)
 	}
 	cfg, err = loadWindowsProtectedRuntimeConfig(root)
 	if err != nil {
 		t.Fatalf("reload selected non-release checkpoint config: %v", err)
 	}
-	if cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") || cfg.ManagedRoots.Dependencies != filepath.Join(developmentDataRoot, "dependencies") || cfg.ManagedRoots.Environments != filepath.Join(developmentDataRoot, "environments") || cfg.ManagedRoots.Logs != filepath.Join(developmentDataRoot, "logs") || cfg.ManagedRoots.Audit != filepath.Join(developmentDataRoot, "audit") {
-		t.Fatalf("checkpoint config did not consume selected service-owned data root: %+v", cfg)
+	if cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") || cfg.ManagedRoots.Dependencies != filepath.Join(developmentDataRoot, "dependencies") || cfg.ManagedRoots.Environments != filepath.Join(developmentDataRoot, "environments") || cfg.ManagedRoots.Apps != filepath.Join(developmentDataRoot, "apps") || cfg.ManagedRoots.Accounts != filepath.Join(developmentDataRoot, "accounts") || cfg.ManagedRoots.Logs != filepath.Join(developmentDataRoot, "logs") || cfg.ManagedRoots.Audit != filepath.Join(developmentDataRoot, "audit") {
+		t.Fatalf("checkpoint config did not consume Product Control-derived service data root: %+v", cfg)
 	}
-	lowerAuthorityRoot := t.TempDir()
-	if changed, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, lowerAuthorityRoot); err != nil || !changed {
-		t.Fatalf("write conflicting lower-authority service config changed=%v err=%v", changed, err)
-	}
-	cfg, err = loadWindowsProtectedRuntimeConfig(root)
-	if err != nil {
-		t.Fatalf("signed checkpoint binding did not override lower-authority service config: %v", err)
-	}
-	if cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") {
-		t.Fatalf("lower-authority service config overrode signed checkpoint binding: %+v", cfg)
-	}
-	persisted, err := config.LoadFileConfig(serviceConfigPath)
-	if err != nil {
-		t.Fatalf("reload lower-authority service config: %v", err)
-	}
-	if persisted.DataRootRef != lowerAuthorityRoot {
-		t.Fatalf("checkpoint load mutated Runtime-owned config: got=%q want=%q", persisted.DataRootRef, lowerAuthorityRoot)
-	}
-	profile.DevelopmentDataRootRef = filepath.Join(root, "missing-development-data")
-	missingRootRaw, err := json.Marshal(profile)
+	profile.SchemaVersion = 5
+	legacyRaw, err := json.Marshal(profile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(runtimeRoot, windowsAcceptanceProfileFile), missingRootRaw, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(runtimeRoot, windowsAcceptanceProfileFile), legacyRaw, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := loadWindowsProtectedRuntimeConfig(root); err == nil {
-		t.Fatal("acceptance profile admitted a missing development data root")
+		t.Fatal("legacy acceptance profile schema was accepted")
 	}
-	profile.DevelopmentDataRootRef = developmentDataRoot
+	profile.SchemaVersion = 6
 	profile.RuntimeCandidateID = "dev-kernel-runtime-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	mismatchedRaw, err := json.Marshal(profile)
 	if err != nil {

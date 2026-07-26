@@ -117,7 +117,14 @@ func newRuntimeBaselineTestService(t *testing.T) (*Service, string) {
 	t.Helper()
 	dir := t.TempDir()
 	runtimeDataRoot := filepath.Join(dir, "runtime-data")
-	svc, err := New(slog.Default(), nil, filepath.Join(dir, "local-state.json"), 32, runtimeDataRoot)
+	svc, err := NewWithProductControlDataRoot(
+		slog.Default(),
+		nil,
+		filepath.Join(dir, "local-state.json"),
+		32,
+		filepath.Join(runtimeDataRoot, "models"),
+		runtimeDataRoot,
+	)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}

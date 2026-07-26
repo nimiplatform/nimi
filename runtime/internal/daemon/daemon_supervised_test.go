@@ -672,8 +672,8 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	// K-CFG-018 data-plane roots; fixtures must be seeded under those roots,
 	// not the legacy ~/.nimi/runtime tree. (K-CFG-018, K-LENG-004)
 	engineRoots := engine.ManagedRoots{
-		Environments: filepath.Join(homeDir, ".nimi", "data", "environments"),
-		Dependencies: filepath.Join(homeDir, ".nimi", "data", "dependencies"),
+		Environments: filepath.Join(homeDir, "selected-nimi-data", "environments"),
+		Dependencies: filepath.Join(homeDir, "selected-nimi-data", "dependencies"),
 	}
 	managedCUDADependencyDir := filepath.Join(engineRoots.Dependencies, "accelerator-dependencies", engine.NVIDIACUDAUserSpaceRuntimeDependencyID)
 	if err := os.MkdirAll(managedCUDADependencyDir, 0o755); err != nil {
@@ -706,7 +706,7 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	}
 
 	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
-	localModelsPath := filepath.Join(homeDir, ".nimi", "data", "models")
+	localModelsPath := filepath.Join(homeDir, "selected-nimi-data", "models")
 	stateRaw, err := json.Marshal(map[string]any{
 		"schemaVersion": 2,
 		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
@@ -755,7 +755,7 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 		EngineMediaEnabled:   false,
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
-		DataRootRef:          filepath.Join(homeDir, ".nimi", "data"),
+		DataRootRef:          filepath.Join(homeDir, "selected-nimi-data"),
 		ManagedRoots: config.ManagedRootsConfig{
 			Environments: engineRoots.Environments,
 			Dependencies: engineRoots.Dependencies,

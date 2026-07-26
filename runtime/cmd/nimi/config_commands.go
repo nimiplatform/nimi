@@ -93,9 +93,13 @@ func runRuntimeConfigInit(args []string) error {
 		return err
 	}
 
-	path := strings.TrimSpace(config.RuntimeConfigPath())
+	path, pathErr := config.PortableRuntimeConfigPath()
+	path = strings.TrimSpace(path)
+	if pathErr != nil {
+		return newConfigCommandError(configReasonSchemaInvalid, "use an explicit non-production path other than ~/.nimi/runtime/config.json", pathErr)
+	}
 	if path == "" {
-		return newConfigCommandError(configReasonSchemaInvalid, "set HOME or NIMI_RUNTIME_CONFIG_PATH", fmt.Errorf("runtime config path is empty"))
+		return newConfigCommandError(configReasonSchemaInvalid, "set NIMI_RUNTIME_CONFIG_PATH to an explicit non-production path", fmt.Errorf("portable Runtime config is unavailable"))
 	}
 
 	_, statErr := os.Stat(path)
@@ -140,14 +144,21 @@ func runRuntimeConfigGet(args []string) error {
 		return err
 	}
 
-	path := strings.TrimSpace(config.RuntimeConfigPath())
+	path, pathErr := config.PortableRuntimeConfigPath()
+	path = strings.TrimSpace(path)
+	if pathErr != nil {
+		return newConfigCommandError(configReasonSchemaInvalid, "use an explicit non-production path other than ~/.nimi/runtime/config.json", pathErr)
+	}
 	if path == "" {
-		return newConfigCommandError(configReasonSchemaInvalid, "set HOME or NIMI_RUNTIME_CONFIG_PATH", fmt.Errorf("runtime config path is empty"))
+		return newConfigCommandError(configReasonSchemaInvalid, "set NIMI_RUNTIME_CONFIG_PATH to an explicit non-production path", fmt.Errorf("portable Runtime config is unavailable"))
 	}
 
 	fileCfg, err := config.LoadFileConfig(path)
 	if err != nil {
 		return classifyConfigLoadError(err)
+	}
+	if err := config.RejectProductControlOwnedFileConfigFields(fileCfg); err != nil {
+		return newConfigCommandError(configReasonSchemaInvalid, "repair dataRoot.path through Product Control", err)
 	}
 	merged := mergeFileConfigWithDefaults(fileCfg)
 
@@ -166,14 +177,21 @@ func runRuntimeConfigValidate(args []string) error {
 		return err
 	}
 
-	path := strings.TrimSpace(config.RuntimeConfigPath())
+	path, pathErr := config.PortableRuntimeConfigPath()
+	path = strings.TrimSpace(path)
+	if pathErr != nil {
+		return newConfigCommandError(configReasonSchemaInvalid, "use an explicit non-production path other than ~/.nimi/runtime/config.json", pathErr)
+	}
 	if path == "" {
-		return newConfigCommandError(configReasonSchemaInvalid, "set HOME or NIMI_RUNTIME_CONFIG_PATH", fmt.Errorf("runtime config path is empty"))
+		return newConfigCommandError(configReasonSchemaInvalid, "set NIMI_RUNTIME_CONFIG_PATH to an explicit non-production path", fmt.Errorf("portable Runtime config is unavailable"))
 	}
 
 	fileCfg, err := config.LoadFileConfig(path)
 	if err != nil {
 		return classifyConfigLoadError(err)
+	}
+	if err := config.RejectProductControlOwnedFileConfigFields(fileCfg); err != nil {
+		return newConfigCommandError(configReasonSchemaInvalid, "repair dataRoot.path through Product Control", err)
 	}
 	merged := mergeFileConfigWithDefaults(fileCfg)
 
@@ -213,9 +231,13 @@ func runRuntimeConfigSet(args []string) error {
 		return newConfigCommandError(configReasonParseFailed, "use either --stdin or --file", fmt.Errorf("--stdin and --file cannot be used together"))
 	}
 
-	path := strings.TrimSpace(config.RuntimeConfigPath())
+	path, pathErr := config.PortableRuntimeConfigPath()
+	path = strings.TrimSpace(path)
+	if pathErr != nil {
+		return newConfigCommandError(configReasonSchemaInvalid, "use an explicit non-production path other than ~/.nimi/runtime/config.json", pathErr)
+	}
 	if path == "" {
-		return newConfigCommandError(configReasonSchemaInvalid, "set HOME or NIMI_RUNTIME_CONFIG_PATH", fmt.Errorf("runtime config path is empty"))
+		return newConfigCommandError(configReasonSchemaInvalid, "set NIMI_RUNTIME_CONFIG_PATH to an explicit non-production path", fmt.Errorf("portable Runtime config is unavailable"))
 	}
 
 	unlock, err := acquireConfigWriteLock(path)
@@ -259,6 +281,14 @@ func runRuntimeConfigSet(args []string) error {
 		if err := applyConfigUnsetOperation(&mutated, raw); err != nil {
 			return newConfigCommandError(configReasonSchemaInvalid, "run `nimi config validate`", err)
 		}
+	}
+	if strings.TrimSpace(previous.DataRootRef) != strings.TrimSpace(mutated.DataRootRef) ||
+		!fileConfigManagedRootsEqual(previous.ManagedRoots, mutated.ManagedRoots) {
+		return newConfigCommandError(
+			configReasonSchemaInvalid,
+			"change dataRoot.path through Product Control",
+			fmt.Errorf("dataRootRef and managedRoots are Product Control-owned and cannot be changed by config mutation"),
+		)
 	}
 
 	if mutated.SchemaVersion == 0 {

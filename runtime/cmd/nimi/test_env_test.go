@@ -24,3 +24,7 @@ func setCmdTestHome(t *testing.T, homeDir string) {
 	t.Setenv("HOMEDRIVE", volume)
 	t.Setenv("HOMEPATH", homePath)
 }
+
+func cmdTestPortableConfigPath(homeDir string) string {
+	return filepath.Join(homeDir, ".nimi", "nonproduction", "runtime-config.json")
+}

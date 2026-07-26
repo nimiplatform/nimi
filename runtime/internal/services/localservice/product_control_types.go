@@ -60,10 +60,7 @@ type productFirstRunRecord struct {
 }
 
 type productPointersRecord struct {
-	RuntimeConfigPath   *string `json:"runtimeConfigPath"`
 	FactoryProfileIndex *string `json:"factoryProfileIndex"`
-	AppRegistry         *string `json:"appRegistry"`
-	AppPackages         *string `json:"appPackages"`
 }
 
 type productRepairRecord struct {
@@ -72,25 +69,18 @@ type productRepairRecord struct {
 }
 
 type productControlRecordProjection struct {
-	Path             string                          `json:"path"`
-	Exists           bool                            `json:"exists"`
-	State            productControlState             `json:"state"`
-	Record           *productControlRecord           `json:"record"`
-	DataRootProposal *productControlDataRootProposal `json:"dataRootProposal"`
-	Error            *string                         `json:"error"`
-	ConfigMutation   *productControlConfigMutation   `json:"configMutation,omitempty"`
+	Path           string                        `json:"path"`
+	Exists         bool                          `json:"exists"`
+	State          productControlState           `json:"state"`
+	Record         *productControlRecord         `json:"record"`
+	Error          *string                       `json:"error"`
+	ConfigMutation *productControlConfigMutation `json:"configMutation,omitempty"`
 }
 
 type productControlConfigMutation struct {
 	Disposition string `json:"disposition"`
 	ReasonCode  string `json:"reasonCode"`
 	ActionHint  string `json:"actionHint"`
-}
-
-type productControlDataRootProposal struct {
-	Path      string `json:"path"`
-	Authority string `json:"authority"`
-	Profile   string `json:"profile"`
 }
 
 type productControlSelectedDataRootProjection struct {

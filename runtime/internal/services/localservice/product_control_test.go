@@ -173,9 +173,18 @@ func TestRuntimeProductControlCreatesAndSelectsDataRoot(t *testing.T) {
 	if configuredRoot != dataRoot || selected.ConfigMutation == nil || selected.ConfigMutation.ReasonCode != "CONFIG_RESTART_REQUIRED" || selected.ConfigMutation.Disposition != "restart_required" {
 		t.Fatalf("selected config mutation root=%q projection=%+v", configuredRoot, selected.ConfigMutation)
 	}
-	for _, dir := range []string{"models", "dependencies", "environments", "apps", "accounts", "cache", "logs", "audit", "generated", "tmp"} {
+	if service.localEnvironmentRuntimeDataRoot() != dataRoot ||
+		service.resolvedLocalModelsPath() != filepath.Join(dataRoot, "models") {
+		t.Fatalf("selected root was not applied to the Runtime in-memory data plane")
+	}
+	for _, dir := range []string{"models", "dependencies", "environments", "apps", "accounts", "logs", "audit"} {
 		if _, err := os.Stat(filepath.Join(dataRoot, dir)); err != nil {
 			t.Fatalf("expected data-root directory %s: %v", dir, err)
+		}
+	}
+	for _, retiredRoot := range []string{"cache", "generated", "tmp"} {
+		if _, err := os.Stat(filepath.Join(dataRoot, retiredRoot)); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("retired root-level directory %s was created: %v", retiredRoot, err)
 		}
 	}
 }
@@ -296,12 +305,89 @@ func TestRuntimeProductControlMissingPostEvidenceDataRootRequiresRepair(t *testi
 	}
 }
 
-func TestRuntimeProductControlRoundPartitionsPreserveAndIsolateStateWithoutDeletingPayload(t *testing.T) {
-	setProductControlHomeForTest(t)
+func TestRuntimeProductControlRepairRequiredBlocksSelectedProjection(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	dataRoot := filepath.Join(home, "repair-selected-projection-data")
+	response, err := service.SelectProductControlDataRoot(
+		context.Background(),
+		&runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot},
+	)
+	mustProductControlForTest(t, response, err)
+
+	path, err := service.productControlRecordPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := readProductControlRecord(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record.State = productControlStateRepairRequired
+	record.DataRoot.Status = productDataRootStatusRepairRequired
+	record.Repair = productRepairRecord{
+		Required: true,
+		Reason:   stringPtr("explicit repair fixture"),
+	}
+	if err := writeProductControlRecord(path, record); err != nil {
+		t.Fatal(err)
+	}
+
+	response, err = service.GetProductControlSelectedDataRoot(
+		context.Background(),
+		&runtimev1.GetProductControlSelectedDataRootRequest{},
+	)
+	if err != nil {
+		t.Fatalf("get repair-required selected projection: %v", err)
+	}
+	var projection productControlSelectedDataRootProjection
+	if err := json.Unmarshal([]byte(response.GetJson()), &projection); err != nil {
+		t.Fatalf("decode repair-required selected projection: %v", err)
+	}
+	if projection.State != productControlStateRepairRequired ||
+		projection.DataRoot != nil ||
+		projection.Error == nil {
+		t.Fatalf("repair-required selected projection remained usable: %+v", projection)
+	}
+
+	response, err = service.GetProductControlRecord(
+		context.Background(),
+		&runtimev1.GetProductControlRecordRequest{},
+	)
+	repairProjection := decodeProductControlProjectionForTest(
+		t,
+		mustProductControlForTest(t, response, err),
+	)
+	if repairProjection.State != productControlStateRepairRequired ||
+		repairProjection.Record == nil ||
+		repairProjection.Error == nil {
+		t.Fatalf("repair-required record projection appeared ready: %+v", repairProjection)
+	}
+
+	replacement := filepath.Join(home, "forbidden-repair-reselection")
+	if _, err := service.SelectProductControlDataRoot(
+		context.Background(),
+		&runtimev1.SelectProductControlDataRootRequest{DataRoot: replacement},
+	); err == nil {
+		t.Fatal("normal reselection cleared explicit repair")
+	}
+	stored, err := readProductControlRecord(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !stored.Repair.Required ||
+		stored.State != productControlStateRepairRequired ||
+		selectedProductDataRootPath(stored) != dataRoot {
+		t.Fatalf("normal reselection mutated repair record: %+v", stored)
+	}
+}
+
+func TestRuntimeProductControlRestartReusesFixedControlRootWithoutDeletingPayload(t *testing.T) {
+	home := setProductControlHomeForTest(t)
 	sharedDataRoot := filepath.Join(t.TempDir(), "shared-development-data")
-	roundOneRoot := filepath.Join(t.TempDir(), "round-one")
+	productControlRoot := filepath.Join(home, ".nimi")
 	roundOne := newTestService(t)
-	if err := roundOne.SetProductControlRoot(roundOneRoot); err != nil {
+	if err := roundOne.SetProductControlRoot(productControlRoot); err != nil {
 		t.Fatal(err)
 	}
 	response, err := roundOne.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: sharedDataRoot})
@@ -309,75 +395,82 @@ func TestRuntimeProductControlRoundPartitionsPreserveAndIsolateStateWithoutDelet
 	selectedInstallID := selected.Record.InstallID
 
 	restartedRoundOne := newTestService(t)
-	if err := restartedRoundOne.SetProductControlRoot(roundOneRoot); err != nil {
+	if err := restartedRoundOne.SetProductControlRoot(productControlRoot); err != nil {
 		t.Fatal(err)
 	}
 	response, err = restartedRoundOne.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
 	preserved := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
 	if preserved.Record == nil || preserved.Record.InstallID != selectedInstallID || selectedProductDataRootPath(preserved.Record) != sharedDataRoot {
-		t.Fatalf("same acceptance round did not preserve Product Control state: %+v", preserved)
-	}
-
-	roundTwo := newTestService(t)
-	if err := roundTwo.SetProductControlRoot(filepath.Join(t.TempDir(), "round-two")); err != nil {
-		t.Fatal(err)
-	}
-	response, err = roundTwo.EnsureProductControlRecordCreated(context.Background(), &runtimev1.EnsureProductControlRecordCreatedRequest{})
-	fresh := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if fresh.Record == nil || fresh.Record.InstallID == selectedInstallID || fresh.Record.DataRoot != nil {
-		t.Fatalf("new acceptance round inherited Product Control state: %+v", fresh)
+		t.Fatalf("restart did not preserve fixed Product Control state: %+v", preserved)
 	}
 	if _, err := os.Stat(sharedDataRoot); err != nil {
-		t.Fatalf("new control round mutated shared payload root: %v", err)
+		t.Fatalf("Product Control restart mutated shared payload root: %v", err)
 	}
 }
 
-func TestRuntimeProductControlBindsServiceOwnedRootBeforeFirstUse(t *testing.T) {
+func TestRuntimeProductControlBindsFixedInteractiveUserRootBeforeFirstUse(t *testing.T) {
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
-	serviceRoot := filepath.Join(t.TempDir(), "protected-service-root")
-	if err := service.SetProductControlRoot(serviceRoot); err != nil {
-		t.Fatalf("bind service-owned product-control root: %v", err)
+	productControlRoot := filepath.Join(home, ".nimi")
+	if err := service.SetProductControlRoot(productControlRoot); err != nil {
+		t.Fatalf("bind fixed interactive-user Product Control root: %v", err)
 	}
 
 	response, err := service.EnsureProductControlRecordCreated(context.Background(), &runtimev1.EnsureProductControlRecordCreatedRequest{})
 	created := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	expectedPath := filepath.Join(serviceRoot, "nimi.json")
+	expectedPath := filepath.Join(productControlRoot, "nimi.json")
 	if created.Path != expectedPath {
 		t.Fatalf("protected product-control path = %q, want %q", created.Path, expectedPath)
 	}
 	if _, err := os.Stat(expectedPath); err != nil {
-		t.Fatalf("service-owned product-control record was not created: %v", err)
+		t.Fatalf("fixed Product Control record was not created: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(home, ".nimi", "nimi.json")); !os.IsNotExist(err) {
-		t.Fatalf("service-owned product control wrote into interactive home: %v", err)
+	if created.Record == nil || created.Record.Pointers.FactoryProfileIndex != nil {
+		t.Fatalf("fixed Product Control pointers = %+v", created.Record)
 	}
-	if created.Record == nil || created.Record.Pointers.RuntimeConfigPath != nil || created.Record.Pointers.FactoryProfileIndex != nil || created.Record.Pointers.AppRegistry != nil || created.Record.Pointers.AppPackages != nil {
-		t.Fatalf("service-owned product-control pointers = %+v", created.Record)
-	}
-	if err := service.SetProductControlRoot(filepath.Join(t.TempDir(), "replacement")); err == nil || !strings.Contains(err.Error(), "already in use") {
+	if err := service.SetProductControlRoot(filepath.Join(t.TempDir(), ".nimi")); err == nil || !strings.Contains(err.Error(), "already in use") {
 		t.Fatalf("live product-control root replacement error = %v", err)
 	}
 }
 
-func TestRuntimeProductControlProjectionCarriesBoundProposalWithoutSelectingIt(t *testing.T) {
+func TestRuntimeProductControlRejectsForbiddenLegacyPointers(t *testing.T) {
 	service := newTestService(t)
-	proposal := filepath.Join(t.TempDir(), "candidate-bound", "Nimi")
-	if err := service.SetProductControlDataRootProposal(proposal); err != nil {
-		t.Fatalf("bind product-control proposal: %v", err)
-	}
-	projection, err := service.readProductControlProjection(context.Background())
+	record, err := service.emptyProductControlRecord(productControlStateDataRootMissing)
 	if err != nil {
-		t.Fatalf("read product-control projection: %v", err)
+		t.Fatal(err)
 	}
-	if projection.DataRootProposal == nil || projection.DataRootProposal.Path != proposal {
-		t.Fatalf("proposal projection = %#v", projection.DataRootProposal)
+	raw, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if projection.Record != nil && projection.Record.DataRoot != nil {
-		t.Fatalf("proposal selected data root: %#v", projection.Record.DataRoot)
+	var document map[string]any
+	if err := json.Unmarshal(raw, &document); err != nil {
+		t.Fatal(err)
 	}
-	if err := service.SetProductControlDataRootProposal(filepath.Join(t.TempDir(), "replacement")); err == nil || !strings.Contains(err.Error(), "already in use") {
-		t.Fatalf("live product-control proposal replacement error = %v", err)
+	for _, field := range []string{"runtimeConfigPath", "appRegistry", "appPackages"} {
+		t.Run(field, func(t *testing.T) {
+			clone := make(map[string]any, len(document))
+			for key, value := range document {
+				clone[key] = value
+			}
+			pointers := map[string]any{"factoryProfileIndex": nil, field: filepath.Join(t.TempDir(), "forbidden")}
+			clone["pointers"] = pointers
+			mutated, err := json.Marshal(clone)
+			if err != nil {
+				t.Fatal(err)
+			}
+			productControlRoot := filepath.Join(t.TempDir(), ".nimi")
+			if err := os.Mkdir(productControlRoot, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(productControlRoot, "nimi.json")
+			if err := os.WriteFile(path, mutated, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := readProductControlRecord(path); err == nil || !strings.Contains(err.Error(), "pointers fields are invalid") {
+				t.Fatalf("forbidden pointer %s error = %v", field, err)
+			}
+		})
 	}
 }
 

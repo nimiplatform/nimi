@@ -43,12 +43,12 @@ func runRuntimeDoctor(args []string) error {
 		{Name: "runtime binary", Value: Version, Status: "ok"},
 	}
 
-	if configPath == "" {
-		items = append(items, doctorItem{Name: "config file", Value: "(unresolved)", Status: "warn", Detail: "set HOME or NIMI_RUNTIME_CONFIG_PATH"})
-	} else if fileExists(configPath) {
-		items = append(items, doctorItem{Name: "config file", Value: configPath, Status: "ok"})
-	} else {
-		items = append(items, doctorItem{Name: "config file", Value: configPath, Status: "warn", Detail: "missing"})
+	if configPath != "" {
+		if fileExists(configPath) {
+			items = append(items, doctorItem{Name: "non-production portable config", Value: configPath, Status: "ok"})
+		} else {
+			items = append(items, doctorItem{Name: "non-production portable config", Value: configPath, Status: "warn", Detail: "missing"})
+		}
 	}
 
 	cfg, cfgErr := config.Load()

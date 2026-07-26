@@ -28,16 +28,7 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 		HTTPAddr:        windowsE2EHTTPAddress,
 		ShutdownTimeout: 10 * time.Second,
 		LocalStatePath:  filepath.Join(runtimeRoot, "local-state.json"),
-		LocalModelsPath: filepath.Join(runtimeRoot, "models"),
 		RuntimeID:       windowsE2ERuntimeID,
-		DataRootRef:     filepath.Join(runtimeRoot, "data"),
-		ManagedRoots: config.ManagedRootsConfig{
-			Models:       filepath.Join(runtimeRoot, "managed", "models"),
-			Dependencies: filepath.Join(runtimeRoot, "managed", "dependencies"),
-			Environments: filepath.Join(runtimeRoot, "managed", "environments"),
-			Logs:         filepath.Join(runtimeRoot, "managed", "logs"),
-			Audit:        filepath.Join(runtimeRoot, "managed", "audit"),
-		},
 		LocalService: config.LocalServiceConfig{
 			Enabled: true,
 			Mode:    config.LocalServiceModeDesktopLocal,

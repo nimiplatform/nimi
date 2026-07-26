@@ -9,15 +9,15 @@ import (
 	"time"
 )
 
-func TestLoadRejectsNestedRuntimeObjectAtCanonicalPath(t *testing.T) {
+func TestLoadRejectsNestedRuntimeObjectAtExplicitPortablePath(t *testing.T) {
 	homeDir := t.TempDir()
 	setRuntimeTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigEnv(t)
 
-	configPath := filepath.Join(homeDir, ".nimi", "runtime", "config.json")
+	configPath := filepath.Join(homeDir, ".nimi", "nonproduction", "runtime-config.json")
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		t.Fatalf("mkdir canonical config dir: %v", err)
+		t.Fatalf("mkdir portable config dir: %v", err)
 	}
 	body := `{"schemaVersion":1,"runtime":{"grpcAddr":"127.0.0.1:59001"}}`
 	if err := os.WriteFile(configPath, []byte(body), 0o600); err != nil {
@@ -256,11 +256,7 @@ func TestLoadFlatFileConfig(t *testing.T) {
   "grpcAddr": "127.0.0.1:50001",
   "httpAddr": "127.0.0.1:50002",
   "shutdownTimeoutSeconds": 15,
-  "localStatePath": "~/custom/state.json",
-  "dataRootRef": "~/custom/nimi-data",
-  "managedRoots": {
-    "models": "~/custom/nimi-data/models"
-  }
+  "localStatePath": "~/custom/state.json"
 }`
 	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
 		t.Fatalf("write config file: %v", err)
@@ -287,11 +283,9 @@ func TestLoadFlatFileConfig(t *testing.T) {
 	if cfg.LocalStatePath != filepath.Join(homeDir, "custom/state.json") {
 		t.Fatalf("state path mismatch: %q", cfg.LocalStatePath)
 	}
-	if cfg.DataRootRef != filepath.Join(homeDir, "custom/nimi-data") {
-		t.Fatalf("dataRootRef mismatch: %q", cfg.DataRootRef)
-	}
-	if cfg.LocalModelsPath != filepath.Join(homeDir, "custom/nimi-data/models") {
-		t.Fatalf("models path mismatch: %q", cfg.LocalModelsPath)
+	if cfg.DataRootRef != "" || cfg.LocalModelsPath != "" ||
+		cfg.ManagedRoots != (ManagedRootsConfig{}) {
+		t.Fatalf("portable Runtime config must not select Product Control roots: %+v", cfg)
 	}
 }
 

@@ -43,7 +43,7 @@ func testSupervisedRoot() string {
 	if err != nil || home == "" {
 		return ""
 	}
-	return filepath.Join(home, ".nimi", "data", "environments")
+	return filepath.Join(home, "selected-nimi-data", "environments")
 }
 
 func testSupervisorCfg(scriptPath string) EngineConfig {

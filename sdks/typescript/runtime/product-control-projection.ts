@@ -121,12 +121,6 @@ function joinProjectionPath(base: string, ...parts: string[]): string {
     .join(separator);
 }
 
-function dirnameProjectionPath(path: string): string {
-  const normalized = trimTrailingSeparator(path.trim());
-  const index = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
-  return index > 0 ? normalized.slice(0, index) : '';
-}
-
 function requireNimiRuntimeProofString(value: unknown, field: string, capability?: string): string {
   const trimmed = normalizeText(value);
   if (!trimmed) {
@@ -220,10 +214,7 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
       executionEvidenceRef: parseOptionalString(firstRun.executionEvidenceRef),
     },
     pointers: {
-      runtimeConfigPath: parseOptionalString(pointers.runtimeConfigPath),
       factoryProfileIndex: parseOptionalString(pointers.factoryProfileIndex),
-      appRegistry: parseOptionalString(pointers.appRegistry),
-      appPackages: parseOptionalString(pointers.appPackages),
     },
     repair: {
       required: repair.required === true,
@@ -234,20 +225,6 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
 
 export function parseNimiProductControlRecordProjection(value: unknown): NimiProductControlRecordProjection {
   const record = asRecord(value, 'product_control_record_get');
-  const proposal = record.dataRootProposal == null
-    ? null
-    : asRecord(record.dataRootProposal, 'product control dataRootProposal');
-  if (proposal && (
-    normalizeText(proposal.path).length === 0
-    || proposal.authority !== 'runtime_protected_product_control'
-    || proposal.profile !== 'dev_kernel_checkpoint'
-  )) {
-    throw productControlError({
-      reasonCode: 'SDK_PRODUCT_CONTROL_DATA_ROOT_PROPOSAL_INVALID',
-      message: 'Runtime product-control data-root proposal is invalid.',
-      actionHint: 'inspect_runtime_product_control_response',
-    });
-  }
   const configMutation = record.configMutation == null
     ? null
     : asRecord(record.configMutation, 'product control configMutation');
@@ -270,13 +247,6 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
     exists: record.exists === true,
     state: parseNimiProductControlState(record.state),
     record: parseNimiProductControlRecord(record.record),
-    dataRootProposal: proposal
-      ? {
-        path: normalizeText(proposal.path),
-        authority: 'runtime_protected_product_control',
-        profile: 'dev_kernel_checkpoint',
-      }
-      : null,
     error: parseOptionalString(record.error),
     configMutation: configMutation
       ? {
@@ -349,7 +319,6 @@ export function projectUnavailableNimiProductControlRecord(
     exists: false,
     state: 'config_missing',
     record: null,
-    dataRootProposal: null,
     error,
   };
 }
@@ -369,9 +338,8 @@ export function projectUnavailableNimiProductControlSelectedDataRoot(
 export function projectNimiProductControlStorageDirs(
   projection: NimiProductControlSelectedDataRootProjection,
 ): NimiProductControlStorageDirsProjection {
-  const nimiDir = dirnameProjectionPath(projection.path || '');
   const dataRoot = projection.dataRoot?.path?.trim() || '';
-  if (!nimiDir || !dataRoot) {
+  if (!dataRoot) {
     throw productControlError({
       reasonCode: 'SDK_PRODUCT_CONTROL_STORAGE_ROOT_MISSING',
       message: projection.error || 'Product-control storage dirs require a selected data root.',
@@ -379,12 +347,14 @@ export function projectNimiProductControlStorageDirs(
     });
   }
   return {
-    nimiDir,
-    nimiDataDir: dataRoot,
-    mediaCacheDir: joinProjectionPath(dataRoot, 'cache', 'media'),
+    dataRoot,
+    modelsDir: joinProjectionPath(dataRoot, 'models'),
+    dependenciesDir: joinProjectionPath(dataRoot, 'dependencies'),
+    environmentsDir: joinProjectionPath(dataRoot, 'environments'),
+    appsDir: joinProjectionPath(dataRoot, 'apps'),
+    accountsDir: joinProjectionPath(dataRoot, 'accounts'),
     logsDir: joinProjectionPath(dataRoot, 'logs'),
-    localModelsDir: joinProjectionPath(dataRoot, 'models'),
-    localRuntimeStatePath: joinProjectionPath(nimiDir, 'runtime', 'local-state.json'),
+    auditDir: joinProjectionPath(dataRoot, 'audit'),
   };
 }
 

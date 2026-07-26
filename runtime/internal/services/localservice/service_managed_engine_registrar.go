@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -45,23 +46,32 @@ func resolveLocalModelsPath(configuredPath string) string {
 	return ""
 }
 
-func resolveLocalEnvironmentRuntimeDataRoot(configuredDataRoot string, configuredModelsPath string) string {
-	if value := strings.TrimSpace(configuredDataRoot); value != "" {
-		return value
+func resolveLocalEnvironmentRuntimeDataRoot(configuredDataRoot string) string {
+	return strings.TrimSpace(configuredDataRoot)
+}
+
+func validateProductControlDerivedLocalPaths(configuredModelsPath string, configuredDataRoot string) error {
+	dataRoot := filepath.Clean(strings.TrimSpace(configuredDataRoot))
+	modelsRoot := filepath.Clean(strings.TrimSpace(configuredModelsPath))
+	if dataRoot == "." && modelsRoot == "." {
+		return nil
 	}
-	modelsRoot := strings.TrimSpace(resolveLocalModelsPath(configuredModelsPath))
-	if modelsRoot == "" {
-		return ""
+	if dataRoot == "." || !filepath.IsAbs(dataRoot) || dataRoot == filepath.VolumeName(dataRoot)+string(filepath.Separator) {
+		return fmt.Errorf("Product Control-derived data root must be an absolute non-root path")
 	}
-	cleanRoot := filepath.Clean(modelsRoot)
-	if filepath.Base(cleanRoot) != "models" {
-		return cleanRoot
+	if modelsRoot == "." || !filepath.IsAbs(modelsRoot) || !sameLocalEnvironmentPath(modelsRoot, filepath.Join(dataRoot, "models")) {
+		return fmt.Errorf("Product Control-derived models path must equal <dataRoot>/models")
 	}
-	parent := filepath.Dir(cleanRoot)
-	if parent == "." || parent == cleanRoot {
-		return cleanRoot
+	return nil
+}
+
+func sameLocalEnvironmentPath(left string, right string) bool {
+	left = filepath.Clean(strings.TrimSpace(left))
+	right = filepath.Clean(strings.TrimSpace(right))
+	if runtime.GOOS == "windows" {
+		return strings.EqualFold(left, right)
 	}
-	return parent
+	return left == right
 }
 
 func (s *Service) localEnvironmentRuntimeDataRoot() string {
@@ -70,9 +80,20 @@ func (s *Service) localEnvironmentRuntimeDataRoot() string {
 	}
 	s.mu.RLock()
 	runtimeDataRoot := s.runtimeDataRoot
-	localModelsPath := s.localModelsPath
 	s.mu.RUnlock()
-	return resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot, localModelsPath)
+	return resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot)
+}
+
+func (s *Service) requireCanonicalLocalEnvironmentDataRoot(requested string) (string, error) {
+	canonical := s.localEnvironmentRuntimeDataRoot()
+	if canonical == "" {
+		return "", fmt.Errorf("Product Control dataRoot.path is not available")
+	}
+	proof := strings.TrimSpace(requested)
+	if proof != "" && !sameLocalEnvironmentPath(proof, canonical) {
+		return "", fmt.Errorf("request runtime_data_root does not match Product Control dataRoot.path")
+	}
+	return canonical, nil
 }
 
 func resolveGeneratedLlamaModelsConfigPath(stateStorePath string) string {

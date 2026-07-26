@@ -34,9 +34,6 @@ func resolveLocalModelsPath(fileCfg FileConfig) string {
 }
 
 func resolveDataRootRef(fileCfg FileConfig) string {
-	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_DATA_ROOT_REF")); value != "" {
-		return expandUserPath(value)
-	}
 	if value := strings.TrimSpace(fileCfg.DataRootRef); value != "" {
 		return expandUserPath(value)
 	}
@@ -62,6 +59,8 @@ func resolveManagedRoots(fileCfg FileConfig) ManagedRootsConfig {
 		Models:       resolve(roots.Models, "models"),
 		Dependencies: resolve(roots.Dependencies, "dependencies"),
 		Environments: resolve(roots.Environments, "environments"),
+		Apps:         resolve(roots.Apps, "apps"),
+		Accounts:     resolve(roots.Accounts, "accounts"),
 		Logs:         resolve(roots.Logs, "logs"),
 		Audit:        resolve(roots.Audit, "audit"),
 	}

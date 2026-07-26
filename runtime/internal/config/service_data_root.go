@@ -8,27 +8,6 @@ import (
 
 const ServiceOwnedConfigFilename = "config.json"
 
-// ApplyProtectedDataRootBinding applies a data-plane root that has already
-// been authenticated by the platform-specific signed service profile. It does
-// not read a user file or choose a path; callers own that trust decision.
-func ApplyProtectedDataRootBinding(cfg *Config, dataRootRef string) error {
-	if cfg == nil {
-		return fmt.Errorf("Runtime config is required")
-	}
-	root := filepath.Clean(strings.TrimSpace(dataRootRef))
-	if root == "." || !filepath.IsAbs(root) || root == filepath.VolumeName(root)+string(filepath.Separator) {
-		return fmt.Errorf("protected dataRootRef must be an absolute non-root path")
-	}
-	managedRoots := resolveManagedRoots(FileConfig{
-		SchemaVersion: DefaultSchemaVersion,
-		DataRootRef:   root,
-	})
-	cfg.DataRootRef = root
-	cfg.LocalModelsPath = managedRoots.Models
-	cfg.ManagedRoots = managedRoots
-	return nil
-}
-
 // ServiceOwnedConfigPath resolves the mutable Runtime configuration beside the
 // service-owned local state. Callers must supply the already-verified
 // service-owned local-state path; request and renderer paths are not accepted.
@@ -57,6 +36,8 @@ func WriteServiceOwnedDataRoot(path string, dataRootRef string) (bool, error) {
 		Models:       filepath.Join(root, string(DataPlaneRootModels)),
 		Dependencies: filepath.Join(root, string(DataPlaneRootDependencies)),
 		Environments: filepath.Join(root, string(DataPlaneRootEnvironments)),
+		Apps:         filepath.Join(root, string(DataPlaneRootApps)),
+		Accounts:     filepath.Join(root, string(DataPlaneRootAccounts)),
 		Logs:         filepath.Join(root, string(DataPlaneRootLogs)),
 		Audit:        filepath.Join(root, string(DataPlaneRootAudit)),
 	}
@@ -96,7 +77,8 @@ func ApplyServiceOwnedDataRoot(cfg *Config, path string) error {
 	managedRoots := resolveManagedRoots(fileCfg)
 	for label, value := range map[string]string{
 		"models": managedRoots.Models, "dependencies": managedRoots.Dependencies,
-		"environments": managedRoots.Environments, "logs": managedRoots.Logs, "audit": managedRoots.Audit,
+		"environments": managedRoots.Environments, "apps": managedRoots.Apps,
+		"accounts": managedRoots.Accounts, "logs": managedRoots.Logs, "audit": managedRoots.Audit,
 	} {
 		if !filepath.IsAbs(value) {
 			return fmt.Errorf("service-owned managedRoots.%s must be absolute", label)
@@ -115,6 +97,8 @@ func sameFileConfigManagedRoots(left *FileConfigManagedRoots, right *FileConfigM
 	return filepath.Clean(left.Models) == filepath.Clean(right.Models) &&
 		filepath.Clean(left.Dependencies) == filepath.Clean(right.Dependencies) &&
 		filepath.Clean(left.Environments) == filepath.Clean(right.Environments) &&
+		filepath.Clean(left.Apps) == filepath.Clean(right.Apps) &&
+		filepath.Clean(left.Accounts) == filepath.Clean(right.Accounts) &&
 		filepath.Clean(left.Logs) == filepath.Clean(right.Logs) &&
 		filepath.Clean(left.Audit) == filepath.Clean(right.Audit)
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"time"
 
@@ -136,6 +138,8 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 // sourced from argv, environment, renderer IPC, or user-writable config.
 type ProtectedServiceBindings struct {
 	ServiceStateRoot                 string
+	ProductControlRoot               string
+	RuntimeServiceSID                string
 	LocalDevelopmentConsentStorePath string
 	PlatformAppRegistryPath          string
 	PlatformBundledAppsRoot          string
@@ -153,13 +157,29 @@ type ProtectedServiceBindings struct {
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
-	return newServer(cfg, state, logger, version, nil)
+	productControlRoot, err := ResolveCurrentProcessProductControlRoot()
+	if err != nil {
+		return nil, fmt.Errorf("resolve fixed non-production Product Control root: %w", err)
+	}
+	security := localservice.ProductControlDataRootSecurityBinding{}
+	binding, err := localservice.LoadProductControlDataRootBinding(productControlRoot, security)
+	if err != nil {
+		return nil, fmt.Errorf("load fixed non-production Product Control data-root authority: %w", err)
+	}
+	applyProductControlDataRootBinding(&cfg, binding)
+	return newServer(cfg, state, logger, version, nil, productControlRoot, security)
 }
 
 func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Logger, version string, bindings ProtectedServiceBindings) (*Server, error) {
 	stateRoot := filepath.Clean(strings.TrimSpace(bindings.ServiceStateRoot))
 	if !filepath.IsAbs(stateRoot) || stateRoot == filepath.VolumeName(stateRoot)+string(filepath.Separator) {
 		return nil, fmt.Errorf("protected service state root must be an absolute non-root path")
+	}
+	productControlRoot := filepath.Clean(strings.TrimSpace(bindings.ProductControlRoot))
+	if !filepath.IsAbs(productControlRoot) ||
+		productControlRoot == filepath.VolumeName(productControlRoot)+string(filepath.Separator) ||
+		filepath.Base(productControlRoot) != ".nimi" {
+		return nil, fmt.Errorf("protected Product Control root must be the fixed absolute interactive-user .nimi directory")
 	}
 	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LocalAppLaunches == nil || bindings.LocalDevelopmentVerifier == nil || bindings.RuntimeRestartRequester == nil {
 		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, local-app launches, and local-development verifier are required")
@@ -170,6 +190,10 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	}
 	if _, err := bindings.LocalOSUserIdentity.LocalOSUserAnchor(); err != nil {
 		return nil, fmt.Errorf("verified local OS-user identity is required: %w", err)
+	}
+	productControlSecurity, err := protectedProductControlDataRootSecurityBinding(bindings)
+	if err != nil {
+		return nil, err
 	}
 	registryPath, err := normalizeOptionalProtectedResourcePath("Platform app registry", bindings.PlatformAppRegistryPath)
 	if err != nil {
@@ -183,6 +207,7 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 		return nil, fmt.Errorf("validate protected Desktop session authority: %w", err)
 	}
 	bindings.ServiceStateRoot = stateRoot
+	bindings.ProductControlRoot = productControlRoot
 	bindings.LocalDevelopmentConsentStorePath = consentStorePath
 	bindings.PlatformAppRegistryPath = registryPath
 	bindings.PlatformBundledAppsRoot = bundledAppsRoot
@@ -192,7 +217,32 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	// harnesses and cannot select protected app admission or bundled code.
 	cfg.AppRegistryPath = registryPath
 	cfg.AppBundledArtifactsRoot = bundledAppsRoot
-	return newServer(cfg, state, logger, version, &bindings)
+	serviceConfigPath, err := config.ServiceOwnedConfigPath(cfg.LocalStatePath)
+	if err != nil {
+		return nil, fmt.Errorf("resolve protected Runtime derived config path: %w", err)
+	}
+	if err := reconcileProtectedProductControlDataRootConfig(productControlRoot, serviceConfigPath, &cfg, productControlSecurity); err != nil {
+		return nil, err
+	}
+	return newServer(cfg, state, logger, version, &bindings, productControlRoot, productControlSecurity)
+}
+
+func protectedProductControlDataRootSecurityBinding(bindings ProtectedServiceBindings) (localservice.ProductControlDataRootSecurityBinding, error) {
+	if goruntime.GOOS != "windows" {
+		return localservice.ProductControlDataRootSecurityBinding{}, nil
+	}
+	interactiveUserSID, ok := bindings.LocalOSUserIdentity.WindowsInteractiveUserSID()
+	if !ok || strings.TrimSpace(interactiveUserSID) == "" {
+		return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("protected Windows Product Control requires the verified interactive-user SID")
+	}
+	runtimeServiceSID := strings.TrimSpace(bindings.RuntimeServiceSID)
+	if !strings.HasPrefix(runtimeServiceSID, "S-1-5-80-") {
+		return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("protected Windows Product Control requires the verified Runtime service SID")
+	}
+	return localservice.ProductControlDataRootSecurityBinding{
+		InteractiveUserSID: interactiveUserSID,
+		RuntimeServiceSID:  runtimeServiceSID,
+	}, nil
 }
 
 func normalizeOptionalProtectedResourcePath(label string, value string) (string, error) {
@@ -207,7 +257,115 @@ func normalizeOptionalProtectedResourcePath(label string, value string) (string,
 	return cleaned, nil
 }
 
-func newServer(cfg config.Config, state *health.State, logger *slog.Logger, version string, protected *ProtectedServiceBindings) (*Server, error) {
+func reconcileProtectedProductControlDataRootConfig(productControlRoot string, serviceConfigPath string, cfg *config.Config, security localservice.ProductControlDataRootSecurityBinding) error {
+	if cfg == nil {
+		return fmt.Errorf("protected Runtime config is required")
+	}
+	binding, err := localservice.LoadProductControlDataRootBinding(productControlRoot, security)
+	if err != nil {
+		return fmt.Errorf("load fixed Product Control data-root authority: %w", err)
+	}
+	_, statErr := os.Stat(serviceConfigPath)
+	configExists := statErr == nil
+	if statErr != nil && !os.IsNotExist(statErr) {
+		return fmt.Errorf("inspect protected Runtime derived config: %w", statErr)
+	}
+	if binding.DataRoot != "" && strings.TrimSpace(cfg.DataRootRef) == "" && !configExists {
+		if _, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, binding.DataRoot); err != nil {
+			return fmt.Errorf("materialize protected Runtime data-root proof from Product Control: %w", err)
+		}
+		if err := config.ApplyServiceOwnedDataRoot(cfg, serviceConfigPath); err != nil {
+			return fmt.Errorf("apply protected Runtime data-root proof from Product Control: %w", err)
+		}
+	}
+	return validateProtectedProductControlDataRootBinding(binding, *cfg)
+}
+
+func validateProtectedProductControlDataRootBinding(binding localservice.ProductControlDataRootBinding, cfg config.Config) error {
+	configuredRoot := strings.TrimSpace(cfg.DataRootRef)
+	if binding.DataRoot == "" {
+		for label, value := range map[string]string{
+			"dataRootRef":               configuredRoot,
+			"localModelsPath":           cfg.LocalModelsPath,
+			"managedRoots.models":       cfg.ManagedRoots.Models,
+			"managedRoots.dependencies": cfg.ManagedRoots.Dependencies,
+			"managedRoots.environments": cfg.ManagedRoots.Environments,
+			"managedRoots.apps":         cfg.ManagedRoots.Apps,
+			"managedRoots.accounts":     cfg.ManagedRoots.Accounts,
+			"managedRoots.logs":         cfg.ManagedRoots.Logs,
+			"managedRoots.audit":        cfg.ManagedRoots.Audit,
+		} {
+			if strings.TrimSpace(value) != "" {
+				return fmt.Errorf("protected Runtime derived config %s exists without a Product Control dataRoot.path", label)
+			}
+		}
+		return nil
+	}
+	if configuredRoot == "" || !sameProductControlPath(configuredRoot, binding.DataRoot) {
+		return fmt.Errorf("protected Runtime derived dataRootRef does not match Product Control dataRoot.path")
+	}
+	expected := map[string]string{
+		"localModelsPath":           filepath.Join(binding.DataRoot, "models"),
+		"managedRoots.models":       filepath.Join(binding.DataRoot, "models"),
+		"managedRoots.dependencies": filepath.Join(binding.DataRoot, "dependencies"),
+		"managedRoots.environments": filepath.Join(binding.DataRoot, "environments"),
+		"managedRoots.apps":         filepath.Join(binding.DataRoot, "apps"),
+		"managedRoots.accounts":     filepath.Join(binding.DataRoot, "accounts"),
+		"managedRoots.logs":         filepath.Join(binding.DataRoot, "logs"),
+		"managedRoots.audit":        filepath.Join(binding.DataRoot, "audit"),
+	}
+	actual := map[string]string{
+		"localModelsPath":           cfg.LocalModelsPath,
+		"managedRoots.models":       cfg.ManagedRoots.Models,
+		"managedRoots.dependencies": cfg.ManagedRoots.Dependencies,
+		"managedRoots.environments": cfg.ManagedRoots.Environments,
+		"managedRoots.apps":         cfg.ManagedRoots.Apps,
+		"managedRoots.accounts":     cfg.ManagedRoots.Accounts,
+		"managedRoots.logs":         cfg.ManagedRoots.Logs,
+		"managedRoots.audit":        cfg.ManagedRoots.Audit,
+	}
+	for label, want := range expected {
+		if !sameProductControlPath(actual[label], want) {
+			return fmt.Errorf("protected Runtime derived config %s does not match Product Control dataRoot.path", label)
+		}
+	}
+	return nil
+}
+
+func applyProductControlDataRootBinding(cfg *config.Config, binding localservice.ProductControlDataRootBinding) {
+	if cfg == nil {
+		return
+	}
+	root := strings.TrimSpace(binding.DataRoot)
+	if root == "" {
+		cfg.DataRootRef = ""
+		cfg.LocalModelsPath = ""
+		cfg.ManagedRoots = config.ManagedRootsConfig{}
+		return
+	}
+	cfg.DataRootRef = root
+	cfg.LocalModelsPath = filepath.Join(root, "models")
+	cfg.ManagedRoots = config.ManagedRootsConfig{
+		Models:       filepath.Join(root, "models"),
+		Dependencies: filepath.Join(root, "dependencies"),
+		Environments: filepath.Join(root, "environments"),
+		Apps:         filepath.Join(root, "apps"),
+		Accounts:     filepath.Join(root, "accounts"),
+		Logs:         filepath.Join(root, "logs"),
+		Audit:        filepath.Join(root, "audit"),
+	}
+}
+
+func sameProductControlPath(left string, right string) bool {
+	left = filepath.Clean(strings.TrimSpace(left))
+	right = filepath.Clean(strings.TrimSpace(right))
+	if goruntime.GOOS == "windows" {
+		return strings.EqualFold(left, right)
+	}
+	return left == right
+}
+
+func newServer(cfg config.Config, state *health.State, logger *slog.Logger, version string, protected *ProtectedServiceBindings, productControlRoot string, productControlSecurity localservice.ProductControlDataRootSecurityBinding) (*Server, error) {
 	addr := cfg.GRPCAddr
 	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
 	idempotencyStore, err := idempotency.New(24*time.Hour, cfg.IdempotencyCapacity)
@@ -377,33 +535,32 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	modelSvc := modelservice.New(logger, modelRegistry)                            // Phase 2 Draft
 	modelSvc.SetPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc) // Phase 2 Draft
-	localSvc, err := localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity, cfg.LocalModelsPath, cfg.DataRootRef)
+	localSvc, err := localservice.NewWithProductControlDataRoot(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity, cfg.LocalModelsPath, cfg.DataRootRef)
 	if err != nil {
 		return nil, fmt.Errorf("init local service: %w", err)
 	}
 	if err := localSvc.SetProductVersion(version); err != nil {
 		return nil, fmt.Errorf("init local service product version: %w", err)
 	}
-	serviceConfigPath, err := config.ServiceOwnedConfigPath(cfg.LocalStatePath)
-	if err != nil {
-		return nil, fmt.Errorf("resolve service-owned Runtime config path: %w", err)
+	if err := localSvc.SetProductControlRoot(productControlRoot); err != nil {
+		return nil, fmt.Errorf("bind fixed Product Control root: %w", err)
 	}
-	localSvc.SetProductControlDataRootConfigWriter(func(dataRootRef string) (bool, error) {
-		return config.WriteServiceOwnedDataRoot(serviceConfigPath, dataRootRef)
-	})
+	if err := localSvc.SetProductControlDataRootSecurityBinding(productControlSecurity); err != nil {
+		return nil, fmt.Errorf("bind Product Control data-root security identities: %w", err)
+	}
 	if protected != nil {
-		if err := localSvc.SetProductControlRoot(protected.ServiceStateRoot); err != nil {
-			return nil, fmt.Errorf("bind protected product-control root: %w", err)
+		serviceConfigPath, err := config.ServiceOwnedConfigPath(cfg.LocalStatePath)
+		if err != nil {
+			return nil, fmt.Errorf("resolve service-owned Runtime config path: %w", err)
 		}
-		if cfg.NonReleaseDevKernelCheckpoint != nil {
-			proposal, err := resolveProtectedProductControlDataRootProposal(protected.LocalOSUserIdentity, cfg.NonReleaseDevKernelCheckpoint)
-			if err != nil {
-				return nil, fmt.Errorf("resolve non-release Product Control data-root proposal: %w", err)
-			}
-			if err := localSvc.SetProductControlDataRootProposal(proposal); err != nil {
-				return nil, fmt.Errorf("bind non-release Product Control data-root proposal: %w", err)
-			}
-		}
+		localSvc.SetProductControlDataRootConfigWriter(func(dataRootRef string) (bool, error) {
+			return config.WriteServiceOwnedDataRoot(serviceConfigPath, dataRootRef)
+		})
+	} else {
+		initialDataRoot := cfg.DataRootRef
+		localSvc.SetProductControlDataRootConfigWriter(func(dataRootRef string) (bool, error) {
+			return !sameProductControlPath(initialDataRoot, dataRootRef), nil
+		})
 	}
 	localSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	modelSvc.SetLocalModelLister(localSvc)

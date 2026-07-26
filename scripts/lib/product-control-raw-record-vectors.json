@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "baseRaw": {
+    "selected": "{\"schemaVersion\":1,\"installId\":\"shared-vector\",\"productVersion\":\"0.0.0-test\",\"state\":\"data_root_selected\",\"dataRoot\":{\"path\":\"__DATA_ROOT__\",\"status\":\"selected\",\"selectedAt\":\"2026-07-26T00:00:00.000Z\",\"verifiedAt\":\"2026-07-26T00:00:01.000Z\",\"selectedAtUnixMs\":1,\"verifiedAtUnixMs\":2},\"firstRun\":{\"installLevel\":null,\"aiProfileAlias\":null,\"completed\":false,\"completedAt\":null,\"initializationPlanId\":null,\"baselineProfileRef\":null,\"baselineCommitId\":null,\"accountDefaultProfileRef\":null,\"builtInAiConfigRefs\":[],\"runtimeBaselineRef\":null,\"executionEvidenceRef\":null},\"pointers\":{\"factoryProfileIndex\":null},\"repair\":{\"required\":false,\"reason\":null}}",
+    "ready": "{\"schemaVersion\":1,\"installId\":\"shared-vector\",\"productVersion\":\"0.0.0-test\",\"state\":\"ready_for_use\",\"dataRoot\":{\"path\":\"__DATA_ROOT__\",\"status\":\"ready\",\"selectedAt\":\"2026-07-26T00:00:00.000Z\",\"verifiedAt\":\"2026-07-26T00:00:01.000Z\",\"selectedAtUnixMs\":1,\"verifiedAtUnixMs\":2},\"firstRun\":{\"installLevel\":\"minimal\",\"aiProfileAlias\":\"local-default\",\"completed\":true,\"completedAt\":\"2026-07-26T00:00:02.000Z\",\"initializationPlanId\":\"plan\",\"baselineProfileRef\":\"profile\",\"baselineCommitId\":\"commit\",\"accountDefaultProfileRef\":\"account-profile\",\"builtInAiConfigRefs\":[\"ai-config\"],\"runtimeBaselineRef\":\"runtime-baseline\",\"executionEvidenceRef\":\"execution-evidence\"},\"pointers\":{\"factoryProfileIndex\":null},\"repair\":{\"required\":false,\"reason\":null}}"
+  },
+  "vectors": [
+    {
+      "name": "valid-selected",
+      "base": "selected",
+      "disposition": "accept"
+    },
+    {
+      "name": "valid-ready",
+      "base": "ready",
+      "disposition": "accept"
+    },
+    {
+      "name": "missing-schemaVersion",
+      "base": "selected",
+      "replace": [["\"schemaVersion\":1,", ""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "missing-installId",
+      "base": "selected",
+      "replace": [["\"installId\":\"shared-vector\",", ""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "missing-productVersion",
+      "base": "selected",
+      "replace": [["\"productVersion\":\"0.0.0-test\",", ""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "missing-state",
+      "base": "selected",
+      "replace": [["\"state\":\"data_root_selected\",", ""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "missing-dataRoot",
+      "base": "selected",
+      "replace": [["\"dataRoot\":{\"path\":\"__DATA_ROOT__\",\"status\":\"selected\",\"selectedAt\":\"2026-07-26T00:00:00.000Z\",\"verifiedAt\":\"2026-07-26T00:00:01.000Z\",\"selectedAtUnixMs\":1,\"verifiedAtUnixMs\":2},", ""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "missing-firstRun",
+      "base": "selected",
+      "replace": [["\"firstRun\":{\"installLevel\":null,\"aiProfileAlias\":null,\"completed\":false,\"completedAt\":null,\"initializationPlanId\":null,\"baselineProfileRef\":null,\"baselineCommitId\":null,\"accountDefaultProfileRef\":null,\"builtInAiConfigRefs\":[],\"runtimeBaselineRef\":null,\"executionEvidenceRef\":null},", ""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "missing-pointers",
+      "base": "selected",
+      "replace": [["\"pointers\":{\"factoryProfileIndex\":null},", ""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "missing-repair",
+      "base": "selected",
+      "replace": [[",\"repair\":{\"required\":false,\"reason\":null}", ""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "path-one-element-array",
+      "base": "selected",
+      "replace": [["\"path\":\"__DATA_ROOT__\"", "\"path\":[\"__DATA_ROOT__\"]"]],
+      "disposition": "reject"
+    },
+    {
+      "name": "path-null",
+      "base": "selected",
+      "replace": [["\"path\":\"__DATA_ROOT__\"", "\"path\":null"]],
+      "disposition": "reject"
+    },
+    {
+      "name": "firstRun-completed-null",
+      "base": "selected",
+      "replace": [["\"completed\":false", "\"completed\":null"]],
+      "disposition": "reject"
+    },
+    {
+      "name": "firstRun-builtInAiConfigRefs-null",
+      "base": "selected",
+      "replace": [["\"builtInAiConfigRefs\":[]", "\"builtInAiConfigRefs\":null"]],
+      "disposition": "reject"
+    },
+    {
+      "name": "repair-required-null",
+      "base": "selected",
+      "replace": [["\"required\":false", "\"required\":null"]],
+      "disposition": "reject"
+    },
+    {
+      "name": "unknown-top-level",
+      "base": "selected",
+      "replace": [["\"repair\":{\"required\":false,\"reason\":null}}", "\"repair\":{\"required\":false,\"reason\":null},\"alternateRoot\":\"__DATA_ROOT__\"}"]],
+      "disposition": "reject"
+    },
+    {
+      "name": "unknown-nested",
+      "base": "selected",
+      "replace": [["\"path\":\"__DATA_ROOT__\"", "\"path\":\"__DATA_ROOT__\",\"alternatePath\":\"__DATA_ROOT__\""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "utf8-bom",
+      "base": "selected",
+      "prefixHex": "efbbbf",
+      "disposition": "reject"
+    },
+    {
+      "name": "invalid-utf8",
+      "rawHex": "ff",
+      "disposition": "reject"
+    },
+    {
+      "name": "trailing-json-document",
+      "base": "selected",
+      "suffixUtf8": " {}",
+      "disposition": "reject"
+    },
+    {
+      "name": "oversize",
+      "repeatHex": "20",
+      "repeatCount": 65537,
+      "disposition": "reject"
+    },
+    {
+      "name": "volume-root",
+      "base": "selected",
+      "dataRootPlaceholder": "volumeRoot",
+      "disposition": "reject"
+    },
+    {
+      "name": "ready-with-selected-status",
+      "base": "ready",
+      "replace": [["\"status\":\"ready\"", "\"status\":\"selected\""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "repair-state-with-normal-status",
+      "base": "selected",
+      "replace": [["\"state\":\"data_root_selected\"", "\"state\":\"repair_required\""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "missing-state-with-data-root",
+      "base": "selected",
+      "replace": [["\"state\":\"data_root_selected\"", "\"state\":\"data_root_missing\""]],
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-ordinary-unc-subdirectory",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\server\\share\\NimiData",
+      "disposition": "accept"
+    },
+    {
+      "name": "windows-extended-drive-subdirectory",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\?\\D:\\NimiData",
+      "disposition": "accept"
+    },
+    {
+      "name": "windows-extended-unc-subdirectory",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\?\\UNC\\server\\share\\NimiData",
+      "disposition": "accept"
+    },
+    {
+      "name": "windows-drive-unqualified-backslash-rooted",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\DataNimi",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-drive-unqualified-slash-rooted",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "/DataNimi",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-incomplete-device-namespace",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\?\\C:relative",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-nt-object-manager-namespace",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\??\\C:\\DataNimi",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-win32-device-namespace",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\.\\C:\\DataNimi",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-globalroot-namespace",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\?\\GLOBALROOT\\Device\\HarddiskVolume1\\DataNimi",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-unc-share-root-with-trailing-separator",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\server\\share\\",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-unc-share-root-without-trailing-separator",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\server\\share",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-extended-unc-share-root-with-trailing-separator",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\?\\UNC\\server\\share\\",
+      "disposition": "reject"
+    },
+    {
+      "name": "windows-extended-unc-share-root-without-trailing-separator",
+      "base": "selected",
+      "platform": "win32",
+      "dataRootLiteral": "\\\\?\\UNC\\server\\share",
+      "disposition": "reject"
+    }
+  ]
+}

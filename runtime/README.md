@@ -94,11 +94,11 @@ go run ./cmd/nimi run "hello runtime" --yes --json
 The source-development and scripted paths may use `--yes` for repeatability.
 That flag is not part of the public first-run happy path, which stays on bare `nimi run "<prompt>"`.
 
-Config precedence stays:
-
-`CLI flags > environment variables > ~/.nimi/runtime/config.json > built-in defaults`
-
-`~/.nimi/config.json` is migration input only; it is not fallback runtime truth.
+Production Runtime private configuration is service-principal-owned protected
+state. `~/.nimi/runtime/config.json`, `~/.nimi/config.json`, and
+`NIMI_RUNTIME_CONFIG_PATH` are not production discovery or migration inputs.
+Product data discovery starts only at `~/.nimi/nimi.json`; Runtime independently
+validates its `dataRoot.path` and retains only derived verification state.
 
 ## Runtime Surface
 
@@ -142,9 +142,16 @@ Health endpoints:
 
 ## Config Notes
 
-- Canonical config path: `~/.nimi/runtime/config.json`
-- Runtime roots come from `dataRootRef` and `managedRoots`; `localModelsPath` is
-  not an active config owner.
+- Product Control has the fixed path `~/.nimi/nimi.json`; only its
+  `dataRoot.path` selects product data storage.
+- Production Runtime private configuration has an OS-specific protected path
+  that is not a Desktop, SDK, or public CLI interface.
+- The source-development portable config surface is non-production only and
+  exists only when `NIMI_RUNTIME_CONFIG_PATH` explicitly names a non-retired
+  path. It has no default discovery, rejects `~/.nimi/runtime/config.json`, and
+  rejects Product Control-owned `dataRootRef` and `managedRoots` fields.
+- Runtime managed roots are derived from the selected data root and protected
+  state cannot select or override it.
 - Provider credentials may use `apiKey` or `apiKeyEnv`, but never both
 - User-facing setup should prefer env-backed credentials; inline `apiKey` is fallback-only
 - `config` changes that touch runtime wiring remain restart-scoped

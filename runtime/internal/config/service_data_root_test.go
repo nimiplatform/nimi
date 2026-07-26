@@ -26,9 +26,36 @@ func TestWriteAndApplyServiceOwnedDataRootRequiresRestartOnlyOnChange(t *testing
 	if cfg.DataRootRef != dataRoot || cfg.LocalModelsPath != filepath.Join(dataRoot, "models") ||
 		cfg.ManagedRoots.Dependencies != filepath.Join(dataRoot, "dependencies") ||
 		cfg.ManagedRoots.Environments != filepath.Join(dataRoot, "environments") ||
+		cfg.ManagedRoots.Apps != filepath.Join(dataRoot, "apps") ||
+		cfg.ManagedRoots.Accounts != filepath.Join(dataRoot, "accounts") ||
 		cfg.ManagedRoots.Logs != filepath.Join(dataRoot, "logs") ||
 		cfg.ManagedRoots.Audit != filepath.Join(dataRoot, "audit") {
 		t.Fatalf("unexpected resolved data-plane config: %+v", cfg)
+	}
+}
+
+func TestNewDataPlaneModelProjectsAllProductControlDerivedRoots(t *testing.T) {
+	dataRoot := filepath.Join(t.TempDir(), "nimi_data")
+	model := NewDataPlaneModel(Config{
+		DataRootRef: dataRoot,
+		ManagedRoots: ManagedRootsConfig{
+			Models:       filepath.Join(dataRoot, "models"),
+			Dependencies: filepath.Join(dataRoot, "dependencies"),
+			Environments: filepath.Join(dataRoot, "environments"),
+			Apps:         filepath.Join(dataRoot, "apps"),
+			Accounts:     filepath.Join(dataRoot, "accounts"),
+			Logs:         filepath.Join(dataRoot, "logs"),
+			Audit:        filepath.Join(dataRoot, "audit"),
+		},
+	})
+	if len(model.Roots) != 7 {
+		t.Fatalf("data-plane root count = %d, want 7", len(model.Roots))
+	}
+	for _, root := range model.Roots {
+		want := filepath.Join(dataRoot, string(root.ID))
+		if root.Path != want || !root.Resolved {
+			t.Fatalf("data-plane root %s = %+v, want path %q", root.ID, root, want)
+		}
 	}
 }
 

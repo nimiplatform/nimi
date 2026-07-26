@@ -9,11 +9,15 @@ import (
 )
 
 func (s *Service) ResolveLocalEnvironmentPlan(_ context.Context, req *runtimev1.ResolveLocalEnvironmentPlanRequest) (*runtimev1.ResolveLocalEnvironmentPlanResponse, error) {
+	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
+	if err != nil {
+		return nil, err
+	}
 	plan := s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:           req.GetPackId(),
 		ConsumerScope:    req.GetConsumerScope(),
 		HostProfile:      req.GetHostProfile(),
-		RuntimeDataRoot:  req.GetRuntimeDataRoot(),
+		RuntimeDataRoot:  runtimeDataRoot,
 		AssetID:          req.GetAssetId(),
 		LocalAssetID:     req.GetLocalAssetId(),
 		CompanionAssetID: req.GetCompanionAssetId(),
@@ -113,11 +117,15 @@ func profileRuntimeDescriptorPrepareResultToProto(result *ProfileRuntimeDescript
 }
 
 func (s *Service) ResolveLocalEnvironmentActivationGate(_ context.Context, req *runtimev1.ResolveLocalEnvironmentActivationGateRequest) (*runtimev1.ResolveLocalEnvironmentActivationGateResponse, error) {
+	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
+	if err != nil {
+		return nil, err
+	}
 	gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
 		ConsumerID:       req.GetConsumerId(),
 		PackID:           req.GetPackId(),
 		HostProfile:      req.GetHostProfile(),
-		RuntimeDataRoot:  req.GetRuntimeDataRoot(),
+		RuntimeDataRoot:  runtimeDataRoot,
 		AssetID:          req.GetAssetId(),
 		LocalAssetID:     req.GetLocalAssetId(),
 		CompanionAssetID: req.GetCompanionAssetId(),
@@ -132,10 +140,14 @@ func (s *Service) ResolveLocalEnvironmentActivationGate(_ context.Context, req *
 // readiness evidence ref (K-LENV-ACT-011) after running a fresh activation
 // gate for every required first-run baseline consumer.
 func (s *Service) MintRuntimeBaselineReadiness(_ context.Context, req *runtimev1.MintRuntimeBaselineReadinessRequest) (*runtimev1.MintRuntimeBaselineReadinessResponse, error) {
+	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRootOrDataRootRef())
+	if err != nil {
+		return nil, err
+	}
 	record, state, reasonCode, detail := s.mintRuntimeBaselineReadiness(runtimeBaselineResolveRequest{
 		SelectedLocalFactoryAIProfileRef: req.GetSelectedLocalFactoryAiProfileRef(),
 		InstallLevel:                     req.GetInstallLevel(),
-		RuntimeDataRootOrDataRootRef:     req.GetRuntimeDataRootOrDataRootRef(),
+		RuntimeDataRootOrDataRootRef:     runtimeDataRoot,
 		HostProfile:                      req.GetHostProfile(),
 		BaselineConsumers:                runtimeBaselineConsumerBindingsFromProto(req.GetBaselineConsumers()),
 	})

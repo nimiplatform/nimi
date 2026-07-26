@@ -54,9 +54,13 @@ func providerCredentialKind(target config.RuntimeFileTarget) string {
 }
 
 func mutateProviderConfig(mutator func(*config.FileConfig) error) (string, config.FileConfig, error) {
-	path := strings.TrimSpace(config.RuntimeConfigPath())
+	path, pathErr := config.PortableRuntimeConfigPath()
+	path = strings.TrimSpace(path)
+	if pathErr != nil {
+		return "", config.FileConfig{}, pathErr
+	}
 	if path == "" {
-		return "", config.FileConfig{}, fmt.Errorf("runtime config path is empty")
+		return "", config.FileConfig{}, fmt.Errorf("portable Runtime config is unavailable; set NIMI_RUNTIME_CONFIG_PATH to an explicit non-production path")
 	}
 	unlock, err := acquireConfigWriteLock(path)
 	if err != nil {
@@ -99,10 +103,20 @@ func runRuntimeProviderList(args []string) error {
 		return err
 	}
 
-	path := strings.TrimSpace(config.RuntimeConfigPath())
+	path, pathErr := config.PortableRuntimeConfigPath()
+	path = strings.TrimSpace(path)
+	if pathErr != nil {
+		return pathErr
+	}
+	if path == "" {
+		return fmt.Errorf("portable Runtime config is unavailable; set NIMI_RUNTIME_CONFIG_PATH to an explicit non-production path")
+	}
 	fileCfg, err := config.LoadFileConfig(path)
 	if err != nil {
 		return err
+	}
+	if err := config.RejectProductControlOwnedFileConfigFields(fileCfg); err != nil {
+		return newConfigCommandError(configReasonSchemaInvalid, "repair dataRoot.path through Product Control", err)
 	}
 
 	items := make([]providerListItem, 0, len(fileCfg.Providers))

@@ -19,6 +19,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 )
 
 func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
@@ -33,7 +34,9 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	server, err := NewNonProduction(cfg, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
+	cfg.LocalStatePath = filepath.Join(productControlRoot, "runtime", "local-state.json")
+	server, err := newServer(cfg, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", nil, productControlRoot, localservice.ProductControlDataRootSecurityBinding{})
 	if err != nil {
 		t.Fatalf("grpcserver.New: %v", err)
 	}
@@ -151,6 +154,8 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 		"test",
 		ProtectedServiceBindings{
 			ServiceStateRoot:                 serviceStateRoot,
+			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
 			LocalDevelopmentConsentStorePath: consentStorePath,
 			AccountCustody:                   emptyProtectedAccountCustody{},
 			AccountPartition:                 "verified-user-and-logon-session",
@@ -209,6 +214,8 @@ func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) 
 		"test",
 		ProtectedServiceBindings{
 			ServiceStateRoot:                 t.TempDir(),
+			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
 			LocalDevelopmentConsentStorePath: filepath.Join(t.TempDir(), "local-development.db"),
 			PlatformAppRegistryPath:          "relative/nimi-app-registry.yaml",
 			AccountCustody:                   emptyProtectedAccountCustody{},
@@ -250,6 +257,8 @@ func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 				"test",
 				ProtectedServiceBindings{
 					ServiceStateRoot:                 t.TempDir(),
+					ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+					RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
 					LocalDevelopmentConsentStorePath: filepath.Join(t.TempDir(), "local-development.db"),
 					AccountCustody:                   emptyProtectedAccountCustody{},
 					AccountPartition:                 "verified-user-and-logon-session",

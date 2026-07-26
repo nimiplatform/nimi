@@ -23,40 +23,27 @@ func TestLocalEnvironmentServiceConstructionDoesNotResolveLocalCompute(t *testin
 	}
 }
 
-func TestResolveLocalEnvironmentRuntimeDataRootIdentity(t *testing.T) {
+func TestResolveLocalEnvironmentRuntimeDataRootDoesNotInferFromModelsPath(t *testing.T) {
 	dataRoot := filepath.Join(t.TempDir(), "Nimi")
-	customModelsRoot := filepath.Join(t.TempDir(), "custom-model-store")
 	cases := []struct {
-		name               string
-		configuredDataRoot string
-		configuredModels   string
-		want               string
+		name       string
+		configured string
+		want       string
 	}{
 		{
-			name:               "configured data root wins",
-			configuredDataRoot: dataRoot,
-			configuredModels:   customModelsRoot,
-			want:               dataRoot,
+			name:       "configured data root is retained",
+			configured: dataRoot,
+			want:       dataRoot,
 		},
 		{
-			name:             "default models child maps to data root",
-			configuredModels: filepath.Join(dataRoot, "models"),
-			want:             dataRoot,
-		},
-		{
-			name:             "data root caller remains data root",
-			configuredModels: dataRoot,
-			want:             dataRoot,
-		},
-		{
-			name:             "custom models root without models suffix remains itself",
-			configuredModels: customModelsRoot,
-			want:             customModelsRoot,
+			name:       "missing Product Control root remains missing",
+			configured: "",
+			want:       "",
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := resolveLocalEnvironmentRuntimeDataRoot(tc.configuredDataRoot, tc.configuredModels); got != tc.want {
+			if got := resolveLocalEnvironmentRuntimeDataRoot(tc.configured); got != tc.want {
 				t.Fatalf("runtime data root = %q, want %q", got, tc.want)
 			}
 		})
@@ -867,7 +854,14 @@ func TestResolveLocalEnvironmentPlanUnknownPackUnsupported(t *testing.T) {
 func newLocalEnvironmentTestService(t *testing.T) *Service {
 	t.Helper()
 	dir := t.TempDir()
-	svc, err := New(slog.Default(), nil, filepath.Join(dir, "local-state.json"), 10, filepath.Join(dir, "models"))
+	svc, err := NewWithProductControlDataRoot(
+		slog.Default(),
+		nil,
+		filepath.Join(dir, "local-state.json"),
+		10,
+		filepath.Join(dir, "models"),
+		dir,
+	)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}

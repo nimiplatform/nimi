@@ -35,16 +35,25 @@ func newTestService(t *testing.T) *Service {
 func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) endpointProbeResult) *Service {
 	t.Helper()
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
-	svc, err := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
+	testRuntimeRoot := t.TempDir()
+	svc, err := NewWithProductControlDataRoot(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		nil,
+		statePath,
+		0,
+		filepath.Join(testRuntimeRoot, "models"),
+		testRuntimeRoot,
+	)
 	if err != nil {
 		t.Fatalf("create local service: %v", err)
+	}
+	if err := svc.SetProductControlRoot(filepath.Join(t.TempDir(), ".nimi")); err != nil {
+		t.Fatalf("set test Product Control root: %v", err)
 	}
 	if err := svc.SetProductVersion("test"); err != nil {
 		t.Fatalf("set test product version: %v", err)
 	}
 	svc.SetProductControlDataRootConfigWriter(func(string) (bool, error) { return false, nil })
-	testRuntimeRoot := t.TempDir()
-	svc.localModelsPath = filepath.Join(testRuntimeRoot, "models")
 	svc.managedLlamaModelsConfigPath = filepath.Join(testRuntimeRoot, "runtime", "llama-models.yaml")
 	if probe != nil {
 		svc.endpointProbe = func(ctx context.Context, _ string, endpoint string) endpointProbeResult {

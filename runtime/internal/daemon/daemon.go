@@ -148,6 +148,10 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if err != nil {
 		return fail(fmt.Errorf("validate Windows interactive-user identity: %w", err))
 	}
+	productControlRoot, err := grpcserver.ResolveProtectedProductControlRoot(localOSUserIdentity)
+	if err != nil {
+		return fail(fmt.Errorf("resolve fixed Windows Product Control root: %w", err))
+	}
 	accountCustody, err := accountservice.NewProtectedBinaryCustody(secrets)
 	if err != nil {
 		return fail(fmt.Errorf("adapt Windows protected account custody: %w", err))
@@ -167,6 +171,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot:                 serviceDataRoot,
+			ProductControlRoot:               productControlRoot,
 			LocalDevelopmentConsentStorePath: filepath.Join(stateRoot, "local-development.db"),
 			PlatformAppRegistryPath:          platformAppRegistryPath,
 			PlatformBundledAppsRoot:          platformBundledAppsRoot,
@@ -176,6 +181,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 			AccountAuthorizationURL:          cfg.AccountAuthorizationURL,
 			AccountTokenURL:                  cfg.AccountTokenURL,
 			LocalOSUserIdentity:              localOSUserIdentity,
+			RuntimeServiceSID:                state.RuntimeServiceSID(),
 			ConnectorSecrets:                 connectorSecrets,
 			DesktopSessions:                  sessions,
 			LocalAppLaunches:                 state.LocalAppLaunches(),

@@ -227,7 +227,6 @@ type DevKernelCheckpointAcceptance struct {
 	RuntimeCandidateID          string
 	DevelopmentStateCandidateID string
 	AcceptanceRoundID           string
-	DevelopmentDataRootRef      string
 	PrimaryAccountID            string
 	SecondaryAccountID          string
 	LocalAgentRef               string
@@ -278,6 +277,8 @@ type ManagedRootsConfig struct {
 	Models       string
 	Dependencies string
 	Environments string
+	Apps         string
+	Accounts     string
 	Logs         string
 	Audit        string
 }
@@ -286,6 +287,8 @@ type FileConfigManagedRoots struct {
 	Models       string `json:"models,omitempty"`
 	Dependencies string `json:"dependencies,omitempty"`
 	Environments string `json:"environments,omitempty"`
+	Apps         string `json:"apps,omitempty"`
+	Accounts     string `json:"accounts,omitempty"`
 	Logs         string `json:"logs,omitempty"`
 	Audit        string `json:"audit,omitempty"`
 }

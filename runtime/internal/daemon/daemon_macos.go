@@ -42,6 +42,10 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	if err != nil {
 		return fail(fmt.Errorf("validate macOS interactive-user identity: %w", err))
 	}
+	productControlRoot, err := grpcserver.ResolveProtectedProductControlRoot(localOSUserIdentity)
+	if err != nil {
+		return fail(fmt.Errorf("resolve fixed macOS Product Control root: %w", err))
+	}
 	accountCustody, err := accountservice.NewProtectedBinaryCustody(secrets)
 	if err != nil {
 		return fail(fmt.Errorf("adapt macOS protected account custody: %w", err))
@@ -60,7 +64,7 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	}
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot: serviceDataRoot, PlatformAppRegistryPath: platformAppRegistryPath,
+			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot, PlatformAppRegistryPath: platformAppRegistryPath,
 			LocalDevelopmentConsentStorePath: filepath.Join(stateRoot, "local-development.db"),
 			PlatformBundledAppsRoot:          platformBundledAppsRoot,
 			AccountCustody:                   accountCustody, AccountPartition: accountPartition,

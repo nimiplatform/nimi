@@ -338,7 +338,7 @@ func TestStartSupervisedEnginesDefersManagedLlamaWhenEnginePackageMissing(t *tes
 	}
 
 	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
-	localModelsPath := filepath.Join(homeDir, ".nimi", "data", "models")
+	localModelsPath := filepath.Join(homeDir, "selected-nimi-data", "models")
 	writeManagedLlamaBootstrapState(t, localStatePath, localModelsPath)
 
 	cfg := config.Config{
@@ -367,8 +367,8 @@ func TestStartSupervisedEnginesDefersManagedLlamaWhenEnginePackageMissing(t *tes
 	daemon.aiHealth = providerhealth.New()
 	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{
-			Environments: filepath.Join(homeDir, ".nimi", "data", "runtime", "environments"),
-			Dependencies: filepath.Join(homeDir, ".nimi", "data", "runtime", "dependencies"),
+			Environments: filepath.Join(homeDir, "selected-nimi-data", "environments"),
+			Dependencies: filepath.Join(homeDir, "selected-nimi-data", "dependencies"),
 		}, nil)
 	}
 	calls := make([]engine.EngineKind, 0, 1)
@@ -407,11 +407,11 @@ func TestStartSupervisedEnginesRegistersManagedLlamaFromStateWithoutBootstrappin
 	}
 
 	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
-	localModelsPath := filepath.Join(homeDir, ".nimi", "data", "models")
+	localModelsPath := filepath.Join(homeDir, "selected-nimi-data", "models")
 	writeManagedLlamaBootstrapState(t, localStatePath, localModelsPath)
 	engineRoots := engine.ManagedRoots{
-		Environments: filepath.Join(homeDir, ".nimi", "data", "runtime", "environments"),
-		Dependencies: filepath.Join(homeDir, ".nimi", "data", "runtime", "dependencies"),
+		Environments: filepath.Join(homeDir, "selected-nimi-data", "environments"),
+		Dependencies: filepath.Join(homeDir, "selected-nimi-data", "dependencies"),
 	}
 	writeEngineRegistryEntry(t, engineRoots.Environments, "llama", "b8575")
 

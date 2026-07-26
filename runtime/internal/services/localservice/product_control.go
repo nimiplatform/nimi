@@ -35,13 +35,13 @@ func (s *Service) EnsureProductControlRecordCreated(context.Context, *runtimev1.
 		}
 		if err := writeProductControlRecord(path, record); err != nil {
 			message := fmt.Sprintf("product-control record could not be created: %v", err)
-			return productControlJSON(s.withProductControlDataRootProposal(productControlRecordProjection{
+			return productControlJSON(productControlRecordProjection{
 				Path:   path,
 				Exists: false,
 				State:  productControlStateBlocked,
 				Record: nil,
 				Error:  &message,
-			}), nil)
+			}, nil)
 		}
 	}
 	return productControlJSON(s.readProductControlProjection(context.Background()))
@@ -55,7 +55,10 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 	if !filepath.IsAbs(trimmed) {
 		return nil, fmt.Errorf("nimi_data path must be absolute, got: %s", trimmed)
 	}
-	normalized := filepath.Clean(trimmed)
+	normalized, err := normalizeProductControlDataRootPath(trimmed)
+	if err != nil {
+		return nil, err
+	}
 	path, err := s.productControlRecordPath()
 	if err != nil {
 		return nil, err
@@ -75,12 +78,18 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 			return nil, err
 		}
 	}
+	s.mu.RLock()
+	configWriter := s.productControlDataRootConfigWriter
+	s.mu.RUnlock()
+	if configWriter == nil {
+		return nil, errors.New("Runtime service-owned data-root config mutation is unavailable")
+	}
 	originalRaw, originalReadErr := os.ReadFile(path)
 	originalExisted := originalReadErr == nil
 	if originalReadErr != nil && !errors.Is(originalReadErr, os.ErrNotExist) {
 		return nil, fmt.Errorf("snapshot product-control record before data-root transaction: %w", originalReadErr)
 	}
-	if err := ensureNimiDataRootLayout(normalized); err != nil {
+	if err := ensureNimiDataRootLayout(normalized, s.productControlDataRootSecurityBinding()); err != nil {
 		return nil, err
 	}
 	now := nowProductControlUnixMS()
@@ -99,18 +108,15 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 	if err := writeProductControlRecord(path, record); err != nil {
 		return nil, err
 	}
-	s.mu.RLock()
-	configWriter := s.productControlDataRootConfigWriter
-	s.mu.RUnlock()
-	if configWriter == nil {
-		rollbackErr := restoreProductControlRecordSnapshot(path, originalRaw, originalExisted)
-		return nil, errors.Join(errors.New("Runtime service-owned data-root config mutation is unavailable"), rollbackErr)
-	}
 	changed, err := configWriter(normalized)
 	if err != nil {
 		rollbackErr := restoreProductControlRecordSnapshot(path, originalRaw, originalExisted)
 		return nil, errors.Join(fmt.Errorf("commit Runtime service-owned data-root config: %w", err), rollbackErr)
 	}
+	s.mu.Lock()
+	s.runtimeDataRoot = normalized
+	s.localModelsPath = filepath.Join(normalized, "models")
+	s.mu.Unlock()
 	projection, err := s.readProductControlProjection(context.Background())
 	if err != nil {
 		return nil, err

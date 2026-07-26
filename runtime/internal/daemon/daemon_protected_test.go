@@ -40,6 +40,8 @@ func TestProtectedDaemonRunFailsClosedWithoutVerifiedNativeListener(t *testing.T
 		"test",
 		grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot:                 serviceStateRoot,
+			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
 			AccountCustody:                   daemonProtectedAccountCustody{},
 			AccountPartition:                 "account=user-alpha;logon=42",
@@ -80,6 +82,8 @@ func TestProtectedDaemonRunProtectedUsesNativeCarrierWithoutPublicListeners(t *t
 		"test",
 		grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot:                 serviceStateRoot,
+			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
 			AccountCustody:                   daemonProtectedAccountCustody{},
 			AccountPartition:                 "account=user-alpha;logon=42",
@@ -200,6 +204,8 @@ func TestNewProtectedUsesProtectedServerWithoutPublishingStatePathToEnvironment(
 		"test",
 		grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot:                 serviceStateRoot,
+			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
 			AccountCustody:                   daemonProtectedAccountCustody{},
 			AccountPartition:                 "account=user-alpha;logon=42",
@@ -253,6 +259,8 @@ func TestNewProtectedWithResourcesClosesOwnedState(t *testing.T) {
 			ProtectedRuntimeResources{
 				Bindings: grpcserver.ProtectedServiceBindings{
 					ServiceStateRoot:                 serviceStateRoot,
+					ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+					RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
 					LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
 					AccountCustody:                   daemonProtectedAccountCustody{},
 					AccountPartition:                 "account=user-alpha;logon=42",

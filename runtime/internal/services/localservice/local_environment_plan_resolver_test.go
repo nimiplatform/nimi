@@ -347,7 +347,7 @@ func TestResolveLocalEnvironmentPlanRPCThreadsInstallLevel(t *testing.T) {
 		PackId:          "local-text",
 		ConsumerScope:   "desktop.first-run",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
-		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		RuntimeDataRoot: svc.localEnvironmentRuntimeDataRoot(),
 		InstallLevel:    runtimeBaselineInstallLevelMinimal,
 	})
 	if err != nil {

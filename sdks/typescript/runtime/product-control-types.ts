@@ -81,10 +81,7 @@ export interface NimiProductControlRecord {
     readonly executionEvidenceRef?: string | null;
   };
   readonly pointers: {
-    readonly runtimeConfigPath?: string | null;
     readonly factoryProfileIndex?: string | null;
-    readonly appRegistry?: string | null;
-    readonly appPackages?: string | null;
   };
   readonly repair: {
     readonly required: boolean;
@@ -97,7 +94,6 @@ export interface NimiProductControlRecordProjection {
   readonly exists: boolean;
   readonly state: NimiProductControlState;
   readonly record: NimiProductControlRecord | null;
-  readonly dataRootProposal: NimiProductControlDataRootProposal | null;
   readonly error: string | null;
   readonly configMutation?: NimiProductControlConfigMutation | null;
 }
@@ -106,12 +102,6 @@ export interface NimiProductControlConfigMutation {
   readonly disposition: 'applied' | 'restart_required';
   readonly reasonCode: typeof ReasonCode.CONFIG_APPLIED | typeof ReasonCode.CONFIG_RESTART_REQUIRED;
   readonly actionHint: 'continue_product_setup' | 'request_typed_runtime_restart';
-}
-
-export interface NimiProductControlDataRootProposal {
-  readonly path: string;
-  readonly authority: 'runtime_protected_product_control';
-  readonly profile: 'dev_kernel_checkpoint';
 }
 
 export interface NimiProductControlSelectedDataRootProjection {
@@ -123,12 +113,14 @@ export interface NimiProductControlSelectedDataRootProjection {
 }
 
 export interface NimiProductControlStorageDirsProjection {
-  readonly nimiDir: string;
-  readonly nimiDataDir: string;
-  readonly mediaCacheDir: string;
+  readonly dataRoot: string;
+  readonly modelsDir: string;
+  readonly dependenciesDir: string;
+  readonly environmentsDir: string;
+  readonly appsDir: string;
+  readonly accountsDir: string;
   readonly logsDir: string;
-  readonly localModelsDir: string;
-  readonly localRuntimeStatePath: string;
+  readonly auditDir: string;
 }
 
 export const NIMI_FIRST_RUN_PHASES = [

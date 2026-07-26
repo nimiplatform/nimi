@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
@@ -40,23 +39,22 @@ func TestResolveWindowsProfileImagePathAdmitsOnlySystemDriveExpansion(t *testing
 	if _, err := resolveWindowsProfileImagePath(`relative\profile`, registry.SZ); err == nil {
 		t.Fatal("relative profile mapping was accepted")
 	}
-}
-
-func TestProtectedProductControlProposalDoesNotRequireProfileDirectoryAccess(t *testing.T) {
-	acceptance := validProductControlProposalAcceptance()
-	profileRoot := filepath.Join(`C:\Users`, "profile-that-must-not-be-probed")
-	got, err := resolveProtectedProductControlDataRootProposalFromProfileMapping(profileRoot, registry.SZ, acceptance)
-	if err != nil {
-		t.Fatalf("derive proposal from OS profile mapping without filesystem access: %v", err)
-	}
-	for _, component := range []string{profileRoot, "dev-kernel-checkpoint", acceptance.TrialID, acceptance.DevelopmentStateCandidateID, "Nimi"} {
-		if !strings.Contains(strings.ToLower(got), strings.ToLower(component)) {
-			t.Fatalf("proposal %q does not contain %q", got, component)
+	for _, shareRoot := range []string{`\\server\share`, `\\server\share\`} {
+		if _, err := resolveWindowsProfileImagePath(shareRoot, registry.SZ); err == nil {
+			t.Fatalf("UNC share-root profile mapping %q was accepted", shareRoot)
 		}
 	}
+	uncProfile := `\\server\share\user`
+	got, err = resolveWindowsProfileImagePath(uncProfile, registry.SZ)
+	if err != nil {
+		t.Fatalf("ordinary UNC profile subdirectory was rejected: %v", err)
+	}
+	if got != filepath.Clean(uncProfile) {
+		t.Fatalf("UNC profile path = %q, want %q", got, filepath.Clean(uncProfile))
+	}
 }
 
-func TestProtectedProductControlProposalReadsCurrentWindowsProfileMapping(t *testing.T) {
+func TestProtectedProductControlRootReadsCurrentWindowsProfileMapping(t *testing.T) {
 	user, err := windows.GetCurrentProcessToken().GetTokenUser()
 	if err != nil || user == nil || user.User.Sid == nil {
 		t.Fatalf("resolve current Windows user SID: %v", err)
@@ -69,25 +67,15 @@ func TestProtectedProductControlProposalReadsCurrentWindowsProfileMapping(t *tes
 	if identityErr != nil {
 		t.Fatalf("validate current Windows user SID: %v", identityErr)
 	}
-	got, err := resolveProtectedProductControlDataRootProposal(identity, validProductControlProposalAcceptance())
+	profileRoot, err := resolveProtectedWindowsInteractiveUserProfileRoot(identity)
 	if err != nil {
-		t.Fatalf("derive proposal from the current HKLM ProfileList mapping: %v", err)
+		t.Fatalf("resolve current Windows profile root: %v", err)
 	}
-	if !strings.Contains(strings.ToLower(got), `\appdata\local\nimi\dev-kernel-checkpoint\`) {
-		t.Fatalf("current Windows profile proposal has an unexpected shape: %q", got)
+	productControlRoot, err := ResolveProtectedProductControlRoot(identity)
+	if err != nil {
+		t.Fatalf("resolve fixed Product Control root: %v", err)
 	}
-}
-
-func validProductControlProposalAcceptance() *config.DevKernelCheckpointAcceptance {
-	return &config.DevKernelCheckpointAcceptance{
-		TrialID:                     "dev-kernel-checkpoint",
-		RuntimeCandidateID:          "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		DevelopmentStateCandidateID: "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		AcceptanceRoundID:           "dev-kernel-round-0123456789abcdef0123456789abcdef",
-		PrimaryAccountID:            "account-primary",
-		SecondaryAccountID:          "account-secondary",
-		LocalAgentRef:               "local-agent:runtime-0123456789abcdef0123456789abcdef",
-		RuntimeSourceRef:            "runtime-source",
-		AgentDisplayName:            "Zhiyu acceptance agent",
+	if productControlRoot != filepath.Join(profileRoot, ".nimi") {
+		t.Fatalf("Product Control root = %q, want %q", productControlRoot, filepath.Join(profileRoot, ".nimi"))
 	}
 }

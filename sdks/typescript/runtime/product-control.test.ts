@@ -75,9 +75,7 @@ test('Runtime product-control projection parses first-run state and storage dirs
                 completed: false,
                 builtInAiConfigRefs: [],
               },
-              pointers: {
-                runtimeConfigPath: '/tester/.nimi/runtime/config.json',
-              },
+              pointers: {},
               repair: {
                 required: false,
               },
@@ -103,8 +101,16 @@ test('Runtime product-control projection parses first-run state and storage dirs
   assert.deepEqual(projectNimiProductControlAdmission(projection.state), { kind: 'first-run', state });
   assert.equal(isNimiProductControlDegradedState(projection.state), true);
   assert.equal(NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY[state], 'Support.recoveryStateLocalAiAssetsDownloadedEnvironmentNotReady');
-  assert.equal(storageDirs.localModelsDir, '/tester/nimi-data/models');
-  assert.equal(storageDirs.localRuntimeStatePath, '/tester/.nimi/runtime/local-state.json');
+  assert.deepEqual(storageDirs, {
+    dataRoot: '/tester/nimi-data',
+    modelsDir: '/tester/nimi-data/models',
+    dependenciesDir: '/tester/nimi-data/dependencies',
+    environmentsDir: '/tester/nimi-data/environments',
+    appsDir: '/tester/nimi-data/apps',
+    accountsDir: '/tester/nimi-data/accounts',
+    logsDir: '/tester/nimi-data/logs',
+    auditDir: '/tester/nimi-data/audit',
+  });
 });
 
 test('Runtime product-control client maps all local read and write operations', async () => {
@@ -295,9 +301,16 @@ test('Runtime product-control projection covers all admitted states and storage 
     },
     error: null,
   });
-  assert.equal(windowsDirs.nimiDir, 'C:\\Users\\tester\\.nimi');
-  assert.equal(windowsDirs.mediaCacheDir, 'D:\\NimiData\\cache\\media');
-  assert.equal(windowsDirs.localRuntimeStatePath, 'C:\\Users\\tester\\.nimi\\runtime\\local-state.json');
+  assert.deepEqual(windowsDirs, {
+    dataRoot: 'D:\\NimiData\\',
+    modelsDir: 'D:\\NimiData\\models',
+    dependenciesDir: 'D:\\NimiData\\dependencies',
+    environmentsDir: 'D:\\NimiData\\environments',
+    appsDir: 'D:\\NimiData\\apps',
+    accountsDir: 'D:\\NimiData\\accounts',
+    logsDir: 'D:\\NimiData\\logs',
+    auditDir: 'D:\\NimiData\\audit',
+  });
   assert.throws(
     () => projectNimiProductControlStorageDirs(projectUnavailableNimiProductControlSelectedDataRoot('select a root first')),
     hasReasonCode('SDK_PRODUCT_CONTROL_STORAGE_ROOT_MISSING'),
@@ -311,7 +324,6 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
     exists: false,
     state: 'config_missing',
     record: null,
-    dataRootProposal: null,
     error: 'offline',
   });
   assert.deepEqual(projectUnavailableNimiProductControlSelectedDataRoot('offline'), {
@@ -323,8 +335,10 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
   });
   const parsedRecord = parseNimiProductControlRecordProjection(JSON.parse(productControlEnvelope('ready_for_use').json));
   assert.equal(parsedRecord.state, 'ready_for_use');
-  assert.equal(parsedRecord.dataRootProposal?.authority, 'runtime_protected_product_control');
-  assert.equal(parsedRecord.dataRootProposal?.profile, 'dev_kernel_checkpoint');
+  assert.equal(Object.hasOwn(parsedRecord, 'dataRootProposal'), false);
+  assert.equal(Object.hasOwn(parsedRecord.record?.pointers ?? {}, 'runtimeConfigPath'), false);
+  assert.equal(Object.hasOwn(parsedRecord.record?.pointers ?? {}, 'appRegistry'), false);
+  assert.equal(Object.hasOwn(parsedRecord.record?.pointers ?? {}, 'appPackages'), false);
   const restartProjection = parseNimiProductControlRecordProjection({
     ...JSON.parse(productControlEnvelope('data_root_selected').json),
     configMutation: {
@@ -374,25 +388,9 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
   assert.throws(
     () => parseNimiProductControlRecordProjection({
       path: '/tester/nimi.json',
-      exists: false,
-      state: 'config_missing',
-      record: null,
-      dataRootProposal: {
-        path: '/renderer/supplied',
-        authority: 'renderer',
-        profile: 'dev_kernel_checkpoint',
-      },
-      error: null,
-    }),
-    hasReasonCode('SDK_PRODUCT_CONTROL_DATA_ROOT_PROPOSAL_INVALID'),
-  );
-  assert.throws(
-    () => parseNimiProductControlRecordProjection({
-      path: '/tester/nimi.json',
       exists: true,
       state: 'data_root_selected',
       record: null,
-      dataRootProposal: null,
       configMutation: {
         disposition: 'restart_required',
         reasonCode: ReasonCode.CONFIG_APPLIED,
@@ -519,11 +517,6 @@ function productControlEnvelope(state: NimiProductControlState) {
       path: '/tester/.nimi/nimi.json',
       exists: true,
       state,
-      dataRootProposal: {
-        path: '/tester/checkpoint/Nimi',
-        authority: 'runtime_protected_product_control',
-        profile: 'dev_kernel_checkpoint',
-      },
       record: {
         schemaVersion: 1,
         installId: 'tester-install',
@@ -543,9 +536,7 @@ function productControlEnvelope(state: NimiProductControlState) {
           completed: state === 'ready_for_use',
           builtInAiConfigRefs: [],
         },
-        pointers: {
-          runtimeConfigPath: '/tester/.nimi/runtime/config.json',
-        },
+        pointers: {},
         repair: {
           required: false,
         },

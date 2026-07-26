@@ -22,7 +22,9 @@ func runRuntimeVersion(args []string) error {
 		"nimi":   Version,
 		"go":     goruntime.Version(),
 		"osArch": fmt.Sprintf("%s/%s", goruntime.GOOS, goruntime.GOARCH),
-		"config": config.RuntimeConfigPath(),
+	}
+	if configPath := config.RuntimeConfigPath(); configPath != "" {
+		payload["nonProductionPortableConfig"] = configPath
 	}
 	if *jsonOutput {
 		out, err := json.MarshalIndent(payload, "", "  ")
@@ -36,6 +38,8 @@ func runRuntimeVersion(args []string) error {
 	fmt.Printf("nimi %s\n", Version)
 	fmt.Printf("go      %s\n", goruntime.Version())
 	fmt.Printf("os/arch %s/%s\n", goruntime.GOOS, goruntime.GOARCH)
-	fmt.Printf("config  %s\n", config.RuntimeConfigPath())
+	if configPath := config.RuntimeConfigPath(); configPath != "" {
+		fmt.Printf("non-production portable config %s\n", configPath)
+	}
 	return nil
 }

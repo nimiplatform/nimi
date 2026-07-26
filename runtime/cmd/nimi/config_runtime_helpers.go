@@ -233,6 +233,13 @@ func parseConfigInputJSON(raw []byte) (config.FileConfig, error) {
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return config.FileConfig{}, newConfigCommandError(configReasonParseFailed, "provide valid JSON payload", err)
 	}
+	if err := config.RejectProductControlOwnedFileConfigFields(parsed); err != nil {
+		return config.FileConfig{}, newConfigCommandError(
+			configReasonSchemaInvalid,
+			"change dataRoot.path through Product Control",
+			err,
+		)
+	}
 	merged := mergeFileConfigWithDefaults(parsed)
 	if err := validateMergedRuntimeFields(merged); err != nil {
 		if isSecretPolicyViolation(err) {
@@ -247,6 +254,13 @@ func loadConfigForMutation(path string) (config.FileConfig, error) {
 	raw, err := config.LoadFileConfig(path)
 	if err != nil {
 		return config.FileConfig{}, classifyConfigLoadError(err)
+	}
+	if err := config.RejectProductControlOwnedFileConfigFields(raw); err != nil {
+		return config.FileConfig{}, newConfigCommandError(
+			configReasonSchemaInvalid,
+			"repair dataRoot.path through Product Control",
+			err,
+		)
 	}
 	return mergeFileConfigWithDefaults(raw), nil
 }

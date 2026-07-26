@@ -11,19 +11,31 @@ import (
 	"strings"
 )
 
-func runtimeConfigPath() string {
-	if raw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CONFIG_PATH")); raw != "" {
-		return expandUserPath(raw)
+func portableRuntimeConfigPath() (string, error) {
+	raw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CONFIG_PATH"))
+	if raw == "" {
+		return "", nil
 	}
+	path := filepath.Clean(expandUserPath(raw))
 	home, err := os.UserHomeDir()
-	if err != nil || strings.TrimSpace(home) == "" {
-		return ""
+	if err == nil && strings.TrimSpace(home) != "" {
+		retired := filepath.Clean(filepath.Join(home, defaultRuntimeConfigRelPath))
+		if path == retired || strings.EqualFold(path, retired) {
+			return "", fmt.Errorf("%s is retired and forbidden as a portable Runtime config path", retired)
+		}
 	}
-	return filepath.Join(home, defaultRuntimeConfigRelPath)
+	return path, nil
+}
+
+// PortableRuntimeConfigPath resolves the explicit non-production portable
+// config fixture. There is no default file discovery.
+func PortableRuntimeConfigPath() (string, error) {
+	return portableRuntimeConfigPath()
 }
 
 func RuntimeConfigPath() string {
-	return runtimeConfigPath()
+	path, _ := portableRuntimeConfigPath()
+	return path
 }
 
 func writeBytesAtomic(path string, content []byte, mode os.FileMode) error {
@@ -68,11 +80,51 @@ func writeBytesAtomic(path string, content []byte, mode os.FileMode) error {
 }
 
 func loadRuntimeFileConfig() (FileConfig, error) {
-	path := runtimeConfigPath()
+	path, err := portableRuntimeConfigPath()
+	if err != nil {
+		return FileConfig{}, err
+	}
 	if path == "" {
 		return FileConfig{SchemaVersion: DefaultSchemaVersion}, nil
 	}
-	return LoadFileConfig(path)
+	fileCfg, err := LoadFileConfig(path)
+	if err != nil {
+		return FileConfig{}, err
+	}
+	if err := RejectProductControlOwnedFileConfigFields(fileCfg); err != nil {
+		return FileConfig{}, fmt.Errorf("load portable Runtime config %q: %w", path, err)
+	}
+	return fileCfg, nil
+}
+
+// RejectProductControlOwnedFileConfigFields keeps portable/user-writable
+// Runtime config from becoming a second data-root authority. Service-owned
+// protected state uses LoadFileConfig directly and is reconciled independently
+// against the fixed Product Control record.
+func RejectProductControlOwnedFileConfigFields(fileCfg FileConfig) error {
+	if strings.TrimSpace(fileCfg.DataRootRef) != "" {
+		return fmt.Errorf("dataRootRef is Product Control-owned and forbidden outside protected Runtime derived state; use Product Control dataRoot.path")
+	}
+	if fileCfg.ManagedRoots == nil {
+		return nil
+	}
+	for _, field := range []struct {
+		label string
+		value string
+	}{
+		{label: "models", value: fileCfg.ManagedRoots.Models},
+		{label: "dependencies", value: fileCfg.ManagedRoots.Dependencies},
+		{label: "environments", value: fileCfg.ManagedRoots.Environments},
+		{label: "apps", value: fileCfg.ManagedRoots.Apps},
+		{label: "accounts", value: fileCfg.ManagedRoots.Accounts},
+		{label: "logs", value: fileCfg.ManagedRoots.Logs},
+		{label: "audit", value: fileCfg.ManagedRoots.Audit},
+	} {
+		if strings.TrimSpace(field.value) != "" {
+			return fmt.Errorf("managedRoots.%s is Product Control-owned and forbidden outside protected Runtime derived state; use Product Control dataRoot.path", field.label)
+		}
+	}
+	return nil
 }
 
 func LoadFileConfig(path string) (FileConfig, error) {

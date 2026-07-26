@@ -76,6 +76,8 @@ func fileConfigManagedRootsEqual(left *config.FileConfigManagedRoots, right *con
 	return strings.TrimSpace(left.Models) == strings.TrimSpace(right.Models) &&
 		strings.TrimSpace(left.Dependencies) == strings.TrimSpace(right.Dependencies) &&
 		strings.TrimSpace(left.Environments) == strings.TrimSpace(right.Environments) &&
+		strings.TrimSpace(left.Apps) == strings.TrimSpace(right.Apps) &&
+		strings.TrimSpace(left.Accounts) == strings.TrimSpace(right.Accounts) &&
 		strings.TrimSpace(left.Logs) == strings.TrimSpace(right.Logs) &&
 		strings.TrimSpace(left.Audit) == strings.TrimSpace(right.Audit)
 }

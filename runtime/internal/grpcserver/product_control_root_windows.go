@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
@@ -15,7 +14,33 @@ import (
 
 const windowsProfileListRegistryPath = `SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList`
 
-func resolveProtectedProductControlDataRootProposal(identity localappkernel.VerifiedLocalOSUserIdentity, acceptance *config.DevKernelCheckpointAcceptance) (string, error) {
+// ResolveProtectedProductControlRoot derives the fixed Product Control
+// directory from the OS-owned profile mapping for the already-verified
+// interactive-user SID. Environment, argv, Runtime configuration, and request
+// values are not inputs.
+func ResolveProtectedProductControlRoot(identity localappkernel.VerifiedLocalOSUserIdentity) (string, error) {
+	profileRoot, err := resolveProtectedWindowsInteractiveUserProfileRoot(identity)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(profileRoot, ".nimi"), nil
+}
+
+// ResolveCurrentProcessProductControlRoot resolves the same fixed locator for
+// an explicit non-production Runtime running as the interactive user.
+func ResolveCurrentProcessProductControlRoot() (string, error) {
+	tokenUser, err := windows.GetCurrentProcessToken().GetTokenUser()
+	if err != nil || tokenUser == nil || tokenUser.User.Sid == nil {
+		return "", fmt.Errorf("resolve current Windows user SID: %w", err)
+	}
+	identity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID(tokenUser.User.Sid.String())
+	if err != nil {
+		return "", fmt.Errorf("validate current Windows user SID: %w", err)
+	}
+	return ResolveProtectedProductControlRoot(identity)
+}
+
+func resolveProtectedWindowsInteractiveUserProfileRoot(identity localappkernel.VerifiedLocalOSUserIdentity) (string, error) {
 	sid, ok := identity.WindowsInteractiveUserSID()
 	if !ok {
 		return "", fmt.Errorf("verified Windows interactive-user identity is required")
@@ -33,18 +58,7 @@ func resolveProtectedProductControlDataRootProposal(identity localappkernel.Veri
 	if err != nil {
 		return "", fmt.Errorf("read verified interactive-user profile mapping: %w", err)
 	}
-	return resolveProtectedProductControlDataRootProposalFromProfileMapping(raw, valueType, acceptance)
-}
-
-func resolveProtectedProductControlDataRootProposalFromProfileMapping(raw string, valueType uint32, acceptance *config.DevKernelCheckpointAcceptance) (string, error) {
-	profileRoot, err := resolveWindowsProfileImagePath(raw, valueType)
-	if err != nil {
-		return "", err
-	}
-	// ProfileList is the OS-owned mapping authority. The restricted service SID
-	// intentionally has no requirement to traverse an interactive user's
-	// profile directory, and the proposal neither creates nor selects the path.
-	return checkpointProductControlDataRootProposal(profileRoot, acceptance)
+	return resolveWindowsProfileImagePath(raw, valueType)
 }
 
 func resolveWindowsProfileImagePath(raw string, valueType uint32) (string, error) {
@@ -75,8 +89,15 @@ func resolveWindowsProfileImagePath(raw string, valueType uint32) (string, error
 		return "", fmt.Errorf("verified interactive-user profile mapping contains an unresolved expansion")
 	}
 	cleaned := filepath.Clean(value)
-	if !filepath.IsAbs(cleaned) || cleaned == filepath.VolumeName(cleaned)+string(filepath.Separator) {
+	if !filepath.IsAbs(cleaned) || windowsProductControlPathIsVolumeRoot(cleaned) {
 		return "", fmt.Errorf("verified interactive-user profile mapping is not an absolute non-root path")
 	}
 	return cleaned, nil
+}
+
+func windowsProductControlPathIsVolumeRoot(value string) bool {
+	volume := filepath.VolumeName(value)
+	return volume != "" &&
+		(strings.EqualFold(value, volume) ||
+			strings.EqualFold(value, volume+string(filepath.Separator)))
 }

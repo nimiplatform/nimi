@@ -47,7 +47,6 @@ func TestRunRuntimeStatusPrintsProcessStatus(t *testing.T) {
 				Process:         "running",
 				PID:             123,
 				GRPCAddr:        "127.0.0.1:46371",
-				ConfigPath:      "~/.nimi/runtime/config.json",
 				HealthSummary:   "RUNTIME_HEALTH_STATUS_READY",
 				HealthReachable: true,
 			},
@@ -76,7 +75,6 @@ func TestRunRuntimeStatusStoppedPrintsNextStep(t *testing.T) {
 				Mode:       daemonctl.ModeStopped,
 				Process:    "stopped",
 				GRPCAddr:   "127.0.0.1:46371",
-				ConfigPath: "~/.nimi/runtime/config.json",
 			},
 		}
 	}
@@ -107,7 +105,6 @@ func TestRunRuntimeStatusReturnsStoppedExitCode(t *testing.T) {
 				Mode:       daemonctl.ModeStopped,
 				Process:    "stopped",
 				GRPCAddr:   "127.0.0.1:46371",
-				ConfigPath: "~/.nimi/runtime/config.json",
 			},
 		}
 	}
@@ -134,7 +131,6 @@ func TestRunRuntimeStatusReturnsUnreachableExitCode(t *testing.T) {
 				Process:         "running",
 				PID:             124,
 				GRPCAddr:        "127.0.0.1:46371",
-				ConfigPath:      "~/.nimi/runtime/config.json",
 				HealthSummary:   "unreachable",
 				HealthReachable: false,
 				HealthError:     "dial failed",
@@ -198,7 +194,7 @@ func TestRunRuntimeStartProtectedServiceOmitsLegacyTransportFields(t *testing.T)
 
 func TestRunRuntimeDoctorProtectedServiceProbeFailureOmitsStartAdvice(t *testing.T) {
 	setCmdTestHome(t, t.TempDir())
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", cmdTestPortableConfigPath(t.TempDir()))
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:1")
 
 	statusCalls := 0

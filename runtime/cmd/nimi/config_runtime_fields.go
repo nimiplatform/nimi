@@ -65,6 +65,8 @@ func pruneEmptyManagedRootsConfig(fileCfg *config.FileConfig) {
 	if strings.TrimSpace(fileCfg.ManagedRoots.Models) == "" &&
 		strings.TrimSpace(fileCfg.ManagedRoots.Dependencies) == "" &&
 		strings.TrimSpace(fileCfg.ManagedRoots.Environments) == "" &&
+		strings.TrimSpace(fileCfg.ManagedRoots.Apps) == "" &&
+		strings.TrimSpace(fileCfg.ManagedRoots.Accounts) == "" &&
 		strings.TrimSpace(fileCfg.ManagedRoots.Logs) == "" &&
 		strings.TrimSpace(fileCfg.ManagedRoots.Audit) == "" {
 		fileCfg.ManagedRoots = nil

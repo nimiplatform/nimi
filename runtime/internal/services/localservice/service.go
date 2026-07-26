@@ -64,8 +64,7 @@ type Service struct {
 	stateStorePath                     string
 	productControlRoot                 string
 	productControlRootLocked           bool
-	productControlDataRootProposal     string
-	productControlProposalLocked       bool
+	productControlDataRootSecurity     ProductControlDataRootSecurityBinding
 	productControlDataRootConfigWriter func(string) (bool, error)
 	localAuditCap                      int
 	productVersion                     string
@@ -156,19 +155,32 @@ type entryHashCacheState struct {
 }
 
 func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPathOverride ...string) (*Service, error) {
+	if len(localModelsPathOverride) > 1 {
+		return nil, fmt.Errorf("local service data root must be bound through Product Control")
+	}
+	localModelsPath := ""
+	if len(localModelsPathOverride) == 1 {
+		localModelsPath = localModelsPathOverride[0]
+	}
+	return newService(logger, store, stateStorePath, localAuditCapacity, localModelsPath, "")
+}
+
+// NewWithProductControlDataRoot constructs the service with the data root
+// already resolved from the fixed Product Control record. The models path is a
+// derived equality proof, not an independent locator.
+func NewWithProductControlDataRoot(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPath string, dataRoot string) (*Service, error) {
+	if err := validateProductControlDerivedLocalPaths(localModelsPath, dataRoot); err != nil {
+		return nil, err
+	}
+	return newService(logger, store, stateStorePath, localAuditCapacity, localModelsPath, dataRoot)
+}
+
+func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPath string, runtimeDataRoot string) (*Service, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	if localAuditCapacity <= 0 {
 		localAuditCapacity = defaultLocalAuditCapacity
-	}
-	localModelsPath := ""
-	if len(localModelsPathOverride) > 0 {
-		localModelsPath = localModelsPathOverride[0]
-	}
-	runtimeDataRoot := ""
-	if len(localModelsPathOverride) > 1 {
-		runtimeDataRoot = localModelsPathOverride[1]
 	}
 	resolvedStateStorePath := resolveLocalStatePath(stateStorePath)
 	localProviderCatalog, catalogErr := catalog.LoadBuiltInLocalProviderCatalog()
@@ -184,10 +196,9 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		auditStore:                              store,
 		localProviderCatalog:                    localProviderCatalog,
 		stateStorePath:                          resolvedStateStorePath,
-		productControlRoot:                      productControlRootFromStateStorePath(resolvedStateStorePath),
 		localAuditCap:                           localAuditCapacity,
 		localModelsPath:                         resolveLocalModelsPath(localModelsPath),
-		runtimeDataRoot:                         resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot, localModelsPath),
+		runtimeDataRoot:                         resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot),
 		managedLlamaModelsConfigPath:            resolveGeneratedLlamaModelsConfigPath(resolvedStateStorePath),
 		assets:                                  make(map[string]*runtimev1.LocalAssetRecord),
 		assetRuntimeModes:                       make(map[string]runtimev1.LocalEngineRuntimeMode),

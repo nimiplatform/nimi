@@ -14,6 +14,8 @@ const (
 	DataPlaneRootModels       DataPlaneRootID = "models"
 	DataPlaneRootDependencies DataPlaneRootID = "dependencies"
 	DataPlaneRootEnvironments DataPlaneRootID = "environments"
+	DataPlaneRootApps         DataPlaneRootID = "apps"
+	DataPlaneRootAccounts     DataPlaneRootID = "accounts"
 	DataPlaneRootLogs         DataPlaneRootID = "logs"
 	DataPlaneRootAudit        DataPlaneRootID = "audit"
 )
@@ -43,7 +45,7 @@ type DataPlaneModel struct {
 	// DataRootRef is the absolute user-selected nimi_data root, or empty when
 	// product setup has not recorded one.
 	DataRootRef string
-	// Roots are the five Runtime-managed nimi_data roots in stable order.
+	// Roots are the seven Runtime-managed nimi_data roots in stable order.
 	Roots []DataPlaneRoot
 }
 
@@ -57,6 +59,8 @@ var dataPlaneRootMeta = []struct {
 	{DataPlaneRootModels, "Runtime / model materializer", "Local model assets used by profiles and AIConfigs."},
 	{DataPlaneRootDependencies, "Runtime dependency materializer", "Downloaded dependency payloads such as CUDA/Python/uv/package families."},
 	{DataPlaneRootEnvironments, "Runtime environment materializer", "Nimi-managed executable environments."},
+	{DataPlaneRootApps, "Runtime app package manager", "Installed Nimi App package data."},
+	{DataPlaneRootAccounts, "Runtime account data manager", "Principal-scoped account data."},
 	{DataPlaneRootLogs, "Runtime / product support", "Operational logs."},
 	{DataPlaneRootAudit, "Runtime / Realm projection / product audit", "Local audit projections."},
 }
@@ -71,6 +75,8 @@ func NewDataPlaneModel(cfg Config) DataPlaneModel {
 		DataPlaneRootModels:       strings.TrimSpace(cfg.ManagedRoots.Models),
 		DataPlaneRootDependencies: strings.TrimSpace(cfg.ManagedRoots.Dependencies),
 		DataPlaneRootEnvironments: strings.TrimSpace(cfg.ManagedRoots.Environments),
+		DataPlaneRootApps:         strings.TrimSpace(cfg.ManagedRoots.Apps),
+		DataPlaneRootAccounts:     strings.TrimSpace(cfg.ManagedRoots.Accounts),
 		DataPlaneRootLogs:         strings.TrimSpace(cfg.ManagedRoots.Logs),
 		DataPlaneRootAudit:        strings.TrimSpace(cfg.ManagedRoots.Audit),
 	}

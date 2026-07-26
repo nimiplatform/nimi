@@ -5,6 +5,8 @@ package entrypoint
 import (
 	"path/filepath"
 	"testing"
+
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
 
 func TestWindowsE2EConfigIgnoresPortableProductionAuthority(t *testing.T) {
@@ -23,9 +25,11 @@ func TestWindowsE2EConfigIgnoresPortableProductionAuthority(t *testing.T) {
 		t.Fatalf("E2E config consumed portable or production authority: %+v", cfg)
 	}
 	if cfg.RuntimeID != windowsE2ERuntimeID ||
-		cfg.DataRootRef != filepath.Join(root, "runtime", "data") ||
 		cfg.LocalStatePath != filepath.Join(root, "runtime", "local-state.json") {
 		t.Fatalf("E2E state paths escaped the protected root: %+v", cfg)
+	}
+	if cfg.DataRootRef != "" || cfg.LocalModelsPath != "" || cfg.ManagedRoots != (config.ManagedRootsConfig{}) {
+		t.Fatalf("E2E config installed an alternate data-root authority: %+v", cfg)
 	}
 	if !cfg.LocalService.Enabled || cfg.EngineLlamaEnabled || cfg.EngineMediaEnabled ||
 		cfg.EngineSpeechEnabled || cfg.EngineSidecarEnabled {

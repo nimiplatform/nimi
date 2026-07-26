@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -124,14 +123,6 @@ func ValidateDevKernelCheckpointAcceptance(acceptance *DevKernelCheckpointAccept
 		return !((value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'))
 	}) >= 0 {
 		return fmt.Errorf("dev-kernel checkpoint acceptance round id is invalid")
-	}
-	if value := strings.TrimSpace(acceptance.DevelopmentDataRootRef); value != acceptance.DevelopmentDataRootRef {
-		return fmt.Errorf("dev-kernel checkpoint development data root ref is invalid")
-	} else if value != "" {
-		cleaned := filepath.Clean(value)
-		if cleaned == "." || !filepath.IsAbs(cleaned) || cleaned == filepath.VolumeName(cleaned)+string(filepath.Separator) {
-			return fmt.Errorf("dev-kernel checkpoint development data root ref must be an absolute non-root path")
-		}
 	}
 	for label, candidateID := range map[string]string{
 		"Runtime candidate id":           acceptance.RuntimeCandidateID,
