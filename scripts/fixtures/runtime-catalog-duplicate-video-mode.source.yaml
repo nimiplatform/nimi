@@ -1,0 +1,35 @@
+schema_version: 3
+provider: duplicate-video-fixture
+catalog_version: fixture-v1
+generated_target: runtime/catalog/providers/duplicate-video-fixture.yaml
+runtime:
+  inventory_mode: static_source
+defaults:
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-01-01
+    notes: Test fixture only.
+sources:
+  - source_id: fixture-source
+    url: https://example.invalid/video
+    retrieved_at: 2026-01-01
+    note: Test fixture only.
+models:
+  - model_id: fixture-video
+    model_type: video
+    capabilities: [video.generate]
+    source_ids: [fixture-source]
+    video_generation:
+      modes: [t2v, T2V]
+      input_roles:
+        t2v: [prompt]
+      limits:
+        duration_sec: {min: 1, max: 2}
+      options:
+        supports: [duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true

@@ -32,6 +32,14 @@ func TestVideoModesMustBeCanonicalSubsetWithCoverage(t *testing.T) {
 		t.Fatalf("declared canonical subset with coverage must pass: %v", err)
 	}
 
+	duplicate := videoBlock(
+		[]string{"t2v", "t2v"},
+		map[string][]string{"t2v": {"prompt"}},
+	)
+	if err := validateVideoGenerationCapability("p", "m", duplicate); err == nil || !strings.Contains(err.Error(), "duplicate mode") {
+		t.Fatalf("a duplicate mode must fail, got %v", err)
+	}
+
 	nonCanonical := videoBlock(
 		[]string{"t2v", "loop_video"},
 		map[string][]string{"t2v": {"prompt"}, "loop_video": {"prompt"}},

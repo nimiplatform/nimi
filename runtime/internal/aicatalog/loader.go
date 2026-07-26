@@ -336,7 +336,12 @@ func validateVideoGenerationCapability(provider string, modelID string, video *V
 	// mode set with full coverage per declared mode; a mode outside the set
 	// or a declared mode without input roles is catalog authoring error, not
 	// a provider capability to be inferred around.
+	seenModes := make(map[string]struct{}, len(video.Modes))
 	for _, mode := range video.Modes {
+		if _, duplicate := seenModes[mode]; duplicate {
+			return fmt.Errorf("model %s:%s video_generation.modes contains duplicate mode %q", provider, modelID, mode)
+		}
+		seenModes[mode] = struct{}{}
 		if _, ok := canonicalVideoModes[mode]; !ok {
 			return fmt.Errorf("model %s:%s video_generation.modes contains non-canonical mode %q", provider, modelID, mode)
 		}

@@ -322,6 +322,15 @@ export function normalizeVideoGeneration(raw) {
   if (!raw || typeof raw !== 'object') {
     return null;
   }
+  const seenModes = new Set();
+  for (const sourceMode of Array.isArray(raw.modes) ? raw.modes : []) {
+    const canonicalMode = normalizeString(sourceMode).toLowerCase();
+    if (!canonicalMode) continue;
+    if (seenModes.has(canonicalMode)) {
+      throw new Error(`video_generation.modes contains duplicate normalized mode: ${canonicalMode}`);
+    }
+    seenModes.add(canonicalMode);
+  }
   const modes = normalizeStringArray(raw.modes).map((mode) => mode.toLowerCase());
   if (modes.length === 0) {
     throw new Error('video_generation.modes must not be empty');

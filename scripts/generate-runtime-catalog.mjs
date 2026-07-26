@@ -68,7 +68,7 @@ function requirePositiveSafeInteger(value, label) {
   return value;
 }
 
-function generateProviderCatalog(doc) {
+export function generateProviderCatalog(doc) {
   const provider = normalizeProvider(doc?.provider);
   if (!provider) {
     throw new Error('provider is required');
@@ -684,7 +684,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`generate-runtime-catalog failed: ${String(error)}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`generate-runtime-catalog failed: ${String(error)}\n`);
+    process.exitCode = 1;
+  });
+}
