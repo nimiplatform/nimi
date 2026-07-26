@@ -294,12 +294,19 @@ mod tests {
             .iter()
             .any(|row| row.alias == "local-speech-ready"));
 
+        let bridge_registry_path = std::env::temp_dir()
+            .join("nimi-tester-data-root")
+            .join("apps")
+            .join("registry.json");
         let bridge_projection =
             nimi_shell_tauri::capabilities::platform_projection::apps_bridge::build_apps_bridge_projection(
-                "~/.nimi/apps/registry.json".to_string(),
-                "~/.nimi/apps/packages.json".to_string(),
+                bridge_registry_path.display().to_string(),
             )
             .expect("apps bridge projection");
+        assert_eq!(
+            bridge_projection.registry_path,
+            bridge_registry_path.display().to_string()
+        );
         assert_eq!(
             bridge_projection.registry_rows.len(),
             nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS

@@ -124,6 +124,19 @@ test('local-development identity reaches the sandbox preload only through fixed 
   assert.doesNotMatch(preloadSource, /startsWith\('--nimi-dev-renderer-url='\)/u);
 });
 
+test('Zhiyu has no environment or userData fallback for a standard-shell data root', async () => {
+  const mainSource = await readFile(path.join(appRoot, 'src-electron', 'main.ts'), 'utf8');
+  const macOSAcceptanceSource = await readFile(
+    path.join(repoRoot, 'apps', 'desktop', 'scripts', 'run-macos-negative-electron-acceptance.mjs'),
+    'utf8',
+  );
+  for (const source of [mainSource, macOSAcceptanceSource]) {
+    assert.doesNotMatch(source, /NIMI_ZHIYU_ELECTRON_STANDARD_(?:DATA_ROOT|LOCAL_ASSET_ROOTS)/u);
+    assert.doesNotMatch(source, /standard-shell-data/u);
+  }
+  assert.doesNotMatch(mainSource, /createElectronShellFileProtocolHost|registerPrivilegedSchemes/u);
+});
+
 test('primary agent chat surface does not import Capability Studio direct AI consume path', async () => {
   const files = await collectProductionFiles(path.join(productionRoot, 'shell'));
   const violations = [];

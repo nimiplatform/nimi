@@ -162,10 +162,10 @@ export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
 }
 
 export async function getAppsBridgeProjection(): Promise<AppsBridgeProjection> {
-  // The Apps registry / package projections live under the desktop-local
-  // `~/.nimi/apps` control root and are materialized by the desktop Tauri
-  // host. The web shell has no `~/.nimi` filesystem, so the Apps bridge
-  // projection is desktop-runtime only.
+  // The Apps registry projection is materialized by the desktop host at
+  // `<dataRoot>/apps/registry.json` after resolving the canonical Product
+  // Control record. The web shell has no local Product Control or data-root
+  // filesystem, so the Apps bridge projection is desktop-runtime only.
   unsupportedDesktopRuntime(
     'The Apps registry projection is only available in desktop runtime',
   );
@@ -247,14 +247,6 @@ export async function pickProductDataRootDirectory(): Promise<string | null> {
   unsupportedDesktopRuntime('The nimi_data folder picker is only available in desktop runtime');
 }
 
-// The default nimi_data proposal is a read-only, fail-closed contract: outside
-// the desktop runtime there is no OS home directory to propose, so it resolves
-// to `null` (no proposal) rather than throwing — the Storage field then fails
-// closed to empty instead of showing a fabricated path.
-export async function defaultProductDataRootDirectory(): Promise<string | null> {
-  return null;
-}
-
 export async function setProductFirstRunInstallLevel(_input: {
   installLevel: 'minimal' | 'recommended';
   aiProfileAlias?: string | null;
@@ -324,7 +316,6 @@ export const desktopBridge = {
   ensureProductControlRecordCreated,
   getDesktopStorageDirs,
   pickProductDataRootDirectory,
-  defaultProductDataRootDirectory,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   prepareProductFirstRunLocalAiReady,

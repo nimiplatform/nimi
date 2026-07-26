@@ -1,12 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, Menu, ipcMain, protocol } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain } from 'electron';
 import {
   createNimiElectronStandardApplicationMenuTemplate,
-  createElectronShellFileProtocolHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronAppBridge,
-  type NimiElectronShellFileProtocolHost,
 } from '@nimiplatform/kit/shell/electron/main';
 import { openZhiyuAppOwnedStore, type ZhiyuAppOwnedStore } from './app-owned-store.js';
 import { resolveZhiyuLocalDevelopmentAgentId } from './local-development-contract.js';
@@ -40,12 +38,8 @@ const applicationMenu = Menu.buildFromTemplate(
 Menu.setApplicationMenu(applicationMenu);
 configureZhiyuElectronChromiumRuntime();
 
-const localAssetProtocolHost = createLocalAssetProtocolHost();
-localAssetProtocolHost.registerPrivilegedSchemes();
-
 void app.whenReady().then(async () => {
   appOwnedStore = await openZhiyuAppOwnedStore({ userDataRoot: app.getPath('userData') });
-  localAssetProtocolHost.registerProtocolHandler();
   registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
@@ -141,33 +135,6 @@ function allowedRendererUrls(): string[] {
 
 function isZhiyuRendererUrl(url: string): boolean {
   return isAllowedElectronRendererUrl(url, allowedRendererUrls());
-}
-
-function createLocalAssetProtocolHost(): NimiElectronShellFileProtocolHost {
-  return createElectronShellFileProtocolHost({
-    protocol: {
-      registerSchemesAsPrivileged: (schemes) => protocol.registerSchemesAsPrivileged([...schemes]),
-      handle: (scheme, handler) => protocol.handle(scheme, (request) => handler(request) as Promise<Response>),
-    },
-    roots: resolveLocalAssetRoots(resolveStandardDataRoot()),
-  });
-}
-
-function resolveLocalAssetRoots(dataRoot: string): string[] {
-  const fromEnv = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
-  if (!fromEnv) {
-    return [path.resolve(dataRoot)];
-  }
-  return fromEnv
-    .split(path.delimiter)
-    .map((filePath) => normalizeText(filePath))
-    .filter(Boolean)
-    .map((filePath) => path.resolve(filePath));
-}
-
-function resolveStandardDataRoot(): string {
-  const fromEnv = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT);
-  return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
 }
 
 function normalizeText(value: unknown): string {
