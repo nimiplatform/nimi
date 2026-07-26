@@ -106,6 +106,15 @@ func (state *WindowsRuntimeSecurityState) ServiceStatePath() string {
 	return state.root.path
 }
 
+// RuntimeServiceSID returns the exact service SID already validated into this
+// opaque security-state capability.
+func (state *WindowsRuntimeSecurityState) RuntimeServiceSID() string {
+	if state == nil {
+		return ""
+	}
+	return state.principal.ServiceSID()
+}
+
 func (state *WindowsRuntimeSecurityState) RuntimeProcess() WindowsRuntimeProcess {
 	if state == nil {
 		return WindowsRuntimeProcess{}

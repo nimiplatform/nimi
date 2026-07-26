@@ -10,17 +10,24 @@ use std::ptr::{null_mut, NonNull};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use windows_sys::Win32::Foundation::{GetLastError, LocalFree, ERROR_SUCCESS};
+use windows_sys::Win32::Foundation::{
+    CloseHandle, GetLastError, LocalFree, ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, HANDLE,
+};
 use windows_sys::Win32::Security::Authorization::{
     ConvertStringSidToSidW, GetNamedSecurityInfoW, SE_FILE_OBJECT,
 };
 use windows_sys::Win32::Security::{
-    EqualSid, GetAce, ACCESS_ALLOWED_ACE, ACL, CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION,
-    OBJECT_INHERIT_ACE, PSECURITY_DESCRIPTOR, PSID,
+    EqualSid, GetAce, GetTokenInformation, TokenUser, ACCESS_ALLOWED_ACE, ACL,
+    CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, OBJECT_INHERIT_ACE,
+    OWNER_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID, TOKEN_QUERY, TOKEN_USER,
 };
-use windows_sys::Win32::Storage::FileSystem::{FILE_ALL_ACCESS, FILE_ATTRIBUTE_REPARSE_POINT};
+use windows_sys::Win32::Storage::FileSystem::{
+    DELETE, FILE_ATTRIBUTE_REPARSE_POINT, FILE_GENERIC_EXECUTE, FILE_GENERIC_READ,
+    FILE_GENERIC_WRITE,
+};
 use windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW;
 use windows_sys::Win32::System::SystemServices::{ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE};
+use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
 #[cfg(not(feature = "windows-e2e-fixture"))]
 const FIXED_RUNTIME_SERVICE_SID: &str =
@@ -30,6 +37,8 @@ const FIXED_RUNTIME_SERVICE_SID: &str =
     "S-1-5-80-2508001767-432113807-2225235661-2974466524-556849280";
 const ACL_TOOL_TIMEOUT: Duration = Duration::from_secs(10);
 const ACL_TOOL_POLL_INTERVAL: Duration = Duration::from_millis(25);
+const FIXED_RUNTIME_SERVICE_MODIFY_ACCESS: u32 =
+    FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE;
 
 #[derive(Debug)]
 pub struct FixedRuntimeDataRootError {
@@ -85,29 +94,55 @@ fn validate_selected_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> 
             "an absolute non-volume-root path is required",
         ));
     }
+    validate_selected_root_chain(path, true)?;
     fs::create_dir_all(path).map_err(|error| {
         FixedRuntimeDataRootError::new("create-selected-root", error.to_string())
     })?;
-    let metadata = fs::symlink_metadata(path).map_err(|error| {
-        FixedRuntimeDataRootError::new("inspect-selected-root", error.to_string())
-    })?;
-    if !metadata.is_dir() {
-        return Err(FixedRuntimeDataRootError::new(
-            "validate-selected-root",
-            "selected root is not a directory",
-        ));
-    }
-    if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
-        return Err(FixedRuntimeDataRootError::new(
-            "validate-selected-root",
-            "reparse-point data roots are forbidden",
-        ));
+    validate_selected_root_chain(path, false)
+}
+
+fn validate_selected_root_chain(
+    path: &Path,
+    allow_missing_tail: bool,
+) -> Result<(), FixedRuntimeDataRootError> {
+    let mut components = path.ancestors().collect::<Vec<_>>();
+    components.reverse();
+    let mut missing_tail = false;
+    for component in components {
+        if missing_tail {
+            continue;
+        }
+        let metadata = match fs::symlink_metadata(component) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound && allow_missing_tail => {
+                missing_tail = true;
+                continue;
+            }
+            Err(error) => {
+                return Err(FixedRuntimeDataRootError::new(
+                    "validate-selected-root",
+                    error.to_string(),
+                ));
+            }
+        };
+        if !metadata.is_dir() {
+            return Err(FixedRuntimeDataRootError::new(
+                "validate-selected-root",
+                "selected root chain contains a non-directory component",
+            ));
+        }
+        if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+            return Err(FixedRuntimeDataRootError::new(
+                "validate-selected-root",
+                "selected root chain contains a reparse point",
+            ));
+        }
     }
     Ok(())
 }
 
 fn service_acl_grant() -> String {
-    format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)F")
+    format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)M")
 }
 
 struct LocalAllocation(NonNull<c_void>);
@@ -128,8 +163,127 @@ impl Drop for LocalAllocation {
     }
 }
 
+struct OwnedHandle(HANDLE);
+
+impl Drop for OwnedHandle {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            // SAFETY: OpenProcessToken returned this owned handle and it is
+            // closed exactly once here.
+            unsafe {
+                let _ = CloseHandle(self.0);
+            }
+        }
+    }
+}
+
 fn wide_null(value: &std::ffi::OsStr) -> Vec<u16> {
     value.encode_wide().chain(std::iter::once(0)).collect()
+}
+
+fn with_current_process_user_sid<T>(
+    use_sid: impl FnOnce(PSID) -> Result<T, FixedRuntimeDataRootError>,
+) -> Result<T, FixedRuntimeDataRootError> {
+    let mut token: HANDLE = null_mut();
+    // SAFETY: the current-process pseudo handle is valid and token points to
+    // writable storage for the newly owned process-token handle.
+    if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 {
+        // SAFETY: GetLastError is read immediately after the failed Win32 call.
+        let error = unsafe { GetLastError() };
+        return Err(FixedRuntimeDataRootError::new(
+            "resolve-interactive-user",
+            format!("OpenProcessToken failed with {error}"),
+        ));
+    }
+    let _token = OwnedHandle(token);
+
+    let mut required_bytes = 0u32;
+    // SAFETY: the first call intentionally supplies no buffer and obtains the
+    // required size for TOKEN_USER.
+    let first =
+        unsafe { GetTokenInformation(token, TokenUser, null_mut(), 0, &mut required_bytes) };
+    // SAFETY: GetLastError is read immediately after GetTokenInformation.
+    let first_error = unsafe { GetLastError() };
+    if first != 0 || first_error != ERROR_INSUFFICIENT_BUFFER || required_bytes == 0 {
+        return Err(FixedRuntimeDataRootError::new(
+            "resolve-interactive-user",
+            format!("query TokenUser size failed with {first_error}"),
+        ));
+    }
+    let word_bytes = std::mem::size_of::<usize>();
+    let word_count = (required_bytes as usize).div_ceil(word_bytes);
+    let mut buffer = vec![0usize; word_count];
+    // SAFETY: buffer is aligned for TOKEN_USER and has at least required_bytes
+    // writable bytes. The embedded SID remains valid while use_sid executes.
+    if unsafe {
+        GetTokenInformation(
+            token,
+            TokenUser,
+            buffer.as_mut_ptr().cast::<c_void>(),
+            required_bytes,
+            &mut required_bytes,
+        )
+    } == 0
+    {
+        // SAFETY: GetLastError is read immediately after the failed Win32 call.
+        let error = unsafe { GetLastError() };
+        return Err(FixedRuntimeDataRootError::new(
+            "resolve-interactive-user",
+            format!("read TokenUser failed with {error}"),
+        ));
+    }
+    // SAFETY: the successful call populated a TOKEN_USER at the aligned start
+    // of buffer and the buffer remains live through use_sid.
+    let token_user = unsafe { &*(buffer.as_ptr().cast::<TOKEN_USER>()) };
+    if token_user.User.Sid.is_null() {
+        return Err(FixedRuntimeDataRootError::new(
+            "resolve-interactive-user",
+            "TokenUser returned no SID",
+        ));
+    }
+    use_sid(token_user.User.Sid)
+}
+
+fn validate_selected_root_owner(
+    path: &Path,
+    expected_owner: PSID,
+) -> Result<(), FixedRuntimeDataRootError> {
+    let path_wide = wide_null(path.as_os_str());
+    let mut owner: PSID = null_mut();
+    let mut descriptor: PSECURITY_DESCRIPTOR = null_mut();
+    // SAFETY: path_wide is nul-terminated and all output pointers remain valid
+    // until the returned descriptor is adopted below.
+    let status = unsafe {
+        GetNamedSecurityInfoW(
+            path_wide.as_ptr(),
+            SE_FILE_OBJECT,
+            OWNER_SECURITY_INFORMATION,
+            &mut owner,
+            null_mut(),
+            null_mut(),
+            null_mut(),
+            &mut descriptor,
+        )
+    };
+    if status != ERROR_SUCCESS {
+        return Err(FixedRuntimeDataRootError::new(
+            "validate-selected-root-owner",
+            format!("GetNamedSecurityInfoW failed with {status}"),
+        ));
+    }
+    let _descriptor_allocation = LocalAllocation::new(descriptor).ok_or_else(|| {
+        FixedRuntimeDataRootError::new(
+            "validate-selected-root-owner",
+            "GetNamedSecurityInfoW returned no security descriptor",
+        )
+    })?;
+    if owner.is_null() || unsafe { EqualSid(owner, expected_owner) } == 0 {
+        return Err(FixedRuntimeDataRootError::new(
+            "validate-selected-root-owner",
+            "selected root owner does not match the OS process user",
+        ));
+    }
+    Ok(())
 }
 
 fn fixed_runtime_service_acl_is_exact(path: &Path) -> Result<bool, FixedRuntimeDataRootError> {
@@ -214,7 +368,7 @@ fn fixed_runtime_service_acl_is_exact(path: &Path) -> Result<bool, FixedRuntimeD
             matching_entries += 1;
             if ace_type == ACCESS_ALLOWED_ACE_TYPE
                 && ace.Header.AceFlags == expected_flags
-                && ace.Mask == FILE_ALL_ACCESS
+                && ace.Mask == FIXED_RUNTIME_SERVICE_MODIFY_ACCESS
             {
                 exact_entry = true;
             }
@@ -269,7 +423,21 @@ fn prepare_fixed_runtime_data_root_with<F>(
 where
     F: FnOnce(&Path) -> Result<(), FixedRuntimeDataRootError>,
 {
+    with_current_process_user_sid(|expected_owner| {
+        prepare_fixed_runtime_data_root_with_owner(path, expected_owner, grant)
+    })
+}
+
+fn prepare_fixed_runtime_data_root_with_owner<F>(
+    path: &Path,
+    expected_owner: PSID,
+    grant: F,
+) -> Result<(), FixedRuntimeDataRootError>
+where
+    F: FnOnce(&Path) -> Result<(), FixedRuntimeDataRootError>,
+{
     validate_selected_root(path)?;
+    validate_selected_root_owner(path, expected_owner)?;
     if fixed_runtime_service_acl_is_exact(path)? {
         return Ok(());
     }
@@ -293,7 +461,7 @@ mod tests {
     fn exact_fixed_service_sid_receives_only_selected_tree_inheritance() {
         assert_eq!(
             service_acl_grant(),
-            format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)F"),
+            format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)M"),
         );
     }
 
@@ -306,6 +474,83 @@ mod tests {
         let volume_root =
             validate_selected_root(Path::new(r"C:\")).expect_err("volume root must fail");
         assert_eq!(volume_root.stage(), "validate-selected-root");
+    }
+
+    #[test]
+    fn ancestor_junction_fails_before_root_creation_or_acl_mutation() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        let fixture = std::env::temp_dir().join(format!(
+            "nimi-fixed-runtime-data-root-junction-{}-{nonce}",
+            std::process::id()
+        ));
+        let target = fixture.join("target");
+        let junction = fixture.join("junction");
+        fs::create_dir_all(&target).expect("create junction target");
+        let output = Command::new("cmd.exe")
+            .args(["/d", "/c", "mklink", "/J"])
+            .arg(&junction)
+            .arg(&target)
+            .output()
+            .expect("create disposable ancestor junction");
+        assert!(
+            output.status.success(),
+            "create disposable ancestor junction: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let selected = junction.join("nimi-data");
+        let mutation_called = std::cell::Cell::new(false);
+        let result = prepare_fixed_runtime_data_root_with(&selected, |_| {
+            mutation_called.set(true);
+            Ok(())
+        });
+        let target_was_created = target.join("nimi-data").exists();
+        fs::remove_dir(&junction).expect("remove disposable ancestor junction");
+        fs::remove_dir_all(&fixture).expect("remove disposable junction fixture");
+
+        let error = result.expect_err("ancestor junction must fail closed");
+        assert_eq!(error.stage(), "validate-selected-root");
+        assert!(!target_was_created, "junction target was mutated");
+        assert!(!mutation_called.get(), "ACL mutation owner was invoked");
+    }
+
+    #[test]
+    fn owner_mismatch_fails_before_acl_mutation() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "nimi-fixed-runtime-data-root-owner-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create owner fixture");
+
+        let wrong_owner_wide = wide_null(std::ffi::OsStr::new("S-1-5-80-1-2-3-4-5"));
+        let mut wrong_owner: PSID = null_mut();
+        // SAFETY: wrong_owner_wide is nul-terminated and wrong_owner is valid
+        // writable output storage.
+        assert_ne!(
+            unsafe { ConvertStringSidToSidW(wrong_owner_wide.as_ptr(), &mut wrong_owner) },
+            0,
+            "parse fixed mismatched owner SID"
+        );
+        let _wrong_owner_allocation =
+            LocalAllocation::new(wrong_owner).expect("own fixed mismatched owner SID");
+
+        let mutation_called = std::cell::Cell::new(false);
+        let result = prepare_fixed_runtime_data_root_with_owner(&root, wrong_owner, |_| {
+            mutation_called.set(true);
+            Ok(())
+        });
+        fs::remove_dir_all(&root).expect("remove owner fixture");
+
+        let error = result.expect_err("mismatched owner must fail closed");
+        assert_eq!(error.stage(), "validate-selected-root-owner");
+        assert!(!mutation_called.get(), "ACL mutation owner was invoked");
     }
 
     #[test]
