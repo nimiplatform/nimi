@@ -41,6 +41,16 @@ test('compiles all profiles and freezes Avatar, Product Control, and ordinary pa
   assert.equal(model.parity.productControl.fingerprint, '7fbaf4a067eab9d111bd4fc074c855db0cc7c56de37c5c84df0f3f389c329e14');
   assert.equal(model.parity.ordinary.fingerprint, 'b86770bcf80f89693a63a1b46e726d1ff3c8e1b251ffb05a9da5ac594e0efffb');
   assert.equal(outputs.size, 8);
+  for (const relative of [
+    'runtime/internal/bundledavatar/profile_generated.go',
+    'kit/shell/electron/src/main/bundled-avatar-profile.generated.ts',
+    'sdks/typescript/runtime/bundled-avatar-profile.generated.ts',
+  ]) {
+    const output = outputs.get(relative);
+    assert.match(output, /nimi\.avatar/u);
+    assert.match(output, /avatar-native-host/u);
+    assert.doesNotMatch(output, /nimi\.avatar\.desktop-supervised|desktop-avatar-host/u);
+  }
 });
 
 test('rejects duplicate and wildcard methods', () => {
@@ -60,6 +70,20 @@ test('rejects missing intent, postcondition, negative-test, and Avatar capabilit
   rejectsMutation((value) => { value.intents.product_control.owner_postcondition_refs = []; }, /owner_postcondition_refs must be a non-empty/u);
   rejectsMutation((value) => { value.profiles[0].negative_test_ref = 'missing'; }, /unknown negative_test_ref/u);
   rejectsMutation((value) => { delete value.profiles[2].methods[0].capability; }, /capability must be a non-empty/u);
+});
+
+test('rejects retired transport shape and independent Avatar transport drift', () => {
+  rejectsMutation((value) => { value.physical_transport_class = 'desktop_control'; }, /unknown field: physical_transport_class/u);
+  rejectsMutation((value) => { value.physical_endpoint_binding = 'desktop_control'; }, /physical_endpoint_binding must be verified_platform_transport/u);
+  rejectsMutation((value) => { value.logical_transport_class_by_profile.bundled_avatar_v1 = 'desktop_control'; }, /logical transport class mismatch/u);
+  rejectsMutation((value) => { value.profiles[2].logical_transport_class = 'desktop_control'; }, /logical_transport_class must match its profile mapping/u);
+  for (const field of [
+    'desktop_account_control_inheritance',
+    'open_desktop_session_requirement',
+    'live_desktop_process_requirement',
+  ]) {
+    rejectsMutation((value) => { value.profiles[2][field] = 'required'; }, new RegExp(`${field} must be forbidden`, 'u'));
+  }
 });
 
 test('rejects parity drift', () => {

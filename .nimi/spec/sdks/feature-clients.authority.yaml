@@ -508,7 +508,7 @@ units:
     kind: rule
     title: The permission catalog is closed
     modality: must
-    statement: PermissionID contains only the stable product ids of the public permissions section of the platform app permission catalog table, only ids with admission admitted and manifest_allowed true may enter permission.request, known-but-reserved ids may be used for the typed unavailable projection of permission.status but a request fails closed before calling the transport, and currently no third-party public permission is admitted so the current SDK request positive set is empty without affecting app launch, private storage, host commands, or app-owned UI.
+    statement: PermissionID contains only the stable product ids of the public permissions section of the platform app permission catalog table, only ids with admission admitted and manifest_allowed true may enter permission.request, known-but-reserved ids may be used for the typed unavailable projection of permission.status but a request fails closed before calling the transport, and the current SDK request positive set is exactly agents.interact for its owner-selected open-conversation, send-turn, subscribe-turn, and conversation-snapshot operations without exposing Agent inventory, selector construction, voice, artifact, principal substitution, direct Avatar control, or embedded rendering and without affecting app launch, private storage, host commands, or app-owned UI.
     condition: Whenever permission ids are validated for status or request.
     failure: Fail closed before transport on reserved or unadmitted ids.
     relations:

@@ -8,12 +8,12 @@ units:
     meaning: A cold-start projection state describes product posture after process start and before every required account, Runtime, local dependency, app-registry, and factory-AI-profile-selection authority is ready; its closed fail-closed values are unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, and stale-projection.
   - id: definition.nimi.platform.product-lifecycle.product-control-record
     kind: definition
-    title: Runtime-owned product-control record
-    meaning: The installed product shell product-control record is the small local ordinary-readiness control record at <runtime_owner_state_root>/nimi.json with schemaVersion, installId, productVersion, state, dataRoot, firstRun, pointers, and repair; its closed states are not_logged_in, config_missing, data_root_missing, data_root_selected, ai_environment_unconfigured, local_ai_profile_selected_assets_missing, local_ai_profile_selected_environment_not_ready, local_ai_assets_downloaded_environment_not_ready, local_ai_ready, repair_required, blocked, and ready_for_use.
+    title: Canonical product-control record
+    meaning: The installed product shell product-control record is the small local ordinary-readiness and product-discovery record at the fixed non-configurable path ~/.nimi/nimi.json, is the sole authority that records dataRoot.path, and contains schemaVersion, installId, productVersion, state, dataRoot, firstRun, pointers, and repair; its closed states are not_logged_in, config_missing, data_root_missing, data_root_selected, ai_environment_unconfigured, local_ai_profile_selected_assets_missing, local_ai_profile_selected_environment_not_ready, local_ai_assets_downloaded_environment_not_ready, local_ai_ready, repair_required, blocked, and ready_for_use.
   - id: definition.nimi.platform.product-lifecycle.nimi-data-root
     kind: definition
     title: User-selected nimi_data root
-    meaning: The nimi_data root is an absolute user-selected writable large-data-plane root containing models, dependencies, environments, principal-partitioned app releases and data, account data, cache, logs, audit, generated data, and temporary data.
+    meaning: The nimi_data root is the one absolute ordinary non-volume-root user-selected writable large-data-plane directory recorded as dataRoot.path in ~/.nimi/nimi.json; Windows drive roots, UNC share roots, extended-path volume roots, the POSIX filesystem root, and equivalent volume roots are forbidden, while ordinary absolute subdirectories remain admissible, and its required roots are models, dependencies, environments, apps, accounts, logs, and audit with app and account content principal-scoped or account-scoped and cache, generated, and temporary content below its admitted owning root.
   - id: definition.nimi.platform.product-lifecycle.first-run-lifecycle
     kind: definition
     title: First-run product lifecycle
@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.runtime-service-configuration
     kind: definition
     title: Runtime service configuration boundary
-    meaning: Production Runtime configuration is protected state owned by the isolated Runtime operating-system service principal, while product control communicates only through exact typed protected operations and never owns physical Runtime configuration paths.
+    meaning: Production Runtime configuration is protected state owned by the isolated Runtime operating-system service principal and contains private service identity, custody, grants, sessions, security evidence, and data-root verification derived from the canonical product-control record, while product control communicates only through exact typed protected operations and never owns physical Runtime configuration paths.
   - id: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
     kind: definition
     title: Signed development checkpoint lineage
@@ -29,7 +29,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.governed-local-config-family
     kind: definition
     title: Governed local configuration family
-    meaning: The governed local configuration family contains <runtime_owner_state_root>/nimi.json owned by the product-control schema authority, ~/.nimi/runtime/default.json owned by the Runtime default-seed schema authority, and ~/.nimi/profiles/factory-index.json owned by the factory-AI-profile-index schema authority; Runtime service configuration and protected local-app state are outside this interactive-user family.
+    meaning: The governed local configuration family contains ~/.nimi/nimi.json owned by the product-control schema authority, ~/.nimi/runtime/default.json owned by the Runtime default-seed schema authority, and ~/.nimi/profiles/factory-index.json owned by the factory-AI-profile-index schema authority; Runtime service configuration, derived data-root verification, and protected local-app state remain outside this interactive-user family and cannot become a second product-control record.
   - id: definition.nimi.platform.product-lifecycle.current-schema-repair
     kind: definition
     title: Current-schema repair outcome
@@ -148,11 +148,11 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-apps
   - id: rule.nimi.platform.product-lifecycle.p-cold-009a
     kind: rule
-    title: P-COLD-009 fixed product-control owner and location
+    title: P-COLD-009 fixed product-control locator and authority
     modality: must
-    statement: The Runtime-owned product-control record resides at <runtime_owner_state_root>/nimi.json, and production binds that root to the installer-verified service state root without request, environment, argv, renderer, interactive-user-home, repository spec, Runtime config, Desktop cache, or app-local substitution or fallback.
-    condition: Whenever installed-product readiness state is read or written.
-    failure: Reject the substitute owner or root and route missing or invalid canonical state to config_missing or repair.
+    statement: The product-control record resides only at the fixed non-configurable path <OS-verified-interactive-user-profile>/.nimi/nimi.json, is the sole product-discovery authority for dataRoot.path, requires .nimi to be a direct non-symlink non-junction non-reparse directory below that verified profile and nimi.json to be a direct regular non-symlink non-reparse file, and Desktop, Runtime entry, CLI, P4, unit tests, E2E, development tools, and smoke tools resolve it through one shared resolver without a ProgramData record, request, environment, argv, renderer, repository, Runtime-config, Desktop-cache, test-only, or app-local alternate authority or fallback.
+    condition: Whenever installed-product readiness or the selected nimi_data root is located, read, written, or reused.
+    failure: Reject an ambient-profile locator, redirected .nimi boundary, indirect control file, substitute locator, or substitute record, route missing or invalid canonical state to config_missing or repair, and route disagreement with protected derived state to explicit repair or fail-closed without allowing protected state to override dataRoot.path.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
@@ -170,7 +170,7 @@ units:
     kind: rule
     title: P-COLD-010 data-root selection precedes heavy mutation
     modality: must
-    statement: First run records an absolute user-selected nimi_data path in the canonical product-control record and verifies writability and required root-directory creation before heavy download, dependency installation, app-package installation, model materialization, or environment setup begins.
+    statement: First run records an absolute ordinary non-volume-root user-selected nimi_data directory in canonical dataRoot.path, rejects Windows drive roots, UNC share roots, extended-path volume roots, the POSIX filesystem root, and equivalent volume roots while admitting ordinary absolute subdirectories, and verifies writability and required root-directory creation before heavy download, dependency installation, app-package installation, model materialization, or environment setup begins.
     condition: Before the first heavy first-run mutation.
     failure: Block the mutation and remain in a non-ready data-root state.
     relations:
@@ -182,9 +182,9 @@ units:
     kind: rule
     title: P-COLD-010 no silent data-root default
     modality: must_not
-    statement: First run silently defaults nimi_data to ~/.nimi/data or treats a Desktop path record as readiness truth before reconciliation into the canonical product-control record.
-    condition: When first run proposes, selects, or restores a data root.
-    failure: Require explicit user selection or canonical reconciliation and remain non-ready.
+    statement: First run, restart, update, CLI, P4, unit test, E2E, development tool, or smoke tool silently defaults or guesses nimi_data from ~/Nimi, ~/.nimi/data, a repository path, ProgramData, Runtime config, Desktop cache, NIMI_DATA_ROOT, NIMI_APP_DATA_ROOT, NIMI_FIRST_PARTY_PRODUCT_ROOT, --product-root, another environment variable or argv field, or asks for another root while a valid canonical dataRoot.path exists.
+    condition: When any trusted product or verification surface proposes, selects, restores, or resolves a data root.
+    failure: Reuse the valid canonical dataRoot.path, or if it is absent require the one normal Product Control UI selection and remain non-ready without establishing another path authority.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
@@ -256,9 +256,9 @@ units:
     kind: rule
     title: P-COLD-013 service-owned Runtime configuration
     modality: must
-    statement: Production Runtime configuration remains at the isolated Runtime service principal protected location, product control sends selected nimi_data only through an exact typed protected operation, and Runtime stores dataRootRef and managed roots in service-owned state without exposing physical configuration paths as product-control pointers.
+    statement: Production Runtime private configuration remains at the isolated Runtime service principal protected location, the exact typed Product Control operation carries only the canonical ~/.nimi/nimi.json dataRoot.path selection, Runtime independently validates path ownership, access, ACL, reparse-point posture, and the fixed service SID, and protected state stores only derived dataRootRef, managed roots, verification evidence, and audit without exposing its physical paths or becoming a second Product Control record.
     condition: When product control configures the Runtime data root.
-    failure: Reject the update unless the protected operation and service-owned state boundary hold.
+    failure: Reject the update unless the canonical selection, protected operation, independent verification, and private-state boundary hold; on protected-state disagreement enter repair or fail closed without selecting or overriding dataRoot.path.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
@@ -280,9 +280,9 @@ units:
     kind: rule
     title: P-COLD-013 no alternate Runtime configuration truth
     modality: must_not
-    statement: Renderer ACL mutation, broad service or user grants, a test-only principal, ~/.nimi/config.json, retired ~/.nimi/runtime/config.json, the product-control record, Desktop cache, environment, argv, renderer metadata, or imported pre-hardcut Runtime configuration or credentials becomes Runtime security or configuration truth.
+    statement: Renderer ACL mutation, broad service or user grants, a test-only principal, ~/.nimi/config.json, retired ~/.nimi/runtime/config.json, Desktop cache, environment, argv, renderer metadata, imported pre-hardcut Runtime configuration or credentials, or canonical Product Control fields beyond the exact dataRoot.path selection becomes Runtime private security or configuration truth, and protected Runtime state or evidence independently selects or overrides dataRoot.path.
     condition: When production Runtime configuration or selected-root access is established or repaired.
-    failure: Reject the source or grant; on ambiguity require fresh service configuration.
+    failure: Reject the source, grant, selection, or override; preserve ~/.nimi/nimi.json as the selection authority and enter explicit repair or fail closed on disagreement.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
@@ -340,9 +340,9 @@ units:
     kind: rule
     title: P-COLD-015 development lineage continuity
     modality: must
-    statement: The first real dev_kernel_checkpoint installation creates Product Control under a service-owned development lineage, later signed Runtime candidate updates preserve its signed trial id, developmentStateCandidateId, and acceptanceRoundId while independently replacing and verifying runtimeCandidateId, and Product Control, Runtime local state, audit, model registry, generated identity, and durable grants remain bound to that lineage.
+    statement: The first real dev_kernel_checkpoint installation creates only the protected service-owned development lineage, later signed Runtime candidate updates preserve its signed trial id, developmentStateCandidateId, and acceptanceRoundId while independently replacing and verifying runtimeCandidateId, Runtime local state, audit, model registry, generated identity, and durable grants remain bound to that protected lineage, and the canonical ~/.nimi/nimi.json Product Control record remains outside the lineage and is neither recreated nor relocated by candidate rotation.
     condition: When a signed development checkpoint is first installed or updated.
-    failure: Reject a candidate or state binding that breaks lineage continuity.
+    failure: Reject a candidate or protected-state binding that breaks lineage continuity or binds, recreates, relocates, or shadows Product Control.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
@@ -360,9 +360,9 @@ units:
     kind: rule
     title: P-COLD-015 protected checkpoint identity inputs
     modality: must_not
-    statement: HOME, USERPROFILE, TEMP, renderer state, endpoint, environment, argv, or a request field selects protected lineage or round identity, and the signed checkpoint profile affects anything beyond the visible directory proposal, lineage Runtime data-plane roots, and explicit user selection through the normal typed Product Control operation.
-    condition: When checkpoint identity or data-root proposal is derived.
-    failure: Reject the unprotected input or profile effect.
+    statement: HOME, USERPROFILE, TEMP, renderer state, endpoint, environment, argv, a request field, installer input, protected profile, or test harness selects protected lineage or round identity or selects, proposes, overrides, or relocates dataRoot.path, and the signed checkpoint profile affects Product Control beyond consuming the canonical selection through the shared resolver and exact typed operation.
+    condition: When checkpoint identity or data-root selection is resolved.
+    failure: Reject the unprotected input, alternate data-root channel, or profile effect.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
@@ -370,11 +370,11 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-cold-015f
     kind: rule
-    title: P-COLD-015 protected development data-root proposal
+    title: P-COLD-015 development reuses canonical data-root selection
     modality: must
-    statement: Runtime uses an explicit signed-installer absolute development data-root binding as its protected lineage-bound proposal and root, otherwise derives the proposal from the verified interactive Windows SID operating-system profile mapping plus signed trial id and build-record-verified Runtime candidate id; Desktop prefers that Runtime projection, and explicit user confirmation through the normal typed operation alone selects or writes dataRoot.
-    condition: When a signed checkpoint proposes or selects a development data root.
-    failure: Reject a reconstructed, unverified, or unconfirmed root and leave dataRoot unset.
+    statement: A signed checkpoint, first-party acceptance run, and Runtime update reuse dataRoot.path only from the canonical ~/.nimi/nimi.json record through the shared resolver; when that record has no valid selection, only the normal Product Control UI may select it once through the exact typed operation, and no checkpoint, installer, harness, profile, test, environment, argv, or protected lineage field proposes or selects a separate root.
+    condition: When a signed checkpoint, acceptance run, or update resolves a data root.
+    failure: Reuse the valid canonical selection, or route an absent, invalid, or mismatched selection to normal setup or explicit repair without guessing, prompting for, or recording another root.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
@@ -384,9 +384,9 @@ units:
     kind: rule
     title: P-COLD-015 isolated checkpoint state and payload reuse
     modality: must_not
-    statement: An explicit development data-root binding imports Product Control, account, audit, model-registry, or generated-identity state from another Runtime partition, or existing payload files or an older local-state record alone satisfies first run without independent current-candidate catalog-hash, manifest, compatibility, and activation-readiness verification recorded in isolated service-owned state.
-    condition: When a checkpoint binds a development root or reuses model, dependency, or environment payload bytes.
-    failure: Reject imported authority and require independent verification and new isolated evidence.
+    statement: A development checkpoint, installer binding, protected profile, Runtime config, or test channel imports, selects, replaces, or shadows Product Control or dataRoot.path, or existing payload files or an older local-state record alone satisfies first run without independent current-candidate catalog-hash, manifest, compatibility, and activation-readiness verification recorded in isolated service-owned state.
+    condition: When a checkpoint resolves the canonical data root or reuses model, dependency, or environment payload bytes.
+    failure: Reject the alternate authority and require the canonical Product Control selection plus independent verification and current isolated evidence.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
@@ -498,9 +498,9 @@ units:
     kind: rule
     title: P-MIG-003 retired Runtime config excluded
     modality: must_not
-    statement: The framework registers, inspects, repairs, migrates, recreates, or imports retired ~/.nimi/runtime/config.json or consumes any field beyond the separately authorized bounded development-updater dataRootRef read.
+    statement: The framework, development updater, installer, Runtime, Desktop, CLI, test, E2E, development tool, or smoke tool registers, inspects, repairs, migrates, recreates, imports, or consumes any field from retired ~/.nimi/runtime/config.json.
     condition: When interactive-user configuration is discovered, validated, repaired, or migrated.
-    failure: Reject the retired file as a family member or production Runtime source.
+    failure: Reject the retired file as a family member, data-root source, or Runtime source and use only ~/.nimi/nimi.json through the shared Product Control resolver.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.governed-local-config-family
@@ -1396,7 +1396,7 @@ units:
     kind: rule
     title: P-COLD-015 product-control-record-schema firstRun wire shape
     modality: must
-    statement: The firstRun object carries installLevel limited to minimal or recommended, aiProfileAlias, boolean completed, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, non-empty builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef.
+    statement: The firstRun object always carries installLevel, aiProfileAlias, boolean completed, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef with exact field presence and types; before the corresponding selection or evidence exists, installLevel, aiProfileAlias, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, runtimeBaselineRef, and executionEvidenceRef may be null and builtInAiConfigRefs may be empty, while ready_for_use requires installLevel to be minimal or recommended, completed=true, every required evidence string to be non-empty, and builtInAiConfigRefs to be a non-empty string list.
     condition: Whenever the product-control firstRun object is created, validated, or persisted.
     failure: Reject the invalid object and remain in or enter the precise first-run or repair state.
     relations:
@@ -1434,11 +1434,11 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-data-root-proposal
     kind: rule
-    title: P-COLD-015 product-control-record-schema development dataRootProposal boundary
+    title: P-COLD-015 no development data-root authority
     modality: must_not
-    statement: A dev_kernel_checkpoint dataRootProposal is persisted as a product-control field, selects dataRoot, imports prior registry or readiness, or derives from home, userprofile, temp, renderer state, environment, argv, endpoint, or request fields.
-    condition: When a development checkpoint proposes a data root.
-    failure: Reject the proposal unless it remains visible and confirmable only and is independently selected through the protected operation.
+    statement: A dev_kernel_checkpoint, first-party acceptance harness, updater, installer, protected profile, CLI, environment variable, argv field, endpoint, request, home-derived guess, or dataRootProposal field becomes a second data-root locator, proposal authority, selection authority, or persisted Product Control field.
+    condition: When development, acceptance, installation, or update code resolves or carries a data root.
+    failure: Reject the channel and use only the shared resolver for ~/.nimi/nimi.json, with the normal Product Control UI as the sole initial selection surface.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage

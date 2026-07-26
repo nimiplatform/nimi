@@ -7,8 +7,8 @@ const (
 	ProfileID           = "bundled_avatar_v1"
 	AppID               = "nimi.avatar"
 	NativeProfileMarker = "avatar-v1"
-	AppInstanceID       = "nimi.avatar.desktop-supervised"
-	DeviceID            = "desktop-avatar-host"
+	AppInstanceID       = "nimi.avatar"
+	DeviceID            = "avatar-native-host"
 )
 
 type MethodKind string

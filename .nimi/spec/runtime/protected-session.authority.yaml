@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.runtime.protected-session.protected-local-session-plane
     kind: definition
     title: Runtime protected local session plane
-    meaning: The Runtime protected local session plane owns OS peer and process identity, protected-local transport identity, process-bound Desktop control sessions, lifecycle operation admission, the Runtime boot epoch, and security-critical generation state, including the closed transport classes and immutable origin roles, mutual endpoint authentication, process identity and liveness, executable identity and trust, the local-app launch lease and common session, local-development authorization and session, the Desktop-supervised bundled Avatar profile, and lifecycle transactions, boot epoch, and recovery.
+    meaning: The Runtime protected local session plane owns OS peer and process identity, protected-local transport identity, process-bound Desktop control sessions, lifecycle operation admission, the Runtime boot epoch, and security-critical generation state, including the closed transport classes and immutable origin roles, mutual endpoint authentication, process identity and liveness, executable identity and trust, the local-app launch lease and common session, local-development authorization and session, the independent verified-native-host bundled Avatar profile, and lifecycle transactions, boot epoch, and recovery.
   - id: definition.nimi.runtime.protected-session.account-session-plane
     kind: definition
     title: Runtime account session plane
@@ -290,11 +290,11 @@ units:
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
   - id: rule.nimi.runtime.protected-session.r028
     kind: rule
-    title: The bundled Avatar profile rides desktop control
+    title: The independent Avatar profile is narrower than Desktop control
     modality: must
-    statement: The default nimi.avatar Electron shell is a bundled first-party surface hosted by the already verified Desktop process, it does not open a portable app session and is not a local-development principal, the physical carrier is the current desktop_control connection, and Runtime derives the immutable bundled_avatar_host role from that verified connection and admits only the fixed bundled_avatar_v1 profile pinned in the first-party protected runtime profiles table.
-    condition: Whenever the bundled Avatar surface is hosted or admitted.
-    failure: Reject portable sessions, development-principal claims, and profiles outside the pinned row.
+    statement: The default nimi.avatar product is an independent first-party app with its own verified native host, exact avatar_control logical carrier, and immutable avatar host role, it does not open a portable app session or OpenDesktopSession, is not a local-development principal, does not require a live Desktop process, and does not ride or inherit desktop_control account-control, while Runtime admits only the fixed narrower Avatar first-party profile and exact operation set pinned in the first-party protected runtime profiles table.
+    condition: Whenever the first-party Avatar native host is admitted.
+    failure: Reject portable sessions, development-principal claims, Desktop account-control inheritance, profiles outside the pinned Avatar row, and operations outside its exact set.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
@@ -302,9 +302,9 @@ units:
     kind: rule
     title: Avatar profile selection binds the exact sender
     modality: must
-    statement: Desktop main registers the exact BrowserWindow and WebContents object it created through the supervised Avatar launch path, Kit main and native code select this profile only after binding the invoking Electron sender and main frame to that non-portable registry entry with the exact registered URL and current navigation state as secondary integrity checks and never identity, it injects the fixed app id nimi.avatar and native profile after renderer request parsing, renderer code cannot provide or override a host-equivalence marker, profile, app id, endpoint, metadata, origin role, account identity, method allowlist, or capability, a normal Desktop renderer call, an unbound or replaced Avatar sender, ordinary gRPC, and every method absent from the profile fail before handler dispatch, and the profile is therefore an exact typed carrier, not a generic protected method-id proxy.
-    condition: Whenever the bundled Avatar profile is selected for a call.
-    failure: Fail before handler dispatch on unbound senders, renderer-supplied authority, and absent methods.
+    statement: Runtime selects the narrower first-party Avatar profile only after binding the invoking verified Avatar native host process and native sender to the admitted independent nimi.avatar instance, injects the fixed app id and native profile after renderer request parsing, and treats native-host attestation and Runtime projection continuity as identity while renderer code cannot provide or override a host-equivalence marker, profile, app id, endpoint, metadata, origin role, account identity, method allowlist, capability, or raw dataRoot.path; a Desktop renderer call, third-party app, SDK client, unbound or replaced Avatar sender, ordinary gRPC caller, and every method absent from the Avatar profile fail before handler dispatch, so the profile is an exact typed carrier rather than Desktop account-control or a generic protected method-id proxy.
+    condition: Whenever the independent Avatar profile is selected for a call.
+    failure: Fail before handler dispatch on unbound native hosts or senders, Desktop or third-party profile substitution, renderer-supplied authority, raw-root disclosure, and absent methods.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
@@ -322,7 +322,7 @@ units:
     kind: rule
     title: Avatar projections are generation- and epoch-bound
     modality: must
-    statement: The bundled Avatar profile may project Runtime health, current account snapshot and events, one admitted Realm readiness operation, current-account Runtime Agent state, Avatar conversation, voice, lipsync, and debug streams, Runtime-generated voice artifact bytes, and bounded scenario-job operations, every protected stream is bound to that account generation and boot epoch, account transition invalidates the old generation before a later event can be sent, centrally cancels idle streams without polling, and requires a new call context, Desktop process replacement, protected connection loss, sender unbinding, or Runtime boot-epoch rotation likewise closes active Avatar streams and calls, and no durable grant, project approval, bearer, refresh material, account session secret, scoped binding, renderer host-equivalence metadata, or local auth truth is created or exposed.
+    statement: The bundled Avatar profile may project Runtime health, current account snapshot and events, one admitted Realm readiness operation, current-account Runtime Agent state, Avatar conversation, voice, lipsync, and debug streams, Runtime-generated voice artifact bytes, and bounded scenario-job operations, every protected stream is bound to that account generation and boot epoch, account transition invalidates the old generation before a later event can be sent, centrally cancels idle streams without polling, and requires a new call context, verified Avatar native-host process replacement, protected connection loss, sender unbinding, or Runtime boot-epoch rotation likewise closes active Avatar streams and calls, and no durable grant, project approval, bearer, refresh material, account session secret, scoped binding, renderer host-equivalence metadata, or local auth truth is created or exposed.
     condition: Whenever bundled Avatar projections or streams are served.
     failure: Invalidate and close streams on the listed transitions and reject durable authority creation.
     relations:
@@ -332,7 +332,7 @@ units:
     kind: rule
     title: Avatar profile semantics are platform-neutral
     modality: must
-    statement: The authorization, session, supervisor, reapproval, operation-applicability, and non-conversion semantics of the bundled Avatar profile are platform-neutral, platform admission is owned by the protected-local launch session profiles table with Windows as the first positive row and macOS and Linux remaining requirements-only and fail closed, immutable profiles remain typed unavailable until 0P/P supplies package mapping and implementation, and development state cannot be reinterpreted as an immutable record or bundled identity.
+    statement: The authorization, verified-native-host, logical-carrier, reapproval, operation-applicability, and non-conversion semantics of the bundled Avatar profile are platform-neutral, the avatar_control logical carrier may reuse the same admitted OS-verified physical endpoint as another first-party carrier but never an OpenDesktopSession, live Desktop process, Desktop account-control principal, or Desktop-owned renderer identity, platform admission is owned by the protected-local launch session profiles table with Windows as the first positive row and macOS and Linux remaining requirements-only and fail closed, immutable profiles remain typed unavailable until 0P/P supplies package mapping and implementation, and development state cannot be reinterpreted as an immutable record or bundled identity.
     condition: Whenever bundled Avatar platform admission or immutable reinterpretation is evaluated.
     failure: Fail closed on unadmitted platforms and reject reinterpretation.
     relations:
@@ -570,11 +570,11 @@ units:
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
   - id: rule.nimi.runtime.protected-session.r056
     kind: rule
-    title: The third-party matrix stays reserved
+    title: The third-party matrix admits only bounded agent conversation
     modality: must
-    statement: The third-party matrix admits no Artifact, Agent, conversation, or voice method while the public permission catalog is fully reserved, those operations remain typed unavailable until the complete P-PERM-017 product-permission slice lands, and a session, app-owned command, internal operation id, or ordinary Runtime route cannot substitute for that admission.
-    condition: Whenever third-party access to reserved operations is requested.
-    failure: Return typed unavailable and reject substitutes for the admission.
+    statement: The third-party matrix admits only the agents.interact-selected open-conversation, send-turn, subscribe-turn, and conversation-snapshot operations after the complete P-PERM-017 selector, decision, SDK and Kit, approval and settings, revoke, audit, and endpoint conjunction, while Artifact, voice, Agent inventory, selector construction, principal substitution, direct Avatar control, embedded rendering, and every other Agent operation remain typed unavailable, and a session, app-owned command, internal operation id, ordinary Runtime route, or caller-selected Agent id cannot substitute for that admission.
+    condition: Whenever third-party access to Agent, conversation, Artifact, Avatar, or voice operations is requested.
+    failure: Admit only the exact authorized four-operation agents.interact subset and return typed unavailable for every substitute or out-of-subset operation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
@@ -1130,11 +1130,11 @@ units:
         target: definition.nimi.runtime.protected-session.account-session-plane
   - id: rule.nimi.runtime.protected-session.r112
     kind: rule
-    title: Third-party Agent operations stay unavailable
+    title: Third-party Agent access stays selector-bound and exact
     modality: must
-    statement: K-AGCORE-006e is not a base entitlement, third-party Agent inventory and conversation operations remain unavailable until agents.interact has a complete admitted selector, lifecycle, SDK and Kit, UI, audit, revoke, and endpoint slice, and no old operation grant or caller-selected Agent id can promote them.
+    statement: K-AGCORE-006e is not a base entitlement, third-party Agent inventory and selector construction remain unavailable, and agents.interact admits only open-conversation, send-turn, subscribe-turn, and conversation-snapshot after its complete selector, lifecycle, SDK and Kit, UI, audit, revoke, and endpoint slice, while no old operation grant, caller-selected Agent id, voice or artifact operation, direct Avatar control, or principal substitution can promote or widen that exact subset.
     condition: Whenever third-party Agent operations are requested.
-    failure: Return unavailable and reject promotion.
+    failure: Return unavailable for inventory, selector construction, incomplete admission, or an out-of-subset operation and reject promotion.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.account-session-plane
@@ -1142,19 +1142,19 @@ units:
     kind: rule
     title: The canonical config location is service-owned
     modality: must
-    statement: Production Runtime configuration is service-principal-owned state at the OS-profile-specific protected location pinned in the protected-local runtime principal profiles table, its physical path is not a Desktop, SDK, or public CLI interface and is never projected to renderer or app callers, ~/.nimi/runtime/config.json, ~/.nimi/config.json, and any other user-writable file are forbidden production inputs, and this pre-release hardcut imports no retired config or credential material.
+    statement: Production Runtime private configuration is service-principal-owned state at the OS-profile-specific protected location pinned in the protected-local runtime principal profiles table, its physical path is not a Desktop, SDK, or public CLI interface and is never projected to renderer or app callers, ~/.nimi/runtime/config.json, ~/.nimi/config.json, and any other user-writable Runtime-config file are forbidden production inputs, the fixed ~/.nimi/nimi.json Product Control record is consumed only through the shared resolver and exact typed Product Control operation as the sole dataRoot.path selection authority rather than as Runtime private configuration, and this pre-release hardcut imports no retired config or credential material.
     condition: Whenever the production configuration location or its inputs are resolved.
-    failure: Reject user-writable inputs and physical-path projection.
+    failure: Reject user-writable Runtime-config inputs, alternate Product Control locators, and protected physical-path projection.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
   - id: rule.nimi.runtime.protected-session.r114
     kind: rule
-    title: The updater dataRootRef read is a bounded exception
+    title: The updater reuses canonical Product Control
     modality: must
-    statement: The non-release development updater has one narrower non-Runtime exception in that before invoking the signed installer it may read only the exact dataRootRef field from the current ~/.nimi/runtime/config.json and promote that value to an explicit installer selection, the Runtime service never reads that file, none of its other fields enter protected configuration, a missing, malformed, relative, volume-root, or inaccessible value fails before build or installation, and this is updater input selection, not production Runtime config authority or a compatibility fallback.
-    condition: Whenever the development updater reads the user config file.
-    failure: Fail before build or installation on invalid values and reject any other field.
+    statement: The non-release development updater resolves only dataRoot.path from the fixed ~/.nimi/nimi.json record through the shared Product Control resolver, accepts no operator, environment, argv, ~/.nimi/runtime/config.json, protected-profile, or test override, and treats the result only as the canonical selection to be independently revalidated rather than as a Runtime-config or installer-owned authority.
+    condition: Whenever the development updater resolves the selected data root before build or installation.
+    failure: Fail before build or installation and enter explicit product repair on a missing, malformed, relative, volume-root, inaccessible, or protected-state-mismatched canonical selection without asking for or guessing another path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -1352,9 +1352,9 @@ units:
     kind: rule
     title: Ordinary updates preserve the exact lineage
     modality: must
-    statement: An ordinary signed Runtime update preserves the exact durable development state lineage, Product Control, Runtime identity, local-app kernel state, durable grants, model registry, audit state, and service-owned mutable config therefore survive a binary candidate rotation instead of being silently replaced by an empty candidate directory, account token custody and durable local-project consent remain in their independently stable protected stores, a new lineage may be created only by an explicit destructive repair or reset operation and never merely by installing a new candidate, restarting Desktop, or rotating the Runtime boot epoch, and malformed or unavailable lineage state fails the update closed because the installer does not guess a new directory.
+    statement: An ordinary signed Runtime update preserves the exact durable development state lineage, Runtime identity, local-app kernel state, durable grants, model registry, audit state, and service-owned mutable config through binary candidate rotation instead of replacing them with an empty candidate directory, leaves the independent canonical ~/.nimi/nimi.json Product Control record in place and revalidates its dataRoot.path against the derived protected state, account token custody and durable local-project consent remain in their independently stable protected stores, a new protected lineage may be created only by an explicit destructive repair or reset operation and never merely by installing a new candidate, restarting Desktop, or rotating the Runtime boot epoch, and malformed, unavailable, or mismatched state fails the update closed because the installer does not guess a new directory.
     condition: Whenever a signed Runtime update rotates the binary candidate.
-    failure: Fail the update closed on malformed or unavailable lineage state.
+    failure: Fail the update closed on malformed or unavailable lineage state and route Product Control or derived data-root disagreement to explicit repair without replacing the canonical record or selection.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -1372,9 +1372,9 @@ units:
     kind: rule
     title: Candidate rotation preserves the data-root binding
     modality: must
-    statement: The signed installer preserves an existing non-empty explicit development nimi_data binding when it rotates the binary candidate unless the operator supplies a different explicit binding to that installer invocation, the development updater may obtain that explicit value only from the bounded dataRootRef read described by K-CFG-001, the installer validates and records the exact path while the Runtime service does not read the user file, and a missing, malformed, inaccessible, or reparse-point binding fails the update closed instead of silently falling back to a candidate-specific payload root.
-    condition: Whenever candidate rotation handles the development data-root binding.
-    failure: Fail the update closed without payload-root fallback.
+    statement: Candidate rotation resolves the existing dataRoot.path only from the fixed ~/.nimi/nimi.json record through the shared Product Control resolver, independently validates the exact path and its protected derived evidence, preserves matching dataRootRef and managed-root evidence, and admits no operator, installer, environment, argv, protected-profile, ~/.nimi/runtime/config.json, test-only, or candidate-specific replacement or fallback.
+    condition: Whenever candidate rotation resolves or validates the selected data root.
+    failure: Fail the update closed and route missing, malformed, inaccessible, reparse-point, or mismatched state to explicit repair without a payload-root fallback or another path prompt.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -1390,11 +1390,11 @@ units:
         target: definition.nimi.runtime.protected-session.config-plane
   - id: rule.nimi.runtime.protected-session.r138
     kind: rule
-    title: The First Run proposal cannot create readiness
+    title: First Run has no Runtime data-root proposal
     modality: must
-    statement: For First Run acceptance Runtime may additionally project one visible nimi_data proposal, when the signed installer recorded an explicit absolute development data-root binding that candidate-bound protected profile field is the proposal and the Runtime data-plane roots resolve below it, otherwise the proposal is derived from the verified interactive Windows SID's OS profile mapping, the signed trial id, and the build-record-verified Runtime candidate id, the proposal is not a Product Control record field and cannot select the data root or create readiness because explicit confirmation through the normal typed Product Control operation is still required, the protected service cannot derive the binding from HOME, USERPROFILE, TEMP, renderer state, environment, argv, endpoint, or a Runtime request payload, the signed installer must reject a missing, non-absolute, volume-root, reparse-point, or inaccessible explicit binding, the installer may source that exact field from the preceding protected profile when rotating a candidate subject to the same validation, and the development updater may instead pass the canonical user-config dataRootRef as an explicit selection while the installer and Runtime never consume any other user-config field.
-    condition: Whenever the First Run nimi_data proposal is projected or the binding is sourced.
-    failure: Reject readiness creation by proposal and bindings from forbidden derivations.
+    statement: Runtime, installer, protected profiles, acceptance harnesses, and development checkpoints project no separate nimi_data proposal or binding; an existing valid ~/.nimi/nimi.json dataRoot.path is reused through the shared resolver and independently verified, while an absent selection remains data_root_missing until the normal Product Control UI records the user's one explicit choice through the exact typed operation.
+    condition: Whenever First Run, acceptance, development, installation, or update resolves the selected data root.
+    failure: Reject every alternate proposal, binding, selection, or fallback and route missing or invalid canonical state to normal setup or explicit repair without another path authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -1442,9 +1442,9 @@ units:
     kind: rule
     title: Daemon identity and posture are closed fields
     modality: must
-    statement: Runtime service-owned state may store dataRootRef and derived managed roots for models, dependencies, environments, logs, and audit as Runtime-owned daemon and materialization configuration reconciled from the product control record selected nimi_data, runtimeId is the stable local Runtime daemon identity generated once by the service and immutable for the lifetime of service-owned state, and localService.enabled and localService.mode declare the Runtime local service posture with localService.mode restricted to the closed value desktop-local for the on-device Phase 1 product.
+    statement: Runtime service-owned state may store dataRootRef, derived roots for models, dependencies, environments, apps, accounts, logs, and audit, and their validation evidence only as Runtime-owned daemon, security, and materialization state reconciled from the canonical ~/.nimi/nimi.json dataRoot.path, those protected fields cannot independently select or override the root, runtimeId is the stable local Runtime daemon identity generated once by the service and immutable for the lifetime of service-owned state, and localService.enabled and localService.mode declare the Runtime local service posture with localService.mode restricted to the closed value desktop-local for the on-device Phase 1 product.
     condition: Whenever daemon identity, managed roots, or service posture are configured.
-    failure: Reject mutable runtimeId and posture values outside the closed set.
+    failure: Reject mutable runtimeId, posture values outside the closed set, non-derived roots, and any protected-state attempt to select or override dataRoot.path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -1452,9 +1452,9 @@ units:
     kind: rule
     title: Runtime config owns no product-control truth
     modality: must
-    statement: Runtime config does not own first-run product state, install level, account app library, account profile library, permission grants, or app durable data, the product-control service may project selected nimi_data through an exact typed protected operation, conflicts fail closed, and Runtime never reads the user-writable product-control file as configuration truth.
+    statement: Runtime config does not own first-run product state, dataRoot.path selection, install level, account app library, account profile library, permission grants, or app durable data, Runtime entry consumes the fixed ~/.nimi/nimi.json record through the shared Product Control resolver and exact typed operation, independently validates the selected path, and stores only private derived state and evidence that cannot overwrite or win against the canonical selection.
     condition: Whenever product-control state is projected into configuration.
-    failure: Fail closed on conflicts and reject user-file configuration truth.
+    failure: Enter explicit repair or fail closed on missing, invalid, or conflicting canonical and derived state, never select from protected state and never ask for a third path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -1462,9 +1462,9 @@ units:
     kind: rule
     title: The Windows data-root handoff is exact
     modality: must
-    statement: On Windows, before the exact nimi_data mutation is sent, the verified native Desktop host prepares the user-selected data-plane root through the shared Kit OS adapter, preparation preserves the interactive user as the root owner, rejects a reparse-point root, and grants inheritable modify authority only to the exact restricted NT SERVICE\NimiRuntime service SID needed for Runtime-managed children, Runtime still independently validates the absolute path, creates the closed managed-root layout, and owns the service-state write, renderer code may neither name a SID nor mutate an ACL, an environment variable, endpoint, direct daemon, broad principal grant, or test-only service identity cannot satisfy this handoff, and failure to prepare or validate the root leaves dataRootRef empty and first-run blocked.
+    statement: On Windows, before the exact nimi_data mutation is sent, the verified native Desktop host resolves dataRoot.path from the canonical ~/.nimi/nimi.json record, prepares that user-selected data-plane root through the shared Kit OS adapter, preserves the interactive user as the root owner, rejects a reparse-point root, and grants inheritable modify authority only to the exact restricted NT SERVICE\NimiRuntime service SID needed for Runtime-managed children, Runtime still independently validates the absolute path, creates the closed managed-root layout, and owns only the derived service-state write, renderer code may neither name a SID nor mutate an ACL, and an environment variable, endpoint, direct daemon, broad principal grant, or test-only service identity cannot satisfy this handoff.
     condition: Whenever the Windows data-plane root is prepared and handed off.
-    failure: Leave dataRootRef empty and first-run blocked on preparation or validation failure.
+    failure: Mark derived data-root evidence invalid and enter repair_required or blocked on preparation, validation, or canonical-to-protected mismatch without changing dataRoot.path or requesting another path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane

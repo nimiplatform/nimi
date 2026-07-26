@@ -134,7 +134,7 @@ export const NIMI_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
   "bundled_avatar_v1": {
     identityClass: "avatar",
     principalPolicyRef: "bundled_avatar_current_account_generation_principal",
-    invalidationPolicyRef: "avatar_sender_connection_boot_epoch_or_account_generation_change",
+    invalidationPolicyRef: "avatar_native_host_process_sender_connection_boot_epoch_or_account_generation_change",
     methods: {
       "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth": { typedMethod: "getRuntimeHealth", kind: "unary", intentRefs: ["bundled_avatar_runtime"] },
       "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus": { typedMethod: "getAccountSessionStatus", kind: "unary", intentRefs: ["bundled_avatar_runtime"] },

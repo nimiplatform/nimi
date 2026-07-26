@@ -917,7 +917,7 @@ units:
   - id: definition.nimi.platform.core-protocol.account-default-profile
     kind: definition
     title: Account Default Profile
-    meaning: The Account Default Profile is the durable account-scoped local profile-library record at ~/.nimi/accounts/<account-id>/profiles/default.json, seeded or restored during first-run and never sourced from Realm identity material or an ambient projection.
+    meaning: The Account Default Profile is the durable account-scoped local profile-library record at <dataRoot>/accounts/<account-id>/profiles/default.json, where dataRoot is resolved only from ~/.nimi/nimi.json, seeded or restored during first-run, and never sourced from Realm identity material, an ambient projection, or a caller-supplied root.
   - id: definition.nimi.platform.core-protocol.capability-governance
     kind: definition
     title: Canonical capability governance metadata

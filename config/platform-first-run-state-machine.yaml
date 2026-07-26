@@ -17,7 +17,7 @@ states:
     copy_floor: Sign in to use Nimi.
   - state: config_missing
     surface: internal_creation
-    entry_condition: <runtime_owner_state_root>/nimi.json is missing or cannot be parsed as a Nimi product config
+    entry_condition: ~/.nimi/nimi.json is missing or cannot be parsed as a Nimi product config
     allowed_user_actions: []
     exit_condition: valid empty product config is created, otherwise blocked
     copy_floor: Nimi is creating its local product record.
@@ -28,7 +28,7 @@ states:
       - choose_folder
       - review_storage_role
       - confirm
-    exit_condition: selected folder is absolute and user-writable; the native host has prepared exact OS service-principal access for the selected tree; Runtime independently verifies it, records it in <runtime_owner_state_root>/nimi.json, and creates the required root directories
+    exit_condition: selected folder is absolute and user-writable; the native host has prepared exact OS service-principal access for the selected tree; Runtime independently verifies it; Product Control records dataRoot.path in ~/.nimi/nimi.json through the exact typed operation; and the required models, dependencies, environments, apps, accounts, logs, and audit roots are derived beneath it
     copy_floor: Choose where Nimi stores models, apps, and large local data.
   - state: data_root_selected
     surface: device_environment_scan

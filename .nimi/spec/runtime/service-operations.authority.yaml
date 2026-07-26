@@ -84,9 +84,9 @@ units:
     kind: rule
     title: Product control remains a Runtime state machine
     modality: must
-    statement: RuntimeLocalService owns the runtime-owner-root nimi.json product-control record, data-root layout materialization, install validation, device-scan completion, and every first-run mutation through ready_for_use, while Desktop may provide only bounded OS helpers and explicit backend-verified accountDefaultProfileRef and builtInAiConfigRefs evidence.
+    statement: RuntimeLocalService owns the typed validation, reconciliation, data-root layout materialization, install validation, device-scan completion, and readiness-admission operations of the Product Control state machine, those operations consume and mutate only the canonical ~/.nimi/nimi.json record located through the shared resolver and store only derived private verification state under the protected service root, while Desktop may provide only the canonical record bridge, bounded OS helpers, and explicit backend-verified accountDefaultProfileRef and builtInAiConfigRefs evidence.
     condition: Whenever ordinary first-run setup reads, reconciles, or mutates product control.
-    failure: Reject a Desktop, SDK, app, or host write that bypasses the Runtime product-control state machine.
+    failure: Reject a Desktop, SDK, app, or host write that bypasses the Runtime Product Control state machine, every alternate record, and every protected-state selection or override of dataRoot.path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.local-service-plane
@@ -144,9 +144,9 @@ units:
     kind: rule
     title: Local state storage roles are disjoint
     modality: must
-    statement: localStatePath is the sole active Runtime local AI state for assets, transfers, dependency assets, setup jobs, cutover evidence, and health projection; managedRoots.models is the payload root derived from dataRootRef unless Runtime config reconciles it; and the Nimi data directory is storage rather than state truth.
+    statement: localStatePath is the sole active Runtime local AI private state for assets, transfers, dependency assets, setup jobs, cutover evidence, and health projection; dataRootRef is derived only from canonical ~/.nimi/nimi.json dataRoot.path; models, dependencies, environments, apps, accounts, logs, and audit roots are derived only beneath that exact dataRootRef; Runtime config records validation evidence but cannot reconcile to a different root; and the Nimi data directory is storage rather than private Runtime state truth.
     condition: Whenever Runtime or a host resolves local AI storage.
-    failure: Reject a second state file, a retired-state fallback, a silent dual read or write, or payload existence treated as state truth.
+    failure: Reject a second Product Control or state file, a non-derived root, a retired-state fallback, a silent dual read or write, payload existence treated as state truth, and canonical-to-protected disagreement without explicit repair.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.local-service-plane
@@ -154,9 +154,9 @@ units:
     kind: rule
     title: Data-root changes require an explicit reconciliation plan
     modality: must
-    statement: A Nimi data-directory change produces or submits a Runtime reconciliation plan containing effective localStatePath, effective dataRootRef, managed roots, dependency install root, detected retired inputs, asset counts, conflicts, and whether user confirmation is required before local AI state is assumed usable.
-    condition: Whenever an admitted host changes the Nimi data directory or Runtime storage roots disagree.
-    failure: Keep the existing Runtime state active and reject use of the new roots until the complete plan is accepted.
+    statement: A user-requested Nimi data-directory change through the normal Product Control UI and exact typed operation produces or submits a Runtime reconciliation plan containing effective localStatePath, canonical dataRoot.path, derived dataRootRef, managed roots, dependency install root, detected retired inputs, asset counts, conflicts, and whether user confirmation is required before local AI state is assumed usable, while a disagreement caused only by damaged or stale protected derived state enters repair and never changes the canonical selection.
+    condition: Whenever an admitted Product Control operation changes the Nimi data directory or Runtime derived storage state disagrees with ~/.nimi/nimi.json.
+    failure: Keep materialization unavailable until the complete plan or repair succeeds, preserve canonical dataRoot.path as the only selection authority, and reject protected-state override, fallback, or another path prompt.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.local-service-plane
@@ -838,11 +838,11 @@ units:
         target: definition.nimi.runtime.service-operations.cli-plane
   - id: rule.nimi.runtime.service-operations.r081
     kind: rule
-    title: Cloud onboarding is provider first and machine scoped
+    title: Cloud onboarding is provider first and mutable only in explicit nonproduction portable mode
     modality: must
-    statement: Public cloud setup uses machine-scoped provider credentials and nimi provider list, set, unset, and test; run supports provider one-shot and machine-default --cloud entry, and when an interactive run identifies a provider with missing credentials it may accept an API key, write canonical config immediately, and continue the same command without account login.
+    statement: Public cloud setup uses nimi provider list, set, unset, and test, run supports provider one-shot and machine-default --cloud entry, and provider configuration mutation through set, unset, or interactive credential setup is admitted only against an explicitly supplied nonproduction portable config; after successful interactive setup Runtime may write that explicit portable config and continue the same command without account login, but the portable config never records, discovers, selects, or overrides dataRoot.path, Product Control state, or production Runtime private configuration.
     condition: Whenever a user configures or first invokes cloud generation.
-    failure: Reject noncanonical credential storage, an account-login prerequisite, or a flow that cannot continue after successful interactive setup.
+    failure: Reject provider mutation without an explicit nonproduction portable config, any portable data-root or Product Control authority, an account-login prerequisite, or a flow that cannot continue after successful interactive setup.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
@@ -850,9 +850,9 @@ units:
     kind: rule
     title: Doctor reports the minimum operational context
     modality: must
-    statement: nimi doctor reports binary version, config path, daemon health, local engine health, configured providers, installed models, and optional SDK detection in the current working directory.
+    statement: nimi doctor reports binary version, daemon health, local engine health, configured providers, installed models, and optional SDK detection in the current working directory without discovering, inferring, or exposing a production Runtime private physical configuration path; only when an explicit nonproduction portable config was supplied may doctor report that path, labeled as the nonproduction portable config entry.
     condition: Whenever nimi doctor runs.
-    failure: Return a diagnostic failure when required operational context cannot be determined rather than omit it silently.
+    failure: Return a diagnostic failure when required operational context cannot be determined, and reject default private-path discovery, private-path exposure, or a portable path reported without its nonproduction label.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
@@ -870,9 +870,9 @@ units:
     kind: rule
     title: Version command returns installation diagnostics
     modality: must
-    statement: nimi version outputs the nimi version, Go version, operating system and architecture, and config path.
+    statement: nimi version outputs the nimi version, Go version, and operating system and architecture without discovering, inferring, or exposing a production Runtime private physical configuration path; only when an explicit nonproduction portable config was supplied may version additionally report that path, labeled as the nonproduction portable config entry.
     condition: Whenever nimi version runs.
-    failure: Return a command failure when the complete version diagnostic cannot be produced.
+    failure: Return a command failure when the complete version diagnostic cannot be produced, and reject default private-path discovery, private-path exposure, or a portable path reported without its nonproduction label.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane

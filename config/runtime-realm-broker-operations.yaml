@@ -23,7 +23,7 @@ unlisted_operation_disposition: deny_broker_operation_not_admitted
 description: >
   Exact RuntimeAccountService.InvokeRealmUnary admission for protected
   source-readiness journeys. Every row requires either the verified protected
-  Desktop account host or the fixed Desktop-supervised bundled Avatar profile,
+  Desktop account host or the fixed independent bundled Avatar native-host profile,
   plus the current
   authenticated account, Runtime-only Realm bearer custody, the configured
   canonical Realm base, and the row-specific OpenAPI request shape. No other
@@ -65,7 +65,7 @@ policy_templates:
     authorization_profile: protected_bundled_avatar_source_readiness
     allowed_runtime_caller_modes:
       - ACCOUNT_CALLER_MODE_DESKTOP_SHELL
-      - ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
+      - ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST
     protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
     realm_base_policy: runtime-configured-canonical-exact
     response_max_bytes: 1048576

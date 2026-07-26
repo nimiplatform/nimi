@@ -5,13 +5,26 @@ version: 2
 table_family: product_record_schema
 owner: platform
 record_id: nimi_product_control_record
-path: <runtime_owner_state_root>/nimi.json
+path: ~/.nimi/nimi.json
 path_binding:
-  production_fixed_service: installer_verified_service_state_root
-  non_production_runtime: parent_owner_root_derived_from_runtime_local_state_path
-  non_release_dev_kernel_checkpoint: signed_candidate_profile_derived_service_owned_checkpoint_partition
+  fixed_user_control: os_verified_interactive_user_profile_dot_nimi
+  profile_to_control_boundary:
+    dot_nimi: direct_non_symlink_non_junction_non_reparse_directory
+    nimi_json: direct_regular_non_symlink_non_reparse_file
+  runtime_protected_state: derived_security_and_verification_only
+  non_release_dev_kernel_checkpoint: same_fixed_product_control_path
   caller_or_environment_override: forbidden
   dual_read_or_migration_fallback: forbidden
+data_root_path:
+  type: string
+  path_kind: absolute_ordinary_non_volume_root_directory
+  forbidden_roots:
+    - windows_drive_root
+    - unc_share_root
+    - extended_path_volume_root
+    - posix_filesystem_root
+    - equivalent_volume_root
+  ordinary_absolute_subdirectory: admitted
 source_rule: P-COLD-015
 schema_version: 1
 required_top_level_fields:
@@ -23,19 +36,52 @@ required_top_level_fields:
   - firstRun
   - pointers
   - repair
+first_run_wire_shape:
+  required_fields:
+    - installLevel
+    - aiProfileAlias
+    - completed
+    - completedAt
+    - initializationPlanId
+    - baselineProfileRef
+    - baselineCommitId
+    - accountDefaultProfileRef
+    - builtInAiConfigRefs
+    - runtimeBaselineRef
+    - executionEvidenceRef
+  pre_selection_values:
+    nullable_fields:
+      - installLevel
+      - aiProfileAlias
+      - completedAt
+      - initializationPlanId
+      - baselineProfileRef
+      - baselineCommitId
+      - accountDefaultProfileRef
+      - runtimeBaselineRef
+      - executionEvidenceRef
+    builtInAiConfigRefs: empty_array_admitted
+    completed: false
+  ready_values:
+    installLevel: [minimal, recommended]
+    completed: true
+    required_evidence_strings: non_empty
+    builtInAiConfigRefs: non_empty_string_array
 state_field:
   owner: platform_cold_start
   enum_ref: P-COLD-009
   ready_state: ready_for_use
 invariants:
   - id: product-control-record-owner
-    requirement: <runtime_owner_state_root>/nimi.json is the only installed product readiness control record; production binds runtime_owner_state_root to the installer-verified service root before listener startup.
+    requirement: <OS-verified-interactive-user-profile>/.nimi/nimi.json is the only installed product readiness and dataRoot.path discovery record; its location is fixed and not user-configurable, .nimi is a direct non-symlink non-junction non-reparse directory, nimi.json is a direct regular non-symlink non-reparse file, and Runtime protected state is derived security and verification state rather than a second record.
   - id: selected-data-root-required-before-heavy-setup
-    requirement: dataRoot.path must be an absolute user-selected nimi_data path before downloads, dependency installation, app package install, model materialization, or environment setup.
+    requirement: dataRoot.path must be an absolute ordinary non-volume-root user-selected nimi_data directory before downloads, dependency installation, app package install, model materialization, or environment setup; Windows drive roots, UNC share roots, extended-path volume roots, the POSIX filesystem root, and equivalent volume roots are forbidden while ordinary absolute subdirectories are admitted.
+  - id: first-run-field-presence-and-preselection-values
+    requirement: Every firstRun field is present with its exact type; fields without a selected value or evidence may use their admitted null value, builtInAiConfigRefs may be empty before selection, and ready_for_use retains the complete non-empty ready evidence requirements.
   - id: selected-data-root-evidence
     requirement: dataRoot selectedAt and verifiedAt evidence must exist after native-host OS service-principal access preparation and Runtime verification; ready_for_use requires dataRoot.status=ready. On Windows the user remains root owner, only the exact fixed NimiRuntime service SID receives inherited selected-tree access, and reparse-point roots fail closed.
   - id: local-install-level-only
-    requirement: firstRun.installLevel must be minimal or recommended; cloud, hybrid, connector, video, and app-specific levels are invalid.
+    requirement: firstRun.installLevel is null before a local install level is selected, otherwise it must be minimal or recommended, and ready_for_use requires it to be non-null; cloud, hybrid, connector, video, and app-specific levels are invalid.
   - id: ready-evidence-required
     requirement: ready_for_use requires firstRun.completed=true, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, non-empty builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef.
   - id: ready-evidence-owner-verification
@@ -43,29 +89,18 @@ invariants:
   - id: backend-admission-only
     requirement: ready_for_use may be written only by the product-control backend admission operation after composing all owner evidence in the canonical order.
   - id: runtime-config-pointer-non-owner
-    requirement: pointers.runtimeConfigPath is forbidden; product control may project selected dataRoot only through an exact typed protected Runtime operation and never stores or exposes a service config path.
+    requirement: pointers.runtimeConfigPath is forbidden; Product Control projects selected dataRoot only through an exact typed protected Runtime operation, never stores or exposes a service config path, and ProgramData state cannot select or override dataRoot.path.
   - id: app-projection-pointer-non-owner
     requirement: pointers.appRegistry and pointers.appPackages are forbidden; product control cannot point at, recreate, migrate, or treat user-local app registry/package projections as discovery, identity, package, grant, inventory, or readiness truth.
   - id: repair-fail-closed
     requirement: repair.required or invalid product-control shape routes to repair_required or blocked, never ordinary ready.
   - id: non-release-checkpoint-round-partition
-    requirement: The first signed-installer dev_kernel_checkpoint installation creates a durable development state lineage from exact trial id, first-install developmentStateCandidateId, and a cryptographically random acceptanceRoundId. Ordinary signed Runtime candidate updates preserve that exact lineage and Product Control record; candidate rotation never creates a fresh installId, resets grants, or abandons selected payloads. A new lineage requires an explicit destructive repair/reset operation. Existing or damaged records and every production profile retain normal repair/fail-closed semantics; HOME, TEMP, renderer state, endpoint, environment, argv, and request fields cannot select a lineage or enable reset.
-projection_fields:
-  dataRootProposal:
-    record_field: false
-    required_profile: dev_kernel_checkpoint
-    owner: runtime_protected_product_control
-    derivation: signed_installer_explicit_development_data_root_binding_or_verified_interactive_windows_sid_os_profile_mapping_plus_signed_trial_id_plus_build_record_verified_runtime_candidate_id
-    semantics: visible_confirmable_proposal_only
-    selection_effect: none
-    forbidden_inputs: [home, userprofile, temp, renderer_state, environment, argv, endpoint, request_field]
-    explicit_binding_constraints: [existing_absolute_non_volume_root, non_reparse_directory, fixed_service_accessible, candidate_bound_protected_profile]
-    payload_reuse_semantics: current_candidate_reverifies_catalog_hash_manifest_compatibility_and_activation_without_importing_prior_registry_or_readiness
+    requirement: The first signed-installer dev_kernel_checkpoint installation creates only a durable protected development state lineage from exact trial id, first-install developmentStateCandidateId, and a cryptographically random acceptanceRoundId. Ordinary signed Runtime candidate updates preserve that exact protected lineage while leaving ~/.nimi/nimi.json independent and reusing its canonical dataRoot.path. Candidate rotation never creates a fresh installId, resets grants, abandons selected payloads, or supplies a separate data-root proposal or binding. A new protected lineage requires an explicit destructive repair/reset operation. Existing or damaged records and every production profile retain normal repair/fail-closed semantics; HOME, TEMP, renderer state, endpoint, environment, argv, request fields, installers, and test harnesses cannot select dataRoot.path or enable reset.
 ready_admission:
   source_rule: P-COLD-016
   logical_operation: AdmitProductReadyForUse
   owner: runtime_product_control_service
-  writable_record: <runtime_owner_state_root>/nimi.json
+  writable_record: ~/.nimi/nimi.json
   caller_boundary:
     allowed_callers:
       - desktop_host_first_run_coordinator
@@ -238,20 +273,20 @@ fields:
       - local_ai_ready
       - ready_for_use
     fields:
-      path: absolute user-selected nimi_data path
+      path: absolute user-selected ordinary non-volume-root nimi_data directory
       status: selected | ready | repair_required
       selectedAt: timestamp for user selection
       verifiedAt: timestamp for writability and required directory verification
   firstRun:
     fields:
-      installLevel: minimal | recommended
-      aiProfileAlias: admitted first-run local factory AIProfile alias
-      completed: boolean
-      completedAt: timestamp
-      initializationPlanId: Runtime/Desktop initialization plan evidence ref
-      baselineProfileRef: selected local baseline profile ref
-      baselineCommitId: baseline profile commit ref
-      accountDefaultProfileRef: Account Default Profile evidence ref
-      builtInAiConfigRefs: non-empty built-in AIConfig refs
-      runtimeBaselineRef: Runtime baseline readiness evidence ref
-      executionEvidenceRef: baseline execution evidence ref
+      installLevel: required field; null before selection, otherwise minimal | recommended, and non-null in ready_for_use
+      aiProfileAlias: required field; null before selection, otherwise an admitted first-run local factory AIProfile alias, and non-null in ready_for_use
+      completed: required boolean; false before completion and true in ready_for_use
+      completedAt: required field; null before completion and a non-empty timestamp in ready_for_use
+      initializationPlanId: required field; null before evidence exists and a non-empty Runtime/Desktop initialization plan evidence ref in ready_for_use
+      baselineProfileRef: required field; null before evidence exists and a non-empty selected local baseline profile ref in ready_for_use
+      baselineCommitId: required field; null before evidence exists and a non-empty baseline profile commit ref in ready_for_use
+      accountDefaultProfileRef: required field; null before evidence exists and a non-empty Account Default Profile evidence ref in ready_for_use
+      builtInAiConfigRefs: required array; empty before selection and a non-empty array of non-empty built-in AIConfig refs in ready_for_use
+      runtimeBaselineRef: required field; null before evidence exists and a non-empty Runtime baseline readiness evidence ref in ready_for_use
+      executionEvidenceRef: required field; null before evidence exists and a non-empty baseline execution evidence ref in ready_for_use

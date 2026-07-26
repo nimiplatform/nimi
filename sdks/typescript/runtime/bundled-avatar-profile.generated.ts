@@ -4,8 +4,8 @@
 import type { RuntimeTypedClient } from '../core-generated/runtime-typed-client';
 
 export const NIMI_BUNDLED_AVATAR_APP_ID = "nimi.avatar" as const;
-export const NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID = "nimi.avatar.desktop-supervised" as const;
-export const NIMI_BUNDLED_AVATAR_DEVICE_ID = "desktop-avatar-host" as const;
+export const NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID = "nimi.avatar" as const;
+export const NIMI_BUNDLED_AVATAR_DEVICE_ID = "avatar-native-host" as const;
 
 export const NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS = {
   audit: ["getRuntimeHealth"],

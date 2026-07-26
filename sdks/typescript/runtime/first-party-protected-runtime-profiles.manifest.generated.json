@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "compiler": "scripts/generate-first-party-protected-runtime-profiles.mjs",
   "source": "config/spec-frozen/runtime/tables/first-party-protected-runtime-profiles.yaml",
-  "sourceSha256": "7cc53b54b9e57e703bb6b10186f7bfc7ffa690d42f35a9e791bc92057e134a59",
+  "sourceSha256": "d51eb1addd3ab6a813ee53143b081db699d16afc7168edfbc6928f9f2bca129b",
   "profiles": {
     "desktop_machine_product_v1": {
       "identityClass": "machine",
@@ -49,11 +49,11 @@
   },
   "outputSha256": {
     "runtime/internal/protectedlocal/first_party_profiles_generated.go": "42565c337b4d9687af94f94018524c191d002bc8fb30648ce3ade92d788b9774",
-    "runtime/internal/bundledavatar/profile_generated.go": "f155884a095ab0c92d88b627ae6854296663cdb2293a56c9ec4a6bd703364767",
+    "runtime/internal/bundledavatar/profile_generated.go": "16bd22f81603709ae6dd956b3d9d1e0491f5c105057c67712c15160fba64f643",
     "kit/shell/protected-local/src/first_party_profiles_generated.rs": "dad1083db0d7fe341a0bb68d30a7fe280387c01fba654c37165ddd278dd3aa78",
     "kit/shell/electron/src/main/first-party-protected-runtime-profiles.generated.ts": "fedb2c95cd41f2fcd3e43153f2ed582e1d0f7bdaf19f20c2cbc043d15aa81022",
-    "kit/shell/electron/src/main/bundled-avatar-profile.generated.ts": "9766a09d2070289656b12505fac70231c1bcc3be141dc64b3d51206328d78692",
-    "sdks/typescript/runtime/first-party-protected-runtime-profiles.generated.ts": "351bab4d4dd4df77c10f6cc0173905a321a57389b63381be1cdfe403bacca23c",
-    "sdks/typescript/runtime/bundled-avatar-profile.generated.ts": "4a0920428bc4225e511d5a5d2dd39d373d76bdaa15576d142c1b0d164f7b4be3"
+    "kit/shell/electron/src/main/bundled-avatar-profile.generated.ts": "5f6f43944a1c14366350ffb782155bef68a8d935b689e817ee6de440ab00c411",
+    "sdks/typescript/runtime/first-party-protected-runtime-profiles.generated.ts": "ea7ca0603a35016d1ea925dfedfd81b32c429b59081ce2948094ace98d2c7151",
+    "sdks/typescript/runtime/bundled-avatar-profile.generated.ts": "e32919a4aa97fc7c26310eeb62037980b95cbfd131e78a1bc5affe656b55e33f"
   }
 }

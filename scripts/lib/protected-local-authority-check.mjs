@@ -30,6 +30,7 @@ export const AUTHORITY_PATHS = Object.freeze({
 const EXPECTED_TRANSPORTS = Object.freeze([
   'public_tcp',
   'desktop_control',
+  'avatar_control',
   'local_app_bootstrap',
   'local_app_host',
 ]);

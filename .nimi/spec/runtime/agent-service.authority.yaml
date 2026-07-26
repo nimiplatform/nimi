@@ -266,11 +266,11 @@ units:
         target: definition.nimi.runtime.agent-service.agent-service-plane
   - id: rule.nimi.runtime.agent-service.r027
     kind: rule
-    title: The local-app carrier exposes no agent operation
+    title: The local-app carrier exposes only the admitted agent-interaction subset
     modality: must
-    statement: The local-app protected carrier currently exposes no RuntimeAgent operation, the public agents.interact permission is reserved so inventory, Agent selection, conversation open, turn, subscription, snapshot, and voice operations all return typed unavailable to LOCAL_APP, a valid local-app session exposes only permission posture and unrelated base entitlements and cannot enumerate Agents to manufacture a selector, and bundled first-party callers retain their separately admitted service entitlements and are not converted into third-party principals.
+    statement: The local-app protected carrier exposes only open-conversation, send-turn, subscribe-turn, and conversation-snapshot RuntimeAgent operations admitted by an owner-issued agents.interact selector and current permission decision, exposes no Agent inventory, unrestricted Agent selection, selector construction, voice or artifact operation, account identity, principal substitution, direct Avatar control, or operation outside that exact subset, cannot enumerate Agents to manufacture a selector, and keeps bundled first-party callers on their separately admitted service entitlements without converting them into third-party principals.
     condition: Whenever LOCAL_APP callers reach RuntimeAgent surfaces.
-    failure: Return typed unavailable to LOCAL_APP and reject selector manufacture and principal conversion.
+    failure: Return typed unavailable or permission status outside the admitted selector, decision, operation subset, or principal boundary and reject selector manufacture and principal conversion.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane
@@ -316,11 +316,11 @@ units:
         target: definition.nimi.runtime.agent-service.agent-service-plane
   - id: rule.nimi.runtime.agent-service.r032
     kind: rule
-    title: The local-app agent selector stays reserved
+    title: The local-app agent selector stays owner-issued and bounded
     modality: must
-    statement: No zero-permission Agent inventory exception is admitted, no local-app Agent inventory RPC or shell operation exists and SDK, Kit, Desktop, and compatibility bridges must not recreate one, when agents.interact is admitted as a complete P-PERM-017 slice the canonical Agent owner picker selects the bounded Agent set before the app gets authority, the app receives only the public selected-Agent projection and may then use the operation families mapped to that one product intent, it does not receive full account Agent inventory, raw owner ids, internal operation ids, resource fingerprints, or a selector-building API, and until that owner picker, decision lifecycle, audit, settings and revoke UX, and endpoint enforcement all exist every third-party Agent read or mutation fails closed.
+    statement: No zero-permission Agent inventory exception is admitted, no local-app Agent inventory RPC or shell operation exists and SDK, Kit, Desktop, and compatibility bridges must not recreate one, agents.interact uses the canonical Agent owner picker to select the bounded Agent set before the app gets authority, the app receives only the public selected-Agent projection and may then use the exact conversation operation families mapped to that one product intent, it does not receive full account Agent inventory, raw owner ids, internal operation ids, resource fingerprints, or a selector-building API, and owner picker, decision lifecycle, audit, settings and revoke UX, and endpoint enforcement remain mandatory for every admitted call.
     condition: Whenever third-party Agent access or inventory is evaluated.
-    failure: Fail closed on every third-party Agent read or mutation before the complete slice exists.
+    failure: Fail closed on an absent, denied, expired, revoked, mismatched, or incompletely enforced agents.interact decision and reject every unadmitted third-party Agent read or mutation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane

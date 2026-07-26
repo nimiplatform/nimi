@@ -582,9 +582,9 @@ units:
     kind: rule
     title: Third-party voice transport is closed
     modality: must_not
-    statement: A Runtime agent voice operation is admitted on the third-party local_app_host transport, a local-app session, manifest declaration, agent identifier, or app-owned command authorizes transcription, voice-stream subscription, generic AI execution, route selection, or provider selection under the reserved agents.interact permission, SubscribeAgentVoiceStream serves consumers beyond its protected or scoped first-party set, or a future third-party voice slice restores fine-grained agent-voice permission strings or a generic Runtime proxy instead of atomically admitting the public permission, typed SDK operation, Runtime owner policy, bounded selector rules, shell carrier projection, revocation behavior, and product UX.
+    statement: A Runtime agent voice operation is admitted on the third-party local_app_host transport, the text-conversation-only agents.interact permission or a local-app session, manifest declaration, agent identifier, or app-owned command authorizes transcription, voice-stream subscription, generic AI execution, route selection, or provider selection, SubscribeAgentVoiceStream serves consumers beyond its protected or scoped first-party set, or a future third-party voice slice restores fine-grained agent-voice permission strings or a generic Runtime proxy instead of atomically admitting a distinct public permission, typed SDK operation, Runtime owner policy, bounded selector rules, shell carrier projection, revocation behavior, and product UX.
     condition: Whenever third-party transports or permissions meet agent voice capability.
-    failure: Fail closed on the reserved boundary without partial voice admissions.
+    failure: Fail closed on the voice boundary without partial voice admissions.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane

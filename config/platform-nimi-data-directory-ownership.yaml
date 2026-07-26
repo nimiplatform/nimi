@@ -24,9 +24,9 @@ rows:
   - directories_10
   - directories_11
   - directories_12
-  - directories_13
-  - directories_14
-  - directories_15
+  - the first-level nimi_data directory set is exactly models, dependencies,
+    environments, apps, accounts, logs, and audit; owner-local cache, generated,
+    and tmp directories may exist only below their admitted owner subtree
   - every first-level nimi_data directory must declare an owner and a cleanup
     rule; cleanup operations must obey the owning authority per P-MIG-006
   - models, dependencies, and environments may only be mutated through
@@ -107,13 +107,6 @@ directories:
     cleanup_rule: User-managed.
     source_rule: P-MIG-006
 
-  - directory_id: shared_cache
-    path: "<nimi_data>/cache/"
-    owner: nimi_product_shell
-    product_meaning: Shared cache not owned by one app or account.
-    cleanup_rule: Clearable.
-    source_rule: P-MIG-006
-
   - directory_id: logs
     path: "<nimi_data>/logs/"
     owner: runtime_product_support
@@ -126,18 +119,4 @@ directories:
     owner: runtime_realm_product_audit
     product_meaning: Local audit projections.
     cleanup_rule: Retention and privacy policy required.
-    source_rule: P-MIG-006
-
-  - directory_id: generated
-    path: "<nimi_data>/generated/"
-    owner: runtime_and_apps
-    product_meaning: Generated artifacts not yet committed to app or account data.
-    cleanup_rule: User-visible cleanup policy required.
-    source_rule: P-MIG-006
-
-  - directory_id: product_tmp
-    path: "<nimi_data>/tmp/"
-    owner: nimi_product_shell
-    product_meaning: Temporary product files.
-    cleanup_rule: Safe to clean after process exit.
     source_rule: P-MIG-006

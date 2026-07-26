@@ -3,8 +3,8 @@
 
 export const NIMI_ELECTRON_BUNDLED_AVATAR_PROFILE_ID = 'bundled_avatar_v1' as const;
 export const NIMI_ELECTRON_BUNDLED_AVATAR_APP_ID = "nimi.avatar" as const;
-export const NIMI_ELECTRON_BUNDLED_AVATAR_APP_INSTANCE_ID = "nimi.avatar.desktop-supervised" as const;
-export const NIMI_ELECTRON_BUNDLED_AVATAR_DEVICE_ID = "desktop-avatar-host" as const;
+export const NIMI_ELECTRON_BUNDLED_AVATAR_APP_INSTANCE_ID = "nimi.avatar" as const;
+export const NIMI_ELECTRON_BUNDLED_AVATAR_DEVICE_ID = "avatar-native-host" as const;
 
 export const NIMI_ELECTRON_BUNDLED_AVATAR_METHODS = {
   "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth": { kind: "unary", capability: "runtime.health.read" },

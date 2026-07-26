@@ -21,7 +21,8 @@ const OUTPUT_PATHS = Object.freeze([
 
 const TOP_LEVEL_FIELDS = new Set([
   'version', 'table_family', 'owner', 'protocol_id', 'surfaces', 'source_rules',
-  'physical_transport_class', 'membership_authority', 'renderer_may_select_profile',
+  'physical_endpoint_binding', 'logical_transport_class_by_profile',
+  'membership_authority', 'renderer_may_select_profile',
   'renderer_may_supply_method_id', 'renderer_may_supply_metadata',
   'renderer_may_supply_principal', 'renderer_may_supply_account', 'portable_session_allowed',
   'ordinary_grpc_disposition', 'public_tcp_disposition', 'generic_proxy',
@@ -30,7 +31,9 @@ const TOP_LEVEL_FIELDS = new Set([
 ]);
 const PROFILE_FIELDS = new Set([
   'profile_id', 'identity_class', 'app_id', 'native_profile_marker', 'required_origin_role',
-  'host_owner', 'principal_policy_ref', 'account_posture', 'sender_posture',
+  'logical_transport_class', 'host_owner', 'principal_policy_ref', 'account_posture',
+  'desktop_account_control_inheritance', 'open_desktop_session_requirement',
+  'live_desktop_process_requirement', 'sender_posture',
   'invalidation_policy_ref', 'native_entrypoint_classes', 'negative_test_ref',
   'account_caller', 'realm_operations', 'methods', 'forbidden',
 ]);
@@ -52,6 +55,16 @@ const EXPLICIT_PARITY_FIELDS = new Set([
 const METHOD_ID_PATTERN = /^\/nimi\.runtime\.v1\.([A-Za-z0-9]+)\/([A-Za-z0-9]+)$/u;
 const PROFILE_ID_PATTERN = /^[a-z][a-z0-9_]*_v[0-9]+$/u;
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/u;
+const LOGICAL_TRANSPORT_CLASS_BY_PROFILE = Object.freeze({
+  desktop_machine_product_v1: 'desktop_control',
+  desktop_account_product_v1: 'desktop_control',
+  bundled_avatar_v1: 'avatar_control',
+});
+const INDEPENDENT_AVATAR_FORBIDDEN_FIELDS = Object.freeze([
+  'desktop_account_control_inheritance',
+  'open_desktop_session_requirement',
+  'live_desktop_process_requirement',
+]);
 
 export function compileFirstPartyProtectedRuntimeProfiles({ repoRoot, sourceText, rpcSourceText } = {}) {
   if (!repoRoot) throw new Error('repoRoot is required');
@@ -105,6 +118,20 @@ function validateAndBuildModel(registry, rpcRegistry) {
     || registry.membership_authority !== 'canonical' || registry.generic_proxy !== 'forbidden') {
     throw new Error('canonical first-party profile registry identity is invalid');
   }
+  if (registry.physical_endpoint_binding !== 'verified_platform_transport') {
+    throw new Error('physical_endpoint_binding must be verified_platform_transport');
+  }
+  requirePlainObject(registry.logical_transport_class_by_profile, 'logical_transport_class_by_profile');
+  rejectUnknownFields(
+    registry.logical_transport_class_by_profile,
+    new Set(Object.keys(LOGICAL_TRANSPORT_CLASS_BY_PROFILE)),
+    'logical_transport_class_by_profile',
+  );
+  for (const [profileId, transportClass] of Object.entries(LOGICAL_TRANSPORT_CLASS_BY_PROFILE)) {
+    if (registry.logical_transport_class_by_profile[profileId] !== transportClass) {
+      throw new Error(`logical transport class mismatch for ${profileId}`);
+    }
+  }
   const intents = registry.intents;
   requirePlainObject(intents, 'intents');
   for (const [intentId, intent] of Object.entries(intents)) {
@@ -138,6 +165,20 @@ function validateAndBuildModel(registry, rpcRegistry) {
     profileIds.add(profileId);
     for (const field of ['identity_class', 'native_profile_marker', 'required_origin_role', 'host_owner', 'principal_policy_ref', 'invalidation_policy_ref', 'negative_test_ref']) {
       requireString(profile[field], `${profileId} ${field}`);
+    }
+    if (profileId === 'bundled_avatar_v1') {
+      const logicalTransportClass = requireString(
+        profile.logical_transport_class,
+        `${profileId} logical_transport_class`,
+      );
+      if (logicalTransportClass !== registry.logical_transport_class_by_profile[profileId]) {
+        throw new Error(`${profileId} logical_transport_class must match its profile mapping`);
+      }
+      for (const field of INDEPENDENT_AVATAR_FORBIDDEN_FIELDS) {
+        if (profile[field] !== 'forbidden') {
+          throw new Error(`${profileId} ${field} must be forbidden`);
+        }
+      }
     }
     if (!registry.negative_test_profiles[profile.negative_test_ref]) throw new Error(`${profileId} has unknown negative_test_ref`);
     requireNonEmptyStrings(profile.native_entrypoint_classes, `${profileId} native_entrypoint_classes`);

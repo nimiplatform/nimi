@@ -230,7 +230,7 @@ units:
     kind: rule
     title: P-PERM-002 closed catalog and current admission
     modality: must
-    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is empty and all sixteen catalog rows remain reserved while zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
+    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for its owner-selected Agent projection and open-conversation, send-turn, subscribe-turn, and conversation-snapshot operation families, the other fifteen catalog rows remain reserved, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
     condition: Whenever manifest permission eligibility or requestability is evaluated.
     failure: Deny unknown, reserved, legacy-scope, Runtime-operation, and endpoint-string identifiers without preventing a zero-permission app from running.
     relations:
@@ -566,7 +566,7 @@ units:
     kind: rule
     title: P-NAPP-035 bound development consent and permission requirements
     modality: must
-    statement: Development authorization binds canonical project-root file identity, declared app id, permission-requirement fingerprint, current account, fixed shell and entry policy, and consent; manifest permissions contain only admitted public id and reason requirements, carry request eligibility only, and with the current empty admitted set any non-empty list fails before approval.
+    statement: Development authorization binds canonical project-root file identity, declared app id, permission-requirement fingerprint, current account, fixed shell and entry policy, and consent; manifest permission requirements contain only catalog rows whose admission is admitted and manifest_allowed is true, currently exactly agents.interact, together with its required reason, express request eligibility and transparency only rather than a grant, and reject every reserved, unknown, or other non-empty identifier before approval, while a zero-permission app remains runnable.
     condition: Whenever run_once or allow_project is created or reused.
     failure: Deny consent creation or reuse on any binding mismatch or unadmitted permission requirement.
     relations:
@@ -928,7 +928,7 @@ units:
     kind: rule
     title: P-NAPP-037 typed negative posture and unchanged permission classes
     modality: must
-    statement: Incomplete macOS admission projects the exact applicable runtime-service-unavailable, runtime-service-untrusted, runtime-service-repair-required, runtime-restarted, process-replaced, account-changed, or session-revoked state without collapsing trust or repair into availability; protected-local admission does not alter P-PERM authority classes, app-owned storage and exact commands remain app_owned_authority, Runtime-mediated private access remains base_entitlement, all sixteen permissions remain reserved, and macOS privacy surfaces remain independent os_right decisions.
+    statement: Incomplete macOS admission projects the exact applicable runtime-service-unavailable, runtime-service-untrusted, runtime-service-repair-required, runtime-restarted, process-replaced, account-changed, or session-revoked state without collapsing trust or repair into availability; protected-local admission does not alter P-PERM authority classes, app-owned storage and exact commands remain app_owned_authority, Runtime-mediated private access remains base_entitlement, agents.interact remains the sole admitted public permission with the other fifteen rows reserved, and macOS privacy surfaces remain independent os_right decisions.
     condition: Whenever macOS protected-local posture or app authority is projected.
     failure: Return the exact negative state and deny protected access without minting permission or changing authority class.
     relations:

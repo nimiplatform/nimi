@@ -478,11 +478,11 @@ units:
         target: definition.nimi.runtime.security-core.grant-service-plane
   - id: rule.nimi.runtime.security-core.r045
     kind: rule
-    title: Current public permission admission is empty
+    title: Current public permission admission is bounded
     modality: must
-    statement: The admitted third-party public-permission set is empty, Runtime has no positive local permission mutation path or durable permission-decision store, and a restricted process-bound app session may use only base entitlements without listing protected inventory to construct an authorization request.
-    condition: Until an atomic public permission slice is separately admitted.
-    failure: Return typed unavailable and deny positive permission mutation, persistence, and protected inventory enumeration.
+    statement: The admitted third-party public-permission set is exactly agents.interact for owner-selected open-conversation, send-turn, subscribe-turn, and conversation-snapshot operations, Runtime owns its durable revocable decision lifecycle and enforcement, and a restricted process-bound app session may otherwise use only base entitlements without listing protected Agent inventory or constructing a selector, while voice, artifact, principal substitution, direct Avatar control, embedded rendering, and every other public permission remain unavailable.
+    condition: Whenever a third-party public permission, decision, selector, or protected operation is evaluated.
+    failure: Admit only the complete P-PERM-017 agents.interact four-operation slice and return typed unavailable for incomplete, denied, expired, revoked, mismatched, or out-of-subset access.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.grant-service-plane

@@ -61,6 +61,7 @@ test('the final transport, role, and request-empty local session shapes are exac
   assert.deepEqual(matrix.transport_classes, [
     'public_tcp',
     'desktop_control',
+    'avatar_control',
     'local_app_bootstrap',
     'local_app_host',
   ]);

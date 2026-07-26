@@ -24,6 +24,8 @@ surfaces:
   - managedRoots.models
   - managedRoots.dependencies
   - managedRoots.environments
+  - managedRoots.apps
+  - managedRoots.accounts
   - managedRoots.logs
   - managedRoots.audit
   - sessionTtlMinSeconds
@@ -86,6 +88,8 @@ production_authority:
       - managedRoots.models
       - managedRoots.dependencies
       - managedRoots.environments
+      - managedRoots.apps
+      - managedRoots.accounts
       - managedRoots.logs
       - managedRoots.audit
       - aiHealthIntervalSeconds
@@ -126,17 +130,20 @@ production_authority:
   boot_security_sources: [signed_os_service_definition, signed_runtime_release_projection]
   mutable_write_authority: typed_protected_desktop_control_to_service_owned_state
   secret_write_authority: runtime_connector_or_service_private_custody_only
-  forbidden_input_sources: [environment_variable, argv, user_writable_config, renderer_metadata, app_manifest]
+  forbidden_input_sources: [environment_variable, argv, user_writable_runtime_config, renderer_metadata, app_manifest]
   unknown_fields: reject
-  interactive_user_config_file: forbidden
+  interactive_user_runtime_config_file: forbidden
+  product_control_locator: fixed_~/.nimi/nimi.json
+  product_control_data_root_source: exact_dataRoot.path_only_through_shared_resolver_and_typed_operation
+  product_control_mismatch: repair_or_fail_closed_without_protected_override
   retired_import: forbidden_pre_release_hardcut
   read_projection: typed_redacted_no_physical_path_no_secret
   non_product_fixture: separately_signed_synthetic_only_no_product_evidence
   non_release_checkpoint_profile:
     profile: dev_kernel_checkpoint
     activation_source: signed_runtime_candidate_projection_only
-    schema_version: 5
-    product_control_root: service_owned_trial_development_state_lineage_partition
+    schema_version: 6
+    product_control_root: fixed_~/.nimi/nimi.json_outside_protected_lineage
     partition_identity: exact_trial_id_plus_preserved_development_state_candidate_id_plus_preserved_acceptance_round_id
     binary_candidate_binding:
       field: runtimeCandidateId
@@ -146,7 +153,7 @@ production_authority:
       fields: [developmentStateCandidateId, acceptanceRoundId]
       first_install_source: current_build_record_verified_runtime_candidate_id_plus_cryptographically_random_acceptance_round_id
       signed_update_source: exact_preceding_protected_profile_lineage
-      update_semantics: preserve_product_control_runtime_identity_local_app_kernel_grants_model_registry_audit_and_service_owned_config
+      update_semantics: preserve_runtime_identity_local_app_kernel_grants_model_registry_audit_and_service_owned_config_without_relocating_or_recreating_product_control
       forbidden_reset_sources: [runtime_candidate_change, boot_epoch_change, desktop_restart, renderer_state, environment_variable, argv, home, temp, endpoint, request_field]
       reset_semantics: explicit_destructive_repair_operation_only
     acceptance_round_binding:
@@ -156,19 +163,14 @@ production_authority:
       next_round_semantics: ordinary_signed_runtime_update_preserves_round
       shared_payload_effect: none
       forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]
-    explicit_development_data_root_binding:
-      field: developmentDataRootRef
-      source: signed_installer_explicit_operator_selection_or_exact_preceding_protected_profile_binding_or_canonical_development_updater_data_root_selection
-      development_updater_source: exact_dataRootRef_only_from_current_~/.nimi/runtime/config.json_promoted_to_explicit_signed_installer_input_before_service_mutation
-      validation: existing_absolute_non_volume_root_non_reparse_directory_accessible_to_fixed_service
-      runtime_effect: dataRootRef_and_managed_payload_roots_resolve_below_binding
-      product_control_effect: fresh_lineage_visible_confirmable_proposal_existing_lineage_preserves_existing_selection
-      update_semantics: preserve_non_empty_validated_binding_across_binary_candidate_rotation_unless_operator_explicitly_replaces_it
-      preserved_scope: payload_root_selector_plus_same_lineage_service_owned_selection
-      invalid_preserved_binding: fail_update_closed_without_candidate_fallback
-    first_run_data_root_proposal: signed_explicit_development_data_root_binding_or_verified_interactive_windows_sid_profile_mapping_plus_trial_id_plus_runtime_candidate_id
-    first_run_data_root_proposal_disposition: non_record_visible_confirmable_proposal_only
-    first_run_data_root_proposal_forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]
+    canonical_data_root_binding:
+      field: dataRoot.path
+      source: exact_fixed_~/.nimi/nimi.json_through_shared_product_control_resolver
+      validation: existing_absolute_non_volume_root_non_reparse_directory_owned_by_interactive_user_and_accessible_to_fixed_service
+      runtime_effect: derived_dataRootRef_managed_roots_and_verification_evidence_only
+      update_semantics: reuse_and_revalidate_canonical_selection_without_operator_or_installer_override
+      forbidden_overrides: [signed_installer_input, protected_profile, environment_variable, argv, home_derived_guess, userprofile_derived_guess, temp, renderer_metadata, endpoint, request_field, test_harness]
+      invalid_or_mismatched_state: explicit_repair_or_fail_closed_without_alternate_prompt_or_candidate_fallback
     cross_candidate_state_inheritance: exact_same_signed_development_state_lineage_only
     cross_candidate_payload_reuse: independently_verify_current_candidate_catalog_hash_manifest_compatibility_and_activation_without_redownload_when_payload_is_unchanged
     fresh_round_condition: first_install_or_explicit_destructive_repair_reset_only
@@ -270,6 +272,20 @@ fields:
     default: "<dataRootRef>/environments"
     reload: restart
     description: Runtime-managed executable environment root derived from selected nimi_data
+    source_rule: K-CFG-018
+
+  - key: managedRoots.apps
+    type: string
+    default: "<dataRootRef>/apps"
+    reload: restart
+    description: Runtime-managed principal-scoped app storage family root derived from selected nimi_data
+    source_rule: K-CFG-018
+
+  - key: managedRoots.accounts
+    type: string
+    default: "<dataRootRef>/accounts"
+    reload: restart
+    description: Runtime-managed account-scoped storage family root derived from selected nimi_data
     source_rule: K-CFG-018
 
   - key: managedRoots.logs

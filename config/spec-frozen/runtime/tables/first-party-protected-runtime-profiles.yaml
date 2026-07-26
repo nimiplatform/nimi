@@ -9,7 +9,11 @@ surfaces:
 source_rules:
   - K-PLOCAL-006
   - K-PLOCAL-010
-physical_transport_class: desktop_control
+physical_endpoint_binding: verified_platform_transport
+logical_transport_class_by_profile:
+  desktop_machine_product_v1: desktop_control
+  desktop_account_product_v1: desktop_control
+  bundled_avatar_v1: avatar_control
 membership_authority: canonical
 renderer_may_select_profile: false
 renderer_may_supply_method_id: false
@@ -55,6 +59,9 @@ negative_test_profiles:
     rejects:
       - profile_external_method
       - ordinary_desktop_sender
+      - live_desktop_process_requirement
+      - open_desktop_session_requirement
+      - desktop_account_control_inheritance
       - renderer_selected_profile
       - renderer_selected_app_id
       - wrong_sender
@@ -761,20 +768,24 @@ profiles:
     identity_class: avatar
     app_id: nimi.avatar
     native_profile_marker: avatar-v1
+    logical_transport_class: avatar_control
     required_origin_role: bundled_avatar_host
-    host_owner: verified_desktop_process
+    host_owner: verified_avatar_native_host
     principal_policy_ref: bundled_avatar_current_account_generation_principal
     account_posture: runtime_current_authenticated_account_required
-    sender_posture: exact_registered_avatar_sender_and_main_frame
-    invalidation_policy_ref: avatar_sender_connection_boot_epoch_or_account_generation_change
+    desktop_account_control_inheritance: forbidden
+    open_desktop_session_requirement: forbidden
+    live_desktop_process_requirement: forbidden
+    sender_posture: exact_verified_avatar_native_host_process_and_native_sender
+    invalidation_policy_ref: avatar_native_host_process_sender_connection_boot_epoch_or_account_generation_change
     native_entrypoint_classes:
       - avatar_unary
       - avatar_server_stream
     negative_test_ref: bundled_avatar_exact
     account_caller:
-      mode: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
-      app_instance_id: nimi.avatar.desktop-supervised
-      device_id: desktop-avatar-host
+      mode: ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST
+      app_instance_id: nimi.avatar
+      device_id: avatar-native-host
     realm_operations:
       - WorldCoreController_listPersonaCharacters
     methods:

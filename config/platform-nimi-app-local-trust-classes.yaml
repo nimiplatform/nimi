@@ -12,7 +12,7 @@ scope:
   excludes:
     - desktop_shell
     - local_first_party_app
-    - desktop_launched_avatar
+    - independent_first_party_avatar
     - shipped_bundled_zhiyu
 closed_trust_classes: &nimi_app_local_trust_class_rows
   - trust_class: verified

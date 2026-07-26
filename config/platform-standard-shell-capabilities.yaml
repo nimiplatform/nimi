@@ -156,9 +156,9 @@ capability_set_schema:
 
 capability_sets:
   - set_id: bundled-avatar-standard-shell-v1
-    host_class: verified-desktop-bundled-avatar-host
+    host_class: verified-independent-avatar-native-host
     app_package_kind: bundled-nimi-app
-    launch_resolution: verified_desktop_exact_webcontents_registry_and_secondary_url_integrity
+    launch_resolution: verified_avatar_native_host_process_and_exact_native_sender_on_avatar_control
     auth_binding: runtime_owned_bundled_avatar_protected_profile
     authority_status: fixed_profile_app_private_and_floating_window_only
     allowed_operations:
@@ -215,15 +215,18 @@ capability_sets:
       - electron.raw-ipc
       - node.raw-fs
     negative_tests:
-      - bundled-avatar-denies-unbound-or-replaced-webcontents
-      - bundled-avatar-denies-url-only-profile-selection
+      - bundled-avatar-denies-unbound-or-replaced-native-host-process
+      - bundled-avatar-denies-unbound-or-replaced-native-sender
+      - bundled-avatar-denies-non-avatar-control-carrier
+      - bundled-avatar-denies-open-desktop-session-or-live-desktop-dependency
+      - bundled-avatar-denies-desktop-account-control-inheritance
       - bundled-avatar-denies-renderer-selected-profile
       - bundled-avatar-denies-runtime-start-restart
       - bundled-avatar-denies-auth-and-oauth-custody
       - bundled-avatar-denies-agent-center-mutation
       - bundled-avatar-denies-desktop-private-commands
       - bundled-avatar-storage-root-stays-host-private
-      - bundled-avatar-window-commands-bind-invoking-window
+      - bundled-avatar-window-commands-bind-verified-native-sender
     source_rule: P-KIT-047
 
   - set_id: local-app-standard-shell-v1

@@ -276,9 +276,9 @@ units:
     kind: rule
     title: K-NAV-SHELL-FIRST-PARTY-RUNTIME-003 minimal launch intent
     modality: must
-    statement: Default Avatar launch accepts required agent_id plus optional avatar_instance_id and non-authoritative launch_source only, treats every identifier as a selector pending Runtime validation, and resolves conversation continuity only through typed Runtime or SDK projection.
-    condition: Whenever Desktop or another host launches the default first-party Avatar.
-    failure: Reject missing or invalid agent identity and ignore any launch-carried binding, anchor, package, account, user, Realm, credential, calibration, model, render, or performance truth.
+    statement: Default Avatar launch accepts required agent_id plus optional avatar_instance_id and non-authoritative launch_source only, treats every identifier as a selector pending Runtime validation, resolves conversation continuity and selected visual identity only through typed Runtime or SDK projection, and permits only the verified Avatar native host to consume the shared canonical Product Control resolver internally when required to materialize the exact Runtime-authorized account, agent, backend kind, asset ref, and materialization ref under dataRoot.path; Avatar renderer, NAS, third-party app, and SDK surfaces receive neither the raw root nor arbitrary path authority.
+    condition: Whenever Desktop or another host launches the default first-party Avatar or an authorized visual package is materialized.
+    failure: Reject missing or invalid agent identity, a mismatched materialization tuple, raw-root disclosure, renderer or NAS path authority, and any launch-carried binding, anchor, package, account, user, Realm, credential, calibration, model, render, or performance truth.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.shell-lifecycle
