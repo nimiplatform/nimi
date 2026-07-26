@@ -392,6 +392,22 @@ test('tester-reference scaffold keeps the full proof app explicit', () => {
     assertGeneratedPathExists(generated, 'src/shell/local-app-runtime-platform.ts');
     assertGeneratedPathExists(generated, 'test/electron-acceptance.mjs');
     assertGeneratedPathMissing(generated, 'scripts/run-electron-dev.mjs');
+    const agents = generated.read('AGENTS.md');
+    for (const marker of [
+      'app-scaffold intent and lock',
+      '@nimiplatform/nimi-coding',
+      'scaffold-managed files',
+      'app-owned area',
+      'pre-submission self-checks only',
+      'src/shell/routes/product-area.tsx',
+      'src/tester/**',
+      'src-tauri/src/world_tour.rs',
+      'src-electron/**',
+    ]) {
+      assert.match(agents, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    }
+    assert.doesNotMatch(agents, /app-tools\/templates\/default-starter\/AGENTS\.md/);
+    assert.doesNotMatch(agents, /tester_storage/);
     assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
     const lock = generated.lock();
     assert.ok(lock.managedFileTaxonomy.appOwnedProductCode.includes('src/tester/tester-workbench.tsx'));

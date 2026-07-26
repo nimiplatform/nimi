@@ -1,70 +1,23 @@
 # AGENTS.md — kit/ui
 
 ## Scope
-
 - Applies to `kit/ui/**`.
-- `@nimiplatform/kit/ui` is the cross-app design authority (tokens,
-  primitives, themes, generated visual contracts).
-- Submodules: `components/`, `design-tokens.ts`, `tokens.ts`,
-  `theme.tsx`, `styles.css`, `themes/`, `generated/`, `lib/`, `types/`.
+- Canonical product authority lives in `.nimi/spec/platform/ui-design-system.authority.yaml`.
+- `kit/ui` implements shared primitives and consumes generated token/theme projections; it does not create parallel product authority.
 
 ## Hard Boundaries
-
-- `kit/ui` is the design authority for all cross-app visuals. `kit/auth`
-  and `kit/features/*` must consume its primitives and tokens; they must
-  not fork parallel tokens, parallel primitives, or hand-author theme
-  values.
-- App packages (`apps/**`) must consume `kit/ui` through
-  `@nimiplatform/kit/ui` and must not recreate the same baseline
-  Surface/Button/Field shells locally once the kit surface exists.
-- Hand-authored CSS rule bodies in `styles.css` must not target class
-  names declared as slots or class_groups in
-  `config/platform-nimi-ui-primitives.yaml`. This is
-  enforced by `pnpm check:nimi-ui-pattern`.
-- Token authority lives in
-  `config/platform-nimi-ui-tokens.yaml` and
-  `config/platform-nimi-ui-themes.yaml`. `kit/ui` is
-  a generator consumer, not an authority parallel. Token edits happen
-  in the yaml tables; `kit/ui/src/generated/**` is produced by
-  `pnpm generate:nimi-ui-lib` and must not be hand-edited.
-
-## Glass Material Consumption (P-DESIGN-022)
-
-- The material axis admits exactly **5 tiers** (2026-04-18): `solid`,
-  `glass-thin`, `glass-regular`, `glass-thick`, `glass-chrome`. This
-  5-tier taxonomy supersedes the earlier 3-tier admission (`solid`,
-  `glass-regular`, `glass-thick`); the 3 prior tier names are preserved
-  byte-for-byte.
-- Glass consumption is **only** via `<Surface material="...">` or the
-  5-tier marker classes emitted by kit (`nimi-material-glass-thin`,
-  `nimi-material-glass-regular`, `nimi-material-glass-thick`,
-  `nimi-material-glass-chrome`).
-- Named `backdrop-blur-*` Tailwind tokens outside kit-emitted utility
-  classes are **forbidden** at `check:ui-glass-boundary`. Governed
-  modules must not inline `rgba(...)` material fills, inline
-  `backdrop-filter` declarations, or hand-pick `backdrop-blur-[Npx]`
-  arbitrary values outside kit surfaces.
-- Adding a 6th tier requires a new admission; this boundary does not
-  pre-authorize future expansion.
-- Spec companion: `docs/authority/platform-ui-design-system-rationale.md`.
+- Token/theme/primitive tables under `config/platform-nimi-ui-*.yaml` are admitted generator inputs; change them before regenerating affected outputs.
+- Never hand-edit `kit/ui/src/generated/**`.
+- Apps and Kit features consume shared surfaces through `@nimiplatform/kit/ui`; do not fork an existing primitive, token, theme value, or accessibility behavior.
+- `styles.css` must not target slot or class-group names declared in `config/platform-nimi-ui-primitives.yaml`.
+- Material use is limited to admitted `Surface material` values or Kit-emitted material classes; no inline material fills, backdrop filters, or arbitrary blur values outside Kit surfaces.
+- New primitives, tokens, themes, or material tiers require alignment with canonical authority; app composition remains app-owned.
 
 ## Retrieval Defaults
-
-- Start in `kit/ui/src/components`, `kit/ui/src/design-tokens.ts`,
-  `kit/ui/src/styles.css`, `kit/ui/src/theme.tsx`,
-  `docs/authority/platform-ui-design-system-rationale.md`,
-  `docs/authority/platform-ui-design-system-rationale.md`,
-  `config/platform-nimi-ui-tokens.yaml`, and
-  `config/platform-nimi-ui-themes.yaml`.
-- Skip `kit/ui/src/generated/**` except for drift inspection. Never
-  hand-edit generated files.
+- Read the affected primitive or style, its exact `config/platform-nimi-ui-*.yaml` row, and `.nimi/spec/platform/ui-design-system.authority.yaml` when semantics or ownership are in question.
+- Inspect generated files only for drift; skip unrelated components and historical design prose.
 
 ## Verification Commands
-
-- `pnpm generate:nimi-ui-lib` (after token/theme yaml edits)
-- `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`
-- `pnpm check:nimi-ui-pattern`
-- `pnpm check:nimi-ui-lib-drift`
-- `pnpm check:nimi-kit`
-- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency`
-- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform --check`
+- Component-only work: run the affected Kit test and `pnpm --filter @nimiplatform/kit build`.
+- Token/theme/primitive-table work: `pnpm generate:nimi-ui-lib`, `pnpm check:nimi-ui-pattern`, and `pnpm check:nimi-ui-lib-drift`.
+- Run `pnpm check:nimi-kit` for Kit-wide changes; run spec governance only when canonical authority changes.

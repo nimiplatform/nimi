@@ -9,15 +9,16 @@
 - Do not add direct HTTP/gRPC calls or local hardcoded provider/model capability lists.
 - Preserve established web reuse boundaries: changes under `apps/desktop/src/shell/renderer/**` may require matching adapter updates in `apps/web/src/desktop-adapter/**`.
 - Tauri generated code and bridge outputs are read-only unless the task is codegen.
-- High-risk desktop design/refactor work touching route, state ownership, persistence, bridge contracts, or capability ownership must complete authority preflight before implementation.
-- For desktop work, `alignment` means converging to current Desktop/runtime/spec authority; `redesign` means changing ownership/canonical model and requires prior `spec/**` alignment.
+- Authority preflight is required only for a redesign that changes product semantics or canonical ownership.
+- Alignment and bounded fixes follow existing authority; redesign requires prior `.nimi/spec/**` alignment.
 - Desktop chat/UI must project runtime authority, not invent a parallel executable truth in renderer-local state.
 
 ## Retrieval Defaults
-- Start in `apps/desktop/src/shell/renderer`, `apps/desktop/src/public-web`, `apps/desktop/src-tauri/src`, and `apps/desktop/test`.
-- Skip `apps/desktop/src-tauri/gen/**`, `dist/**`, generated bridge code, and large asset bundles unless required.
+- Start at the observed Desktop consumer, its direct adapter or bridge, and the exact authority it implements.
+- Inspect `apps/web/src/desktop-adapter/**` only when the affected renderer surface is shared.
+- Skip generated Tauri/bridge outputs, `dist/**`, large assets, and unrelated layers.
 
 ## Verification Commands
-- TypeScript/UI: `pnpm --filter @nimiplatform/desktop typecheck`, `pnpm --filter @nimiplatform/desktop test`.
-- Tauri/Rust: `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml`, `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml`, `cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets`.
-- Desktop hard gates: `pnpm check:desktop-cloud-runtime-only`, `pnpm check:desktop-chat-authority-anti-patterns`, `pnpm check:desktop-no-legacy-runtime-config-path`, `pnpm check:no-local-ai-private-calls`, `pnpm check:no-local-ai-tauri-commands`, `pnpm check:high-risk-doc-metadata`.
+- Renderer: `pnpm --filter @nimiplatform/desktop typecheck` and the directly affected test.
+- Rust/Tauri changes: targeted `cargo check` or `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml`.
+- Run only the Desktop boundary gate that covers the changed import, chat, bridge, or authority surface.

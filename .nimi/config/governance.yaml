@@ -31,6 +31,28 @@ ai_governance:
         max_lines: 30
       - rel: proto/AGENTS.md
         max_lines: 30
+      - rel: app-tools/AGENTS.md
+        max_lines: 60
+      - rel: app-tools/templates/default-starter/AGENTS.md
+        max_lines: 60
+      - rel: apps/avatar/AGENTS.md
+        max_lines: 80
+      - rel: apps/tester/AGENTS.md
+        max_lines: 60
+      - rel: apps/zhiyu/AGENTS.md
+        max_lines: 60
+      - rel: gateways/AGENTS.md
+        max_lines: 60
+      - rel: kit/ui/AGENTS.md
+        max_lines: 60
+      - rel: nimi-cognition/AGENTS.md
+        max_lines: 60
+      - rel: runtime/catalog/source/AGENTS.md
+        max_lines: 60
+      - rel: nimi2d/AGENTS.md
+        max_lines: 60
+      - rel: tests/local-agent-product/AGENTS.md
+        max_lines: 60
     required_sections:
       - "## Scope"
       - "## Hard Boundaries"

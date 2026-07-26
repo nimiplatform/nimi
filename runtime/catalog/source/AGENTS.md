@@ -1,121 +1,24 @@
 # AGENTS.md
 
 ## Scope
+- Applies to `runtime/catalog/source/**`, the reviewed authoring surface for `providers/*.source.yaml`.
 
-Applies to `runtime/catalog/source/**`.
-
-## Purpose
-
-This directory is the authoring work surface for
-`runtime/catalog/source/providers/*.source.yaml`.
-
-When asked to audit, refresh, or update provider catalog source, operate here
-first.
-
-## Default Workflow
-
-1. Determine whether the request is `report-only` or `report + patch`.
-2. Produce or update a provider update report before mutating source.
-3. Scope the work as either:
-   - `provider_wide`
-   - `family_scoped`
-4. Compare current source against official current inventory.
-5. Prefer additive catch-up before removals.
-6. Review `selection_profiles` and defaults separately from model-row updates.
-7. Run relevant validation after source edits.
-
-## Authority Rules
-
+## Hard Boundaries
 - Repo-wide product authority remains under `.nimi/spec/**`.
-- Connector provider/model semantics must align with
-  `.nimi/spec/runtime/ai-provider.authority.yaml` and
-  `.nimi/spec/runtime/model-catalog.authority.yaml`.
-- `runtime/catalog/source/providers/*.source.yaml` is a reviewed authoring work
-  surface for generated projections, not parallel semantic truth.
-- Browser output, aggregate listings, and live probe output are support inputs
-  only.
-- Do not auto-promote scraped or browsed content into source truth without a
-  reviewed edit.
-- Prefer official provider docs over aggregate sources.
+- Connector/model semantics align with `.nimi/spec/runtime/{ai-provider,model-catalog}.authority.yaml`; source YAML and generated snapshots are projections, not parallel truth.
+- Prefer official provider documentation; browser, aggregate listing, and live-probe output are support inputs only and never auto-promote into source.
+- For `dynamic_endpoint`, do not mirror remote inventories into static `models` rows or invent defaults.
+- A single specified model-row update reads and changes only that row and its cited source; do not review other rows, defaults, profiles, or emit a report.
+- Produce a provider update report before mutation only for provider-wide refreshes, removals, `inventory_mode` changes, defaults or `selection_profiles` changes, or when the user requests one.
+- Provider splitting, merging, deletion, mode changes, or multiple defensible canonical shapes require an authority decision; ordinary bounded row edits do not.
+- Keep stable and dated rows distinct; label preview, legacy, deployment-scoped, and user-scoped rows without flattening provider families.
 
-## Curation Rules
+## Retrieval Defaults
+- For one row, read its source file, exact row, cited official provider page, and generator diagnostics only if validation fails.
+- For provider-wide or policy work, add the report standard and the relevant general or provider-specific curator prompt.
+- Skip unrelated providers, aggregate inventories, generated snapshots, and historical reports.
 
-- Interpret `latest 1-2 generations` per family, not only provider-wide.
-- Keep stable rows and dated snapshot rows distinct.
-- Treat realtime lines as separate from non-realtime lines.
-- Label preview, legacy, deployment-scoped, and user-scoped rows explicitly.
-- Do not flatten multi-family providers into a single text-only review model.
-- For `runtime.inventory_mode=dynamic_endpoint` providers, do not mirror live
-  remote model inventories into static `models` rows.
-
-## Inventory Modes
-
-- `static_source`
-  - source may author reviewed model rows for generated projections
-  - `selection_profiles` and reviewed defaults remain relevant only when aligned
-    with connector/provider authority
-- `dynamic_endpoint`
-  - source may author provider runtime metadata and dynamic inventory policy for
-    generated projections only
-  - explicit config model or live-selected model is required at runtime
-  - do not invent catalog defaults just to preserve legacy behavior
-
-## Reusable Inputs
-
-- Standard: `runtime/catalog/source/provider-update-report-standard.md`
-- General prompt: `runtime/catalog/source/provider-browser-curator-prompt.md`
-- Provider-specific prompts: `runtime/catalog/source/prompts/providers/*.md`
-
-## Special Prompt Rule
-
-Use the general prompt by default.
-
-Use a provider-specific prompt when the provider has recurring complexity such
-as:
-
-- control-plane or deployment-scoped truth
-- heavy aggregate/provider-mall semantics
-- workflow-heavy speech or voice assets
-- high risk of user-scoped inventory contamination
-
-If a provider-specific prompt exists, prefer it over inventing ad hoc rules in
-the moment.
-
-## Output Expectations
-
-When making updates, state clearly:
-
-- scope
-- evidence basis
-- additions
-- removals or deferred removals
-- whether `selection_profiles` / defaults were reviewed
-
-If uncertain, bias toward a narrower scoped report rather than a broad provider
-rewrite.
-
-## Default Collaboration Rule
-
-For ordinary provider refresh work under `runtime/catalog/source/**`, proceed
-without per-provider confirmation by default:
-
-1. audit current source against authority
-2. produce the provider update report
-3. apply the source refresh
-4. run relevant validation
-
-Ask the user for confirmation only when the work is no longer a routine refresh
-and instead requires an authority decision, for example:
-
-- changing `inventory_mode` between `static_source` and `dynamic_endpoint`
-- splitting, merging, or deleting a provider surface
-- resolving multiple plausible canonical source shapes
-- changing runtime/adapter behavior beyond normal catalog refresh
-- handling control-plane, deployment-scoped, router, or provider-mall semantics
-  where more than one defensible design exists
-
-When confirmation is needed, present:
-
-- the viable options
-- the recommended option
-- the reason for that recommendation
+## Verification Commands
+- Generate projections with `pnpm generate:runtime-catalog`.
+- Run `pnpm check:runtime-catalog-drift`; inspect the diff to confirm only the authorized source row and its generated projection changed.
+- Add authority validation only when provider semantics, mode, defaults, or selection policy changed.
