@@ -61,7 +61,6 @@ pub struct BridgeReleaseDescriptorRow {
 #[serde(rename_all = "camelCase")]
 pub struct AppsBridgeProjection {
     pub registry_path: String,
-    pub packages_path: String,
     pub registry_rows: Vec<BridgeRegistryRow>,
     pub release_descriptors: Vec<BridgeReleaseDescriptorRow>,
 }
@@ -88,12 +87,11 @@ fn project_registry_row(row: &PlatformNimiAppRegistryRow) -> BridgeRegistryRow {
     }
 }
 
-/// Build the SDK-shaped Apps bridge projection from materialized host
-/// projection paths. It deliberately does not carry Runtime install evidence.
-pub fn build_apps_bridge_projection(
-    registry_path: String,
-    packages_path: String,
-) -> Result<AppsBridgeProjection, String> {
+/// Build the SDK-shaped Apps bridge projection from the internally
+/// materialized registry path. Package readiness is Runtime-owned, so this
+/// projection deliberately carries neither a packages path nor install
+/// evidence.
+pub fn build_apps_bridge_projection(registry_path: String) -> Result<AppsBridgeProjection, String> {
     let registry_rows = PLATFORM_NIMI_APP_REGISTRY_ROWS
         .iter()
         .map(project_registry_row)
@@ -127,7 +125,6 @@ pub fn build_apps_bridge_projection(
         .collect();
     Ok(AppsBridgeProjection {
         registry_path,
-        packages_path,
         registry_rows,
         release_descriptors,
     })
@@ -141,11 +138,8 @@ mod tests {
     };
     #[test]
     fn bridge_projection_includes_catalog_rows_and_release_descriptors() {
-        let projection = build_apps_bridge_projection(
-            "~/.nimi/apps/registry.json".to_string(),
-            "~/.nimi/apps/packages.json".to_string(),
-        )
-        .expect("projection");
+        let projection = build_apps_bridge_projection("D:/DataNimi/apps/registry.json".to_string())
+            .expect("projection");
         assert_eq!(
             projection.registry_rows.len(),
             PLATFORM_NIMI_APP_REGISTRY_ROWS.len()
@@ -158,11 +152,8 @@ mod tests {
 
     #[test]
     fn bridge_projection_does_not_fabricate_external_release_descriptors_before_0p() {
-        let projection = build_apps_bridge_projection(
-            "~/.nimi/apps/registry.json".to_string(),
-            "~/.nimi/apps/packages.json".to_string(),
-        )
-        .expect("projection");
+        let projection = build_apps_bridge_projection("D:/DataNimi/apps/registry.json".to_string())
+            .expect("projection");
         assert!(!projection.release_descriptors.is_empty());
         assert!(projection
             .release_descriptors

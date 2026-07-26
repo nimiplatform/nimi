@@ -5,8 +5,6 @@ import { assertRecord, parseRequiredString, type JsonObject, type JsonValue } fr
 export type ShellPlatformProjectionPayload = {
   readonly projectionId: string;
   readonly updatedAt?: string;
-  readonly registryPath?: string;
-  readonly packagesPath?: string;
   readonly packages?: readonly JsonObject[];
 };
 

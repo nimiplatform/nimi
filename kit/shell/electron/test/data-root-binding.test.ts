@@ -58,6 +58,53 @@ function appStorageResponseBytes(input: {
 }
 
 describe('Electron standard data root binding', () => {
+  it('resolves Product Control bindings lazily for the current command', async () => {
+    await withTempDir('binding-product-control', async (root) => {
+      const dataRoot = path.join(root, 'data');
+      let resolverCalls = 0;
+      const ipcMain = registerBindingBridge({
+        standardShellHost: {
+          standardDataRootBinding: {
+            source: 'product-control-projection',
+            resolveDataRoot: async () => {
+              resolverCalls += 1;
+              return dataRoot;
+            },
+          },
+        },
+      });
+
+      const result = await invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
+        payload: { relativePath: 'settings/profile.json' },
+      }) as { path: string };
+
+      expect(result.path).toBe(path.join(await realpath(dataRoot), 'settings', 'profile.json'));
+      expect(resolverCalls).toBe(1);
+    });
+  });
+
+  it('fails closed when the Product Control binding has no selected data root', async () => {
+    const ipcMain = registerBindingBridge({
+      standardShellHost: {
+        standardDataRootBinding: {
+          source: 'product-control-projection',
+          resolveDataRoot: async () => {
+            throw new Error('desktop-product-control-selected-data-root-unavailable');
+          },
+        },
+      },
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
+      payload: { relativePath: 'settings/profile.json' },
+    })).rejects.toMatchObject({
+      code: 'capability-unavailable',
+      reasonCode: 'electron-product-control-data-root-unavailable',
+    });
+  });
+
   it('resolves runtime-get-app-storage bindings through GetAppStorage once and caches the roots', async () => {
     await withTempDir('binding-runtime', async (root) => {
       const dataRoot = path.join(root, 'data');

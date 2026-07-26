@@ -45,8 +45,8 @@ fn matrix_mirrors_kernel_table_rows() {
         .collect();
     assert_eq!(
         table_ids.len(),
-        15,
-        "the kernel table must declare 15 directory rows"
+        12,
+        "the kernel table must declare only canonical roots and admitted owner subtrees"
     );
     assert_eq!(
         matrix_ids, table_ids,
@@ -61,9 +61,17 @@ fn enforce_layout_creates_exactly_the_declared_first_level_directories() {
 
     let expected = first_level_directory_names();
     assert_eq!(
-        expected.len(),
-        10,
-        "ten first-level directories are declared"
+        expected,
+        vec![
+            "models",
+            "dependencies",
+            "environments",
+            "apps",
+            "accounts",
+            "logs",
+            "audit",
+        ],
+        "the canonical root-level data families are closed"
     );
     for name in &expected {
         assert!(
@@ -102,50 +110,43 @@ fn non_cache_cleanup_fails_closed_without_confirmation() {
     let base = unique_dir("cleanup-confirm");
     let data_root = base.join("nimi_data");
     enforce_data_root_layout(&data_root).expect("layout");
-    write_file(
-        &data_root.join("generated/artifact.png"),
-        b"generated-bytes",
-    );
+    write_file(&data_root.join("logs/runtime.log"), b"log-bytes");
 
-    let plan = plan_directory_cleanup(&data_root, "generated").expect("plan");
+    let plan = plan_directory_cleanup(&data_root, "logs").expect("plan");
     assert!(plan.requires_confirmation);
-    let error = execute_directory_cleanup(&data_root, "generated", None)
+    let error = execute_directory_cleanup(&data_root, "logs", None)
         .expect_err("missing confirmation must fail closed");
     assert!(error.contains("显式确认令牌"));
-    assert!(data_root.join("generated/artifact.png").exists());
+    assert!(data_root.join("logs/runtime.log").exists());
 
-    let wrong = execute_directory_cleanup(&data_root, "generated", Some("yes"))
+    let wrong = execute_directory_cleanup(&data_root, "logs", Some("yes"))
         .expect_err("wrong confirmation fails closed");
     assert!(wrong.contains("显式确认令牌"));
-    assert!(data_root.join("generated/artifact.png").exists());
+    assert!(data_root.join("logs/runtime.log").exists());
 
-    let outcome = execute_directory_cleanup(
-        &data_root,
-        "generated",
-        Some(DESTRUCTIVE_CLEANUP_CONFIRMATION),
-    )
-    .expect("confirmed cleanup");
+    let outcome =
+        execute_directory_cleanup(&data_root, "logs", Some(DESTRUCTIVE_CLEANUP_CONFIRMATION))
+            .expect("confirmed cleanup");
     assert_eq!(outcome.removed_files, 1);
-    assert!(!data_root.join("generated/artifact.png").exists());
-    assert!(data_root.join("generated").is_dir());
+    assert!(!data_root.join("logs/runtime.log").exists());
+    assert!(data_root.join("logs").is_dir());
 }
 
 #[test]
-fn pure_cache_cleanup_runs_without_confirmation() {
-    let base = unique_dir("cleanup-cache");
+fn retired_root_level_cache_generated_and_tmp_are_rejected() {
+    let base = unique_dir("retired-root-families");
     let data_root = base.join("nimi_data");
     enforce_data_root_layout(&data_root).expect("layout");
-    write_file(&data_root.join("cache/blob"), b"cache-bytes");
-
-    let plan = plan_directory_cleanup(&data_root, "cache").expect("plan");
-    assert!(
-        !plan.requires_confirmation,
-        "pure cache needs no confirmation"
-    );
-    let outcome = execute_directory_cleanup(&data_root, "cache", None).expect("cache cleanup");
-    assert_eq!(outcome.removed_files, 1);
-    assert!(!data_root.join("cache/blob").exists());
-    assert!(data_root.join("cache").is_dir());
+    for name in ["cache", "generated", "tmp"] {
+        assert!(
+            first_level_row(name).is_none(),
+            "{name} must not be a canonical root-level data family"
+        );
+        let error = plan_directory_cleanup(&data_root, name)
+            .expect_err("retired root-level family must be rejected");
+        assert!(error.contains("P-MIG-006"));
+        assert!(!data_root.join(name).exists());
+    }
 }
 
 #[test]

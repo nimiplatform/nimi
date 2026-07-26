@@ -8,8 +8,6 @@ use std::path::PathBuf;
 pub struct StandardPlatformProjectionPayload {
     pub projection_id: String,
     pub updated_at: Option<String>,
-    pub registry_path: Option<String>,
-    pub packages_path: Option<String>,
     pub packages: Option<Vec<crate::platform_projection::apps_packages::AppsPackageRow>>,
 }
 
@@ -100,29 +98,9 @@ pub fn platform_projection_get(payload: Value) -> Result<StandardPlatformProject
             to_record_value(record, projection_id.as_str())?
         }
         "apps-bridge" => {
-            let registry_path = match parsed
-                .registry_path
-                .map(|value| value.trim().to_string())
-                .filter(|value| !value.is_empty())
-            {
-                Some(path) => path,
-                None => materialized_apps_registry_path(projection_id.as_str())?,
-            };
-            let packages_path = match parsed
-                .packages_path
-                .map(|value| value.trim().to_string())
-                .filter(|value| !value.is_empty())
-            {
-                Some(path) => path,
-                None => default_projection_path(
-                    crate::platform_projection::apps_packages::APPS_PACKAGES_POINTER,
-                )?
-                .display()
-                .to_string(),
-            };
+            let registry_path = materialized_apps_registry_path(projection_id.as_str())?;
             let record = crate::platform_projection::apps_bridge::build_apps_bridge_projection(
                 registry_path,
-                packages_path,
             )
             .map_err(|cause| {
                 platform_projection_error(
@@ -168,11 +146,11 @@ fn now_iso_timestamp() -> String {
 }
 
 fn default_projection_path(pointer: &str) -> Result<PathBuf, String> {
-    let mut path = crate::desktop_paths::resolve_nimi_dir().map_err(|cause| {
+    let mut path = crate::desktop_paths::resolve_nimi_data_dir().map_err(|cause| {
         platform_projection_error(
             "capability-unavailable",
-            "tauri-platform-projection-nimi-dir-unavailable",
-            "ensure_home_directory_is_available_for_platform_projection",
+            "tauri-platform-projection-data-root-unavailable",
+            "repair_canonical_product_control_data_root",
             "",
             Some(cause),
         )
@@ -237,19 +215,21 @@ fn platform_projection_error(
 #[cfg(test)]
 mod tests {
     use super::platform_projection_get;
+    use crate::runtime_bridge::{with_runtime_bridge_host_hooks, RuntimeBridgeHostHooks};
     use serde_json::{json, Value};
     use std::path::PathBuf;
+    use std::sync::Arc;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    fn temp_home(prefix: &str) -> PathBuf {
+    fn temp_data_root(prefix: &str) -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("time")
             .as_nanos();
         let dir = std::env::temp_dir().join(format!(
-            "nimi-standard-platform-projection-{prefix}-{unique}"
+            "nimi-standard-platform-projection-data-root-{prefix}-{unique}"
         ));
-        std::fs::create_dir_all(&dir).expect("create temp home");
+        std::fs::create_dir_all(&dir).expect("create temp data root");
         dir
     }
 
@@ -301,28 +281,51 @@ mod tests {
     }
 
     #[test]
-    fn builds_apps_bridge_projection_with_default_paths() {
-        let home = temp_home("apps-bridge");
-        crate::test_support::with_env(&[("HOME", home.to_str())], || {
-            let result = platform_projection_get(json!({ "projectionId": "apps-bridge" }))
-                .expect("projection");
+    fn builds_apps_bridge_projection_from_canonical_data_root() {
+        let data_root = temp_data_root("apps-bridge");
+        let hook_root = data_root.clone();
+        with_runtime_bridge_host_hooks(
+            RuntimeBridgeHostHooks {
+                resolve_nimi_data_dir: Some(Arc::new(move || Ok(hook_root.clone()))),
+                ..RuntimeBridgeHostHooks::default()
+            },
+            || {
+                let result = platform_projection_get(json!({ "projectionId": "apps-bridge" }))
+                    .expect("projection");
 
-            let registry_path = result
-                .record
-                .get("registryPath")
-                .and_then(Value::as_str)
-                .expect("registry path");
-            assert!(
-                registry_path.ends_with(".nimi\\apps\\registry.json")
-                    || registry_path.ends_with(".nimi/apps/registry.json")
-            );
-            assert!(PathBuf::from(registry_path).exists());
-            assert!(result
-                .record
-                .get("registryRows")
-                .and_then(Value::as_array)
-                .is_some_and(|rows| !rows.is_empty()));
-        });
+                let registry_path = result
+                    .record
+                    .get("registryPath")
+                    .and_then(Value::as_str)
+                    .expect("registry path");
+                assert!(
+                    registry_path.ends_with("apps\\registry.json")
+                        || registry_path.ends_with("apps/registry.json")
+                );
+                assert!(PathBuf::from(registry_path).starts_with(data_root.join("apps")));
+                assert!(PathBuf::from(registry_path).exists());
+                assert!(result.record.get("packagesPath").is_none());
+                assert!(result
+                    .record
+                    .get("registryRows")
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| !rows.is_empty()));
+            },
+        );
+    }
+
+    #[test]
+    fn rejects_caller_supplied_apps_bridge_paths() {
+        let error = platform_projection_get(json!({
+            "projectionId": "apps-bridge",
+            "registryPath": "C:\\attacker\\registry.json"
+        }))
+        .expect_err("caller path must be rejected");
+        let parsed = envelope(error.as_str());
+        assert_eq!(
+            parsed.get("reasonCode").and_then(Value::as_str),
+            Some("tauri-platform-projection-payload-invalid")
+        );
     }
 
     #[test]

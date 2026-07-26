@@ -31,8 +31,6 @@ describe('renderer platform projection bridge', () => {
       return {
         projectionId: 'apps-bridge',
         record: {
-          registryPath: '~/.nimi/apps/registry.json',
-          packagesPath: '~/.nimi/apps/packages.json',
           registryRows: [],
           releaseDescriptors: [],
         },
@@ -41,8 +39,6 @@ describe('renderer platform projection bridge', () => {
       await expect(getShellPlatformProjection({ projectionId: 'apps-bridge' })).resolves.toEqual({
         projectionId: 'apps-bridge',
         record: {
-          registryPath: '~/.nimi/apps/registry.json',
-          packagesPath: '~/.nimi/apps/packages.json',
           registryRows: [],
           releaseDescriptors: [],
         },

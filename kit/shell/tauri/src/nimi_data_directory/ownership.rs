@@ -12,10 +12,8 @@ pub enum DirectoryOwner {
     App,
     AccountDataPlaneConsumers,
     UserExportFlow,
-    NimiProductShell,
     RuntimeProductSupport,
     RuntimeRealmProductAudit,
-    RuntimeAndApps,
 }
 
 impl DirectoryOwner {
@@ -28,10 +26,8 @@ impl DirectoryOwner {
             Self::App => "app",
             Self::AccountDataPlaneConsumers => "account_data_plane_consumers",
             Self::UserExportFlow => "user_export_flow",
-            Self::NimiProductShell => "nimi_product_shell",
             Self::RuntimeProductSupport => "runtime_product_support",
             Self::RuntimeRealmProductAudit => "runtime_realm_product_audit",
-            Self::RuntimeAndApps => "runtime_and_apps",
         }
     }
 
@@ -140,13 +136,6 @@ pub const NIMI_DATA_DIRECTORY_MATRIX: &[NimiDataDirectoryRow] = &[
         cleanup: CleanupClass::UserManaged,
     },
     NimiDataDirectoryRow {
-        directory_id: "shared_cache",
-        path_template: "<nimi_data>/cache/",
-        first_level: true,
-        owner: DirectoryOwner::NimiProductShell,
-        cleanup: CleanupClass::PureCache,
-    },
-    NimiDataDirectoryRow {
         directory_id: "logs",
         path_template: "<nimi_data>/logs/",
         first_level: true,
@@ -159,20 +148,6 @@ pub const NIMI_DATA_DIRECTORY_MATRIX: &[NimiDataDirectoryRow] = &[
         first_level: true,
         owner: DirectoryOwner::RuntimeRealmProductAudit,
         cleanup: CleanupClass::ConfirmRequired,
-    },
-    NimiDataDirectoryRow {
-        directory_id: "generated",
-        path_template: "<nimi_data>/generated/",
-        first_level: true,
-        owner: DirectoryOwner::RuntimeAndApps,
-        cleanup: CleanupClass::ConfirmRequired,
-    },
-    NimiDataDirectoryRow {
-        directory_id: "product_tmp",
-        path_template: "<nimi_data>/tmp/",
-        first_level: true,
-        owner: DirectoryOwner::NimiProductShell,
-        cleanup: CleanupClass::PureCache,
     },
 ];
 

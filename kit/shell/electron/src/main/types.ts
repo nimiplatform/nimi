@@ -327,6 +327,10 @@ export type NimiElectronFloatingWindowHost = {
 export type NimiElectronStandardDataRootBinding =
   | { readonly source: 'runtime-get-app-storage' }
   | {
+      readonly source: 'product-control-projection';
+      readonly resolveDataRoot: () => Promise<string> | string;
+    }
+  | {
       readonly source: 'runtime-launch-projection';
       readonly durableDataRoot: string;
       readonly cacheRoot?: string;

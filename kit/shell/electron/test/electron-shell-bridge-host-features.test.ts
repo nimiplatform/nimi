@@ -549,8 +549,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
       command,
       payload: {
         projectionId: 'apps-bridge',
-        registryPath: '~/.nimi/apps/registry.json',
-        packagesPath: '~/.nimi/apps/packages.json',
       },
     })).resolves.toMatchObject({
       projectionId: 'apps-bridge',
@@ -562,6 +560,17 @@ describe('registerNimiElectronRuntimeBridge', () => {
           expect.objectContaining({ descriptorId: 'nimi.avatar.bundled-with-nimi' }),
         ]),
       },
+    });
+
+    await expect(invokeBridge(ipcMain, event, {
+      command,
+      payload: {
+        projectionId: 'apps-bridge',
+        registryPath: 'C:\\attacker\\registry.json',
+      },
+    })).rejects.toMatchObject({
+      code: 'not-found',
+      reasonCode: 'electron-platform-projection-payload-invalid',
     });
 
     await expect(invokeBridge(ipcMain, event, {

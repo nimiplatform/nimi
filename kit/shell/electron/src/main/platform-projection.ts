@@ -7,6 +7,15 @@ export function resolveElectronPlatformProjection(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): Record<string, unknown> {
+  if ('registryPath' in payload || 'packagesPath' in payload) {
+    throw new NimiElectronShellHostError({
+      code: 'not-found',
+      message: 'Electron platform projection paths are host-owned',
+      reasonCode: 'electron-platform-projection-payload-invalid',
+      actionHint: 'remove_caller_supplied_projection_paths',
+      details: { command },
+    });
+  }
   const projectionId = normalizeText(payload.projectionId);
   try {
     return buildNimiPlatformProjection({ projectionId }) as unknown as Record<string, unknown>;

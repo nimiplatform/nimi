@@ -1,4 +1,4 @@
-//! Shared governed `.nimi` config-file current-schema read and repair routing.
+//! Shared governed local-record current-schema read and repair routing.
 //!
 //! This module is reusable host/scaffold infrastructure. It owns only the
 //! common read/repair protocol: root `schemaVersion` validation, typed repair
@@ -12,12 +12,15 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 use serde_json::Value;
 
-/// Identity of one governed `.nimi` config file.
+/// Identity of one governed local config or materialized projection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GovernedConfigFile {
     /// Stable registry id, e.g. `registry_json`.
     pub config_file_id: &'static str,
-    /// Product-facing `.nimi`-relative path, e.g. `~/.nimi/apps/registry.json`.
+    /// Product-facing diagnostic path, e.g. `<dataRoot>/apps/registry.json`.
+    ///
+    /// This label never resolves the file; callers pass the actual path to the
+    /// read or write operation.
     pub display_path: &'static str,
     /// Current owner-declared supported schemaVersion for this file.
     pub current_schema_version: u32,
@@ -45,7 +48,7 @@ pub enum ConfigRepairSeverity {
     Blocked,
 }
 
-/// Typed result of reading a governed `.nimi` config file.
+/// Typed result of reading a governed local config or projection.
 #[derive(Debug, Clone)]
 pub enum ConfigReadOutcome<T> {
     Absent,
@@ -97,8 +100,8 @@ fn load_raw(path: &Path) -> std::io::Result<Option<Vec<u8>>> {
     }
 }
 
-/// Read a governed `.nimi` config file through the shared validation / repair
-/// framework.
+/// Read a governed local config or projection through the shared validation /
+/// repair framework.
 pub fn read_governed_config<T>(
     file: &GovernedConfigFile,
     path: &Path,
@@ -171,7 +174,7 @@ fn display_path_for_error(path: &Path) -> String {
     path.display().to_string()
 }
 
-/// Atomically serialize and write a governed `.nimi` JSON record.
+/// Atomically serialize and write a governed local JSON record.
 ///
 /// The caller owns structural validation. This helper owns the common host
 /// write mechanics: parent creation, pretty JSON serialization, tmp-file write,

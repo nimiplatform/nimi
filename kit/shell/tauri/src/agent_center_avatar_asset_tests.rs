@@ -20,12 +20,12 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
     std::env::temp_dir().join(format!("nimi-shell-avatar-asset-{prefix}-{unique}"))
 }
 
-async fn with_admitted_data_root<R, F, Fut>(home: &Path, run: F) -> R
+async fn with_admitted_data_root<R, F, Fut>(fixture_root: &Path, run: F) -> R
 where
     F: FnOnce() -> Fut,
     Fut: Future<Output = R>,
 {
-    let data_root = home.join(".nimi").join("data");
+    let data_root = fixture_root.join("data-root");
     with_runtime_bridge_host_hooks_async(
         RuntimeBridgeHostHooks {
             resolve_nimi_data_dir: Some(Arc::new(move || Ok(data_root.clone()))),
@@ -57,8 +57,10 @@ fn local_agent_ref(owner_user_id: &str, runtime_source_ref: &str) -> String {
     format!("local-agent:{owner_user_id}:{runtime_source_ref}")
 }
 
-fn agent_center_root(home: &Path, account_id: &str, local_agent_ref: &str) -> PathBuf {
-    home.join(".nimi/data/accounts")
+fn agent_center_root(fixture_root: &Path, account_id: &str, local_agent_ref: &str) -> PathBuf {
+    fixture_root
+        .join("data-root")
+        .join("accounts")
         .join(agent_center_path_segment(account_id))
         .join("agents")
         .join(agent_center_path_segment(local_agent_ref))

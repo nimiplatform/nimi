@@ -11,6 +11,11 @@ Discipline.
 
 ### Changed
 
+- Standard Apps projections no longer accept caller-supplied `registryPath` or
+  `packagesPath`. Tauri derives the registry location from the canonical
+  Product Control data root, and package readiness remains Runtime-owned. This
+  is a breaking pre-1.0 API cut.
+
 - Auth shell entry actions now use a host-neutral callback and expose the
   primary semantic marker only while the logo is the actionable entry control;
   the compact logo on later embedded stages is named and behaves as Back.

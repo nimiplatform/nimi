@@ -70,7 +70,7 @@ export type NimiElectronBundledAvatarAssetHost = {
 };
 
 export type CreateNimiElectronBundledAvatarAssetHostInput = {
-  /** Runtime-protected product-control projection; never renderer input. */
+  /** Runtime-validated canonical Product Control projection; never renderer input. */
   readonly resolveSelectedDataRoot: () => Promise<string>;
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
   /** The same mutable root list supplied to the bundled Avatar standard host. */

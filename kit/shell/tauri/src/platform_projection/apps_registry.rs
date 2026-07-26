@@ -1,4 +1,4 @@
-//! Pure `~/.nimi/apps/registry.json` projection rules.
+//! Pure `<dataRoot>/apps/registry.json` projection rules.
 
 use crate::governed_config::{
     read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
@@ -10,18 +10,16 @@ use crate::platform_catalog::nimi_app_registry::{
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-/// Supported `~/.nimi/apps/registry.json` schema version.
+/// Supported `<dataRoot>/apps/registry.json` schema version.
 pub const APPS_REGISTRY_SCHEMA_VERSION: u32 = 1;
 
-/// `~/.nimi`-relative location of the registry projection. This is the manual
-/// `~/.nimi/nimi.json` `pointers.appRegistry` value.
+/// Canonical data-root-relative location of the registry projection.
 pub const APPS_REGISTRY_POINTER: &str = "apps/registry.json";
 
-/// Governed config-file identity for `~/.nimi/apps/registry.json`
-/// (`local-config-file-registry.yaml` row `registry_json`).
+/// Governed projection identity for `<dataRoot>/apps/registry.json`.
 pub const APPS_REGISTRY_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
     "registry_json",
-    "~/.nimi/apps/registry.json",
+    "<dataRoot>/apps/registry.json",
     APPS_REGISTRY_SCHEMA_VERSION,
 );
 
@@ -49,7 +47,7 @@ pub struct AppsRegistryRow {
     pub requirements_ref: String,
 }
 
-/// `~/.nimi/apps/registry.json` record shape.
+/// `<dataRoot>/apps/registry.json` record shape.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppsRegistryRecord {
@@ -156,26 +154,26 @@ pub fn build_apps_registry_record() -> Result<AppsRegistryRecord, String> {
 pub fn validate_apps_registry_record(record: &AppsRegistryRecord) -> Result<(), String> {
     if record.schema_version != APPS_REGISTRY_SCHEMA_VERSION {
         return Err(format!(
-            "unsupported ~/.nimi/apps/registry.json schemaVersion={} expected={APPS_REGISTRY_SCHEMA_VERSION}",
+            "unsupported <dataRoot>/apps/registry.json schemaVersion={} expected={APPS_REGISTRY_SCHEMA_VERSION}",
             record.schema_version
         ));
     }
     if record.catalog_id.trim().is_empty() {
-        return Err("~/.nimi/apps/registry.json catalogId is required".to_string());
+        return Err("<dataRoot>/apps/registry.json catalogId is required".to_string());
     }
     if record.updated_at.trim().is_empty() {
-        return Err("~/.nimi/apps/registry.json updatedAt is required".to_string());
+        return Err("<dataRoot>/apps/registry.json updatedAt is required".to_string());
     }
     if record.apps.is_empty() {
-        return Err("~/.nimi/apps/registry.json must project at least one app row".to_string());
+        return Err("<dataRoot>/apps/registry.json must project at least one app row".to_string());
     }
     for app in &record.apps {
         if app.app_id.trim().is_empty() {
-            return Err("~/.nimi/apps/registry.json app row requires appId".to_string());
+            return Err("<dataRoot>/apps/registry.json app row requires appId".to_string());
         }
         if app.display_name.trim().is_empty() {
             return Err(format!(
-                "~/.nimi/apps/registry.json app row {} requires displayName",
+                "<dataRoot>/apps/registry.json app row {} requires displayName",
                 app.app_id
             ));
         }
@@ -187,7 +185,7 @@ pub fn validate_apps_registry_record(record: &AppsRegistryRecord) -> Result<(), 
                 | VISIBILITY_NOT_ADMITTED
         ) {
             return Err(format!(
-                "~/.nimi/apps/registry.json app row {} has an unknown visibility: {}",
+                "<dataRoot>/apps/registry.json app row {} has an unknown visibility: {}",
                 app.app_id, app.visibility
             ));
         }
@@ -196,7 +194,7 @@ pub fn validate_apps_registry_record(record: &AppsRegistryRecord) -> Result<(), 
             INSTALL_STATE_NOT_INSTALLED | INSTALL_STATE_BUNDLED | INSTALL_STATE_BLOCKED
         ) {
             return Err(format!(
-                "~/.nimi/apps/registry.json app row {} has an unknown installState: {}",
+                "<dataRoot>/apps/registry.json app row {} has an unknown installState: {}",
                 app.app_id, app.install_state
             ));
         }
@@ -205,7 +203,7 @@ pub fn validate_apps_registry_record(record: &AppsRegistryRecord) -> Result<(), 
             || app.requirements_ref.trim().is_empty()
         {
             return Err(format!(
-                "~/.nimi/apps/registry.json app row {} requires packageRef, manifestRef, and requirementsRef",
+                "<dataRoot>/apps/registry.json app row {} requires packageRef, manifestRef, and requirementsRef",
                 app.app_id
             ));
         }

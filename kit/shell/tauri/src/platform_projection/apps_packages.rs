@@ -1,12 +1,9 @@
-//! Shared `~/.nimi/apps/packages.json` record shape and validation.
+//! Shared Runtime package-readiness projection shape and validation.
 
 use serde::{Deserialize, Serialize};
 
-/// Supported `~/.nimi/apps/packages.json` schema version.
+/// Supported apps-packages projection schema version.
 pub const APPS_PACKAGES_SCHEMA_VERSION: u32 = 2;
-
-/// `~/.nimi`-relative location of the package projection.
-pub const APPS_PACKAGES_POINTER: &str = "apps/packages.json";
 
 const PACKAGE_STATE_INSTALLED: &str = "installed";
 const PACKAGE_STATE_REPAIR_REQUIRED: &str = "repair_required";
@@ -23,7 +20,7 @@ pub struct AppsPackageRow {
     pub verified_at: String,
 }
 
-/// `~/.nimi/apps/packages.json` record shape.
+/// Runtime-owned package-readiness projection record shape.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppsPackagesRecord {
@@ -48,12 +45,12 @@ pub fn build_apps_packages_record_from_rows(
 pub fn validate_apps_packages_record(record: &AppsPackagesRecord) -> Result<(), String> {
     if record.schema_version != APPS_PACKAGES_SCHEMA_VERSION {
         return Err(format!(
-            "unsupported ~/.nimi/apps/packages.json schemaVersion={} expected={APPS_PACKAGES_SCHEMA_VERSION}",
+            "unsupported apps-packages projection schemaVersion={} expected={APPS_PACKAGES_SCHEMA_VERSION}",
             record.schema_version
         ));
     }
     if record.updated_at.trim().is_empty() {
-        return Err("~/.nimi/apps/packages.json updatedAt is required".to_string());
+        return Err("apps-packages projection updatedAt is required".to_string());
     }
     for package in &record.packages {
         if package.app_id.trim().is_empty()
@@ -62,7 +59,7 @@ pub fn validate_apps_packages_record(record: &AppsPackagesRecord) -> Result<(), 
             || package.verified_at.trim().is_empty()
         {
             return Err(
-                "~/.nimi/apps/packages.json package row requires appId, packageRef, version, and verifiedAt"
+                "apps-packages projection row requires appId, packageRef, version, and verifiedAt"
                     .to_string(),
             );
         }
@@ -71,7 +68,7 @@ pub fn validate_apps_packages_record(record: &AppsPackagesRecord) -> Result<(), 
             PACKAGE_STATE_INSTALLED | PACKAGE_STATE_REPAIR_REQUIRED | PACKAGE_STATE_BLOCKED
         ) {
             return Err(format!(
-                "~/.nimi/apps/packages.json package row {} has an unknown state: {}",
+                "apps-packages projection row {} has an unknown state: {}",
                 package.app_id, package.state
             ));
         }
@@ -83,7 +80,7 @@ pub fn validate_apps_packages_record(record: &AppsPackagesRecord) -> Result<(), 
 mod tests {
     use super::{
         build_apps_packages_record_from_rows, validate_apps_packages_record, AppsPackageRow,
-        AppsPackagesRecord, APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
+        AppsPackagesRecord, APPS_PACKAGES_SCHEMA_VERSION,
     };
 
     fn package_row(state: &str) -> AppsPackageRow {
@@ -107,7 +104,6 @@ mod tests {
         let raw = serde_json::to_string_pretty(&record).expect("serialize");
         let parsed: AppsPackagesRecord = serde_json::from_str(&raw).expect("deserialize");
         assert_eq!(record, parsed);
-        assert!(APPS_PACKAGES_POINTER.ends_with("packages.json"));
     }
 
     #[test]

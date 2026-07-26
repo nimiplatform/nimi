@@ -304,9 +304,10 @@ describe('standard shell capabilities', () => {
       recommendedProfileRef: 'local-gpu',
     });
 
-    const bridge = buildNimiAppsBridgeProjection('~/.nimi/apps/registry.json', '~/.nimi/apps/packages.json');
+    const bridge = buildNimiAppsBridgeProjection();
     expect(bridge.registryRows).toHaveLength(NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS.length);
     expect(bridge.releaseDescriptors).toHaveLength(NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS.length);
+    expect(bridge).not.toHaveProperty('packagesPath');
 
     const packages = buildNimiAppsPackagesRecordFromRows('2026-06-27T00:00:00.000Z', []);
     expect(packages).toEqual({

@@ -69,6 +69,9 @@ export async function resolveElectronStandardStorageRoots(
   if (!host) {
     throw createElectronStandardDataRootBindingMissingError(command);
   }
+  if (binding?.source === 'product-control-projection') {
+    return productControlProjectionStorageRoots(binding, command);
+  }
   if (binding?.source === 'runtime-launch-projection') {
     return projectionStorageRoots(binding, command);
   }
@@ -93,6 +96,33 @@ export async function resolveElectronStandardDataRoot(
 ): Promise<string> {
   const roots = await resolveElectronStandardStorageRoots(host, command);
   return roots.dataRoot;
+}
+
+async function productControlProjectionStorageRoots(
+  binding: Extract<NimiElectronStandardDataRootBinding, { source: 'product-control-projection' }>,
+  command: string,
+): Promise<NimiElectronStandardStorageRoots> {
+  let dataRoot: string;
+  try {
+    dataRoot = await binding.resolveDataRoot();
+  } catch (error) {
+    if (error instanceof NimiElectronShellHostError) {
+      throw error;
+    }
+    throw new NimiElectronShellHostError({
+      code: 'capability-unavailable',
+      message: `Electron Product Control data root is unavailable for command: ${command}`,
+      reasonCode: 'electron-product-control-data-root-unavailable',
+      actionHint: 'complete_or_repair_canonical_product_control',
+      details: {
+        command,
+        cause: error instanceof Error ? error.message : String(error ?? ''),
+      },
+    });
+  }
+  return {
+    dataRoot: requireAbsoluteBindingRoot(dataRoot, 'dataRoot', command),
+  };
 }
 
 function projectionStorageRoots(

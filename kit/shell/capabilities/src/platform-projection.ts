@@ -239,8 +239,6 @@ export type NimiAppsPackagesRecord = {
 };
 
 export type NimiAppsBridgeProjection = {
-  readonly registryPath: string;
-  readonly packagesPath: string;
   readonly registryRows: readonly {
     readonly appId: string;
     readonly appKind: string;
@@ -337,10 +335,10 @@ export function buildNimiAppsPackagesRecordFromRows(
       || !normalizeNimiCapabilityText(row.version)
       || !normalizeNimiCapabilityText(row.verifiedAt)
     ) {
-      throw new Error('~/.nimi/apps/packages.json package row requires appId, packageRef, version, and verifiedAt');
+      throw new Error('apps-packages projection row requires appId, packageRef, version, and verifiedAt');
     }
     if (!['installed', 'repair_required', 'blocked'].includes(row.state)) {
-      throw new Error(`~/.nimi/apps/packages.json package row ${row.appId} has an unknown state: ${row.state}`);
+      throw new Error(`apps-packages projection row ${row.appId} has an unknown state: ${row.state}`);
     }
   }
   return {
@@ -350,13 +348,8 @@ export function buildNimiAppsPackagesRecordFromRows(
   };
 }
 
-export function buildNimiAppsBridgeProjection(
-  registryPath: string,
-  packagesPath: string,
-): NimiAppsBridgeProjection {
+export function buildNimiAppsBridgeProjection(): NimiAppsBridgeProjection {
   return {
-    registryPath,
-    packagesPath,
     registryRows: NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS.map((row) => ({
       appId: row.appId,
       appKind: row.appKind,
@@ -405,8 +398,6 @@ export type NimiPlatformProjectionId =
 export type NimiPlatformProjectionInput = {
   readonly projectionId: string;
   readonly updatedAt?: string;
-  readonly registryPath?: string;
-  readonly packagesPath?: string;
   readonly packages?: readonly NimiAppsPackageRow[];
 };
 
@@ -430,10 +421,7 @@ export function buildNimiPlatformProjection(input: NimiPlatformProjectionInput):
   if (projectionId === 'apps-bridge') {
     return {
       projectionId,
-      record: buildNimiAppsBridgeProjection(
-        input.registryPath || '~/.nimi/apps/registry.json',
-        input.packagesPath || '~/.nimi/apps/packages.json',
-      ),
+      record: buildNimiAppsBridgeProjection(),
     };
   }
   throw new Error(`unsupported platform projection: ${projectionId || '<missing>'}`);
