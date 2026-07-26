@@ -12,6 +12,12 @@ import {
   signWindowsDevFiles,
 } from '../../../scripts/lib/windows-dev-signing.mjs';
 import { parseFirstJsonDocument, parseLastJsonDocument } from '../../../scripts/lib/windows-powershell.mjs';
+import {
+  FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES,
+  resolveFirstPartyProductRoot,
+} from './first-party-product-contract.mjs';
+
+export { FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES, resolveFirstPartyProductRoot } from './first-party-product-contract.mjs';
 
 const desktopRequire = createRequire(path.join(import.meta.dirname, '../../../apps/desktop/package.json'));
 const kitRequire = createRequire(path.join(import.meta.dirname, '../../../kit/package.json'));
@@ -19,20 +25,6 @@ const playwright = await import(pathToFileURL(desktopRequire.resolve('playwright
 const electron = playwright.default?._electron;
 
 const EXECUTION_EVIDENCE_REF = /^execution_evidence_[0-9a-z]+$/u;
-export const FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES = Object.freeze([
-  'NIMI_FIRST_PARTY_ACCOUNT_EMAIL',
-  'NIMI_FIRST_PARTY_ACCOUNT_PASSWORD',
-  'NIMI_FIRST_PARTY_CANCEL_PROMPT',
-  'NIMI_FIRST_PARTY_DIRECT_PROMPT',
-  'NIMI_FIRST_PARTY_INSTALL_LEVEL',
-  'NIMI_FIRST_PARTY_LOCAL_ROUTE_TESTID',
-  'NIMI_FIRST_PARTY_PARTNER_PROMPT',
-  'NIMI_FIRST_PARTY_PRODUCT_ROOT',
-  'NIMI_FIRST_PARTY_REALM_SOURCE_ID',
-  'NIMI_FIRST_PARTY_TIMEOUT_PROMPT',
-  'NIMI_FIRST_PARTY_UNAVAILABLE_PROMPT',
-  'NIMI_FIRST_PARTY_UNAVAILABLE_ROUTE_TESTID',
-]);
 export function firstPartyProductChildEnv(extra = {}) {
   const output = { ...process.env, ...extra };
   for (const name of FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES) delete output[name];
@@ -645,23 +637,6 @@ async function observeCompletedFirstRun(browser, productRoot) {
     storageSelectionPerformed: false,
     recoveredReadyState: true,
   };
-}
-
-export function resolveFirstPartyProductRoot(value) {
-  const configured = String(value || '').trim();
-  if (!configured || !path.isAbsolute(configured)) {
-    throw new Error('Gate 0 requires an explicit absolute --product-root or NIMI_FIRST_PARTY_PRODUCT_ROOT');
-  }
-  const resolved = path.resolve(configured);
-  let stat;
-  try {
-    stat = fs.statSync(resolved);
-  } catch (error) {
-    if (error?.code === 'ENOENT') throw new Error(`Gate 0 selected product root does not exist: ${resolved}`);
-    throw error;
-  }
-  if (!stat.isDirectory()) throw new Error(`Gate 0 selected product root is not a directory: ${resolved}`);
-  return resolved;
 }
 
 function composeCandidateIdentity({

@@ -2,6 +2,8 @@ import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { P4HarnessError } from './p4-errors.mjs';
+
 const activeProcessHandles = new Set();
 const DEFAULT_PROCESS_CAPTURE_LIMIT_BYTES = 1024 * 1024;
 
@@ -55,7 +57,11 @@ function createProcessCapture(file, maximumBytes) {
 function killProcessTreeSync(child) {
   if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return;
   if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], { stdio: 'ignore' });
+    spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+      stdio: 'ignore',
+      timeout: 5_000,
+      windowsHide: true,
+    });
     return;
   }
   try {
@@ -156,29 +162,57 @@ export function startProcess(command, args, options = {}) {
   return handle;
 }
 
-export async function terminateProcessTree(handle) {
+function waitForProcessClose(completed, timeoutMs) {
+  return Promise.race([
+    completed.then(() => true, () => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), timeoutMs)),
+  ]);
+}
+
+function terminationFailure(message, cause) {
+  return new P4HarnessError('P4_GATE_TERMINATION_FAILED', message, cause ? { cause } : undefined);
+}
+
+export async function terminateProcessTree(handle, options = {}) {
   if (!handle?.child?.pid) return;
   const { child, completed } = handle;
-  if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], { stdio: 'ignore' });
-    await completed.catch(() => undefined);
+  const platform = options.platform || process.platform;
+  const termGraceMs = options.termGraceMs ?? 1_000;
+  const closeTimeoutMs = options.closeTimeoutMs ?? 5_000;
+  const taskkillTimeoutMs = options.taskkillTimeoutMs ?? 5_000;
+
+  if (platform === 'win32') {
+    const runTaskkill = options.runTaskkill || ((pid) => spawnSync(
+      'taskkill.exe',
+      ['/pid', String(pid), '/t', '/f'],
+      { stdio: 'ignore', timeout: taskkillTimeoutMs, windowsHide: true },
+    ));
+    const result = runTaskkill(child.pid);
+    const closed = await waitForProcessClose(completed, closeTimeoutMs);
+    if (result?.error) {
+      throw terminationFailure(`taskkill failed or exceeded its ${taskkillTimeoutMs}ms deadline`, result.error);
+    }
+    if (!closed) {
+      throw terminationFailure(`worker process did not close within ${closeTimeoutMs}ms after taskkill`);
+    }
+    if (result?.status !== 0 && result?.status !== null) {
+      throw terminationFailure(`taskkill exited with status ${result.status}`);
+    }
     return;
   }
-  const signalGroup = (signal) => {
+
+  const signalGroup = options.signalGroup || ((signal) => {
     try {
       process.kill(-child.pid, signal);
     } catch (error) {
       if (error?.code !== 'ESRCH') child.kill(signal);
     }
-  };
+  });
   signalGroup('SIGTERM');
-  const exited = await Promise.race([
-    completed.then(() => true, () => true),
-    new Promise((resolve) => setTimeout(() => resolve(false), 5_000)),
-  ]);
-  if (!exited) {
-    signalGroup('SIGKILL');
-    await completed.catch(() => undefined);
+  if (await waitForProcessClose(completed, termGraceMs)) return;
+  signalGroup('SIGKILL');
+  if (!await waitForProcessClose(completed, closeTimeoutMs)) {
+    throw terminationFailure(`worker process did not close within ${closeTimeoutMs}ms after SIGKILL`);
   }
 }
 
