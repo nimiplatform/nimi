@@ -1,20 +1,18 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { resolvePythonVenvExecutable } from './lib/python-venv.mjs';
+import {
+  deriveNimiDataPaths,
+  resolveProductControlDataRoot,
+} from './lib/product-control-data-root.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const defaultModelsRootValue = path.join(os.homedir(), '.nimi', 'data', 'models');
-const defaultEngineRootValue = path.join(os.homedir(), '.nimi', 'engines', 'speech', 'qwen3');
-const defaultTTSVenvRootValue = path.join(defaultEngineRootValue, 'tts-python');
-const defaultASRVenvRootValue = path.join(defaultEngineRootValue, 'asr-python');
-const defaultCacheRootValue = path.join(os.homedir(), '.nimi', 'cache', 'huggingface');
 const defaultPythonVersion = '3.12';
 const defaultHostPackages = [
   'huggingface-hub',
@@ -72,12 +70,16 @@ const manifestSpecs = [
   },
 ];
 
-function expandHome(value) {
-  const text = String(value || '').trim();
-  if (!text.startsWith('~/')) {
-    return text;
-  }
-  return path.join(os.homedir(), text.slice(2));
+function productStorageDefaults() {
+  const paths = deriveNimiDataPaths(resolveProductControlDataRoot());
+  const engineRoot = path.join(paths.environments, 'speech', 'qwen3');
+  return {
+    modelsRoot: paths.models,
+    engineRoot,
+    ttsVenvRoot: path.join(engineRoot, 'tts-python'),
+    asrVenvRoot: path.join(engineRoot, 'asr-python'),
+    cacheRoot: path.join(paths.dependencies, 'huggingface'),
+  };
 }
 
 function quoteShell(value) {
@@ -86,12 +88,9 @@ function quoteShell(value) {
 }
 
 function parseArgs(argv) {
+  const storage = productStorageDefaults();
   const options = {
-    modelsRoot: expandHome(process.env.NIMI_RUNTIME_LOCAL_MODELS_PATH || defaultModelsRootValue),
-    engineRoot: defaultEngineRootValue,
-    ttsVenvRoot: defaultTTSVenvRootValue,
-    asrVenvRoot: defaultASRVenvRootValue,
-    cacheRoot: expandHome(process.env.HF_HOME || defaultCacheRootValue),
+    ...storage,
     speechBaseURL: '',
     skipInstall: false,
     refreshInstall: false,
@@ -100,33 +99,6 @@ function parseArgs(argv) {
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === '--models-root') {
-      options.modelsRoot = expandHome(argv[index + 1] || '');
-      index += 1;
-      continue;
-    }
-    if (arg === '--engine-root' || arg === '--venv-root') {
-      options.engineRoot = expandHome(argv[index + 1] || '');
-      options.ttsVenvRoot = path.join(options.engineRoot, 'tts-python');
-      options.asrVenvRoot = path.join(options.engineRoot, 'asr-python');
-      index += 1;
-      continue;
-    }
-    if (arg === '--tts-venv-root') {
-      options.ttsVenvRoot = expandHome(argv[index + 1] || '');
-      index += 1;
-      continue;
-    }
-    if (arg === '--asr-venv-root') {
-      options.asrVenvRoot = expandHome(argv[index + 1] || '');
-      index += 1;
-      continue;
-    }
-    if (arg === '--cache-root') {
-      options.cacheRoot = expandHome(argv[index + 1] || '');
-      index += 1;
-      continue;
-    }
     if (arg === '--speech-base-url') {
       options.speechBaseURL = String(argv[index + 1] || '').trim();
       index += 1;
@@ -282,7 +254,7 @@ export function recommendedEnvLines({
   modelsRoot,
   ttsVenvRoot,
   asrVenvRoot,
-  cacheRoot = defaultCacheRootValue,
+  cacheRoot,
   speechBaseURL = '',
 }) {
   const ttsPythonPath = pythonExecutable(ttsVenvRoot);
@@ -383,12 +355,14 @@ async function ensureEnvInstalled(venvRoot, packages, options) {
 }
 
 export async function bootstrapLocalQwen3Speech(options) {
+  const engineRoot = options.engineRoot
+    || (options.ttsVenvRoot ? path.dirname(options.ttsVenvRoot) : productStorageDefaults().engineRoot);
   const resolved = {
     ...options,
     modelsRoot: path.resolve(options.modelsRoot),
-    engineRoot: path.resolve(options.engineRoot || defaultEngineRootValue),
-    ttsVenvRoot: path.resolve(options.ttsVenvRoot || path.join(options.engineRoot || defaultEngineRootValue, 'tts-python')),
-    asrVenvRoot: path.resolve(options.asrVenvRoot || path.join(options.engineRoot || defaultEngineRootValue, 'asr-python')),
+    engineRoot: path.resolve(engineRoot),
+    ttsVenvRoot: path.resolve(options.ttsVenvRoot || path.join(engineRoot, 'tts-python')),
+    asrVenvRoot: path.resolve(options.asrVenvRoot || path.join(engineRoot, 'asr-python')),
     cacheRoot: path.resolve(options.cacheRoot),
   };
   const bundlePaths = [];

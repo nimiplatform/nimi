@@ -54,31 +54,21 @@ test('service candidate stages into an immutable version root and moves atomical
 });
 
 test('checkpoint profile separates real Realm account authority from the provider fixture', () => {
-  assert.match(installer, /schemaVersion\s*=\s*5/u);
+  assert.match(installer, /schemaVersion\s*=\s*6/u);
   assert.match(installer, /runtimeCandidateId\s*=\s*\$buildRecord\.candidateId/u);
   assert.match(installer, /developmentStateCandidateId\s*=\s*\[string\]\s*\$stateLineage\.developmentStateCandidateId/u);
   assert.match(installer, /acceptanceRoundId\s*=\s*\[string\]\s*\$stateLineage\.acceptanceRoundId/u);
   assert.match(installer, /RandomNumberGenerator/u);
   assert.match(installer, /Resolve-DevKernelCheckpointStateLineage/u);
   assert.match(installer, /signed_installer_preserved_development_state_lineage/u);
-  assert.match(installer, /elseif \(\[int\] \$acceptanceProfile\.schemaVersion -eq 4\) \{\s*\[string\] \$acceptanceProfile\.runtimeCandidateId/u);
-  assert.match(installer, /developmentDataRootRef\s*=\s*\$resolvedDevelopmentDataRoot/u);
-  assert.match(installer, /Resolve-DevKernelCheckpointDataRootBinding/u);
-  assert.match(installer, /signed_installer_explicit_operator_selection/u);
-  assert.match(installer, /signed_installer_preserved_operator_selection/u);
-  assert.match(installer, /developmentDataRootAuthority/u);
-  assert.match(installer, /developmentDataRootDisposition/u);
+  assert.match(installer, /\$schemaVersion -ne 6/u);
+  assert.doesNotMatch(installer, /DevelopmentDataRoot|developmentDataRootRef|Resolve-DevKernelCheckpointDataRootBinding/u);
   assert.doesNotMatch(
     installer,
     /Get-DevKernelServiceConfigPath|Sync-DevKernelServiceDataRootConfig|developmentServiceConfigSynchronized/u,
   );
   assert.match(installer, /Existing protected acceptance profile identity is invalid/u);
-  assert.match(installer, /\$PreviousProfile\.developmentDataRootRef/u);
   assert.doesNotMatch(installer, /RuntimeUserConfigPath|\$runtimeConfig\.dataRootRef/u);
-  assert.match(installer, /DevelopmentDataRoot must be an existing non-reparse directory/u);
-  assert.match(installer, /DevelopmentDataRoot path components must be existing non-reparse directories/u);
-  assert.match(installer, /foreach \(\$segment in \$resolved\.Substring\(\$volumeRoot\.Length\)/u);
-  assert.doesNotMatch(installer, /runtime_candidate_isolated_fallback|candidate_specific_payload_root/u);
   assert.match(installer, /accountRealmBaseUrl\s*=\s*\$fixture\.accountRealmBaseUrl/u);
   assert.match(installer, /fixtureBaseUrl\s*=\s*\$fixture\.fixtureBaseUrl/u);
   assert.match(installer, /providerBaseUrl\s*=\s*\$fixture\.providerBaseUrl/u);
@@ -191,7 +181,7 @@ test('status and runner derive checkpoint posture from immutable candidate mater
   );
 });
 
-test('PowerShell lineage resolver preserves schema-4 and schema-5 state identities across binary candidates', {
+test('PowerShell lineage resolver preserves schema-6 state identities across binary candidates', {
   skip: process.platform !== 'win32',
 }, () => {
   const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
@@ -202,23 +192,16 @@ test('PowerShell lineage resolver preserves schema-4 and schema-5 state identiti
   const round = `dev-kernel-round-${'4'.repeat(32)}`;
   const command = [
     `. '${escapedInstallerPath}'`,
-    `$schema4 = '${JSON.stringify({ schemaVersion: 4, trialId: 'dev-kernel-checkpoint', runtimeCandidateId: oldCandidate, acceptanceRoundId: round })}' | ConvertFrom-Json`,
-    `$schema5 = '${JSON.stringify({ schemaVersion: 5, trialId: 'dev-kernel-checkpoint', runtimeCandidateId: oldCandidate, developmentStateCandidateId: durableCandidate, acceptanceRoundId: round })}' | ConvertFrom-Json`,
-    `$from4 = Resolve-DevKernelCheckpointStateLineage -PreviousProfile $schema4 -CurrentCandidateId '${currentCandidate}' -TrialId 'dev-kernel-checkpoint'`,
-    `$from5 = Resolve-DevKernelCheckpointStateLineage -PreviousProfile $schema5 -CurrentCandidateId '${currentCandidate}' -TrialId 'dev-kernel-checkpoint'`,
-    `@{ from4 = $from4; from5 = $from5 } | ConvertTo-Json -Depth 5 -Compress`,
+    `$schema6 = '${JSON.stringify({ schemaVersion: 6, trialId: 'dev-kernel-checkpoint', runtimeCandidateId: oldCandidate, developmentStateCandidateId: durableCandidate, acceptanceRoundId: round })}' | ConvertFrom-Json`,
+    `$from6 = Resolve-DevKernelCheckpointStateLineage -PreviousProfile $schema6 -CurrentCandidateId '${currentCandidate}' -TrialId 'dev-kernel-checkpoint'`,
+    `@{ from6 = $from6 } | ConvertTo-Json -Depth 5 -Compress`,
   ].join('; ');
   const result = spawnSync('powershell.exe', [
     '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
   ], { encoding: 'utf8', windowsHide: true });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const parsed = JSON.parse(result.stdout.trim());
-  assert.deepEqual(parsed.from4, {
-    developmentStateCandidateId: oldCandidate,
-    acceptanceRoundId: round,
-    authority: 'signed_installer_preserved_development_state_lineage',
-  });
-  assert.deepEqual(parsed.from5, {
+  assert.deepEqual(parsed.from6, {
     developmentStateCandidateId: durableCandidate,
     acceptanceRoundId: round,
     authority: 'signed_installer_preserved_development_state_lineage',

@@ -6,16 +6,16 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  deriveNimiDataPaths,
+  resolveProductControlDataRoot,
+} from './lib/product-control-data-root.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const runtimeDir = path.join(repoRoot, 'runtime');
-const defaultQwen3TTSPython = path.join(process.env.HOME || '', '.nimi', 'engines', 'speech', 'qwen3', 'tts-python', 'bin', 'python3');
-const defaultQwen3ASRPython = path.join(process.env.HOME || '', '.nimi', 'engines', 'speech', 'qwen3', 'asr-python', 'bin', 'python3');
 const suggestedBootstrapCommand = `node ${path.join(repoRoot, 'scripts', 'bootstrap-local-qwen3-speech.mjs')}`;
 const suggestedHostCommand = `node ${path.join(repoRoot, 'scripts', 'run-local-qwen3-speech-host.mjs')}`;
-const suggestedTTSDriverCommand = `${fs.existsSync(defaultQwen3TTSPython) ? defaultQwen3TTSPython : 'python3'} ${path.join(repoRoot, 'scripts', 'qwen3-tts-driver.py')}`;
-const suggestedASRDriverCommand = `${fs.existsSync(defaultQwen3ASRPython) ? defaultQwen3ASRPython : 'python3'} ${path.join(repoRoot, 'scripts', 'qwen3-asr-driver.py')}`;
 
 function firstNonEmpty(...values) {
   for (const value of values) {
@@ -89,11 +89,14 @@ function firstAvailablePython(...candidates) {
   return 'python3';
 }
 
-function modelsRoot() {
-  return firstNonEmpty(
-    process.env.NIMI_RUNTIME_LOCAL_MODELS_PATH,
-    path.join(process.env.HOME || '', '.nimi', 'data', 'models'),
-  );
+function productStorageDefaults() {
+  const paths = deriveNimiDataPaths(resolveProductControlDataRoot());
+  const engineRoot = path.join(paths.environments, 'speech', 'qwen3');
+  return {
+    modelsRoot: paths.models,
+    ttsPython: path.join(engineRoot, 'tts-python', 'bin', 'python3'),
+    asrPython: path.join(engineRoot, 'asr-python', 'bin', 'python3'),
+  };
 }
 
 export function findQwen3SpeechManifest(root) {
@@ -167,9 +170,10 @@ function driverPreflight(command) {
 }
 
 function main() {
+  const storage = productStorageDefaults();
   const speechBaseURL = firstNonEmpty(process.env.NIMI_LIVE_LOCAL_SPEECH_BASE_URL, process.env.NIMI_LIVE_LOCAL_BASE_URL);
   const speechAPIKey = firstNonEmpty(process.env.NIMI_LIVE_LOCAL_SPEECH_API_KEY, process.env.NIMI_LIVE_LOCAL_API_KEY);
-  const resolvedModelsRoot = modelsRoot();
+  const resolvedModelsRoot = storage.modelsRoot;
   const manifestPath = findQwen3SpeechManifest(resolvedModelsRoot);
   const synthModelID = firstNonEmpty(
     process.env.NIMI_LIVE_LOCAL_QWEN3_TTS_MODEL_ID,
@@ -190,8 +194,10 @@ function main() {
     process.env.NIMI_LIVE_LOCAL_STT_MODEL_ID,
     'speech/qwen3asr',
   );
-  const qwen3TTSPython = firstAvailablePython(defaultQwen3TTSPython, 'python3');
-  const qwen3ASRPython = firstAvailablePython(defaultQwen3ASRPython, 'python3');
+  const qwen3TTSPython = firstAvailablePython(storage.ttsPython, 'python3');
+  const qwen3ASRPython = firstAvailablePython(storage.asrPython, 'python3');
+  const suggestedTTSDriverCommand = `${qwen3TTSPython} ${path.join(repoRoot, 'scripts', 'qwen3-tts-driver.py')}`;
+  const suggestedASRDriverCommand = `${qwen3ASRPython} ${path.join(repoRoot, 'scripts', 'qwen3-asr-driver.py')}`;
   const speechHostPython = qwen3TTSPython;
 
   const blockers = [];

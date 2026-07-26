@@ -27,7 +27,6 @@ export async function executeP4WorkerGate({
   repoRoot,
   outputDir,
   prerequisite,
-  productRoot,
   workerPath = defaultWorkerPath,
   terminate = terminateProcessTree,
 }) {
@@ -40,7 +39,6 @@ export async function executeP4WorkerGate({
     repoRoot,
     outputDir,
     prerequisite,
-    productRoot,
   })}\n`, { encoding: 'utf8', mode: 0o600 });
 
   const launchedAt = performance.now();

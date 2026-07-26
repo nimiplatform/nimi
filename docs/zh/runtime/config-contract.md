@@ -1,130 +1,67 @@
 # 运行时配置
 
-> 状态：运行中 (Running)。运行时配置合约 (`K-CFG-001..K-CFG-011`) 规定了规范配置路径、源优先级、模式版本控制、密钥策略和重新加载边界。
+> 状态：当前生效。Active authority 位于
+> `.nimi/spec/runtime/protected-session.authority.yaml` 与
+> `.nimi/spec/runtime/service-operations.authority.yaml`。
 
-运行时从一个具有明确源优先级的规范路径读取配置。配置验证失败时关闭；重新加载边界是明确的。没有隐式的热重载。
+Runtime 配置与 Product Control 是两个不同平面：
 
-## 规范配置路径
+- `~/.nimi/nimi.json` 是固定的 Product Control 记录，也是
+  `dataRoot.path` 唯一的产品发现 authority。
+- Windows 上的 `%ProgramData%\Nimi\Runtime\Protected` 保存服务主体私有的
+  状态、配置、凭据、会话、审计和 data-root 验证证据。
+- Protected Runtime 只能保存与 Product Control 选择绑定的派生状态，不能选择
+  或覆盖 `dataRoot.path`；两者不一致时必须 fail-closed 并进入 repair。
 
-| 规则 | 值 |
-| --- | --- |
-| 规范路径 | `~/.nimi/runtime/config.json` |
-| 覆盖路径 | `NIMI_RUNTIME_CONFIG_PATH` |
-| 忽略的旧路径 | `~/.nimi/config.json` 不读取 |
+## 生产环境
 
-运行时不读取旧配置位置。迁移的机器必须将其配置移动到规范路径，或在受管理环境中显式设置 `NIMI_RUNTIME_CONFIG_PATH`。
+生产 Runtime 不发现用户可写的 portable config。其私有配置位置由已安装的
+protected service 固定，不允许用户配置，也不作为普通物理路径对外展示。
 
-## 源优先级
+数据平面始终从 Product Control 读取，并只派生：
 
-源按固定优先级顺序解析：
-
+```text
+<dataRoot>/models
+<dataRoot>/dependencies
+<dataRoot>/environments
+<dataRoot>/apps
+<dataRoot>/accounts
+<dataRoot>/logs
+<dataRoot>/audit
 ```
-环境变量 > 配置文件 > 内置默认值
-```
 
-环境变量覆盖配置文件中的值。配置文件中的值覆盖内置默认值。
+环境变量、argv、Desktop 状态、测试和 protected Runtime 状态都不能提供另一份
+产品 data root。
 
-## 模式版本
+## 显式 nonproduction portable 模式
 
-| 规则 | 值 |
-| --- | --- |
-| 必需字段 | `schemaVersion` |
-| 当前版本 | `1` |
-| 未知字段 | 向前兼容忽略 |
+`NIMI_RUNTIME_CONFIG_PATH` 仅是显式 nonproduction portable 配置入口，不存在
+默认 portable config 路径。`~/.nimi/runtime/config.json` 与
+`~/.nimi/config.json` 均已退役，不是发现或迁移输入。
 
-没有 `schemaVersion` 的配置不会加载。向前兼容的姿态允许旧的运行时忽略新字段而不崩溃。
+Portable 配置：
 
-## 提供商名称规范化
+- 必须使用当前 schema，内容无效时 fail-closed；
+- 可以配置 nonproduction Runtime 行为与 provider setup；
+- 不得包含 `dataRootRef` 或任何 `managedRoots` 值；
+- 不得成为 Product Control 或生产 Runtime 私有状态；
+- 只有显式提供时，`nimi doctor` 或 `nimi version` 才能以
+  nonproduction 标签报告该入口。
 
-配置中的提供商名称必须使用 `provider-catalog.yaml` 中的规范值。别名和已退役名称将被**拒绝**。这防止了两个配置以不同方式拼写同一个提供商并静默路由到不同路径的情况。
+`nimi provider set`、`unset` 或交互式 setup 的 provider mutation 仅在显式
+提供这一 nonproduction 路径时可用。生产凭据和配置继续由 protected service
+保管。
 
-## 密钥策略
+## 验证与写入
 
-| 规则 | 值 |
-| --- | --- |
-| 每个提供商选择一个 | `apiKey` 或 `apiKeyEnv` |
-| 两者都设置 | 拒绝 |
-| 推荐 | 环境变量或系统安全存储 |
-| `apiKey` 内联 | 仅作为规范配置文件的回退允许 |
+配置验证 fail-closed，不接受部分成功。服务私有写入与显式 portable 写入均使用
+原子替换。每个字段的 reload 行为必须单独声明；未声明的字段不得被推断为可热重载。
 
-面向用户的工具应优先使用环境变量或安全存储。内联 `apiKey` 在规范配置文件中作为回退保留，因为某些引导流程需要该值在守护进程重启后仍然存在，但推荐使用 `apiKeyEnv` 和安全存储。
+## Runtime 配置不做的事情
 
-## 原子写入
-
-配置写入使用 **临时文件 + 重命名** 原子写入。崩溃的写入不会留下半写入的配置；要么新的配置原子性地写入成功，要么旧的配置仍然在位。
-
-## 运行时命令界面
-
-`config init / validate / get / set` 行为必须符合此合约。错误会发出统一的原因代码；部分成功返回不被接受。
-
-## 验证失败关闭
-
-| 规则 | 值 |
-| --- | --- |
-| 验证失败 | 失败关闭 —— 运行时不会启动核心路径 |
-| 部分成功 | 不被接受 |
-
-一个包含无效字段的配置不会部分工作。运行时拒绝启动核心执行路径，直到配置验证通过。
-
-## 提供商环境绑定
-
-从提供商到其 `baseUrl` / `apiKey` 环境变量名称的映射位于 `provider-probe-targets.yaml` 中。配置合约不内联此映射。
-
-## 热重载边界 (K-CFG-010)
-
-本页最重要的规则：
-
-> 在运行时生效与仅在重启时生效的配置更改**必须明确声明**。隐式热重载不被接受。
-
-配置字段要么被文档化为可热重载，要么不是。依赖于某事物是否“有时”热重载的行为是此规则要防止的错误模式。
-
-## 凭据平面边界 (K-CFG-011)
-
-配置层接受凭据引用，并在规范配置文件中接受内联密钥回退。更高级别的安装和配置入口点必须优先使用环境变量/安全存储路径。
-
-对于公共 CLI 首次运行，如果发生交互式凭据捕获，则用户粘贴的提供商密钥必须立即写入规范的机器配置。相同的引导 `run` 不能仅使用“仅本次调用的内联内存凭据”成功。路径必须：
-
-1. 警告内联密钥风险
-2. 继续推荐 `apiKeyEnv` / 安全存储
-3. 如果写入失败则关闭失败 —— 无继续生成云
-
-当前调用可以继续使用内联元数据到已经运行的守护进程（避免假设守护进程已热重载），但**持久化的真相**是规范配置。
-
-## 读者场景：初始配置
-
-1. **用户运行 `config init`。** 运行时写入一个新的 `~/.nimi/runtime/config.json`，其中包含 `schemaVersion: 1` 和内置默认值。
-2. **用户设置提供商。** `config set` 使用 `provider-catalog.yaml` 中的规范名称写入提供商条目。
-3. **用户添加 API 密钥。** 工具首先提示 `apiKeyEnv`；如果用户坚持内联，则值存储在 `apiKey` 下，并建议切换到环境变量。
-4. **用户启动守护进程。** 进行验证；通过；守护进程进入服务。
-
-## 读者场景：启动时验证失败
-
-1. **守护进程启动。** 读取 `~/.nimi/runtime/config.json`。
-2. **验证失败。** provider 名称是已退役别名。
-3. **失败关闭。** 守护进程拒绝进入服务。原因代码精确定位问题。
-4. **用户修复。** 将提供商名称更新为规范名称；重新运行 `config validate`；重启守护进程。
-
-守护进程不会“禁用坏的提供商部分启动”。
-
-## 读者场景：热重载问题
-
-用户更改了一个配置字段并询问：这个更改现在生效吗？
-
-1. **检查字段的文档化重新加载边界。** 如果文档化为可热重载，运行时应用它；订阅的子系统重新读取。
-2. **如果文档化为仅重启生效，** 用户必须重启守护进程才能使更改生效。
-3. **如果没有明确声明，** 字段**不**假定为可热重载 —— 合约要求明确声明。
-
-此规则使配置行为在升级过程中可预测。
-
-## 运行时配置不做的事情
-
-- 它不读取已退役配置路径。
-- 它不接受提供商别名或已退役 provider 名称。
-- 它不允许单个提供商同时设置 `apiKey` 和 `apiKeyEnv`。
-- 它在验证失败时不部分启动。
-- 它不隐式热重载任意字段。
-
-## 来源依据
-
-- [`.nimi/spec/runtime/kernel/config-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/config-contract.md)
-- [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
+- 不定位或选择 `dataRoot.path`。
+- 不从 ProgramData 读取 Product Control。
+- 不默认读取 `~/.nimi/runtime` 下的配置文件。
+- 不通过 `doctor`、`version`、Desktop、SDK 或 app surface 暴露生产私有配置路径。
+- 不允许 portable config 覆盖 Product Control 或 protected Runtime 的派生
+  data-root 验证状态。

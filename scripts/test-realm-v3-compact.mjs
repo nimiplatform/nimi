@@ -13,7 +13,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 const runtimeRoot = path.join(repoRoot, 'runtime');
 
 function parseArgs(argv) {
-  const options = { live: false, runtimeDataRoot: '', evidenceDir: '', realmRoot: '' };
+  const options = { live: false, scratchParent: '', evidenceDir: '', realmRoot: '' };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === '--') {
@@ -23,12 +23,12 @@ function parseArgs(argv) {
       options.live = true;
       continue;
     }
-    if (value === '--runtime-data-root' || value === '--evidence-dir') {
+    if (value === '--scratch-parent' || value === '--evidence-dir') {
       const next = argv[index + 1];
       if (!next || next.startsWith('--')) {
         throw new Error(`${value} requires one path`);
       }
-      if (value === '--runtime-data-root') options.runtimeDataRoot = next;
+      if (value === '--scratch-parent') options.scratchParent = next;
       if (value === '--evidence-dir') options.evidenceDir = next;
       index += 1;
       continue;
@@ -54,14 +54,14 @@ function validateDisposableParent(input) {
     path.resolve(repoRoot, '..'),
   ]);
   if (forbidden.has(resolved)) {
-    throw new Error(`runtime data parent is too broad: ${resolved}`);
+    throw new Error(`scratch parent is too broad: ${resolved}`);
   }
   const normalized = resolved.toLowerCase();
   if (normalized.includes(`${path.sep}nimi_dev${path.sep}`) || normalized.endsWith(`${path.sep}nimi_dev`)) {
-    throw new Error('runtime data parent must not target nimi_dev');
+    throw new Error('scratch parent must not target nimi_dev');
   }
   if (input && !normalized.includes('realm-v3') && !normalized.includes('acceptance') && !resolved.startsWith(path.resolve(tmpdir()) + path.sep)) {
-    throw new Error('explicit runtime data parent must be a dedicated realm-v3/acceptance or temporary path');
+    throw new Error('explicit scratch parent must be a dedicated realm-v3/acceptance or temporary path');
   }
   return resolved;
 }
@@ -254,7 +254,7 @@ async function validateFixedProducer(realmRoot) {
 
 const options = parseArgs(process.argv.slice(2));
 const realmRoot = path.resolve(options.realmRoot || path.resolve(repoRoot, '..'));
-const disposableParent = validateDisposableParent(options.runtimeDataRoot);
+const disposableParent = validateDisposableParent(options.scratchParent);
 const evidenceDir = validateEvidenceDir(options.evidenceDir);
 await mkdir(disposableParent, { recursive: true, mode: 0o700 });
 const disposableRoot = await mkdtemp(path.join(disposableParent, 'compact-'));

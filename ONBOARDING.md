@@ -97,14 +97,18 @@ pnpm build:runtime
 
 ## 4. Runtime 快速启动（推荐先做）
 
-### 4.1 初始化配置文件
+### 4.1 准备 Product Control
 
-Runtime 配置文件路径是 `~/.nimi/config.json`（可被 `NIMI_RUNTIME_CONFIG_PATH` 覆盖）。
+先通过正常 Desktop 首次设置选择一次 Nimi 数据存储位置。选择记录固定写入
+`~/.nimi/nimi.json` 的 `dataRoot.path`；后续 Desktop、Runtime、CLI 与测试均复用
+该记录，不再要求第二个 root、路径参数或环境变量。
 
-```bash
-pnpm runtime:config:init
-pnpm runtime:config:validate
-```
+Windows 生产 Runtime 的私有配置和派生验证状态固定保存在
+`%ProgramData%\Nimi\Runtime\Protected`，它不是第二份 Product Control，也不能覆盖
+`dataRoot.path`。
+
+`runtime:config:*` 只用于显式 nonproduction portable-config 实验；它没有默认文件
+路径，且不得用于发现或覆盖 Nimi 数据根目录。
 
 ### 4.2 启动与健康检查
 

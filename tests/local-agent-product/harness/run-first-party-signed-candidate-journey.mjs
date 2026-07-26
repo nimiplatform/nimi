@@ -1,14 +1,10 @@
 #!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 
-import {
-  FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES,
-  resolveFirstPartyProductRoot,
-} from './first-party-product-contract.mjs';
+import { FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES } from './first-party-product-contract.mjs';
 import { safeHarnessFailure } from './p4-errors.mjs';
 import { parseP4Manifest } from './p4-manifest.mjs';
 import { executeP4WorkerGate } from './p4-worker-supervisor.mjs';
@@ -24,10 +20,6 @@ function option(name, fallback = '') {
   return index === -1 ? fallback : process.argv[index + 1];
 }
 
-function hasOption(name) {
-  return process.argv.includes(name);
-}
-
 function loadFirstPartyProductEnv() {
   const fileEnv = buildMergedEnv({ baseEnv: {}, filePaths: [path.join(repoRoot, '.env')] });
   for (const name of FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES) {
@@ -36,35 +28,6 @@ function loadFirstPartyProductEnv() {
   if (process.env.REALM_ROOT === undefined && fileEnv.REALM_ROOT !== undefined) {
     process.env.REALM_ROOT = fileEnv.REALM_ROOT;
   }
-}
-
-function run(command, args, cwd = repoRoot) {
-  const result = spawnSync(command, args, {
-    cwd,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  if (result.error || result.status !== 0) {
-    throw new Error(String(result.stderr || result.stdout || result.error?.message || `${command} failed`).trim());
-  }
-  return String(result.stdout || '').trim();
-}
-
-function resetStaleFirstRunControl(productRoot) {
-  const output = run('pwsh.exe', [
-    '-NoProfile',
-    '-NonInteractive',
-    '-ExecutionPolicy',
-    'Bypass',
-    '-File',
-    path.join(repoRoot, 'scripts', 'reset-windows-first-party-product-control.ps1'),
-    '-Mode',
-    'Reset',
-    '-ProductRoot',
-    productRoot,
-    '-Json',
-  ]);
-  if (output) process.stdout.write(`${output}\n`);
 }
 
 function writeLedger(file, ledger) {
@@ -103,8 +66,6 @@ export async function main() {
   const productGates = parseP4Manifest(readExecutionPolicy(), readJourneyRegistry(), STARTUP_SHELL_ENV);
   loadFirstPartyProductEnv();
   if (!process.env.REALM_ROOT) process.env.REALM_ROOT = 'D:\\nimi-realm';
-  const productRoot = resolveFirstPartyProductRoot(option('--product-root', process.env.NIMI_FIRST_PARTY_PRODUCT_ROOT || ''));
-  if (hasOption('--reset-stale-first-run-control')) resetStaleFirstRunControl(productRoot);
 
   const startedAt = new Date().toISOString();
   const started = performance.now();
@@ -123,7 +84,7 @@ export async function main() {
     startedAt,
     completedAt: null,
     durationMs: 0,
-    productRoot: path.resolve(productRoot),
+    dataRoot: null,
     records: productGates.map(initialRecord),
     rootId: null,
     accountIds: [],
@@ -148,7 +109,6 @@ export async function main() {
         repoRoot,
         outputDir: path.join(evidenceRoot, definition.gate),
         prerequisite,
-        productRoot,
       });
       Object.assign(record, telemetry);
 
@@ -156,6 +116,7 @@ export async function main() {
         ledger.rootId = observations.rootId;
         ledger.accountIds = observations.accountIds;
         ledger.candidateIdentity = observations.candidateIdentity;
+        ledger.dataRoot = observations.candidateIdentity.dataRoot;
         ledger.gate0ExecutionEvidenceRef = observations.candidateIdentity.executionEvidenceRef;
         prerequisite = {
           rootId: observations.rootId,

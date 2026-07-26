@@ -32,18 +32,35 @@ export function validateFirstRunConnectivityObservation(observation) {
   for (const [name, expected] of Object.entries(CANONICAL_COMMANDS)) {
     if (observation?.commands?.[name] !== expected) issues.push(`${name} must use the canonical Kit command`);
   }
-  if (!['config_missing', 'data_root_missing'].includes(observation?.initialProjection?.state)) {
-    issues.push('fresh installer-owned acceptance round must project config_missing or data_root_missing before login');
+  const initialState = observation?.initialProjection?.state;
+  if (![
+    'config_missing',
+    'data_root_missing',
+    'data_root_selected',
+    'local_ai_profile_selected_assets_missing',
+    'local_ai_ready',
+    'ready_for_use',
+  ].includes(initialState)) {
+    issues.push('First Run must enter from a supported Product Control state');
   }
-  const proposal = observation?.initialProjection?.dataRootProposal;
-  if (proposal?.authority !== 'runtime_protected_product_control'
-    || proposal?.profile !== 'dev_kernel_checkpoint'
-    || !String(proposal?.path || '').trim()
-    || observation?.longText?.proposedDataRoot !== proposal?.path) {
-    issues.push('First Run data-root proposal must be Runtime-owned and candidate-bound');
+  if (!['config_missing', 'data_root_missing'].includes(initialState)) {
+    const initialDataRoot = observation?.initialProjection?.record?.dataRoot;
+    if (!['selected', 'ready'].includes(initialDataRoot?.status)
+      || !String(initialDataRoot?.path || '').trim()) {
+      issues.push('resumed First Run must reuse Product Control record.dataRoot.path');
+    }
+  }
+  const finalDataRoot = observation?.firstRun?.productControlRecord?.record?.dataRoot;
+  if (finalDataRoot?.status !== 'ready'
+    || !String(finalDataRoot?.path || '').trim()
+    || observation?.longText?.recordedDataRoot !== finalDataRoot?.path) {
+    issues.push('First Run data root must come from the ready Product Control record');
   }
   if (observation?.baseline?.accountState !== 'anonymous') issues.push('First Run baseline must be anonymous');
-  if (observation?.login?.outcome !== 'first-run') issues.push('login must enter the authenticated First Run gate');
+  if (observation?.login?.outcome !== 'first-run'
+    && !(initialState === 'ready_for_use' && observation?.login?.outcome === 'main-shell')) {
+    issues.push('login must enter First Run or reuse the ready Product Control shell');
+  }
   if (observation?.login?.accountId !== '01J00000000000000000000000') {
     issues.push('login must resolve the real Halliday account through Runtime custody');
   }
@@ -67,31 +84,33 @@ export function validateFirstRunConnectivityObservation(observation) {
     issues.push('ready_for_use must be confirmed by the protected Product Control record');
   }
   const phase = observation?.firstRun?.layout?.phaseAcceptance;
-  if (phase?.deviceInitialScanState === 'pending'
-    && phase?.deviceContinueInitiallyDisabled !== true) {
-    issues.push('Device loading must disable Continue while the initial scan is observably pending');
+  if (observation?.firstRun?.reusedReady !== true) {
+    if (phase?.deviceInitialScanState === 'pending'
+      && phase?.deviceContinueInitiallyDisabled !== true) {
+      issues.push('Device loading must disable Continue while the initial scan is observably pending');
+    }
+    if (phase?.deviceRetryDisabledWhilePending !== true
+      || phase?.deviceContinueDisabledWhileRetryPending !== true) {
+      issues.push('Device retry must disable retry and continue while pending');
+    }
+    if (phase?.localAiContinueInitiallyDisabled !== true) issues.push('Local AI must initially disable Continue');
+    if (phase?.setupObserved !== true) issues.push('Setup phase was not observed');
+    validateNarrowMetrics(observation?.firstRun?.layout?.narrowMetrics, 'Storage', issues);
+    validateNarrowMetrics(phase?.deviceNarrowMetrics, 'Device', issues);
+    validateNarrowMetrics(phase?.localAiNarrowMetrics, 'Local AI', issues);
+    validateNarrowMetrics(phase?.setupNarrowMetrics, 'Setup', issues);
   }
-  if (phase?.deviceRetryDisabledWhilePending !== true
-    || phase?.deviceContinueDisabledWhileRetryPending !== true) {
-    issues.push('Device retry must disable retry and continue while pending');
-  }
-  if (phase?.localAiContinueInitiallyDisabled !== true) issues.push('Local AI must initially disable Continue');
-  if (phase?.setupObserved !== true) issues.push('Setup phase was not observed');
-  validateNarrowMetrics(observation?.firstRun?.layout?.narrowMetrics, 'Storage', issues);
-  validateNarrowMetrics(phase?.deviceNarrowMetrics, 'Device', issues);
-  validateNarrowMetrics(phase?.localAiNarrowMetrics, 'Local AI', issues);
-  validateNarrowMetrics(phase?.setupNarrowMetrics, 'Setup', issues);
   validateNarrowMetrics(observation?.narrowAudit?.dom, 'ready shell', issues);
   if (observation?.locale?.documentLang !== 'zh-CN'
     || observation?.locale?.chineseTextObserved !== true
     || observation?.locale?.replacementCharacterObserved !== false) {
     issues.push('Chinese First Run readability was not verified');
   }
-  if (observation?.longText?.scope !== 'real-account-and-runtime-owned-path'
+  if (observation?.longText?.scope !== 'real-account-and-product-control-data-root'
     || observation?.longText?.syntheticLongTextUsed !== false
     || observation?.longText?.observed !== true
     || observation?.longText?.overflowed !== false) {
-    issues.push('real account and Runtime-owned path must remain visible without synthetic authority or horizontal overflow');
+    issues.push('real account and Product Control data root must remain visible without synthetic authority or horizontal overflow');
   }
   if (observation?.accessibility?.ok !== true) issues.push('First Run accessibility audit failed');
   if (observation?.privacy?.authorizationHeaderObserved !== false

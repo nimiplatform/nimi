@@ -20,6 +20,7 @@ const { getRuntimeWireCodec } = requireFromDesktop('@nimiplatform/sdk/runtime/ge
 
 const FIXTURE_ORIGIN = 'http://127.0.0.1:19443';
 export const RUNTIME_STATUS_COMMAND = NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'];
+export const RUNTIME_RESTART_COMMAND = NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart'];
 const RUNTIME_UNARY_COMMAND = NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'];
 export const PRODUCT_CONTROL_RECORD_METHOD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
 export const PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot';
@@ -575,18 +576,16 @@ export function comparablePath(value) {
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
-export function requireCheckpointDataRootProposal(projection, candidateId) {
-  const proposal = projection?.dataRootProposal;
-  const proposedPath = String(proposal?.path || '').trim();
-  if (proposal?.authority !== 'runtime_protected_product_control'
-    || proposal?.profile !== 'dev_kernel_checkpoint'
-    || !path.isAbsolute(proposedPath)) {
-    throw new Error('fixed service did not project a valid checkpoint data-root proposal');
+export function requireRecordedProductControlDataRoot(projection, acceptedStatuses = ['selected', 'ready']) {
+  const dataRoot = projection?.record?.dataRoot;
+  const recordedPath = String(dataRoot?.path || '').trim();
+  const accepted = new Set(acceptedStatuses);
+  if (!accepted.has(String(dataRoot?.status || '').trim())
+    || !path.isAbsolute(recordedPath)
+    || comparablePath(recordedPath) === comparablePath(path.parse(recordedPath).root)) {
+    throw new Error(
+      `Product Control record has no safe dataRoot.path with status ${[...accepted].join(' or ')}`,
+    );
   }
-  const normalized = comparablePath(proposedPath);
-  if (!/^dev-kernel-runtime-[0-9a-f]{32}$/u.test(String(candidateId))
-    || normalized === comparablePath(path.parse(proposedPath).root)) {
-    throw new Error(`checkpoint data-root proposal is not safely bound to Runtime candidate ${candidateId}`);
-  }
-  return path.resolve(proposedPath);
+  return path.resolve(recordedPath);
 }

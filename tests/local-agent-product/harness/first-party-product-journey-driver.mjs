@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -12,12 +12,9 @@ import {
   signWindowsDevFiles,
 } from '../../../scripts/lib/windows-dev-signing.mjs';
 import { parseFirstJsonDocument, parseLastJsonDocument } from '../../../scripts/lib/windows-powershell.mjs';
-import {
-  FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES,
-  resolveFirstPartyProductRoot,
-} from './first-party-product-contract.mjs';
+import { FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES } from './first-party-product-contract.mjs';
 
-export { FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES, resolveFirstPartyProductRoot } from './first-party-product-contract.mjs';
+export { FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES } from './first-party-product-contract.mjs';
 
 const desktopRequire = createRequire(path.join(import.meta.dirname, '../../../apps/desktop/package.json'));
 const kitRequire = createRequire(path.join(import.meta.dirname, '../../../kit/package.json'));
@@ -84,9 +81,16 @@ function createProcessObservationLedger() {
 }
 
 async function observeLocalProductTopology() {
+  const fetchRequired = async (label, url) => {
+    try {
+      return await fetch(url, { redirect: 'manual' });
+    } catch (error) {
+      throw new Error(`${label} is unavailable at ${url}: ${String(error?.cause?.message || error?.message || error)}`);
+    }
+  };
   const [jwksResponse, webResponse] = await Promise.all([
-    fetch('http://localhost:3002/api/auth/jwks', { redirect: 'manual' }),
-    fetch('http://localhost:3000/', { redirect: 'manual' }),
+    fetchRequired('local Realm JWKS endpoint', 'http://localhost:3002/api/auth/jwks'),
+    fetchRequired('local Nimi Web login surface', 'http://localhost:3000/'),
   ]);
   assert.equal(jwksResponse.status, 200, 'local Realm JWKS endpoint is not healthy on localhost:3002');
   const jwks = await jwksResponse.json();
@@ -178,7 +182,11 @@ function readRuntimeCandidate(repoRoot, processLedger, install) {
   assert.equal(status.configuredAccountRealmBaseUrl, 'http://localhost:3002');
   assert.equal(status.productAcceptanceReleasePosture, 'non_release');
   assert.equal(status.productAcceptanceProductClosePromotion, 'non_promotable_to_product_close');
-  assert.equal(status.developmentDataRootRef, null, 'product Gate must not use a dev-kernel development data root');
+  assert.equal(
+    Object.hasOwn(status, 'developmentDataRootRef'),
+    false,
+    'Runtime installer status must not expose a second data-root locator',
+  );
   assert.equal(status.runtimeCandidateId, runtimeBuildRecord.candidateId, 'installed Runtime candidate does not match its build record');
   assert.equal(status.runtimeBuildRecordSha256, sha256File(runtimeBuildRecordPath), 'installed Runtime build-record digest drifted');
   assert.equal(runtimeBuildRecord.checkpoint, 'first_party_product_acceptance', 'product Gate requires the endpoint-only acceptance build projection');
@@ -302,6 +310,7 @@ function elementAdapter(page, locator) {
 
 function browserAdapter(page, app) {
   return {
+    desktopProcessId: app.process().pid,
     $: async (selector) => elementAdapter(page, playwrightLocator(page, selector)),
     takeExternalUrl: () => app.evaluate(() => {
       const urls = globalThis.__nimiFirstPartyExternalUrls || [];
@@ -475,6 +484,85 @@ async function invokeShell(browser, command, payload = {}) {
   }, command, payload);
 }
 
+const NATIVE_FOLDER_PICKER_SCRIPT = String.raw`
+param([int]$OwnerProcessId, [string]$Folder)
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+$deadline = [DateTime]::UtcNow.AddSeconds(120)
+$root = [System.Windows.Automation.AutomationElement]::RootElement
+$processCondition = New-Object System.Windows.Automation.PropertyCondition(
+  [System.Windows.Automation.AutomationElement]::ProcessIdProperty,
+  $OwnerProcessId
+)
+$editCondition = New-Object System.Windows.Automation.PropertyCondition(
+  [System.Windows.Automation.AutomationElement]::AutomationIdProperty,
+  '1148'
+)
+$confirmCondition = New-Object System.Windows.Automation.PropertyCondition(
+  [System.Windows.Automation.AutomationElement]::AutomationIdProperty,
+  '1'
+)
+while ([DateTime]::UtcNow -lt $deadline) {
+  $windows = $root.FindAll([System.Windows.Automation.TreeScope]::Children, $processCondition)
+  foreach ($window in $windows) {
+    $edit = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $editCondition)
+    $confirm = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $confirmCondition)
+    if ($null -eq $edit -or $null -eq $confirm) { continue }
+    $valuePattern = $null
+    $invokePattern = $null
+    if (-not $edit.TryGetCurrentPattern(
+      [System.Windows.Automation.ValuePattern]::Pattern,
+      [ref]$valuePattern
+    )) { continue }
+    if (-not $confirm.TryGetCurrentPattern(
+      [System.Windows.Automation.InvokePattern]::Pattern,
+      [ref]$invokePattern
+    )) { continue }
+    $valuePattern.SetValue($Folder)
+    $invokePattern.Invoke()
+    exit 0
+  }
+  Start-Sleep -Milliseconds 100
+}
+throw 'native Product Control folder picker did not become automatable'
+`;
+
+function chooseNativeProductDataRoot(desktopProcessId, folder) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-STA',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      NATIVE_FOLDER_PICKER_SCRIPT,
+      String(desktopProcessId),
+      folder,
+    ], {
+      cwd: path.dirname(folder),
+      env: firstPartyProductChildEnv(),
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => { stdout += String(chunk); });
+    child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+    child.once('error', reject);
+    child.once('close', (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(
+        `native Product Control folder selection failed (${signal || `exit ${code}`}): ${stderr.trim() || stdout.trim()}`,
+      ));
+    });
+  });
+}
+
 async function waitForFirstRunSurface(browser, testIds, timeout, timeoutMsg) {
   let observed = '';
   await browser.waitUntil(async () => {
@@ -512,12 +600,23 @@ export function firstRunEntryPlan(state) {
   return FIRST_RUN_ENTRY_PLANS[String(state || '').trim()] || null;
 }
 
-async function completeFirstRun(browser, productRoot) {
+function recordedDataRoot(projection, label) {
+  const raw = String(projection?.record?.dataRoot?.path || '').trim();
+  if (!raw || !path.isAbsolute(raw)) {
+    throw new Error(`${label} has no absolute Product Control dataRoot.path`);
+  }
+  const status = String(projection?.record?.dataRoot?.status || '').trim();
+  if (!['selected', 'ready'].includes(status)) {
+    throw new Error(`${label} dataRoot.path has no current Product Control verification`);
+  }
+  return path.resolve(raw);
+}
+
+async function completeFirstRun(browser, freshDataRootSelection) {
   const authentication = await authenticateIfRequired(browser);
-  assert.equal(authentication.performed, true, 'Gate 0 fresh candidate/profile did not perform ordinary Desktop OAuth');
   const before = await invokeShell(browser, 'product_control_record_get', {});
   if (before?.record?.firstRun?.completed === true || before?.state === 'ready_for_use') {
-    const ready = await observeCompletedFirstRun(browser, productRoot);
+    const ready = await observeCompletedFirstRun(browser);
     return {
       ...ready,
       authentication,
@@ -525,6 +624,7 @@ async function completeFirstRun(browser, productRoot) {
       recoveredReadyState: true,
     };
   }
+  assert.equal(authentication.performed, true, 'Gate 0 fresh Product Control did not perform ordinary Desktop OAuth');
   await displayed(browser, 'desktop-first-run-gate', 120_000);
   await displayed(browser, 'product-first-run-workflow', 120_000);
   const entryState = String(before?.state || '').trim();
@@ -540,34 +640,26 @@ async function completeFirstRun(browser, productRoot) {
   }
 
   let storageSelectionPerformed = false;
+  let selectedDataRoot = null;
   if (entryPlan.storage) {
     await displayed(browser, 'first-run-phase-storage', 120_000);
-    const selectedProductRoot = async () => path.resolve(
-      String(await (await browser.$('[data-testid="first-run-storage-path"]')).getText() || '').trim(),
+    selectedDataRoot = path.resolve(freshDataRootSelection);
+    fs.mkdirSync(selectedDataRoot, { recursive: false });
+    const picker = chooseNativeProductDataRoot(browser.desktopProcessId, selectedDataRoot);
+    await (await displayed(browser, 'first-run-storage-choose-folder')).click();
+    await picker;
+    const displayedPath = String(
+      await (await browser.$('[data-testid="first-run-storage-path"]')).getText() || '',
+    ).trim();
+    assert.equal(
+      path.resolve(displayedPath),
+      selectedDataRoot,
+      'native Product Control folder picker returned a different dataRoot.path',
     );
-    const defaultProposalMatched = await browser.waitUntil(
-      async () => await selectedProductRoot() === path.resolve(productRoot),
-      { timeout: 5_000, interval: 100 },
-    ).then(() => true, () => false);
-    if (!defaultProposalMatched) {
-      process.stdout.write(`Gate 0: select exactly ${productRoot} in the ordinary Electron directory picker.\n`);
-      await (await displayed(browser, 'first-run-storage-choose-folder')).click();
-    }
-    await browser.waitUntil(async () => (
-      await selectedProductRoot() === path.resolve(productRoot)
-    ), { timeout: 60_000, interval: 100, timeoutMsg: `First Run UI did not display the selected product root ${productRoot}` });
     await (await displayed(browser, 'first-run-storage-continue')).click();
     storageSelectionPerformed = true;
   } else {
-    assert.equal(
-      path.resolve(String(before?.record?.dataRoot?.path || '').trim()),
-      path.resolve(productRoot),
-      'resumed First Run is not bound to the operator-selected product root',
-    );
-    assert.ok(
-      ['selected', 'ready'].includes(String(before?.record?.dataRoot?.status || '').trim()),
-      'resumed First Run product root has no current Product Control verification',
-    );
+    selectedDataRoot = recordedDataRoot(before, 'resumed First Run');
   }
 
   if (entryPlan.deviceScan) {
@@ -607,7 +699,8 @@ async function completeFirstRun(browser, productRoot) {
   for (const field of ['baselineProfileRef', 'baselineCommitId', 'accountDefaultProfileRef', 'runtimeBaselineRef']) {
     assert.ok(String(owner.record.firstRun[field] || '').trim(), `product-control owner firstRun.${field}`);
   }
-  assert.equal(path.resolve(owner?.record?.dataRoot?.path || ''), path.resolve(productRoot));
+  const dataRoot = recordedDataRoot(owner, 'completed First Run');
+  assert.equal(dataRoot, selectedDataRoot, 'Product Control dataRoot.path changed during First Run');
   const executionEvidenceRef = String(owner.record.firstRun.executionEvidenceRef || '').trim();
   assert.match(executionEvidenceRef, EXECUTION_EVIDENCE_REF);
   return {
@@ -617,16 +710,17 @@ async function completeFirstRun(browser, productRoot) {
     entryState,
     storageSelectionPerformed,
     recoveredReadyState: false,
+    dataRoot,
   };
 }
 
-async function observeCompletedFirstRun(browser, productRoot) {
+async function observeCompletedFirstRun(browser) {
   await displayed(browser, 'main-shell', 120_000);
   const owner = await invokeShell(browser, 'product_control_record_get', {});
   assert.equal(owner?.state, 'ready_for_use', 'Gate 0 ready-state continuation did not observe ready_for_use');
   assert.equal(owner?.record?.state, 'ready_for_use', 'Gate 0 ready-state Product Control record is not ready_for_use');
   assert.equal(owner?.record?.firstRun?.completed, true, 'Gate 0 ready-state First Run is not completed');
-  assert.equal(path.resolve(owner?.record?.dataRoot?.path || ''), path.resolve(productRoot), 'Gate 0 ready-state Product Control root changed');
+  const dataRoot = recordedDataRoot(owner, 'Gate 0 ready-state Product Control');
   const executionEvidenceRef = String(owner?.record?.firstRun?.executionEvidenceRef || '').trim();
   assert.match(executionEvidenceRef, EXECUTION_EVIDENCE_REF);
   return {
@@ -636,6 +730,7 @@ async function observeCompletedFirstRun(browser, productRoot) {
     entryState: 'ready_for_use',
     storageSelectionPerformed: false,
     recoveredReadyState: true,
+    dataRoot,
   };
 }
 
@@ -647,7 +742,7 @@ function composeCandidateIdentity({
   evidencePosture,
   ui,
   electronUserDataRoot,
-  productRoot,
+  dataRoot,
 }) {
   return {
     runtimeCandidateId: runtime.runtimeBuildRecord.candidateId,
@@ -663,7 +758,7 @@ function composeCandidateIdentity({
     installedDesktopPath: desktop.installedDesktop,
     runtimeInstallerPath: runtime.installer,
     electronUserDataRoot,
-    productRoot,
+    dataRoot,
   };
 }
 
@@ -1011,17 +1106,16 @@ export async function runFirstPartyProductJourney({
   repoRoot,
   outputDir,
   prerequisite,
-  productRoot: requestedProductRoot,
 }) {
   const processLedger = createProcessObservationLedger();
-  const endpointTopology = await observeLocalProductTopology();
   if (gate === 'first-run') {
     const osIdentity = assertElevatedWindowsX64();
+    const endpointTopology = await observeLocalProductTopology();
     const signer = requireWindowsDevSigningIdentity({ cwd: repoRoot });
     const rootId = `first-party-product-${randomUUID()}`;
     const candidateWorkspaceRoot = path.join(repoRoot, '.nimi', 'local', 'state', 'first-party-product', rootId);
     const electronUserDataRoot = path.join(candidateWorkspaceRoot, 'electron-user-data');
-    const productRoot = resolveFirstPartyProductRoot(requestedProductRoot);
+    const freshDataRootSelection = path.join(candidateWorkspaceRoot, 'nimi-data');
     fs.mkdirSync(path.dirname(candidateWorkspaceRoot), { recursive: true });
     fs.mkdirSync(candidateWorkspaceRoot, { recursive: false });
     const runtime = installRuntimeCandidate(repoRoot, processLedger);
@@ -1032,10 +1126,9 @@ export async function runFirstPartyProductJourney({
       desktop.installedDesktop,
       electronUserDataRoot,
       outputDir,
-      (browser) => completeFirstRun(browser, productRoot),
+      (browser) => completeFirstRun(browser, freshDataRootSelection),
       processLedger,
     );
-    assert.equal(path.resolve(ui.owner.record.dataRoot.path), path.resolve(productRoot), 'current candidate did not verify the operator-selected Desktop product root');
     const candidateIdentity = composeCandidateIdentity({
       runtime,
       signer,
@@ -1044,7 +1137,7 @@ export async function runFirstPartyProductJourney({
       evidencePosture,
       ui,
       electronUserDataRoot,
-      productRoot,
+      dataRoot: ui.dataRoot,
     });
     return {
       rootId,
@@ -1061,12 +1154,12 @@ export async function runFirstPartyProductJourney({
          observed('gate0:ordinary-desktop-first-run-completed', 'ordinary_electron_ui'),
         ], {
           authorizationOrigin: ui.authentication.authorizationOrigin,
-          dataRoot: productRoot,
+          dataRoot: ui.dataRoot,
           entryState: ui.entryState,
           recoveredReadyState: ui.recoveredReadyState,
           resumedIncompleteFirstRun: !ui.storageSelectionPerformed,
           storageSelectionPerformedInCurrentAttempt: ui.storageSelectionPerformed,
-          realmToWebToRealm: true,
+          realmToWebToRealm: ui.authentication.performed,
         }),
         'product-control-owner-ready': checkpoint([
           observed('gate0:product-control-owner-ready', 'auxiliary_authoritative_readback'),
@@ -1094,6 +1187,7 @@ export async function runFirstPartyProductJourney({
   if (!path.isAbsolute(userDataRoot) || !fs.existsSync(userDataRoot)) {
     throw new Error(`${gate} Gate 0 Electron product profile is unavailable`);
   }
+  const endpointTopology = await observeLocalProductTopology();
   if (gate === 'direct-nimi') {
     const direct = await withInstalledDesktop(installedDesktop, userDataRoot, outputDir, (browser) => runDirectNimi(browser), processLedger);
     const evidence = Object.fromEntries([

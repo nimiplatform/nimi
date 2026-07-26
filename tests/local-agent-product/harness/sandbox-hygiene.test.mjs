@@ -197,24 +197,26 @@ test('sweep retains a stale root and refuses a PID whose creation identity chang
   assert.equal(processAlive(child.pid), true);
 });
 
-test('retained-root prune drops model payload but keeps runtime logs and audit', (t) => {
+test('retained-root prune drops model payload but keeps logs and audit', (t) => {
   const tmpDir = makeFakeTmpDir(t);
-  const runtimeData = path.join(tmpDir, 'runtime-data');
+  const dataRoot = path.join(tmpDir, 'data-root');
   for (const dir of ['models/resolved/example', 'dependencies/cuda', 'environments/speech', 'logs', 'audit']) {
-    fs.mkdirSync(path.join(runtimeData, dir), { recursive: true });
+    fs.mkdirSync(path.join(dataRoot, dir), { recursive: true });
   }
-  fs.writeFileSync(path.join(runtimeData, 'models', 'resolved', 'example', 'model.gguf'), 'weights');
-  fs.writeFileSync(path.join(runtimeData, 'logs', 'runtime.log'), 'log line');
-  const result = pruneRetainedTrialRootPayload({ paths: { runtimeData } });
+  fs.writeFileSync(path.join(dataRoot, 'models', 'resolved', 'example', 'model.gguf'), 'weights');
+  fs.writeFileSync(path.join(dataRoot, 'logs', 'runtime.log'), 'log line');
+  const result = pruneRetainedTrialRootPayload({ paths: { freshDataRootSelection: dataRoot } });
   assert.deepEqual(result.pruned.sort(), ['dependencies', 'environments', 'models']);
   assert.deepEqual(result.failed, []);
-  assert.equal(fs.existsSync(path.join(runtimeData, 'models')), false);
-  assert.equal(fs.existsSync(path.join(runtimeData, 'dependencies')), false);
-  assert.equal(fs.readFileSync(path.join(runtimeData, 'logs', 'runtime.log'), 'utf8'), 'log line');
-  assert.equal(fs.existsSync(path.join(runtimeData, 'audit')), true);
+  assert.equal(fs.existsSync(path.join(dataRoot, 'models')), false);
+  assert.equal(fs.existsSync(path.join(dataRoot, 'dependencies')), false);
+  assert.equal(fs.readFileSync(path.join(dataRoot, 'logs', 'runtime.log'), 'utf8'), 'log line');
+  assert.equal(fs.existsSync(path.join(dataRoot, 'audit')), true);
 });
 
-test('prune tolerates trials without a runtime-data root', () => {
-  const result = pruneRetainedTrialRootPayload({ paths: { runtimeData: path.join(os.tmpdir(), 'nimi-hygiene-missing', 'runtime-data') } });
+test('prune tolerates trials without a data root selection', () => {
+  const result = pruneRetainedTrialRootPayload({
+    paths: { freshDataRootSelection: path.join(os.tmpdir(), 'nimi-hygiene-missing', 'data-root') },
+  });
   assert.deepEqual(result, { pruned: [], failed: [] });
 });

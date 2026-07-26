@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  deriveNimiDataPaths,
+  resolveProductControlDataRoot,
+} from './lib/product-control-data-root.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -14,7 +17,6 @@ const SIGNAL_EXIT_CODES = new Map([
 ]);
 
 const runtimeEnvAllowlist = [
-  'NIMI_RUNTIME_CONFIG_PATH',
   'NIMI_RUNTIME_GRPC_ADDR',
   'NIMI_RUNTIME_HTTP_ADDR',
   'NIMI_RUNTIME_LOCAL_STATE_PATH',
@@ -30,8 +32,6 @@ Environment:
   NIMI_AVATAR_DEV_URI          explicit launch URI
   NIMI_AVATAR_DEV_AGENT_ID     fallback local-agent ref when no registry exists
   NIMI_AVATAR_DEV_INSTANCE_ID  fallback avatar instance id
-  NIMI_APP_DATA_ROOT           explicit <nimi_data>/apps/nimi.avatar/data root
-  NIMI_DATA_ROOT               selected nimi_data root; app roots are derived from it
 `;
 }
 
@@ -79,26 +79,9 @@ function normalizeNonEmpty(value) {
   return normalized || null;
 }
 
-function candidateAppDataRoots() {
-  const candidates = [];
-  const explicitAppRoot = normalizeNonEmpty(process.env.NIMI_APP_DATA_ROOT);
-  if (explicitAppRoot) candidates.push(explicitAppRoot);
-  const explicitDataRoot = normalizeNonEmpty(process.env.NIMI_DATA_ROOT);
-  if (explicitDataRoot) candidates.push(path.join(explicitDataRoot, 'apps', 'nimi.avatar', 'data'));
-  candidates.push(path.join(homedir(), 'Nimi', 'apps', 'nimi.avatar', 'data'));
-  candidates.push(path.join(homedir(), '.nimi', 'data', 'apps', 'nimi.avatar', 'data'));
-  return [...new Set(candidates.map((candidate) => path.resolve(candidate)))];
-}
-
 function resolveAppDataRoot() {
-  const candidates = candidateAppDataRoots();
-  const existing = candidates.find((candidate) => existsSync(candidate));
-  if (existing) return existing;
-  if (process.env.NIMI_APP_DATA_ROOT || process.env.NIMI_DATA_ROOT) return candidates[0];
-  throw new Error(
-    `cannot resolve Avatar app data root. Tried:\n${candidates.map((item) => `  - ${item}`).join('\n')}\n\n` +
-      'Open Desktop once or set NIMI_APP_DATA_ROOT=<nimi_data>/apps/nimi.avatar/data.',
-  );
+  const { apps } = deriveNimiDataPaths(resolveProductControlDataRoot());
+  return path.join(apps, 'nimi.avatar', 'data');
 }
 
 function appRootFromDataRoot(appDataRoot) {
@@ -189,6 +172,8 @@ function childEnvFor(appDataRoot) {
   const env = {
     ...process.env,
     ...desktopRuntimeEnv,
+    // Private first-party process binding derived from Product Control above.
+    // This is not a user-selectable data-root discovery channel.
     NIMI_APP_DATA_ROOT: appDataRoot,
     NIMI_APP_CACHE_ROOT: process.env.NIMI_APP_CACHE_ROOT || path.join(appRoot, 'cache'),
     NIMI_APP_TEMP_ROOT: process.env.NIMI_APP_TEMP_ROOT || path.join(appRoot, 'tmp'),

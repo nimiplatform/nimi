@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { resolvePythonVenvExecutable } from './lib/python-venv.mjs';
+import {
+  deriveNimiDataPaths,
+  resolveProductControlDataRoot,
+} from './lib/product-control-data-root.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const defaultModelsRootValue = path.join(os.homedir(), '.nimi', 'data', 'models');
-const defaultVenvRootValue = path.join(os.homedir(), '.nimi', 'engines', 'speech', 'voxcpm-mlx', 'python');
 const defaultModelID = 'speech/voxcpm2';
 const defaultModelRef = 'mlx-community/VoxCPM2-4bit';
 const defaultEntryName = 'voxcpm-mlx-entry.json';
@@ -19,12 +20,12 @@ const defaultPythonVersion = '3.12';
 const defaultMLXAudioSource = 'git+https://github.com/Blaizzy/mlx-audio.git@0de15614991496c21d71440d2ce6fd0c26c94a91';
 const bootstrapSupportPackages = ['fastapi==0.121.1', 'uvicorn[standard]==0.38.0', 'python-multipart'];
 
-function expandHome(value) {
-  const text = String(value || '').trim();
-  if (!text.startsWith('~/')) {
-    return text;
-  }
-  return path.join(os.homedir(), text.slice(2));
+function productStorageDefaults() {
+  const paths = deriveNimiDataPaths(resolveProductControlDataRoot());
+  return {
+    modelsRoot: paths.models,
+    venvRoot: path.join(paths.environments, 'speech', 'voxcpm-mlx', 'python'),
+  };
 }
 
 function quoteShell(value) {
@@ -33,9 +34,9 @@ function quoteShell(value) {
 }
 
 function parseArgs(argv) {
+  const storage = productStorageDefaults();
   const options = {
-    modelsRoot: expandHome(process.env.NIMI_RUNTIME_LOCAL_MODELS_PATH || defaultModelsRootValue),
-    venvRoot: defaultVenvRootValue,
+    ...storage,
     modelID: defaultModelID,
     modelRef: defaultModelRef,
     mlxAudioSource: String(process.env.NIMI_RUNTIME_SPEECH_MLX_AUDIO_SOURCE || '').trim() || defaultMLXAudioSource,
@@ -45,16 +46,6 @@ function parseArgs(argv) {
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === '--models-root') {
-      options.modelsRoot = expandHome(argv[index + 1] || '');
-      index += 1;
-      continue;
-    }
-    if (arg === '--venv-root') {
-      options.venvRoot = expandHome(argv[index + 1] || '');
-      index += 1;
-      continue;
-    }
     if (arg === '--model-id') {
       options.modelID = String(argv[index + 1] || '').trim() || defaultModelID;
       index += 1;

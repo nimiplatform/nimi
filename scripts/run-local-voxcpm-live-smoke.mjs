@@ -6,11 +6,14 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  deriveNimiDataPaths,
+  resolveProductControlDataRoot,
+} from './lib/product-control-data-root.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const runtimeDir = path.join(repoRoot, 'runtime');
-const defaultMLXVenvPython = path.join(process.env.HOME || '', '.nimi', 'engines', 'speech', 'voxcpm-mlx', 'python', 'bin', 'python3');
 const backendKind = process.platform === 'darwin' && process.arch === 'arm64' ? 'mlx' : 'cuda';
 const suggestedBootstrapCommand = backendKind === 'mlx'
   ? `node ${path.join(repoRoot, 'scripts', 'bootstrap-local-voxcpm-mlx.mjs')}`
@@ -100,11 +103,12 @@ function firstAvailablePython(...candidates) {
   return 'python3';
 }
 
-function modelsRoot() {
-  return firstNonEmpty(
-    process.env.NIMI_RUNTIME_LOCAL_MODELS_PATH,
-    path.join(process.env.HOME || '', '.nimi', 'data', 'models'),
-  );
+function productStorageDefaults() {
+  const paths = deriveNimiDataPaths(resolveProductControlDataRoot());
+  return {
+    modelsRoot: paths.models,
+    mlxPython: path.join(paths.environments, 'speech', 'voxcpm-mlx', 'python', 'bin', 'python3'),
+  };
 }
 
 function findVoxCPMManifest(root) {
@@ -177,16 +181,17 @@ function driverPreflight(command) {
   }
 }
 
+const productStorage = productStorageDefaults();
 const speechBaseURL = firstNonEmpty(process.env.NIMI_LIVE_LOCAL_SPEECH_BASE_URL, process.env.NIMI_LIVE_LOCAL_BASE_URL);
 const speechAPIKey = firstNonEmpty(process.env.NIMI_LIVE_LOCAL_SPEECH_API_KEY, process.env.NIMI_LIVE_LOCAL_API_KEY);
-const resolvedModelsRoot = modelsRoot();
+const resolvedModelsRoot = productStorage.modelsRoot;
 const manifestPath = findVoxCPMManifest(resolvedModelsRoot);
 const speechModelID = firstNonEmpty(
   process.env.NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID,
   process.env.NIMI_LIVE_LOCAL_TTS_MODEL_ID,
   manifestPath ? 'speech/voxcpm2' : '',
 );
-const mlxPython = firstAvailablePython(defaultMLXVenvPython, 'python3');
+const mlxPython = firstAvailablePython(productStorage.mlxPython, 'python3');
 
 const blockers = [];
 const platformBlockers = [];

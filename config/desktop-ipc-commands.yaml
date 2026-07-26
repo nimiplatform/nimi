@@ -99,11 +99,6 @@ commands:
     description: Record completion of first-run device-environment scan evidence
     source_rule: D-IPC-012
 
-  - command: product_control_default_data_root_directory
-    module: product-control
-    description: Resolve the default desktop Nimi data-root directory for first-run setup
-    source_rule: D-IPC-011
-
   - command: product_control_record_set_first_run_install_level
     module: product-control
     description: Record the selected first-run local AI install level

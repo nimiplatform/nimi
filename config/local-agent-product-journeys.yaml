@@ -15,7 +15,7 @@ journeys:
       requires_native_macos: false
       start_limits: {provider: 0, realm: 1, runtime: 2, desktop: 1, zhiyu: 0}
     prerequisites: [fresh_same_source_developer_signed_windows_x64_candidate, fixed_windows_runtime_service, installed_desktop_candidate, real_realm_account]
-    isolation_level: fresh_product_root_same_candidate
+    isolation_level: canonical_data_root_selected_once_same_candidate
     time_budget_ms: 1800000
     checkpoints:
       - {checkpoint_id: candidate-built-signed-installed, prerequisite_ids: []}
@@ -36,7 +36,7 @@ journeys:
       requires_native_macos: false
       start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 0}
     prerequisites: [first_party_gate_0_same_candidate_pass]
-    isolation_level: reuse_gate_0_product_root_and_candidate
+    isolation_level: reuse_gate_0_canonical_data_root_and_candidate
     time_budget_ms: 1800000
     checkpoints:
       - {checkpoint_id: direct-nimi-admitted-local-text-route, prerequisite_ids: []}
@@ -61,7 +61,7 @@ journeys:
       requires_native_macos: false
       start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 2, zhiyu: 0}
     prerequisites: [first_party_gate_0_same_candidate_pass, first_party_gate_1_pass]
-    isolation_level: reuse_gate_0_product_root_and_candidate
+    isolation_level: reuse_gate_0_canonical_data_root_and_candidate
     time_budget_ms: 3600000
     checkpoints:
       - {checkpoint_id: realm-source-selected, prerequisite_ids: []}

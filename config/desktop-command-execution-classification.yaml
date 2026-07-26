@@ -443,19 +443,6 @@ registered_command_families:
       - spawn_blocking
     source_rule: D-GATE-094
 
-  - family: product_control_os_helpers
-    match:
-      exact:
-        - product_control_default_data_root_directory
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-bounded-os-helper
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - native_dialog
-    source_rule: D-GATE-094
-
   - family: product_control_desktop_host_evidence
     match:
       exact:

@@ -197,8 +197,6 @@ jobs:
           NIMI_FIRST_PARTY_REALM_SOURCE_ID: ${{ vars.NIMI_FIRST_PARTY_REALM_SOURCE_ID }}
           NIMI_FIRST_PARTY_PARTNER_PROMPT: ${{ vars.NIMI_FIRST_PARTY_PARTNER_PROMPT }}
         run: |
-          $env:NIMI_FIRST_PARTY_PRODUCT_ROOT = Join-Path $env:USERPROFILE 'Nimi'
-          New-Item -ItemType Directory -Path $env:NIMI_FIRST_PARTY_PRODUCT_ROOT -Force | Out-Null
           pnpm test:e2e:first-party-product:p4
 
       - name: Resolve macOS signing mode

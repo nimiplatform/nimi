@@ -353,16 +353,16 @@ export function sweepStaleIsolatedTrialRoots({ maxAgeMs = DEFAULT_STALE_ROOT_MAX
   return { swept, active, failed };
 }
 
-const RETAINED_RUNTIME_DATA_KEEP = new Set(['logs', 'audit']);
+const RETAINED_DATA_ROOT_KEEP = new Set(['logs', 'audit']);
 
 export function pruneRetainedTrialRootPayload(trial) {
-  const runtimeData = trial?.paths?.runtimeData;
+  const dataRoot = trial?.paths?.freshDataRootSelection;
   const pruned = [];
   const failed = [];
-  if (!runtimeData || !fs.existsSync(runtimeData)) return { pruned, failed };
-  for (const entry of fs.readdirSync(runtimeData, { withFileTypes: true })) {
-    if (RETAINED_RUNTIME_DATA_KEEP.has(entry.name)) continue;
-    const target = path.join(runtimeData, entry.name);
+  if (!dataRoot || !fs.existsSync(dataRoot)) return { pruned, failed };
+  for (const entry of fs.readdirSync(dataRoot, { withFileTypes: true })) {
+    if (RETAINED_DATA_ROOT_KEEP.has(entry.name)) continue;
+    const target = path.join(dataRoot, entry.name);
     try {
       fs.rmSync(target, { recursive: true, force: true, maxRetries: 3, retryDelay: 500 });
       pruned.push(entry.name);

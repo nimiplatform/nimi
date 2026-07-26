@@ -39,8 +39,7 @@ function narrow() {
 }
 
 function validObservation() {
-  const candidateId = `dev-kernel-runtime-${'a'.repeat(32)}`;
-  const proposalPath = `C:\\Users\\tester\\AppData\\Local\\Nimi\\dev-kernel-checkpoint\\${candidateId}\\Nimi`;
+  const dataRootPath = 'D:\\DataNimi';
   return {
     serviceBefore: status(100),
     electronHost: { basename: 'Nimi Desktop Runtime.exe', signatureStatus: 'Valid' },
@@ -50,12 +49,8 @@ function validObservation() {
       productControl: 'nimi.shell.runtime.unary',
     },
     initialProjection: {
-      state: 'data_root_missing',
-      dataRootProposal: {
-        path: proposalPath,
-        authority: 'runtime_protected_product_control',
-        profile: 'dev_kernel_checkpoint',
-      },
+      state: 'data_root_selected',
+      record: { dataRoot: { path: dataRootPath, status: 'selected' } },
     },
     baseline: { accountState: 'anonymous' },
     login: { outcome: 'first-run', accountId: '01J00000000000000000000000' },
@@ -74,7 +69,10 @@ function validObservation() {
     },
     firstRun: {
       productState: 'ready_for_use',
-      productControlRecord: { state: 'ready_for_use' },
+      productControlRecord: {
+        state: 'ready_for_use',
+        record: { dataRoot: { path: dataRootPath, status: 'ready' } },
+      },
       layout: {
         narrowMetrics: narrow(),
         phaseAcceptance: {
@@ -91,8 +89,8 @@ function validObservation() {
     narrowAudit: { dom: narrow() },
     locale: { documentLang: 'zh-CN', chineseTextObserved: true, replacementCharacterObserved: false },
     longText: {
-      scope: 'real-account-and-runtime-owned-path',
-      proposedDataRoot: proposalPath,
+      scope: 'real-account-and-product-control-data-root',
+      recordedDataRoot: dataRootPath,
       syntheticLongTextUsed: false,
       observed: true,
       overflowed: false,
@@ -117,6 +115,16 @@ test('First Run connectivity contract admits fresh acceptance and diagnostic-onl
   }).some((issue) => issue.includes('diagnostic-only reuse')));
 });
 
+test('First Run connectivity contract reuses an existing ready Product Control record', () => {
+  const fixture = validObservation();
+  fixture.initialProjection.state = 'ready_for_use';
+  fixture.initialProjection.record.dataRoot.status = 'ready';
+  fixture.login.outcome = 'main-shell';
+  fixture.firstRun.reusedReady = true;
+  fixture.firstRun.layout = { narrowMetrics: null, phaseAcceptance: null };
+  assert.deepEqual(validateFirstRunConnectivityObservation(fixture), []);
+});
+
 test('First Run connectivity contract accepts only phase-bound typed Runtime interruption console errors', () => {
   const expected = validObservation();
   expected.console = {
@@ -138,40 +146,41 @@ test('First Run driver imports its host dependencies explicitly', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-first-run-driver.mjs'), 'utf8');
   assert.match(
     source,
-    /import\s*\{[\s\S]*classifyFirstRunTerminalSnapshot[\s\S]*requireCheckpointDataRootProposal[\s\S]*\}\s*from '\.\/dev-kernel-host-driver\.mjs'/u,
+    /import\s*\{[\s\S]*classifyFirstRunTerminalSnapshot[\s\S]*requireRecordedProductControlDataRoot[\s\S]*\}\s*from '\.\/dev-kernel-host-driver\.mjs'/u,
   );
 });
 
-test('First Run runner never uses process home or renderer env as the data-root proposal authority', () => {
+test('First Run runner records a fresh choice through Product Control and never uses process home or renderer env as authority', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'), 'utf8');
-  assert.match(source, /requireCheckpointDataRootProposal/);
+  const driver = firstRunDriverSource();
+  assert.match(driver, /product_control_record_select_data_root/);
+  assert.match(driver, /requireRecordedProductControlDataRoot/);
   assert.doesNotMatch(source, /\bHOME\s*:/);
   assert.doesNotMatch(source, /\bUSERPROFILE\s*:/);
   assert.doesNotMatch(source, /NIMI_LOCAL_AGENT_PRODUCT_RUNTIME_DATA_ROOT\s*:/);
-  assert.doesNotMatch(source, /(?:rmSync|removeCheckpointDataRoot)\s*\(\s*runtimeDataRoot/);
+  assert.doesNotMatch(source, /dataRootProposal|runtime_protected_product_control|path\.join\([^)]*['"]Nimi['"]\)/);
 });
 
-test('First Run runner diagnoses persisted failed or interrupted rounds without promoting them to acceptance', () => {
+test('First Run runner reuses persisted selected and ready Product Control state without another root choice', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'), 'utf8');
   assert.match(source, /local_ai_profile_selected_assets_missing/);
   assert.match(source, /'local_ai_profile_selected_assets_missing',\s*'local_ai_ready',[\s\S]*\.includes\(initialProjection\.state\)/u);
-  assert.match(source, /nimi\.dev-kernel-first-run-resume-diagnostic\/v1/);
-  assert.match(source, /nimi\.dev-kernel-first-run-device-resume-diagnostic\/v1/);
+  assert.match(source, /resumedFinalization[\s\S]*captureReusedReadyFirstRun/iu);
+  assert.match(source, /resumedDevice[\s\S]*completeDesktopFirstRun/iu);
   assert.match(source, /resumeFromDevice:\s*true/);
-  assert.match(source, /finalAcceptanceEvidence:\s*false/);
-  assert.match(source, /fresh installer-owned round is still required for final acceptance/);
+  assert.doesNotMatch(source, /fresh installer-owned round is still required for final acceptance/);
 });
 
-test('First Run waits for fixed-service PID replacement after Storage mutation', () => {
+test('First Run applies a restart-required Product Control selection before consuming readback', () => {
   const driver = firstRunDriverSource();
-  assert.match(driver, /const serviceBeforeStorage = readFixedServiceStatus\(\)[\s\S]*status\.processId !== serviceBeforeStorage\.processId[\s\S]*fixed service PID replacement after first-run Storage sync/iu);
+  assert.match(driver, /CONFIG_RESTART_REQUIRED[\s\S]*RUNTIME_RESTART_COMMAND[\s\S]*fixed service PID replacement after Product Control data-root selection/iu);
 });
 
-test('First Run generic Storage recovery re-handshakes before canonical advance or one fresh retry', () => {
+test('First Run consumes only Product Control readback after the fresh typed selection', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-first-run-driver.mjs'), 'utf8');
   assert.match(
     source,
-    /runtime-service-unavailable[\s\S]*isRecoverableFirstRunStorageRestart[\s\S]*RUNTIME_STATUS_COMMAND[\s\S]*PRODUCT_CONTROL_RECORD_METHOD[\s\S]*first-run Storage protected-carrier re-handshake[\s\S]*isAuthoritativeFirstRunStorageAdvance[\s\S]*continueStorage\.click\(\{ noWaitAfter: true \}\)[\s\S]*classifyFirstRunStorageRecoverySnapshot/iu,
+    /product_control_record_select_data_root[\s\S]*Product Control data-root record readback[\s\S]*requireRecordedProductControlDataRoot/iu,
   );
 });
 
@@ -207,6 +216,7 @@ test('First Run terminal failure captures the bounded Runtime dependency-job own
 test('First Run connectivity contract admits a pristine candidate with no Product Control record', () => {
   const fixture = validObservation();
   fixture.initialProjection.state = 'config_missing';
+  fixture.initialProjection.record = null;
   assert.deepEqual(validateFirstRunConnectivityObservation(fixture), []);
 });
 
@@ -221,10 +231,11 @@ test('First Run Device initial state is only asserted when pending is observed a
   assert.match(validateFirstRunConnectivityObservation(pending).join('; '), /initial scan.*pending/iu);
 });
 
-test('First Run connectivity contract admits a signed persistent development data-root proposal', () => {
+test('First Run connectivity contract admits a different persisted Product Control data root', () => {
   const fixture = validObservation();
-  fixture.initialProjection.dataRootProposal.path = 'D:\\SharedNimiPayload';
-  fixture.longText.proposedDataRoot = 'D:\\SharedNimiPayload';
+  fixture.initialProjection.record.dataRoot.path = 'D:\\SharedNimiPayload';
+  fixture.firstRun.productControlRecord.record.dataRoot.path = 'D:\\SharedNimiPayload';
+  fixture.longText.recordedDataRoot = 'D:\\SharedNimiPayload';
   assert.deepEqual(validateFirstRunConnectivityObservation(fixture), []);
 });
 

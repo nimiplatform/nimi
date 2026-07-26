@@ -18,11 +18,9 @@ function createRoot(prefix, identity) {
     root,
     realm: path.join(root, 'realm'),
     runtimeState: path.join(root, 'runtime-state'),
-    // Harness scratch data only. Fixed-service First Run replaces this with
-    // the Runtime-projected, candidate-bound proposal; this path is never
-    // Product Control or Runtime authority.
-    runtimeData: path.join(root, 'Nimi'),
-    standardShellData: path.join(root, 'standard-shell-data'),
+    // One isolated user choice for a fresh run. The harness submits it through
+    // the real Product Control operation, then consumes only record readback.
+    freshDataRootSelection: path.join(root, 'nimi-data'),
     appDataRoaming: path.join(root, 'appdata-roaming'),
     appDataLocal: path.join(root, 'appdata-local'),
     desktopUserData: path.join(root, 'desktop-user-data'),

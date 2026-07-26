@@ -9,13 +9,18 @@ const repoRoot = path.resolve(scriptDir, '..');
 const SOURCE_ROOTS = [
   'apps/desktop/src',
   'apps/desktop/src-tauri/src',
+  'kit/shell/tauri/src',
+];
+const SOURCE_FILES = [
+  'scripts/dev-avatar.mjs',
 ];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.rs']);
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'target', '.git']);
-// K-CFG-001: canonical runtime config is ~/.nimi/runtime/config.json. The
-// root-level ~/.nimi/config.json is retired and may only be read as explicit
-// migration input, never advertised as a desktop config path.
-const LEGACY_RUNTIME_CONFIG_PATH = /\.nimi\/config\.json/g;
+// K-CFG-001: Runtime private configuration is fixed protected state. Neither
+// retired user-writable config filename nor its former override may be a
+// Desktop/Kit discovery input.
+const LEGACY_RUNTIME_CONFIG_PATH =
+  /(?:\.nimi[\\/]runtime[\\/]config\.json|\.nimi[\\/]config\.json|NIMI_RUNTIME_CONFIG_PATH)/g;
 
 function toRepoRelative(filePath) {
   return path.relative(repoRoot, filePath).replaceAll(path.sep, '/');
@@ -58,6 +63,9 @@ async function main() {
   for (const rel of SOURCE_ROOTS) {
     files.push(...await collectSourceFiles(path.join(repoRoot, rel)));
   }
+  for (const rel of SOURCE_FILES) {
+    files.push(path.join(repoRoot, rel));
+  }
   const violations = [];
   for (const file of files) {
     const source = await fs.readFile(file, 'utf8');
@@ -70,14 +78,14 @@ async function main() {
     }
   }
   if (violations.length > 0) {
-    process.stderr.write('legacy desktop runtime config fallback path is forbidden; use ~/.nimi/runtime/config.json only\n');
+    process.stderr.write('user-writable Runtime config discovery is forbidden; use the protected Runtime service binding\n');
     for (const violation of violations) {
       process.stderr.write(`- ${violation}\n`);
     }
     process.exitCode = 1;
     return;
   }
-  process.stdout.write(`desktop legacy runtime config path check passed (${files.length} files scanned)\n`);
+  process.stdout.write(`Desktop/Kit/dev user-writable Runtime config discovery check passed (${files.length} files scanned)\n`);
 }
 
 main().catch((error) => {

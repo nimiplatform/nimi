@@ -40,6 +40,9 @@ jobs:
       - name: AI structure budget assurance
         run: pnpm check:ai-structure-budget
 
+      - name: AI prompt scope assurance
+        run: pnpm check:ai-prompt-scope
+
       - name: Full AI governance assurance
         run: pnpm nimicoding:validate-ai-governance --profile nimi --scope all
 

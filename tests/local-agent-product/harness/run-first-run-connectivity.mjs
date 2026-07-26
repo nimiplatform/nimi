@@ -19,6 +19,7 @@ import {
 import {
   acquireFixedServiceLock,
   classifyFirstRunStorageRecoverySnapshot,
+  captureReusedReadyFirstRun,
   completeDesktopFirstRun,
   connectCdp,
   createEarlyCdpObserver,
@@ -30,7 +31,7 @@ import {
   probeRealRealmBrowserLoginAuthority,
   readFixedServiceStatus,
   readProductControlJSONProjection,
-  requireCheckpointDataRootProposal,
+  requireRecordedProductControlDataRoot,
   reservePort,
   setWindowBounds,
   waitUntil,
@@ -93,7 +94,7 @@ fs.mkdirSync(logsRoot, { recursive: true });
 let fixture;
 let desktopHandle;
 let desktopConnection;
-let runtimeDataRoot;
+let recordedDataRoot;
 let completed = false;
 let phase = 'preflight';
 let serviceBefore;
@@ -203,14 +204,17 @@ try {
       'data_root_selected',
       'local_ai_profile_selected_assets_missing',
       'local_ai_ready',
+      'ready_for_use',
     ].includes(projection?.state) ? projection : null;
   }, { timeoutMs: 60_000, intervalMs: 100, label: 'installer-owned acceptance round' });
-  const resumedFinalizationDiagnostic = [
+  const resumedFinalization = [
     'local_ai_profile_selected_assets_missing',
     'local_ai_ready',
   ].includes(initialProjection.state);
-  const resumedDeviceDiagnostic = initialProjection.state === 'data_root_selected';
-  runtimeDataRoot = requireCheckpointDataRootProposal(initialProjection, serviceBefore.runtimeCandidateId);
+  const resumedDevice = initialProjection.state === 'data_root_selected';
+  recordedDataRoot = initialProjection?.record?.dataRoot
+    ? requireRecordedProductControlDataRoot(initialProjection, ['selected', 'ready'])
+    : null;
 
   setPhase('desktop-login');
   const baseline = await prepareDesktopFixedServiceBaseline(page);
@@ -223,36 +227,18 @@ try {
     expectedAccountId: acceptance.primaryAccountId,
     label: 'first-run-primary-login',
   });
-  if (login.outcome !== 'first-run') throw new Error(`expected First Run after login, got ${login.outcome}`);
-
-  if (resumedDeviceDiagnostic) {
-    const firstRunTrial = {
-      ...trial,
-      paths: { ...trial.paths, runtimeData: runtimeDataRoot },
-    };
-    const firstRun = await completeDesktopFirstRun(desktopConnection, firstRunTrial, screenshotsRoot, {
-      captureAllPhases: true,
-      exerciseDeviceRetry: true,
-      resumeFromDevice: true,
-    });
-    const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
-    const diagnostic = {
-      schemaVersion: 'nimi.dev-kernel-first-run-device-resume-diagnostic/v1',
-      observedAt: new Date().toISOString(),
-      finalAcceptanceEvidence: false,
-      serviceBefore,
-      initialProjection,
-      login,
-      firstRun,
-      productControl: record,
-    };
-    const diagnosticPath = path.join(artifactRoot, 'first-run-device-resume-diagnostic.json');
-    fs.writeFileSync(diagnosticPath, `${JSON.stringify(diagnostic, null, 2)}\n`, { mode: 0o600 });
-    await page.screenshot({ path: path.join(screenshotsRoot, 'desktop-first-run-device-resume-ready.png') });
-    throw new Error('resumed First Run reached ready_for_use after a prior runner observation race; result remains non-final diagnostic evidence');
-  }
-
-  if (resumedFinalizationDiagnostic) {
+  setPhase('first-run-workflow');
+  const runtimeInterruption = {};
+  let firstRun;
+  if (login.outcome === 'main-shell') {
+    if (initialProjection.state !== 'ready_for_use') {
+      throw new Error(`Desktop skipped incomplete Product Control state ${initialProjection.state}`);
+    }
+    const current = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD);
+    firstRun = await captureReusedReadyFirstRun(page, current);
+    const interruption = await exerciseRuntimeInterruption({ page, screenshotsRoot, observer });
+    Object.assign(runtimeInterruption, interruption.recovery);
+  } else if (login.outcome === 'first-run' && resumedFinalization) {
     const outcome = await waitUntil(async () => {
       const failure = page.getByTestId('product-first-run-finalization-error');
       if (await failure.isVisible().catch(() => false)) {
@@ -262,45 +248,41 @@ try {
         return { kind: 'ready', text: '' };
       }
       return null;
-    }, { timeoutMs: 600_000, intervalMs: 250, label: 'resumed First Run finalization diagnostic' });
-    const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
-    const diagnostic = {
-      schemaVersion: 'nimi.dev-kernel-first-run-resume-diagnostic/v1',
-      observedAt: new Date().toISOString(),
-      finalAcceptanceEvidence: false,
-      serviceBefore,
-      initialProjection,
-      login,
-      outcome,
-      productControl: record,
-    };
-    const diagnosticPath = path.join(artifactRoot, 'first-run-resume-diagnostic.json');
-    fs.writeFileSync(diagnosticPath, `${JSON.stringify(diagnostic, null, 2)}\n`, { mode: 0o600 });
-    await page.screenshot({ path: path.join(screenshotsRoot, 'desktop-first-run-resume-diagnostic.png') });
-    throw new Error(outcome.kind === 'failure'
-      ? `resumed First Run finalization failed: ${outcome.text}`
-      : 'resumed First Run reached ready_for_use; a fresh installer-owned round is still required for final acceptance');
+    }, { timeoutMs: 600_000, intervalMs: 250, label: 'resumed First Run finalization' });
+    if (outcome.kind === 'failure') throw new Error(`resumed First Run finalization failed: ${outcome.text}`);
+    const current = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD);
+    firstRun = await captureReusedReadyFirstRun(page, current);
+    const interruption = await exerciseRuntimeInterruption({ page, screenshotsRoot, observer });
+    Object.assign(runtimeInterruption, interruption.recovery);
+  } else if (login.outcome === 'first-run' && resumedDevice) {
+    const interruption = await exerciseRuntimeInterruption({ page, screenshotsRoot, observer });
+    Object.assign(runtimeInterruption, interruption.recovery);
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
+    firstRun = await completeDesktopFirstRun(desktopConnection, initialProjection, screenshotsRoot, {
+      captureAllPhases: true,
+      exerciseDeviceRetry: true,
+      resumeFromDevice: true,
+    });
+  } else if (login.outcome === 'first-run') {
+    firstRun = await completeDesktopFirstRun(desktopConnection, initialProjection, screenshotsRoot, {
+      captureAllPhases: true,
+      exerciseDeviceRetry: true,
+      freshDataRootSelection: trial.paths.freshDataRootSelection,
+      performFreshDataRootSelection: async ({ page: firstRunPage, selectDataRoot }) => {
+        const interruption = await exerciseRuntimeInterruption({
+          page: firstRunPage,
+          selectDataRoot,
+          screenshotsRoot,
+          observer,
+        });
+        Object.assign(runtimeInterruption, interruption.recovery);
+        return interruption;
+      },
+    });
+  } else {
+    throw new Error(`Desktop entered unsupported login outcome ${login.outcome}`);
   }
-
-  setPhase('first-run-workflow');
-  const runtimeInterruption = {};
-  const firstRunTrial = {
-    ...trial,
-    paths: { ...trial.paths, runtimeData: runtimeDataRoot },
-  };
-  const firstRun = await completeDesktopFirstRun(desktopConnection, firstRunTrial, screenshotsRoot, {
-    captureAllPhases: true,
-    exerciseDeviceRetry: true,
-    beforeStorageContinue: async ({ page: firstRunPage, continueStorage }) => {
-      Object.assign(runtimeInterruption, await exerciseRuntimeInterruption({
-        page: firstRunPage,
-        continueStorage,
-        screenshotsRoot,
-        observer,
-      }));
-      return runtimeInterruption.storageContinueHandled === true;
-    },
-  });
+  recordedDataRoot = requireRecordedProductControlDataRoot(firstRun.productControlRecord, ['ready']);
   await waitUntil(async () => await page.getByTestId('main-shell').isVisible().catch(() => false), {
     timeoutMs: 60_000,
     intervalMs: 100,
@@ -324,12 +306,12 @@ try {
     replacementCharacterObserved: bodyText.includes('\uFFFD'),
   };
   const longText = {
-    scope: 'real-account-and-runtime-owned-path',
+    scope: 'real-account-and-product-control-data-root',
     accountLabel,
-    proposedDataRoot: runtimeDataRoot,
+    recordedDataRoot,
     syntheticLongTextUsed: false,
     observed: accountLabel.trim().length > 0
-      && comparablePath(runtimeDataRoot) === comparablePath(initialProjection.dataRootProposal.path),
+      && comparablePath(recordedDataRoot) === comparablePath(firstRun.selectedDataRoot?.dataRoot?.path),
     overflowed: narrowAudit.dom.scrollWidth > narrowAudit.dom.clientWidth,
   };
   await observer.flush();
@@ -387,7 +369,7 @@ try {
       runtimeService: (() => {
         try { return readFixedServiceStatus(); } catch { return serviceBefore; }
       })(),
-      observations: { runtimeDataRoot, electronBuildMode },
+      observations: { recordedDataRoot, electronBuildMode },
       observedPages,
     });
   } catch {
@@ -419,85 +401,72 @@ function comparablePath(value) {
   return path.resolve(candidate).toLowerCase();
 }
 
-async function exerciseRuntimeInterruption({ page, continueStorage, screenshotsRoot, observer }) {
+async function exerciseRuntimeInterruption({ page, selectDataRoot, screenshotsRoot, observer }) {
   observer.setPhase('runtime-interruption');
   try {
-  const serviceBefore = readFixedServiceStatus();
-  let restartSettled = false;
-  const restartPromise = invokeDesktop(page, RESTART_COMMAND).finally(() => { restartSettled = true; });
-  const probePromises = Array.from({ length: 40 }, (_, index) => (async () => {
-    await new Promise((resolve) => setTimeout(resolve, index * 15));
-    if (restartSettled) return { skipped: true };
-    try {
-      await invokeDesktopRuntimeUnary(page, PRODUCT_CONTROL_RECORD_METHOD, {}, 750);
-      return { ok: true };
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    const serviceBefore = readFixedServiceStatus();
+    let restartSettled = false;
+    const restartPromise = invokeDesktop(page, RESTART_COMMAND).finally(() => { restartSettled = true; });
+    const probePromises = Array.from({ length: 40 }, (_, index) => (async () => {
+      await new Promise((resolve) => setTimeout(resolve, index * 15));
+      if (restartSettled) return { skipped: true };
+      try {
+        await invokeDesktopRuntimeUnary(page, PRODUCT_CONTROL_RECORD_METHOD, {}, 750);
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    })());
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    let selectionProjection = null;
+    let selectionFailure = null;
+    if (typeof selectDataRoot === 'function') {
+      try {
+        selectionProjection = await selectDataRoot();
+      } catch (error) {
+        selectionFailure = error instanceof Error ? error.message : String(error);
+      }
     }
-  })());
-  await new Promise((resolve) => setTimeout(resolve, 25));
-  await continueStorage.click({ noWaitAfter: true });
-  const uiOutcomePromise = waitUntil(async () => {
-    if (await page.getByTestId('product-first-run-error').isVisible().catch(() => false)) return 'unavailable-error';
-    if (await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false)) return 'advanced';
-    return null;
-  }, { timeoutMs: 60_000, intervalMs: 25, label: 'First Run behavior during Runtime restart' });
-  const restartResult = await restartPromise;
-  const [probeResults, uiOutcome] = await Promise.all([Promise.all(probePromises), uiOutcomePromise]);
-  const serviceAfter = await waitUntil(() => {
-    const status = readFixedServiceStatus();
-    return status.processId !== serviceBefore.processId ? status : null;
-  }, { timeoutMs: 120_000, intervalMs: 100, label: 'First Run Runtime process replacement' });
-  const probeFailures = probeResults.filter((result) => result.ok === false);
-  const carrierUnavailableObserved = probeFailures.some((result) => /unavailable|pipe|transport|connection|restart/iu.test(result.error));
-  let unavailablePath = null;
-  if (uiOutcome === 'unavailable-error') {
-    unavailablePath = path.join(screenshotsRoot, 'desktop-first-run-runtime-unavailable.png');
-    await page.screenshot({ path: unavailablePath });
-  }
-  const reconnected = await waitUntil(async () => {
-    const status = await invokeDesktop(page, STATUS_COMMAND).catch(() => null);
-    const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
-    return status?.running === true && status?.managed === true && record?.state ? true : null;
-  }, { timeoutMs: 60_000, intervalMs: 100, label: 'First Run Electron protected-carrier re-handshake' });
-  let recoveryRetryIssued = false;
-  let storageRecoveryState = uiOutcome;
-  if (uiOutcome === 'unavailable-error') {
-    await waitUntil(async () => !(await continueStorage.isDisabled().catch(() => true)) || null, {
-      timeoutMs: 30_000,
-      intervalMs: 50,
-      label: 'First Run Storage retry enabled after Runtime restart',
-    });
-    await continueStorage.click({ noWaitAfter: true });
-    recoveryRetryIssued = true;
-    storageRecoveryState = await waitUntil(async () => {
-      const snapshot = {
-        deviceVisible: await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false),
-        errorVisible: await page.getByTestId('product-first-run-error').isVisible().catch(() => false),
-        pendingAction: await page.getByTestId('product-first-run-workflow')
-          .getAttribute('data-pending-action').catch(() => ''),
-      };
-      return classifyFirstRunStorageRecoverySnapshot(snapshot);
-    }, {
-      timeoutMs: 10_000,
-      intervalMs: 25,
-      label: 'First Run Storage retry accepted after Runtime restart',
-    });
-  }
-  return {
-    serviceBefore,
-    serviceAfter,
-    restartResult,
-    probeCount: probeResults.filter((result) => result.skipped !== true).length,
-    probeFailureCount: probeFailures.length,
-    carrierUnavailableObserved,
-    unavailableUiObserved: uiOutcome === 'unavailable-error',
-    unavailablePath,
-    reconnected,
-    recoveryRetryIssued,
-    storageRecoveryState,
-    storageContinueHandled: uiOutcome === 'advanced' || recoveryRetryIssued,
-  };
+    const restartResult = await restartPromise;
+    const probeResults = await Promise.all(probePromises);
+    const serviceAfter = await waitUntil(() => {
+      const status = readFixedServiceStatus();
+      return status.processId !== serviceBefore.processId ? status : null;
+    }, { timeoutMs: 120_000, intervalMs: 100, label: 'First Run Runtime process replacement' });
+    const probeFailures = probeResults.filter((result) => result.ok === false);
+    const carrierUnavailableObserved = [selectionFailure, ...probeFailures.map((result) => result.error)]
+      .some((error) => /unavailable|pipe|transport|connection|restart/iu.test(String(error || '')));
+    let unavailablePath = null;
+    if (selectionFailure) {
+      unavailablePath = path.join(screenshotsRoot, 'desktop-first-run-runtime-unavailable.png');
+      await page.screenshot({ path: unavailablePath });
+    }
+    const reconnected = await waitUntil(async () => {
+      const status = await invokeDesktop(page, STATUS_COMMAND).catch(() => null);
+      const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
+      return status?.running === true && status?.managed === true && record?.state ? true : null;
+    }, { timeoutMs: 60_000, intervalMs: 100, label: 'First Run Electron protected-carrier re-handshake' });
+    let recoveryRetryIssued = false;
+    if (typeof selectDataRoot === 'function' && !selectionProjection) {
+      selectionProjection = await selectDataRoot();
+      recoveryRetryIssued = true;
+    }
+    return {
+      projection: selectionProjection,
+      recovery: {
+        serviceBefore,
+        serviceAfter,
+        restartResult,
+        probeCount: probeResults.filter((result) => result.skipped !== true).length,
+        probeFailureCount: probeFailures.length,
+        carrierUnavailableObserved,
+        unavailableUiObserved: false,
+        unavailablePath,
+        reconnected,
+        recoveryRetryIssued,
+        storageRecoveryState: 'product-control-recorded',
+      },
+    };
   } finally {
     observer.setPhase('first-run-workflow');
   }

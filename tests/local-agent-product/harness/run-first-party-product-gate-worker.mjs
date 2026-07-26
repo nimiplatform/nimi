@@ -27,7 +27,6 @@ try {
     repoRoot: request.repoRoot,
     outputDir: request.outputDir,
     prerequisite: request.prerequisite,
-    productRoot: request.productRoot,
   });
   result = { ok: true, observations };
 } catch (error) {

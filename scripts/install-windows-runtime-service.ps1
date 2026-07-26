@@ -8,8 +8,6 @@ param(
 
   [switch] $FirstPartyProductAcceptance,
 
-  [string] $DevelopmentDataRoot = '',
-
   [switch] $Json
 )
 
@@ -58,10 +56,6 @@ $RuntimeStartupStages = @{
 if ($DevKernelCheckpoint -and $FirstPartyProductAcceptance) {
   throw 'DevKernelCheckpoint and FirstPartyProductAcceptance are mutually exclusive.'
 }
-if (-not $DevKernelCheckpoint -and -not [string]::IsNullOrWhiteSpace($DevelopmentDataRoot)) {
-  throw 'DevelopmentDataRoot is admitted only with DevKernelCheckpoint.'
-}
-
 function Write-Result {
   param([Parameter(Mandatory = $true)] [object] $Value)
   if ($Json) { $Value | ConvertTo-Json -Depth 8 } else { $Value | Format-List }
@@ -466,38 +460,6 @@ function New-DevKernelAcceptanceRoundId {
   return "dev-kernel-round-$hex"
 }
 
-function Resolve-ValidatedDevelopmentDataRoot {
-  param([Parameter(Mandatory = $true)] [AllowEmptyString()] [string] $Value)
-  if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
-  if ($Value -ne $Value.Trim()) {
-    throw 'DevelopmentDataRoot must be an absolute non-volume-root directory.'
-  }
-  $inputRoot = [IO.Path]::GetPathRoot($Value)
-  if ([string]::IsNullOrWhiteSpace($inputRoot) -or
-      $inputRoot -eq '\' -or
-      $inputRoot -match '^[A-Za-z]:$') {
-    throw 'DevelopmentDataRoot must be an absolute non-volume-root directory.'
-  }
-  $item = Get-Item -LiteralPath $Value -Force -ErrorAction Stop
-  if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-    throw 'DevelopmentDataRoot must be an existing non-reparse directory.'
-  }
-  $resolved = $item.FullName.TrimEnd('\')
-  if ([string]::IsNullOrWhiteSpace($resolved) -or $resolved -eq [IO.Path]::GetPathRoot($resolved)) {
-    throw 'DevelopmentDataRoot must be an absolute non-volume-root directory.'
-  }
-  $volumeRoot = [IO.Path]::GetPathRoot($resolved)
-  $current = $volumeRoot
-  foreach ($segment in $resolved.Substring($volumeRoot.Length).Split(@('\'), [StringSplitOptions]::RemoveEmptyEntries)) {
-    $current = Join-Path -Path $current -ChildPath $segment
-    $component = Get-Item -LiteralPath $current -Force -ErrorAction Stop
-    if (-not $component.PSIsContainer -or ($component.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-      throw 'DevelopmentDataRoot path components must be existing non-reparse directories.'
-    }
-  }
-  return $resolved
-}
-
 function Read-ExistingDevKernelCheckpointProfile {
   if (-not (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf)) {
     return $null
@@ -508,7 +470,7 @@ function Read-ExistingDevKernelCheckpointProfile {
     throw "Existing protected acceptance profile cannot be decoded: $($_.Exception.Message)"
   }
   $schemaVersion = [int] $previous.schemaVersion
-  if (($schemaVersion -ne 4 -and $schemaVersion -ne 5) -or $previous.checkpoint -ne 'dev_kernel_checkpoint' -or $previous.nonRelease -ne $true) {
+  if ($schemaVersion -ne 6 -or $previous.checkpoint -ne 'dev_kernel_checkpoint' -or $previous.nonRelease -ne $true) {
     throw 'Existing protected acceptance profile identity is invalid.'
   }
   return $previous
@@ -541,11 +503,7 @@ function Resolve-DevKernelCheckpointStateLineage {
   if ([string] $PreviousProfile.trialId -ne $TrialId) {
     throw 'Existing protected acceptance profile trial identity changed.'
   }
-  $stateCandidateId = if ([int] $PreviousProfile.schemaVersion -eq 5) {
-    [string] $PreviousProfile.developmentStateCandidateId
-  } else {
-    [string] $PreviousProfile.runtimeCandidateId
-  }
+  $stateCandidateId = [string] $PreviousProfile.developmentStateCandidateId
   $acceptanceRoundId = [string] $PreviousProfile.acceptanceRoundId
   Assert-DevKernelStateLineageIdentifier -Value $stateCandidateId -Prefix 'dev-kernel-runtime-' -Label 'developmentStateCandidateId'
   Assert-DevKernelStateLineageIdentifier -Value $acceptanceRoundId -Prefix 'dev-kernel-round-' -Label 'acceptanceRoundId'
@@ -553,27 +511,6 @@ function Resolve-DevKernelCheckpointStateLineage {
     developmentStateCandidateId = $stateCandidateId
     acceptanceRoundId = $acceptanceRoundId
     authority = 'signed_installer_preserved_development_state_lineage'
-  }
-}
-
-function Resolve-DevKernelCheckpointDataRootBinding {
-  param([AllowNull()] [object] $PreviousProfile)
-  if (-not [string]::IsNullOrWhiteSpace($DevelopmentDataRoot)) {
-    return [ordered]@{
-      path = Resolve-ValidatedDevelopmentDataRoot -Value $DevelopmentDataRoot
-      authority = 'signed_installer_explicit_operator_selection'
-    }
-  }
-  if ($null -eq $PreviousProfile) {
-    throw 'An explicit validated development data-root selection is required for the first dev-kernel service installation.'
-  }
-  $preserved = Resolve-ValidatedDevelopmentDataRoot -Value ([string] $PreviousProfile.developmentDataRootRef)
-  if ([string]::IsNullOrWhiteSpace($preserved)) {
-    throw 'Existing protected acceptance profile has no validated development data-root selection.'
-  }
-  return [ordered]@{
-    path = $preserved
-    authority = 'signed_installer_preserved_operator_selection'
   }
 }
 
@@ -589,19 +526,16 @@ function Write-DevKernelCheckpointProfile {
   $buildRecord = Read-RuntimeBuildRecord
   $previousProfile = Read-ExistingDevKernelCheckpointProfile
   $stateLineage = Resolve-DevKernelCheckpointStateLineage -PreviousProfile $previousProfile -CurrentCandidateId $buildRecord.candidateId -TrialId $fixture.trialId
-  $developmentDataRootBinding = Resolve-DevKernelCheckpointDataRootBinding -PreviousProfile $previousProfile
-  $resolvedDevelopmentDataRoot = [string] $developmentDataRootBinding.path
   $runtimeRoot = Split-Path $AcceptanceProfilePath -Parent
   New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
   $profile = [ordered]@{
-    schemaVersion = 5
+    schemaVersion = 6
     checkpoint = 'dev_kernel_checkpoint'
     nonRelease = $true
     trialId = $fixture.trialId
     runtimeCandidateId = $buildRecord.candidateId
     developmentStateCandidateId = [string] $stateLineage.developmentStateCandidateId
     acceptanceRoundId = [string] $stateLineage.acceptanceRoundId
-    developmentDataRootRef = $resolvedDevelopmentDataRoot
     accountRealmBaseUrl = $fixture.accountRealmBaseUrl
     fixtureBaseUrl = $fixture.fixtureBaseUrl
     providerBaseUrl = $fixture.providerBaseUrl
@@ -620,12 +554,13 @@ function Write-DevKernelCheckpointProfile {
   $temporary = "$AcceptanceProfilePath.tmp"
   [IO.File]::WriteAllText($temporary, (($profile | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))
   Move-Item -LiteralPath $temporary -Destination $AcceptanceProfilePath -Force
-  $developmentDataRootBinding['protectedProfileDigest'] = (Get-FileHash -LiteralPath $AcceptanceProfilePath -Algorithm SHA256).Hash.ToLowerInvariant()
-  $developmentDataRootBinding['developmentStateCandidateId'] = [string] $stateLineage.developmentStateCandidateId
-  $developmentDataRootBinding['acceptanceRoundId'] = [string] $stateLineage.acceptanceRoundId
-  $developmentDataRootBinding['stateLineageAuthority'] = [string] $stateLineage.authority
-  $developmentDataRootBinding['trialId'] = [string] $fixture.trialId
-  return $developmentDataRootBinding
+  return [ordered]@{
+    protectedProfileDigest = (Get-FileHash -LiteralPath $AcceptanceProfilePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    developmentStateCandidateId = [string] $stateLineage.developmentStateCandidateId
+    acceptanceRoundId = [string] $stateLineage.acceptanceRoundId
+    stateLineageAuthority = [string] $stateLineage.authority
+    trialId = [string] $fixture.trialId
+  }
 }
 
 function Get-Status {
@@ -697,13 +632,10 @@ function Get-Status {
     productAcceptanceProductClosePromotion = if ($productAcceptanceCandidateVerified) { 'non_promotable_to_product_close' } else { 'unverified' }
     checkpointReleasePosture = if ($checkpointCandidateVerified) { 'non_release' } else { 'unverified' }
     checkpointProductClosePromotion = if ($checkpointCandidateVerified) { 'non_promotable_to_product_close' } else { 'unverified' }
-    developmentDataRootRef = if ($null -eq $acceptanceProfile) { $null } else { [string] $acceptanceProfile.developmentDataRootRef }
     developmentStateCandidateId = if ($null -eq $acceptanceProfile) {
       $null
-    } elseif ([int] $acceptanceProfile.schemaVersion -eq 5) {
+    } elseif ([int] $acceptanceProfile.schemaVersion -eq 6) {
       [string] $acceptanceProfile.developmentStateCandidateId
-    } elseif ([int] $acceptanceProfile.schemaVersion -eq 4) {
-      [string] $acceptanceProfile.runtimeCandidateId
     } else {
       $null
     }
@@ -768,7 +700,7 @@ function Install-Service {
     if ($resolvedSid -ne $ExpectedServiceSid) {
       throw "SCM resolved unexpected service SID: $resolvedSid"
     }
-    $developmentDataRootBinding = Write-DevKernelCheckpointProfile -SignerCertificateSha256 $installerSigner
+    $checkpointProfileReceipt = Write-DevKernelCheckpointProfile -SignerCertificateSha256 $installerSigner
     Set-StateRootAcl
     try {
       Start-Service -Name $ServiceName -ErrorAction Stop
@@ -796,14 +728,10 @@ function Install-Service {
     $status['checkpointProfileRuntimeValidated'] = [bool] $DevKernelCheckpoint
     $status['firstPartyProductAcceptanceRuntimeValidated'] = [bool] $FirstPartyProductAcceptance
     if ($DevKernelCheckpoint) {
-      $boundDevelopmentDataRoot = [string] $developmentDataRootBinding.path
-      $status['developmentDataRootRef'] = if ([string]::IsNullOrWhiteSpace($boundDevelopmentDataRoot)) { $null } else { $boundDevelopmentDataRoot }
-      $status['developmentDataRootAuthority'] = [string] $developmentDataRootBinding.authority
-      $status['developmentDataRootDisposition'] = 'runtime_validated_development_payload_root'
-      $status['protectedProfileDigest'] = [string] $developmentDataRootBinding.protectedProfileDigest
-      $status['developmentStateCandidateId'] = [string] $developmentDataRootBinding.developmentStateCandidateId
-      $status['acceptanceRoundId'] = [string] $developmentDataRootBinding.acceptanceRoundId
-      $status['developmentStateLineageAuthority'] = [string] $developmentDataRootBinding.stateLineageAuthority
+      $status['protectedProfileDigest'] = [string] $checkpointProfileReceipt.protectedProfileDigest
+      $status['developmentStateCandidateId'] = [string] $checkpointProfileReceipt.developmentStateCandidateId
+      $status['acceptanceRoundId'] = [string] $checkpointProfileReceipt.acceptanceRoundId
+      $status['developmentStateLineageAuthority'] = [string] $checkpointProfileReceipt.stateLineageAuthority
     }
     return $status
   } catch {

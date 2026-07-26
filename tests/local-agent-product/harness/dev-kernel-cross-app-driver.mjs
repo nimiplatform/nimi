@@ -30,7 +30,6 @@ import {
   readAcceptanceFixture,
   readFixedServiceStatus,
   readProductControlJSONProjection,
-  requireCheckpointDataRootProposal,
   reservePort,
   setWindowBounds,
   sha256,
@@ -93,12 +92,13 @@ export {
   probeRealRealmBrowserLoginAuthority,
   readFixedServiceStatus,
   readProductControlJSONProjection,
-  requireCheckpointDataRootProposal,
+  requireRecordedProductControlDataRoot,
   reservePort,
   setWindowBounds,
   waitUntil,
 } from './dev-kernel-host-driver.mjs';
 export {
+  captureReusedReadyFirstRun,
   completeDesktopFirstRun,
   loginDesktop,
   prepareDesktopFixedServiceBaseline,
@@ -345,18 +345,13 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
         observations.firstRun = await captureReusedReadyFirstRun(
           desktop.page,
           productControl,
-          serviceBefore.runtimeCandidateId,
         );
       } else {
-        const proposedDataRoot = requireCheckpointDataRootProposal(
-          productControl,
-          serviceBefore.runtimeCandidateId,
-        );
-        observations.firstRun = await completeDesktopFirstRun(desktop, {
-          ...trial,
-          paths: { ...trial.paths, runtimeData: proposedDataRoot },
-        }, screenshotsRoot, {
-          reuseReadyCandidateId: serviceBefore.runtimeCandidateId,
+        observations.firstRun = await completeDesktopFirstRun(desktop, productControl, screenshotsRoot, {
+          freshDataRootSelection: ['config_missing', 'data_root_missing'].includes(productControl?.state)
+            ? trial.paths.freshDataRootSelection
+            : null,
+          reuseReady: true,
           resumeFromDevice: productControl?.state === 'data_root_selected',
         });
         observations.firstRun.reusedReady = false;
@@ -369,7 +364,6 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       observations.firstRun = await captureReusedReadyFirstRun(
         desktop.page,
         productControlRecord,
-        serviceBefore.runtimeCandidateId,
       );
     } else {
       throw new Error(`Desktop login entered unsupported product state ${primaryLogin.outcome}`);

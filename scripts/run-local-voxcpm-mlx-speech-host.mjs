@@ -1,35 +1,35 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { resolvePythonVenvExecutable } from './lib/python-venv.mjs';
+import {
+  deriveNimiDataPaths,
+  resolveProductControlDataRoot,
+} from './lib/product-control-data-root.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const defaultVenvRoot = path.join(os.homedir(), '.nimi', 'engines', 'speech', 'voxcpm-mlx', 'python');
-const defaultModelsRoot = path.join(os.homedir(), '.nimi', 'data', 'models');
 const defaultModelRef = 'mlx-community/VoxCPM2-4bit';
 const defaultHost = '127.0.0.1';
 const defaultPort = 8330;
 
-function expandHome(value) {
-  const text = String(value || '').trim();
-  if (!text.startsWith('~/')) {
-    return text;
-  }
-  return path.join(os.homedir(), text.slice(2));
+function productStorageDefaults() {
+  const paths = deriveNimiDataPaths(resolveProductControlDataRoot());
+  return {
+    modelsRoot: paths.models,
+    venvRoot: path.join(paths.environments, 'speech', 'voxcpm-mlx', 'python'),
+  };
 }
 
 function parseArgs(argv) {
   const options = {
     host: defaultHost,
     port: defaultPort,
-    modelsRoot: expandHome(process.env.NIMI_RUNTIME_LOCAL_MODELS_PATH || defaultModelsRoot),
-    venvRoot: defaultVenvRoot,
+    ...productStorageDefaults(),
     modelRef: defaultModelRef,
   };
   for (let index = 0; index < argv.length; index += 1) {
@@ -41,16 +41,6 @@ function parseArgs(argv) {
     }
     if (arg === '--port') {
       options.port = Number.parseInt(String(argv[index + 1] || ''), 10) || defaultPort;
-      index += 1;
-      continue;
-    }
-    if (arg === '--models-root') {
-      options.modelsRoot = expandHome(argv[index + 1] || '');
-      index += 1;
-      continue;
-    }
-    if (arg === '--venv-root') {
-      options.venvRoot = expandHome(argv[index + 1] || '');
       index += 1;
       continue;
     }
@@ -69,12 +59,15 @@ function pythonExecutable(venvRoot) {
 }
 
 export function buildHostLaunchSpec(options) {
+  const storage = options.modelsRoot && options.venvRoot
+    ? options
+    : { ...productStorageDefaults(), ...options };
   const resolved = {
-    host: String(options.host || defaultHost).trim() || defaultHost,
-    port: Number.parseInt(String(options.port || defaultPort), 10) || defaultPort,
-    modelsRoot: path.resolve(String(options.modelsRoot || defaultModelsRoot)),
-    venvRoot: path.resolve(String(options.venvRoot || defaultVenvRoot)),
-    modelRef: String(options.modelRef || defaultModelRef).trim() || defaultModelRef,
+    host: String(storage.host || defaultHost).trim() || defaultHost,
+    port: Number.parseInt(String(storage.port || defaultPort), 10) || defaultPort,
+    modelsRoot: path.resolve(String(storage.modelsRoot)),
+    venvRoot: path.resolve(String(storage.venvRoot)),
+    modelRef: String(storage.modelRef || defaultModelRef).trim() || defaultModelRef,
   };
   const pythonPath = pythonExecutable(resolved.venvRoot);
   const serverScript = path.join(repoRoot, 'runtime', 'internal', 'engine', 'assets', 'speech_server.py');

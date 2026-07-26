@@ -46,10 +46,7 @@ export function runAccountSessionHardcutSelfTest({
         app: {
           security: {
             assetProtocol: {
-              scope: [
-                '$HOME/.nimi/data/accounts/*/agents/*/agent-center/modules/avatar_asset/packages/*/*/files/**',
-                '$HOME/ai/**',
-              ],
+              scope: [],
             },
           },
         },

@@ -76,9 +76,9 @@ test('P4 manifest parser rejects duplicate IDs, duplicate drivers, unsupported d
 test('P4 supervisor enforces a 750ms deadline, kills the worker tree, and preserves durable state', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-p4-supervisor-test-'));
   const outputDir = path.join(root, 'evidence');
-  const productRoot = path.join(root, 'product');
-  fs.mkdirSync(productRoot);
-  const durableSentinel = path.join(productRoot, 'durable-sentinel.txt');
+  const durableStateRoot = path.join(root, 'durable-state');
+  fs.mkdirSync(durableStateRoot);
+  const durableSentinel = path.join(durableStateRoot, 'durable-sentinel.txt');
   fs.writeFileSync(durableSentinel, 'preserve-me\n', 'utf8');
   const workerPath = path.join(import.meta.dirname, 'fixtures', 'p4-ready-hang-worker.mjs');
   try {
@@ -95,7 +95,6 @@ test('P4 supervisor enforces a 750ms deadline, kills the worker tree, and preser
         repoRoot: import.meta.dirname,
         outputDir,
         prerequisite: null,
-        productRoot,
         workerPath,
       }),
       (error) => {
