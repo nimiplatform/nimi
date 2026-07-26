@@ -214,6 +214,18 @@ test('renders Google DESIGN.md-shaped Nimi design projection from spec authority
     assert.match(body, /- \*\*Compact density:\*\* Repeated operational desktop work with high scan efficiency\./m);
     assert.match(body, /- `Surface` \(`primitive.surface`\): family `surface`, source `P-DESIGN-011`/m);
     assert.match(body, /- Do consume `@nimiplatform\/kit\/ui`/m);
+    assert.match(body, /Ownership follows `P-DESIGN-001` and `P-KIT-010`:/m);
+    assert.match(body, /Nimi design pattern owns cross-app primitive families, semantic-token taxonomy, theme-pack schema, material taxonomy, and external app integration behavior/m);
+    assert.match(body, /each app owns composition, information architecture, route placement, data schemas, and app-local inventories/m);
+    assert.match(body, /Reuse follows `P-KIT-065`:/m);
+    assert.match(body, /extend or compose an existing Kit surface when it covers most baseline styling and interaction behavior/m);
+
+    const rootBody = read(root, 'DESIGN.md');
+    const rootFrontMatter = parseFrontMatter(rootBody);
+    assert.equal(rootFrontMatter.artifacts.fullProjection, 'kit/design-projection.json');
+    assert.match(rootBody, /compact UI\/UX design projection/m);
+    assert.match(rootBody, /complete machine-readable token and component inventory is \[kit\/design-projection\.json\]/m);
+    assert.doesNotMatch(`${rootBody}\n${body}`, /industrial-grade|complete tokens/iu);
 
     const fullProjection = readJson(root, 'kit/design-projection.json');
     assert.equal(fullProjection.colors.info, '#3B82F6');
