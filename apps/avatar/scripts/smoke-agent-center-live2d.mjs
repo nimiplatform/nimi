@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import {
+  deriveNimiDataPaths,
+  resolveProductControlDataRoot,
+} from '../../../scripts/lib/product-control-data-root.mjs';
 
 function normalize(value) {
   return String(value || '').trim();
@@ -43,7 +46,7 @@ function assertSafeRelativeFileRef(root, ref, label) {
 }
 
 function accountsRoot(dataRoot) {
-  return join(dataRoot, 'agent-center', 'accounts');
+  return deriveNimiDataPaths(dataRoot).accounts;
 }
 
 function agentCenterDir(dataRoot, accountId, localAgentRef) {
@@ -71,7 +74,7 @@ function live2dSmokeRepairMessage(root) {
   return [
     `[avatar-live2d-smoke] missing Kit Shell Agent Center Live2D data under: ${root}`,
     '[avatar-live2d-smoke] Fix one of:',
-    '  - set NIMI_DATA_ROOT to the Runtime app storage root that contains agent-center/accounts',
+    '  - complete or repair Product Control in Desktop',
     '  - import a Live2D Avatar asset through Agent Center, then rerun this smoke',
     '  - set NIMI_AVATAR_SMOKE_ACCOUNT_ID, NIMI_AVATAR_SMOKE_LOCAL_AGENT_REF, and NIMI_AVATAR_SMOKE_AVATAR_ASSET_REF',
   ].join('\n');
@@ -136,7 +139,7 @@ function findLive2dTarget(dataRoot) {
 }
 
 function main() {
-  const dataRoot = resolve(process.env.NIMI_DATA_ROOT || join(homedir(), '.nimi', 'data'));
+  const dataRoot = resolveProductControlDataRoot();
   const target = findLive2dTarget(dataRoot);
   if (!/^live2d_[a-f0-9]{12}$/u.test(target.avatarAssetRef)) {
     throw new Error(`Live2D Avatar asset ref is invalid: ${target.avatarAssetRef}`);

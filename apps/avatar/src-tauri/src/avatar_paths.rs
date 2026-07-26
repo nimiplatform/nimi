@@ -34,7 +34,8 @@ pub(crate) fn resolve_env_app_data_root(value: Option<&str>) -> Result<Option<Pa
 pub(crate) fn resolve_avatar_app_data_dir() -> Result<PathBuf, String> {
     let env_value = std::env::var(NIMI_APP_DATA_ROOT_ENV).ok();
     let path = resolve_env_app_data_root(env_value.as_deref())?
-        .ok_or_else(|| format!("{NIMI_APP_DATA_ROOT_ENV} is required"))?;
+        .ok_or_else(|| format!("{NIMI_APP_DATA_ROOT_ENV} private app binding is required"))?;
+    resolve_nimi_data_dir_from_avatar_app_data_root(&path)?;
     fs::create_dir_all(&path).map_err(|error| {
         format!(
             "failed to create Avatar app data root ({}): {error}",
@@ -57,7 +58,7 @@ pub(crate) fn resolve_nimi_data_dir_from_avatar_app_data_root(
         .unwrap_or("");
     if data_segment != "data" {
         return Err(format!(
-            "{NIMI_APP_DATA_ROOT_ENV} must point to <nimi_data>/apps/{AVATAR_APP_ID}/data"
+            "{NIMI_APP_DATA_ROOT_ENV} private binding must point to <dataRoot>/apps/{AVATAR_APP_ID}/data"
         ));
     }
     let app_root = normalized
@@ -70,7 +71,7 @@ pub(crate) fn resolve_nimi_data_dir_from_avatar_app_data_root(
         != AVATAR_APP_ID
     {
         return Err(format!(
-            "{NIMI_APP_DATA_ROOT_ENV} must point to <nimi_data>/apps/{AVATAR_APP_ID}/data"
+            "{NIMI_APP_DATA_ROOT_ENV} private binding must point to <dataRoot>/apps/{AVATAR_APP_ID}/data"
         ));
     }
     let apps_root = app_root
@@ -83,12 +84,12 @@ pub(crate) fn resolve_nimi_data_dir_from_avatar_app_data_root(
         != "apps"
     {
         return Err(format!(
-            "{NIMI_APP_DATA_ROOT_ENV} must point to <nimi_data>/apps/{AVATAR_APP_ID}/data"
+            "{NIMI_APP_DATA_ROOT_ENV} private binding must point to <dataRoot>/apps/{AVATAR_APP_ID}/data"
         ));
     }
     let data_root = apps_root
         .parent()
-        .ok_or_else(|| format!("{NIMI_APP_DATA_ROOT_ENV} has no nimi_data parent"))?;
+        .ok_or_else(|| format!("{NIMI_APP_DATA_ROOT_ENV} has no dataRoot parent"))?;
     Ok(data_root.to_path_buf())
 }
 
@@ -100,7 +101,7 @@ pub(crate) fn resolve_avatar_nimi_data_dir() -> Result<PathBuf, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        resolve_avatar_app_data_dir, resolve_env_app_data_root,
+        resolve_avatar_app_data_dir, resolve_avatar_nimi_data_dir, resolve_env_app_data_root,
         resolve_nimi_data_dir_from_avatar_app_data_root,
     };
     use crate::test_env_guard;
@@ -145,7 +146,7 @@ mod tests {
             Some(value) => std::env::set_var("NIMI_APP_DATA_ROOT", value),
             None => std::env::remove_var("NIMI_APP_DATA_ROOT"),
         }
-        assert!(error.contains("NIMI_APP_DATA_ROOT is required"));
+        assert!(error.contains("NIMI_APP_DATA_ROOT private app binding is required"));
     }
 
     #[test]
@@ -176,6 +177,45 @@ mod tests {
         let error = resolve_nimi_data_dir_from_avatar_app_data_root(&root)
             .expect_err("wrong app id must fail");
 
-        assert!(error.contains("<nimi_data>/apps/nimi.avatar/data"));
+        assert!(error.contains("<dataRoot>/apps/nimi.avatar/data"));
+    }
+
+    #[test]
+    fn avatar_app_data_root_rejects_raw_data_root_as_binding() {
+        let _guard = test_env_guard();
+        let saved = std::env::var("NIMI_APP_DATA_ROOT").ok();
+        let root =
+            std::env::temp_dir().join(format!("nimi-avatar-raw-data-root-{}", std::process::id()));
+        std::env::set_var("NIMI_APP_DATA_ROOT", &root);
+
+        let error = resolve_avatar_app_data_dir()
+            .expect_err("raw dataRoot must not be accepted as an app-scoped binding");
+
+        match saved {
+            Some(value) => std::env::set_var("NIMI_APP_DATA_ROOT", value),
+            None => std::env::remove_var("NIMI_APP_DATA_ROOT"),
+        }
+        assert!(error.contains("<dataRoot>/apps/nimi.avatar/data"));
+    }
+
+    #[test]
+    fn production_resolver_derives_data_root_from_private_app_binding() {
+        let _guard = test_env_guard();
+        let saved = std::env::var("NIMI_APP_DATA_ROOT").ok();
+        let data_root = std::env::temp_dir().join(format!(
+            "nimi-avatar-production-binding-{}",
+            std::process::id()
+        ));
+        let app_data_root = data_root.join("apps").join("nimi.avatar").join("data");
+        std::env::set_var("NIMI_APP_DATA_ROOT", &app_data_root);
+
+        let resolved = resolve_avatar_nimi_data_dir().expect("resolve admitted dataRoot");
+
+        match saved {
+            Some(value) => std::env::set_var("NIMI_APP_DATA_ROOT", value),
+            None => std::env::remove_var("NIMI_APP_DATA_ROOT"),
+        }
+        assert_eq!(resolved, data_root);
+        let _ = std::fs::remove_dir_all(resolved);
     }
 }

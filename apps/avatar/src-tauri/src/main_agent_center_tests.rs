@@ -15,12 +15,36 @@ fn local_agent_ref() -> String {
     local_agent_ref_for(owner_user_id(), runtime_source_ref())
 }
 
-fn agent_center_root(home: &Path, account_id: &str, local_agent_ref: &str) -> PathBuf {
-    home.join(".nimi/data/accounts")
+fn agent_center_root(data_root: &Path, account_id: &str, local_agent_ref: &str) -> PathBuf {
+    data_root
+        .join("accounts")
         .join(agent_center_path_segment(account_id))
         .join("agents")
         .join(agent_center_path_segment(local_agent_ref))
         .join("agent-center")
+}
+
+struct TestAvatarDataRootBinding {
+    previous: Option<std::ffi::OsString>,
+}
+
+impl TestAvatarDataRootBinding {
+    fn install(data_root: &Path) -> Self {
+        let app_data_root = data_root.join("apps").join("nimi.avatar").join("data");
+        fs::create_dir_all(&app_data_root).unwrap();
+        let previous = std::env::var_os("NIMI_APP_DATA_ROOT");
+        std::env::set_var("NIMI_APP_DATA_ROOT", app_data_root);
+        Self { previous }
+    }
+}
+
+impl Drop for TestAvatarDataRootBinding {
+    fn drop(&mut self) {
+        match self.previous.take() {
+            Some(value) => std::env::set_var("NIMI_APP_DATA_ROOT", value),
+            None => std::env::remove_var("NIMI_APP_DATA_ROOT"),
+        }
+    }
 }
 
 fn materialization_ref(
@@ -76,12 +100,12 @@ fn resolve_payload_with_package(
 }
 
 fn write_agent_center_live2d_package_for_local_agent(
-    home: &Path,
+    data_root: &Path,
     local_agent_ref: &str,
     entry_content: &str,
 ) -> PathBuf {
     write_agent_center_live2d_package_for_account_agent(
-        home,
+        data_root,
         "account_1",
         owner_user_id(),
         runtime_source_ref(),
@@ -91,14 +115,14 @@ fn write_agent_center_live2d_package_for_local_agent(
 }
 
 fn write_agent_center_live2d_package_for_account_agent(
-    home: &Path,
+    data_root: &Path,
     account_id: &str,
     owner_user_id: &str,
     runtime_source_ref: &str,
     local_agent_ref: &str,
     entry_content: &str,
 ) -> PathBuf {
-    let package_dir = agent_center_root(home, account_id, local_agent_ref)
+    let package_dir = agent_center_root(data_root, account_id, local_agent_ref)
         .join("modules/avatar_asset/packages/live2d/live2d_ab12cd34ef56");
     let files_dir = package_dir.join("files");
     fs::create_dir_all(&files_dir).unwrap();
@@ -148,13 +172,13 @@ fn write_agent_center_live2d_package_for_account_agent(
     package_dir
 }
 
-fn write_agent_center_live2d_package(home: &Path, entry_content: &str) -> PathBuf {
-    write_agent_center_live2d_package_for_local_agent(home, &local_agent_ref(), entry_content)
+fn write_agent_center_live2d_package(data_root: &Path, entry_content: &str) -> PathBuf {
+    write_agent_center_live2d_package_for_local_agent(data_root, &local_agent_ref(), entry_content)
 }
 
-fn write_agent_center_vrm_package(home: &Path, entry_content: &[u8]) -> PathBuf {
-    let package_dir = home
-        .join(".nimi/data/accounts")
+fn write_agent_center_vrm_package(data_root: &Path, entry_content: &[u8]) -> PathBuf {
+    let package_dir = data_root
+        .join("accounts")
         .join(agent_center_path_segment("account_1"))
         .join("agents")
         .join(agent_center_path_segment(&local_agent_ref()))
@@ -243,42 +267,38 @@ fn normalize_avatar_launch_instance_id_preserves_explicit_id() {
 }
 
 #[test]
-fn avatar_visual_path_allows_only_agent_center_package_files_under_nimi() {
+fn avatar_visual_path_allows_only_agent_center_package_files_under_data_root() {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("visual-path-scope");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
-    let package_dir = write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
+    let data_root = unique_temp_dir("visual-path-scope");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
+    let package_dir = write_agent_center_live2d_package(&data_root, r#"{"Version":3}"#);
     let allowed = package_dir.join("files/ren.model3.json");
-    let auth_dir = home.join(".nimi/auth");
+    let auth_dir = data_root.join("auth");
     fs::create_dir_all(&auth_dir).unwrap();
     let auth_file = auth_dir.join("session.json");
     fs::write(&auth_file, "{}").unwrap();
-    let broad_file = home.join(".nimi/config.json");
+    let broad_file = data_root.join("config.json");
     fs::write(&broad_file, "{}").unwrap();
+    let outside_file = unique_temp_dir("visual-path-outside").with_extension("json");
+    fs::write(&outside_file, "{}").unwrap();
 
     assert!(validated_avatar_visual_path(&allowed).is_ok());
     assert!(validated_avatar_visual_path(&auth_file).is_err());
     assert!(validated_avatar_visual_path(&broad_file).is_err());
+    assert!(validated_avatar_visual_path(&outside_file).is_err());
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_file(outside_file);
+    let _ = fs::remove_dir_all(&data_root);
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn avatar_file_commands_reject_nimi_auth_files() {
+async fn avatar_file_commands_reject_files_outside_agent_center_package() {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("visual-command-scope");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
-    let package_dir = write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
+    let data_root = unique_temp_dir("visual-command-scope");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
+    let package_dir = write_agent_center_live2d_package(&data_root, r#"{"Version":3}"#);
     let allowed = package_dir.join("files/ren.model3.json");
-    let auth_dir = home.join(".nimi/auth");
+    let auth_dir = data_root.join("auth");
     fs::create_dir_all(&auth_dir).unwrap();
     let auth_file = auth_dir.join("session.json");
     fs::write(&auth_file, r#"{"refreshToken":"secret"}"#).unwrap();
@@ -296,21 +316,15 @@ async fn avatar_file_commands_reject_nimi_auth_files() {
             .is_err()
     );
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_dir_all(&data_root);
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn resolve_agent_center_avatar_asset_returns_live2d_model_manifest() {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("agent-center-package");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
-    let package_dir = write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
+    let data_root = unique_temp_dir("agent-center-package");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
+    let package_dir = write_agent_center_live2d_package(&data_root, r#"{"Version":3}"#);
 
     let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         "account_1",
@@ -344,23 +358,17 @@ async fn resolve_agent_center_avatar_asset_returns_live2d_model_manifest() {
     );
     assert_eq!(manifest.live2d_calibration_ref, None);
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_dir_all(&data_root);
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn resolve_agent_center_avatar_asset_rejects_local_config_external_live2d_adapter_sidecar() {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("agent-center-live2d-external-adapter");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
-    write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
+    let data_root = unique_temp_dir("agent-center-live2d-external-adapter");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
+    write_agent_center_live2d_package(&data_root, r#"{"Version":3}"#);
     let manifest_ref = "live2d_adapter_ab12cd34ef56";
-    let sidecar_dir = agent_center_root(&home, "account_1", &local_agent_ref())
+    let sidecar_dir = agent_center_root(&data_root, "account_1", &local_agent_ref())
         .join("modules/avatar_asset/adapter_manifests")
         .join(manifest_ref);
     fs::create_dir_all(&sidecar_dir).unwrap();
@@ -384,7 +392,7 @@ async fn resolve_agent_center_avatar_asset_rejects_local_config_external_live2d_
             .await
             .is_err()
     );
-    let unselected_dir = agent_center_root(&home, "account_1", &local_agent_ref())
+    let unselected_dir = agent_center_root(&data_root, "account_1", &local_agent_ref())
         .join("modules/avatar_asset/adapter_manifests/live2d_adapter_ffffffffffff");
     fs::create_dir_all(&unselected_dir).unwrap();
     let unselected_path = unselected_dir.join("live2d-adapter.json");
@@ -399,21 +407,15 @@ async fn resolve_agent_center_avatar_asset_rejects_local_config_external_live2d_
             .is_err()
     );
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_dir_all(&data_root);
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn resolve_agent_center_avatar_asset_uses_explicit_embedded_live2d_adapter_manifest() {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("agent-center-live2d-embedded-adapter");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
-    let package_dir = write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
+    let data_root = unique_temp_dir("agent-center-live2d-embedded-adapter");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
+    let package_dir = write_agent_center_live2d_package(&data_root, r#"{"Version":3}"#);
     let embedded_dir = package_dir.join("files/nimi");
     fs::create_dir_all(&embedded_dir).unwrap();
     let embedded_path = embedded_dir.join("live2d-adapter.json");
@@ -442,25 +444,19 @@ async fn resolve_agent_center_avatar_asset_uses_explicit_embedded_live2d_adapter
         )
     );
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_dir_all(&data_root);
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn resolve_agent_center_avatar_asset_accepts_runtime_scoped_runtime_source_ref() {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("agent-center-package-runtime-agent");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
+    let data_root = unique_temp_dir("agent-center-package-runtime-agent");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
     let runtime_scoped_runtime_source_ref = "~agent_1_tffk";
     let runtime_scoped_local_agent_ref =
         local_agent_ref_for(owner_user_id(), runtime_scoped_runtime_source_ref);
     let package_dir = write_agent_center_live2d_package_for_account_agent(
-        &home,
+        &data_root,
         "account_1",
         owner_user_id(),
         runtime_scoped_runtime_source_ref,
@@ -486,24 +482,18 @@ async fn resolve_agent_center_avatar_asset_accepts_runtime_scoped_runtime_source
             .to_string()
     );
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_dir_all(&data_root);
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn resolve_agent_center_avatar_asset_accepts_opaque_runtime_source_ref() {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("agent-center-package-opaque-agent");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
+    let data_root = unique_temp_dir("agent-center-package-opaque-agent");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
     let opaque_runtime_source_ref = "agent.abc.def+1";
     let opaque_local_agent_ref = local_agent_ref_for(owner_user_id(), opaque_runtime_source_ref);
     let package_dir = write_agent_center_live2d_package_for_account_agent(
-        &home,
+        &data_root,
         "account_1",
         owner_user_id(),
         opaque_runtime_source_ref,
@@ -529,23 +519,17 @@ async fn resolve_agent_center_avatar_asset_accepts_opaque_runtime_source_ref() {
             .to_string()
     );
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_dir_all(&data_root);
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn resolve_agent_center_avatar_asset_uses_runtime_account_projection_scope() {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("agent-center-package-opaque-account");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
+    let data_root = unique_temp_dir("agent-center-package-opaque-account");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
     let account_id = "account:abc.def+1";
     let package_dir = write_agent_center_live2d_package_for_account_agent(
-        &home,
+        &data_root,
         account_id,
         owner_user_id(),
         runtime_source_ref(),
@@ -571,22 +555,16 @@ async fn resolve_agent_center_avatar_asset_uses_runtime_account_projection_scope
             .to_string()
     );
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_dir_all(&data_root);
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_rejects_digest_mismatch()
 {
     let _guard = test_env_guard();
-    let home = unique_temp_dir("agent-center-package-invalid");
-    fs::create_dir_all(&home).unwrap();
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", &home);
-    let vrm_package_dir = write_agent_center_vrm_package(&home, b"vrm-bytes");
+    let data_root = unique_temp_dir("agent-center-package-invalid");
+    let _binding = TestAvatarDataRootBinding::install(&data_root);
+    let vrm_package_dir = write_agent_center_vrm_package(&data_root, b"vrm-bytes");
 
     let vrm_manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload_with_package(
         "account_1",
@@ -614,8 +592,8 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
     assert!(vrm_manifest.model3_json_path.is_none());
     assert!(vrm_package_dir.join("files/model.vrm").exists());
 
-    write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
-    let entry = agent_center_root(&home, "account_1", &local_agent_ref())
+    write_agent_center_live2d_package(&data_root, r#"{"Version":3}"#);
+    let entry = agent_center_root(&data_root, "account_1", &local_agent_ref())
         .join("modules/avatar_asset/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
     fs::write(entry, r#"{"Version":4}"#).unwrap();
     let digest_error = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
@@ -627,9 +605,5 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
     .expect_err("digest mismatch should fail closed");
     assert!(digest_error.contains("differs from manifest"));
 
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
-    let _ = fs::remove_dir_all(&home);
+    let _ = fs::remove_dir_all(&data_root);
 }

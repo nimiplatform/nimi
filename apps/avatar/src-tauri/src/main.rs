@@ -43,12 +43,7 @@ use tauri::PhysicalPosition;
 #[cfg(test)]
 pub(crate) fn test_env_guard() -> std::sync::MutexGuard<'static, ()> {
     let _ = runtime_bridge::set_runtime_bridge_host_hooks(runtime_bridge::RuntimeBridgeHostHooks {
-        resolve_nimi_data_dir: Some(Arc::new(|| {
-            std::env::var_os("HOME")
-                .map(std::path::PathBuf::from)
-                .map(|home| home.join(".nimi").join("data"))
-                .ok_or_else(|| "test HOME is required for Avatar data-root hook".to_string())
-        })),
+        resolve_nimi_data_dir: Some(Arc::new(crate::avatar_paths::resolve_avatar_nimi_data_dir)),
         ..Default::default()
     });
     static GUARD: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();

@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{Emitter, State};
 
+use crate::avatar_paths::resolve_avatar_nimi_data_dir;
+
 #[derive(Serialize)]
 pub(crate) struct NasHandlerManifest {
     activity: Vec<NasHandlerEntry>,
@@ -42,10 +44,6 @@ pub(crate) fn resolve_runtime_dir(input: &Path) -> Result<PathBuf, String> {
     Err(format!("no runtime/ subdirectory at {}", input.display()))
 }
 
-fn path_is_within(path: &Path, root: &Path) -> bool {
-    path == root || path.starts_with(root)
-}
-
 #[cfg(windows)]
 fn normalize_avatar_visual_input_path(path: &Path) -> PathBuf {
     let value = path.as_os_str().to_string_lossy();
@@ -60,29 +58,30 @@ fn normalize_avatar_visual_input_path(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
-fn is_agent_center_visual_package_file(path: &Path, home: &Path) -> bool {
-    let account_data_root = home.join(".nimi").join("data").join("accounts");
+fn is_agent_center_visual_package_file(path: &Path, account_data_root: &Path) -> bool {
     let Ok(relative) = path.strip_prefix(&account_data_root) else {
         return false;
     };
-    let segments = relative
+    let Some(segments) = relative
         .components()
-        .filter_map(|component| component.as_os_str().to_str())
-        .collect::<Vec<_>>();
-    if segments.len() < 6 {
+        .map(|component| component.as_os_str().to_str())
+        .collect::<Option<Vec<_>>>()
+    else {
+        return false;
+    };
+    if segments.len() < 11 {
         return false;
     }
-    if segments.get(1) != Some(&"agents") {
-        return false;
-    }
-    let package_file = segments.windows(7).any(|window| {
-        window[0] == "agent-center"
-            && window[1] == "modules"
-            && window[2] == "avatar_asset"
-            && window[3] == "packages"
-            && window[6] == "files"
-    });
-    package_file
+    !segments[0].is_empty()
+        && segments[1] == "agents"
+        && !segments[2].is_empty()
+        && segments[3] == "agent-center"
+        && segments[4] == "modules"
+        && segments[5] == "avatar_asset"
+        && segments[6] == "packages"
+        && !segments[7].is_empty()
+        && !segments[8].is_empty()
+        && segments[9] == "files"
 }
 
 pub(crate) fn validated_avatar_visual_path(path: &Path) -> Result<PathBuf, String> {
@@ -90,16 +89,29 @@ pub(crate) fn validated_avatar_visual_path(path: &Path) -> Result<PathBuf, Strin
     let canonical = input_path
         .canonicalize()
         .map_err(|e| format!("resolve {} failed: {}", input_path.display(), e))?;
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or_else(|| "HOME is required for avatar visual path validation".to_string())?;
-    let canonical_home = home
-        .canonicalize()
-        .map_err(|e| format!("resolve HOME {} failed: {}", home.display(), e))?;
-    let nimi_root = canonical_home.join(".nimi");
-    if path_is_within(&canonical, &nimi_root)
-        && !is_agent_center_visual_package_file(&canonical, &canonical_home)
-    {
+    let data_root = resolve_avatar_nimi_data_dir()?;
+    let canonical_data_root = data_root.canonicalize().map_err(|e| {
+        format!(
+            "resolve Avatar data root {} failed: {}",
+            data_root.display(),
+            e
+        )
+    })?;
+    let account_data_root = data_root.join("accounts");
+    let canonical_account_data_root = account_data_root.canonicalize().map_err(|e| {
+        format!(
+            "resolve Avatar account data root {} failed: {}",
+            account_data_root.display(),
+            e
+        )
+    })?;
+    if !canonical_account_data_root.starts_with(&canonical_data_root) {
+        return Err(format!(
+            "Avatar account data root escapes the admitted dataRoot: {}",
+            account_data_root.display()
+        ));
+    }
+    if !is_agent_center_visual_package_file(&canonical, &canonical_account_data_root) {
         return Err(format!(
             "avatar file access is limited to launch-approved visual package files: {}",
             input_path.display()
