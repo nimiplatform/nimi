@@ -23,20 +23,14 @@ test('landing data generator treats local as an admitted capabilities-only provi
   assert.equal(catalogProviders.includes('local'), false);
   assert.equal(capabilityProviders.includes('local'), true);
 
-  const result = spawnSync(process.execPath, ['scripts/generate-landing-data.mjs'], {
+  const result = spawnSync(process.execPath, ['scripts/generate-landing-data.mjs', '--check'], {
     cwd: appRoot,
     encoding: 'utf8',
   });
 
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stderr, /provider\(s\) in capabilities but not in catalog: \[local\]/);
-  assert.match(
-    result.stdout,
-    new RegExp(
-      `wrote ${catalogProviders.length} ADMITTED_PROVIDERS, ${capabilityProviders.length} PROVIDER_CAPABILITIES`,
-    ),
-  );
-  assert.match(result.stdout, /-> apps\/web\/src\/landing\/generated\/provider-capabilities\.ts/);
+  assert.match(result.stdout, /generated artifacts current/);
 
   const providerCapabilities = readFileSync(
     new URL('src/landing/generated/provider-capabilities.ts', appRoot),
