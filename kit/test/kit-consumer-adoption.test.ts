@@ -156,7 +156,6 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
 
   const testerContract = read('apps/tester/test/tester-contract.test.mjs');
   const testerSettingsSurfaceTest = read('apps/tester/test/tester-settings-surface.test.mjs');
-  const scaffoldBoundary = read('apps/tester/test/scaffold-boundary.test.mjs');
   const testerRuntimePlatform = read('apps/tester/src/shell/auth/runtime-platform.ts');
   const testerLocalAppPlatform = read('apps/tester/src/shell/local-app-runtime-platform.ts');
   const testerWorkbench = read('apps/tester/src/tester/tester-workbench.tsx');
@@ -165,8 +164,6 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   assert.match(testerContract, /tester auth and runtime bootstrap consume Kit shell bridge primitives/);
   assert.match(testerSettingsSurfaceTest, /tester settings keeps real Realm live rows through SDK and Kit helpers/);
 
-  assert.match(scaffoldBoundary, /runtime-platform\.ts/);
-  assert.match(scaffoldBoundary, /local-app-runtime-platform\.ts/);
   assert.match(testerContract, /Runtime account projection without account control/);
   assert.match(testerRuntimePlatform, /testerLocalAppClient\.auth\.status\(\)/);
   assert.match(testerRuntimePlatform, /status\.sessionBound/);

@@ -3,11 +3,8 @@ import {
   Settings,
 } from 'lucide-react';
 import nimiLogoImage from '../assets/logo.png';
-import type { ZhiyuEvidence } from '../app/evidence';
-import { HiddenEvidenceStatus } from '../app/home-surface-sections';
 
 type DesktopPresenceRailProps = {
-  readonly evidence: ZhiyuEvidence;
   readonly agents: readonly {
     readonly itemKey: string;
     readonly localAgentRef: string | null;
@@ -23,7 +20,6 @@ type DesktopPresenceRailProps = {
 };
 
 export function DesktopPresenceRail({
-  evidence,
   agents,
   currentLocalAgentRef,
   currentPartnerName,
@@ -99,7 +95,6 @@ export function DesktopPresenceRail({
           <Settings size={20} aria-hidden="true" />
         </button>
       </div>
-      <HiddenEvidenceStatus evidence={evidence} />
     </Surface>
   );
 }

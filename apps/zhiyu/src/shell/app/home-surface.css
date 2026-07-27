@@ -70,11 +70,6 @@
   grid-template-areas: "presence conversation";
 }
 
-.zhiyu-agent-chat__evidence-line,
-.zhiyu-home__evidence {
-  display: none;
-}
-
 .zhiyu-agent-rail {
   grid-area: presence;
   display: flex;

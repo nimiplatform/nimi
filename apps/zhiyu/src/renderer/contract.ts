@@ -82,8 +82,7 @@ export interface ZhiyuRendererCommandPort {
 }
 
 export interface ZhiyuRendererEventPort {
-  publishEvidence(evidence: ZhiyuEvidence): void;
-  bindAbortActiveTurn(handler: (reason?: string) => void): () => void;
+  onProjectionChanged?(projection: ZhiyuEvidence): void;
   subscribeExecutionRoute(input: {
     readonly routeInput: ZhiyuAgentAIConfigRouteEvidenceInput;
     readonly onRoute: (route: ZhiyuEvidence['route']) => void;

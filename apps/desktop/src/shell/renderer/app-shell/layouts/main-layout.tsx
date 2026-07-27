@@ -73,7 +73,7 @@ export function MainLayout() {
   const userEmail = typeof user?.email === 'string' ? user.email : null;
 
   useEffect(() => {
-    bindings.surfaceLifecycle.reportReadyCandidate({ contractId: 'desktop.main.usable' });
+    bindings.surfaceLifecycle.reportReadyCandidate();
   }, [bindings]);
 
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(

@@ -63,14 +63,9 @@ export function createNimiRendererHostBinding<
 
   const overlays = createNimiRendererOverlayFacade(input.overlays);
   const surfaceLifecycle = Object.freeze({
-    reportReadyCandidate(value: { readonly contractId: string }) {
-      if (!isExactRecord(value, ['contractId'])
-        || typeof value.contractId !== 'string'
-        || !/^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value.contractId)) {
-        throw createNimiRendererHostError('invalid-input', 'surfaceLifecycle.reportReadyCandidate');
-      }
+    reportReadyCandidate() {
       try {
-        input.surfaceLifecycle.reportReadyCandidate(value);
+        input.surfaceLifecycle.reportReadyCandidate();
       } catch {
         throw createNimiRendererHostError('internal', 'surfaceLifecycle.reportReadyCandidate');
       }

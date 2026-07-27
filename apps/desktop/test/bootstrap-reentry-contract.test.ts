@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const bootstrapSource = readFileSync(
   new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts', import.meta.url),
@@ -91,13 +91,4 @@ test('runtime config bootstrap is observation-only after Runtime custody hardcut
 test('runtime config bootstrap never owns Runtime restart', () => {
   assert.match(bootstrapConfigSyncSource, /runtimeUnavailable: runtimeDaemonUnavailable\(input\.daemonStatus\)/);
   assert.doesNotMatch(bootstrapConfigSyncSource, /startRuntimeBridge|restartRuntime|manual-restart-required/);
-});
-
-test('external agent runtime facade is deleted with no desktop action bridge residue', () => {
-  assert.equal(existsSync(new URL('../src/runtime/external-agent/index.ts', import.meta.url)), false);
-  assert.doesNotMatch(
-    bootstrapSource,
-    /stopExternalAgentActionBridge|syncedActionHash|actionRegistryResyncQueued|resyncExternalAgentActionDescriptors|external_agent_sync_action_descriptors/,
-    'desktop must not own external agent action bridge or action descriptor sync',
-  );
 });

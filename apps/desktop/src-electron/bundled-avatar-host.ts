@@ -22,6 +22,7 @@ import {
   buildAvatarLaunchHandoffPayload,
   type AvatarLaunchHandoffPayload,
 } from '@nimiplatform/kit/features/avatar/headless';
+import { createBundledAvatarWindowOptions } from './bundled-avatar-window-options.js';
 
 const AVATAR_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
 const AVATAR_NAS_CHANGED_EVENT = 'avatar://nas-handlers-changed';
@@ -100,25 +101,7 @@ export async function createDesktopElectronBundledAvatarHost(
     }
     const avatarInstanceId = launchContext.avatarInstanceId || `desktop-avatar-${randomUUID()}`;
     const canonicalContext = { ...launchContext, avatarInstanceId };
-    const window = new BrowserWindow({
-      width: 420,
-      height: 680,
-      minWidth: 390,
-      minHeight: 520,
-      transparent: true,
-      frame: false,
-      resizable: true,
-      alwaysOnTop: true,
-      skipTaskbar: true,
-      title: 'Nimi Avatar',
-      backgroundColor: '#00000000',
-      webPreferences: {
-        preload: input.preloadPath,
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-      },
-    });
+    const window = new BrowserWindow(createBundledAvatarWindowOptions(input.preloadPath));
     windows.set(avatarInstanceId, { window, launchContext: canonicalContext });
     const sender = window.webContents;
     let senderReleased = false;

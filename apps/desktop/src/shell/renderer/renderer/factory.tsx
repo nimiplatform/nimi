@@ -76,12 +76,10 @@ export const desktopCanonicalRendererFactory = Object.freeze({
       ...bindings,
       surfaceLifecycle: Object.freeze({
         ...bindings.surfaceLifecycle,
-        reportReadyCandidate(
-          input: Parameters<DesktopCanonicalRendererBindings['surfaceLifecycle']['reportReadyCandidate']>[0],
-        ) {
+        reportReadyCandidate() {
           if (readyCandidateReported) return;
           readyCandidateReported = true;
-          bindings.surfaceLifecycle.reportReadyCandidate(input);
+          bindings.surfaceLifecycle.reportReadyCandidate();
         },
       }),
     });

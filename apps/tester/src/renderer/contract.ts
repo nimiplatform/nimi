@@ -37,13 +37,10 @@ import type {
   OpenWorldTourWindowResponse,
   ResolvedWorldTourFixture,
   ResolveWorldTourFixtureInput,
-  WorldTourRenderAcceptance,
 } from '../tester/world-tour/world-tour-shared.js';
 
 export interface TesterEcosystemReferenceProjection {
   readonly ecosystemRevision: number;
-  readonly checkpointId: string;
-  readonly label: string;
 }
 
 export interface TesterPersonaReferenceProjection {
@@ -75,7 +72,6 @@ export interface TesterRendererCommandPort {
   openWorldTourWindow(input: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse>;
   claimWorldTourViewerLaunch(input: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture>;
   saveWorldTourViewerPreset(input: { readonly manifestPath: string; readonly presetJson: string }): Promise<{ readonly manifestPath: string; readonly presetPath: string }>;
-  saveWorldTourRenderAcceptance(input: WorldTourRenderAcceptance): Promise<void>;
   localAppSessionStatus(): Promise<{ readonly state: string; readonly sessionBound: boolean }>;
   localAppPermissionStatus(permissionId: PermissionID): Promise<{ readonly posture: string; readonly canRequest: boolean; readonly detail?: string }>;
   localAppPermissionRequest(input: { readonly permissionId: PermissionID; readonly reason: string }): Promise<{ readonly posture: string }>;

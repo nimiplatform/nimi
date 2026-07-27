@@ -9,9 +9,7 @@ function ZhiyuMainSurface(props: { readonly bindings: ZhiyuCanonicalRendererBind
   useLayoutEffect(() => {
     if (readyCandidateReportedRef.current) return;
     readyCandidateReportedRef.current = true;
-    props.bindings.surfaceLifecycle.reportReadyCandidate({
-      contractId: 'zhiyu.main.usable',
-    });
+    props.bindings.surfaceLifecycle.reportReadyCandidate();
   }, [props.bindings]);
   return (
     <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">

@@ -6,6 +6,20 @@ import { test } from 'vitest';
 const kitRoot = process.cwd();
 const repoRoot = path.resolve(kitRoot, '..');
 const kitFeaturesRoot = path.join(kitRoot, 'features');
+const sdkContractPath = path.join(kitRoot, 'core/src/sdk-contract.ts');
+const admittedSdkSpecifiers = new Set([
+  '@nimiplatform/sdk',
+  '@nimiplatform/sdk/ai',
+  '@nimiplatform/sdk/app',
+  '@nimiplatform/sdk/contracts',
+  '@nimiplatform/sdk/features/conversation',
+  '@nimiplatform/sdk/features/generation',
+  '@nimiplatform/sdk/realm',
+  '@nimiplatform/sdk/realm/generated',
+  '@nimiplatform/sdk/runtime',
+  '@nimiplatform/sdk/runtime/generated',
+  '@nimiplatform/sdk/types',
+]);
 
 function read(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -52,26 +66,49 @@ function isAllowedSdkImportSource(filePath: string): boolean {
 }
 
 function importSpecifiers(source: string): string[] {
-  const specifiers: string[] = [];
-  const importPattern = /(?:from\s+|import\s*\(\s*)['"]([^'"]+)['"]/g;
-  let match: RegExpExecArray | null;
-  while ((match = importPattern.exec(source)) !== null) {
-    const specifier = match[1];
-    if (specifier) {
-      specifiers.push(specifier);
-    }
+  return [
+    ...source.matchAll(/(?:from\s+|import\s*\(\s*)['"]([^'"]+)['"]/g),
+    ...source.matchAll(/\bimport\s+['"]([^'"]+)['"]/g),
+    ...source.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g),
+  ].map((match) => match[1]).filter((specifier): specifier is string => Boolean(specifier));
+}
+
+function resolvesToSdkContract(filePath: string, specifier: string): boolean {
+  if (!specifier.startsWith('.')) {
+    return false;
   }
-  return specifiers;
+  const resolved = path.resolve(path.dirname(filePath), specifier);
+  return [
+    resolved,
+    `${resolved}.ts`,
+    `${resolved}.tsx`,
+    path.join(resolved, 'index.ts'),
+    path.join(resolved, 'index.tsx'),
+  ].some((candidate) => path.normalize(candidate) === path.normalize(sdkContractPath));
 }
 
 test('Kit code and tests route static SDK imports through the SDK contract boundary only', () => {
-  const offenders = walkSourceFiles(kitRoot)
-    .filter((filePath) => !isAllowedSdkImportSource(filePath))
-    .filter((filePath) => {
-      const specifiers = importSpecifiers(fs.readFileSync(filePath, 'utf8'));
-      return specifiers.some((specifier) => specifier === '@nimiplatform/sdk' || specifier.startsWith('@nimiplatform/sdk/'));
-    })
-    .map((filePath) => path.relative(repoRoot, filePath));
+  const offenders = walkSourceFiles(kitRoot).flatMap((filePath) => {
+    const relativePath = path.relative(repoRoot, filePath);
+    const specifiers = importSpecifiers(fs.readFileSync(filePath, 'utf8'));
+    return specifiers.flatMap((specifier) => {
+      const isSdkSpecifier = specifier === '@nimiplatform/sdk'
+        || specifier.startsWith('@nimiplatform/sdk/');
+      if (resolvesToSdkContract(filePath, specifier)) {
+        return [`${relativePath}: relative import ${specifier}`];
+      }
+      if (!isSdkSpecifier) {
+        return [];
+      }
+      if (!isAllowedSdkImportSource(filePath)) {
+        return [`${relativePath}: direct import ${specifier}`];
+      }
+      if (!admittedSdkSpecifiers.has(specifier)) {
+        return [`${relativePath}: unadmitted import ${specifier}`];
+      }
+      return [];
+    });
+  });
 
   assert.deepEqual(offenders, [], 'Kit SDK imports must stay centralized in kit/core/src/sdk-contract.ts');
 

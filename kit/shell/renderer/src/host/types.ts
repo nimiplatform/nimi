@@ -19,7 +19,7 @@ export interface NimiRendererLocalizationV1 {
 }
 
 export interface NimiRendererSurfaceLifecycleV1 {
-  reportReadyCandidate(input: { readonly contractId: string }): void;
+  reportReadyCandidate(): void;
 }
 
 export interface NimiRendererThemeSnapshotV1 {

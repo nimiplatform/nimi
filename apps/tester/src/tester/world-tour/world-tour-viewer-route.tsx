@@ -33,7 +33,7 @@ export function WorldTourViewerRoute() {
         <div>
           <p className="eyebrow">Nimi Lab</p>
           <h1>World Tour Viewer</h1>
-          <p className="product-copy">Standalone app-owned viewer surface for local fixture inspection and render acceptance evidence.</p>
+          <p className="product-copy">Standalone app-owned viewer surface for local fixture inspection.</p>
         </div>
       </Surface>
       {error ? (

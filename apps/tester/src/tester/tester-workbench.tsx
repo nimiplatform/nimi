@@ -205,9 +205,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
     (payload) => {
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return;
       const reference = payload as Partial<TesterEcosystemReferenceProjection>;
-      if (!Number.isSafeInteger(reference.ecosystemRevision)
-        || typeof reference.checkpointId !== 'string'
-        || typeof reference.label !== 'string') return;
+      if (!Number.isSafeInteger(reference.ecosystemRevision)) return;
       setEcosystemReference(reference as TesterEcosystemReferenceProjection);
     },
   ), [rendererHost]);

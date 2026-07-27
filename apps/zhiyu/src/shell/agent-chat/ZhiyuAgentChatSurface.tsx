@@ -53,7 +53,6 @@ import {
   CompanionEmotionStatus,
   formatReasonLabel,
 } from '../app/home-surface-sections';
-import { ZHIYU_PRODUCT_STORYBOOK_VERSION } from '../app/zhiyu-product-storybook';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -333,7 +332,6 @@ export function ZhiyuAgentChatSurface({
       data-zhiyu-product-stage={product.stage}
       data-zhiyu-readiness-score={product.readinessScore}
       data-zhiyu-agent-chat-shell="primary"
-      data-zhiyu-storybook-version={ZHIYU_PRODUCT_STORYBOOK_VERSION}
     >
       <div
         className="zhiyu-agent-chat__workspace"
@@ -346,7 +344,6 @@ export function ZhiyuAgentChatSurface({
         data-zhiyu-relationship-rail-state={hasLocalPartners ? 'available' : 'empty'}
       >
         <DesktopPresenceRail
-          evidence={evidence}
           agents={evidence.inventory.localAgents.map((agent) => ({
             itemKey: agent.localAgentRef,
             localAgentRef: agent.localAgentRef,
@@ -472,30 +469,6 @@ export function ZhiyuAgentChatSurface({
             </span>
             <CompanionEmotionStatus companion={evidence.companion} />
           </div>
-          <p
-            data-zhiyu-conversation-state={evidence.conversation.reasonCode}
-            data-zhiyu-conversation-source={evidence.conversation.source}
-            data-zhiyu-conversation-ready={String(evidence.conversation.ready)}
-            className="zhiyu-agent-chat__evidence-line"
-          >
-            {evidence.conversation.message}
-          </p>
-          <p
-            data-zhiyu-route-state={evidence.route.reasonCode}
-            data-zhiyu-route-source={evidence.route.source}
-            data-zhiyu-route-ready={String(evidence.route.ready)}
-            className="zhiyu-agent-chat__evidence-line"
-          >
-            {evidence.route.message}
-          </p>
-          <p
-            data-zhiyu-turn-state={evidence.chat.reasonCode}
-            data-zhiyu-turn-source={evidence.chat.source}
-            data-zhiyu-turn-ready={String(evidence.chat.ready)}
-            className="zhiyu-agent-chat__evidence-line"
-          >
-            {evidence.chat.message}
-          </p>
         </Surface>
 
         {rightPanelMode !== 'closed' ? (

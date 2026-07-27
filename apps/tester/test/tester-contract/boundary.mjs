@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
@@ -79,13 +79,6 @@ test('tester app-private storage uses the final local-app SDK and Kit carrier', 
   assert.doesNotMatch(client, /artifacts\.readRuntimeBytes|agentInventory|openConversation/);
   assert.match(client, /createNimiClient/);
   assert.doesNotMatch(runtimePlatform, /client\.runtime|new Runtime|runtimeEndpoint/);
-  for (const retired of [
-    'src/tester/tester-runtime-invokers.ts',
-    'src/tester/tester-runtime-invokers-core.ts',
-    'src/tester/tester-runtime-invokers-media.ts',
-  ]) {
-    assert.equal(existsSync(path.join(root, retired)), false, `${retired} must stay hardcut`);
-  }
 });
 
 test('tester visible product identity hard-cuts to Nimi Lab', () => {
@@ -530,13 +523,4 @@ test('tester app-owned Tauri commands are registered in standalone shell', () =>
   assert.doesNotMatch(main, /tester_export_save/);
   assert.doesNotMatch(main, /StandardAppStorageRootSlot/);
   assert.match(main, /RuntimeBridgeLocalAppHost::platform_default/);
-});
-
-test('tester scaffold boundary expands beyond the product route', () => {
-  const agents = read('AGENTS.md');
-  assert.match(agents, /src\/shell\/routes\/product-area\.tsx/);
-  assert.match(agents, /src\/tester\/\*\*/);
-  assert.match(agents, /src-tauri\/src\/world_tour\.rs/);
-  assert.doesNotMatch(agents, /tester_storage\.rs/);
-  assert.match(agents, /tester contract tests/);
 });

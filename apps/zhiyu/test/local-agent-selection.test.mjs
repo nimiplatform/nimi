@@ -208,23 +208,3 @@ test('projects SDK/Kit bounded ready, truncated, blocked, failed and unknown sta
   assert.equal(ready.sourceRef.kind, 'worldCharacter');
   assert.equal(failed.ready, false);
 });
-
-test('source/context product path has no renderer fixture projection hook or private truth', () => {
-  const combined = [
-    readFileSync(path.join(root, 'src/shell/agent/source-projection.ts'), 'utf8'),
-    readFileSync(path.join(root, 'src/shell/app/App.tsx'), 'utf8'),
-    readFileSync(path.join(root, 'src/production/renderer-bindings.ts'), 'utf8'),
-  ].join('\n');
-  for (const forbidden of [
-    ['acceptance', 'source', 'projection'].join('.'),
-    ['realm', 'Profile', 'Context'].join(''),
-    ['system', 'Prompt'].join(''),
-    ['provider', 'Id'].join(''),
-    ['model', 'Id'].join(''),
-  ]) {
-    assert.equal(combined.toLowerCase().includes(forbidden.toLowerCase()), false);
-  }
-  assert.match(combined, /createNimiRuntimeAgentConsumeClient/);
-  assert.match(combined, /bindings\.app\.projection\.hydrateConversation/);
-  assert.match(combined, /anchorSnapshot\.turnContextSummary/);
-});

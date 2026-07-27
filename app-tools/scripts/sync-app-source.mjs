@@ -96,7 +96,7 @@ function isAppOwnedProductCode(relativePath) {
   if (relativePath === 'src-tauri/src/world_tour.rs') {
     return true;
   }
-  if (relativePath.startsWith('test/') && relativePath !== 'test/scaffold-boundary.test.mjs') {
+  if (relativePath.startsWith('test/')) {
     return true;
   }
   return false;

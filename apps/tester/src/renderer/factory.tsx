@@ -10,9 +10,7 @@ function TesterMainSurface(props: { readonly bindings: TesterCanonicalRendererBi
   useLayoutEffect(() => {
     if (readyCandidateReportedRef.current) return;
     readyCandidateReportedRef.current = true;
-    props.bindings.surfaceLifecycle.reportReadyCandidate({
-      contractId: 'tester.main.usable',
-    });
+    props.bindings.surfaceLifecycle.reportReadyCandidate();
   }, [props.bindings]);
   return (
     <TesterRendererProvider bindings={props.bindings}>

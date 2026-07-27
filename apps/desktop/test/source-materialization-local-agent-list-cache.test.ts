@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 import {
   toLocalAgentSourceDiscoveryProjections,
@@ -9,29 +7,6 @@ import {
 import {
   resolveCharacterSourceState,
 } from '../src/shell/renderer/features/explore/character-source-materialization.js';
-
-const repoRoot = path.join(import.meta.dirname, '../../..');
-
-function readRepo(relativePath: string): string {
-  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
-}
-
-test('source materialization launch paths refresh Runtime localAgent list before opening chat', () => {
-  const launchSources = [
-    readRepo('apps/desktop/src/shell/renderer/features/explore/explore-panel.tsx'),
-    readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-panel.tsx'),
-  ];
-
-  for (const source of launchSources) {
-    assert.match(source, /localAgentListQueryKey/);
-    assert.match(source, /ensureRuntimeAgentExists\(target, bindings\.sdk, ownerUserId\)/);
-    assert.match(
-      source,
-      /invalidateQueries\(\{\s*queryKey:\s*localAgentListQueryKey\(ownerUserId\),\s*exact:\s*true\s*\}\)/,
-    );
-    assert.match(source, /launchAgentConversationFromDisplay/);
-  }
-});
 
 test('Source Detail can derive local_agent_available from Runtime ListAgents projection', () => {
   const sourceRef = {

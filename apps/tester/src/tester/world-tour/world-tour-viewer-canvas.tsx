@@ -17,17 +17,6 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
     setMessage(`Preset saved: ${response.presetPath}`);
   }
 
-  async function acceptRender(status: 'passed' | 'failed') {
-    await rendererHost.app.commands.saveWorldTourRenderAcceptance({
-      manifestPath: fixture.manifestPath,
-      renderer: 'spark-2.0',
-      status,
-      acceptedAt: new Date(rendererHost.clock.now()).toISOString(),
-      note: 'Manual standalone viewer acceptance.',
-    });
-    setMessage(`Render acceptance recorded: ${status}`);
-  }
-
   return (
     <Surface className="world-tour-canvas" material="glass-regular" tone="hero" elevation="floating">
       <div className="world-tour-canvas__mesh" aria-hidden="true" />
@@ -37,8 +26,6 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
         <pre className="tester-json">{JSON.stringify(fixture, null, 2)}</pre>
         <div className="tester-actions">
           <Button type="button" tone="secondary" onClick={savePreset}>Save preset</Button>
-          <Button type="button" tone="primary" onClick={() => void acceptRender('passed')}>Mark passed</Button>
-          <Button type="button" tone="secondary" onClick={() => void acceptRender('failed')}>Mark failed</Button>
         </div>
         {message ? <p className="m-0 leading-normal text-[var(--nimi-text-secondary)]">{message}</p> : null}
       </div>

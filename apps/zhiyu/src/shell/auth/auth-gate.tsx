@@ -12,10 +12,8 @@ import {
 import { loadRuntimeAccountUser } from './runtime-account-auth';
 import { RuntimeLoginPage } from './runtime-login-page';
 import { RuntimeUnavailablePage } from './runtime-unavailable-page';
-import { createInitialZhiyuEvidence } from '../app/evidence';
 
 const runtimeGateOfflineCoordinator = new OfflineCoordinator();
-const WEB_AGENT_CENTER_ACCEPTANCE_QUERY = 'nimiWebAgentCenterAcceptance';
 
 type RuntimePlatformLoginProjection = RuntimePlatformLoginRequiredProjection | RuntimePlatformReadyProjection;
 
@@ -96,39 +94,6 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
     };
   }, [reloadKey]);
 
-  useEffect(() => {
-    if (state.kind !== 'blocked') {
-      return;
-    }
-    const reasonCode = state.projection?.reasonCode ?? 'runtime-unavailable';
-    const actionHint = state.projection?.actionHint ?? 'start_external_runtime_daemon';
-    const message = state.message || state.projection?.message || 'Runtime session projection is not ready.';
-    window.__nimiZhiyuEvidence = {
-      ...createInitialZhiyuEvidence(),
-      runtime: {
-        transport: 'electron-ipc',
-        ready: false,
-        reasonCode,
-        actionHint,
-        source: 'runtime',
-        message,
-      },
-      auth: {
-        transport: 'electron-ipc',
-        ready: false,
-        state: 'runtime-unavailable',
-        reasonCode,
-        accountReasonCode: 'RUNTIME_UNAVAILABLE',
-        actionHint,
-        source: 'runtime',
-        message,
-        accountId: null,
-        displayName: null,
-        productionInert: false,
-      },
-    };
-  }, [state]);
-
   if (state.kind === 'checking') {
     return (
       <main className="runtime-check-screen">
@@ -142,9 +107,6 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
   }
 
   if (state.kind === 'blocked') {
-    if (shouldExposeWebAgentCenterAcceptanceShell()) {
-      return <>{children}</>;
-    }
     return (
       <RuntimeUnavailablePage
         projection={state.projection}
@@ -156,11 +118,4 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
   }
 
   return <>{children}</>;
-}
-
-function shouldExposeWebAgentCenterAcceptanceShell(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  return new URL(window.location.href).searchParams.get(WEB_AGENT_CENTER_ACCEPTANCE_QUERY) === '1';
 }

@@ -48,7 +48,6 @@ import {
   claimWorldTourViewerLaunch,
   openWorldTourWindow,
   resolveWorldTourFixture,
-  saveWorldTourRenderAcceptance,
   saveWorldTourViewerPreset,
 } from '../tester/world-tour/world-tour-shared.js';
 import type {
@@ -223,7 +222,6 @@ export function createTesterProductionBindings(
         openWorldTourWindow,
         claimWorldTourViewerLaunch,
         saveWorldTourViewerPreset,
-        saveWorldTourRenderAcceptance,
         async localAppSessionStatus() {
           const status = await testerLocalAppClient.auth.status();
           return { state: status.state, sessionBound: status.sessionBound };

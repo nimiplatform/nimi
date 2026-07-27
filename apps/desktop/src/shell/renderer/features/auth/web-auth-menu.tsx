@@ -23,9 +23,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const [authFeedback, setAuthFeedback] = useState<InlineFeedbackState | null>(null);
   const reportActionableReadiness = useCallback(() => {
-    bindings.surfaceLifecycle.reportReadyCandidate({
-      contractId: 'desktop.main.usable',
-    });
+    bindings.surfaceLifecycle.reportReadyCandidate();
   }, [bindings]);
   const normalizedAuthUser = toNimiRealmAuthUserRecord(authUser);
   const handleStatusBanner = (banner: { kind: string; message: string } | null) => {

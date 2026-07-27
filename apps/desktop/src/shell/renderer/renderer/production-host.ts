@@ -49,9 +49,7 @@ export function createDesktopProductionRendererHost(input: {
       acquire: async () => ({ ok: false, error: { disposition: 'unsupported' } }),
     },
     surfaceLifecycle: {
-      reportReadyCandidate({ contractId }) {
-        input.renderer.setAttribute('data-nimi-ready-contract', contractId);
-      },
+      reportReadyCandidate() {},
     },
   });
   let disposed = false;

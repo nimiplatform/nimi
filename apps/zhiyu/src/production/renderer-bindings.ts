@@ -189,16 +189,6 @@ export function createZhiyuProductionBindings(
         launchAvatar: ({ evidence, action }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action }),
       }),
       events: Object.freeze({
-        publishEvidence(evidence: ZhiyuEvidence) {
-          window.__nimiZhiyuEvidence = evidence;
-        },
-        bindAbortActiveTurn(handler: (reason?: string) => void) {
-          window.__nimiZhiyuAbortActiveTurn = handler;
-          return () => {
-            window.__nimiZhiyuAbortActiveTurn?.('zhiyu_app_unmount');
-            delete window.__nimiZhiyuAbortActiveTurn;
-          };
-        },
         subscribeExecutionRoute({ routeInput, onRoute }: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeExecutionRoute']>[0]) {
           const subjectUserId = routeInput.subjectUserId;
           if (!subjectUserId || !routeInput.ownerUserId || !routeInput.runtimeSourceRef || !routeInput.localAgentRef) {

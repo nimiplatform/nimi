@@ -291,7 +291,7 @@ describe('nimi.renderer.host/v1', () => {
       .rejects.toMatchObject({ envelope: { code: 'host-internal-error' } });
     await expect(binding.facade.overlays.acquire(modalOptions()))
       .resolves.toEqual({ ok: false, error: { disposition: 'internal' } });
-    expect(() => binding.facade.surfaceLifecycle.reportReadyCandidate({ contractId: 'main-ready' }))
+    expect(() => binding.facade.surfaceLifecycle.reportReadyCandidate())
       .toThrow(NimiStandardShellCapabilityError);
   });
 

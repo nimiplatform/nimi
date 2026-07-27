@@ -622,55 +622,6 @@ export function StatusRow({ card }: { readonly card: ZhiyuHomeStatusCard }) {
   );
 }
 
-export function HiddenEvidenceStatus({ evidence }: { readonly evidence: ZhiyuEvidence }) {
-  return (
-    <div className="zhiyu-home__evidence" aria-hidden="true">
-      <p
-        data-zhiyu-runtime-state={evidence.runtime.reasonCode}
-        data-zhiyu-runtime-source={evidence.runtime.source}
-      />
-      <p
-        data-zhiyu-auth-state={evidence.auth.reasonCode}
-        data-zhiyu-auth-source={evidence.auth.source}
-        data-zhiyu-auth-ready={String(evidence.auth.ready)}
-      />
-      <p
-        data-zhiyu-source-state={evidence.source.reasonCode}
-        data-zhiyu-source-source={evidence.source.source}
-        data-zhiyu-source-ready={String(evidence.source.ready)}
-        data-zhiyu-source-context-projection={evidence.source.projectionState}
-        data-zhiyu-source-kind={evidence.source.sourceRef?.kind ?? 'not_projected'}
-        data-zhiyu-source-snapshot-correlated={String(Boolean(
-          evidence.source.sourceContextStatus?.localAgentRef
-          && evidence.source.sourceContextStatus.localAgentRef === evidence.localAgent.localAgentRef
-        ))}
-        data-zhiyu-turn-anchor-correlated={String(Boolean(
-          evidence.source.turnContextSummary?.conversationAnchorId
-          && evidence.source.turnContextSummary.conversationAnchorId === evidence.conversation.conversationAnchorId
-        ))}
-      />
-      <p
-        data-zhiyu-agent-inventory-state={evidence.inventory.reasonCode}
-        data-zhiyu-agent-inventory-source={evidence.inventory.source}
-        data-zhiyu-agent-inventory-ready={String(evidence.inventory.ready)}
-        data-zhiyu-agent-inventory-count={String(evidence.inventory.count)}
-      />
-      <p
-        data-zhiyu-local-agent-state={evidence.localAgent.reasonCode}
-        data-zhiyu-local-agent-source={evidence.localAgent.source}
-        data-zhiyu-local-agent-ready={String(evidence.localAgent.ready)}
-      />
-      <p
-        data-zhiyu-companion-current-emotion-id={evidence.companion.currentEmotionId ?? 'not_projected'}
-        data-zhiyu-companion-current-emotion-cue={evidence.companion.currentEmotionCue ?? 'not_projected'}
-        data-zhiyu-companion-current-emotion-intensity={evidence.companion.currentEmotionIntensity ?? 'not_projected'}
-        data-zhiyu-companion-emotion-violation={evidence.companion.emotionViolation ? 'true' : 'false'}
-        data-zhiyu-companion-emotion-violation-reason={evidence.companion.emotionViolation?.reasonCode ?? 'none'}
-      />
-    </div>
-  );
-}
-
 function iconByStatusKey(key: string) {
   switch (key) {
     case 'runtime':

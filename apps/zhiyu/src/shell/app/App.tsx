@@ -43,18 +43,9 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   useEffect(() => {
     const routeInput = zhiyuAgentAIConfigRouteInputFromEvidence(renderEvidence);
     agentAIConfigRouteInputRef.current = routeInput;
-    bindings.app.events.publishEvidence(renderEvidence);
+    bindings.app.events.onProjectionChanged?.(renderEvidence);
     latestConversationIdentityRef.current = zhiyuRuntimeChatApplyIdentity(renderEvidence.conversation);
   }, [bindings, renderEvidence]);
-
-  useEffect(() => {
-    return bindings.app.events.bindAbortActiveTurn((reason?: string) => {
-      const active = activeChatAbortRef.current;
-      if (active && !active.signal.aborted) {
-        active.abort(reason || 'zhiyu_chat_turn_interrupted');
-      }
-    });
-  }, [bindings]);
 
   useEffect(() => {
     let active = true;
