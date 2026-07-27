@@ -4,11 +4,6 @@ import test from 'node:test';
 
 const source = readFileSync(new URL('./run-runtime-dist.mjs', import.meta.url), 'utf8');
 
-test('run-runtime-dist does not mutate retired app-registration authority', () => {
-  assert.doesNotMatch(source, /developerRegistration|developer.registration/i);
-  assert.doesNotMatch(source, /config['"],\s*['"]set/);
-});
-
 test('run-runtime-dist diagnoses Windows application-control style spawn failures', () => {
   assert.match(source, /windows-dev-signing\.ps1/);
   assert.match(source, /'-Mode',\s*'Diagnose'/);

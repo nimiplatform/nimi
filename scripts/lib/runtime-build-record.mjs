@@ -126,7 +126,7 @@ export function assertRuntimeBuildSourceUnchanged(expected, repoRoot, { pathspec
   return actual;
 }
 
-export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCertificateSha256, buildProfile = 'production_build', generatedAt = new Date().toISOString() }) {
+export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCertificateSha256, generatedAt = new Date().toISOString() }) {
   if (!GIT_HEAD_PATTERN.test(source?.headCommit || '')
       || !SHA256_PATTERN.test(source?.dirtyDescriptorSha256 || '')
       || !SHA256_PATTERN.test(source?.sourceTreeSha256 || '')
@@ -134,18 +134,7 @@ export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCe
       || !SHA256_PATTERN.test(signerCertificateSha256 || '')) {
     throw new Error('Runtime build record inputs are invalid');
   }
-  if (!['dev_kernel_checkpoint', 'first_party_product_acceptance', 'production_build'].includes(buildProfile)) {
-    throw new Error(`Runtime build profile is invalid: ${buildProfile}`);
-  }
-  const checkpoint = buildProfile;
-  const isNonRelease = checkpoint !== 'production_build';
-  const candidatePrefix = checkpoint === 'dev_kernel_checkpoint'
-    ? 'dev-kernel-runtime'
-    : checkpoint === 'first_party_product_acceptance'
-      ? 'product-acceptance-runtime'
-      : 'runtime';
   const identity = {
-    checkpoint,
     sourceDirtyDescriptorSha256: source.dirtyDescriptorSha256,
     sourceTreeSha256: source.sourceTreeSha256,
     runtimeBinarySha256,
@@ -154,10 +143,8 @@ export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCe
   return {
     schemaVersion: 1,
     artifactKind: 'nimi.windows-runtime-service-binary',
-    checkpoint,
-    nonRelease: isNonRelease,
     generatedAt,
-    candidateId: `${candidatePrefix}-${sha256(canonicalJson(identity)).slice(0, 32)}`,
+    candidateId: `runtime-${sha256(canonicalJson(identity)).slice(0, 32)}`,
     source,
     runtime: {
       binarySha256: runtimeBinarySha256,
@@ -166,7 +153,7 @@ export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCe
   };
 }
 
-export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256, signerCertificateSha256, requireDevKernel = false, requireProductAcceptance = false } = {}) {
+export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256, signerCertificateSha256 } = {}) {
   const exact = (value, keys, location) => {
     const actual = value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value).sort() : [];
     const expected = [...keys].sort();
@@ -174,14 +161,12 @@ export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256
       throw new Error(`${location} has unexpected fields`);
     }
   };
-  exact(record, ['schemaVersion', 'artifactKind', 'checkpoint', 'nonRelease', 'generatedAt', 'candidateId', 'source', 'runtime'], 'Runtime build record');
+  exact(record, ['schemaVersion', 'artifactKind', 'generatedAt', 'candidateId', 'source', 'runtime'], 'Runtime build record');
   exact(record.source, ['repositoryId', 'headCommit', 'branch', 'dirty', 'trackedDiffSha256', 'untrackedFiles', 'sourceTreeSha256', 'dirtyDescriptorSha256'], 'Runtime build source');
   exact(record.runtime, ['binarySha256', 'signerCertificateSha256'], 'Runtime build artifact');
   if (record.schemaVersion !== 1
       || record.artifactKind !== 'nimi.windows-runtime-service-binary'
-      || !['dev_kernel_checkpoint', 'first_party_product_acceptance', 'production_build'].includes(record.checkpoint)
-      || typeof record.nonRelease !== 'boolean'
-      || !/^(?:dev-kernel-runtime|product-acceptance-runtime|runtime)-[0-9a-f]{32}$/u.test(record.candidateId || '')
+      || !/^runtime-[0-9a-f]{32}$/u.test(record.candidateId || '')
       || !Number.isFinite(Date.parse(record.generatedAt || ''))
       || record.source.repositoryId !== 'nimi'
       || !GIT_HEAD_PATTERN.test(record.source.headCommit || '')
@@ -193,13 +178,6 @@ export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256
       || !SHA256_PATTERN.test(record.runtime.binarySha256 || '')
       || !SHA256_PATTERN.test(record.runtime.signerCertificateSha256 || '')) {
     throw new Error('Runtime build record is invalid');
-  }
-  const expectedNonRelease = record.checkpoint !== 'production_build';
-  if (expectedNonRelease !== record.nonRelease
-      || (requireDevKernel && (!record.nonRelease || record.checkpoint !== 'dev_kernel_checkpoint'))
-      || (requireProductAcceptance && (!record.nonRelease || record.checkpoint !== 'first_party_product_acceptance'))
-      || (requireDevKernel && requireProductAcceptance)) {
-    throw new Error('Runtime build record checkpoint posture is invalid');
   }
   for (const [index, entry] of record.source.untrackedFiles.entries()) {
     exact(entry, ['path', 'sha256'], `Runtime build source untrackedFiles[${index}]`);
@@ -220,18 +198,12 @@ export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256
     throw new Error('Runtime build source dirty descriptor does not recompute');
   }
   const identity = {
-    checkpoint: record.checkpoint,
     sourceDirtyDescriptorSha256: record.source.dirtyDescriptorSha256,
     sourceTreeSha256: record.source.sourceTreeSha256,
     runtimeBinarySha256: record.runtime.binarySha256,
     signerCertificateSha256: record.runtime.signerCertificateSha256,
   };
-  const candidatePrefix = record.checkpoint === 'dev_kernel_checkpoint'
-    ? 'dev-kernel-runtime'
-    : record.checkpoint === 'first_party_product_acceptance'
-      ? 'product-acceptance-runtime'
-      : 'runtime';
-  if (record.candidateId !== `${candidatePrefix}-${sha256(canonicalJson(identity)).slice(0, 32)}`) {
+  if (record.candidateId !== `runtime-${sha256(canonicalJson(identity)).slice(0, 32)}`) {
     throw new Error('Runtime build candidate id does not recompute');
   }
   if (source && canonicalJson(record.source) !== canonicalJson(source)) throw new Error('Runtime build record source does not match the current repository');

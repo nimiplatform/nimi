@@ -54,7 +54,7 @@ function utcCalendarDay(date) {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 }
 
-export function isSelectionReviewExpired(reviewedDate, freshnessSLADays, now) {
+function isSelectionReviewExpired(reviewedDate, freshnessSLADays, now) {
   const expiry = addDays(reviewedDate, freshnessSLADays);
   return utcCalendarDay(expiry) < utcCalendarDay(now);
 }

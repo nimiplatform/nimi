@@ -23,7 +23,5 @@ overrides:
   undici: 7.28.0
   ws: 8.21.0
 allowBuilds:
-  edgedriver: true
   esbuild: true
-  geckodriver: true
   protobufjs: true

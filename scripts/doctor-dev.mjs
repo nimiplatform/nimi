@@ -182,10 +182,8 @@ export function validateFixedRuntimeService(status) {
     && status?.localAppPipePresent === true
     && status?.runtimeBinaryMatchesCandidate === true
     && status?.runtimeBuildRecordMatchesCandidate === true
-    && status?.checkpointCandidatePostureVerified === true
     && status?.signatureStatus === 'Valid'
-    && typeof status?.runtimeCandidateId === 'string'
-    && status.runtimeCandidateId.length > 0;
+    && /^runtime-[0-9a-f]{32}$/u.test(status?.runtimeCandidateId ?? '');
   return healthy
     ? { state: 'ok', reason: 'fixed-runtime-service-healthy', candidateId: status.runtimeCandidateId }
     : { state: 'error', reason: 'fixed-runtime-service-unhealthy' };
@@ -361,8 +359,22 @@ async function readAuthoritySummaryDescriptor() {
 
 async function queryFixedRuntimeService() {
   if (process.platform !== 'win32') return { status: 'unsupported' };
-  const pnpmBin = 'pnpm.cmd';
-  const result = await collectCommandResult(pnpmBin, ['--silent', 'status:dev-kernel-service-candidate'], {
+  const installerPath = path.join(
+    repoRoot,
+    'dist',
+    'windows-runtime-service-installer',
+    'install-nimi-runtime.ps1',
+  );
+  const result = await collectCommandResult('powershell.exe', [
+    '-NoProfile',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-File',
+    installerPath,
+    '-Mode',
+    'Status',
+    '-Json',
+  ], {
     cwd: repoRoot,
     env: process.env,
     encoding: 'utf8',

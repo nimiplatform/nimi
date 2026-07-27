@@ -11,9 +11,8 @@ const repoRoot = path.resolve(__dirname, '..');
 const defaultDescriptorPath = path.join(repoRoot, 'config/platform-nimi-app-release-descriptors.yaml');
 
 const externalClass = 'external-immutable-artifact';
-const sandboxSourceKind = 'admission-sandbox-https-artifact';
 const ordinaryTrack = 'ordinary-release-proof';
-const sandboxTrack = 'admission-sandbox-ci';
+const externalSourceKinds = new Set(['github-release', 'github-commit', 'npm-package']);
 
 export function validateCatalogDocument(doc) {
   const failures = [];
@@ -82,6 +81,9 @@ function validateExternalDescriptor(descriptor, id, failures) {
 
   const track = stringValue(descriptor?.admission_track);
   const sourceKind = stringValue(descriptor?.source?.kind);
+  if (!externalSourceKinds.has(sourceKind)) {
+    failures.push(`${id}: source.kind is not admitted`);
+  }
   if (!exactSemanticVersion(stringValue(descriptor?.version))) {
     failures.push(`${id}: version must be exact semantic version`);
   }
@@ -122,19 +124,12 @@ function validateExternalDescriptor(descriptor, id, failures) {
   validateStoragePolicy(descriptor, id, failures);
 
   if (track === ordinaryTrack) {
-    if (sourceKind === sandboxSourceKind) {
-      failures.push(`${id}: ordinary-release-proof cannot use ${sandboxSourceKind}`);
-    }
     const signing = descriptor?.platform_signing_assurance || {};
     for (const field of ['macos_notarization', 'windows_code_signing', 'installer_signature']) {
       const value = stringValue(signing[field]);
       if (value === 'not-applicable' || value === 'not-required-internal') {
         failures.push(`${id}: ordinary-release-proof requires platform signing for ${field}`);
       }
-    }
-  } else if (track === sandboxTrack) {
-    if (sourceKind !== sandboxSourceKind) {
-      failures.push(`${id}: admission-sandbox-ci cannot use ${sourceKind || '<missing>'}`);
     }
   } else if (track) {
     failures.push(`${id}: admission_track is not admitted`);
@@ -204,141 +199,6 @@ function exactSemanticVersion(version) {
 function rfc3339Timestamp(value) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value)) return false;
   return !Number.isNaN(Date.parse(value));
-}
-
-const generatedEvidenceTruthFields = [
-  'publicAdmissionTruth',
-  'releaseDescriptorTruth',
-  'ordinaryVisibilityTruth',
-  'permissionGrantTruth',
-  'signingTruth',
-  'notarizationTruth',
-  'mirrorLicenseClearanceTruth',
-];
-
-const dryRunTruthFields = [
-  'registryAdmissionTruth',
-  'releaseDescriptorTruth',
-  'ordinaryVisibilityTruth',
-  'permissionGrantTruth',
-  'signingTruth',
-  'notarizationTruth',
-  'mirrorLicenseClearanceTruth',
-  'supportApprovalTruth',
-  'reviewDecisionTruth',
-];
-
-const missingOrdinaryReleaseProofFields = Object.freeze([
-  'admitted ordinary-visible registry row',
-  'admitted release descriptor row',
-  'immutable public source ref',
-  'publisher identity assurance evidence',
-  'platform signing and notarization evidence',
-  'Nimi mirror/license clearance evidence',
-  'support escalation and recovery evidence',
-  'platform review decision evidence',
-]);
-
-function validateGeneratedArtifactEvidenceForDryRun(evidence) {
-  const failures = [];
-  if (stringValue(evidence?.evidenceRole) !== 'developer-submitted-input') {
-    failures.push('generated artifact evidence must have evidenceRole developer-submitted-input');
-  }
-  if (evidence?.productReadinessClaimAllowed !== false) {
-    failures.push('generated artifact evidence must keep productReadinessClaimAllowed=false');
-  }
-  for (const field of generatedEvidenceTruthFields) {
-    if (evidence?.[field] !== 'not-generated') {
-      failures.push(`generated artifact evidence must keep ${field}=not-generated`);
-    }
-  }
-  if (!stringValue(evidence?.entryRef)) {
-    failures.push('generated artifact evidence missing entryRef');
-  }
-  if (!stringValue(evidence?.manifestPath)) {
-    failures.push('generated artifact evidence missing manifestPath');
-  }
-  if (!stringValue(evidence?.admissionRequestPath)) {
-    failures.push('generated artifact evidence missing admissionRequestPath');
-  }
-  if (!stringValue(evidence?.buildProfileRef)) {
-    failures.push('generated artifact evidence missing buildProfileRef');
-  }
-  if (!/^[a-f0-9]{64}$/i.test(stringValue(evidence?.artifact?.sha256))) {
-    failures.push('generated artifact evidence artifact.sha256 must be sha256 hex');
-  }
-  if (!Number.isFinite(Number(evidence?.artifact?.sizeBytes)) || Number(evidence?.artifact?.sizeBytes) <= 0) {
-    failures.push('generated artifact evidence artifact.sizeBytes must be positive');
-  }
-  return failures;
-}
-
-export function createGeneratedDescriptorDryRunReport(evidence) {
-  const evidenceFailures = validateGeneratedArtifactEvidenceForDryRun(evidence);
-  if (evidenceFailures.length > 0) {
-    throw new Error(evidenceFailures.join('; '));
-  }
-  return {
-    dryRunVersion: 1,
-    dryRunRole: 'descriptor-review-input',
-    admissionTrack: sandboxTrack,
-    ordinaryCatalogDiscovery: false,
-    productReadinessClaimAllowed: false,
-    registryAdmissionTruth: 'not-generated',
-    releaseDescriptorTruth: 'not-generated',
-    ordinaryVisibilityTruth: 'not-generated',
-    permissionGrantTruth: 'not-generated',
-    signingTruth: 'not-generated',
-    notarizationTruth: 'not-generated',
-    mirrorLicenseClearanceTruth: 'not-generated',
-    supportApprovalTruth: 'not-generated',
-    reviewDecisionTruth: 'not-generated',
-    sourceEvidence: {
-      evidenceRole: evidence.evidenceRole,
-      generatedBy: evidence.generatedBy,
-      manifestPath: evidence.manifestPath,
-      admissionRequestPath: evidence.admissionRequestPath,
-      buildProfileRef: evidence.buildProfileRef,
-    },
-    artifact: {
-      entryRef: evidence.entryRef,
-      path: evidence?.artifact?.path,
-      sha256: stringValue(evidence?.artifact?.sha256).toLowerCase(),
-      sizeBytes: Number(evidence?.artifact?.sizeBytes),
-    },
-    missingOrdinaryReleaseProofFields: [...missingOrdinaryReleaseProofFields],
-  };
-}
-
-export function validateGeneratedDescriptorDryRunReport(report) {
-  const failures = [];
-  if (stringValue(report?.dryRunRole) !== 'descriptor-review-input') {
-    failures.push('dryRunRole must be descriptor-review-input');
-  }
-  if (stringValue(report?.admissionTrack) !== sandboxTrack) {
-    failures.push(`admissionTrack must be ${sandboxTrack}`);
-  }
-  if (report?.ordinaryCatalogDiscovery !== false) {
-    failures.push('ordinaryCatalogDiscovery must be false');
-  }
-  if (report?.productReadinessClaimAllowed !== false) {
-    failures.push('productReadinessClaimAllowed must be false');
-  }
-  for (const field of dryRunTruthFields) {
-    if (report?.[field] !== 'not-generated') {
-      failures.push(`${field} must be not-generated`);
-    }
-  }
-  if (!/^[a-f0-9]{64}$/.test(stringValue(report?.artifact?.sha256))) {
-    failures.push('artifact.sha256 must be sha256 hex');
-  }
-  if (!Number.isFinite(Number(report?.artifact?.sizeBytes)) || Number(report?.artifact?.sizeBytes) <= 0) {
-    failures.push('artifact.sizeBytes must be positive');
-  }
-  if (!Array.isArray(report?.missingOrdinaryReleaseProofFields) || report.missingOrdinaryReleaseProofFields.length === 0) {
-    failures.push('missingOrdinaryReleaseProofFields must list ordinary-release-proof gaps');
-  }
-  return failures;
 }
 
 function main() {

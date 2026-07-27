@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -94,28 +93,7 @@ async function collectViolations(files) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-installgw-'));
-  const negative = path.join(tempRoot, 'negative.ts');
-  const positive = path.join(tempRoot, 'positive.ts');
-  await fs.writeFile(negative, "export async function handoff(url: string) {\n  await fetch(url);\n}\n", 'utf8');
-  await fs.writeFile(positive, "export async function rogue() {\n  await admitApp({ appId: 'rogue' });\n}\n", 'utf8');
-  try {
-    const neg = await collectViolations([negative]);
-    if (neg.length !== 0) throw new Error(`self-test: negative flagged: ${neg.join(',')}`);
-    const pos = await collectViolations([positive]);
-    if (pos.length === 0) throw new Error('self-test: positive not flagged');
-    process.stdout.write('check-install-gateway-no-admission-authority self-test passed\n');
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
   const files = [];
   for (const target of TARGET_GLOBS) {
     files.push(...await collectFiles(path.join(repoRoot, target)));

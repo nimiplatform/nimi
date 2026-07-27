@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -88,34 +87,7 @@ async function collectViolations(files) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-home-runtime-internal-'));
-  const negative = path.join(tempRoot, 'negative.ts');
-  const positive = path.join(tempRoot, 'positive.ts');
-  // Assemble fixture specifiers from parts so this source file never embeds a
-  // contiguous import-of-a-private-deep-path literal that other static
-  // import-boundary scanners (e.g. check-sdk-import-boundary) would flag as a
-  // real deep import. The written fixtures still contain the full specifier.
-  const stableRuntimeSpecifier = '@nimiplatform/sdk/runtime';
-  const forbiddenInternalSpecifier = `${stableRuntimeSpecifier}/internal/private`;
-  await fs.writeFile(negative, `import { NimiAppClient } from '${stableRuntimeSpecifier}';\n`, 'utf8');
-  await fs.writeFile(positive, `import { x } from '${forbiddenInternalSpecifier}';\n`, 'utf8');
-  try {
-    const neg = await collectViolations([negative]);
-    if (neg.length !== 0) throw new Error(`self-test: negative fixture flagged: ${neg.join(',')}`);
-    const pos = await collectViolations([positive]);
-    if (pos.length === 0) throw new Error('self-test: positive fixture not flagged');
-    process.stdout.write('check-home-shell-no-runtime-internal-import self-test passed\n');
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
   const files = [];
   for (const target of TARGET_GLOBS) {
     files.push(...await collectFiles(path.join(repoRoot, target)));

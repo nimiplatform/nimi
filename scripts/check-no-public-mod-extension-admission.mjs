@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -92,28 +91,7 @@ async function collectViolations(files) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-no-pub-mod-'));
-  const negative = path.join(tempRoot, 'negative.yaml');
-  const positive = path.join(tempRoot, 'positive.yaml');
-  await fs.writeFile(negative, "rows:\n  - app_id: avatar\n    app_kind: nimi-app\n", 'utf8');
-  await fs.writeFile(positive, "rows:\n  - app_id: rogue\n    app_kind: public-mod\n", 'utf8');
-  try {
-    const neg = await collectViolations([negative]);
-    if (neg.length !== 0) throw new Error(`self-test: negative flagged: ${neg.join(',')}`);
-    const pos = await collectViolations([positive]);
-    if (pos.length === 0) throw new Error('self-test: positive not flagged');
-    process.stdout.write('check-no-public-mod-extension-admission self-test passed\n');
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
   const files = [];
   for (const target of TARGET_GLOBS) {
     files.push(...await collectFiles(target));

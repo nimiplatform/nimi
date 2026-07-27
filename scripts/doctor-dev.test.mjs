@@ -121,7 +121,7 @@ test('fixed service validation fails closed on any missing protected-service inv
     status: 'present', state: 'running', serviceAccountMatches: true, binaryPathMatches: true,
     serviceSidMatches: true, restrictedSid: true, desktopPipePresent: true, localAppPipePresent: true,
     runtimeBinaryMatchesCandidate: true, runtimeBuildRecordMatchesCandidate: true,
-    checkpointCandidatePostureVerified: true, signatureStatus: 'Valid', runtimeCandidateId: 'candidate-a',
+    signatureStatus: 'Valid', runtimeCandidateId: 'runtime-0123456789abcdef0123456789abcdef',
   };
   assert.equal(validateFixedRuntimeService(status).state, 'ok');
   assert.equal(validateFixedRuntimeService({ ...status, localAppPipePresent: false }).state, 'error');

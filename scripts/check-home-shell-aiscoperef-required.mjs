@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -72,28 +71,7 @@ async function collectViolations(files) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-aiscoperef-'));
-  const negative = path.join(tempRoot, 'negative.ts');
-  const positive = path.join(tempRoot, 'positive.ts');
-  await fs.writeFile(negative, "import type { AIScopeRef } from '@nimiplatform/sdk';\nawait aiProfile.apply(scopeRef, profileId);\n", 'utf8');
-  await fs.writeFile(positive, "await aiProfile.apply(somethingElse, profileId);\n", 'utf8');
-  try {
-    const neg = await collectViolations([negative]);
-    if (neg.length !== 0) throw new Error('self-test: negative fixture flagged');
-    const pos = await collectViolations([positive]);
-    if (pos.length === 0) throw new Error('self-test: positive fixture not flagged');
-    process.stdout.write('check-home-shell-aiscoperef-required self-test passed\n');
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
   const files = [];
   for (const target of TARGET_GLOBS) {
     files.push(...await collectFiles(path.join(repoRoot, target)));

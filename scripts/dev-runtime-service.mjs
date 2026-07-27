@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import {
-  accessSync,
-  constants as fsConstants,
-  lstatSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -17,7 +14,6 @@ import {
   parsePowerShellJsonResult,
   resolveWindowsPowerShell7,
 } from './lib/windows-powershell.mjs';
-import { resolveProductControlDataRoot } from './lib/product-control-data-root.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -26,9 +22,9 @@ const installerPath = path.join(repoRoot, 'dist', 'windows-runtime-service-insta
 export function assertRuntimeServiceInstalled(status) {
   if (status?.status !== 'present') {
     throw workflowError(
-      'NimiRuntime fixed service is not installed; dev:runtime will not perform a silent full installation.',
+      'NimiRuntime fixed service is not installed; dev:runtime will not perform a silent first installation.',
       'dev-runtime-service-not-installed',
-      'run_pnpm_install_dev_kernel_service_candidate_from_an_elevated_terminal',
+      'run_the_windows_runtime_service_installer_from_an_elevated_terminal',
     );
   }
 }
@@ -44,8 +40,8 @@ export function assertRuntimeServiceHealthy(status) {
     && status?.localAppPipePresent === true
     && status?.runtimeBinaryMatchesCandidate === true
     && status?.runtimeBuildRecordMatchesCandidate === true
-    && status?.checkpointCandidatePostureVerified === true
-    && status?.signatureStatus === 'Valid';
+    && status?.signatureStatus === 'Valid'
+    && /^runtime-[0-9a-f]{32}$/u.test(status?.runtimeCandidateId ?? '');
   if (!healthy) {
     throw workflowError(
       'NimiRuntime did not reach the required signed fixed-service state after update.',
@@ -56,88 +52,17 @@ export function assertRuntimeServiceHealthy(status) {
   }
 }
 
-export function rejectBinaryOnlyRequest(args) {
-  parseDevRuntimeArguments(args);
-}
-
 export function parseDevRuntimeArguments(args) {
   args = args.slice();
   while (args[0] === '--') args.shift();
-  if (args.includes('--binary-only')) {
-    throw workflowError(
-      'Binary-only Runtime replacement is not admitted because installer resource/layout equivalence is not proven.',
-      'dev-runtime-binary-only-layout-unverified',
-      'run_full_dev_runtime_service_update',
-    );
-  }
   if (args.length === 0) {
     return {};
   }
   throw workflowError(
     `Unsupported dev:runtime argument: ${args[0]}`,
     'dev-runtime-argument-invalid',
-    'run_pnpm_dev_runtime_without_data_root_override',
+    'run_pnpm_dev_runtime_without_overrides',
   );
-}
-
-function resolveNimiDataRootFromProductControlWith(resolveRecord) {
-  try {
-    return resolveRecord();
-  } catch (error) {
-    throw workflowError(
-      'Product Control must contain a usable dataRoot.path before a Runtime service update.',
-      'dev-runtime-product-control-unavailable',
-      'complete_or_repair_product_control_in_desktop',
-      { cause: error instanceof Error ? error.message : String(error) },
-    );
-  }
-}
-
-export function resolveNimiDataRootFromProductControl(...args) {
-  if (args.length !== 0) {
-    throw workflowError(
-      'Production Product Control resolution does not accept locator injection.',
-      'dev-runtime-product-control-locator-injection-forbidden',
-      'use_os_verified_interactive_user_profile',
-    );
-  }
-  return resolveNimiDataRootFromProductControlWith(resolveProductControlDataRoot);
-}
-
-export function resolveNimiDataRootFromProductControlForTest(resolveRecord) {
-  if (typeof resolveRecord !== 'function') {
-    throw new TypeError('explicit test Product Control resolver is required');
-  }
-  return resolveNimiDataRootFromProductControlWith(resolveRecord);
-}
-
-export function assertAccessibleNimiDataRoot(value, platform = process.platform) {
-  const normalized = normalizeNimiDataRoot(value, platform);
-  const pathApi = platform === 'win32' ? path.win32 : path.posix;
-  const volumeRoot = pathApi.parse(normalized).root;
-  let current = volumeRoot;
-  try {
-    const volumeMetadata = lstatSync(volumeRoot);
-    if (!volumeMetadata.isDirectory() || volumeMetadata.isSymbolicLink()) {
-      throw new Error('volume root is not a direct directory');
-    }
-    for (const segment of normalized.slice(volumeRoot.length).split(/[\\/]/u).filter(Boolean)) {
-      current = pathApi.join(current, segment);
-      const metadata = lstatSync(current);
-      if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
-        throw new Error('path component is not a direct directory');
-      }
-    }
-    accessSync(normalized, fsConstants.R_OK | fsConstants.W_OK);
-  } catch (error) {
-    throw workflowError(
-      'Nimi dataRoot must already exist as an accessible direct directory tree before the Runtime build starts.',
-      'dev-runtime-data-root-unavailable',
-      'repair_or_select_accessible_nimi_data_root',
-      { path: normalized, cause: error instanceof Error ? error.message : String(error) },
-    );
-  }
-  return normalized;
 }
 
 export async function runDevRuntimeService(input = {}) {
@@ -152,48 +77,20 @@ export async function runDevRuntimeService(input = {}) {
       'use_windows_fixed_runtime_service_host',
     );
   }
-  const resolveConfiguredDataRoot = input.resolveProductControlDataRoot
-    ?? (() => resolveNimiDataRootFromProductControl());
-  const validateNimiDataRoot = input.validateNimiDataRoot
-    ?? ((value) => assertAccessibleNimiDataRoot(value, platform));
-  const now = input.now ?? (() => performance.now());
+
   const queryInstalled = input.queryInstalled ?? queryInstalledService;
-  const buildRuntime = input.buildRuntime ?? (() => runChecked(process.execPath, ['scripts/build-runtime.mjs', '--dev-kernel-checkpoint']));
+  const buildRuntime = input.buildRuntime ?? (() => runChecked(process.execPath, ['scripts/build-runtime.mjs']));
   const buildInstaller = input.buildInstaller ?? (() => runChecked(process.execPath, ['scripts/build-windows-runtime-service-installer.mjs']));
-  const install = input.install ?? installGeneratedCandidate;
-  const queryCandidate = input.queryCandidate ?? queryGeneratedInstallerStatus;
+  const install = input.install ?? installGeneratedRuntime;
+  const queryStatus = input.queryStatus ?? queryGeneratedInstallerStatus;
 
   const initial = await queryInstalled();
   assertRuntimeServiceInstalled(initial);
-  const nimiDataRoot = validateNimiDataRoot(
-    normalizeNimiDataRoot(await resolveConfiguredDataRoot(), platform),
-  );
-
-  const timings = {};
-  let started = now();
   await buildRuntime();
-  timings.runtimeBuildAndSignMs = elapsed(now, started);
-
-  started = now();
   await buildInstaller();
-  timings.installerBuildAndSignMs = elapsed(now, started);
-
-  const candidateStatus = await queryCandidate();
-  assertRuntimeServiceInstalled(candidateStatus);
-
-  started = now();
-  const installStatus = await install();
-  timings.serviceInstallAndRestartMs = elapsed(now, started);
-
-  started = now();
-  const finalStatus = await queryCandidate();
-  timings.statusMs = elapsed(now, started);
+  await install();
+  const finalStatus = await queryStatus();
   assertRuntimeServiceHealthy(finalStatus);
-  const developmentStateLineage = validatePreservedDevelopmentStateLineage({
-    candidateStatus,
-    installStatus,
-    finalStatus,
-  });
 
   return {
     status: 'updated',
@@ -202,66 +99,7 @@ export async function runDevRuntimeService(input = {}) {
     runtimeCandidateId: finalStatus.runtimeCandidateId,
     runtimeBinarySha256: finalStatus.runtimeBinarySha256,
     signatureStatus: finalStatus.signatureStatus,
-    developmentStateLineage,
-    dataRootResolution: {
-      path: nimiDataRoot,
-      authority: 'fixed_user_product_control',
-      source: '~/.nimi/nimi.json',
-    },
-    timings,
-    totalMs: Object.values(timings).reduce((sum, value) => sum + value, 0),
-    consequence: 'Runtime boot epoch rotated; Desktop/local-app sessions and bindings must reopen through their existing supervisors. Login and durable grants remain Runtime-owned.',
   };
-}
-
-function validatePreservedDevelopmentStateLineage({ candidateStatus, installStatus, finalStatus }) {
-  const installed = parseDevelopmentStateLineage(installStatus, 'signed installer receipt');
-  const before = parseOptionalDevelopmentStateLineage(candidateStatus, 'pre-install status');
-  const observed = parseOptionalDevelopmentStateLineage(finalStatus, 'post-install status');
-  if (installStatus?.developmentStateLineageAuthority !== 'signed_installer_preserved_development_state_lineage'
-    || (before && !sameDevelopmentStateLineage(installed, before))
-    || (observed && !sameDevelopmentStateLineage(installed, observed))) {
-    throw developmentStateLineageReceiptError({ before, installStatus, finalStatus });
-  }
-  return {
-    ...installed,
-    authority: 'signed_installer_preserved_development_state_lineage',
-  };
-}
-
-function parseOptionalDevelopmentStateLineage(status, label) {
-  const developmentStateCandidateId = String(status?.developmentStateCandidateId ?? '');
-  const acceptanceRoundId = String(status?.acceptanceRoundId ?? '');
-  if (!developmentStateCandidateId && !acceptanceRoundId) return undefined;
-  return parseDevelopmentStateLineage(status, label);
-}
-
-function sameDevelopmentStateLineage(left, right) {
-  return left.developmentStateCandidateId === right.developmentStateCandidateId
-    && left.acceptanceRoundId === right.acceptanceRoundId;
-}
-
-function parseDevelopmentStateLineage(status, label) {
-  const developmentStateCandidateId = typeof status?.developmentStateCandidateId === 'string'
-    ? status.developmentStateCandidateId
-    : '';
-  const acceptanceRoundId = typeof status?.acceptanceRoundId === 'string'
-    ? status.acceptanceRoundId
-    : '';
-  if (!/^dev-kernel-runtime-[0-9a-f]{32}$/u.test(developmentStateCandidateId)
-    || !/^dev-kernel-round-[0-9a-f]{32}$/u.test(acceptanceRoundId)) {
-    throw developmentStateLineageReceiptError({ label, status });
-  }
-  return { developmentStateCandidateId, acceptanceRoundId };
-}
-
-function developmentStateLineageReceiptError(receipt) {
-  return workflowError(
-    'The signed Runtime update did not prove preservation of the existing development state lineage.',
-    'dev-runtime-state-lineage-unverified',
-    'inspect_signed_installer_state_lineage_receipt',
-    { receipt },
-  );
 }
 
 async function queryInstalledService() {
@@ -279,7 +117,7 @@ async function queryGeneratedInstallerStatus() {
   return parsePowerShellJsonResult(result, 'dev-runtime-status-invalid');
 }
 
-async function installGeneratedCandidate() {
+async function installGeneratedRuntime() {
   const powershellPath = resolveWindowsPowerShell7();
   if (isAdministrator(powershellPath)) {
     const result = runCaptured(
@@ -288,17 +126,17 @@ async function installGeneratedCandidate() {
     );
     return parsePowerShellJsonResult(result, 'dev-runtime-install-result-invalid');
   }
-  return installGeneratedCandidateElevated({ powershellPath });
+  return installGeneratedRuntimeElevated({ powershellPath });
 }
 
-function installGeneratedCandidateElevated({ powershellPath } = {}) {
-  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-runtime-service-'));
+function installGeneratedRuntimeElevated({ powershellPath } = {}) {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-service-'));
   const stdoutPath = path.join(tempRoot, 'stdout.txt');
   const stderrPath = path.join(tempRoot, 'stderr.txt');
   const innerCommand = [
     `$ErrorActionPreference = 'Stop'`,
     'try {',
-    `$output = & '${powerShellLiteral(powershellPath)}' -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -DevKernelCheckpoint -Json 2> '${powerShellLiteral(stderrPath)}'`,
+    `$output = & '${powerShellLiteral(powershellPath)}' -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -Json 2> '${powerShellLiteral(stderrPath)}'`,
     '$exitCode = $LASTEXITCODE',
     "if ($exitCode -ne 0) { exit $exitCode }",
     '$raw = ($output | Out-String).Trim()',
@@ -351,34 +189,8 @@ function installerArguments(mode) {
   return [
     '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installerPath,
     '-Mode', mode,
-    ...(mode === 'Install'
-      ? ['-DevKernelCheckpoint']
-      : []),
     '-Json',
   ];
-}
-
-function normalizeNimiDataRoot(value, platform) {
-  const candidate = String(value ?? '').trim();
-  if (!candidate) return '';
-  const pathApi = platform === 'win32' ? path.win32 : path.posix;
-  if (!pathApi.isAbsolute(candidate)) {
-    throw workflowError(
-      'Nimi dataRoot must be an explicit absolute non-volume-root path.',
-      'dev-runtime-data-root-invalid',
-      'select_existing_absolute_nimi_data_root',
-    );
-  }
-  const normalized = pathApi.normalize(candidate);
-  const volumeRoot = pathApi.parse(normalized).root;
-  if (!volumeRoot || normalized === volumeRoot) {
-    throw workflowError(
-      'Nimi dataRoot must be an explicit absolute non-volume-root path.',
-      'dev-runtime-data-root-invalid',
-      'select_existing_absolute_nimi_data_root',
-    );
-  }
-  return normalized.replace(/[\\/]+$/u, '');
 }
 
 function isAdministrator(powershellPath) {
@@ -420,10 +232,6 @@ function runCaptured(command, args) {
 
 function workflowError(message, reasonCode, actionHint, details = undefined) {
   return Object.assign(new Error(message), { reasonCode, actionHint, details });
-}
-
-function elapsed(now, started) {
-  return Math.max(0, Math.round(now() - started));
 }
 
 function powerShellLiteral(value) {

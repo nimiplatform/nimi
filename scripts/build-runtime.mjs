@@ -23,23 +23,9 @@ const binaryName = process.platform === 'win32' ? 'nimi.exe' : 'nimi';
 const outputPath = path.join(distDir, binaryName);
 const buildRecordPath = path.join(distDir, 'nimi-build-record.json');
 const buildArguments = process.argv.slice(2);
-const unknownBuildArguments = buildArguments.filter((argument) => ![
-  '--dev-kernel-checkpoint',
-  '--first-party-product-acceptance',
-].includes(argument));
-if (unknownBuildArguments.length > 0) {
-  throw new Error(`Unsupported Runtime build arguments: ${unknownBuildArguments.join(', ')}`);
+if (buildArguments.length > 0) {
+  throw new Error(`Unsupported Runtime build arguments: ${buildArguments.join(', ')}`);
 }
-const devKernelCheckpoint = buildArguments.includes('--dev-kernel-checkpoint');
-const firstPartyProductAcceptance = buildArguments.includes('--first-party-product-acceptance');
-if (devKernelCheckpoint && firstPartyProductAcceptance) {
-  throw new Error('Runtime build cannot combine dev-kernel and first-party product acceptance profiles');
-}
-const runtimeBuildProfile = devKernelCheckpoint
-  ? 'dev_kernel_checkpoint'
-  : firstPartyProductAcceptance
-    ? 'first_party_product_acceptance'
-    : 'production_build';
 const buildSource = process.platform === 'win32'
   ? captureRuntimeBuildSource(repoRoot, { pathspecs: WINDOWS_RUNTIME_BUILD_SOURCE_PATHS })
   : null;
@@ -119,18 +105,9 @@ try {
 
 const goBuildArguments = ['build'];
 if (windowsSignerIdentity) {
-  const linkerValues = [
-    `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.WindowsProductionSignerCertSHA256=${windowsSignerIdentity.certificateSha256}`,
-  ];
-  if (devKernelCheckpoint) {
-    linkerValues.push('-X github.com/nimiplatform/nimi/runtime/internal/entrypoint.windowsNonReleaseAcceptanceProfileEnabled=true');
-  }
-  if (firstPartyProductAcceptance) {
-    linkerValues.push('-X github.com/nimiplatform/nimi/runtime/internal/entrypoint.windowsFirstPartyProductAcceptanceEnabled=true');
-  }
   goBuildArguments.push(
     '-ldflags',
-    linkerValues.join(' '),
+    `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.WindowsProductionSignerCertSHA256=${windowsSignerIdentity.certificateSha256}`,
   );
 }
 goBuildArguments.push('-o', outputPath, './cmd/nimi');
@@ -162,7 +139,6 @@ try {
       source: buildSource,
       runtimeBinarySha256: fileSha256(outputPath),
       signerCertificateSha256: payload.certificateSha256,
-      buildProfile: runtimeBuildProfile,
     });
     writeFileSync(buildRecordPath, `${JSON.stringify(buildRecord, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
     process.stdout.write(`[build-runtime] signed ${path.relative(repoRoot, outputPath)} with ${payload.thumbprint}\n`);
@@ -174,9 +150,3 @@ try {
 }
 
 process.stdout.write(`[build-runtime] built ${path.relative(repoRoot, outputPath)}\n`);
-if (devKernelCheckpoint) {
-  process.stdout.write('[build-runtime] non-release dev_kernel_checkpoint acceptance profile enabled\n');
-}
-if (firstPartyProductAcceptance) {
-  process.stdout.write('[build-runtime] non-release first_party_product_acceptance endpoint projection enabled\n');
-}

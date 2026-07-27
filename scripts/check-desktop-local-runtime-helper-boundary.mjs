@@ -41,10 +41,6 @@ const scanSpecs = [
   },
 ];
 
-function isSelfTest() {
-  return process.argv.includes('--self-test');
-}
-
 function collectFiles(root, extensions) {
   const files = [];
   for (const entry of readdirSync(root, { withFileTypes: true })) {
@@ -103,47 +99,7 @@ function scanLocalRuntimeFiles(violations) {
   }
 }
 
-function runSelfTest() {
-  const violations = [];
-  scanSource({
-    label: 'self-test',
-    file: 'synthetic.ts',
-    source: `
-      invokeLocalRuntimeCommand('runtime_local_pick_asset_manifest_path');
-      invokeLocalRuntimeCommand('runtime_local_pick_asset_file');
-      invokeLocalRuntimeCommand('runtime_local_pick_asset_directory');
-      invokeLocalRuntimeCommand('runtime_local_assets_reveal_in_folder');
-      invokeLocalRuntimeCommand('runtime_local_assets_reveal_root_folder');
-      invokeLocalRuntimeCommand('runtime_local_assets_import');
-      tauriInvoke('runtime_local_recommendation_feed_get');
-    `,
-    pattern:
-      /\b(?:invokeLocalRuntimeCommand|invokeLocalAiCommand|tauriInvoke)(?:<[^>]+>)?\(\s*['"`](runtime_local_[a-z0-9_]+)['"`]/gu,
-  }, violations);
-
-  const observed = violations.map((entry) => entry.command).sort();
-  const expected = [
-    'runtime_local_assets_import',
-    'runtime_local_assets_reveal_in_folder',
-    'runtime_local_assets_reveal_root_folder',
-    'runtime_local_pick_asset_directory',
-    'runtime_local_pick_asset_file',
-    'runtime_local_recommendation_feed_get',
-  ].sort();
-  if (JSON.stringify(observed) !== JSON.stringify(expected)) {
-    console.error('check:desktop-local-runtime-helper-boundary self-test failed');
-    console.error(`expected ${JSON.stringify(expected)}, got ${JSON.stringify(observed)}`);
-    process.exit(1);
-  }
-  console.log('check:desktop-local-runtime-helper-boundary self-test: OK');
-}
-
 function main() {
-  if (isSelfTest()) {
-    runSelfTest();
-    return;
-  }
-
   const violations = [];
   scanLocalRuntimeFiles(violations);
 

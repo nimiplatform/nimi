@@ -121,11 +121,11 @@ export async function runMacOSDevRuntimeService(input = {}) {
   const candidate = await buildCandidate();
   const verification = await verifyCandidate(candidate);
   await confirm(installImpact(mode, verification), mode === 'install' ? 'INSTALL NIMI MACOS DEV RUNTIME' : 'UPDATE NIMI MACOS DEV RUNTIME');
-  const receipt = await invokeHelper(['install-candidate', candidate.outputRoot], verification);
+  const installResult = await invokeHelper(['install-candidate', candidate.outputRoot], verification);
   const final = await invokeHelper(['status']);
   assertHealthyInstalledStatus(final);
   return Object.freeze({
-    ...receipt,
+    ...installResult,
     status: mode === 'install' ? 'installed' : 'updated',
     serviceName: 'ai.nimi.runtime.dev',
     state: final.state,
@@ -273,17 +273,8 @@ async function buildDevelopmentCandidate() {
     ...process.env,
     NIMI_MACOS_RELEASE_OUTPUT: outputRoot,
   });
-  const documents = String(result.stdout || '').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean).flatMap((line) => {
-    try { return [JSON.parse(line)]; } catch { return []; }
-  });
-  const receipt = documents.at(-1);
-  if (receipt?.outputRoot !== outputRoot
-    || receipt?.posture !== 'signed_local_development_candidate_pending_independent_verifier') {
-    throw workflowError(
-      'macOS development candidate build did not return the exact signed and preverified candidate receipt.',
-      'dev-runtime-build-failed',
-      'inspect_macos_development_candidate_build_output',
-    );
+  if (!String(result.stdout || '').includes(`macOS Electron output: ${outputRoot}`)) {
+    throw workflowError('macOS development build did not report its output directory.', 'dev-runtime-build-failed', 'inspect_macos_development_build_output');
   }
   return Object.freeze({ outputRoot });
 }

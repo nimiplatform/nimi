@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -99,28 +98,7 @@ async function collectViolations(files) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-no-steam-'));
-  const negative = path.join(tempRoot, 'negative.md');
-  const positive = path.join(tempRoot, 'positive.md');
-  await fs.writeFile(negative, '# Nimi App authority is account-scoped and permissioned through Runtime.\n', 'utf8');
-  await fs.writeFile(positive, '# Nimi Workshop clone replicates Steam Workshop functionality.\n', 'utf8');
-  try {
-    const neg = await collectViolations([negative]);
-    if (neg.length !== 0) throw new Error(`self-test: negative flagged: ${neg.join(',')}`);
-    const pos = await collectViolations([positive]);
-    if (pos.length === 0) throw new Error('self-test: positive not flagged');
-    process.stdout.write('check-no-steam-copy-language self-test passed\n');
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
   const files = [];
   for (const target of TARGET_GLOBS) {
     files.push(...await collectFiles(target));

@@ -14,6 +14,7 @@ const installerBuild = readFileSync(
   new URL('./build-windows-runtime-service-installer.mjs', import.meta.url),
   'utf8',
 );
+
 test('service installer binds the signed binary to the exact repository source record', () => {
   assert.match(installerBuild, /validateRuntimeBuildRecord\(runtimeBuildRecord, \{/u);
   assert.match(installerBuild, /source: captureRuntimeBuildSource\(repoRoot, \{ pathspecs: WINDOWS_RUNTIME_BUILD_SOURCE_PATHS \}\)/u);
@@ -21,7 +22,6 @@ test('service installer binds the signed binary to the exact repository source r
   assert.match(installerBuild, /copyFileSync\(runtimeBuildRecordSource/u);
   assert.match(installer, /Assert-InstalledCandidate/u);
   assert.match(installer, /runtimeBuildRecordMatchesCandidate/u);
-  assert.match(installer, /checkpointCandidatePostureVerified/u);
 });
 
 test('service candidate stages into an immutable version root and moves atomically', () => {
@@ -32,7 +32,7 @@ test('service candidate stages into an immutable version root and moves atomical
   assert.match(installer, /versions\\\$CandidateVersionId/u);
   assert.doesNotMatch(installer, /versions\\\$ExpectedRuntimeSha256["']/u);
   assert.match(installer, /runtimeStartupStage=/u);
-  assert.match(installer, /42251\s*=\s*'daemon'/u);
+  assert.match(installer, /42250\s*=\s*'daemon'/u);
   assert.match(installer, /\.staging-/u);
   assert.match(installer, /Move-Item -LiteralPath \$stagingRoot -Destination \$InstalledVersionRoot/u);
   assert.match(installer, /Assert-FileSha256 -Path \$stagedBinary/u);
@@ -40,75 +40,12 @@ test('service candidate stages into an immutable version root and moves atomical
   assert.doesNotMatch(installer, /Copy-Item[^\r\n]*-Destination \$InstalledBinary/u);
 });
 
-test('checkpoint profile separates real Realm account authority from the provider fixture', () => {
-  assert.match(installer, /schemaVersion\s*=\s*6/u);
-  assert.match(installer, /runtimeCandidateId\s*=\s*\$buildRecord\.candidateId/u);
-  assert.match(installer, /developmentStateCandidateId\s*=\s*\[string\]\s*\$stateLineage\.developmentStateCandidateId/u);
-  assert.match(installer, /acceptanceRoundId\s*=\s*\[string\]\s*\$stateLineage\.acceptanceRoundId/u);
-  assert.match(installer, /RandomNumberGenerator/u);
-  assert.match(installer, /Resolve-DevKernelCheckpointStateLineage/u);
-  assert.match(installer, /signed_installer_preserved_development_state_lineage/u);
-  assert.match(installer, /\$schemaVersion -ne 6/u);
-  assert.doesNotMatch(installer, /DevelopmentDataRoot|developmentDataRootRef|Resolve-DevKernelCheckpointDataRootBinding/u);
-  assert.doesNotMatch(
-    installer,
-    /Get-DevKernelServiceConfigPath|Sync-DevKernelServiceDataRootConfig|developmentServiceConfigSynchronized/u,
-  );
-  assert.match(installer, /Existing protected acceptance profile identity is invalid/u);
-  assert.doesNotMatch(installer, /RuntimeUserConfigPath|\$runtimeConfig\.dataRootRef/u);
-  assert.match(installer, /accountRealmBaseUrl\s*=\s*\$fixture\.accountRealmBaseUrl/u);
-  assert.match(installer, /fixtureBaseUrl\s*=\s*\$fixture\.fixtureBaseUrl/u);
-  assert.match(installer, /providerBaseUrl\s*=\s*\$fixture\.providerBaseUrl/u);
-  assert.match(installer, /\$fixture\.accountRealmBaseUrl -ne 'http:\/\/localhost:3002'/u);
-  assert.match(installer, /\$fixture\.accountWebBaseUrl -ne 'http:\/\/localhost:3000'/u);
-  assert.match(installer, /\$fixture\.fixtureBaseUrl -ne 'http:\/\/127\.0\.0\.1:19443'/u);
-  assert.match(installer, /\$fixture\.providerBaseUrl -ne \(\$fixture\.fixtureBaseUrl \+ '\/v1'\)/u);
-  assert.doesNotMatch(installer, /realmIssuer\s*=\s*\$fixture\.realmBaseUrl/u);
-});
-
-test('first-party product acceptance is an exact signed endpoint-only build profile', () => {
-  assert.match(installer, /\[switch\]\s+\$FirstPartyProductAcceptance/u);
-  assert.match(installer, /DevKernelCheckpoint and FirstPartyProductAcceptance are mutually exclusive/u);
-  assert.match(installer, /first_party_product_acceptance/u);
-  assert.match(installer, /\^product-acceptance-runtime-\[0-9a-f\]\{32\}\$/u);
-  assert.match(installer, /configuredAccountRealmBaseUrl/u);
-  assert.match(installer, /http:\/\/localhost:3002/u);
-  assert.match(installer, /productAcceptanceCandidatePostureVerified/u);
-  assert.match(installerBuild, /runtimeBuildRecord\.checkpoint === 'dev_kernel_checkpoint'/u);
-  assert.match(installerBuild, /rmSync\(path\.join\(resourceOutputDir, 'dev-kernel-checkpoint-acceptance\.json'\)/u);
-  assert.doesNotMatch(
-    installer.slice(installer.indexOf('function Assert-RequestedBuildProfile'), installer.indexOf('function Assert-InstalledCandidate')),
-    /Realm|endpoint|environment/u,
-  );
-});
-
-test('installer build-profile verifier rejects implicit or cross-profile installation', {
-  skip: process.platform !== 'win32',
-}, () => {
-  const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
-  const escapedInstallerPath = installerPath.replaceAll("'", "''");
-  const command = [
-    `. '${escapedInstallerPath}'`,
-    `$FirstPartyProductAcceptance = $true`,
-    `$accepted = $true`,
-    `Assert-RequestedBuildProfile -BuildRecord ([pscustomobject]@{ checkpoint = 'first_party_product_acceptance' })`,
-    `$rejected = $false`,
-    `try { Assert-RequestedBuildProfile -BuildRecord ([pscustomobject]@{ checkpoint = 'production_build' }) } catch { $rejected = $true }`,
-    `@{ accepted = $accepted; rejected = $rejected } | ConvertTo-Json -Compress`,
-  ].join('; ');
-  const result = spawnSync(resolveWindowsPowerShell7(), [
-    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
-  ], { encoding: 'utf8', windowsHide: true });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.deepEqual(JSON.parse(result.stdout.trim()), { accepted: true, rejected: true });
-});
-
-test('service mutation propagates native failures and restores the prior SCM/profile state', () => {
+test('service mutation propagates native failures and restores the prior SCM/state ownership', () => {
   assert.match(installer, /if \(\$result\.ExitCode -ne 0\) \{/u);
   assert.match(installer, /takeown\.exe[\s\S]*\/grant:r/u);
   assert.match(installer, /if \(\$ownershipChanged\) \{[\s\S]*Set-StateRootAcl/u);
   assert.match(installer, /restore previous service definition/u);
-  assert.match(installer, /restore protected acceptance profile/u);
+  assert.match(installer, /restore protected state ownership/u);
   assert.doesNotMatch(
     installer,
     /previousDevelopmentConfigBytes|Grant-InstallerFileAccess|Set-ServiceOnlyFileAcl/u,
@@ -116,14 +53,6 @@ test('service mutation propagates native failures and restores the prior SCM/pro
   assert.doesNotMatch(installer, /takeown\.exe[^\r\n]*(?:\/R|\/r)|icacls\.exe[^\r\n]*(?:\/T|\/t)/u);
   assert.match(installer, /restart previous service/u);
   assert.match(installer, /rollback failures:/u);
-});
-
-test('an installed service cannot silently create a replacement development lineage', () => {
-  const continuityCheck = installer.indexOf('Existing NimiRuntime service has no protected development state lineage');
-  const serviceStop = installer.indexOf('if ($previousWasRunning)');
-  assert.ok(continuityCheck >= 0 && continuityCheck < serviceStop);
-  assert.match(installer, /\$DevKernelCheckpoint -and \$null -ne \$existing -and -not \$previousProfilePresent/u);
-  assert.match(installer, /explicit destructive repair is required/u);
 });
 
 test('protected existing state root is taken over before any create attempt', {
@@ -150,39 +79,11 @@ test('protected existing state root is taken over before any create attempt', {
   ]);
 });
 
-test('status derives checkpoint posture from immutable candidate material', () => {
+test('status validates the installed build record from immutable candidate material', () => {
   const statusBody = installer.slice(
     installer.indexOf('function Get-Status'),
     installer.indexOf('function Install-Service'),
   );
-  assert.doesNotMatch(statusBody, /\$DevKernelCheckpoint/u);
   assert.match(statusBody, /runtimeBuildRecordSha256/u);
-  assert.match(statusBody, /checkpointCandidatePostureVerified/u);
-});
-
-test('PowerShell lineage resolver preserves schema-6 state identities across binary candidates', {
-  skip: process.platform !== 'win32',
-}, () => {
-  const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
-  const escapedInstallerPath = installerPath.replaceAll("'", "''");
-  const oldCandidate = `dev-kernel-runtime-${'1'.repeat(32)}`;
-  const currentCandidate = `dev-kernel-runtime-${'2'.repeat(32)}`;
-  const durableCandidate = `dev-kernel-runtime-${'3'.repeat(32)}`;
-  const round = `dev-kernel-round-${'4'.repeat(32)}`;
-  const command = [
-    `. '${escapedInstallerPath}'`,
-    `$schema6 = '${JSON.stringify({ schemaVersion: 6, trialId: 'dev-kernel-checkpoint', runtimeCandidateId: oldCandidate, developmentStateCandidateId: durableCandidate, acceptanceRoundId: round })}' | ConvertFrom-Json`,
-    `$from6 = Resolve-DevKernelCheckpointStateLineage -PreviousProfile $schema6 -CurrentCandidateId '${currentCandidate}' -TrialId 'dev-kernel-checkpoint'`,
-    `@{ from6 = $from6 } | ConvertTo-Json -Depth 5 -Compress`,
-  ].join('; ');
-  const result = spawnSync('powershell.exe', [
-    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
-  ], { encoding: 'utf8', windowsHide: true });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  const parsed = JSON.parse(result.stdout.trim());
-  assert.deepEqual(parsed.from6, {
-    developmentStateCandidateId: durableCandidate,
-    acceptanceRoundId: round,
-    authority: 'signed_installer_preserved_development_state_lineage',
-  });
+  assert.match(statusBody, /runtimeBuildRecordMatchesCandidate\s*=\s*\$null -ne \$runtimeBuildRecord/u);
 });

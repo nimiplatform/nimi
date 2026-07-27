@@ -222,18 +222,6 @@ function isDirectExecution() {
   return import.meta.url === pathToFileURL(path.resolve(entry)).href;
 }
 
-export {
-  collectVoiceWorkflowProvidersFromSource,
-  extractGoFunctionBody,
-  inferSourceCapabilities,
-  main,
-  parseCaseProviders,
-  parseEqualityProviders,
-  parseRegistryRecords,
-  parseVoiceWorkflowProviders,
-  supportsVoiceWorkflowExecution,
-};
-
 if (isDirectExecution()) {
   main();
 }

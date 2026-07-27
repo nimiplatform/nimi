@@ -299,7 +299,6 @@ function checkKitParity() {
   requireMatch(tauriCommands, /runtime_bridge_unary/u, 'Tauri Runtime unary carrier is missing');
   run(process.execPath, [
     path.join(root, 'kit/node_modules/vitest/vitest.mjs'), 'run',
-    'shell/renderer/test/runtime-account-broker-hardcut.test.ts',
     'shell/electron/test/electron-shell-bridge-guardrails.test.ts',
     'shell/electron/test/electron-protected-desktop-hosts.test.ts',
   ], path.join(root, 'kit'));

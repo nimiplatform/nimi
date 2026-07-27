@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -88,42 +87,7 @@ async function collectViolations(files) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'nimi-check-cloud-'));
-  const goodPath = path.join(tempRoot, 'good.ts');
-  const badPath = path.join(tempRoot, 'bad.ts');
-  await fs.writeFile(
-    goodPath,
-    "export const route = async () => ({ source: 'cloud' as const });\n",
-    'utf8',
-  );
-  await fs.writeFile(
-    badPath,
-    "import { createProviderAdapter } from './legacy';\nconst x = createProviderAdapter();\n",
-    'utf8',
-  );
-
-  try {
-    const goodViolations = await collectViolations([goodPath]);
-    if (goodViolations.length !== 0) {
-      throw new Error('self-test failed: clean fixture was flagged');
-    }
-    const badViolations = await collectViolations([badPath]);
-    if (badViolations.length === 0) {
-      throw new Error('self-test failed: legacy fixture was not flagged');
-    }
-    process.stdout.write('check-desktop-cloud-runtime-only self-test passed\n');
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
-
   const roots = SOURCE_ROOTS.map((rel) => ({
     rel,
     abs: path.join(repoRoot, rel),

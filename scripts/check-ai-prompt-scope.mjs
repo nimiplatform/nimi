@@ -30,7 +30,6 @@ const INACTIVE_SEGMENTS = new Set([
   'node_modules',
 ]);
 const IMAGE_AGENTS = 'nimi2d/AGENTS.md';
-const PRODUCT_HARNESS_AGENTS = 'tests/local-agent-product/AGENTS.md';
 const IMAGE_MARKERS = [
   'image2-provider-plan',
   'image2-provider-run',
@@ -38,17 +37,8 @@ const IMAGE_MARKERS = [
   'image2-compare-pixels',
   'image2-postprocess',
   'image2-layer-workflow',
-  'image2-distribution-report',
-  'image2-demo-suite',
   'codex.cmd',
 ];
-const PRODUCT_HARNESS_MARKERS = [
-  'test:e2e:first-party-product:p4',
-  '~/.nimi/nimi.json',
-  'dataRoot.path',
-  'durable product mutation',
-];
-
 function normalizeRel(value) {
   return value.replaceAll('\\', '/').replace(/^\.\//u, '');
 }
@@ -78,7 +68,7 @@ function readIfPresent(repoRoot, rel) {
   return fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null;
 }
 
-export function discoverActiveAgents(repoRoot) {
+function discoverActiveAgents(repoRoot) {
   const result = spawnSync(
     'git',
     ['ls-files', '--cached', '--others', '--exclude-standard'],
@@ -93,6 +83,7 @@ export function discoverActiveAgents(repoRoot) {
       .split(/\r?\n/u)
       .map(normalizeRel)
       .filter(Boolean)
+      .filter((rel) => fs.existsSync(path.join(repoRoot, ...rel.split('/'))))
       .filter(isActiveAgentPath),
   )].sort();
 }
@@ -131,7 +122,7 @@ function forbidPatterns(failures, rel, text, patterns) {
   }
 }
 
-export function collectPromptScopeFailures(repoRoot, options = {}) {
+function collectPromptScopeFailures(repoRoot, options = {}) {
   const failures = [];
   const activeAgents = (options.activeAgents || discoverActiveAgents(repoRoot))
     .map(normalizeRel)
@@ -161,11 +152,9 @@ export function collectPromptScopeFailures(repoRoot, options = {}) {
   }
 
   const rootAgents = readUtf8(repoRoot, 'AGENTS.md');
-  requireContains(failures, 'AGENTS.md', rootAgents, [IMAGE_AGENTS, PRODUCT_HARNESS_AGENTS]);
+  requireContains(failures, 'AGENTS.md', rootAgents, [IMAGE_AGENTS]);
   forbidPatterns(failures, 'AGENTS.md', rootAgents, [
     ['Image2 command detail', /image2-provider-/u],
-    ['P4 command detail', /test:e2e:first-party-product:p4/u],
-    ['Product Control path detail', /~\/\.nimi\/nimi\.json/u],
     ['runtime-first ordering', /(?:`runtime`|runtime)\s*(?:→|->)[^\n]*(?:sdks\/typescript|SDK)/iu],
     ['filesystem-root authority path', /\/\.nimi\/spec/u],
   ]);
@@ -175,24 +164,10 @@ export function collectPromptScopeFailures(repoRoot, options = {}) {
     if (rel !== IMAGE_AGENTS && /image2-provider-/u.test(text)) {
       failures.push(`${rel}: Image2 command detail must live only in ${IMAGE_AGENTS}`);
     }
-    if (
-      rel !== PRODUCT_HARNESS_AGENTS
-      && /(test:e2e:first-party-product:p4|~\/\.nimi\/nimi\.json)/u.test(text)
-    ) {
-      failures.push(`${rel}: product-harness detail must live only in ${PRODUCT_HARNESS_AGENTS}`);
-    }
   }
 
   const imageAgents = readUtf8(repoRoot, IMAGE_AGENTS);
   requireContains(failures, IMAGE_AGENTS, imageAgents, IMAGE_MARKERS);
-  const productHarnessAgents = readUtf8(repoRoot, PRODUCT_HARNESS_AGENTS);
-  requireContains(
-    failures,
-    PRODUCT_HARNESS_AGENTS,
-    productHarnessAgents,
-    PRODUCT_HARNESS_MARKERS,
-  );
-
   const compatibilityPrompts = [
     ['CLAUDE.md', 25],
     ['.cursorrules', 12],
@@ -282,7 +257,7 @@ export function collectPromptScopeFailures(repoRoot, options = {}) {
   return failures;
 }
 
-export function runPromptScopeCheck(repoRoot = path.resolve('.')) {
+function runPromptScopeCheck(repoRoot = path.resolve('.')) {
   const failures = collectPromptScopeFailures(repoRoot);
   if (failures.length > 0) {
     for (const failure of failures) {

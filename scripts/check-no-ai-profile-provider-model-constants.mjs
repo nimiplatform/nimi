@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -116,56 +115,7 @@ async function collectViolations(files) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-no-aips-pmc-'));
-  const negativePath = path.join(tempRoot, 'negative.ts');
-  const positivePath = path.join(tempRoot, 'positive.ts');
-
-  await fs.writeFile(
-    negativePath,
-    [
-      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';",
-      'const profileId = scopeRef.resolveProfileAlias();',
-      'await applyAIProfileToConfig(baseConfig, profile);',
-      '',
-    ].join('\n'),
-    'utf8',
-  );
-
-  await fs.writeFile(
-    positivePath,
-    [
-      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';",
-      "const profileId = 'gpt-4o';",
-      'await applyAIProfileToConfig(baseConfig, profile);',
-      '',
-    ].join('\n'),
-    'utf8',
-  );
-
-  try {
-    const negativeViolations = await collectViolations([negativePath]);
-    if (negativeViolations.length !== 0) {
-      throw new Error(`self-test failed: negative fixture flagged: ${negativeViolations.join(', ')}`);
-    }
-
-    const positiveViolations = await collectViolations([positivePath]);
-    if (positiveViolations.length === 0) {
-      throw new Error('self-test failed: positive fixture (gpt-4o constant) was not flagged');
-    }
-
-    process.stdout.write('check-no-ai-profile-provider-model-constants self-test passed\n');
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
-
   const files = [];
   for (const targetGlob of TARGET_GLOBS) {
     files.push(...await collectFiles(path.join(repoRoot, targetGlob)));

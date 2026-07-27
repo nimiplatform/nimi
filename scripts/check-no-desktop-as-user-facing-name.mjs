@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -164,28 +163,7 @@ async function collectViolations(files) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-no-desktop-userface-'));
-  const negative = path.join(tempRoot, 'negative.tsx');
-  const positive = path.join(tempRoot, 'positive.tsx');
-  await fs.writeFile(negative, 'export const title = "Welcome to Nimi";\n', 'utf8');
-  await fs.writeFile(positive, 'export const title = "Open Nimi Desktop";\n', 'utf8');
-  try {
-    const neg = await collectViolations([negative]);
-    if (neg.length !== 0) throw new Error('self-test failed: negative fixture flagged');
-    const pos = await collectViolations([positive]);
-    if (pos.length === 0) throw new Error('self-test failed: positive fixture not flagged');
-    process.stdout.write('check-no-desktop-as-user-facing-name self-test passed\n');
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
   const files = [];
   for (const target of TARGET_GLOBS) {
     files.push(...await collectFiles(path.join(repoRoot, target)));

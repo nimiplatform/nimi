@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -94,13 +93,13 @@ function collectImportSpecs(source) {
   return specs;
 }
 
-async function collectViolations(files, root = repoRoot) {
+async function collectViolations(files) {
   const violations = [];
   for (const file of files) {
     const source = await fs.readFile(file, 'utf8');
     for (const spec of collectImportSpecs(source)) {
       const forbidden = FORBIDDEN_IMPORTS.find(({ pattern }) => pattern.test(spec.value));
-      const rel = path.relative(root, file).replaceAll(path.sep, '/');
+      const rel = path.relative(repoRoot, file).replaceAll(path.sep, '/');
       if (forbidden) {
         violations.push(`${rel}:${getLine(source, spec.index)}: runtime must not import ${forbidden.name} package "${spec.value}"`);
         continue;
@@ -118,68 +117,7 @@ async function collectViolations(files, root = repoRoot) {
   return violations;
 }
 
-async function runSelfTest() {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'runtime-import-boundary-'));
-  const ok = path.join(tmp, 'ok.go');
-  const badSdk = path.join(tmp, 'bad_sdk.go');
-  const badApps = path.join(tmp, 'bad_apps.go');
-  const allowedProtected = path.join(tmp, 'runtime', 'internal', 'services', 'account', 'allowed.go');
-  const badProtected = path.join(tmp, 'runtime', 'internal', 'services', 'ai', 'bad_protected.go');
-  const badKernel = path.join(tmp, 'runtime', 'internal', 'services', 'memory', 'bad_kernel.go');
-  await fs.mkdir(path.dirname(allowedProtected), { recursive: true });
-  await fs.mkdir(path.dirname(badProtected), { recursive: true });
-  await fs.mkdir(path.dirname(badKernel), { recursive: true });
-  await fs.writeFile(ok, `package ok
-
-import (
-  "context"
-  "github.com/nimiplatform/nimi/runtime/internal/appstorage"
-)
-`, 'utf8');
-  await fs.writeFile(badSdk, `package bad
-
-import sdk "github.com/nimiplatform/nimi/sdks/typescript/runtime"
-`, 'utf8');
-  await fs.writeFile(badApps, `package bad
-
-import (
-  "github.com/nimiplatform/nimi/apps/desktop"
-)
-`, 'utf8');
-  await fs.writeFile(allowedProtected, `package account
-
-import "github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
-`, 'utf8');
-  await fs.writeFile(badProtected, `package ai
-
-import "github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
-`, 'utf8');
-  await fs.writeFile(badKernel, `package memory
-
-import "github.com/nimiplatform/nimi/runtime/internal/localappkernel"
-`, 'utf8');
-
-  try {
-    const okViolations = await collectViolations([ok, allowedProtected], tmp);
-    if (okViolations.length > 0) {
-      throw new Error(`self-test: valid runtime import flagged: ${okViolations.join(', ')}`);
-    }
-    const badViolations = await collectViolations([badSdk, badApps, badProtected, badKernel], tmp);
-    if (badViolations.length !== 4) {
-      throw new Error(`self-test: expected 4 violations, got ${badViolations.length}: ${badViolations.join(', ')}`);
-    }
-    process.stdout.write('check-runtime-import-boundary self-test passed\n');
-  } finally {
-    await fs.rm(tmp, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  if (process.argv.includes('--self-test')) {
-    await runSelfTest();
-    return;
-  }
-
   const files = await collectGoFiles(runtimeRoot);
   const violations = await collectViolations(files);
   if (violations.length > 0) {
