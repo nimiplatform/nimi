@@ -15,10 +15,8 @@ const repoRoot=path.resolve(desktopRoot,'../..');
 const localRoot=path.join(repoRoot,'.nimi','local');
 const signingTool=path.join(process.env.HOME??'','.nimi','macos-dev-signing','bin','nimi-macos-dev-signing');
 
-// This module is the unprivileged candidate release boundary. Removing it would
-// mix private-key use and local release-record creation back into the production
-// Developer-ID packager. Acceptance is the signed-candidate verifier plus the
-// release-contract and hard-cut native suites.
+// This module keeps local-development signing keys and trust-record creation
+// outside the production Developer-ID packager.
 export async function finalizeMacOSLocalDevelopmentCandidate({candidateRoot,trust,sourceRoot,outputName}){
   if(!existsSync(signingTool))throw failure('dev-signing-profile-unprovisioned','run pnpm provision:macos-dev-signing','The fixed user-domain signing tool is absent.');
   runReleaseCommand(signingTool,['unlock',trust.keychainPath]);

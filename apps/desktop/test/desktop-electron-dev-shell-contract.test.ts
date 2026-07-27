@@ -23,12 +23,7 @@ test('desktop package exposes an Electron dev shell entrypoint', () => {
     packageJson.scripts?.['build:electron'],
     'pnpm run prepare:workspace-surfaces && tsc -p tsconfig.electron.json && node scripts/bundle-electron-main.mjs && node scripts/bundle-electron-preload.mjs',
   );
-  assert.equal(
-    packageJson.scripts?.['test:e2e:electron'],
-    'corepack pnpm run build:renderer && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs',
-  );
   assert.match(packageJson.devDependencies?.electron ?? '', /^\^/);
-  assert.match(packageJson.devDependencies?.playwright ?? '', /^\^/);
 });
 
 test('desktop Electron host installs the standard shell bridge for the Desktop renderer', () => {

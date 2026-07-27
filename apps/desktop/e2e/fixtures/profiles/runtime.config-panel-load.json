@@ -1,4 +1,0 @@
-{
-  "extends": "_authenticated-base.json",
-  "scenarioId": "runtime.config-panel-load"
-}

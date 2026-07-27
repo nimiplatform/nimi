@@ -123,9 +123,6 @@ pub(crate) fn set_test_release_version(version: &str) {
 
 #[tauri::command]
 pub fn desktop_release_info_get() -> Result<DesktopReleaseInfo, String> {
-    if let Some(override_info) = crate::desktop_e2e_fixture::desktop_release_info_override()? {
-        return Ok(override_info);
-    }
     release_info()
 }
 

@@ -17,12 +17,38 @@ import {
   SETTINGS_SELECTED_STORAGE_KEY,
 } from '../src/shell/renderer/features/settings/settings-storage';
 import {
-  DESKTOP_OPEN_TEST_TARGETS,
-} from '../e2e/fixtures/desktop-open-test-launcher.mjs';
-import {
   createDesktopRendererRuntimeConfigNavigationPort,
   type DesktopRendererRuntimeConfigNavigationPort,
 } from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
+
+type DesktopOpenTarget = {
+  rowId: string;
+  intent: NimiDesktopOpenIntent;
+  expected: {
+    activeTab: string;
+    section?: string;
+    query?: string;
+    page?: string;
+    appId?: string;
+  };
+};
+
+const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
+  { rowId: 'target.explore-worlds-section', intent: { kind: 'open-explore', section: 'worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
+  { rowId: 'target.explore-worlds', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
+  { rowId: 'target.explore-personas-section', intent: { kind: 'open-explore', section: 'personas' }, expected: { activeTab: 'explore', section: 'personas' } },
+  { rowId: 'target.explore-personas', intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' }, expected: { activeTab: 'explore', section: 'personas' } },
+  { rowId: 'target.explore-personas-discover', intent: { kind: 'open-explore', section: 'personas', productIntent: 'discover-personas' }, expected: { activeTab: 'explore', section: 'personas' } },
+  { rowId: 'target.explore-activity-section', intent: { kind: 'open-explore', section: 'activity' }, expected: { activeTab: 'explore', section: 'activity' } },
+  { rowId: 'target.explore-activity', intent: { kind: 'open-explore', section: 'activity', productIntent: 'view-activity' }, expected: { activeTab: 'explore', section: 'activity' } },
+  { rowId: 'target.explore-search', intent: { kind: 'open-explore', section: 'personas', query: 'mentor' }, expected: { activeTab: 'explore', section: 'personas', query: 'mentor' } },
+  { rowId: 'target.runtime-connector', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' }, expected: { activeTab: 'runtime', page: 'cloud' } },
+  { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'models' } },
+  { rowId: 'target.agents-inventory', intent: { kind: 'open-agents', view: 'inventory' }, expected: { activeTab: 'agents' } },
+  { rowId: 'target.apps-surface', intent: { kind: 'open-apps' }, expected: { activeTab: 'apps' } },
+  { rowId: 'target.app-selection', intent: { kind: 'open-apps', appId: 'nimi.example' }, expected: { activeTab: 'apps', appId: 'nimi.example' } },
+  { rowId: 'target.settings-profile', intent: { kind: 'open-settings', section: 'profile' }, expected: { activeTab: 'settings', section: 'profile' } },
+];
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -103,9 +129,9 @@ test.afterEach(() => {
   }
 });
 
-for (const target of DESKTOP_OPEN_TEST_TARGETS) {
-  test(`Desktop Open acceptance ${target.rowId} maps to Desktop renderer state`, () => {
-    applyDesktopOpenIntentToAppStore(target.request.intent as NimiDesktopOpenIntent);
+for (const target of DESKTOP_OPEN_TARGETS) {
+  test(`Desktop Open ${target.rowId} maps to Desktop renderer state`, () => {
+    applyDesktopOpenIntentToAppStore(target.intent);
 
     const appState = productionAppStore.getState();
     assert.equal(appState.activeTab, target.expected.activeTab);

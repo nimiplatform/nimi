@@ -22,7 +22,6 @@ import {
 } from './local-development-plan.js';
 import {
   resolveLocalDevelopmentElectronHostArguments,
-  resolveLocalDevelopmentObservationArguments,
   resolveLocalAppUserDataArguments,
 } from './local-development-host-arguments.js';
 import {
@@ -354,7 +353,7 @@ class ElectronLocalDevelopmentHost {
         approvalState: evaluation.state,
       },
     });
-    setRunState(run, 'pending-approval', 'Waiting for approval in Nimi Desktop', undefined, false);
+    setRunState(run, 'pending-approval', 'Waiting for approval in Nimi', undefined, false);
     await this.focusMainWindow();
   }
 
@@ -491,16 +490,10 @@ class ElectronLocalDevelopmentHost {
   private async launchHost(run: RunContext): Promise<void> {
     if (!run.authorizationId) throw new Error('local-development-authorization-required');
     const mainEntry = await canonicalElectronMain(run.plan);
-    const observationArguments = resolveLocalDevelopmentObservationArguments(
-      process.env,
-      run.plan.appId,
-    );
-    const userDataArguments = observationArguments.some((value) => value.startsWith('--user-data-dir='))
-      ? []
-      : await resolveLocalAppUserDataArguments({
-        authorizationId: run.authorizationId,
-        homeDirectory: this.homeDirectory,
-      });
+    const userDataArguments = await resolveLocalAppUserDataArguments({
+      authorizationId: run.authorizationId,
+      homeDirectory: this.homeDirectory,
+    });
     setRunState(run, 'starting', 'Starting the supervised Electron host', undefined, false);
     const outcome = await this.control.launch({
       authorizationId: run.authorizationId,
@@ -511,7 +504,6 @@ class ElectronLocalDevelopmentHost {
       hostArguments: resolveLocalDevelopmentElectronHostArguments({
         mainEntry,
         rendererOrigin: run.plan.rendererOrigin,
-        observationArguments,
         userDataArguments,
       }),
       workingDirectory: run.plan.projectRoot,

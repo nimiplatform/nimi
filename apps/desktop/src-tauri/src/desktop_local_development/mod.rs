@@ -51,18 +51,6 @@ const AUTHORITY_SUMMARY_RELATIVE_PATH: &[&str] = &[
 const INITIAL_AUTHORITY_RETRY_INTERVAL: Duration = Duration::from_millis(750);
 const MAX_RECENT_FAILURES: usize = 20;
 
-#[cfg(feature = "protected-local-e2e-fixture")]
-fn report_windows_e2e_local_development(stage: &str, reason_code: Option<&str>) {
-    eprintln!(
-        "[desktop local-development protected-local-e2e-fixture] stage={} reason_code={}",
-        stage,
-        reason_code.unwrap_or("none")
-    );
-}
-
-#[cfg(not(feature = "protected-local-e2e-fixture"))]
-fn report_windows_e2e_local_development(_: &str, _: Option<&str>) {}
-
 #[derive(Clone)]
 pub(crate) struct DesktopLocalDevelopmentRuntime {
     inner: Arc<RuntimeInner>,
@@ -208,10 +196,6 @@ impl DesktopLocalDevelopmentRuntime {
         }
         let daemon = runtime_bridge::current_daemon_status_async().await;
         if !daemon.running {
-            report_windows_e2e_local_development(
-                "daemon-preflight-unavailable",
-                Some("runtime-service-unavailable"),
-            );
             run.fail("runtime-unavailable", "runtime-service-unavailable", true)
                 .await;
             return InitialAuthorityResolution::Retryable;
@@ -227,10 +211,6 @@ impl DesktopLocalDevelopmentRuntime {
         let evaluation = match evaluation {
             Ok(value) => value,
             Err(error) => {
-                report_windows_e2e_local_development(
-                    "evaluation-error",
-                    Some(error.reason_code().as_str()),
-                );
                 let reason = error.reason_code().as_str();
                 if initial_authority_retryable(reason) {
                     if reason == "principal-unauthorized" {
@@ -250,7 +230,6 @@ impl DesktopLocalDevelopmentRuntime {
                 return InitialAuthorityResolution::Settled;
             }
         };
-        report_windows_e2e_local_development("evaluation-succeeded", None);
         if !evaluation_matches_plan(&evaluation.project, &run.plan) {
             run.fail(
                 "project-changed",

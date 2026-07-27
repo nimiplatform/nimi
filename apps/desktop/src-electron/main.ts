@@ -21,13 +21,12 @@ import {
   type DesktopElectronLocalDevelopmentHost,
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
-import { createDevKernelExternalUrlCapture } from './dev-kernel-external-url-capture.js';
 import {
   createDesktopElectronOpenIntentHost,
   DESKTOP_OPEN_INTENT_EVENT,
   type DesktopElectronOpenIntentHost,
 } from './desktop-open-intent-host.js';
-import { assertMacOSDesktopAcceptanceProfile } from './macos-desktop-acceptance.js';
+import { assertMacOSElectronSecurity } from './macos-electron-security.js';
 import {
   createDesktopElectronBundledAvatarHost,
   type DesktopElectronBundledAvatarHost,
@@ -91,7 +90,6 @@ let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
-const devKernelExternalUrlCapture = createDevKernelExternalUrlCapture();
 
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
 configureDesktopElectronChromiumRuntime();
@@ -227,12 +225,9 @@ function desktopBootstrapFailureCode(error: unknown): string {
 
 function configureDesktopElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
-  assertMacOSDesktopAcceptanceProfile({
+  assertMacOSElectronSecurity({
     platform: process.platform,
-    macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
     commandLine: app.commandLine,
-    argv: process.argv,
-    env: process.env,
   });
 }
 
@@ -444,9 +439,6 @@ function createDesktopProductControlDataRootResolver(
 }
 
 async function openDesktopExternalUrl(url: string): Promise<void> {
-  if (await devKernelExternalUrlCapture.capture(url)) {
-    return;
-  }
   await shell.openExternal(url);
 }
 

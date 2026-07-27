@@ -141,32 +141,19 @@ pub(super) fn normalize_origin(url: &Url) -> Result<String, String> {
 }
 
 pub(super) fn allowed_http_origins() -> HashSet<String> {
-    let mut candidates = vec![
+    let candidates = vec![
         env_value("NIMI_REALM_URL", "http://localhost:3002"),
         "http://localhost".to_string(),
         "http://127.0.0.1".to_string(),
         "http://localhost:3002".to_string(),
         "http://127.0.0.1:3002".to_string(),
     ];
-    if let Ok(Some(defaults)) = crate::desktop_e2e_fixture::runtime_defaults_override() {
-        candidates.push(defaults.realm.realm_base_url);
-        candidates.push(defaults.realm.jwks_url);
-        candidates.push(defaults.realm.revocation_url);
-        candidates.push(defaults.realm.jwt_issuer);
-    }
 
     admitted_origins_from_urls(candidates)
 }
 
 pub(super) fn realm_http_origins() -> HashSet<String> {
-    let mut candidates = vec![env_value("NIMI_REALM_URL", "http://localhost:3002")];
-    if let Ok(Some(defaults)) = crate::desktop_e2e_fixture::runtime_defaults_override() {
-        candidates.push(defaults.realm.realm_base_url);
-        candidates.push(defaults.realm.jwks_url);
-        candidates.push(defaults.realm.revocation_url);
-        candidates.push(defaults.realm.jwt_issuer);
-    }
-    admitted_origins_from_urls(candidates)
+    admitted_origins_from_urls(vec![env_value("NIMI_REALM_URL", "http://localhost:3002")])
 }
 
 pub(super) fn http_send_failure_error(origin: &str, message: impl AsRef<str>) -> String {

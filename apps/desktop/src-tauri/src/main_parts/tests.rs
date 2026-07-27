@@ -42,7 +42,6 @@ fn allowed_http_origins_does_not_admit_retired_local_provider_env() {
     with_env(
         &[
             ("NIMI_REALM_URL", Some("https://gateway.nimi.ai/v1")),
-            ("NIMI_E2E_FIXTURE_PATH", None),
             (
                 "NIMI_LOCAL_PROVIDER_ENDPOINT",
                 Some("http://127.0.0.1:1234/v1"),
@@ -59,55 +58,6 @@ fn allowed_http_origins_does_not_admit_retired_local_provider_env() {
             assert!(!origins.contains("http://localhost:1234"));
         },
     );
-}
-
-#[test]
-fn allowed_http_origins_contains_e2e_fixture_runtime_defaults() {
-    let fixture_path = std::env::temp_dir().join(format!(
-        "nimi-desktop-test-e2e-runtime-defaults-{}.json",
-        std::process::id()
-    ));
-    fs::write(
-        &fixture_path,
-        r#"{
-          "tauriFixture": {
-            "runtimeDefaults": {
-              "realm": {
-                "realmBaseUrl": "http://127.0.0.1:45115",
-                "realtimeUrl": "http://127.0.0.1:45115",
-                "accessToken": "fixture-token",
-                "jwksUrl": "http://127.0.0.1:45115/api/auth/jwks",
-                "revocationUrl": "http://127.0.0.1:45115/api/auth/sessions/introspect",
-                "jwtIssuer": "http://127.0.0.1:45115",
-                "jwtAudience": "nimi-runtime"
-              },
-              "runtime": {
-                "targetType": "",
-                "targetAccountId": "",
-                "agentId": "agent-e2e-alpha",
-                "worldId": "world-e2e-1",
-                "userConfirmedUpload": false
-              }
-            }
-          }
-        }"#,
-    )
-    .expect("write fixture manifest");
-
-    let fixture_path_text = fixture_path.to_string_lossy().to_string();
-    with_env(
-        &[
-            ("NIMI_E2E_FIXTURE_PATH", Some(fixture_path_text.as_str())),
-            ("NIMI_REALM_URL", Some("http://localhost:3002")),
-        ],
-        || {
-            let origins = allowed_http_origins();
-            assert!(origins.contains("http://127.0.0.1:45115"));
-            assert!(origins.contains("http://localhost:45115"));
-        },
-    );
-
-    fs::remove_file(&fixture_path).expect("remove fixture manifest");
 }
 
 #[test]
@@ -314,33 +264,26 @@ fn connector_auth_acquisition_policy_only_allows_exact_profile_endpoints() {
 
 #[test]
 fn http_request_rejects_unadmitted_https_before_network() {
-    with_env(
-        &[
-            ("NIMI_REALM_URL", Some("http://localhost:3002")),
-            ("NIMI_E2E_FIXTURE_PATH", None),
-        ],
-        || {
-            run_async(async {
-                let result =
-                    super::defaults_and_commands::http_request(super::HttpRequestPayload {
-                        url: "https://api.third-party.example/v1/data".to_string(),
-                        method: Some("GET".to_string()),
-                        headers: None,
-                        body: None,
-                        diagnostic_session_id: None,
-                        connector_auth_profile_id: None,
-                        connector_auth_purpose: None,
-                    })
-                    .await;
+    with_env(&[("NIMI_REALM_URL", Some("http://localhost:3002"))], || {
+        run_async(async {
+            let result = super::defaults_and_commands::http_request(super::HttpRequestPayload {
+                url: "https://api.third-party.example/v1/data".to_string(),
+                method: Some("GET".to_string()),
+                headers: None,
+                body: None,
+                diagnostic_session_id: None,
+                connector_auth_profile_id: None,
+                connector_auth_purpose: None,
+            })
+            .await;
 
-                let error = result.expect_err("request should fail before network dispatch");
-                assert!(
-                    error.contains("Desktop shell network admission"),
-                    "expected shell network admission block, got {error}"
-                );
-            });
-        },
-    );
+            let error = result.expect_err("request should fail before network dispatch");
+            assert!(
+                error.contains("Desktop shell network admission"),
+                "expected shell network admission block, got {error}"
+            );
+        });
+    });
 }
 
 #[test]
@@ -363,22 +306,16 @@ fn http_request_payload_rejects_renderer_authorization_field() {
 
 #[test]
 fn http_send_failure_error_classifies_realm_origin_as_realm_unavailable() {
-    with_env(
-        &[
-            ("NIMI_REALM_URL", Some("http://localhost:3002")),
-            ("NIMI_E2E_FIXTURE_PATH", None),
-        ],
-        || {
-            let error = super::env_http::http_send_failure_error(
-                "http://127.0.0.1:3002",
-                "Realm service is unavailable: connection refused",
-            );
-            let payload: Value = serde_json::from_str(&error).expect("structured bridge error");
-            assert_eq!(payload["reasonCode"], "REALM_UNAVAILABLE");
-            assert_eq!(payload["actionHint"], "check_realm_service_status");
-            assert_eq!(payload["retryable"], true);
-        },
-    );
+    with_env(&[("NIMI_REALM_URL", Some("http://localhost:3002"))], || {
+        let error = super::env_http::http_send_failure_error(
+            "http://127.0.0.1:3002",
+            "Realm service is unavailable: connection refused",
+        );
+        let payload: Value = serde_json::from_str(&error).expect("structured bridge error");
+        assert_eq!(payload["reasonCode"], "REALM_UNAVAILABLE");
+        assert_eq!(payload["actionHint"], "check_realm_service_status");
+        assert_eq!(payload["retryable"], true);
+    });
 }
 
 #[test]

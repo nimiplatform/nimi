@@ -299,14 +299,7 @@ pub async fn account_default_profile_for_scope_init(
 pub async fn built_in_ai_config_for_scope_init(
     payload: ProductBuiltInAiConfigScopePayload,
 ) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigForScopeInit, String> {
-    let result = read_built_in_ai_config_for_scope_init(&payload.surface_id).await;
-    if let Err(error) = &result {
-        crate::desktop_e2e_fixture::append_backend_log_message(&format!(
-            "built_in_ai_config_for_scope_init failed surface_id={} error={}",
-            payload.surface_id, error
-        ));
-    }
-    result
+    read_built_in_ai_config_for_scope_init(&payload.surface_id).await
 }
 
 #[cfg(test)]
@@ -375,16 +368,14 @@ mod tests {
             ProductControlState::RepairRequired,
             ProductControlState::Blocked,
         ] {
-            let mut projection =
-                selected_projection(&data_root, ProductDataRootStatus::Selected);
+            let mut projection = selected_projection(&data_root, ProductDataRootStatus::Selected);
             projection.state = state;
             let error = nimi_data_root_from_projection(&projection)
                 .expect_err("unusable projection state must fail closed");
             assert!(error.contains("forbids Desktop data-root use"));
         }
 
-        let mut inconsistent =
-            selected_projection(&data_root, ProductDataRootStatus::Selected);
+        let mut inconsistent = selected_projection(&data_root, ProductDataRootStatus::Selected);
         inconsistent.state = ProductControlState::ReadyForUse;
         let error = nimi_data_root_from_projection(&inconsistent)
             .expect_err("ready state with selected status must fail closed");

@@ -46,38 +46,8 @@ fn install_shared_runtime_bridge_hooks() {
         device_id: desktop_account_caller.device_id.clone(),
     };
     let hooks = RuntimeBridgeHostHooks {
-        status_override: {
-            #[cfg(any(test, feature = "desktop-e2e-fixture"))]
-            {
-                Some(Arc::new(|| {
-                    crate::desktop_e2e_fixture::runtime_bridge_status_override()
-                }))
-            }
-            #[cfg(not(any(test, feature = "desktop-e2e-fixture")))]
-            {
-                None
-            }
-        },
-        #[cfg(feature = "desktop-e2e-fixture")]
-        account_status_override: Some(Arc::new(|| {
-            crate::desktop_e2e_fixture::runtime_account_session_status_override()
-        })),
-        #[cfg(feature = "desktop-e2e-fixture")]
-        account_events_open_override: Some(Arc::new(|payload| {
-            crate::desktop_e2e_fixture::runtime_account_session_events_open_override(payload)
-        })),
-        unary_override: {
-            #[cfg(any(test, feature = "desktop-e2e-fixture"))]
-            {
-                Some(Arc::new(|payload| {
-                    crate::desktop_e2e_fixture::runtime_bridge_unary_override(payload)
-                }))
-            }
-            #[cfg(not(any(test, feature = "desktop-e2e-fixture")))]
-            {
-                None
-            }
-        },
+        status_override: None,
+        unary_override: None,
         trusted_metadata: Some(Arc::new(move |request| {
             let desktop_account_caller = desktop_account_caller.clone();
             Box::pin(resolve_desktop_runtime_trusted_metadata(

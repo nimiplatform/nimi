@@ -10,7 +10,6 @@ import {
 } from '../../../scripts/lib/windows-dev-signing.mjs';
 import {
   resolveDesktopDevObservationArguments,
-  resolveMacOSDesktopAcceptanceEnvironment,
   resolvePersistentDesktopDevProfile,
   resolveSignedDesktopDevCarrier,
 } from './lib/electron-dev-carrier.mjs';
@@ -133,17 +132,11 @@ async function runMacOSDesktopDev() {
     });
     const macOSProfileRoot = path.join(workspaceRoot, '.nimi', 'local', 'dev-profiles', 'macos-desktop');
     mkdirSync(macOSProfileRoot, { recursive: true });
-    const acceptanceEnvironment = resolveMacOSDesktopAcceptanceEnvironment({
-      env: process.env,
-      workspaceRoot,
-    });
-    const desktopUserDataRoot = acceptanceEnvironment.NIMI_MACOS_DEV_ACCEPTANCE_DESKTOP_USER_DATA_ROOT
-      || macOSProfileRoot;
     spawnRenderer();
     await waitForUrl('http://127.0.0.1:1420', 45_000);
     const electron = spawnTracked(electronBin, [
       ...resolveDesktopDevObservationArguments(),
-      `--user-data-dir=${desktopUserDataRoot}`,
+      `--user-data-dir=${macOSProfileRoot}`,
     ], {
       stdio: 'inherit',
       env: {
@@ -151,7 +144,6 @@ async function runMacOSDesktopDev() {
         LANG: process.env.LANG || 'en_US.UTF-8',
         PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
         TMPDIR: process.env.TMPDIR || '/private/tmp',
-        ...acceptanceEnvironment,
       },
     });
     const exitCode = await waitForExit(electron);

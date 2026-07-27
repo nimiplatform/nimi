@@ -10,10 +10,6 @@ function readRendererFile(relativePath: string): string {
   );
 }
 
-function readDesktopFile(relativePath: string): string {
-  return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
-}
-
 const explorePanelSource = readRendererFile('features/explore/explore-panel.tsx');
 const realmExploreDataSource = readRendererFile('features/explore/data/realm-explore-data.ts');
 const exploreViewSource = readRendererFile('features/explore/explore-view.tsx');
@@ -37,7 +33,6 @@ const worldDetailTemplateSource = [
   'features/world/world-detail-template-model.ts',
 ].map(readRendererFile).join('\n');
 const personaSourceCardSource = readRendererFile('features/explore/explore-persona-source-card.tsx');
-const e2eRegistrySource = readDesktopFile('e2e/helpers/registry.mjs');
 const worldLocaleEnSource = readRendererFile('locales/en/15-World.json');
 const worldLocaleZhSource = readRendererFile('locales/zh/15-World.json');
 const worldDetailLocaleEnSource = readRendererFile('locales/en/41-WorldDetail.json');
@@ -159,8 +154,4 @@ test('World product data adapters do not keep raw WorldCore or transit-era fallb
   assert.doesNotMatch(productDataSources, /requireWorldCoreDto|requireWorldCharacterCoreDto|projectWorldCore|projectWorldCharacter/);
   assert.doesNotMatch(productDataSources, /WorldCore payload|WorldCharacterCore payload|WorldCoreV1 hash|WorldCoreV1 origin/);
   assert.doesNotMatch(productDataSources, /\btransitInLimit\b/);
-});
-
-test('World Tour is not a registered ordinary E2E journey', () => {
-  assert.doesNotMatch(e2eRegistrySource, /world-tour/);
 });

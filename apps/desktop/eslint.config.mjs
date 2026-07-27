@@ -12,14 +12,6 @@ const browserNodeGlobals = {
   ...nodeGlobals,
 };
 
-const wdioGlobals = {
-  ...browserNodeGlobals,
-  ...globals.mocha,
-  browser: 'readonly',
-  $: 'readonly',
-  $$: 'readonly',
-};
-
 export default defineConfig([
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -98,26 +90,6 @@ export default defineConfig([
     },
     rules: {
       'no-redeclare': 'off',
-    },
-  },
-  {
-    files: ['wdio.conf.mjs'],
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        ...wdioGlobals,
-      },
-    },
-  },
-  {
-    files: ['e2e/**/*.mjs'],
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        ...wdioGlobals,
-      },
     },
   },
   {

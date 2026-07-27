@@ -54,9 +54,6 @@ fn allow_http_request_origin(origin: &str) -> bool {
 
 #[tauri::command]
 pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
-    if let Some(override_defaults) = crate::desktop_e2e_fixture::runtime_defaults_override()? {
-        return Ok(override_defaults);
-    }
     let defaults = nimi_shell_tauri::capabilities::runtime_defaults::runtime_defaults();
 
     #[cfg(debug_assertions)]

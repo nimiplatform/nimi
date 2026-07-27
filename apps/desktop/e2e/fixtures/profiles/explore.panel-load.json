@@ -1,4 +1,0 @@
-{
-  "extends": "_authenticated-base.json",
-  "scenarioId": "explore.panel-load"
-}

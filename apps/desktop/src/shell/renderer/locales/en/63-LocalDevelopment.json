@@ -2,7 +2,7 @@
   "trustClass": "Local development",
   "approval": {
     "title": "Allow this development project?",
-    "subtitle": "Nimi Desktop will supervise this project's build, dev server, and native host. Project approval does not grant access to protected Nimi resources.",
+    "subtitle": "Nimi will supervise this project's build, dev server, and native host. Project approval does not grant access to protected Nimi resources.",
     "warning": "Only approve a project you are actively developing. This authorization cannot become a store listing or production release.",
     "nativeRiskAcknowledgement": "I understand this project can build and run native Windows code with my user privileges. I have reviewed and trust this exact project root.",
     "queue": "{{count}} development requests are waiting."

@@ -7,7 +7,6 @@ mod account_profile_library_files;
 mod chat_ai_store;
 mod desktop_ai_config_library;
 mod desktop_avatar_instance_registry;
-mod desktop_e2e_fixture;
 mod desktop_local_development;
 mod desktop_logs_export;
 mod desktop_open_intent;
@@ -26,8 +25,6 @@ mod menu_bar_shell;
 mod nimi_data_directory;
 #[cfg(test)]
 mod test_support;
-
-pub(crate) use main_parts::RuntimeDefaults;
 
 fn main() {
     main_parts::run();

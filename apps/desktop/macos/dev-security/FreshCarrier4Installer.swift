@@ -112,7 +112,7 @@ func verifyFreshCarrier4Candidate(root: URL) throws -> [String: Any] {
     guard canonical.path == root.standardizedFileURL.path, canonical.path.hasPrefix("/"), canonical.path != "/" else {
         throw freshFail("dev-candidate-path-untrusted", "use_a_canonical_candidate_directory", "Candidate root must be an absolute canonical directory without symlink resolution.")
     }
-    try freshRequireExactDirectory(root,entries:["Nimi Dev.app","installer","launchd","layout-manifest.json","runtime","signing-profile.json","trust"])
+    try freshRequireExactDirectory(root,entries:["Nimi Dev.app","installer","launchd","runtime","signing-profile.json","trust"])
     try freshRequireExactDirectory(root.appendingPathComponent("installer"),entries:["nimi-macos-dev-security"])
     try freshRequireExactDirectory(root.appendingPathComponent("launchd"),entries:["ai.nimi.runtime.dev.plist"])
     try freshRequireExactDirectory(root.appendingPathComponent("runtime"),entries:["bin"])

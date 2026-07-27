@@ -31,7 +31,7 @@ function DesktopMainSurface(props: {
         data-nimi-semantic-id="desktop-main-root"
         id={props.bindings.scope.domId('main-root')}
         role="region"
-        aria-label="Nimi Desktop"
+        aria-label="Nimi"
       >
         {localizationReady ? (
           <DesktopRendererBindingProvider bindings={props.bindings}>

@@ -20,6 +20,9 @@ const workspaceRoot = path.resolve(appRoot, '../..');
 if (process.platform !== 'win32' || process.arch !== 'x64') {
   throw new Error(`signed Desktop Electron runtime is not admitted for ${process.platform}/${process.arch}`);
 }
+if (process.argv.length > 2) {
+  throw new Error('prepare-signed-electron-runtime does not accept command-line arguments');
+}
 
 const electronExecutable = path.resolve(require('electron'));
 const electronRuntimeRoot = path.dirname(electronExecutable);
@@ -28,13 +31,12 @@ if (!electronVersion || !existsSync(electronExecutable)) {
   throw new Error('Electron runtime package is incomplete');
 }
 
-const e2eFixture = process.argv.slice(2).includes('--e2e-fixture');
 const candidateRoot = path.resolve(
   workspaceRoot,
   '.nimi',
   'local',
   'electron-desktop-runtime',
-  e2eFixture ? `${electronVersion}-e2e` : electronVersion,
+  electronVersion,
 );
 const stagingRoot = path.join(
   path.dirname(candidateRoot),
@@ -45,9 +47,7 @@ if (!candidateRoot.startsWith(admittedLocalRoot)) {
   throw new Error(`refusing to prepare Electron runtime outside .nimi/local: ${candidateRoot}`);
 }
 
-const roleExecutableName = e2eFixture
-  ? 'nimiplatform-desktop-dev-run.exe'
-  : 'Nimi Desktop Runtime.exe';
+const roleExecutableName = 'Nimi Desktop Runtime.exe';
 rmSync(stagingRoot, { recursive: true, force: true });
 mkdirSync(stagingRoot, { recursive: true });
 let desktopExecutable;
@@ -83,5 +83,5 @@ process.stdout.write(`${JSON.stringify({
   executablePath: desktopExecutable,
   signerCertificateSha256: signed.certificateSha256,
   nonProductCandidate: true,
-  protectedRuntimeProfile: e2eFixture ? 'windows-e2e-v1' : 'windows-production-v1',
+  protectedRuntimeProfile: 'windows-production-v1',
 }, null, 2)}\n`);

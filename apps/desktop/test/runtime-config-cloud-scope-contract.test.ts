@@ -14,7 +14,6 @@ const cloudConnectorListSource = readWorkspaceFile('src/shell/renderer/features/
 const cloudPrimitivesSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud-primitives.tsx');
 const runtimeConfigPrimitivesSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
-const e2eSelectorsSource = readWorkspaceFile('e2e/helpers/selectors.mjs');
 
 test('runtime config cloud scope contract: anonymous drafts default to machine-global connectors', () => {
   assert.match(
@@ -38,10 +37,6 @@ test('runtime config cloud scope contract: connector scope badges expose stable 
   assert.match(
     e2eIdsSource,
     /runtimeConnectorScopeBadge: \(connectorId: string\) => `runtime-connector-scope-badge:\$\{connectorId\}`,/,
-  );
-  assert.match(
-    e2eSelectorsSource,
-    /runtimeConnectorScopeBadge: \(connectorId\) => `runtime-connector-scope-badge:\$\{connectorId\}`,/,
   );
   assert.match(cloudConnectorListSource, /data-testid=\{E2E_IDS\.runtimeConnectorScopeBadge\(connector\.id\)\}/);
   assert.match(cloudConnectorListSource, /runtimeConfig\.cloud\.machineGlobal/);

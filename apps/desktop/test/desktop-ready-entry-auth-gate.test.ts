@@ -18,10 +18,6 @@ const uiSliceSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/app-shell/providers/ui-slice.ts'),
   'utf8',
 );
-const anonymousE2eSource = readFileSync(
-  resolve(import.meta.dirname, '../e2e/specs/boot.anonymous.login-screen.e2e.mjs'),
-  'utf8',
-);
 const productControlBridgeSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
   'utf8',
@@ -440,12 +436,6 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
     error: null,
   };
   assert.equal(deriveOrdinaryShellAdmission(backendReady), 'ready');
-});
-
-test('Gate 7: anonymous E2E rejects ordinary chat shell', () => {
-  assert.match(anonymousE2eSource, /boots into login without rendering ordinary shell/);
-  assert.doesNotMatch(anonymousE2eSource, /await waitForTestId\(E2E_IDS\.mainShell\)/);
-  assert.doesNotMatch(anonymousE2eSource, /await waitForTestId\(E2E_IDS\.panel\('chat'\)\)/);
 });
 
 test('Wave 1 route-admission single-point: LoginPage and ProductControlWorkflow never render <Navigate>', () => {

@@ -4,11 +4,8 @@ import { app } from 'electron';
 
 import { resolveMacOSLocalAppHostLaunch } from './contract.mjs';
 
-const MACOS_LOCAL_DEVELOPMENT_ACCEPTANCE_BUILD = false;
-
 try {
   const launch = resolveMacOSLocalAppHostLaunch({
-    acceptanceBuild: MACOS_LOCAL_DEVELOPMENT_ACCEPTANCE_BUILD,
     argv: process.argv,
     executable: process.execPath,
     homeDirectory: process.env.HOME,

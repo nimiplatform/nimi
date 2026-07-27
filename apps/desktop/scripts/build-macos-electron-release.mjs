@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { createHash, createPublicKey } from 'node:crypto';
-import { cp, chmod, lstat, mkdir, mkdtemp, readFile, readdir, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { createPublicKey } from 'node:crypto';
+import { cp, chmod, lstat, mkdir, mkdtemp, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,7 +18,6 @@ import {
   inspectSignedMacOSCode,
   requireMacOSSigningIdentity,
   runReleaseCommand,
-  sha256File,
   signMacOSReleaseRecord,
   verifySignedMacOSApplication,
   verifySignedMacOSInstaller,
@@ -94,35 +93,10 @@ try {
     if (localDevelopment) {
       await finalizeMacOSLocalDevelopmentCandidate({ candidateRoot, trust: localDevelopmentTrust, sourceRoot, outputName });
     }
-    await writeManifest(path.join(candidateRoot, 'layout-manifest.json'), {
-      acceptanceEligible: false,
-      architecture: 'arm64',
-      compileTimeProfile: localDevelopment ? 'macos_local_development_v1' : 'production_fail_closed_layout',
-      desktopApplicationTreeSha256: localDevelopment
-        ? await applicationTreeSha256(path.join(candidateRoot, 'Nimi Dev.app'))
-        : undefined,
-      electronVersion,
-      launchDaemonSha256: localDevelopment
-        ? await sha256File(path.join(candidateRoot, 'launchd', 'ai.nimi.runtime.dev.plist'))
-        : undefined,
-      posture: localDevelopment
-        ? 'signed_local_development_candidate_pending_independent_verifier'
-        : 'requirements_only_fail_closed_unsigned_unnotarized_layout',
-      productionRoleRecords: false,
-      releaseRootKeyId: localDevelopmentTrust?.rootKeyId,
-      runtimeSha256: localDevelopment ? await sha256File(path.join(sourceRoot, 'nimi-runtime')) : undefined,
-      schemaVersion: localDevelopment ? 'nimi.macos-local-development-candidate/v1' : 'nimi.macos-electron-layout/v1',
-      version,
-    });
     await chmod(candidateRoot, 0o700);
     await rename(candidateRoot, outputRoot);
     completed = true;
-    process.stdout.write(`${JSON.stringify({
-      outputRoot,
-      posture: localDevelopment
-        ? 'signed_local_development_candidate_pending_independent_verifier'
-        : 'requirements_only_fail_closed_unsigned_unnotarized_layout',
-    })}\n`);
+    process.stdout.write(`macOS Electron output: ${outputRoot}\n`);
   } else {
     await signMacOSApplication(desktopApp, release, {
       ignore: (candidate) => candidate === embeddedLocalHost || candidate.startsWith(`${embeddedLocalHost}${path.sep}`),
@@ -142,30 +116,9 @@ try {
     });
     await notarizeAndStaple(pkgPath, release);
     verifySignedMacOSInstaller(pkgPath);
-    const evidence = {
-      acceptanceEligible: false,
-      architecture: 'arm64',
-      buildId: release.buildId,
-      electronVersion,
-      packageSha256: await sha256File(pkgPath),
-      posture: 'signed_notarized_candidate_pending_installed_live_admission',
-      releaseId: release.releaseId,
-      roleRecords: Object.fromEntries(records.map((row) => [row.role.executableRole, {
-        artifactSha256: row.record.record.artifact_sha256,
-        cdhash: row.record.record.macos_cdhash,
-        designatedRequirement: row.record.record.macos_designated_requirement,
-        generation: row.record.record.generation,
-        recordSha256: row.recordSha256,
-        signingIdentifier: row.role.signingIdentifier,
-        teamId: row.record.record.macos_team_id,
-      }])),
-      schemaVersion: 'nimi.macos-electron-release-evidence/v1',
-      version,
-    };
-    await writeManifest(path.join(candidateRoot, 'release-evidence.json'), evidence);
     await rename(candidateRoot, outputRoot);
     completed = true;
-    process.stdout.write(`${JSON.stringify({ outputRoot, posture: evidence.posture })}\n`);
+    process.stdout.write(`macOS Electron release output: ${outputRoot}\n`);
   }
 } finally {
   await rm(transactionRoot, { recursive: true, force: true });
@@ -255,15 +208,9 @@ async function packageLocalAppHost(input) {
   const source = path.join(input.sourceRoot, 'local-app-host');
   await mkdir(source, { recursive: true });
   const mainSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'main.mjs'), 'utf8');
-  const acceptanceBuildLiteral = 'const MACOS_LOCAL_DEVELOPMENT_ACCEPTANCE_BUILD = false;';
-  if (mainSource.split(acceptanceBuildLiteral).length - 1 !== 1) {
-    throw new Error('macOS local-app host acceptance build contract is ambiguous');
-  }
   await writeFile(
     path.join(source, 'main.mjs'),
-    input.localDevelopment
-      ? mainSource.replace(acceptanceBuildLiteral, 'const MACOS_LOCAL_DEVELOPMENT_ACCEPTANCE_BUILD = true;')
-      : mainSource,
+    mainSource,
     { encoding: 'utf8', flag: 'wx', mode: 0o644 },
   );
   const contractSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'contract.mjs'), 'utf8');
@@ -462,7 +409,7 @@ async function emitRoleRecords(recordRoot, rolePaths, releaseInput) {
     }
     const recordPath = path.join(recordRoot, role.recordFilename);
     await writeFile(recordPath, record.encoded, { encoding: 'utf8', flag: 'wx', mode: 0o644 });
-    rows.push(Object.freeze({ record, recordPath, recordSha256: await sha256File(recordPath), role }));
+    rows.push(Object.freeze({ record, recordPath, role }));
   }
   return rows;
 }
@@ -630,42 +577,6 @@ async function assertAbsent(candidate) {
 async function requireDirectory(candidate) {
   const metadata = await stat(candidate);
   if (!metadata.isDirectory()) throw new Error(`required release directory is missing: ${candidate}`);
-}
-
-async function applicationTreeSha256(root) {
-  const rows = [];
-  async function visit(directory, prefix = '') {
-    const names = await readdir(directory);
-    names.sort((left, right) => Buffer.from(left).compare(Buffer.from(right)));
-    for (const name of names) {
-      if (!name || name.includes('\0') || name.includes('/')) throw new Error('macOS application tree contains an invalid entry name');
-      const relative = prefix ? `${prefix}/${name}` : name;
-      const absolute = path.join(directory, name);
-      const metadata = await lstat(absolute);
-      if (metadata.isDirectory()) {
-        rows.push({ kind: 'directory', relative, value: '' });
-        await visit(absolute, relative);
-      } else if (metadata.isFile()) {
-        rows.push({ kind: 'file', relative, value: await sha256File(absolute) });
-      } else if (metadata.isSymbolicLink()) {
-        rows.push({ kind: 'symlink', relative, value: await readlink(absolute, 'utf8') });
-      } else {
-        throw new Error(`macOS application tree contains a forbidden filesystem node: ${relative}`);
-      }
-    }
-  }
-  await visit(root);
-  rows.sort((left, right) => Buffer.from(left.relative).compare(Buffer.from(right.relative)));
-  const digest = createHash('sha256');
-  for (const row of rows) {
-    digest.update(row.kind, 'utf8');
-    digest.update(Buffer.from([0]));
-    digest.update(row.relative, 'utf8');
-    digest.update(Buffer.from([0]));
-    digest.update(row.value, 'utf8');
-    digest.update(Buffer.from([0]));
-  }
-  return digest.digest('hex');
 }
 
 async function writeManifest(file, value) {

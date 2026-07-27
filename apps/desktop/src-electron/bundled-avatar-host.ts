@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
-import { appendFile, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import {
   BrowserWindow,
   screen,
@@ -243,14 +243,6 @@ export async function createDesktopElectronBundledAvatarHost(
         scaleFactor: display.scaleFactor || 1,
       };
     },
-    nimi_avatar_record_evidence: async ({ payload }) => recordEvidence(
-      await resolveAppPrivateDataRoot(),
-      exactNestedPayload(payload, 'nimi_avatar_record_evidence'),
-    ),
-    nimi_avatar_write_evidence_artifact: async ({ payload }) => writeEvidenceArtifact(
-      await resolveAppPrivateDataRoot(),
-      exactNestedPayload(payload, 'nimi_avatar_write_evidence_artifact'),
-    ),
   };
 
   const runtimeBridgeHost: NimiElectronBundledAvatarHost = {
@@ -401,46 +393,6 @@ function constrainFloatingWindow(
   const constrained = x !== bounds.x || y !== bounds.y;
   if (constrained) window.setBounds({ ...bounds, x, y });
   return { constrained };
-}
-
-async function recordEvidence(
-  dataRoot: string,
-  payload: Readonly<Record<string, unknown>>,
-): Promise<Readonly<Record<string, unknown>>> {
-  const kind = requiredText(payload.kind, 'kind');
-  const evidenceDir = path.join(dataRoot, 'evidence');
-  await mkdir(evidenceDir, { recursive: true });
-  const artifactPath = path.join(evidenceDir, 'avatar-electron-evidence.jsonl');
-  const record = {
-    ...payload,
-    kind,
-    recordedAt: normalizeText(payload.recordedAt) || new Date().toISOString(),
-    electron: true,
-  };
-  const line = `${JSON.stringify(record)}\n`;
-  if (Buffer.byteLength(line) > 1_000_000) throw new Error('avatar-evidence-record-too-large');
-  await appendFile(artifactPath, line, 'utf8');
-  return { artifactPath, artifactMimeType: 'application/x-ndjson', artifactByteLength: Buffer.byteLength(line) };
-}
-
-async function writeEvidenceArtifact(
-  dataRoot: string,
-  payload: Readonly<Record<string, unknown>>,
-): Promise<Readonly<Record<string, unknown>>> {
-  const artifactId = requiredText(payload.artifactId, 'artifactId');
-  if (!/^[A-Za-z0-9._-]+$/u.test(artifactId) || artifactId.includes('..')) {
-    throw new Error('avatar-evidence-artifact-id-invalid');
-  }
-  const dataUrl = requiredText(payload.dataUrl, 'dataUrl');
-  const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/u.exec(dataUrl);
-  if (!match) throw new Error('avatar-evidence-artifact-data-url-invalid');
-  const bytes = Buffer.from(match[2] || '', 'base64');
-  if (bytes.byteLength === 0 || bytes.byteLength > 20_000_000) throw new Error('avatar-evidence-artifact-size-invalid');
-  const artifactDir = path.join(dataRoot, 'evidence', 'artifacts');
-  await mkdir(artifactDir, { recursive: true });
-  const artifactPath = path.join(artifactDir, artifactId);
-  await writeFile(artifactPath, bytes);
-  return { artifactPath, artifactMimeType: match[1], artifactByteLength: bytes.byteLength };
 }
 
 function exactNestedPayload(

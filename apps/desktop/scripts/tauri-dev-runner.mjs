@@ -3,8 +3,6 @@ import { spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { signWindowsDevFiles } from '../../../scripts/lib/windows-dev-signing.mjs';
-
 const DESKTOP_BINARY_NAME = process.platform === 'win32'
   ? 'nimiplatform-desktop.exe'
   : 'nimiplatform-desktop';
@@ -15,8 +13,6 @@ const DESKTOP_REPLACEMENT_MARKER_NAME = '.nimiplatform-desktop-dev-run.replace.j
 const DESKTOP_SPAWN_MAX_ATTEMPTS = 8;
 const DESKTOP_SHUTDOWN_GRACE_MS = 5000;
 const DESKTOP_REPLACEMENT_MARKER_MAX_AGE_MS = 15000;
-const PROTECTED_E2E_FEATURE = 'protected-local-e2e-fixture';
-const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const SIGNAL_EXIT_CODES = new Map([
   ['SIGINT', 130],
   ['SIGTERM', 143],
@@ -73,27 +69,6 @@ function readFlagValue(args, name) {
     }
   }
   return null;
-}
-
-function cargoFeatures(args) {
-  const features = new Set();
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    let raw = null;
-    if (arg === '--features') {
-      raw = args[index + 1] ?? '';
-      index += 1;
-    } else if (arg.startsWith('--features=')) {
-      raw = arg.slice('--features='.length);
-    }
-    if (raw == null) {
-      continue;
-    }
-    for (const feature of raw.split(/[\s,]+/u).filter(Boolean)) {
-      features.add(feature);
-    }
-  }
-  return features;
 }
 
 function resolveDesktopBinary(cargoArgs) {
@@ -337,11 +312,6 @@ for (const signal of SIGNAL_EXIT_CODES.keys()) {
 }
 
 const { cargoArgs, appArgs } = splitRunArgs(rawArgs.slice(1));
-const protectedE2E = cargoFeatures(cargoArgs).has(PROTECTED_E2E_FEATURE);
-if (protectedE2E && !SHA256_PATTERN.test(String(childEnv.NIMI_WINDOWS_E2E_SIGNER_CERT_SHA256 || ''))) {
-  process.stderr.write('[tauri-dev-runner] protected-local-e2e-fixture requires the fixed build-time signer identity\n');
-  process.exit(1);
-}
 const binaryPath = resolveDesktopBinary(cargoArgs);
 const launchBinaryPath = resolveDesktopLaunchBinary(binaryPath);
 const replacementMarkerPath = resolveReplacementMarkerPath(launchBinaryPath);
@@ -369,9 +339,6 @@ if (buildResult.status !== 0) {
 try {
   stopExistingWindowsDevBinary(launchBinaryPath, { replacementMarkerPath });
   copyFileSync(binaryPath, launchBinaryPath);
-  if (protectedE2E) {
-    signWindowsDevFiles([launchBinaryPath], { cwd: process.cwd(), env: childEnv });
-  }
 } catch (error) {
   process.stderr.write(`[tauri-dev-runner] failed to prepare Windows dev binary: ${String(error?.message ?? error)}\n`);
   process.exit(1);

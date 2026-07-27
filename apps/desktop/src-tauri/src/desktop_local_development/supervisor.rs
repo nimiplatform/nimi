@@ -275,8 +275,6 @@ async fn build_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
         .kill_on_drop(true)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    #[cfg(feature = "protected-local-e2e-fixture")]
-    command.args(["--features", "nimi-shell-tauri/windows-e2e-fixture"]);
     let mut child = command
         .spawn()
         .map_err(|_| "local-development-build-failed".to_string())?;
@@ -375,11 +373,10 @@ async fn launch_electron_host(run: Arc<RunContext>) -> Result<(), String> {
         .map_err(|_| "local-development-project-changed".to_string())?;
     ensure_path_within(&run.plan.project_root, &canonical_main)?;
     let electron_main_argument = electron_cli_path(&canonical_main)?;
-    let mut host_arguments = dev_kernel_electron_observation_arguments()?;
-    host_arguments.extend([
+    let host_arguments = vec![
         electron_main_argument,
         format!("--nimi-dev-renderer-url={}", run.plan.renderer_origin),
-    ]);
+    ];
     let authorization_id = run.authorization_id().await?;
     let outcome = runtime_bridge::launch_local_development_host(LocalDevelopmentLaunchRequest {
         authorization_id,
@@ -397,61 +394,6 @@ async fn launch_electron_host(run: Arc<RunContext>) -> Result<(), String> {
         return Err(error);
     }
     run.mark_running(outcome.process_id).await;
-    Ok(())
-}
-
-#[cfg(not(feature = "dev-kernel-checkpoint"))]
-fn dev_kernel_electron_observation_arguments() -> Result<Vec<String>, String> {
-    Ok(Vec::new())
-}
-
-#[cfg(feature = "dev-kernel-checkpoint")]
-fn dev_kernel_electron_observation_arguments() -> Result<Vec<String>, String> {
-    let port = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT")
-        .map_err(|_| "local-development-observation-config-invalid".to_string())?
-        .parse::<u16>()
-        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
-    if port < 1024 {
-        return Err("local-development-observation-config-invalid".to_string());
-    }
-    let trial_root = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ROOT")
-        .map(PathBuf::from)
-        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
-    let user_data_root = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT")
-        .map(PathBuf::from)
-        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
-    let trial_root = std::fs::canonicalize(trial_root)
-        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
-    let user_data_root = std::fs::canonicalize(user_data_root)
-        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
-    ensure_path_within(&trial_root, &user_data_root)?;
-    let agent_id = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID")
-        .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty());
-    if let Some(agent_id) = agent_id.as_deref() {
-        validate_dev_kernel_agent_id(agent_id)?;
-    }
-    let mut arguments = vec![
-        "--remote-debugging-address=127.0.0.1".to_string(),
-        format!("--remote-debugging-port={port}"),
-        format!("--user-data-dir={}", user_data_root.display()),
-    ];
-    if let Some(agent_id) = agent_id {
-        arguments.push(format!("--nimi-dev-agent-id={agent_id}"));
-    }
-    Ok(arguments)
-}
-
-#[cfg(feature = "dev-kernel-checkpoint")]
-fn validate_dev_kernel_agent_id(value: &str) -> Result<(), String> {
-    const PREFIX: &str = "local-agent:runtime-";
-    let suffix = value
-        .strip_prefix(PREFIX)
-        .ok_or_else(|| "local-development-observation-config-invalid".to_string())?;
-    if suffix.len() != 32 || !suffix.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err("local-development-observation-config-invalid".to_string());
-    }
     Ok(())
 }
 

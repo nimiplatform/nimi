@@ -7,8 +7,7 @@ export const MACOS_LOCAL_APP_HOST_EXECUTABLE = '/Applications/Nimi.app/Contents/
 
 export function resolveMacOSLocalAppHostLaunch(input) {
   const argv = Array.isArray(input?.argv) ? input.argv.map(exactText) : fail();
-  const acceptanceBuild = input?.acceptanceBuild === true;
-  if (argv.length !== 4 && (!acceptanceBuild || argv.length !== 7)) fail();
+  if (argv.length !== 4) fail();
   const executable = canonicalFile(exactAbsolute(input?.executable));
   const expectedExecutable = input?.contractTestExpectedExecutable === undefined
     ? MACOS_LOCAL_APP_HOST_EXECUTABLE
@@ -19,12 +18,9 @@ export function resolveMacOSLocalAppHostLaunch(input) {
   const userDataArgument = exactArgument(argv, '--user-data-dir');
   const mainArgument = exactArgument(argv, '--nimi-local-app-main');
   const rendererArgument = exactArgument(argv, '--nimi-dev-renderer-url');
-  const observation = resolveAcceptanceObservation(argv, acceptanceBuild, userDataArgument, input?.uid);
-  if (argv.some((argument) => isForbiddenChromiumArgument(argument, observation.enabled))) fail();
+  if (argv.some(isForbiddenChromiumArgument)) fail();
 
-  const userDataDirectory = observation.enabled
-    ? observation.userDataDirectory
-    : canonicalPrivateUserDataDirectory(userDataArgument, homeDirectory, input?.uid);
+  const userDataDirectory = canonicalPrivateUserDataDirectory(userDataArgument, homeDirectory, input?.uid);
   const expectedMain = path.join(workingDirectory, 'dist-electron', 'main.js');
   const mainEntry = canonicalFile(exactAbsolute(mainArgument));
   if (mainEntry !== expectedMain) fail();
@@ -34,27 +30,7 @@ export function resolveMacOSLocalAppHostLaunch(input) {
     rendererOrigin,
     userDataDirectory,
     workingDirectory,
-    observationPort: observation.enabled ? observation.port : undefined,
   });
-}
-
-function resolveAcceptanceObservation(argv, acceptanceBuild, userDataArgument, rawUID) {
-  const observationArguments = argv.filter((argument) => (
-    argument.startsWith('--remote-debugging-') || argument.startsWith('--nimi-acceptance-root=')
-  ));
-  if (observationArguments.length === 0) return Object.freeze({ enabled: false });
-  if (!acceptanceBuild || observationArguments.length !== 3) fail();
-  if (exactArgument(argv, '--remote-debugging-address') !== '127.0.0.1') fail();
-  const port = Number(exactArgument(argv, '--remote-debugging-port'));
-  if (!Number.isInteger(port) || port < 1024 || port > 65535) fail();
-  const acceptanceRoot = canonicalPrivateDirectory(
-    exactAbsolute(exactArgument(argv, '--nimi-acceptance-root')),
-    rawUID,
-  );
-  const expectedUserData = path.join(acceptanceRoot, 'zhiyu-user-data');
-  const userDataDirectory = canonicalPrivateDirectory(exactAbsolute(userDataArgument), rawUID);
-  if (userDataDirectory !== expectedUserData) fail();
-  return Object.freeze({ enabled: true, port, userDataDirectory });
 }
 
 function canonicalPrivateUserDataDirectory(candidate, homeDirectory, rawUID) {
@@ -71,15 +47,6 @@ function canonicalPrivateUserDataDirectory(candidate, homeDirectory, rawUID) {
     if (!metadata.isDirectory() || metadata.isSymbolicLink() || metadata.uid !== Number(uid)
       || (metadata.mode & 0o077) !== 0 || realpathSync(current) !== current) fail();
   }
-  return canonical;
-}
-
-function canonicalPrivateDirectory(candidate, rawUID) {
-  const uid = rawUID ?? process.getuid?.();
-  if (!Number.isSafeInteger(uid) || Number(uid) < 0) fail();
-  const canonical = canonicalDirectory(candidate);
-  const metadata = lstatSync(canonical);
-  if (metadata.uid !== Number(uid) || (metadata.mode & 0o077) !== 0) fail();
   return canonical;
 }
 
@@ -103,11 +70,7 @@ function exactLoopbackOrigin(value) {
   return url.origin;
 }
 
-function isForbiddenChromiumArgument(value, acceptanceObservation) {
-  if (acceptanceObservation && (
-    value === '--remote-debugging-address=127.0.0.1'
-    || /^--remote-debugging-port=\d{4,5}$/u.test(value)
-  )) return false;
+function isForbiddenChromiumArgument(value) {
   return [
     '--disable-sandbox',
     '--disable-setuid-sandbox',

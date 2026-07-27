@@ -1,7 +1,7 @@
 use super::{
     avatar_runtime_env_pairs_from_storage_roots, build_avatar_close_handoff_uri,
-    build_avatar_handoff_uri, confirm_dialog_host_provider, open_avatar_handoff_uri_or_binary,
-    require_fresh_inferred_avatar_target, ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload,
+    build_avatar_handoff_uri, open_avatar_handoff_uri_or_binary,
+    require_fresh_inferred_avatar_target, DesktopAvatarCloseHandoffPayload,
     DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
@@ -10,7 +10,7 @@ use std::{fs, path::PathBuf};
 
 fn make_temp_dir(prefix: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
-        "nimi-desktop-confirm-dialog-{}-{}",
+        "nimi-desktop-window-and-logs-{}-{}",
         prefix,
         std::process::id()
     ));
@@ -24,59 +24,6 @@ fn launch_payload() -> DesktopAvatarLaunchHandoffPayload {
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: Some("desktop-agent-chat".to_string()),
     }
-}
-
-#[test]
-fn confirm_dialog_uses_desktop_e2e_override_sequence() {
-    let _guard = test_guard();
-    let temp = make_temp_dir("fixture");
-    let fixture_path = temp.join("fixture.json");
-    fs::write(
-        &fixture_path,
-        r#"{
-  "tauriFixture": {
-    "confirmDialog": {
-      "responses": [
-        { "confirmed": false },
-        { "confirmed": true }
-      ]
-    }
-  }
-}"#,
-    )
-    .expect("write fixture");
-
-    let previous = std::env::var("NIMI_E2E_FIXTURE_PATH").ok();
-    std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
-
-    let first = confirm_dialog_host_provider(ConfirmDialogPayload {
-        title: "Upgrade to Standard memory".to_string(),
-        description: "Bind canonical memory?".to_string(),
-        level: Some("warning".to_string()),
-    })
-    .expect("first confirm override");
-    let second = confirm_dialog_host_provider(ConfirmDialogPayload {
-        title: "Upgrade to Standard memory".to_string(),
-        description: "Bind canonical memory?".to_string(),
-        level: Some("warning".to_string()),
-    })
-    .expect("second confirm override");
-    let third = confirm_dialog_host_provider(ConfirmDialogPayload {
-        title: "Upgrade to Standard memory".to_string(),
-        description: "Bind canonical memory?".to_string(),
-        level: Some("warning".to_string()),
-    })
-    .expect("third confirm override");
-
-    match previous {
-        Some(value) => std::env::set_var("NIMI_E2E_FIXTURE_PATH", value),
-        None => std::env::remove_var("NIMI_E2E_FIXTURE_PATH"),
-    }
-
-    assert!(!first);
-    assert!(second);
-    assert!(third);
-    let _ = fs::remove_dir_all(temp);
 }
 
 #[test]
@@ -133,7 +80,6 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
 fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     let _guard = test_guard();
     let keys = [
-        "NIMI_E2E_FIXTURE_PATH",
         "NIMI_REALM_URL",
         "NIMI_REALM_JWKS_URL",
         "NIMI_REALM_REVOCATION_URL",
@@ -142,16 +88,12 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_WORLD_ID",
         "NIMI_AGENT_ID",
         "NIMI_ACCESS_TOKEN",
-        "NIMI_E2E_AUTH_SESSION_STORAGE",
-        "NIMI_E2E_AUTH_SESSION_MASTER_KEY",
-        "NIMI_E2E_PROFILE",
         "NIMI_RUNTIME_GRPC_ADDR",
         "NIMI_RUNTIME_HTTP_ADDR",
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
         "NIMI_RUNTIME_LOCK_PATH",
         "NIMI_RUNTIME_BRIDGE_MODE",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
-        "NIMI_E2E_BACKEND_LOG_PATH",
         "NIMI_DATA_ROOT",
         "NIMI_APP_DATA_ROOT",
         "NIMI_APP_CACHE_ROOT",
@@ -174,9 +116,6 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     let avatar_data_root = avatar_app_root.join("data");
     let avatar_cache_root = avatar_app_root.join("cache");
     let avatar_temp_root = avatar_app_root.join("tmp");
-    let fixture_path = fixture_dir.join("fixture.json");
-    fs::write(&fixture_path, "{\"tauriFixture\":{}}\n").expect("write fixture");
-    std::env::remove_var("NIMI_E2E_FIXTURE_PATH");
     std::env::set_var("HOME", home_dir.as_os_str());
     std::env::set_var("NIMI_REALM_URL", "http://127.0.0.1:50803");
     std::env::set_var(
@@ -189,13 +128,9 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     );
     std::env::set_var("NIMI_REALM_JWT_ISSUER", "http://127.0.0.1:50803");
     std::env::set_var("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime");
-    std::env::set_var("NIMI_WORLD_ID", "world-e2e-1");
-    std::env::set_var("NIMI_AGENT_ID", "agent-e2e-alpha");
+    std::env::set_var("NIMI_WORLD_ID", "world-owner-1");
+    std::env::set_var("NIMI_AGENT_ID", "agent-owner-alpha");
     std::env::set_var("NIMI_ACCESS_TOKEN", "must-not-forward");
-    std::env::set_var("NIMI_E2E_AUTH_SESSION_STORAGE", "encrypted-file");
-    std::env::set_var("NIMI_E2E_AUTH_SESSION_MASTER_KEY", "master-key");
-    std::env::set_var("NIMI_E2E_PROFILE", "boot.anonymous.login-screen");
-    std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
     std::env::set_var("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:51801");
     std::env::set_var("NIMI_RUNTIME_HTTP_ADDR", "127.0.0.1:51802");
     std::env::set_var(
@@ -214,10 +149,6 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     std::env::set_var("NIMI_LOCAL_OPENAI_ENDPOINT", "http://localhost:1234/v1");
     std::env::set_var("NIMI_CONNECTOR_ID", "legacy-connector");
     std::env::set_var("NIMI_PROVIDER", "legacy-provider");
-    std::env::set_var(
-        "NIMI_E2E_BACKEND_LOG_PATH",
-        fixture_dir.join("backend.log").as_os_str(),
-    );
     let pairs = avatar_runtime_env_pairs_from_storage_roots(
         avatar_data_root.clone(),
         avatar_cache_root.clone(),
@@ -232,13 +163,8 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         }
     }
 
-    assert!(pairs.contains(&("NIMI_WORLD_ID", "world-e2e-1".to_string())));
-    assert!(pairs.contains(&("NIMI_AGENT_ID", "agent-e2e-alpha".to_string())));
-    assert!(!pairs.iter().any(|(key, _)| *key == "NIMI_E2E_PROFILE"));
-    assert!(pairs.contains(&(
-        "NIMI_E2E_FIXTURE_PATH",
-        fixture_path.to_string_lossy().to_string()
-    )));
+    assert!(pairs.contains(&("NIMI_WORLD_ID", "world-owner-1".to_string())));
+    assert!(pairs.contains(&("NIMI_AGENT_ID", "agent-owner-alpha".to_string())));
     assert!(pairs.contains(&("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:51801".to_string())));
     assert!(pairs.contains(&("NIMI_RUNTIME_HTTP_ADDR", "127.0.0.1:51802".to_string())));
     assert!(pairs.contains(&(
@@ -274,15 +200,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "/tmp/must-not-forward-raw-env".to_string()
     )));
     assert!(!pairs.iter().any(|(key, _)| *key == "NIMI_DATA_ROOT"));
-    assert!(pairs.contains(&(
-        "NIMI_E2E_BACKEND_LOG_PATH",
-        fixture_dir
-            .join("backend.log")
-            .to_string_lossy()
-            .to_string()
-    )));
     assert!(!pairs.iter().any(|(key, _)| key.starts_with("NIMI_REALM")));
-    assert!(!pairs.iter().any(|(key, _)| key.contains("AUTH_SESSION")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("ACCESS_TOKEN")));
     for retired_route_key in [
         "NIMI_LOCAL_PROVIDER_ENDPOINT",

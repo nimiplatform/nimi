@@ -64,21 +64,3 @@ fn path_containment_is_case_sensitive_and_component_aware() {
     assert!(ensure_path_within(root, Path::new("/Users/test/project-copy/main.js")).is_err());
     assert!(ensure_path_within(root, Path::new("/Users/test/Project/main.js")).is_err());
 }
-
-#[cfg(feature = "dev-kernel-checkpoint")]
-#[test]
-fn dev_kernel_agent_selector_is_opaque_and_strict() {
-    assert!(
-        validate_dev_kernel_agent_id("local-agent:runtime-1f2e3d4c5b6a79800123456789abcdef")
-            .is_ok()
-    );
-    assert!(validate_dev_kernel_agent_id("nimi.zhiyu").is_err());
-    assert!(
-        validate_dev_kernel_agent_id("local-agent:runtime-1f2e3d4c5b6a79800123456789abcdeg")
-            .is_err()
-    );
-    assert!(
-        validate_dev_kernel_agent_id("local-agent:runtime-1f2e3d4c5b6a79800123456789abcde")
-            .is_err()
-    );
-}

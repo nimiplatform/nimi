@@ -17,7 +17,6 @@ import {
 } from '../src-electron/local-development-host';
 import {
   resolveLocalDevelopmentElectronHostArguments,
-  resolveLocalDevelopmentObservationArguments,
   resolveLocalAppUserDataArguments,
 } from '../src-electron/local-development-host-arguments';
 import {
@@ -346,64 +345,15 @@ test('Electron local-development keeps exact Runtime transport failures recovera
   );
 });
 
-test('ordinary Electron builds cannot enable observation from environment input', () => {
-  const observation = {
-    NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT: '19472',
-    NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT: path.join(repoRoot, '.nimi', 'local', 'zhiyu-observation'),
-    NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID: `local-agent:runtime-${'1f'.repeat(16)}`,
-  };
-  assert.deepEqual(resolveLocalDevelopmentObservationArguments(observation), []);
-  assert.deepEqual(resolveLocalDevelopmentObservationArguments({
-    ...observation,
-    NIMI_DEV_KERNEL_CHECKPOINT: '1',
-  }), []);
-  assert.deepEqual(resolveLocalDevelopmentObservationArguments({
-    NIMI_DEV_KERNEL_CHECKPOINT: '1',
-    NIMI_LOCAL_APP_ACCEPTANCE_APP_ID: 'nimi.tester',
-    NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT: '19471',
-  }, 'nimi.tester'), []);
-});
-
-test('acceptance Electron build observes one exact supervised local app over loopback CDP', () => {
-  const observation = {
-    NIMI_DEV_KERNEL_CHECKPOINT: '1',
-    NIMI_LOCAL_APP_ACCEPTANCE_APP_ID: 'nimi.tester',
-    NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT: '19471',
-  };
-  assert.deepEqual(resolveLocalDevelopmentObservationArguments(
-    observation,
-    'nimi.tester',
-    true,
-  ), [
-    '--remote-debugging-address=127.0.0.1',
-    '--remote-debugging-port=19471',
-  ]);
-  assert.deepEqual(resolveLocalDevelopmentObservationArguments(
-    observation,
-    'nimi.zhiyu',
-    true,
-  ), []);
-  assert.throws(() => resolveLocalDevelopmentObservationArguments({
-    ...observation,
-    NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT: '80',
-  }, 'nimi.tester', true), /local-development-observation-config-invalid/u);
-  assert.throws(() => resolveLocalDevelopmentObservationArguments({
-    NIMI_DEV_KERNEL_CHECKPOINT: '1',
-    NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT: '19471',
-  }, 'nimi.tester', true), /local-development-observation-config-invalid/u);
-});
-
 test('Windows Electron launch uses the canonical app entry as the positional application argument', () => {
   const mainEntry = 'D:\\nimi-apps\\parentos\\dist-electron\\main.js';
   const arguments_ = resolveLocalDevelopmentElectronHostArguments({
     mainEntry,
     rendererOrigin: 'http://127.0.0.1:1426',
-    observationArguments: ['--remote-debugging-port=19472'],
     userDataArguments: ['--user-data-dir=D:\\profiles\\parentos'],
     platform: 'win32',
   });
   assert.deepEqual(arguments_, [
-    '--remote-debugging-port=19472',
     '--user-data-dir=D:\\profiles\\parentos',
     mainEntry,
     '--nimi-dev-renderer-url=http://127.0.0.1:1426',
@@ -416,7 +366,6 @@ test('macOS protected local-app carrier retains its exact main-entry switch cont
   assert.deepEqual(resolveLocalDevelopmentElectronHostArguments({
     mainEntry,
     rendererOrigin: 'http://127.0.0.1:1472',
-    observationArguments: [],
     userDataArguments: ['--user-data-dir=/Users/test/Library/Application Support/Nimi/Local App Hosts/v1/profile'],
     platform: 'darwin',
   }), [
