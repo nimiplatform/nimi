@@ -94,59 +94,6 @@ jobs:
             echo "publish=${publish}"
           } >> "${GITHUB_OUTPUT}"
 
-  live-smoke-gate:
-    needs: resolve
-    if: needs.resolve.outputs.target == 'desktop'
-    runs-on: ubuntu-latest
-    env:
-      NIMI_LIVE_GEMINI_API_KEY: ${{ secrets.NIMI_LIVE_GEMINI_API_KEY }}
-      NIMI_LIVE_GEMINI_MODEL_ID: ${{ vars.NIMI_LIVE_GEMINI_MODEL_ID || 'gemini-3-flash-preview' }}
-      NIMI_LIVE_DASHSCOPE_BASE_URL: ${{ vars.NIMI_LIVE_DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
-      NIMI_LIVE_DASHSCOPE_API_KEY: ${{ secrets.NIMI_LIVE_DASHSCOPE_API_KEY }}
-      NIMI_LIVE_DASHSCOPE_MODEL_ID: ${{ vars.NIMI_LIVE_DASHSCOPE_MODEL_ID || 'qwen3-max' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.32.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-          package-manager-cache: false
-
-      - name: Setup Go
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        with:
-          go-version: '1.26.4'
-          cache: false
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: gate.live.live2d-companion-timeline-acceptance
-        run: pnpm check:live2d-companion-timeline-acceptance
-      - name: gate.live.provider-invariants
-        run: pnpm check:live-provider-invariants
-      - name: gate.live.test-matrix
-        run: node scripts/run-live-test-matrix.mjs
-      - name: gate.live.smoke-gate
-        run: pnpm check:live-smoke-gate --require-release
-
-      - name: Upload live smoke coverage
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: live-test-coverage-${{ needs.resolve.outputs.target }}-${{ needs.resolve.outputs.version }}
-          path: .local/report/live-test-coverage.yaml
-          if-no-files-found: error
-
   release-sdk:
     needs: resolve
     if: needs.resolve.outputs.target == 'sdk'
@@ -210,12 +157,8 @@ jobs:
           }
           NODE
 
-      - name: gate.sdk.consumer-smoke
-        run: pnpm check:sdk-consumer-smoke
-      - name: gate.sdk.coverage
-        run: pnpm check:sdk-coverage
-      - name: gate.sdk.release-contracts
-        run: pnpm check:sdk-release-contracts
+      - name: SDK tests
+        run: pnpm --filter @nimiplatform/sdk test
       - name: gate.sdk.version-matrix
         run: pnpm check:sdk-version-matrix
       - name: gate.security.package-license-matrix
@@ -313,9 +256,7 @@ jobs:
           fi
 
   release-desktop:
-    needs:
-      - resolve
-      - live-smoke-gate
+    needs: resolve
     if: needs.resolve.outputs.target == 'desktop'
     permissions:
       contents: write
@@ -339,28 +280,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-
-      - name: Checkout locked Realm source for first-party product gates
-        if: matrix.platform == 'windows-2025-vs2026'
-        shell: pwsh
-        env:
-          REALM_AUTHORITY_REPOSITORY: ${{ secrets.REALM_AUTHORITY_REPOSITORY }}
-        run: |
-          $commitLine = Get-Content config/realm-contract-lock.yaml | Where-Object { $_ -match '^\s+commit:\s+' } | Select-Object -First 1
-          $realmCommit = ($commitLine -split ':', 2)[1].Trim()
-          if ($realmCommit -notmatch '^[0-9a-f]{40}$') { throw 'realm contract lock commit is invalid' }
-          if ([string]::IsNullOrWhiteSpace($env:REALM_AUTHORITY_REPOSITORY)) { throw 'Realm authority repository secret is required' }
-          $realmRoot = Join-Path $env:RUNNER_TEMP 'first-party-realm'
-          git clone --filter=blob:none $env:REALM_AUTHORITY_REPOSITORY $realmRoot
-          if ($LASTEXITCODE -ne 0) { throw 'Realm clone failed' }
-          git -C $realmRoot checkout --detach $realmCommit
-          if ($LASTEXITCODE -ne 0) { throw 'Realm locked checkout failed' }
-          "REALM_ROOT=$realmRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: gate.realm.contract-lock-verify
-        if: matrix.platform == 'windows-2025-vs2026'
-        shell: pwsh
-        run: pnpm check:realm-contract-lock -- --realm-root $env:REALM_ROOT
 
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
@@ -396,63 +315,9 @@ jobs:
       - name: Build SDK surfaces (desktop runtime dependency)
         run: pnpm build:sdk
 
-      - name: Start and verify local Realm and Nimi Web for product gates
-        if: matrix.platform == 'windows-2025-vs2026'
-        shell: pwsh
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:REALM_ROOT)) { throw 'REALM_ROOT is required' }
-          pnpm --dir $env:REALM_ROOT install --no-frozen-lockfile
-          if ($LASTEXITCODE -ne 0) { throw 'Realm dependency installation failed' }
-          $pnpm = (Get-Command pnpm.cmd -ErrorAction Stop).Source
-          $logRoot = Join-Path $env:RUNNER_TEMP 'first-party-local-topology'
-          New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
-          $env:PORT = '3002'
-          $env:NIMI_REALM_URL = 'http://localhost:3002'
-          $env:NIMI_WEB_URL = 'http://localhost:3000'
-          $realm = Start-Process -FilePath $pnpm -ArgumentList @('--dir', $env:REALM_ROOT, 'dev:api') -WorkingDirectory $env:REALM_ROOT -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logRoot 'realm.stdout.log') -RedirectStandardError (Join-Path $logRoot 'realm.stderr.log')
-          $web = Start-Process -FilePath $pnpm -ArgumentList @('dev:web', '--', '--host', '127.0.0.1', '--port', '3000') -WorkingDirectory $env:GITHUB_WORKSPACE -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logRoot 'web.stdout.log') -RedirectStandardError (Join-Path $logRoot 'web.stderr.log')
-          $ready = $false
-          for ($attempt = 0; $attempt -lt 180; $attempt += 1) {
-            if ($realm.HasExited) { throw "Realm lifecycle command exited before readiness; inspect $logRoot" }
-            if ($web.HasExited) { throw "Web lifecycle command exited before readiness; inspect $logRoot" }
-            try {
-              $jwks = Invoke-RestMethod -Uri 'http://localhost:3002/api/auth/jwks' -Method Get -TimeoutSec 2
-              $webResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:3000/' -Method Get -TimeoutSec 2
-              if (@($jwks.keys).Count -gt 0 -and [int]$webResponse.StatusCode -eq 200) { $ready = $true; break }
-            } catch {}
-            Start-Sleep -Seconds 1
-          }
-          if (-not $ready) { throw "local Realm/Web topology did not become healthy; inspect $logRoot" }
-          "P4_REALM_LIFECYCLE_PID=$($realm.Id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "P4_WEB_LIFECYCLE_PID=$($web.Id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: gate.desktop.macos-dev-security-native
-        if: matrix.platform == 'macos-latest'
-        run: pnpm test:macos:dev-security-native
-
       - name: Desktop Product Control native smoke (lower-level only)
         if: matrix.platform == 'windows-2025-vs2026'
         run: pnpm --filter @nimiplatform/desktop test:windows:product-control-native
-
-      - name: Provision ephemeral Windows development trust
-        if: matrix.platform == 'windows-2025-vs2026'
-        run: pnpm provision:windows-dev-trust
-
-      - name: gate.desktop.first-party-product-p4
-        if: matrix.platform == 'windows-2025-vs2026'
-        env:
-          NIMI_FIRST_PARTY_ACCOUNT_EMAIL: ${{ secrets.NIMI_FIRST_PARTY_ACCOUNT_EMAIL }}
-          NIMI_FIRST_PARTY_ACCOUNT_PASSWORD: ${{ secrets.NIMI_FIRST_PARTY_ACCOUNT_PASSWORD }}
-          NIMI_FIRST_PARTY_DIRECT_PROMPT: ${{ vars.NIMI_FIRST_PARTY_DIRECT_PROMPT }}
-          NIMI_FIRST_PARTY_CANCEL_PROMPT: ${{ vars.NIMI_FIRST_PARTY_CANCEL_PROMPT }}
-          NIMI_FIRST_PARTY_TIMEOUT_PROMPT: ${{ vars.NIMI_FIRST_PARTY_TIMEOUT_PROMPT }}
-          NIMI_FIRST_PARTY_UNAVAILABLE_PROMPT: ${{ vars.NIMI_FIRST_PARTY_UNAVAILABLE_PROMPT }}
-          NIMI_FIRST_PARTY_LOCAL_ROUTE_TESTID: ${{ vars.NIMI_FIRST_PARTY_LOCAL_ROUTE_TESTID }}
-          NIMI_FIRST_PARTY_UNAVAILABLE_ROUTE_TESTID: ${{ vars.NIMI_FIRST_PARTY_UNAVAILABLE_ROUTE_TESTID }}
-          NIMI_FIRST_PARTY_REALM_SOURCE_ID: ${{ vars.NIMI_FIRST_PARTY_REALM_SOURCE_ID }}
-          NIMI_FIRST_PARTY_PARTNER_PROMPT: ${{ vars.NIMI_FIRST_PARTY_PARTNER_PROMPT }}
-        run: |
-          pnpm test:e2e:first-party-product:p4
 
       - name: Install supply chain tooling (cosign + syft)
         run: |

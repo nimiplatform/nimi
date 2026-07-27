@@ -60,3 +60,20 @@ jobs:
           --
           .github/workflows
           .github/dependabot.yml
+
+  desktop-rust-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Install cargo audit
+        run: cargo install cargo-audit --locked
+
+      - name: Audit Desktop Rust dependencies
+        run: cargo audit --file apps/desktop/src-tauri/Cargo.lock

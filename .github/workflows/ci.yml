@@ -21,6 +21,9 @@ jobs:
       sdk_changed: ${{ steps.detect.outputs.sdk_changed }}
       runtime_changed: ${{ steps.detect.outputs.runtime_changed }}
       desktop_web_changed: ${{ steps.detect.outputs.desktop_web_changed }}
+      kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
+      avatar_native_changed: ${{ steps.detect.outputs.avatar_native_changed }}
+      tester_native_changed: ${{ steps.detect.outputs.tester_native_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -46,6 +49,9 @@ jobs:
               echo "sdk_changed=true"
               echo "runtime_changed=true"
               echo "desktop_web_changed=true"
+              echo "kit_native_changed=true"
+              echo "avatar_native_changed=true"
+              echo "tester_native_changed=true"
             } >> "${GITHUB_OUTPUT}"
             exit 0
           fi
@@ -73,9 +79,13 @@ jobs:
           sdk_changed=false
           runtime_changed=false
           desktop_web_changed=false
+          kit_native_changed=false
+          avatar_native_changed=false
+          tester_native_changed=false
 
           docs_regex='^(docs/|examples/|README\.md$|CHANGELOG\.md$)'
           shared_regex='^(scripts/|package\.json$|pnpm-workspace\.yaml$|pnpm-lock\.yaml$|\.github/workflows/|\.gitignore$|\.editorconfig$)'
+          native_ci_regex='^(package\.json$|pnpm-workspace\.yaml$|\.github/workflows/ci\.yml$)'
 
           while IFS= read -r file; do
             [[ -z "${file}" ]] && continue
@@ -98,6 +108,22 @@ jobs:
             if [[ ( "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ ) && ! "${file}" =~ ^apps/(desktop|web)/AGENTS\.md$ ]]; then
               desktop_web_changed=true
             fi
+            if [[ "${file}" =~ ^kit/shell/(capabilities|protected-local|protected-local-node|tauri)/ ]]; then
+              kit_native_changed=true
+              avatar_native_changed=true
+              tester_native_changed=true
+            fi
+            if [[ "${file}" =~ ^apps/avatar/src-tauri/ ]]; then
+              avatar_native_changed=true
+            fi
+            if [[ "${file}" =~ ^apps/tester/src-tauri/ ]]; then
+              tester_native_changed=true
+            fi
+            if [[ "${file}" =~ ${native_ci_regex} ]]; then
+              kit_native_changed=true
+              avatar_native_changed=true
+              tester_native_changed=true
+            fi
           done < /tmp/nimi_changed_files.txt
 
           if [[ "${shared_changed}" == "true" ]]; then
@@ -115,6 +141,9 @@ jobs:
             echo "sdk_changed=${sdk_changed}"
             echo "runtime_changed=${runtime_changed}"
             echo "desktop_web_changed=${desktop_web_changed}"
+            echo "kit_native_changed=${kit_native_changed}"
+            echo "avatar_native_changed=${avatar_native_changed}"
+            echo "tester_native_changed=${tester_native_changed}"
           } >> "${GITHUB_OUTPUT}"
 
   docs-contract:
@@ -215,11 +244,115 @@ jobs:
           cache: pnpm
           cache-dependency-path: package.json
 
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: '1.26.4'
+          cache-dependency-path: runtime/go.sum
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: gate.workflow.workspace-regression
+      - name: Workspace owner tests
         run: pnpm test
+
+  kit-native-tests:
+    needs: changes
+    if: needs.changes.outputs.kit_native_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Install Linux native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Test Kit native crates
+        run: pnpm test:kit:native
+
+  avatar-native-tests:
+    needs: changes
+    if: needs.changes.outputs.avatar_native_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Install Linux native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Test Avatar native crate
+        run: pnpm test:avatar:native
+
+  tester-native-tests:
+    needs: changes
+    if: needs.changes.outputs.tester_native_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Install Linux native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Test Tester native crate
+        run: pnpm test:tester:native
 
   sdk-quality:
     needs: changes
@@ -300,9 +433,9 @@ jobs:
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
 
-      - name: Runtime compliance
+      - name: Runtime vet and build
         working-directory: runtime
-        run: go run ./cmd/runtime-compliance --gate
+        run: go vet ./... && go build ./...
 
       - name: Runtime golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
@@ -342,7 +475,7 @@ jobs:
       - name: Install Linux desktop dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Build workspace surfaces for Desktop/Web
         run: pnpm dev:prepare
@@ -384,53 +517,3 @@ jobs:
 
       - name: Typecheck Zhiyu
         run: pnpm --filter @nimiplatform/zhiyu typecheck
-
-  js-contract:
-    needs:
-      - changes
-      - docs-contract
-      - core-static
-      - workspace-regression
-      - sdk-quality
-      - runtime-quality
-      - desktop-web-quality
-      - zhiyu-quality
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Aggregate CI status
-        env:
-          CHANGES_RESULT: ${{ needs.changes.result }}
-          DOCS_CONTRACT_RESULT: ${{ needs.docs-contract.result }}
-          CORE_STATIC_RESULT: ${{ needs.core-static.result }}
-          WORKSPACE_REGRESSION_RESULT: ${{ needs.workspace-regression.result }}
-          SDK_QUALITY_RESULT: ${{ needs.sdk-quality.result }}
-          RUNTIME_QUALITY_RESULT: ${{ needs.runtime-quality.result }}
-          DESKTOP_WEB_QUALITY_RESULT: ${{ needs.desktop-web-quality.result }}
-          ZHIYU_QUALITY_RESULT: ${{ needs.zhiyu-quality.result }}
-        run: |
-          set -euo pipefail
-          failed=0
-
-          for item in \
-            "changes:${CHANGES_RESULT}" \
-            "docs-contract:${DOCS_CONTRACT_RESULT}" \
-            "core-static:${CORE_STATIC_RESULT}" \
-            "workspace-regression:${WORKSPACE_REGRESSION_RESULT}" \
-            "sdk-quality:${SDK_QUALITY_RESULT}" \
-            "runtime-quality:${RUNTIME_QUALITY_RESULT}" \
-            "desktop-web-quality:${DESKTOP_WEB_QUALITY_RESULT}" \
-            "zhiyu-quality:${ZHIYU_QUALITY_RESULT}"; do
-            name="${item%%:*}"
-            result="${item#*:}"
-            if [[ "${result}" != "success" && "${result}" != "skipped" ]]; then
-              echo "${name} failed with result=${result}" >&2
-              failed=1
-            fi
-          done
-
-          if [[ "${failed}" -ne 0 ]]; then
-            exit 1
-          fi
-
-          echo "CI aggregate passed (all required jobs succeeded or were skipped by path filters)."

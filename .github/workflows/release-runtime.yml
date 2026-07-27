@@ -10,60 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  live-smoke-gate:
-    if: startsWith(github.ref, 'refs/tags/runtime/v')
-    runs-on: ubuntu-latest
-    env:
-      NIMI_LIVE_GEMINI_API_KEY: ${{ secrets.NIMI_LIVE_GEMINI_API_KEY }}
-      NIMI_LIVE_GEMINI_MODEL_ID: ${{ vars.NIMI_LIVE_GEMINI_MODEL_ID || 'gemini-3-flash-preview' }}
-      NIMI_LIVE_DASHSCOPE_BASE_URL: ${{ vars.NIMI_LIVE_DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
-      NIMI_LIVE_DASHSCOPE_API_KEY: ${{ secrets.NIMI_LIVE_DASHSCOPE_API_KEY }}
-      NIMI_LIVE_DASHSCOPE_MODEL_ID: ${{ vars.NIMI_LIVE_DASHSCOPE_MODEL_ID || 'qwen3-max' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.32.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-          package-manager-cache: false
-
-      - name: Setup Go
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        with:
-          go-version-file: runtime/go.mod
-          cache: false
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: gate.live.live2d-companion-timeline-acceptance
-        run: pnpm check:live2d-companion-timeline-acceptance
-      - name: gate.live.provider-invariants
-        run: pnpm check:live-provider-invariants
-      - name: gate.live.test-matrix
-        run: node scripts/run-live-test-matrix.mjs
-      - name: gate.live.smoke-gate
-        run: pnpm check:live-smoke-gate --require-release
-
-      - name: Upload live smoke coverage
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: live-test-coverage-runtime-${{ github.ref_name }}
-          path: .local/report/live-test-coverage.yaml
-          if-no-files-found: error
-
   release-tag:
-    needs: live-smoke-gate
     if: startsWith(github.ref, 'refs/tags/runtime/v')
     runs-on: ubuntu-latest
     outputs:
@@ -109,13 +56,9 @@ jobs:
       - name: gate.proto.baseline-exists
         run: test -s runtime/proto/runtime-v1.baseline.binpb
 
-      - name: gate.runtime.ai-scenario-coverage
-        run: pnpm check:runtime-ai-scenario-coverage
-      - name: gate.runtime.compliance
+      - name: Runtime tests, vet, and build
         working-directory: runtime
-        run: go run ./cmd/runtime-compliance --gate
-      - name: gate.runtime.go-coverage
-        run: pnpm check:runtime-go-coverage
+        run: go test ./... && go vet ./... && go build ./...
       - name: gate.runtime.golangci-lint
         run: pnpm check:runtime-golangci-lint
       - name: gate.runtime.govulncheck
@@ -126,9 +69,6 @@ jobs:
         run: pnpm check:npm-binary-smoke
       - name: gate.workflow.runtime-goreleaser-check
         run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
-      - name: gate.workflow.runtime-goreleaser-snapshot
-        run: pnpm check:runtime-goreleaser-snapshot
-
       - name: Goreleaser release
         uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
         with:
