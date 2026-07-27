@@ -117,7 +117,7 @@ primitives:
         constraint: ">=60"
       - field: injectionPriority
         type: "string[]"
-        constraint: "有序数组，元素来自 {identity, agent_persona, world_rules, conversation, memory_recall, tool_context}；索引越小优先级越高；实现必须按此序注入"
+        constraint: "有序数组，元素来自 {identity, character, world_rules, conversation, memory_recall, tool_context}；索引越小优先级越高；实现必须按此序注入"
       - field: truncationPolicy
         type: enum
         constraint: "SUMMARY_FIRST | RECENCY_FIRST"

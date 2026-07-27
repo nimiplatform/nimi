@@ -694,7 +694,7 @@ units:
     kind: rule
     title: protocol-primitives P-PROTO-104 Context wire fields
     modality: must
-    statement: A Context primitive contract requires contextScope SESSION, WORLD, or DEVICE, retentionTtlSeconds at least 60, ordered injectionPriority values drawn only from identity, agent_persona, world_rules, conversation, memory_recall, and tool_context with lower indexes injected first, truncationPolicy SUMMARY_FIRST or RECENCY_FIRST, and handoffPolicy EXPLICIT_ONLY or ASSISTED.
+    statement: A Context primitive contract requires contextScope SESSION, WORLD, or DEVICE, retentionTtlSeconds at least 60, ordered injectionPriority values drawn only from identity, character, world_rules, conversation, memory_recall, and tool_context with lower indexes injected first, truncationPolicy SUMMARY_FIRST or RECENCY_FIRST, and handoffPolicy EXPLICIT_ONLY or ASSISTED.
     condition: Whenever a Context primitive contract is admitted or interpreted.
     failure: Reject the contract when a required field, range, priority member or order, or admitted enum value is invalid.
     relations:
