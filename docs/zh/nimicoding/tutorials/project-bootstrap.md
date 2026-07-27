@@ -19,10 +19,9 @@ pnpm install
 
 ## 2. 了解宿主边界
 
-`.nimi/spec/platform/authority-admission.authority.yaml` 中的 `P-PKG-011` 声明：
-执行权归 Codex，项目侧的执行投影（topic 生命周期、wave/packet DAG、run ledger、
-goal bridge、嵌套宿主启动）一律不予准入。该边界没有单独的门禁命令可跑；仓库以
-确定性方式执法的是第 3 步的受管文件与 doctor 检查。
+仓库 instructions 把执行权留给 Codex，并排除项目侧 topic 生命周期、
+wave/packet DAG、run ledger、goal bridge 与嵌套宿主启动。该边界没有单独门禁；
+第 3 步的 projection 与 doctor 只核验 package integration。
 
 ## 3. 验证受管文件
 
@@ -39,7 +38,6 @@ package-canonical 文件缺失或漂移时，两条命令都会失败，但不�
 
 | 文件 | 职责 |
 | --- | --- |
-| `.nimi/config/spec-generation-inputs.yaml` | Nimi 专用、已分类的构建输入 |
 | `.nimi/methodology/spec-reconstruction.yaml` | 构建目标与门禁 |
 | `.nimi/contracts/spec-generation-audit.schema.yaml` | 文件级来源与未解决缺口 |
 | `.nimi/contracts/spec-layout.schema.yaml` | 宿主指令和受管生成目录的布局 |
@@ -73,4 +71,3 @@ pnpm exec nimicoding validate-spec-tree .nimi/spec
 
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

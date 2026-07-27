@@ -52,7 +52,6 @@ lands as:
 | Provider | Returns transient error frame |
 | Runtime provider-health | Classifies under `K-ERR-*` family |
 | Runtime streaming | Decides recover-vs-terminate; if terminate, emits typed terminal failure frame |
-| Runtime workflow | Workflow state moves to `FAILED` |
 | Runtime audit | Records failure with trace lineage |
 | SDK error projection | Projects typed app-facing error per `S-ERROR-*` |
 | Desktop UI | Surfaces under `D-*` error boundary |

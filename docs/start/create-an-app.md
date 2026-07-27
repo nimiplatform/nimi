@@ -14,10 +14,11 @@ pnpm install
 pnpm run init
 ```
 
-`standalone` is the external developer repository profile. It creates a
-candidate app repository with its own `.nimi/**` host truth surface and submitted
-manifest input. Use `workspace-app` only for a monorepo app slice that has an
-admitted workspace reason to live under `apps/<app>/`.
+`standalone` is the external developer repository layout. It creates a
+candidate app repository with project configuration and submitted manifest
+input; those files do not become Nimi product authority. `workspace-app` is an
+internal monorepo layout for an app under `apps/<app>/`, not an admitted
+app-local spec slice or a user-facing product profile.
 
 ## Run And Check It Locally
 

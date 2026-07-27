@@ -65,14 +65,9 @@ place rather than a database.
 - [State vs History](/platform/worlds/state-vs-history) — when state
   updates vs history appends, governed by `effectClass`. (Truth lives
   on its own per-realm page: [Truth](/realm/truth).)
-- [WEE Execution](/platform/worlds/wee-execution) — runtime contract
-  depth for the World Evolution Engine kernel framing.
 - [OASIS](/platform/worlds/oasis) — the unique system main world.
 - [Lifecycle](/platform/worlds/lifecycle) — how a world is created,
   published, bound to apps, suspended, revoked.
-- [World Evolution Engine](/platform/worlds/world-evolution-engine) —
-  Runtime-owned semantics for replay, checkpoint, supervision, and
-  commit-request staging when worlds run inside Runtime.
 
 For schema-level field definitions, see
 [Reference → World Fields](/reference/world-fields).
@@ -93,7 +88,7 @@ You sign into Nimi and join a world a friend has created.
 - Your conversation with the agents in this world is durable.
   Their memory of you is theirs (with your consent), not the
   world's. When you leave for another world, that memory travels
-  with the agent under Cognition's contracts.
+  with the LocalAgent under Runtime's Memory contracts.
 - When you leave, you transit through OASIS. Creator worlds cannot
   peer-transit directly; OASIS is the hub.
 

@@ -1,9 +1,8 @@
 # Nimi Documentation
 
-Nimi is an AI open world platform. It treats AI agents as participants in
-long-lived worlds, not as stateless tools trapped inside one request. An agent
-can carry identity, memory, relationships, capabilities, and rules across
-sessions and product surfaces.
+Nimi is an AI open world platform. It treats Characters as durable
+participants in long-lived worlds, not as stateless tools trapped inside one
+request. Runtime materializes those Characters as LocalAgents for execution.
 
 These docs explain the product model, the ownership boundaries, and the
 contracts that hold across domains.
@@ -11,10 +10,10 @@ contracts that hold across domains.
 ## How The Docs Are Organized
 
 Nimi is one open world platform. The platform contains several products
-that together make AI agents able to live in long-lived worlds: Platform
+that together make Characters able to live in long-lived worlds: Platform
 (the world model itself), Runtime (AI execution), SDK (app access),
 Desktop and Web (user surfaces), Realm (world truth), Avatar (embodied
-presentation), Cognition (memory and knowledge), and Nimi Coding (the AI
+presentation), and Nimi Coding (the AI
 development methodology that ships with everything else).
 
 Each product has its own section in these docs.
@@ -29,7 +28,7 @@ and app-authoring entry points are documented from public package surfaces.
 - A product model that explains why Nimi is built around worlds, not chats.
 - Authority domains that name who owns which kind of truth.
 - Reading paths that move from the platform model into Runtime, SDK,
-  Desktop, Realm, Avatar, Cognition, and Nimi Coding.
+  Desktop, Realm, Avatar, and Nimi Coding.
 - Developer paths for creating a Nimi App, making a first Runtime-backed AI
   call, using Kit, studying Tester, and handling common fail-closed states.
 - A glossary of cross-domain vocabulary used across all pages.
@@ -42,16 +41,14 @@ your head than to mix together.
 ```
 +----------------------------------------------------------+
 |  Platform Model                                          |
-|    World, Agent, and the six protocol primitives         |
+|    World, Character, and the six protocol primitives     |
 +----------------------------------------------------------+
                           |
                           v
 +----------------------------------------------------------+
 |  Execution Substrate                                     |
-|    Runtime    : providers, workflows, streaming,         |
-|                 multimodal, delegation                   |
-|    Cognition  : memory, knowledge, prompt serving,       |
-|                 completion                               |
+|    Runtime    : providers, LocalAgent, Conversation,     |
+|                 Memory, Knowledge, streaming, multimodal |
 +----------------------------------------------------------+
                           |
                           v
@@ -59,16 +56,15 @@ your head than to mix together.
 |  Public Surfaces                                         |
 |    SDK app boundary           Desktop native shell       |
 |    Web constrained projection Realm public read path     |
-|    Avatar embodiment authority                           |
+|    Avatar embodiment presentation                        |
 +----------------------------------------------------------+
 ```
 
-1. **Platform model** defines worlds, agents, the six fixed protocol
+1. **Platform model** defines worlds, Characters, the six fixed protocol
    primitives, and the rules that say who is allowed to redefine what.
 2. **Execution substrate** is how AI work actually happens: Runtime owns
-   providers, workflows, streaming, multimodal output, and local routing;
-   Cognition owns memory, knowledge, prompt serving, references, and
-   completion.
+   provider routing, LocalAgent materialization, Conversation, operational
+   Memory and Knowledge, streaming, and multimodal output.
 3. **Public surfaces** turn the platform into Desktop, Web, SDK, Realm,
    and Avatar experiences. Each public surface has its own authority
    boundary and its own page in these docs.
@@ -89,7 +85,7 @@ your head than to mix together.
 | Why Desktop and Web are not equivalent | [Desktop](/desktop/) |
 | Where world truth and history live | [Realm](/realm/) |
 | How embodied AI presentation is scoped | [Avatar](/avatar/) |
-| Where memory and knowledge authority live | [Cognition](/cognition/) |
+| Where LocalAgent Memory and Knowledge live | [Runtime Memory And Knowledge](/runtime/memory-and-knowledge) |
 | The AI development paradigm and its host-agnostic package | [Nimi Coding](/nimicoding/) |
 | The cross-domain vocabulary used in these pages | [Glossary](/reference/glossary) |
 
@@ -104,4 +100,3 @@ your head than to mix together.
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`docs/spec/desktop-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/desktop-domain-index.md)
 - [`docs/spec/avatar-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/avatar-domain-index.md)
-- [`docs/spec/cognition-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/cognition-domain-index.md)

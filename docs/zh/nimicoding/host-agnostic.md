@@ -36,4 +36,3 @@ Nimi Coding 0.3.x 不再提供宿主 adapter registry 或 handoff runtime，只�
 ## 来源依据
 
 - [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

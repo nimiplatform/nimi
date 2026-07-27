@@ -125,9 +125,9 @@ An earlier history row needs to be corrected.
 The append-only invariant is what makes history a reliable audit
 surface across years.
 
-## Reader Scenario: A REPLAY Run Tries To Write History
+## Reader Scenario: A Replay Consumer Tries To Write History
 
-A WEE replay path attempts to append history during replay.
+A replay consumer attempts to append history during replay.
 
 1. **Replay executes.** Mutation re-derived under `REPLAY` mode.
 2. **Append blocked.** Per `R-WHIST-004`, `REPLAY` runs may not
@@ -167,7 +167,6 @@ An app needs its own per-session narrative log.
 | Commit envelope authority | Realm (`R-WSTATE-002`) |
 | Run-mode authorization matrix | Realm (`R-WSTATE-005`) |
 | `effectClass` closed enum | Realm (`R-WSTATE-004`) |
-| WEE-side commit-request staging | Runtime (see [WEE Execution](/platform/worlds/wee-execution)) |
 
 ## Source Basis
 

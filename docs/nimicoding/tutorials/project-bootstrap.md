@@ -21,11 +21,10 @@ No package bootstrap command is required.
 
 ## 2. Review The Host Boundary
 
-`P-PKG-011` in `.nimi/spec/platform/authority-admission.authority.yaml` declares
-that Codex owns execution and that project-side execution projections — topic
-lifecycles, wave/packet DAGs, run ledgers, goal bridges, nested host launches —
-stay unadmitted. There is no separate boundary gate to run: the projection and
-doctor checks in step 3 are what the repository enforces deterministically.
+Repository instructions keep execution with Codex and exclude project-side
+topic lifecycles, wave/packet DAGs, run ledgers, goal bridges, and nested host
+launches. There is no separate boundary gate to run: the projection and doctor
+checks in step 3 only verify the package integration.
 
 ## 3. Verify Managed Projections
 
@@ -43,7 +42,6 @@ Open the following files:
 
 | Surface | Responsibility |
 | --- | --- |
-| `.nimi/config/spec-generation-inputs.yaml` | Host-specific classified inputs |
 | `.nimi/methodology/spec-reconstruction.yaml` | Construction goals and gates |
 | `.nimi/contracts/spec-generation-audit.schema.yaml` | File-level source basis and unresolved gaps |
 | `.nimi/contracts/spec-layout.schema.yaml` | Host instruction and tracked projection layout |
@@ -80,4 +78,3 @@ to apply the boundary to a real change.
 
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

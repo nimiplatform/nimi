@@ -82,23 +82,6 @@ relevant primitive contracts simultaneously:
 The six primitives are not independent enums; they are mutually
 constraining.
 
-## World Evolution Engine (Runtime-Owned)
-
-When a world runs inside Runtime (Runtime-hosted world experiences),
-the World Evolution Engine governs its evolution. WEE has its own
-execution stage taxonomy distinct from Workflow:
-
-`INGRESS → NORMALIZE → SCHEDULE → DISPATCH → TRANSITION → EFFECT → COMMIT_REQUEST → CHECKPOINT → TERMINAL`
-
-Replay is recorded-only: WEE V1 replays from recorded events,
-checkpoints, and commit-request outcomes. There is no re-inference and
-no fresh route selection during replay.
-
-| Field | Owner |
-| --- | --- |
-| WEE event semantics | `runtime/kernel/world-evolution-engine-contract.md` (`K-WEV-*`) |
-| Workflow partial-reuse hardcut | `runtime/kernel/world-evolution-engine-contract.md` |
-
 ## Source Basis
 
 - [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)

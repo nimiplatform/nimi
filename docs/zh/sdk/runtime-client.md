@@ -21,7 +21,7 @@ Runtime client 有意隐藏：
 
 它有意暴露：
 
-- 按能力域分组的强类型 runtime 方法（工作流、流式、多模态、受委派 surface、Agent 参与适配）；
+- 按能力域分组的强类型 Runtime 方法（生成、流式、多模态、LocalAgent、Conversation、Memory 与 Knowledge）；
 - App 理解行为所需的传输元数据；
 - App 可以编程响应的 runtime 错误转换；
 - 与 Runtime 流式契约对齐的流式基础协议。
@@ -39,7 +39,7 @@ Runtime client 有意隐藏：
 1. App 用强类型请求调用 runtime client 的生成方法。
 2. Client 把请求传输出去，并暴露与 Runtime 流式契约一致的强类型流式基础协议。
 3. App 使用该流式基础协议，无须自创 chunk 语义。阶段边界、终止帧、错误语义都来自契约。
-4. 工作流如产出多模态产物，产物以强类型形状暴露，不会以自由 URL 形式出现。
+4. 生成任务如产出多模态产物，产物以强类型形状暴露，不会以自由 URL 形式出现。
 5. 错误以 SDK 错误转换定义的强类型形态返回。App 不必去解析自由格式消息。
 
 这样的流程让 App 在 Runtime 内部演进时仍然可移植。

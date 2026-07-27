@@ -75,8 +75,8 @@ change by app convention.
 | Category | Meaning |
 | --- | --- |
 | `ux` | User experience improvements (rendering, interaction, editor) |
-| `integration` | External protocol / service integration (MCP, search, OAuth) |
-| `platform` | Platform core capability (RAG, workflow, model routing) |
+| `integration` | Optional external protocol / service integration |
+| `platform` | Platform capability that still requires an explicit product-owner decision |
 | `auth` | Authentication / authorization extension |
 | `security` | Security and review capability |
 | `observability` | Observability + operations |
@@ -133,11 +133,11 @@ A research report identifies a capability the platform should consider.
 
 An accepted item moves toward implementation.
 
-1. **Spec draft proposed.** The draft targets an admitted product domain such as
-   runtime, SDK, desktop, platform, realm, avatar, or cognition.
+1. **Product proposal prepared.** The proposal identifies the intended owner,
+   such as Runtime, SDK, Desktop, Platform, Realm, or Avatar.
 2. **Status transitions to `spec-drafted`.** Per graduation evidence.
-3. **Spec admission process.** Separate from backlog status; spec moves through
-   its own admission.
+3. **Owner decision.** If the product decision closes, its truth is authored in
+   the existing `.nimi/spec/**` owner container.
 4. **Implementation begins.**
 
 ## Reader Scenario: An Item Gets Deferred

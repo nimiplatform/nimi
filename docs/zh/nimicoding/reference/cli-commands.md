@@ -35,7 +35,6 @@ Nimi 仓库已准入 Nimi Coding 表面的字段级参考。所有权概念见
 
 | 文件 | 用途 |
 | --- | --- |
-| `.nimi/config/spec-generation-inputs.yaml` | Nimi 专用、已分类的构建输入 |
 | `.nimi/methodology/spec-reconstruction.yaml` | 构建目标、目录形态和完成门禁 |
 | `.nimi/contracts/spec-generation-audit.schema.yaml` | 本地文件级来源与缺口证据 |
 | `.nimi/contracts/spec-layout.schema.yaml` | 宿主指令与受管生成目录的布局准入 |
@@ -53,4 +52,3 @@ handoff、closeout 或 provider runtime 命令族。
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
 - [`.nimi/contracts/spec-layout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-layout.schema.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

@@ -86,7 +86,7 @@ A creator's update does not silently break a user's session.
 
 | Concern | Why not |
 | --- | --- |
-| Determine the agent's identity | Identity is canonical Realm; carrier accepts visual |
+| Determine identity | Character identity belongs to Realm and LocalAgent execution identity to Runtime; the carrier accepts presentation |
 | Mutate embodiment package | Carrier reads; package is creator-published |
 | Render outside its admitted tier | The contract limits are explicit |
 

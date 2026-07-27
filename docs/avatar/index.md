@@ -34,9 +34,9 @@ Avatar owns:
 
 Avatar doesn't own:
 
-- the agent's identity (Runtime owns runtime-owned agent participation
-  truth and the live agent lifecycle);
-- the agent's memory (Cognition owns memory authority);
+- Character identity (Realm owns durable identity) and LocalAgent
+  execution identity (Runtime owns materialization and lifecycle);
+- LocalAgent memory (Runtime owns Memory authority);
 - the world's social relationships (Realm owns those);
 - generation and execution (Runtime owns that).
 
@@ -56,7 +56,7 @@ contracts:
    silently render a half-version. The contract decides what happens
    (fall back to an admitted projection, refuse, or signal a typed
    incompatibility).
-3. The agent's underlying truth in Runtime and Cognition is unchanged
+3. The Character and LocalAgent truth in Realm and Runtime is unchanged
    regardless of what the carrier does.
 
 The presentation problem stays in Avatar. The agent stays the agent.

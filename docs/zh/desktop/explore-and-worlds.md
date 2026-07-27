@@ -37,7 +37,7 @@
 | 拥有者 | 这个 Agent 归谁 |
 | 用户能看到的 Agent | 公开 Agent 列表 |
 
-桌面端核心只承担 Agent 列表与公开详情读取。**它不持有 Agent 的 LLM 记忆与聊天通道**——那归 Runtime / Cognition。
+桌面端核心只承担 Character/LocalAgent 列表投影与公开详情读取。**它不持有 LocalAgent Memory 或 Conversation 真相**——这些归 Runtime。
 
 ## 场景：发现并进入一个世界
 
@@ -53,12 +53,12 @@
 
 ## 场景：查看一个 Agent
 
-你在探索面看到一个公开 Agent，想了解更多。
+你在探索面看到一个公开 Character，想了解更多。
 
-1. **进入 Agent 详情**。有界的 `AgentDisplayDetail` 接口解出它的公开资料。
+1. **进入 Character 详情**。有界的公开详情接口解出 Character 资料与 LocalAgent 可用性。
 2. **公开预览**。看到显示名、呈现资料预览，以及它出现过的公开世界。
-3. **看不到的部分**。它的 `AGENT_CORE` 私有记忆；它内部的世界观核；它与其他用户的聊天历史。
-4. **可发起的动作**。如果该 Agent 的策略允许，你可以发起一次聊天——会开出一个新的 `ConversationAnchor`，这次会话归你所有，对其他人不可见。
+3. **看不到的部分**。LocalAgent 的私有 Memory、authorization state，以及它与其他用户的 Conversation。
+4. **可发起的动作**。如果当前策略允许，你可以发起一次聊天——会开出一个新的 `ConversationAnchor`，这次会话归你所有，对其他人不可见。
 
 接口刻意做窄。隐私在接口层强制，不靠客户端过滤。
 
@@ -68,7 +68,7 @@
 
 | 来源 | 提供什么 |
 | --- | --- |
-| Realm | 世界、PersonaCharacter、WorldCharacter、社交动态 |
+| Realm | 世界、Character 与社交动态 |
 | Runtime | LocalAgent 呈现资料预览 |
 | Realm 聊天 / 社交 | 社交动态流 |
 

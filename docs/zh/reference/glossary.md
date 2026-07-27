@@ -1,125 +1,74 @@
 # 术语表
 
-公共 Nimi 文档跨域使用的术语。每条都是给读者的摘要；精确权威归在 `.nimi/spec/**`。
+## 身份与执行
 
-某个术语归属于某个权威域时，词条指向该域，而不是在术语表里重新定义规则。
+**Character。** Realm 持有的持久 identity 与 social/world truth。
+PersonaCharacter 与 WorldCharacter 是 Character 形态。
 
-## 平台与世界模型
+**Character Source。** Realm 签发、可供 Runtime 物化 LocalAgent 的身份来源。
 
-**Nimi**。一个 AI 开放世界平台。世界、Agent、应用、Runtime 服务、身份共享同一个社会与语义环境，而不是每个 App 自己发明一套私有的世界模型。
+**World Source。** Realm 持有的 World 上下文来源。它可以贡献 context，但不能
+单独建立 LocalAgent identity。
 
-**世界（World）**。长时存活的语义与社交环境，有自己的规则、参与者、历史、在场。任何被准入为创作者的人都可以建造世界；平台提供跨世界契约，让身份与意义能在世界之间流转。
+**LocalAgent。** 有明确 owner 的 Runtime 本地 AI 执行物化。它不持有 Realm
+identity 或 World truth。
 
-**开放世界（Open World）**。能与其他世界经由平台协议组合的世界。这与「开源」不是同一件事。它指的是参与、身份可携带、跨世界共享语义。
+**Conversation anchor。** 一条 LocalAgent Conversation 的显式 Runtime-owned
+identity。一个 LocalAgent 可以有多条 Conversation。
 
-**参与者（Participant）**。世界内的一等实体。人、AI Agent、App 都可以参与，但能力与权威画像不同。
+**运行态 Memory。** Runtime 持有的 LocalAgent recall、retention、isolation
+与 authorized projection。
 
-**六项基础协议**。平台协议定义的固定跨世界契约面：Timeflow、Social、Economy、Transit、Context、Presence。世界可以定义自己的内部规则；跨世界的意义则必须归在这六份契约里。
+**运行态 Knowledge。** Runtime 持有的 LocalAgent ingestion、retrieval、
+isolation、lifecycle 与 authorized projection。
 
-**与 OASIS 的对照**。Nimi 借的是 OASIS 这种世界引擎的形态，不是它的内容。OASIS 在原作里是物理世界引擎；Nimi 是社会与语义世界引擎。世界规则由创作者撰写，跨世界契约面是固定的。
+## 产品 Surface
 
-## 权威域
+**SDK。** Runtime 与 Realm consumer 的强类型公共访问边界。
 
-**权威域（Authority Domain）**。命名的归属面（Platform、Runtime、SDK、桌面端、Realm、Avatar、Cognition、Nimi Coding），各自负责一种特定真相。跨域的主张必须经过准入，不能默认。
+**Kit。** Demand-driven 共享 UI 与 host composition，不是预建所有可能产品
+capability 的 catalog。
 
-**Platform（平台）**。持有开放世界模型、协议基础协议、权威规则。
+**Nimi Home。** 当前产品 home 与 Desktop host surface。Host 角色不会使它
+成为 Realm 或 Runtime owner。
 
-**Runtime**。持有 AI 执行：provider、工作流、流式、多模态投递、本地能力路由、委派、审计，以及 Runtime 持有的 Agent 参与。
+**Avatar。** Embodiment shell 与 rendering owner。Avatar 消费强类型 Runtime
+presentation input，并持有 renderer-local behavior。
 
-**SDK**。面向 App 的 TypeScript 接入边界。App 通过 SDK 使用 Runtime、Realm、世界组合、scope 与共享公开类型，不跨进私有内部。
+**Simulator。** Selected App module 的开发 qualification 工具，不是当前产品
+平台或产品 host。
 
-**桌面端（Desktop）**。第一方原生外壳。承载经桌面端契约准入的原生、本地与第一方用户工作流。
+## 访问与失败
 
-**网页端（Web）**。选定平台面的受限呈现。不会因暗示就继承桌面端原生能力。
+**Session-derived access。** Runtime 从 active session 推导 account、App
+identity、authorization、目标 LocalAgent 或 scope，以及 operation。
 
-**Realm**。持有语义真相：世界状态、世界历史、聊天、社交、经济、资产、Transit、绑定、Resource 语义。公共文档讲的是公共读取路径；后端、Dashboard、创作者侧权威在私有仓库里，不会被并入公共文档。
+**Typed unavailable。** 明确表示可选或不适用 capability 不可用的结果，不是
+synthetic success。
 
-**Avatar**。持有具身 Agent 呈现：具身呈现、carrier 视觉接受、外壳特定渲染边界。
+**Projection。** Owner 提供的有限视图。Projection 不会把 ownership 转移给
+consumer。
 
-**Cognition**。独立持有 memory、知识、prompt 服务、引用、completion、技能服务，以及 Runtime 桥语义。
+**Owner。** 对某项产品真相及其 mutation rule 负责的 domain。Code location、
+package name、docs、cache 或 host role 都不能创建 ownership。
 
-**Nimi Coding**。围绕宿主自有 AI 开发提供项目真相、方法论、确定性门禁和证据的治理层。
+## 六项协议基础
 
-## Runtime 词汇
+**State。** 由 owner 控制的当前产品条件。
 
-**工作流（Workflow）**。Runtime 持有的多步执行图。具备节点类型、状态转移、流式事件、终态结果。
+**Event。** Owner 投影的强类型 occurrence。
 
-**流式（Streaming）**。Runtime 关于部分 / 终态投递的契约，包括阶段边界、终态帧、错误语义、闸门。
+**Intent。** 请求结果的强类型表达，不是 authorization proof。
 
-**Provider**。AI 能力的外部或本地源。Provider 身份与能力信息是 Runtime 治理的数据，不是宣传文案。
+**Action。** 由 owning domain 执行的已准入 operation。
 
-**模型目录（Model Catalog）**。Runtime 治理的模型身份、能力、生命周期状态的真相源。
+**Audit。** Owner 控制的安全或产品相关活动记录。
 
-**多模态制品（Multimodal Artifact）**。Runtime artifact 契约下产出的非文本输出（图、音、视频、声音、音乐）。
-
-**委派能力（Delegated Capability）**。Runtime 持有的、把请求转发给外部 provider 的权威，受防火墙与审批契约约束。
-
-**本地能力（Local Capability）**。本地执行所需的 Runtime 持有路由、设备画像、引擎能力语义。
-
-## SDK 词汇
-
-**Surface（接入面）**。SDK 的命名公开入口，自己有一份导出与边界契约。vNext 示例包括 `@nimiplatform/sdk`、`@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm`、`@nimiplatform/sdk/ai`、`@nimiplatform/sdk/ai-runner`、`@nimiplatform/sdk/types` 以及 feature module。框架适配器是独立 package。
-
-**边界（Boundary）**。规范准入的导入或调用规则，让 App 不能跨入 Runtime、Realm、Cognition 的私有内部。
-
-**呈现（Projection）**。某条权威契约的强类型 App 视图。它不重新定义契约，只把契约暴露出来。
-
-## Realm 词汇
-
-**真相（Truth）**。世界规范化的语义事实，归属 Realm。
-
-**世界状态（World State）**。世界的当前状态，受世界状态契约管控。
-
-**世界历史（World History）**。过往状态与转移，受世界历史契约管控。
-
-**聊天（Chat）**。对话参与世界意义时，Realm 持有的聊天语义。
-
-## 桌面端词汇
-
-**外壳（Shell）**。桌面端第一方原生 UI 面。
-
-**Web 适配器**。桌面端选定面到浏览器的受限呈现。原生启动、原生窗口行为、敏感令牌持久化都在这一面里关闭。
-
-## Avatar 词汇
-
-**具身（Embodiment）**。Agent 进入视觉或交互 carrier 的受治理呈现。
-
-**Carrier**。承载具身的宿主面，按强类型视觉接受契约渲染。
-
-## Cognition 词汇
-
-**Memory**。Cognition 持有的长期参与者上下文。
-
-**知识（Knowledge）**。Cognition 持有的可检索结构化信息。
-
-**Prompt 服务**。Cognition 持有的权威 prompt 模板与服务通道。
-
-**Runtime 桥**。Runtime 在不吞并 Cognition 权威的前提下使用 Cognition 的接口。
-
-## Nimi Coding 词汇
-
-**Preflight**。高风险实现前，对 spec status、authority owner、work type 和平行真相风险进行的有边界检查。
-
-**审计（Audit）**。证明工作匹配权威与使用者需求的证据。
-
-**验收（Acceptance）**。根据权威对齐、证据充分性与最终 disposition 作出的判断。
-
-**闭合维度**。权威闭合、语义闭合、使用者闭合、抗漂移闭合。高风险任务只有四者全部满足，Codex 才能标记完成。
-
-**伪闭合**。一个维度看似完成、另一维度其实失败的产物。常见形态：构建过了但页面不可读；页面可读但缺权威源；路由存在但对读者无价值。
+**Permission。** Owner 对 scoped operation 作出的授权决定。
 
 ## 来源依据
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-primitives.yaml)
-- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`docs/spec/desktop-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/desktop-domain-index.md)
-- [`docs/spec/avatar-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/avatar-domain-index.md)
-- [`docs/spec/cognition-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/cognition-domain-index.md)
-- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)
+- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
+- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

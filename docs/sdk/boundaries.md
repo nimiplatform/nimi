@@ -11,10 +11,9 @@ The kernel rules behind this page live under `S-BOUNDARY-*` and
 
 - Apps should use SDK public exports instead of private Runtime or Realm
   paths.
-- SDK surfaces should not silently redefine Runtime, Realm, Desktop, or
-  Cognition truth.
-- Package-local authority is allowed only when it has been explicitly
-  admitted in the SDK kernel.
+- SDK surfaces should not silently redefine Runtime, Realm, or Desktop truth.
+- Package location, a source directory, or a docs page does not create a
+  public SDK promise.
 - A readable docs page is not enough to create a new SDK promise. The
   promise needs admission first; the page is a projection second.
 
@@ -79,7 +78,7 @@ implementation reasons:
 - private runtime packages, internal client code, transport-level
   glue;
 - private realm internals;
-- desktop or cognition internals.
+- Desktop internals or Runtime-private Memory and Knowledge implementation.
 
 The boundary itself is documented in `.nimi/spec/sdks/client-core.authority.yaml`
 and the TypeScript target export map.
@@ -88,4 +87,3 @@ and the TypeScript target export map.
 
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
 - [`config/sdks-typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-target-export-map.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

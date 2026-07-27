@@ -63,8 +63,8 @@ proposed -> accepted -> spec-drafted -> implemented
 | 分类 | 含义 |
 | --- | --- |
 | `ux` | 用户体验改进（渲染、交互、编辑器） |
-| `integration` | 外部协议 / 服务集成（MCP、搜索、OAuth） |
-| `platform` | 平台核心能力（RAG、工作流、模型路由） |
+| `integration` | 可选的外部协议 / 服务集成 |
+| `platform` | 仍需明确产品 owner 决策的平台能力 |
 | `auth` | 身份验证 / 授权扩展 |
 | `security` | 安全和审查能力 |
 | `observability` | 可观察性 + 运营 |
@@ -113,9 +113,9 @@ Backlog 条目通过 `RESEARCH-*` id 引用研究来源。来源注册表准许�
 
 一个被接受的条目向实现迈进。
 
-1. **提出 spec 草案。** 草案目标是已准入的产品域，例如 runtime、SDK、desktop、platform、realm、avatar 或 cognition。
+1. **准备产品提案。** 提案标明预期 owner，例如 Runtime、SDK、Desktop、Platform、Realm 或 Avatar。
 2. **状态转换为 `spec-drafted`。** 根据 graduation evidence。
-3. **Spec 准入过程。** 与 backlog 状态分开；spec 通过自己的准入过程。
+3. **Owner 决策。** 产品决策关闭后，真相写入既有 `.nimi/spec/**` owner 容器。
 4. **开始实现。**
 
 ## 读者场景：条目被推迟

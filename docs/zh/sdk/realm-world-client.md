@@ -1,6 +1,6 @@
 # Realm 与组合
 
-本页说明 SDK vNext 中 Realm 真值消费与世界相关组合的读者视角。旧的 `@nimiplatform/sdk/world` 子路径不在公开 surface 中。世界相关 workflow 通过 SDK root composition、Realm helper 与已准入的 feature module 承载。
+本页说明 SDK vNext 中 Realm 真值消费与世界相关组合的读者视角。旧的 `@nimiplatform/sdk/world` 子路径不在公开 surface 中。世界相关操作通过 SDK root composition 与 Realm helper 承载。
 
 ## Realm 持有什么
 
@@ -14,11 +14,10 @@ App 应使用：
 
 ## 世界相关组合
 
-世界 workflow 通常需要 Realm 真值加 Runtime 执行。vNext 中这不是独立的 `world` package root。组合应落在：
+世界相关操作通常需要 Realm 真值加 Runtime 执行。vNext 中这不是独立的 `world` package root。组合应落在：
 
 - 跨 Runtime 与 Realm 的 SDK root client；
 - 读取已准入 Realm 真值的 `@nimiplatform/sdk/realm`；
-- 已准入为 feature-level developer experience 的 `@nimiplatform/sdk/features/workflow`。
 
 组合必须保持权威线可见。Realm 仍持有真值，Runtime 仍持有执行。SDK helper 不会变成第三个真值来源。
 

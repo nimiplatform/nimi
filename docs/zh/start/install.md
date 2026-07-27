@@ -45,7 +45,7 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
 | 平台层 | 阅读路径 | 涵盖内容 |
 | --- | --- | --- |
 | 平台 | [平台](/zh/platform/) | 世界模型、六项基础协议及权威准入规则 |
-| Runtime | [Runtime](/zh/runtime/) | AI 任务执行、工作流、流式传输、多模态产物及 Provider 路由 |
+| Runtime | [Runtime](/zh/runtime/) | LocalAgent 执行、Conversation、Memory、Knowledge、流式、多模态及 Provider 路由 |
 | SDK | [SDK](/zh/sdk/) 与 [第一次 AI 调用](/zh/sdk/first-ai-call) | 应用开发者的标准化接入边界与第一次 Runtime-backed 文本生成路径 |
 | App Tools | [创建 Nimi App](/zh/start/create-an-app) | App authoring scaffold 命令与本地检查 |
 | Kit | [平台 Kit](/zh/platform/kit/) | 共享 UI、shell、auth、telemetry、model config 与 feature module |
@@ -54,7 +54,6 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
 | 网页端 | [Web 模式](/zh/desktop/web-mode) | 受限的浏览器沙盒呈现模式 |
 | Realm | [Realm](/zh/realm/) | 语义真相、世界状态及历史演进轨迹 |
 | Avatar | [Avatar](/zh/avatar/) | Agent 的形体呈现标准 |
-| Cognition | [Cognition](/zh/cognition/) | 独立的记忆、知识与 Prompt 服务 |
 
 当上述任一层获得准入并新增安装命令、下载链接或发布说明时，对应章节页将同步更新。
 

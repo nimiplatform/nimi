@@ -1,61 +1,30 @@
 # Knowledge UI
 
-## Status: Admitted Contract; Desktop-Owned Surface
+Desktop owns the user-facing Knowledge experience: navigation, search and
+curation controls, loading and error presentation, and ephemeral UI state.
 
-The Desktop knowledge UI contract
-(`desktop/kernel/knowledge-ui-contract.md`) is admitted at the kernel
-level. The user-facing browse + curation surface is Desktop-owned.
-
-## What This UI Is
-
-The Desktop Knowledge UI is the **user-facing surface** for browsing
-and curating cognition knowledge bases — listing, searching,
-adding entries, organizing, archiving.
-
-It is the consumer of cognition's knowledge service (see
-[Cognition → Memory + Knowledge Composition](/cognition/memory-knowledge-composition)),
-not its owner.
+Runtime owns LocalAgent operational Knowledge. Desktop reaches it through the
+standard SDK and authorized Runtime surface; it does not define a second
+Knowledge service or maintain canonical Knowledge data locally.
 
 ## Boundary
 
-| Owns | Does NOT own |
+| Desktop owns | Runtime owns |
 | --- | --- |
-| User-facing browse + curation UX | Knowledge service contract (Cognition) |
-| Per-knowledge-base UI scopes | Cross-base authorization (Cognition) |
-| Curation flow UI | Curation admission rules (Cognition) |
+| Browse, search, and curation UX | Knowledge ingestion, retrieval, isolation, and lifecycle |
+| Draft input and local presentation state | Session-derived authorization and LocalAgent scope |
+| Typed unavailable and failure presentation | Admitted results and failure semantics |
 
-The UI consumes the knowledge service through admitted runtime
-bridge. It does not invent knowledge structure.
+Desktop submits typed user intent and renders the returned projection. A local
+cache cannot become Knowledge, Conversation, Memory, source, or authorization
+truth.
 
-## Reader Scenario: User Adds A Knowledge Entry
-
-1. **User opens knowledge base in UI.** Per-base scope honored.
-2. **User adds entry.** Curation UI captures content + metadata.
-3. **Submission via admitted flow.** Cognition knowledge service
-   admits the entry per its contract.
-4. **Future agent retrievals see the new entry.**
-
-## Reader Scenario: User Archives An Entry
-
-1. **User selects archive.** Desktop UI requests cognition
-   knowledge service archive.
-2. **Refgraph blockers consulted.** If the entry has strong
-   incoming refs, archive may block with explainability (see
-   [Reference Graph](/cognition/reference-graph)).
-3. **User decides.** Either resolve dependents first or accept
-   broken-dependency evidence.
-4. **Archive completes.** Per cognition cleanup semantics.
-
-## What Knowledge UI Does Not Do
-
-- It does not own knowledge service semantics.
-- It does not let the UI invent its own retrieval surface that
-  bypasses cognition.
-- It does not let entries enter without curation admission.
-- It does not bypass refgraph blockers on archive / remove.
+When a request is unauthorized, unavailable, pending, or failed, the UI keeps
+the typed result visible and does not bypass Runtime through a private store,
+provider call, or app-local service.
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
-- [`.nimi/spec/cognition/standalone-services.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/standalone-services.authority.yaml)
-- [`.nimi/spec/cognition/runtime-bridge.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/runtime-bridge.authority.yaml)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
+- [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)

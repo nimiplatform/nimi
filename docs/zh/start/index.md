@@ -22,7 +22,7 @@
 
 1. [平台愿景](/zh/platform/vision)：项目核心目标与产品定位。
 2. [平台架构](/zh/platform/architecture/)：明确各组件权责边界的跨层架构图。
-3. [Runtime 概览](/zh/runtime/) 与 [Runtime 工作流](/zh/runtime/workflows)：底层 AI 执行引擎的核心职责。
+3. [Runtime 概览](/zh/runtime/) 与 [Memory 与 Knowledge](/zh/runtime/memory-and-knowledge)：底层 AI 执行引擎的核心 owner 边界。
 4. [SDK 概览](/zh/sdk/) 与 [SDK 边界](/zh/sdk/boundaries)：外部应用接入平台时需遵守的规范与边界。
 5. [Nimi Coding 白皮书](/zh/nimicoding/whitepaper)：本项目中 AI 辅助工程的治理范式。
 
@@ -53,7 +53,7 @@ Nimi Coding 作为独立于宿主环境的方法论，已作为标准 npm 软件
 假设您是一名新接触 Nimi 的应用开发者，推荐的首次阅读路径如下：
 
 1. 阅读 [平台](/zh/platform/)，确立“世界”而非“会话”是平台核心运转对象的基础认知。
-2. 阅读 [Runtime](/zh/runtime/)，理解 Provider 调度、工作流、流式传输及多模态产物等逻辑均由 Runtime 契约统筹，而非应用代码。
+2. 阅读 [Runtime](/zh/runtime/)，理解 Provider 调度、LocalAgent、Conversation、Memory、Knowledge、流式传输及多模态产物等逻辑均由 Runtime 契约统筹，而非应用代码。
 3. 阅读 [SDK](/zh/sdk/)，掌握如何通过 root `@nimiplatform/sdk` client、`@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm`、feature module 与独立 adapter package 合规消费底层能力，避免直接导入私有模块。
 4. 写 app-local shell、model config 或共享 UI 前，阅读 [创建 Nimi App](/zh/start/create-an-app)、[把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference) 和 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
 5. Runtime、SDK、AIConfig 或 scaffold check 失败时，保持 [故障排查](/zh/start/troubleshooting) 打开。

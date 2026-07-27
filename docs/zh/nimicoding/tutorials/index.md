@@ -17,4 +17,4 @@ Tutorial 回答"我想学一遍"，How-to 回答"我要解决某个具体问题"
 
 ## 来源依据
 
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)
+- [`.nimi/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-authoring.yaml)

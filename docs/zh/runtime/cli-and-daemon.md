@@ -66,7 +66,7 @@ install → 首次运行选择
 3. **配置连接器。** 你新增一个连接器，作为该 provider 的受管身份。凭据被校验，连接器报告它能路由到的模型集。
 4. **启动 daemon。** `nimi serve`（或后台 `nimi start`）。daemon 通过 `STARTING → READY`。
 5. **核对。** `nimi doctor` 显示 daemon `READY`、provider 健康绿、模型就绪绿、审计量 0、复制积压 0。
-6. **第一次生成。** 应用经 gRPC 连进来发请求。请求转成 `ScenarioJob`，工作流通过 `ACCEPTED → QUEUED → RUNNING → COMPLETED`。
+6. **第一次生成。** App 经 gRPC 连入并发起请求。请求转成 `ScenarioJob`，状态通过 `SUBMITTED → RUNNING → COMPLETED`。
 
 CLI 暴露的信息够确认健康，但不暴露内部状态。`nimi doctor` 报黄或红时，会指出具体区域并指向相关 kernel 规则上下文。
 

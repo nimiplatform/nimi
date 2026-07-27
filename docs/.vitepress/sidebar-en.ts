@@ -7,7 +7,6 @@ type DomainKey =
   | 'desktop'
   | 'realm'
   | 'avatar'
-  | 'cognition'
   | 'nimicoding'
 
 interface DomainEntry {
@@ -38,22 +37,17 @@ const platformGroups: DefaultTheme.SidebarItem[] = [
       { text: 'State vs History', link: '/platform/worlds/state-vs-history' },
       { text: 'OASIS', link: '/platform/worlds/oasis' },
       { text: 'World Lifecycle', link: '/platform/worlds/lifecycle' },
-      { text: 'World Evolution Engine', link: '/platform/worlds/world-evolution-engine' },
-      { text: 'WEE Execution', link: '/platform/worlds/wee-execution' },
     ],
   },
   {
-    text: 'Agents',
+    text: 'Character And LocalAgent',
     items: [
-      { text: 'Agents Overview', link: '/platform/agents/' },
-      { text: 'The Four Layers', link: '/platform/agents/the-four-layers' },
-      { text: 'Chat And Life Tracks', link: '/platform/agents/chat-and-life-tracks' },
+      { text: 'Overview', link: '/platform/agents/' },
       { text: 'Conversation Anchor', link: '/platform/agents/conversation-anchor' },
       { text: 'Cross-Surface Continuity', link: '/platform/agents/cross-surface-continuity' },
-      { text: 'Participation Authority', link: '/platform/agents/participation-authority' },
+      { text: 'LocalAgent Access', link: '/platform/agents/participation-authority' },
       { text: 'Cross-World Identity', link: '/platform/agents/cross-world-identity' },
-      { text: 'External Agents', link: '/platform/agents/external-agents' },
-      { text: 'Hook Intent', link: '/platform/agents/hook-intent' },
+      { text: 'External Participation', link: '/platform/agents/external-agents' },
     ],
   },
   {
@@ -94,12 +88,10 @@ const runtimeGroups: DefaultTheme.SidebarItem[] = [
   {
     text: 'Execution',
     items: [
-      { text: 'Workflows', link: '/runtime/workflows' },
       { text: 'Streaming', link: '/runtime/streaming' },
       { text: 'Streaming Protocol', link: '/runtime/streaming-protocol' },
       { text: 'Multimodal', link: '/runtime/multimodal' },
       { text: 'Voice Asset Lifecycle', link: '/runtime/voice-asset-lifecycle' },
-      { text: 'MCP Integration', link: '/runtime/mcp-integration' },
     ],
   },
   {
@@ -151,8 +143,6 @@ const sdkGroups: DefaultTheme.SidebarItem[] = [
       { text: 'Delegation Client', link: '/sdk/delegation-client' },
       { text: 'Local Environment Projection', link: '/sdk/local-environment-projection' },
       { text: 'AI Config Surface', link: '/sdk/ai-config-surface' },
-      { text: 'WEE Projection', link: '/sdk/wee-projection' },
-      { text: 'WEE Consumer', link: '/sdk/wee-consumer' },
       { text: 'Transport And Error', link: '/sdk/transport-and-error' },
     ],
   },
@@ -272,36 +262,6 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
   },
 ]
 
-const cognitionGroups: DefaultTheme.SidebarItem[] = [
-  {
-    text: 'Overview',
-    items: [
-      { text: 'Overview', link: '/cognition/' },
-    ],
-  },
-  {
-    text: 'Standalone Authority',
-    items: [
-      { text: 'Memory + Knowledge Composition', link: '/cognition/memory-knowledge-composition' },
-      { text: 'Memory Service', link: '/cognition/memory' },
-      { text: 'Knowledge Service', link: '/cognition/knowledge' },
-      { text: 'Prompt Serving', link: '/cognition/prompt-serving' },
-      { text: 'Prompt Lanes', link: '/cognition/prompt-lanes' },
-      { text: 'Completion', link: '/cognition/completion' },
-      { text: 'Skill Service', link: '/cognition/skill-service' },
-      { text: 'Skill Artifacts', link: '/cognition/skill-artifacts' },
-      { text: 'Reference Graph', link: '/cognition/reference-graph' },
-    ],
-  },
-  {
-    text: 'Runtime Bridge',
-    items: [
-      { text: 'Runtime Bridge', link: '/cognition/runtime-bridge' },
-      { text: 'Runtime Upgrade', link: '/cognition/runtime-upgrade' },
-    ],
-  },
-]
-
 const nimicodingGroups: DefaultTheme.SidebarItem[] = [
   {
     text: 'Overview',
@@ -374,7 +334,6 @@ const DOMAINS: DomainEntry[] = [
   { key: 'desktop', text: 'Desktop', groups: desktopGroups },
   { key: 'realm', text: 'Realm', groups: realmGroups },
   { key: 'avatar', text: 'Avatar', groups: avatarGroups },
-  { key: 'cognition', text: 'Cognition', groups: cognitionGroups },
   { key: 'nimicoding', text: 'Nimi Coding', groups: nimicodingGroups },
 ]
 
@@ -408,7 +367,6 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'Desktop', link: '/desktop/' },
         { text: 'Realm', link: '/realm/' },
         { text: 'Avatar', link: '/avatar/' },
-        { text: 'Cognition', link: '/cognition/' },
         { text: 'Nimi Coding', link: '/nimicoding/' },
       ],
     },
@@ -420,7 +378,6 @@ export const sidebarEn: DefaultTheme.Sidebar = {
   '/desktop/': buildDocsSidebar('desktop'),
   '/realm/': buildDocsSidebar('realm'),
   '/avatar/': buildDocsSidebar('avatar'),
-  '/cognition/': buildDocsSidebar('cognition'),
   '/nimicoding/': buildDocsSidebar('nimicoding'),
 
   '/reference/': [

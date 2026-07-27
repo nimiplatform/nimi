@@ -167,21 +167,12 @@ go test ./...
 go vet ./...
 ```
 
-## Audit Status
+## Product Boundary
 
-Cognition authority and implementation are now aligned for cognition-local
-standalone completion closeout.
+This package is a bounded independent implementation. It is not a standalone
+Nimi product authority domain and is not a prerequisite for Runtime readiness.
+Runtime remains the owner of LocalAgent, Conversation, Memory, and Knowledge.
+The optional no-downgrade integration seam is described by
+`.nimi/spec/cognition/runtime-bridge.authority.yaml`.
 
-`C-COG-004`, `C-COG-023`, `C-COG-032`, and `C-COG-045` are stated in
-`.nimi/spec/cognition/standalone-services.authority.yaml`, covering public
-lifecycle mutation, citation/provenance integrity, typed digest persistence,
-and authoritative worker-path cleanup.
-
-Their coverage state was once recorded in a per-rule evidence registry. That
-registry was retired with the file-by-file evidence model and has no
-replacement coordinate, so this document makes no current coverage claim for
-them; the historical evidence exists only in Git history.
-
-This is a cognition-local completion claim only. Repo-wide human-doc
-projections and broader standalone project closeout remain separate governance
-surfaces and must be kept in sync independently.
+This README makes no product-alignment or coverage-completeness claim.

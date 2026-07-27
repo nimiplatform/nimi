@@ -23,18 +23,15 @@ This guide points to the Platform authority surfaces for design-pattern. It does
 
 - `docs/spec/platform-domain-index.md`
 - `.nimi/spec/platform/core-protocol.authority.yaml`
-- `.nimi/spec/platform/authority-admission.authority.yaml`
 - `.nimi/spec/platform/ui-design-system.authority.yaml`
 - `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
 - `.nimi/spec/platform/core-protocol.authority.yaml`
-- `config/platform-app-slice-admissions.yaml`
 - `config/platform-audit-events.yaml`
 - `.nimi/spec/platform/app-ecosystem.authority.yaml`
 - `config/platform-canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/testing-discipline.authority.yaml`
 - `config/platform-error-code-mapping.yaml`
 - `.nimi/spec/platform/ui-design-system.authority.yaml`
 
@@ -49,15 +46,15 @@ This guide points to the Platform authority surfaces for design-pattern. It does
 ## P-DESIGN-001 — Foundation Authority
 
 - The Nimi design pattern is the single authoritative source for shared kit primitives, semantic tokens, theme-pack schemas, material taxonomy, and external app integration rules.
-- Cross-app design authority must live in `.nimi/spec/platform/ui-design-system.authority.yaml` and the structured fact sources under `config/platform-*.yaml`.
-- App-local specs own concrete kit consumption inventories, retained app-owned compositions, and product art direction. They may not redefine shared primitive families, token taxonomies, or governance rules.
+- Cross-app design authority lives in `.nimi/spec/platform/ui-design-system.authority.yaml`; files under `config/platform-*.yaml` are machine projections.
+- App-local composition may own concrete Kit adoption, retained app-owned compositions, and product art direction. It may not redefine shared primitive families, token taxonomies, or product authority.
 
 ## P-DESIGN-002 — Theme Pack Model
 
 - Shared design foundation is constant across apps; theme expression is delivered through foundation scheme packs plus exactly one app accent pack.
 - Governed app entries must import `@nimiplatform/kit/ui/themes/light.css`, `@nimiplatform/kit/ui/themes/dark.css`, and exactly one app accent pack from `@nimiplatform/kit/ui/themes/*-accent.css`.
 - Foundation schemes are `nimi-light` and `nimi-dark`.
-- `nimi-accent` is the shared Nimi accent pack. External app accent packs may be packaged by `@nimiplatform/kit/ui` only when their values are owned by the consuming app's local spec manifest, not by platform design authority.
+- `nimi-accent` is the shared Nimi accent pack. External app accent packs may be packaged by `@nimiplatform/kit/ui` only when their values are app-owned composition inputs, not a second platform design authority.
 
 ## P-DESIGN-003 — Semantic Token Taxonomy
 

@@ -22,7 +22,6 @@ Desktop 的 canonical product authority 已迁至 `.nimi/spec/desktop/**`。本�
 - `config/desktop-product-surfaces-home-feed-scopes.yaml`
 - `config/desktop-product-surfaces-relationship-categories.yaml`
 - `config/desktop-product-surfaces-relationship-friend-request-states.yaml`
-- `config/desktop-shell-runtime-store-slices.yaml`
 - `config/desktop-shell-ui-app-tabs.yaml`
 - `config/desktop-shell-ui-build-chunks.yaml`
 - `config/desktop-shell-ui-error-codes.yaml`
@@ -44,7 +43,6 @@ Desktop 的 canonical product authority 已迁至 `.nimi/spec/desktop/**`。本�
 - `docs/authority/desktop-product-surfaces-rationale.md`
 - `docs/authority/desktop-shell-runtime-rationale.md`
 - `docs/authority/desktop-shell-ui-rationale.md`
-- `docs/authority/desktop-testing-gates-rationale.md`
 
 ## 迁移边界
 

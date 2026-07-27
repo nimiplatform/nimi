@@ -13,11 +13,14 @@ closed instead of forwarding to a vNext adapter.
 | --- | --- | --- |
 | Vercel AI | `@nimiplatform/sdk-adapter-vercel-ai` | Maps Vercel Language Model calls onto Nimi AI/runtime semantics |
 | OpenAI-compatible | SDK adapter source root under `sdks/typescript/adapters/openai-compatible` | Migration bridge for OpenAI-compatible chat completion shapes |
-| MCP / Next / React / LangGraph / LlamaIndex / Mastra | Adapter source roots under `sdks/typescript/adapters/*` | Integration projections, not base SDK subpaths |
 
 An adapter may depend on `@nimiplatform/sdk/ai`, `@nimiplatform/sdk/ai-runner`,
 `@nimiplatform/sdk/runtime`, or feature modules. It may not reintroduce removed
 base SDK subpaths.
+
+Additional framework or protocol adapters are added only for a concrete
+consumer. A source directory or capability ledger row does not by itself make
+an adapter a current public product surface.
 
 ## Boundary
 
@@ -57,5 +60,3 @@ provider-native bypasses.
 
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`config/sdks-adapter-source-roots.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-adapter-source-roots.yaml)
-- [`config/sdks-typescript-adapter-capability-ledger.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-adapter-capability-ledger.yaml)

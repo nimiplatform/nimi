@@ -46,7 +46,6 @@ retry 和 auth refresh 是传输机制，不能用来悄悄恢复 decode、conte
 | Provider | 返回瞬时错误帧 |
 | Runtime provider-health | 归到 `K-ERR-*` 族 |
 | Runtime 流式 | 决定恢复或终结；终结则发出强类型终态失败帧 |
-| Runtime 工作流 | 工作流状态切到 `FAILED` |
 | Runtime 审计 | 记录失败和 trace 血缘 |
 | SDK 错误呈现 | 按 `S-ERROR-*` 投出强类型 App 侧错误 |
 | 桌面端 UI | 在 `D-*` 错误边界下呈现 |

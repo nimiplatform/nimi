@@ -111,7 +111,7 @@ iterated under typed parameters to produce variations.
 | --- | --- |
 | Iteration kind | `MUSIC_GENERATE` (admitted under `K-MMPROV-*`) |
 | Lineage | Each iteration references the previous artifact |
-| Audit | Iterations recorded as part of workflow lineage |
+| Audit | Iterations recorded as part of generation lineage |
 
 Iteration is bounded by the admitted contract; apps can't invent
 new iteration kinds at runtime.
@@ -129,7 +129,7 @@ profiled, and admitted into multimodal capability paths
 | Owned by provider contract | Owned elsewhere |
 | --- | --- |
 | Per-provider capability profile shape | Connector custody (`K-CONN-*`) |
-| Provider lifecycle within delegated multimodal path | Workflow execution (`K-WF-*`) |
+| Provider lifecycle within multimodal path | Internal media-pipeline execution |
 | Provider drift detection | Delivery gates verdict (`K-DGATE-*`) |
 | Provider native parameter encapsulation | Public delivery surface |
 
@@ -191,18 +191,18 @@ synthesis:
 For the full asset surface — discovery channel split, target model
 binding, tenant isolation, voice handle policy, and the
 `VoiceReference` boundary — see
-[Voice Asset Lifecycle](/runtime/voice-asset-lifecycle.md).
+[Voice Asset Lifecycle](/runtime/voice-asset-lifecycle).
 
-## Reader Scenario: An Image Generation Workflow
+## Reader Scenario: An Image Generation Task
 
 An app generates an image with a long-running provider.
 
-1. **Workflow node.** An `AI_IMAGE` node is part of a workflow.
-2. **ScenarioJob created.** The node fans out to a `ScenarioJob`.
+1. **Image operation.** The App requests the admitted `AI_IMAGE` operation.
+2. **ScenarioJob created.** Runtime creates a `ScenarioJob`.
 3. **Provider async task.** The provider returns a task id; state
    moves `queued → running`.
-4. **Polling / streaming.** Runtime tracks the task. The workflow
-   event stream emits external-async progress events.
+4. **Polling / streaming.** Runtime tracks the task and emits typed
+   progress updates.
 5. **Task succeeds.** Provider state moves to `succeeded`. Per
    `K-MMPROV-027`, the `ScenarioJob` terminal becomes
    `COMPLETED`.
@@ -222,7 +222,7 @@ artifact did not bypass the delivery gate.
 
 A user generates music and wants to iterate.
 
-1. **First generation.** A music workflow runs; an artifact is
+1. **First generation.** A music generation task runs; an artifact is
    produced.
 2. **Iteration request.** The app issues an iteration with typed
    parameters referencing the original artifact.
@@ -244,8 +244,8 @@ A long video generation hits its provider-side timeout.
 1. **Provider state moves** from `running` to `expired`.
 2. **Mapping.** Per `K-MMPROV-027`, `ScenarioJob` terminal
    becomes `TIMEOUT`.
-3. **Workflow effect.** The node's workflow state moves to
-   `FAILED` (or to a retry path under admitted retry policy).
+3. **Job effect.** The `ScenarioJob` is terminal and any retry remains
+   subject to the admitted retry policy.
 4. **Audit.** The expiry is recorded with reason.
 
 The app sees a typed `TIMEOUT` not a "request failed in some way";

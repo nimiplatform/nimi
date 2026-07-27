@@ -46,7 +46,6 @@ Nimi 里的一个世界，是一个长时存活的语义环境：有创作者定
 - [世界的真相、状态、历史](/zh/platform/worlds/state-vs-history) —— 三个 Realm 概念，差别在哪里，何时读哪一种。
 - [OASIS](/zh/platform/worlds/oasis) —— 唯一的系统主世界。
 - [生命周期](/zh/platform/worlds/lifecycle) —— 世界的创建、发布、绑定、暂停、撤销。
-- [世界演化引擎](/zh/platform/worlds/world-evolution-engine) —— 世界在 Runtime 中运行时，replay、checkpoint、监督、commit-request 暂存的语义归属。
 
 字段层面的定义见 [Reference → World Fields](/zh/reference/world-fields)。
 
@@ -57,7 +56,7 @@ Nimi 里的一个世界，是一个长时存活的语义环境：有创作者定
 - 你的身份就是你在别处用的同一份身份。世界准入你，不发明你。
 - 你的钱包、好友、资产库在这个世界里都可见、可用。它们没有被复制；它们是平台真相。
 - 这个世界有自己的规则 —— 也许货币是「票根」，也许时间以 4 倍速运行。这些本地规则在世界内部生效，不会回头改写你在世界外的标识。
-- 你和这个世界里 Agent 的对话是持久的。Agent 对你的记忆是它自己的（在你同意的前提下），不是世界的。你去往下一个世界时，记忆按 Cognition 契约随 Agent 而走。
+- 你和这个世界里 Character 的对话是持久的。相关运行态记忆由 Runtime 的 LocalAgent Memory 持有，不会变成世界真相。
 - 离开时你经由 OASIS 转场。创作者世界之间不能直接 P2P 转场；OASIS 是中枢。
 
 走读里的每一行都对应一份准入契约。架构存在的意义，是让这种体验在世界之间保持一致，而不是让任何单一世界自己发明身份规则。

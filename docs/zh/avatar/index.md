@@ -18,12 +18,12 @@ Avatar 拥有：
 
 Avatar 不拥有：
 
-- Agent 的身份：归 Runtime，由它持有 Agent 参与的真相和 Agent 的活体生命周期；
-- Agent 的记忆：归 Cognition；
+- Character 持久身份归 Realm；LocalAgent 执行身份与生命周期归 Runtime；
+- LocalAgent 的 Memory 权威归 Runtime；
 - 世界中的社交关系：归 Realm；
 - 生成与执行：归 Runtime。
 
-这条切分很重要。一个跑去管 Agent 身份或记忆的 Avatar 表面就成了平行权威，而不再是呈现域。
+这条切分很重要。一个跑去管理 Character/LocalAgent 身份或 Memory 的 Avatar 表面就成了平行权威，而不再是呈现域。
 
 ## 场景：某个 Carrier 没法显示一份具身化
 
@@ -31,7 +31,7 @@ Avatar 不拥有：
 
 1. Carrier 视觉接受契约决定这套具身化在该 Carrier 上能否准入。
 2. 不能完全准入时，Carrier 不会悄悄渲染半成品。契约决定后续走向：退到准入的备选呈现方案、拒绝、或抛出强类型不兼容。
-3. Runtime 与 Cognition 里的 Agent 真相不会因为 Carrier 这边发生了什么而改变。
+3. Realm 中的 Character 真相与 Runtime 中的 LocalAgent 真相不会因为 Carrier 这边发生了什么而改变。
 
 呈现的问题留在 Avatar，Agent 仍然是 Agent。
 

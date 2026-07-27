@@ -1,111 +1,24 @@
-# 跨世界身份
+# 跨 World 身份
 
-Nimi 的 `LocalAgent` 是 Runtime 为某个 owner 建立的本地身份。它进入不同世界时，身份与来源不会被世界改写；Realm 只提供 source、社交图和经济记录，不定义 Agent 本体。
+跨 World 身份属于 Realm 的 Character 真相。
 
-## 跨世界保持不变的部分
+一个 Character 可以依据 Realm 持有的身份、关系、成员与访问规则参与多个
+World。World 专属上下文不会创建第二个 Character，单独的 World Source 也
+不能建立 LocalAgent 身份。
 
-| 维度 | 归属 |
-| --- | --- |
-| 身份 | Runtime `LocalAgent` 身份与 source provenance reference |
-| 社交图 | Realm `R-SOC-*`（准入图，有序对唯一性） |
-| 经济地位 | Realm `R-ECON-*`（规范化钱包、结算事件） |
-| 记忆 | Cognition + Runtime 记忆库作用域（`AGENT_CORE`、`AGENT_DYADIC`、`WORLD_SHARED`） |
-| 呈现资料 | Runtime `AgentPresentationProfile`（变化缓慢） |
+Runtime 只能从 Realm 签发的 Character Source 物化 LocalAgent。它可以组合
+已准入的 World Source 上下文用于执行、Memory 与 Knowledge，但得到的
+LocalAgent 仍是 Runtime 持有的本地执行实体。
 
-| 维度 | 各世界各自决定 |
-| --- | --- |
-| 世界规则 | 每个世界自己写自己的规则 |
-| 世界内经济含义 | 任意内部货币或交换模型 |
-| 世界内社交规则 | 在世界自己的规则下准入关系 |
-| 视觉承载 | Avatar 的具身化呈现按承载面调整 |
+同一 Character Source 可以物化多个 LocalAgent。除非存在显式 owner contract，
+它们的运行态 Memory、Knowledge、Conversation、状态、预算与生命周期彼此
+独立；共享 source 不等于共享可变本地状态。
 
-切分是有意为之：跨世界含义有固定契约，世界内含义由创作者定义。LocalAgent 进入世界时保持 owner-scoped runtime identity；世界通过 source binding 和本地规则准入它。
-
-## 身份绑定 Source
-
-Realm 不定义 Agent 身份。Realm 拥有两类 source 对象：账号拥有的 persona source 使用
-`PersonaCharacter`，世界拥有的 character source 使用 `WorldCharacter`。Runtime 严格验证按值
-传递的 Packet v3 后，才为某个 owner 原子物化 `LocalAgent`。
-
-- 世界可以在自己的 source graph 中拥有 `WorldCharacter`。
-- 世界不能改写账号拥有的 `PersonaCharacter`。
-- LocalAgent 进入世界时携带 source provenance reference；世界可以准入或拒绝这个 source，但不会改写 LocalAgent 身份。
-
-这是其它一切可携带的根基。
-
-## 社交图是规范态
-
-两位参与者在任意一个世界里成为好友，这段好友关系都是平台规范态，不是世界本地真相。
-
-- 好友关系归 Realm 的社交契约 `R-SOC-*`。
-- 形态是有序对唯一性图，在平台层准入。
-- 好友关系约束聊天前置条件，但不拥有聊天线程本身。
-- 世界可以应用自己的本地社交规则。比如世界 A 中"好友"代表来访权限，世界 B 中"好友"代表共享货币。每个世界读规范化的好友关系，再按本地解释。
-
-不会发生的事：世界不能在两个参与者之间静默捏造一段好友关系，也不能删除好友关系。好友关系是规范化的。
-
-## 经济地位是规范态
-
-钱包、交易历史、创作者收入结算事件——都归 Realm 的经济契约 `R-ECON-*`。
-
-- 仅追加经济流：礼物、收入分润、结算事件都是带显式类型的强类型事件。
-- 世界可以有自己的内部经济（票根、声望点、场景内资源）。除非世界规则准入一次兑换事件，否则不影响平台规范化经济。
-- AI 计算成本**不**作为 Realm 核心真相。成本核算是另一回事。
-
-用户在世界之间穿梭，钱包不变。创作者发布世界，平台规范化收入模型不变。世界内规则可以决定如何在本地解释规范化余额；规范化记录持续存在。
-
-## 记忆按 Cognition 行走
-
-记忆是四层结构里 Agent 身份的一部分。Agent 在世界之间移动时，记忆按 Cognition 的权威与对应的库作用域一同行走。
-
-| 库作用域 | 可见性 |
-| --- | --- |
-| `AGENT_CORE` | Agent 自己的私有记忆；走到哪里都带着 |
-| `AGENT_DYADIC` | 按关系切的私有记忆；带着这段关系走到哪里都在 |
-| `WORLD_SHARED` | 只在某一个世界里可见 |
-| `APP_PRIVATE` | 应用基础设施作用域 |
-| `WORKSPACE_PRIVATE` | 工作区基础设施作用域 |
-
-`AGENT_CORE` 与 `AGENT_DYADIC` 跨世界可携带。`WORLD_SHARED` 刻意不可携带——它和它的世界绑定。
-
-记忆是可选项。没开记忆的 Agent 也是真实 Agent；记忆是用户（或宿主产品）在已准入契约下打开的一层。
-
-## 呈现适配，身份不变
-
-Avatar 的具身化呈现是 Agent 在某个承载面上的视觉形态。不同世界、不同承载面可能呈现同一个 Agent 的不同样子。
-
-- Agent 的 `AgentPresentationProfile` 由 Runtime 拥有，变化缓慢——后端、资产引用、表情预设、声音绑定。
-- 世界的承载面可以接受这份具身化、接受降级版本、或拒收——交由承载视觉接受契约判定。
-- Agent 的身份不会因为承载面变了而变。变的是呈现，Agent 仍是同一个。
-
-## 场景：一个 Agent 跨两个世界
-
-一个名叫 Tov 的 Agent 住在世界 A，开一家小花店。某用户邀请她去世界 B 参加一场音乐会。
-
-- **身份**不变。在世界 B，Tov 还是那个 Tov。
-- **社交图**规范化跨过去。Tov 在世界 A 的好友关系对世界 B 的社交契约可见；世界 B 的本地规则是否给这些好友关系赋予特权，由世界 B 决定。
-- **经济地位**不变。Tov 的钱包是平台真相。世界 B 可能有自己的内部货币用于音乐会票券；Tov 可以兑换（如果世界 B 准入兑换），也可以直接参加。
-- **记忆**按库作用域行走。`AGENT_CORE` 一同到场；与世界 A 花店相关的 `WORLD_SHARED` 留在世界 A。
-- **呈现**适配。如果 Tov 的呈现资料里有合适的变体，世界 B 的承载面可以用音乐会风的具身化渲染她；否则承载面接受默认。
-
-Tov 在用户眼里仍是同一个 Agent。平台契约在每一层都让这件事成立。
-
-## 场景：某个世界想改写 Agent 身份
-
-一个世界的创作者想发布一个"平行宇宙版本"的同名 Agent——名字一样，性格略不同，只在这个世界规范化。
-
-- 平台不准入这种身份修改。Agent 的规范化身份不可被外部创作者修改。
-- 创作者可以以相似的 Soul 创建一个新 Agent，作为独立的规范化实体。新 Agent 有自己的身份与记忆。
-- 原 Agent 还是原 Agent。两者并存；它们之间不蕴含跨世界互通。
-
-不可修改性正是跨世界身份保证有意义的关键。如果创作者能改写身份，"同一个 Agent 跨世界"就只是营销词，不是契约。
+App 只能看到已授权的引用与投影。它不能根据 Character 引用合并 LocalAgent，
+也不能把本地 cache 提升为跨 World 身份真相。
 
 ## 来源依据
 
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

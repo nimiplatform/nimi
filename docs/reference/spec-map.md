@@ -13,7 +13,6 @@ authority and for navigating the spec directly.
 | Desktop and Web | `.nimi/spec/desktop/**` |
 | Realm | External Realm authority, local pointer docs in `docs/spec/realm-readme.md` and `docs/spec/realm-external-anchor.md`, and Nimi consumer contracts under `.nimi/spec/sdks/**` |
 | Avatar | `.nimi/spec/avatar/**` |
-| Cognition | `.nimi/spec/cognition/**` |
 | Nimi Coding | `nimi-coding/spec/product-scope.yaml`, `nimi-coding/spec/_meta/spec-tree-model.yaml`, `nimi-coding/methodology/**`, `nimi-coding/contracts/**`, `nimi-coding/config/**` |
 
 The spec is organized in a kernel + domain layout. Kernel directories
@@ -34,9 +33,9 @@ rule citation can locate the owning kernel without guessing:
 | `R-*` | Realm |
 | `F-*` | Reserved/historical future backlog anchors outside active spec authority |
 
-Within Runtime, sub-families like `K-WF-*` (workflow), `K-STREAM-*`
-(streaming), `K-MMPROV-*` (multimodal provider), `K-DELEG-*`
-(delegated capability), and `K-AGCORE-*` (agent participation)
+Within Runtime, sub-families like `K-STREAM-*` (streaming),
+`K-MMPROV-*` (multimodal provider), `K-DELEG-*` (optional delegated
+capability), and `K-AGCORE-*` (LocalAgent participation)
 identify which contract a rule belongs to.
 
 ## Reading Tips

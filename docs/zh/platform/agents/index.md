@@ -1,68 +1,36 @@
-# Agent
+# Character 与 LocalAgent
 
-Nimi 里的 Agent 是一等的自主参与者——不是聊天机器人，不是 NPC，不是会话，也不是某种角色扮演。平台承认 Agent 是真实的存在：身份、记忆、社交地位、能力边界都跨世界、跨表面持续。
+Nimi 将持久身份与本地 AI 执行明确分开。
 
-这是 Nimi 最有特色的一项产品属性。本节后续页面把这件事讲具体。
+- **Character** 是 Realm 持有的身份、社交与世界真相。PersonaCharacter 和
+  WorldCharacter 是 Character 的不同形态，不是独立的本地 Agent 类型。
+- **Character Source** 是 Runtime 物化 LocalAgent 时使用的 Realm 来源。
+- **LocalAgent** 是有明确 owner 的 Runtime 物化。Runtime 持有其生命周期、
+  Conversation、运行态 Memory 与 Knowledge、AI 路由、readiness、预算和状态。
 
-## Agent 是什么
+Character 与 LocalAgent 之间不存在额外的平台级 `Agent`、`AgentFamily` 或
+`AgentPersona` 身份层。
 
-Nimi 的 Agent：
+## Owner 边界
 
-- 拥有**持久身份**，跨它访问的每个世界
-- 持有**自己的社交地位与经济地位**（平台规范态）
-- 由**四层结构**组合行为（Soul / Brain / Worldview / Memory）
-- 跑在**两条独立执行轨道**上（Chat Track 处理反应式交互，Life Track 处理自主行为）
-- 通过强类型 `HookIntent` 契约**为自己排期未来动作**
-- 可以通过 Avatar 的呈现层**具身化**
-- 可以在限定作用域 Token 下**委派给外部 AI 宿主**
-- 它做的每一件事都有**自己的审计血缘**
+Realm 持有 Character 身份、社交关系、World 成员关系，以及 canonical
+Character Source 与 World Source。Runtime 消费已准入的 Character Source
+并物化 LocalAgent，但不会接管 Realm 真相。
 
-它**不是**：
+App、Nimi Home、Desktop 和 Avatar 只能取得当前 session 已授权的投影。它们
+不能签发 LocalAgent 身份、从本地历史重建 Runtime 状态，也不会取得 Realm
+JWT、Provider Credential、Runtime proof 或账号级 LocalAgent 全量清单。
 
-- 跨轮次失忆的无状态聊天会话
-- 模型变了就重置的"角色覆盖"
-- 应用调用一次就丢的工具
-- 记忆与身份只属于某个应用的 NPC
-- "LLM + 系统提示词"的简单合成
+Avatar 只渲染 Runtime 的强类型 presentation 输入，并保留 renderer-local
+状态；它既不是 LocalAgent owner，也不是 AI 的直接 driver。
 
-四层结构与双轨切分让 Agent 感觉连续；跨世界身份与审计血缘让它在不同表面之间仍是同一个 Agent。
+## 继续阅读
 
-## 本节包含
-
-- [四层结构](/zh/platform/agents/the-four-layers) — Soul / Brain / Worldview / Memory 与组合方式。
-- [Chat 与 Life 双轨](/zh/platform/agents/chat-and-life-tracks) — 双轨的节奏、Token 预算、Life 默认关闭。
-- [对话锚点](/zh/platform/agents/conversation-anchor) — 每个 Agent 加每段对话的连续性，让一段对话跨桌面端、Avatar、网页端，不塌进全局会话。
-- [跨世界身份](/zh/platform/agents/cross-world-identity) — 身份、社交图、经济地位如何跨世界。
-- [外部 Agent](/zh/platform/agents/external-agents) — `ExternalPrincipal` 模型：注册外部 AI 宿主、限定作用域 Token、能力域、账本。
-- [Hook Intent](/zh/platform/agents/hook-intent) — Agent 为未来动作排期所用的强类型契约。
-
-字段层定义见[参考 → Agent 字段](/zh/reference/agent-fields)。
-
-执行侧细节（RuntimeAgentService、ConversationAnchor、AgentPresentationProfile、APML 输出线协议）参见 Runtime 章节子页。
-
-## 场景：第一次见到一个 Agent
-
-你打开桌面端、打开聊天，向一个名叫 Lin 的 Agent 打招呼。
-
-- Lin 的身份是 Realm 规范态。世上只有一个 Lin；你开始这次对话不会创建新的 Lin。
-- Lin 的 `AGENT_CORE` 记忆库是她自己的。如果你告诉她你的生日，她在自己的记忆权威下存下来（经你同意），并复制到 Realm。
-- Lin 的行为来自四层：Soul（性格）、Brain（当前推理）、Worldview（她对你与世界的模型）、Memory（她记住的东西）。
-- 这次对话有自己的 `ConversationAnchor`——每个 Agent 加每段对话。如果你稍后在 Avatar 里继续聊，这条 anchor 让多个表面共享同一段对话，不塌进一个全局会话。
-- Lin 当下跑在 Chat Track 上（响应你的输入）。她的 Life Track 也可能开着，节奏低，按每日 Token 预算自主做点事。
-
-每一句都对应一份准入契约。这套架构存在的意义就是让 Lin 在你遇见她的每个地方，仍是同一个 Lin。
-
-## 场景：你不在的时候 Agent 自己的一天
-
-设 Lin 的 Life Track 开在 `medium` 节奏，此刻没人在跟她说话。
-
-- Runtime 的 hook 调度器可能调度一次 Life Track 回合——Lin 注意到她记得的某个生日临近，发出一份强类型 `HookIntent`，给自己排上"记得寄一张卡片"。
-- `HookIntent` 进入 hook 生命周期：`pending → running → completed | failed | canceled | rescheduled | rejected`。
-- Lin 的 Life Track 输出以 APML 线协议出来，Runtime 解析为强类型事件后，产品代码才接触到。
-- 这次自主时刻产生的记忆写入她的 `AGENT_CORE` 库，按已准入的写规则。
-- 整件事在每日 Token 预算下进行。预算用完，Life Track 停；Chat Track 始终可用。
-
-普通 AI 聊天机器人不会做这些。Nimi Agent 的设计就奔着这点去——平台的产品论点是：Agent 是生命体，不是工具。
+- [Conversation Anchor](./conversation-anchor)
+- [跨 Surface 连续性](./cross-surface-continuity)
+- [LocalAgent 访问与 App 授权](./participation-authority)
+- [跨 World 身份](./cross-world-identity)
+- [外部参与](./external-agents)
 
 ## 来源依据
 
@@ -70,8 +38,3 @@ Nimi 的 Agent：
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
 - [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
-- [`.nimi/spec/cognition/runtime-bridge.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/runtime-bridge.authority.yaml)

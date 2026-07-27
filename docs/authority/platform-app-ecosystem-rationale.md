@@ -109,7 +109,6 @@ closed。
 - `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
 - `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-030..P-NAPP-032`
 - `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-PERM-001..P-PERM-010`
-- `.nimi/spec/cognition/standalone-services.authority.yaml` — `C-APMEM-001..C-APMEM-008`
 - `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — `D-LLM-022..D-LLM-026`
@@ -342,7 +341,6 @@ permission prompts.
 - `.nimi/spec/runtime/protected-session.authority.yaml`
 - `.nimi/spec/sdks/feature-clients.authority.yaml`
 - `docs/spec/realm-external-anchor.md`
-- `.nimi/spec/cognition/standalone-services.authority.yaml`
 
 ---
 
@@ -1006,7 +1004,7 @@ AI slices and setup projection shape; `local_compute_pack_refs` declares local
 environment pack needs. These three fields must not be collapsed into one
 ambiguous "consumer" concept.
 
-`MUST NOT`：Nimi App registry rows, app manifests, or app-local spec slices must
+`MUST NOT`：Nimi App registry rows or app manifests must
 not carry Runtime activation `consumer_id` as the app requirement owner, nor may
 they declare local paths, selected source records, materialization evidence,
 route bindings, provider health, scheduler state, or connector secrets.
@@ -1072,17 +1070,7 @@ principal, permission-decision, or session owner.
   permission/runtime requirements、and storage policy
 - host/runtime projection does not fail-close the row as unsupported or blocked
 
-`MUST NOT`：Apps 不得拥有 admission truth、marketplace truth、economy truth、package trust truth；不得读取 source workspace、app-local spec、or unadmitted registry rows to decide visibility.
-
-## P-NAPP-010 — App-Slice Admission Orthogonality
-
-`MUST`：现有 `app-slice-admission-contract.md`（`P-APP-*`）的 audit /
-subordinate authority semantics 与本契约 admission 并行存在；两者互不替代。
-一个 first-party app 可同时持有 app-slice admission row（audit authority）
-与 Nimi App registry row（公开产品 admission）。
-
-`MUST NOT`：Nimi App registry 不得替代 `P-APP-*` 的 audit authority；
-`P-APP-*` 也不得替代本契约的 public product admission。
+`MUST NOT`：Apps 不得拥有 admission truth、marketplace truth、economy truth、package trust truth；不得读取 source workspace、app-local files、or unadmitted registry rows to decide visibility.
 
 ## P-NAPP-011 — First-Party Seed
 
@@ -1674,8 +1662,6 @@ control remains unchanged and Desktop-specific.
 - `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AIPS-001..P-AIPS-013`
 - `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AISC-001..P-AISC-005`
 - `.nimi/spec/platform/core-protocol.authority.yaml` — `P-CAPCAT-*`
-- `.nimi/spec/platform/authority-admission.authority.yaml` — `P-APP-*`
-- `.nimi/spec/platform/authority-admission.authority.yaml` — `P-PKG-*`
 - `config/platform-nimi-app-registry.yaml`
 - `config/platform-nimi-app-release-descriptors.yaml`
 - `config/platform-nimi-app-trust-tiers.yaml`
@@ -2648,9 +2634,9 @@ developer workflow authority.
 
 This contract consumes, and does not redefine, public Nimi App admission,
 review, descriptor, install/update/launch, permission grant, Runtime account
-custody, Runtime scoped binding, SDK transport, or app-local spec admission
-truth. Those surfaces remain owned by `P-NAPP-*`, `P-DEV-*`, `P-AUDIT-*`,
-`P-APP-*`, `P-PERM-*`, `K-ACCSVC-*`, `K-BIND-*`, `K-APP-*`, and `S-APP-*` as
+custody, Runtime scoped binding, SDK transport, or App-local product
+authority. Those surfaces remain owned by `P-NAPP-*`, `P-DEV-*`, `P-AUDIT-*`,
+`P-PERM-*`, `K-ACCSVC-*`, `K-BIND-*`, `K-APP-*`, and `S-APP-*` as
 cited below.
 
 ## P-SCAF Family Seam (OWNS / DOES NOT OWN)
@@ -2677,8 +2663,7 @@ cited below.
   `P-AUDIT-001..005`);
 - developer workflow admission truth beyond generating inputs consumed by
   `P-DEV-001..005`;
-- app-slice admission authority except for the explicit `workspace-app`
-  consumer exception under `P-APP-001..006`;
+- app-local product authority, including for `workspace-app` output;
 - permission grant lifecycle or enforcement (`P-PERM-*`);
 - Runtime account/session custody, scoped bindings, app launch, health,
   install, update, uninstall, or file-scope authority (`K-ACCSVC-*`,
@@ -2711,7 +2696,7 @@ are authoritative for this scaffolding contract:
 | A0 | App authoring CLI authority stays `nimi-app create|init|doctor|update`; it does not move under the runtime-occupied `nimi app send|watch` namespace. |
 | A1 | Public Rust crate delivery name is `nimi-shell-tauri`; standalone targets the published crate channel after API/publication mechanics are admitted, and workspace apps use Cargo path dependency. |
 | A2 | SDK exposes one host-neutral local-app client after protected launch. Generated third-party apps use an injected `local_app_host` carrier and never select caller mode, trust class, endpoint, principal, grant, lease, or session. Bundled first-party composition remains separately owner-admitted. |
-| A3 | Explicit `workspace-app` scaffolding may auto-write monorepo app-slice admission under `P-APP-*`; standalone scaffolding never writes admitted truth. |
+| A3 | `workspace-app` is a monorepo layout only; no scaffold profile writes product authority. |
 | A4 | Local development uses the production Developer Mode authorization, isolated `local_development` principal, fixed Windows service, shared grant/evaluator, and host-private common local-app session. Direct daemon, mock auth, disabled gates, pseudo-success, and first-party self-declaration are forbidden. |
 | A5 | Default scaffold content cannot import `kit/features/model-test` until Kit admits that feature surface. |
 
@@ -2723,13 +2708,12 @@ choices unless a new authority-bearing spec cut explicitly supersedes this rule.
 `MUST`: Nimi app scaffolding admits exactly two default app-starter profile
 families and one explicit proof/reference profile:
 
-- `standalone`: an external developer app repository with its own `.nimi/**`
-  host truth surface, published SDK/kit/Rust-shell dependencies, generated
-  submitted-manifest input, and no admitted Platform truth by default.
+- `standalone`: an external developer app repository with project
+  configuration, published SDK/kit/Rust-shell dependencies, and generated
+  submitted-manifest input. Its files are not Nimi product authority.
 - `workspace-app`: a monorepo app slice under `apps/<app>/...` that uses
   workspace dependencies and Cargo path dependency for the Rust shell crate
-  surface; app-local `apps/<app>/spec/**` authority is admitted only through
-  `P-APP-001..006`.
+  surface. It does not create `apps/<app>/spec/**` authority.
 - `tester-reference`: an explicit internal ecosystem proof/reference scaffold
   profile. It may carry `apps/tester` proof composition, scenario presets,
   evidence UI, tester storage, and Electron/Tauri shell wiring so other
@@ -2747,7 +2731,7 @@ to Runtime account/session custody, SDK transport, Kit shell, permission, and
 descriptor boundaries.
 
 `MUST NOT`: scaffolding must not invent any additional profile that bypasses
-`P-APP-*`, `P-NAPP-*`, `P-DEV-*`, or Runtime account/session authority.
+`P-NAPP-*`, `P-DEV-*`, or Runtime account/session authority.
 Implementing only one default starter profile does not satisfy this contract's
 product line.
 
@@ -2919,26 +2903,21 @@ only. Any workstation-local absolute path belongs in local evidence only.
 template source, an admitted Nimi App, public distribution authority, or
 repo-wide spec truth.
 
-## P-SCAF-012 — Public Nimi App Admission And App-Slice Admission Are Separate
+## P-SCAF-012 — Scaffold Output And Public Nimi App Admission Are Separate
 
 `MUST`: scaffolding must keep these surfaces separate:
 
 - public Nimi App admission is owned by `P-NAPP-*`, `P-AUDIT-*`, and related
   upstream rules;
-- app-slice admission is owned by `P-APP-001..006`;
 - scaffolded developer repository shape is owned by `P-SCAF-*`.
 
-`MUST`: standalone scaffolding never writes admitted truth. Explicit
-`workspace-app` scaffolding may auto-write monorepo app-slice admission only
-under existing `P-APP-001..006` authority, and only for the explicit
-`workspace-app` profile.
+`MUST`: no scaffold profile writes or generates Nimi product authority.
+`workspace-app` only changes repository layout and dependency wiring.
 
 `MUST NOT`: scaffolding must not create public Nimi App admission, registry
 rows, release descriptors, mirrors, kill-switch posture, public review
 decisions, ordinary-user install truth, ordinary-user visibility, or any
-substitute for the `P-NAPP-013` PR admission path. App-slice admission does not
-substitute for public Nimi App admission, and public Nimi App admission does
-not substitute for app-slice audit authority (`P-NAPP-010`).
+substitute for the `P-NAPP-013` PR admission path.
 
 ## P-SCAF-013 — A5 Model-Test Admission Dependency
 
@@ -3092,8 +3071,6 @@ remain fail-closed.
   `P-DEV-001..P-DEV-005`
 - `.nimi/spec/platform/app-ecosystem.authority.yaml` --
   `P-AUDIT-001..P-AUDIT-005`
-- `.nimi/spec/platform/authority-admission.authority.yaml` --
-  `P-APP-001..P-APP-006`
 - `.nimi/spec/platform/app-ecosystem.authority.yaml` -- `P-PERM-*`
 - `.nimi/spec/platform/ui-design-system.authority.yaml` -- `P-KIT-041`, `P-KIT-042`
 - `.nimi/spec/sdks/feature-clients.authority.yaml` -- `S-APP-*`

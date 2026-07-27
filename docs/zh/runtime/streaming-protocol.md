@@ -2,7 +2,7 @@
 
 > 状态：运行中 (Running)。流式合约 (`K-STREAM-*`) 是每个运行时服务器流式 RPC 的已发布关闭模式权威。
 
-运行时拥有多个服务器流式 RPC（文本生成、语音合成、场景作业事件、工作流事件、审计导出、长期订阅）。流式合约明确了**每个流如何关闭**，以便消费者可以编写不依赖于协议形状猜测的恢复逻辑。
+Runtime 拥有多个服务器流式 RPC（文本生成、语音合成、ScenarioJob 事件、审计导出、长期订阅）。流式合约明确了**每个流如何关闭**，以便 consumer 可以编写不依赖协议形状猜测的恢复逻辑。
 
 ## 四种关闭模式
 
@@ -11,7 +11,7 @@
 | 模式 | 关闭信号 | RPC |
 | --- | --- | --- |
 | **A — `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 终端帧** | 最终事件携带 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
-| **B — 终端事件后 gRPC OK 关闭** | 服务器发出终端事件，然后干净地关闭流 | `SubscribeScenarioJobEvents`, `SubscribeWorkflowEvents` |
+| **B — 终端事件后 gRPC OK 关闭** | 服务器发出终端事件，然后干净地关闭流 | `SubscribeScenarioJobEvents` |
 | **C — `eof=true` 块后 gRPC OK 关闭** | 服务器发出 `eof=true` 块，然后关闭 | `ExportAuditEvents` |
 | **D — 长期订阅流** | 无终端帧；任何一方都可关闭 | `SubscribeRuntimeHealthEvents`, `SubscribeAIProviderHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
 
@@ -49,7 +49,7 @@
 
 ## 模式 B 事件约束
 
-`SubscribeScenarioJobEvents` 和 `SubscribeWorkflowEvents`：
+`SubscribeScenarioJobEvents`：
 
 | 规则 | 值 |
 | --- | --- |

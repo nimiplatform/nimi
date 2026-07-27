@@ -26,12 +26,10 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-The host boundary itself is declared by `P-PKG-011` in
-`.nimi/spec/platform/authority-admission.authority.yaml`: topic lifecycle,
-wave/packet execution DAGs, run ledgers, goal bridges, and nested host launches
-stay unadmitted even when the installed package still contains them. The sync
-and doctor wrappers verify the managed projections against the package's
-current projection policy; they do not apply it.
+The repository instructions keep task lifecycle, plans, retries, completion,
+and nested host launches with the external AI host. The sync and doctor
+wrappers verify managed projections against the package's current projection
+policy; they do not own or mutate host task state.
 
 ## Validate Product Truth
 
@@ -49,7 +47,6 @@ required when a change crosses authority boundaries.
 ## Construct And Audit A Spec Tree
 
 `.nimi/methodology/spec-reconstruction.yaml` defines the construction model.
-`.nimi/config/spec-generation-inputs.yaml` declares host inputs, while
 `.nimi/contracts/spec-generation-audit.schema.yaml` defines the local evidence
 validated by `validate-spec-audit`. These contracts constrain outputs; they do
 not create a task, choose an executor, or run an audit process.
@@ -74,4 +71,3 @@ an execution command family.
 
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

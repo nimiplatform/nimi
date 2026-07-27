@@ -62,7 +62,7 @@ relates to the rest of the platform.
 | Surface | Read path | What it documents |
 | --- | --- | --- |
 | Platform | [Platform](/platform/) | The world model, six protocol primitives, authority rules |
-| Runtime | [Runtime](/runtime/) | AI execution, workflows, streaming, multimodal, provider routing |
+| Runtime | [Runtime](/runtime/) | LocalAgent execution, Conversation, Memory, Knowledge, streaming, multimodal, provider routing |
 | SDK | [SDK](/sdk/) and [First AI Call](/sdk/first-ai-call) | The app-facing access boundary and first Runtime-backed text generation path |
 | App Tools | [Create A Nimi App](/start/create-an-app) | App authoring scaffold commands and local checks |
 | Kit | [Platform Kit](/platform/kit/) | Shared UI, shell, auth, telemetry, model config, and feature modules |
@@ -71,7 +71,6 @@ relates to the rest of the platform.
 | Web Mode | [Web Mode](/desktop/web-mode) | The constrained browser projection |
 | Realm | [Realm](/realm/) | Semantic truth, world state, world history |
 | Avatar | [Avatar](/avatar/) | Embodied agent presentation |
-| Cognition | [Cognition](/cognition/) | Standalone memory, knowledge, prompt serving |
 
 When a surface adds an install command, a download link, or a release
 notes path, the corresponding section page is updated to expose it.

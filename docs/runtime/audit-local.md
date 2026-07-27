@@ -11,7 +11,7 @@ Runtime records:
 
 | Event family | Examples |
 | --- | --- |
-| AI calls | Workflow start, node execution, scenario job lifecycle, terminal outcomes |
+| AI calls | Request start, ScenarioJob lifecycle, terminal outcomes |
 | Model operations | Provider routing, local engine routing, model resolution |
 | App messages | App-to-app messaging via runtime |
 | Authorization decisions | Token validation, scope check, capability admission |
@@ -46,8 +46,7 @@ reconstruct what happened.
 | Lineage element | Purpose |
 | --- | --- |
 | Trace id | Identifies a single end-to-end run |
-| Principal id | Who was acting (user / agent / app / external principal) |
-| Workflow id | Which workflow this event belongs to |
+| Principal id | Who was acting (user / Character / LocalAgent / App / external principal) |
 | Job id | The `ScenarioJob` lineage |
 | Provider id | Which provider was involved |
 | Action lineage | For delegated paths, links suggestion → verdict → approval → action |
@@ -65,30 +64,26 @@ snapshots. `nimi doctor` exposes:
 | Audit volume | Records per unit time |
 | Replication backlog | Pending records awaiting cloud aggregation (if enabled) |
 | Failure ratio | Recent failure events relative to total |
-| Workflow throughput | Recent workflow completion rate |
+| Job throughput | Recent ScenarioJob completion rate |
 
 These metrics are observable; apps subscribing to audit health get
 a stream of typed events.
 
-## Reader Scenario: Reconstructing A Failed Workflow
+## Reader Scenario: Reconstructing A Failed AI Request
 
 Something went wrong yesterday. A user wants to know exactly what
 happened.
 
 1. **Locate by trace id.** The user has the trace id (from a
    chat error message or app log). They query audit by trace id.
-2. **Workflow lineage.** The workflow lifecycle is recorded —
-   `ACCEPTED → QUEUED → RUNNING → ... → FAILED` with each
-   `NODE_STARTED → NODE_PROGRESS → NODE_FAILED` along the way.
-3. **Scenario job lineage.** Each AI node fans out to a
-   `ScenarioJob`; the audit shows job state transitions.
+2. **Scenario job lineage.** The `ScenarioJob` lifecycle is recorded —
+   `SUBMITTED → RUNNING → FAILED`.
 4. **Provider lineage.** Which provider was routed; what state
    the provider was in; what error code came back.
-5. **Streaming lineage.** The terminal frame that caused the
-   workflow to move to `FAILED` is recorded.
+5. **Streaming lineage.** The terminal failure frame is recorded.
 6. **Reconstruction.** The user has a structured chain of "this
-   request → this workflow → this node → this provider → this
-   error → this terminal" without guessing.
+   request → this job → this provider → this error → this terminal"
+   without guessing.
 
 The audit is the platform's answer to "what happened." Free-form
 log files would not give this; typed audit lineage does.

@@ -918,7 +918,6 @@ truth and are not repartitioned or owned by the app principal.
 - `grant-service.md` — `K-GRANT-*`
 - `account-session-contract.md` — `K-ACCSVC-*`
 - `runtime-agent-service-contract.md` — `K-AGCORE-*`
-- `.nimi/spec/cognition/standalone-services.authority.yaml` — `C-APMEM-*`
 
 ---
 

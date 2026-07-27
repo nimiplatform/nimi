@@ -3,7 +3,7 @@
 Reference is the product-concept dictionary for Nimi. Each page is a
 field listing, table, or enumeration sourced from `.nimi/spec/**`. None
 of these pages narrate — for narrative, see the domain sections
-(Platform / Runtime / SDK / Desktop / Realm / Avatar / Cognition /
+(Platform / Runtime / SDK / Desktop / Realm / Avatar /
 Nimi Coding).
 
 ## Pages
@@ -12,7 +12,7 @@ Nimi Coding).
 | --- | --- |
 | [Glossary](/reference/glossary) | What a cross-domain term means in one place |
 | [World Fields](/reference/world-fields) | What a World looks like at the field level |
-| [Agent Fields](/reference/agent-fields) | What an Agent looks like at the field level |
+| [Character and LocalAgent Fields](/reference/agent-fields) | How Realm-owned Character identity relates to Runtime-owned LocalAgent materialization |
 | [Six Primitives](/reference/six-primitives) | The cross-world contract surfaces in tabular form |
 | [State Machines](/reference/state-machines) | Every named state machine and its canonical states |
 | [Authority Domains](/reference/authority-domains) | Which domain owns which kind of truth |
@@ -25,7 +25,7 @@ Nimi Coding).
 
 If you need a single term defined, start at the
 [Glossary](/reference/glossary). If you need the canonical fields of a
-World or an Agent, the
+World or a Character/LocalAgent boundary, the
 [World Fields](/reference/world-fields) and
 [Agent Fields](/reference/agent-fields) pages are the field-level
 sources. If you need to trace a public claim back to its kernel

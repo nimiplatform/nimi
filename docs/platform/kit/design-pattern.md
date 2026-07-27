@@ -1,23 +1,23 @@
 # Design Pattern
 
 > Status: Running today. The Nimi design pattern (`P-DESIGN-*`) is
-> the shipped cross-app authority for shared visual + interaction
+> the shipped cross-app contract for shared visual + interaction
 > contracts.
 
 The Nimi **design pattern** is the shared visual + interaction
-authority that sits inside `@nimiplatform/kit/ui`. It governs
+contract projected into `@nimiplatform/kit/ui`. It governs
 kit primitives, semantic tokens, theme schemas, and the generic
 contract any consuming app must follow.
 
-## Foundation Authority
+## Foundation Source
 
 | Rule | Value |
 | --- | --- |
 | Authority spec | `.nimi/spec/platform/ui-design-system.authority.yaml` |
-| Authority tables | `config/platform-*.yaml` |
+| Machine projections | `config/platform-*.yaml` |
 | Governed consumers | Declared by each app's local kit manifest |
-| App-local spec may | Own concrete adoption inventory, app-owned compositions, accent selection, and art direction |
-| App-local spec may NOT | Redefine shared primitive families, token taxonomies, or governance rules |
+| App-local composition may | Own adoption choices, app-owned compositions, accent selection, and art direction |
+| App-local composition may NOT | Redefine shared primitive families, token taxonomies, or product authority |
 
 ## Theme Pack Model (P-DESIGN-002)
 
@@ -91,7 +91,7 @@ surfaces.
 
 | Rule | Value |
 | --- | --- |
-| Variant taxonomy authority | `tables/nimi-ui-primitives.yaml` |
+| Variant taxonomy projection | `config/platform-nimi-ui-primitives.yaml` |
 | Implementation pattern | CVA (class-variance-authority) + Tailwind utility classes inside `kit/ui` |
 | Behavioral primitives | Radix UI headless primitives |
 | Theme registration | Semantic tokens via Tailwind `@theme` in generated CSS |

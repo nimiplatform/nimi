@@ -38,21 +38,16 @@ seed，宿主自有内容不会被误判为包漂移。
 pnpm exec nimicoding validate-spec-tree .nimi/spec
 ```
 
-该 validator 检查 canonical tree。规范构建修改了权威文件时，还要对
-`.nimi/local/state/spec-generation/spec-generation-audit.yaml` 运行
-`pnpm exec nimicoding validate-spec-audit`；缺失或不完整的 audit 必须 fail closed。
-两条命令都不创建或更新宿主任务状态。
+Authority 编辑需要对每个 changed container 运行仓库管理的 format 命令，
+随后运行 `pnpm spec:authority:check` 与 `pnpm spec:authority:compile`。
+这些命令验证 authority，但不创建或更新宿主任务状态。
 
 ## 文件所有权
 
-多数 `.nimi/{config,contracts,methodology}/**` 文件以软件包为准。Nimi 只持有三处
-宿主专用内容：`.nimi/config/spec-generation-inputs.yaml`、
-`.nimi/contracts/domain-admission.schema.yaml` 与
-`.nimi/methodology/spec-reconstruction.yaml`。同步时会保留这些已声明差异。
+多数 `.nimi/{config,contracts,methodology}/**` 文件以软件包为准。仓库专用的
+methodology 与 contract 是 host configuration，不是产品 authority。
 
 ## 来源依据
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
 - [`.nimi/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/bootstrap.yaml)
-- [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

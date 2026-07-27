@@ -8,7 +8,7 @@ Runtime 写下：
 
 | 事件族 | 例子 |
 | --- | --- |
-| AI 调用 | 工作流启动、节点执行、scenario job 生命周期、终态 |
+| AI 调用 | 请求开始、ScenarioJob 生命周期、终态 |
 | 模型操作 | provider 路由、本地引擎路由、模型解析 |
 | 应用消息 | 应用之间经 Runtime 中转的消息 |
 | 授权决策 | Token 校验、作用域核对、能力准入 |
@@ -38,8 +38,7 @@ Runtime 写下：
 | 链路元素 | 用途 |
 | --- | --- |
 | Trace id | 标识一次端到端的执行 |
-| Principal id | 谁在动作（用户 / Agent / 应用 / 外部 principal） |
-| Workflow id | 事件归属的工作流 |
+| Principal id | 谁在动作（用户 / Character / LocalAgent / App / 外部 principal） |
 | Job id | `ScenarioJob` 链路 |
 | Provider id | 涉及的 provider |
 | 动作链路 | 委派路径上：建议 → 裁决 → 审批 → 动作 |
@@ -55,20 +54,19 @@ Runtime 写下：
 | 审计量 | 单位时间记录数 |
 | 复制积压 | 等待向云端聚合的记录数（启用时） |
 | 失败率 | 近期失败事件占比 |
-| 工作流吞吐 | 近期工作流完成速率 |
+| Job 吞吐 | 近期 ScenarioJob 完成速率 |
 
 这些指标可观察，订阅审计健康的应用拿到的是一条强类型事件流。
 
-## 读者场景：还原一次失败的工作流
+## 读者场景：还原一次失败的 AI 请求
 
 昨天出了点问题，用户想知道究竟发生了什么。
 
 1. **用 trace id 定位。** 用户拿着 trace id（聊天里的错误信息或应用日志带来的）按 trace id 查审计。
-2. **工作流链路。** 工作流生命周期被记下：`ACCEPTED → QUEUED → RUNNING → ... → FAILED`，沿途每个 `NODE_STARTED → NODE_PROGRESS → NODE_FAILED` 也都在。
-3. **Scenario job 链路。** 每个 AI 节点对应一个 `ScenarioJob`，审计显示 job 的状态迁移。
+2. **ScenarioJob 链路。** Job 生命周期被记下：`SUBMITTED → RUNNING → FAILED`。
 4. **Provider 链路。** 路由到了哪个 provider、provider 当时什么状态、回了哪个错误码。
-5. **流式链路。** 让工作流转入 `FAILED` 的那一帧终止帧也记下来。
-6. **现场重建。** 用户拿到的是一条结构化链：这次请求 → 这条工作流 → 这个节点 → 这个 provider → 这个错误 → 这个终态，不必猜。
+5. **流式链路。** 终止失败帧也被记下。
+6. **现场重建。** 用户拿到的是一条结构化链：这次请求 → 这个 job → 这个 provider → 这个错误 → 这个终态，不必猜。
 
 审计就是平台对"发生了什么"的回答。自由格式日志做不到这件事，强类型审计链路才行。
 

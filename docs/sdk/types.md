@@ -15,8 +15,7 @@ need to talk about Nimi without importing private internals.
 | `NimiError` | The typed error surface for SDK callers |
 | `ScopeName` | Typed scope identifier |
 | `ExternalPrincipalId` | Typed external principal identifier |
-| Runtime ids | `WorldId`, `AgentId`, `ConversationId`, etc. |
-| Workflow ids | `WorkflowId`, `JobId`, `NodeId` |
+| Runtime ids | `WorldId`, `CharacterId`, `LocalAgentId`, `ConversationId`, `JobId`, etc. |
 | Streaming primitives | Typed shapes for the four streaming modes |
 | Multimodal primitives | `ArtifactId`, canonical artifact field types |
 
@@ -25,15 +24,14 @@ types require kernel admission.
 
 ## Why Centralized Types Matter
 
-Without shared types, each sub-path would re-declare its own
-`AgentId`. Two `AgentId` types from two sub-paths might be
-nominally compatible but structurally drift. A typed system
-becomes weakly-typed by accident.
+Without shared types, each sub-path could re-declare Character and
+LocalAgent references with coincidentally similar shapes. A typed
+system would then become weakly typed by accident.
 
 Centralizing in `@nimiplatform/sdk/types` keeps the same nominal type across
-every public surface. An app that passes an `AgentId` from
-`@nimiplatform/sdk/runtime` to a Realm or root-client workflow is passing the
-same type, not a coincidentally-shaped twin.
+every public surface. A Character reference from Realm and a LocalAgent
+reference from Runtime remain distinct typed identities instead of
+coincidentally-shaped twins.
 
 ## Boundary Rules
 
@@ -44,22 +42,20 @@ same type, not a coincidentally-shaped twin.
 | `types` does not depend on transport (`@nimiplatform/sdk/runtime`) or projection (`@nimiplatform/sdk/realm`) | Keeps types portable |
 | New types require kernel admission | Same admission discipline as other surfaces |
 
-## Reader Scenario: Passing An ID Between Sub-Paths
+## Reader Scenario: Keeping Identity Owners Distinct
 
-An app reads an agent id via `@nimiplatform/sdk/realm` and uses it to issue a
-runtime call.
+An App reads a Character reference through the Realm surface and later
+uses a Runtime-provided LocalAgent reference for execution.
 
-1. **Read.** `realm.agents.get(id)` returns an `Agent` whose
-   `agent.id` is typed `AgentId` from `@nimiplatform/sdk/types`.
-2. **Pass.** The app calls `runtime.agent.startConversation(id)`.
-3. **Type compatibility.** Both sub-paths share the `AgentId`
-   type from `@nimiplatform/sdk/types`. The compiler accepts the call.
-4. **No silent coercion.** If the type were declared twice in
-   different sub-paths, the compiler would either refuse or
-   coerce silently. With centralized types, neither happens.
+1. **Realm read.** The App receives a `CharacterId`.
+2. **Runtime materialization.** Runtime resolves or materializes the
+   corresponding LocalAgent and returns a `LocalAgentId`.
+3. **Conversation call.** The App uses the `LocalAgentId` with a
+   `ConversationId`.
+4. **No silent coercion.** The compiler does not allow a Character id
+   to masquerade as a LocalAgent id.
 
-The app does not have to convert between two near-identical
-types. The shared types layer is the structural fix.
+The shared types layer preserves the Realm/Runtime owner boundary.
 
 ## Reader Scenario: A Typed Error Reaches Application Code
 
@@ -75,7 +71,7 @@ A runtime call fails with a contract failure.
 import { NimiError } from '@nimiplatform/sdk/types';
 
 try {
-  await runtime.workflow.run(...);
+  await model.generateText(...);
 } catch (err) {
   if (err instanceof NimiError) {
     // typed reason code
@@ -97,7 +93,7 @@ identifier.
 1. **Import from `@nimiplatform/sdk/types`.** They depend on
    `@nimiplatform/sdk/types`, not on `@nimiplatform/sdk/runtime`
    or `@nimiplatform/sdk/realm`.
-2. **Helper accepts `AgentId | WorldId | ConversationId`.** A
+2. **Helper accepts `CharacterId | LocalAgentId | WorldId | ConversationId`.** A
    typed union from `@nimiplatform/sdk/types`.
 3. **Library compiles.** No transport dependency; no runtime
    pull; portable.
@@ -113,7 +109,7 @@ from `@nimiplatform/sdk/types` keeps the dependency graph thin.
 | Method functions | Those live in `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`, etc. |
 | Transport details (`connectorId`, gRPC metadata) | Layered, not in `types` |
 | Provider names | Catalog data, not type system |
-| World content (rules, agents, etc.) | Content, not types |
+| World content (rules, Characters, etc.) | Content, not types |
 
 ## Source Basis
 

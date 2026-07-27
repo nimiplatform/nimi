@@ -10,10 +10,13 @@ SDK vNext 将框架适配器放在 base `@nimiplatform/sdk` package 之外。适
 | --- | --- | --- |
 | Vercel AI | `@nimiplatform/sdk-adapter-vercel-ai` | 将 Vercel Language Model 调用映射到 Nimi AI/runtime 语义 |
 | OpenAI-compatible | `sdks/typescript/adapters/openai-compatible` 下的 SDK adapter source root | OpenAI-compatible chat completion 形状的迁移桥 |
-| MCP / Next / React / LangGraph / LlamaIndex / Mastra | `sdks/typescript/adapters/*` 下的 adapter source root | 集成投影，不是 base SDK 子路径 |
 
 适配器可以依赖 `@nimiplatform/sdk/ai`、`@nimiplatform/sdk/ai-runner`、
 `@nimiplatform/sdk/runtime` 或 feature module。它不能恢复已删除的 base SDK 子路径。
+
+其他 framework 或 protocol adapter 只在出现具体 consumer 时增加。仅存在
+source directory 或 capability ledger row，不代表该 adapter 已成为当前公共
+产品 surface。
 
 ## 边界
 
@@ -46,5 +49,3 @@ import { createNimiClient } from '@nimiplatform/sdk';
 
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`config/sdks-adapter-source-roots.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-adapter-source-roots.yaml)
-- [`config/sdks-typescript-adapter-capability-ledger.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-adapter-capability-ledger.yaml)

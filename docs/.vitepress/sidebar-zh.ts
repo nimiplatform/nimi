@@ -7,7 +7,6 @@ type DomainKey =
   | 'desktop'
   | 'realm'
   | 'avatar'
-  | 'cognition'
   | 'nimicoding'
 
 interface DomainEntry {
@@ -38,22 +37,17 @@ const platformGroups: DefaultTheme.SidebarItem[] = [
       { text: '真相、状态与历史', link: '/zh/platform/worlds/state-vs-history' },
       { text: 'OASIS', link: '/zh/platform/worlds/oasis' },
       { text: '世界生命周期', link: '/zh/platform/worlds/lifecycle' },
-      { text: '世界演化引擎', link: '/zh/platform/worlds/world-evolution-engine' },
-      { text: 'WEE 执行', link: '/zh/platform/worlds/wee-execution' },
     ],
   },
   {
-    text: 'Agent',
+    text: 'Character 与 LocalAgent',
     items: [
-      { text: 'Agent 总览', link: '/zh/platform/agents/' },
-      { text: '四层结构', link: '/zh/platform/agents/the-four-layers' },
-      { text: 'Chat 与 Life 双轨', link: '/zh/platform/agents/chat-and-life-tracks' },
+      { text: '总览', link: '/zh/platform/agents/' },
       { text: '对话锚点', link: '/zh/platform/agents/conversation-anchor' },
       { text: '跨表面连续性', link: '/zh/platform/agents/cross-surface-continuity' },
-      { text: '参与权限', link: '/zh/platform/agents/participation-authority' },
+      { text: 'LocalAgent 访问', link: '/zh/platform/agents/participation-authority' },
       { text: '跨世界身份', link: '/zh/platform/agents/cross-world-identity' },
-      { text: '外部 Agent', link: '/zh/platform/agents/external-agents' },
-      { text: 'Hook Intent', link: '/zh/platform/agents/hook-intent' },
+      { text: '外部参与', link: '/zh/platform/agents/external-agents' },
     ],
   },
   {
@@ -94,12 +88,10 @@ const runtimeGroups: DefaultTheme.SidebarItem[] = [
   {
     text: '执行',
     items: [
-      { text: 'Workflows', link: '/zh/runtime/workflows' },
       { text: '流式', link: '/zh/runtime/streaming' },
       { text: '流式协议', link: '/zh/runtime/streaming-protocol' },
       { text: '多模态', link: '/zh/runtime/multimodal' },
       { text: '语音资产生命周期', link: '/zh/runtime/voice-asset-lifecycle' },
-      { text: 'MCP 集成', link: '/zh/runtime/mcp-integration' },
     ],
   },
   {
@@ -151,8 +143,6 @@ const sdkGroups: DefaultTheme.SidebarItem[] = [
       { text: '委派客户端', link: '/zh/sdk/delegation-client' },
       { text: '本地环境投影', link: '/zh/sdk/local-environment-projection' },
       { text: 'AI 配置界面', link: '/zh/sdk/ai-config-surface' },
-      { text: 'WEE 投影', link: '/zh/sdk/wee-projection' },
-      { text: 'WEE 消费者', link: '/zh/sdk/wee-consumer' },
       { text: '传输与错误', link: '/zh/sdk/transport-and-error' },
     ],
   },
@@ -272,36 +262,6 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
   },
 ]
 
-const cognitionGroups: DefaultTheme.SidebarItem[] = [
-  {
-    text: '总览',
-    items: [
-      { text: '总览', link: '/zh/cognition/' },
-    ],
-  },
-  {
-    text: '独立权威',
-    items: [
-      { text: '记忆与知识组合', link: '/zh/cognition/memory-knowledge-composition' },
-      { text: '记忆服务', link: '/zh/cognition/memory' },
-      { text: '知识服务', link: '/zh/cognition/knowledge' },
-      { text: 'Prompt 服务', link: '/zh/cognition/prompt-serving' },
-      { text: 'Prompt 通道', link: '/zh/cognition/prompt-lanes' },
-      { text: 'Completion', link: '/zh/cognition/completion' },
-      { text: '技能服务', link: '/zh/cognition/skill-service' },
-      { text: '技能工件', link: '/zh/cognition/skill-artifacts' },
-      { text: '引用图', link: '/zh/cognition/reference-graph' },
-    ],
-  },
-  {
-    text: 'Runtime 桥',
-    items: [
-      { text: 'Runtime 桥', link: '/zh/cognition/runtime-bridge' },
-      { text: 'Runtime 升级', link: '/zh/cognition/runtime-upgrade' },
-    ],
-  },
-]
-
 const nimicodingGroups: DefaultTheme.SidebarItem[] = [
   {
     text: '总览',
@@ -374,7 +334,6 @@ const DOMAINS: DomainEntry[] = [
   { key: 'desktop', text: '桌面端', groups: desktopGroups },
   { key: 'realm', text: 'Realm', groups: realmGroups },
   { key: 'avatar', text: 'Avatar', groups: avatarGroups },
-  { key: 'cognition', text: 'Cognition', groups: cognitionGroups },
   { key: 'nimicoding', text: 'Nimi Coding', groups: nimicodingGroups },
 ]
 
@@ -408,7 +367,6 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '桌面端', link: '/zh/desktop/' },
         { text: 'Realm', link: '/zh/realm/' },
         { text: 'Avatar', link: '/zh/avatar/' },
-        { text: 'Cognition', link: '/zh/cognition/' },
         { text: 'Nimi Coding', link: '/zh/nimicoding/' },
       ],
     },
@@ -420,7 +378,6 @@ export const sidebarZh: DefaultTheme.Sidebar = {
   '/zh/desktop/': buildDocsSidebar('desktop'),
   '/zh/realm/': buildDocsSidebar('realm'),
   '/zh/avatar/': buildDocsSidebar('avatar'),
-  '/zh/cognition/': buildDocsSidebar('cognition'),
   '/zh/nimicoding/': buildDocsSidebar('nimicoding'),
 
   '/zh/reference/': [

@@ -11,7 +11,7 @@ pnpm install
 pnpm run init
 ```
 
-`standalone` 是外部开发者仓库 profile。它会创建一个 candidate app repository，拥有自己的 `.nimi/**` host truth surface 和 submitted manifest input。只有当某个 monorepo app slice 有已准入的 workspace 理由时，才使用 `workspace-app` 并放在 `apps/<app>/` 下。
+`standalone` 是外部开发者仓库布局。它会创建 project configuration 与 submitted manifest input；这些文件不会成为 Nimi 产品 authority。`workspace-app` 只是 `apps/<app>/` 下的内部 monorepo 布局，不是已准入的 app-local spec slice，也不是面向用户的产品 profile。
 
 ## 本地运行和检查
 
@@ -40,7 +40,7 @@ pnpm run doctor
 
 ## Reference App
 
-`apps/tester/` 是 Nimi Lab developer reference app。它展示 Runtime authenticated shell、Kit workbench surfaces、AI capability lanes、app-owned history storage 和 local acceptance checks。把它当作 SDK、Kit、app-tools 与 Runtime auth integration 的参考，不要把它当成 platform admission truth。
+`apps/tester/` 是 Nimi Lab developer reference app。它展示 Runtime authenticated shell、Kit workbench surfaces、AI capability lanes、app-owned history storage 和 local acceptance checks。它可供 SDK、Kit、app-tools 与 Runtime auth integration 参考，但不是 platform admission truth。
 阅读路径见 [把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference)。
 
 ## 来源依据

@@ -1,161 +1,40 @@
-# Agent Fields
+# Character and LocalAgent Fields
 
-Reference for the Agent concept: the field-level shape of a Nimi
-agent across Runtime, Realm, Avatar, and Cognition.
+Nimi uses separate identifiers and owners for persistent Character truth and
+local AI execution.
 
-## What An Agent Is
-
-| Property | Description |
-| --- | --- |
-| First-class participant | Not a tool, not a session, not a persona |
-| Persistent identity | Travels across all worlds the agent visits |
-| Authority | Owns scoped capability tokens; can delegate one level by default |
-| Composability | Behavior comes from four independently-evolving layers |
-
-## The Four Layers
-
-| Layer | Carries | Authority |
+| Field or concept | Owner | Meaning |
 | --- | --- | --- |
-| Soul | Personality, values, foundational disposition | Agent persistent profile |
-| Brain | Reasoning, planning, decision-making | Runtime agent execution |
-| Worldview | Beliefs about the world(s), models of other agents | Cognition memory + Realm reads |
-| Memory | Long-lived recall of events, relationships, learnings | Cognition memory service + Runtime memory bank |
+| Character reference | Realm | Persistent identity and social/world reference |
+| PersonaCharacter / WorldCharacter | Realm | Character forms owned by Realm |
+| Character Source | Realm | Identity source Runtime may use for materialization |
+| World Source | Realm | World context source; not sufficient to create LocalAgent identity |
+| LocalAgent ID | Runtime | Owner-scoped local execution entity |
+| LocalAgent owner | Runtime | Explicit owner relation; never inferred from an App cache |
+| Conversation anchor | Runtime | One explicit LocalAgent Conversation |
+| Operational Memory | Runtime | Authorized LocalAgent recall and retention |
+| Operational Knowledge | Runtime | Authorized LocalAgent ingestion and retrieval |
+| AI route and readiness | Runtime | Provider/model route, Quota, Budget, and readiness |
+| Presentation configuration | Runtime | Durable LocalAgent inputs for authorized projections |
+| Transient presentation state | Runtime | Turn, state, activity, emotion, voice, and timing projection |
+| Renderer state | Avatar or consuming App | Ephemeral rendering, playback, and interaction only |
 
-The four layers are designed to compose. Behavior at any moment is a
-function of all four; an agent is not reducible to any single layer.
+## Access fields
 
-## Runtime-Owned Agent Fields
+Runtime derives account, App identity, authorization, target LocalAgent or
+scope, and operation from the active session. A consumer may submit a
+LocalAgent ID as a target, but the ID is not an authorization proof.
 
-| Field | Owner | Rule prefix |
-| --- | --- | --- |
-| Agent lifecycle (per agent_id) | `runtime/kernel/runtime-agent-service-contract.md` | `K-AGCORE-*` |
-| Conversation continuity | `runtime/kernel/agent-conversation-anchor-contract.md` | `K-AGCORE-*` |
-| Persistent presentation profile | `runtime/kernel/agent-presentation-contract.md` | `K-AGCORE-*` |
-| Transient presentation stream | `runtime/kernel/agent-presentation-stream-contract.md` | `K-AGCORE-*` |
-| Hook intent | `runtime/kernel/agent-hook-intent-contract.md` | `K-AGCORE-*` |
-| Output wire format (APML) | `runtime/kernel/agent-output-wire-contract.md` | `K-AGCORE-*` |
-| Avatar debug projection | `runtime/kernel/avatar-debug-projection-contract.md` | `K-AGCORE-*` |
-| Non-canonical agent participation | `runtime/kernel/runtime-agent-participation-contract.md` | `K-AGCORE-*` |
+Realm JWTs, provider credentials, Runtime session proof, private authorization
+evidence, raw source context, and account-wide LocalAgent inventory are not App
+fields.
 
-## Conversation Anchor
+## Continuity
 
-| Property | Value |
-| --- | --- |
-| Scope | Per-agent + per-conversation |
-| Purpose | Lets desktop chat / avatar / web share one conversation without collapsing into a global session |
-| Owner | Runtime |
-
-## Presentation Profile
-
-| Property | Description |
-| --- | --- |
-| Avatar backend | Live2D / VRM / generated-motion |
-| Asset reference | Carrier-specific asset binding |
-| Expression preset | Default expression behavior |
-| Voice binding | Voice profile reference |
-| Persistence | Slow-changing; survives restart and cross-surface reuse |
-
-## Chat Track / Life Track
-
-Every agent has two distinct execution tracks.
-
-| Track | Driver | Owner |
-| --- | --- | --- |
-| Chat Track | Reactive — driven by user/app input | Runtime |
-| Life Track | Proactive — driven by agent autonomy + runtime hook scheduling | Runtime |
-
-Chat is always available even when Life is suspended. Life Track is
-opt-in and default-off.
-
-| Field | Value |
-| --- | --- |
-| Life cadence | `off` / `low` / `medium` / `high` |
-| Life token budget | Daily by default |
-| Default cadence | `off` |
-
-## Hook Intent
-
-A typed contract by which an agent can request future scheduled action.
-Models cannot emit free-form scheduling logic; they emit typed
-`HookIntent` records that runtime validates and admits.
-
-| Property | Value |
-| --- | --- |
-| Owner | Runtime |
-| Admission | Narrow-admit; runtime enforces typed contract |
-| Lifecycle | `pending` → `running` → `completed` / `failed` / `canceled` / `rescheduled` / `rejected` |
-
-## APML Output Wire Format
-
-The model-facing contract for agent output.
-
-| Root tag | Purpose |
-| --- | --- |
-| `<life-turn>` | Proactive life-track output |
-| `<chat-track-sidecar>` | Reactive chat-track sidecar |
-| `<canonical-review>` | Canonical review output for memory admission |
-
-JSON executor compatibility is not admitted. APML is parsed and
-projected into typed runtime events before product code touches it.
-
-## Memory Bank Scopes
-
-| Scope | Visibility | Owner |
-| --- | --- | --- |
-| `AGENT_CORE` | Agent-private | Runtime |
-| `AGENT_DYADIC` | Per-relationship private | Runtime |
-| `WORLD_SHARED` | Visible inside one world | Runtime + Realm replication |
-| `APP_PRIVATE` | App infrastructure scope | Runtime infra |
-| `WORKSPACE_PRIVATE` | Workspace infrastructure scope | Runtime infra |
-
-Memory is opt-in. Default substrate is `Hindsight` (experimental). No
-memory provider is admitted by default.
-
-## Memory Replication States
-
-| State | Meaning |
-| --- | --- |
-| `pending` | Awaiting replication |
-| `synced` | Replicated to Realm |
-| `conflict` | Conflict detected; cannot serve |
-| `invalidated` | Realm governance invalidated cached memory; runtime cannot continue serving |
-
-## Realm-Owned Agent Fields
-
-| Field | Owner | Rule prefix |
-| --- | --- | --- |
-| Public agent identity | `realm/agent.md` | `R-*` |
-| Cross-world social standing | `realm/social-contract.md` | `R-SOC-*` |
-| Cross-world economic standing | `realm/economy-contract.md` | `R-ECON-*` |
-| Cross-world transit eligibility | `realm/transit-contract.md` | `R-TRANSIT-*` |
-
-## Avatar-Owned Agent Fields
-
-| Field | Owner | Rule prefix |
-| --- | --- | --- |
-| Embodiment projection | `avatar/kernel/embodiment-projection-contract.md` | Avatar `*` |
-| Carrier visual acceptance | `avatar/kernel/carrier-visual-acceptance-contract.md` | Avatar `*` |
-| Backend branch (Live2D / VRM / etc.) | `avatar/kernel/backend-branch-contract.md` | Avatar `*` |
-| Agent script | `avatar/kernel/agent-script-contract.md` | Avatar `*` |
-| Avatar event surface | `avatar/kernel/avatar-event-contract.md` | Avatar `*` |
-
-## Cognition-Owned Agent Fields
-
-| Field | Owner |
-| --- | --- |
-| Long-lived memory | `cognition/kernel/memory-service-contract.md` |
-| Knowledge retrieval | `cognition/kernel/knowledge-service-contract.md` |
-| Prompt templates | `cognition/kernel/prompt-serving-contract.md` |
-| Completion gates | `cognition/kernel/completion-contract.md` |
-
-## External Agents
-
-| Field | Value |
-| --- | --- |
-| Principal type | `ExternalPrincipal` |
-| Token | No public production API today; must be exposed by Runtime-owned gateway/server and token ledger |
-| Capability domains | Future `action.discover.*`, `action.dry-run.*`, `action.verify.*`, `action.commit.*` |
-| Action surface | Runtime-owned action plane |
+A LocalAgent ID does not identify a Conversation. Consumers keep the explicit
+Conversation anchor returned by Runtime. Multiple Conversations may belong to
+one LocalAgent, and multiple LocalAgents may be materialized from one Character
+Source without sharing mutable operational state.
 
 ## Source Basis
 
@@ -163,8 +42,3 @@ memory provider is admitted by default.
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
 - [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`docs/spec/avatar-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/avatar-domain-index.md)
-- [`docs/spec/cognition-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/cognition-domain-index.md)

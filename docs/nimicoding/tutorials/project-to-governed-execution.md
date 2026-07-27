@@ -35,28 +35,24 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-The checks verify package-managed projections and declared host overrides. The
-execution ownership ceiling itself is declared by `P-PKG-011` in
-`.nimi/spec/platform/authority-admission.authority.yaml` rather than by a
-wrapper command. Neither check creates product authority.
+The checks verify package-managed projections and declared host overrides.
+Repository instructions keep execution ownership with the external host;
+neither check creates product authority or host task state.
 
 ## 2. Reconstruct Product Authority
 
-When reconstruction is required, the active Codex task reads
-`.nimi/config/spec-generation-inputs.yaml` and
-`.nimi/methodology/spec-reconstruction.yaml`, reconstructs authority into
-`.nimi/spec/**`, and records file-level source basis and unresolved gaps under
-`.nimi/local/state/spec-generation/**` instead of inventing rules. Then
-validate the result:
+When authority authoring is required, the active Codex task reads the affected
+authority containers and `.nimi/methodology/authority-authoring.yaml`, updates
+the existing `.nimi/spec/**` owner container, and validates the result:
 
 ```bash
-pnpm exec nimicoding validate-spec-tree .nimi/spec
-pnpm exec nimicoding validate-spec-audit
+pnpm spec:authority:check
+pnpm spec:authority:compile
 ```
 
-A green validator result means the reconstructed tree satisfies the
-declared contracts. It does not replace product review of the authority
-decisions.
+A green validator result means the authority corpus satisfies the declared
+format and relationship contracts. It does not replace product review of
+authority decisions.
 
 ## 3. Classify The Change Before Editing
 
@@ -132,6 +128,5 @@ scripts and contracts; task completion belongs to Codex.
 
 ## Source Basis
 
-- [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)

@@ -1,12 +1,12 @@
 # Nimi 文档
 
-Nimi 是一个 AI 开放世界平台。它把 AI Agent 视作长期世界中的参与者，而不是只响应单次请求的无状态工具。Agent 可以跨会话与产品表面延续身份、记忆、关系、能力与规则。
+Nimi 是一个 AI 开放世界平台。它把 Character 视作长期世界中的持久参与者，而不是只响应单次请求的无状态工具；Runtime 把 Character 物化为可执行的 LocalAgent。
 
 这套文档旨在阐述 Nimi 的产品模型、权责边界，以及跨领域确立的底层契约。
 
 ## 文档结构
 
-Nimi 作为一个开放世界平台，内含多个核心组件，共同支撑 AI Agent 在长期世界中生存：平台（世界模型本身）、Runtime（AI 执行层）、SDK（App 接入层）、桌面端与网页端（用户界面）、Realm（世界真相层）、Avatar（形体呈现）、Cognition（记忆与知识层）以及 Nimi Coding（配套的 AI 开发方法论）。
+Nimi 作为一个开放世界平台，内含多个核心组件，共同支撑 Character 在长期世界中生存：平台（世界模型本身）、Runtime（LocalAgent 执行以及 Conversation、Memory、Knowledge）、SDK（App 接入层）、桌面端与网页端（用户界面）、Realm（世界真相层）、Avatar（形体呈现）以及 Nimi Coding（配套的 AI 开发方法论）。
 
 上述每个组件在文档中均有独立章节。
 
@@ -16,7 +16,7 @@ Nimi 作为一个开放世界平台，内含多个核心组件，共同支撑 AI
 
 - 阐述 Nimi 为何选择围绕“世界”而非“聊天”来构建产品模型。
 - 明确划分并定义各权威域对不同类型真相的归属权。
-- 提供从平台模型逐步深入至 Runtime、SDK、桌面端、Realm、Avatar、Cognition 以及 Nimi Coding 的系统性阅读路径。
+- 提供从平台模型逐步深入至 Runtime、SDK、桌面端、Realm、Avatar 以及 Nimi Coding 的系统性阅读路径。
 - 提供创建 Nimi App、第一次 Runtime-backed AI 调用、使用 Kit、参考 Tester，以及理解常见 fail-closed 状态的开发者路径。
 - 汇总跨领域通用的术语表。
 
@@ -27,16 +27,14 @@ Nimi 平台在架构上可划分为三个层次。分层视角有助于清晰理
 ```
 +----------------------------------------------------------+
 |  平台模型                                                 |
-|    World、Agent、六项固定基础协议                          |
+|    World、Character、六项固定基础协议                     |
 +----------------------------------------------------------+
                           |
                           v
 +----------------------------------------------------------+
 |  执行底座                                                 |
-|    Runtime    : provider、工作流、流式、                  |
-|                 多模态、委派                              |
-|    Cognition  : 记忆、知识、prompt 服务、                 |
-|                 完成关卡                                  |
+|    Runtime    : provider、LocalAgent、Conversation、      |
+|                 Memory、Knowledge、流式与多模态            |
 +----------------------------------------------------------+
                           |
                           v
@@ -44,12 +42,12 @@ Nimi 平台在架构上可划分为三个层次。分层视角有助于清晰理
 |  公开层                                                   |
 |    SDK App 边界           桌面端原生外壳                   |
 |    网页端受限改写         Realm 公开读路径                 |
-|    Avatar 形体权威                                        |
+|    Avatar 形体呈现                                        |
 +----------------------------------------------------------+
 ```
 
-1. **平台模型**：定义了世界、Agent、六项固定基础协议，以及相关规则的权威归属。
-2. **执行底座**：AI 任务实际执行的层级。Runtime 负责管理 Provider、工作流、流式传输、多模态输出及本地路由；Cognition 负责管理记忆、知识、Prompt 服务、引用与内容生成（Completion）。
+1. **平台模型**：定义了 World、Character、六项固定基础协议，以及相关 owner 边界。
+2. **执行底座**：AI 任务实际执行的层级。Runtime 持有 Provider 路由、LocalAgent 物化、Conversation、运行态 Memory 与 Knowledge、流式传输及多模态输出。
 3. **公开层**：将平台能力呈现为桌面端、网页端、SDK、Realm 及 Avatar 的交互体验。每一层公开层均具备明确的权威边界，并在文档中独立成节。
 
 ## 阅读路径
@@ -68,6 +66,18 @@ Nimi 平台在架构上可划分为三个层次。分层视角有助于清晰理
 | 为什么桌面端与网页端不等价 | [桌面端](/zh/desktop/) |
 | 世界真相与历史在哪 | [Realm](/zh/realm/) |
 | 形体化 AI 呈现的边界 | [Avatar](/zh/avatar/) |
-| 记忆与知识权威在哪 | [Cognition](/zh/cognition/) |
+| LocalAgent Memory 与 Knowledge 在哪 | [Runtime Memory 与 Knowledge](/zh/runtime/memory-and-knowledge) |
 | AI 开发范式与宿主无关包 | [Nimi Coding](/zh/nimicoding/) |
 | 跨域术语 | [术语表](/zh/reference/glossary) |
+
+## 来源依据
+
+- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
+- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
+- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
+- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
+- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`docs/spec/desktop-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/desktop-domain-index.md)
+- [`docs/spec/avatar-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/avatar-domain-index.md)

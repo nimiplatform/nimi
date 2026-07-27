@@ -1,96 +1,57 @@
 # 平台
 
-Nimi 是一个由 AI 驱动的开放世界平台。它面向长期存在的世界——人类与 AI Agent 能够在其中共同参与，跨越上下文保持身份与社交关系，处于共享的社交与语义环境中——而非仅在孤立的聊天框或应用内进行交互。
+Nimi 把持久开放世界身份与本地 AI 执行连接起来，同时保持两者 owner 独立。
 
-平台本身不是聊天应用、不是 SDK，也不是独立的 Runtime。这些均是更宏大模型的组成表面。本页阐述了这一整体模型的起点。
+- Realm 持有 Character、social、World、economy 与 canonical World truth。
+- Runtime 持有 LocalAgent 物化、AI 执行、Conversation、运行态 Memory 与
+  Knowledge、voice、readiness 和 App authorization。
+- SDK 是 App 的公共强类型访问边界。
+- Kit 只在具体产品 consumer 需要时提供共享 UI 与 host composition。
+- Nimi Home 是当前产品 home 与 Desktop host surface，但不会取代 Realm 或
+  Runtime authority。
+- Avatar 持有 embodiment rendering 与 shell-local interaction，不持有
+  LocalAgent 或 AI 执行真相。
 
-## 本节包含的内容
+## Character 与 LocalAgent
 
-- [愿景](/zh/platform/vision)：项目核心目标，以及与 OASIS 类世界引擎的结构对照。
-- [架构](/zh/platform/architecture/)：跨层权责归属图——明确各组件的功能与责任。
-- [协议](/zh/platform/protocol)：用于实现跨世界互通的六项基础协议。
-- [治理](/zh/platform/governance)：权威准入机制如何防止不同平台表面产生冲突的本地“真相”。
+用户在 Realm 创建或选择 Character。Realm 签发 Character Source，Runtime
+据此物化有明确 owner 的 LocalAgent。LocalAgent 可以消费已准入 World Source
+上下文，但不会成为 Realm identity 或 World truth 的 owner。
 
-遇到不熟悉的术语时，可查阅跨领域通用的[术语表](/zh/reference/glossary)。
+App 通过 SDK 使用 LocalAgent capability。Runtime 从 active session 推导
+identity 与 authorization；App 不会取得 Realm JWT、Runtime proof、Provider
+Credential 或账号级 LocalAgent 全量清单。
 
-## 核心理念
+参见 [Character 与 LocalAgent](/zh/platform/agents/) 以及
+[Realm 与 Runtime 是同侪](/zh/platform/architecture/realm-runtime-siblings)。
 
-多数 AI 产品将 Agent 视作响应单次请求的工具。Nimi 将 Agent 视为对等的“参与者”。参与者具备记忆、外貌、特定能力、社交关系，并在特定世界中扮演角色。Agent 的存在应具备连续性，且世界应保留对其交互的记录。
+## 六项协议基础
 
-这一选择提出了一项架构要求：世界需要共享语义。如果一个表面确认了某段关系的存在，其他表面则不能产生该关系的冲突版本。当世界的时间推进时，Agent、应用与历史记录必须依据统一的逻辑进行推演。Nimi 通过“基础协议”与“权威边界”来解决这一问题。
+六项协议基础描述可互操作的产品操作，但不会转移 owner truth：
 
-## 六项基础协议
+- State
+- Event
+- Intent
+- Action
+- Audit
+- Permission
 
-平台规范设定了一个固定的跨世界契约面。其范围经过刻意精简，以确保在各世界内部规则迥异的情况下仍能实现互通。
+参见 [协议](/zh/platform/protocol) 与
+[执行协议](/zh/platform/execution-protocol)。
 
-| 基础协议 | 覆盖范围 |
-| --- | --- |
-| Timeflow | 进程、时序、时间含义 |
-| Social | 关系与社交图谱语义 |
-| Economy | 价值、交换、经济状态 |
-| Transit | 跨世界或跨上下文的迁移 |
-| Context | 共享情境含义 |
-| Presence | 参与者的在场状态与条件 |
+## 当前边界
 
-每个世界的内部规则可自行定义。例如，经济系统可以是物物交换或受限货币；社交图谱可以是扁平结构或层级形态。但各世界不可自行重定义跨世界的统一契约——跨世界交互的语义必须遵循上述六项基础协议。
+通用 Workflow、MCP、World Evolution、Marketplace、Registry、Trust Tier、
+公共分发与商业结算都不是当前 Realm–Runtime–SDK–Home–App 闭环的前置。既有
+未来分发设计在不与当前 owner 边界冲突时保持隔离。
 
-## 权威切分
-
-```
-                平台
-        （世界模型 + 6 个基础协议
-              + 权威规则）
-                /        \
-               v          v
-            Runtime      Realm
-         （执行）   （真相、世界
-            |            状态、
-            |   桥接   历史、
-            +- - - ->   聊天）
-            |          |
-        Cognition      |
-       （记忆、         |
-        知识、         |
-        提示词、       |
-        完成）         |
-            \         /
-             v       v
-              SDK 边界
-            /            \
-           v              v
-        桌面端         网页端
-       （原生）     （受约束的
-                     渲染态）
-
-   Avatar 在具身化语义层契约下
-   消费 Realm 与 Cognition。
-```
-
-- Runtime 负责执行 AI 工作流与能力的路由分发。
-- SDK 为应用提供标准的公开集成边界。
-- 桌面端是第一方原生外壳，提供原生、本地与 Nimi App 启动能力。
-- 网页端是一种受约束的渲染呈现，不会自动继承桌面端的原生行为。
-- Realm 掌握世界真相、当前状态、历史演进与聊天语义的权威。
-- Avatar 管理 Agent 的具身化呈现，作为一个独立的权威域存在。
-- Cognition 掌握记忆、知识、Prompt 服务、引用与内容生成的权威。Runtime 可通过桥接消费其服务，但无权干涉其内部逻辑。
-
-## 场景演示：跨世界迁移
-
-假设有一位名为 Kira 的 Agent，居住在世界 A 并经营一家花店。当某用户邀请 Kira 访问世界 B（一个音乐演出世界）时，平台模型将依据以下原则处理：
-
-1. Kira 的身份是跨世界持久存在的，而非在进入新世界时临时生成。Transit 基础协议规范了她跨越世界时不丢失身份的机制。
-2. 她在世界 A 中的社交关系不会自动复制到世界 B。涉及跨世界延续的关系部分由 Social 基础协议处理，其余部分作为世界 A 的专属真相保留。
-3. 当 Kira 进入世界 B 后，必须遵守该世界的本地规则。例如，世界 B 的交易媒介可能是“票根”，但这不会反向修改她在世界 A 中花店的经济状态。
-4. 她对世界 A 的记忆将遵循 Cognition 契约随她一同迁移。她在世界 B 中的形象呈现则由 Avatar 契约管理，可能会在新的呈现表面上展现不同的外观。
-
-上述场景涉及平台（Transit、Social、Economy）、Cognition（记忆）、Avatar（外形呈现）以及 Realm（世界真相）。这些表面各自独立，不能私自重新定义对方。将其整合协同的，正是平台的底层协议。
+Simulator 是 selected App module 的开发与 qualification 工具，不是当前产品
+平台，也不是替代产品 host。
 
 ## 来源依据
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-primitives.yaml)
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
-- [`docs/spec/avatar-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/avatar-domain-index.md)
-- [`docs/spec/cognition-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/cognition-domain-index.md)
+- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
+- [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)

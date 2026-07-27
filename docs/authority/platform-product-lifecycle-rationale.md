@@ -981,7 +981,7 @@ Runtime 集成本身；它锁定 first-party 集成的 contract 关系与"hard c
 `tables/nimi-app-registry.yaml` row 集合（现为 Avatar，`nimi.avatar`）。
 
 `MUST NOT`：不得在 first-party hardcut closeout 中使用 deferred first-party app
-作为 evidence；只能使用当前 admitted registry rows 或明确准入的 app slice。
+作为 evidence；只能使用当前 admitted registry rows。
 
 ## P-FPI-002 — Single Registry Source
 
@@ -1053,17 +1053,14 @@ coordination stays registry/package-owned.
 source-development workflows 可继续以 standalone 方式启动，但必须遵守
 `P-FPM-004` 的 source-development marker rule。
 
-## P-FPI-008 — Avatar Kernel Authority Retention
+## P-FPI-008 — Avatar Authority Retention
 
 `MUST`：Avatar kernel authority 保持在 `.nimi/spec/avatar/**`。first-party
 integration 仅添加 Nimi App registry / SDK integration / migration
 contract，而不把
-Avatar kernel 迁移到 app-local subordinate spec 路径下或降级为 app-local
-spec admission。
+Avatar authority 迁移到 App 本地路径或降级为 App 本地 product truth。
 
-`MUST NOT`：不得把 Avatar 视为 app-slice admission 真相
-（`P-APP-*` 与 `P-NAPP-*` 是 orthogonal authority，参见
-`P-NAPP-010`）。
+`MUST NOT`：不得把 Avatar 视为 App-owned authority。
 
 ## Fact Sources
 

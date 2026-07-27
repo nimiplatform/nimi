@@ -44,8 +44,8 @@ For an evaluation pass:
 2. [Platform Architecture](/platform/architecture/) — the cross-layer
    map.
 3. [Runtime Overview](/runtime/) and
-   [Runtime Workflows](/runtime/workflows) — what the AI substrate
-   is responsible for.
+   [Memory And Knowledge](/runtime/memory-and-knowledge) — what the AI
+   substrate owns.
 4. [SDK Overview](/sdk/) and
    [SDK Boundaries](/sdk/boundaries) — the integration discipline
    expected of apps.
@@ -101,9 +101,9 @@ first walkthrough:
 
 1. Read [Platform](/platform/) to find that worlds, not chat sessions,
    are the central object.
-2. Read [Runtime](/runtime/) to find that providers, workflows,
-   streaming, and multimodal artifacts follow Runtime contracts, not
-   app code.
+2. Read [Runtime](/runtime/) to find that providers, LocalAgent,
+   Conversation, Memory, Knowledge, streaming, and multimodal artifacts
+   follow Runtime contracts, not app code.
 3. Read [SDK](/sdk/) to find that your app should consume those
    contracts through the root `@nimiplatform/sdk` client, public subpaths such
    as `@nimiplatform/sdk/runtime` and `@nimiplatform/sdk/realm`, feature

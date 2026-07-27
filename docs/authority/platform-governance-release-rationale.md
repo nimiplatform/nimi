@@ -23,18 +23,15 @@ This guide points to the Platform authority surfaces for open-source-governance.
 
 - `docs/spec/platform-domain-index.md`
 - `.nimi/spec/platform/core-protocol.authority.yaml`
-- `.nimi/spec/platform/authority-admission.authority.yaml`
 - `.nimi/spec/platform/ui-design-system.authority.yaml`
 - `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
 - `.nimi/spec/platform/core-protocol.authority.yaml`
-- `config/platform-app-slice-admissions.yaml`
 - `config/platform-audit-events.yaml`
 - `.nimi/spec/platform/app-ecosystem.authority.yaml`
 - `config/platform-canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/testing-discipline.authority.yaml`
 - `config/platform-error-code-mapping.yaml`
 - `.nimi/spec/platform/ui-design-system.authority.yaml`
 - `.nimi/spec/platform/governance-release.authority.yaml`

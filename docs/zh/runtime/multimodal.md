@@ -94,7 +94,7 @@ Provider 异步终态确定性地映射到 `ScenarioJob` 终态：
 | --- | --- |
 | 迭代种类 | `MUSIC_GENERATE`（按 `K-MMPROV-*` 准入） |
 | 链路 | 每次迭代都引用前一份产物 |
-| 审计 | 迭代记入工作流链路 |
+| 审计 | 迭代记入生成链路 |
 
 迭代被准入契约约束；App 不能在运行时自造新的迭代种类。
 
@@ -110,14 +110,14 @@ Provider 异步终态确定性地映射到 `ScenarioJob` 终态：
 
 `VoiceAsset` 生命周期由声音契约（`K-VOICE-*`）准入；声音档案有准入的引用契约。
 
-## 场景：图像生成工作流
+## 场景：图像生成任务
 
 App 通过一个长任务 provider 生成图像。
 
-1. **工作流节点。** `AI_IMAGE` 节点是工作流的一部分。
-2. **创建 ScenarioJob。** 节点扇出到一个 `ScenarioJob`。
+1. **图像操作。** App 请求准入的 `AI_IMAGE` 操作。
+2. **创建 ScenarioJob。** Runtime 创建一个 `ScenarioJob`。
 3. **Provider 异步任务。** Provider 返回任务 id；状态 `queued → running`。
-4. **轮询 / 流式。** Runtime 跟踪任务。工作流事件流发出外部异步进度事件。
+4. **轮询 / 流式。** Runtime 跟踪任务并发出强类型进度更新。
 5. **任务成功。** Provider 状态切到 `succeeded`。按 `K-MMPROV-027`，`ScenarioJob` 终态为 `COMPLETED`。
 6. **产物交付。** 图像产物带强类型规范字段、MIME 类型、来源。交付门控校验 schema、来源、敏感度。准入则交付完成。
 7. **App 收到产物。** 通过 SDK 的强类型产物形状。MIME 类型由契约给出，App 不需要猜。
@@ -128,7 +128,7 @@ App 通过一个长任务 provider 生成图像。
 
 用户生成了一段音乐，想做迭代。
 
-1. **第一次生成。** 音乐工作流跑完，产出一份产物。
+1. **第一次生成。** 音乐生成任务完成，产出一份产物。
 2. **请求迭代。** App 用强类型参数发起迭代，引用原始产物。
 3. **`MUSIC_GENERATE` 准入。** 迭代按 `K-MMPROV-*` 准入。
 4. **Provider 异步生命周期。** 迭代通过 provider 异步生命周期。状态按前述映射进入 `ScenarioJob` 终态。
@@ -142,7 +142,7 @@ App 通过一个长任务 provider 生成图像。
 
 1. **Provider 状态切换：** 从 `running` 进入 `expired`。
 2. **映射。** 按 `K-MMPROV-027`，`ScenarioJob` 终态为 `TIMEOUT`。
-3. **工作流影响。** 节点的工作流状态切到 `FAILED`，或按准入的重试策略通过重试路径。
+3. **任务影响。** `ScenarioJob` 进入终态，任何重试仍受准入的重试策略约束。
 4. **审计。** 记录过期及原因。
 
 App 看到的是强类型 `TIMEOUT`，不是模糊的"请求失败了"；`ScenarioJob` 的终态类型告诉 App 发生了什么。

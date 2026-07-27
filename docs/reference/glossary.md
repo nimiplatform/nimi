@@ -1,202 +1,77 @@
 # Glossary
 
-Cross-domain terms used across the public Nimi documentation. Each entry is
-a reader-facing summary; precise authority lives in `.nimi/spec/**` and is
-linked from the corresponding domain section.
+## Identity and execution
 
-## Platform And World Model
+**Character.** Realm-owned persistent identity and social/world truth.
+PersonaCharacter and WorldCharacter are Character forms.
 
-**Nimi.** An AI open world platform. Worlds, agents, applications, runtime
-services, and identity share one social and semantic environment instead of
-each app inventing its own private world model.
+**Character Source.** Realm-issued identity source from which Runtime may
+materialize a LocalAgent.
 
-**World.** A long-lived semantic and social environment with its own rules,
-participants, history, and presence. Anyone admitted as a world creator
-can build a world; the platform supplies the cross-world contracts so
-identity and meaning can move between worlds.
+**World Source.** Realm-owned World context source. It may contribute context
+but cannot establish LocalAgent identity by itself.
 
-**Open World.** A world that is composable with other worlds through the
-platform protocol. It isn't the same as "open source." It refers to
-participation, identity portability, and shared semantics across worlds.
+**LocalAgent.** Owner-scoped Runtime materialization for local AI execution. It
+owns no Realm identity or World truth.
 
-**Participant.** A first-class entity inside a world. People, AI agents,
-and applications can each participate, but with different capability and
-authority profiles.
+**Conversation anchor.** Explicit Runtime-owned identity for one LocalAgent
+Conversation. A LocalAgent may have more than one Conversation.
 
-**Six Protocol Primitives.** The fixed cross-world contract surface
-defined by the platform protocol. Timeflow, Social, Economy, Transit,
-Context, and Presence. Worlds may define their own internal rules, but
-meaning that crosses worlds must fit these six contracts.
+**Operational Memory.** Runtime-owned LocalAgent recall, retention, isolation,
+and authorized projection.
 
-**OASIS Comparison.** Nimi compares itself to an OASIS-style world engine
-in shape, not in content. OASIS is framed in spec as a physical world
-engine; Nimi is a social and semantic world engine. Worlds rules are
-creator-defined; the cross-world contract surface is fixed.
+**Operational Knowledge.** Runtime-owned LocalAgent ingestion, retrieval,
+isolation, lifecycle, and authorized projection.
 
-## Authority Domains
+## Product surfaces
 
-**Authority Domain.** A named owner surface (Platform, Runtime, SDK,
-Desktop, Realm, Avatar, Cognition, Nimi Coding) responsible for a
-specific kind of truth. A claim that crosses authority domains must be
-admitted, not implied.
+**SDK.** Typed public access boundary for Runtime and Realm consumers.
 
-**Platform.** Owns the open world model, protocol primitives, and
-authority rules.
+**Kit.** Demand-driven shared UI and host composition. It is not a prebuilt
+catalog of every possible product capability.
 
-**Runtime.** Owns AI execution: providers, workflows, streaming,
-multimodal delivery, local capability routing, delegation, audit, and
-runtime-owned agent participation.
+**Nimi Home.** Current product home and Desktop host surface. Hosting does not
+make it the Realm or Runtime owner.
 
-**SDK.** The TypeScript app-facing access boundary. Apps consume Runtime,
-Realm, world composition, scope, and shared public types through the SDK
-rather than crossing private internals.
+**Avatar.** Embodiment shell and rendering owner. Avatar consumes typed Runtime
+presentation input and owns renderer-local behavior.
 
-**Desktop.** The first-party native shell. Hosts native, local, and
-first-party user workflows admitted by Desktop contracts.
+**Simulator.** Development qualification tool for selected App modules, not a
+current product platform or product host.
 
-**Web.** A constrained projection of selected platform surfaces. Does not
-inherit Desktop-native capabilities by implication.
+## Access and failure
 
-**Realm.** Owns semantic truth: world state, world history, chat, social,
-economy, asset, transit, binding, and resource semantics. The public docs
-describe the public read path; backend, dashboard, and creator-side
-authority lives in private repositories and is not absorbed into the
-public docs.
+**Session-derived access.** Runtime derives account, App identity,
+authorization, target LocalAgent or scope, and operation from the active
+session.
 
-**Avatar.** Owns embodied agent presentation: embodiment projection,
-carrier visual acceptance, and shell-specific rendering boundaries.
+**Typed unavailable.** Explicit result indicating that an optional or
+inapplicable capability is not available. It is not synthetic success.
 
-**Cognition.** Owns standalone memory, knowledge, prompt serving,
-references, completion, skill service, and runtime bridge semantics.
+**Projection.** Bounded owner-provided view. A projection does not transfer
+ownership to its consumer.
 
-**Nimi Coding.** The project truth, methodology, deterministic gates,
-and evidence layer used around host-owned AI development.
+**Owner.** The domain responsible for a product truth and its mutation rules.
+Code location, package name, docs, cache, or host role does not create
+ownership.
 
-## Runtime Vocabulary
+## Six protocol primitives
 
-**Workflow.** A governed multi-step execution graph owned by Runtime.
-Has node types, state transitions, streamed events, and terminal outcomes.
+**State.** Current owner-controlled product condition.
 
-**Streaming.** Runtime contract for partial and final delivery, including
-stage boundaries, terminal frames, error semantics, and gating.
+**Event.** Typed occurrence projected by its owner.
 
-**Provider.** An external or local source of AI capability. Provider
-identity and capability information is governed runtime data, not
-marketing copy.
+**Intent.** Typed requested outcome, not an authorization proof.
 
-**Model Catalog.** The runtime-governed source of truth for model
-identity, capability, and lifecycle status.
+**Action.** Admitted operation performed by the owning domain.
 
-**Multimodal Artifact.** A non-text output (image, audio, video, voice,
-music) produced under Runtime artifact contracts.
+**Audit.** Owner-controlled record of security or product-relevant activity.
 
-**Delegated Capability.** A Runtime-owned authority for forwarding
-requests to external providers under firewall and approval contracts.
-
-**Local Capability.** Runtime-owned routing, device profile, and engine
-capability semantics for local execution.
-
-## SDK Vocabulary
-
-**Surface.** A named SDK public entry with its own export and boundary
-contract. vNext examples include `@nimiplatform/sdk`,
-`@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`,
-`@nimiplatform/sdk/ai`, `@nimiplatform/sdk/ai-runner`,
-`@nimiplatform/sdk/types`, and feature modules. Framework adapters are
-independent packages.
-
-**Boundary.** A spec-admitted import or call rule that prevents apps from
-crossing into private Runtime, Realm, or Cognition internals.
-
-**Projection.** A typed app-facing view of an underlying authoritative
-contract. The projection does not redefine the contract; it exposes it.
-
-## Realm Vocabulary
-
-**Truth.** Canonical semantic facts about a world, owned by Realm.
-
-**World State.** The current state of a world, governed by world-state
-contracts.
-
-**World History.** Past states and transitions, governed by world-history
-contracts.
-
-**Chat.** Realm-owned chat semantics when conversation participates in
-world meaning.
-
-## Desktop Vocabulary
-
-**Shell.** Desktop's native first-party UI surface.
-
-**Web Adapter.** The constrained projection of selected Desktop surfaces
-into the browser. Native bootstrap, native window behavior, and sensitive
-token persistence are disabled in this surface.
-
-## Avatar Vocabulary
-
-**Embodiment.** A governed presentation projection of an agent into a
-visual or interactive carrier.
-
-**Carrier.** The host surface that renders an embodiment under a typed
-visual acceptance contract.
-
-## Cognition Vocabulary
-
-**Memory.** Long-lived participant context owned by Cognition.
-
-**Knowledge.** Retrievable structured information owned by Cognition.
-
-**Prompt Serving.** Cognition-owned authoritative prompt templates and
-serving lanes.
-
-**Runtime Bridge.** The seam through which Runtime can consume Cognition
-without absorbing Cognition's authority.
-
-## Nimi Coding Vocabulary
-
-**Preflight.** A bounded check of spec status, authority owner, work type,
-and parallel-truth risk before high-risk implementation begins.
-
-**Audit.** Evidence that the work matches authority and consumer needs.
-
-**Acceptance.** Evidence-based judgement of authority alignment,
-evidence sufficiency, and final disposition.
-
-**Closure Dimensions.** Authority closure, semantic closure, consumer
-closure, and drift-resistance closure. Codex completes a high-risk task
-only when every required dimension is satisfied.
-
-**False Closure.** Output that looks complete by one closure dimension
-while failing another. Common shapes: build passes but the page is
-unreadable; the page is readable but lacks source authority; the route
-exists but has no reader value.
-
-## Posture And Compatibility
-
-**Pre-Launch Posture.** The current public posture: the platform model is
-documented; install commands, distribution channels, provider
-availability, and model catalogs appear publicly only after the matching
-evidence is admitted.
-
-**Hard Cut.** A deliberate removal of a route or page rather than
-preserving it as a hidden compatibility entrance.
-
-**Selected Projection.** A locale or surface that intentionally exposes a
-subset rather than mirroring everything. The public Chinese projection is
-selected, not full-mirror.
+**Permission.** Owner decision authorizing a scoped operation.
 
 ## Source Basis
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-primitives.yaml)
-- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`docs/spec/desktop-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/desktop-domain-index.md)
-- [`docs/spec/avatar-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/avatar-domain-index.md)
-- [`docs/spec/cognition-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/cognition-domain-index.md)
-- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)
+- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
+- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

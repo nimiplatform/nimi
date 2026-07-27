@@ -1,163 +1,68 @@
 # Authority Model
 
-Nimi's authority model is what lets very different participants —
-end users, world creators, app developers, AI agents,
-and external AI hosts — share the same platform without one
-silently overriding another. This page explains the model in product
-terms.
+Nimi separates durable identity, runtime execution, product hosting,
+and presentation so that no projection silently becomes its source of
+truth.
 
-For schema-level definitions, see
+For the field-level owner map, see
 [Reference → Authority Domains](/reference/authority-domains).
 
-## Three Things The Model Defines
+## Core Owners
 
-The authority model answers three questions every cross-participant
-platform has to answer:
+| Concern | Owner | Boundary |
+| --- | --- | --- |
+| Account-level AI identity | Realm `Character` | Realm owns durable identity and world relations |
+| AI execution materialization | Runtime `LocalAgent` | Runtime materializes a Character for local execution |
+| Conversation, Memory, Knowledge | Runtime | Apps consume these services; they do not take over their truth |
+| World truth and history | Realm | Runtime and Apps use admitted Realm surfaces |
+| App authorization | Runtime session | App access is derived from the active session and app identity |
+| Product composition | Nimi Home and other hosts | The current host composes owners but is replaceable |
+| Embodiment and rendering | Avatar | Avatar projects presentation; it does not become Character or LocalAgent authority |
 
-1. **Who is acting?** The principal model.
-2. **What are they allowed to do?** Authorization presets and scopes.
-3. **What kind of app is doing this?** App modes — render-only vs
-   full extension.
+`Character` and `LocalAgent` are related but not interchangeable.
+A Character is the durable Realm identity. A LocalAgent is the
+Runtime-owned executable materialization of that identity. An App may
+hold a reference to either through an admitted API, but a projection
+or binding object does not become a third identity owner.
 
-## Principals
+## App Access
 
-A principal is the entity behind any action. Nimi names them
-explicitly so authorization is unambiguous.
+An App receives Runtime capability through the active session and its
+own app identity. A scaffolded App does not receive a Realm JWT and
+does not maintain independent Runtime proof. Realm access is mediated
+through admitted SDK or host surfaces, while Runtime remains the owner
+of execution, Conversation, Memory, and Knowledge.
 
-| Principal | What it represents |
-| --- | --- |
-| User | A real person with an account, identity, social graph, wallet. |
-| Agent | A first-class autonomous participant; not a tool, not a session. |
-| App | Code running on behalf of a user (render-only or extension). |
-| External Principal | An external AI host (delegated AI) granted a scoped capability domain. |
+Direct SDK use and a scaffolded App are integration paths, not
+user-selectable product profiles. Kit provides reusable product
+surfaces only when a real consumer needs them; it is not a speculative
+catalog of platform completeness.
 
-Every action carries the principal's identity through audit lineage.
-This is what makes "an external AI took this action" different from
-"a user took this action" different from "an agent took this action."
+## Hosts And Projections
 
-## Authorization Presets
+Nimi Home is the current first-party product host. It may compose
+Runtime, Realm, SDK, Kit, and Avatar surfaces, but it does not replace
+their authority. The same rule applies to Desktop shell state,
+Avatar projections, simulator reports, and generated configuration:
+they are consumers or projections of owner truth.
 
-Apps and external principals do not get free-form capability lists.
-The platform admits a small set of preset templates that share the
-same token shape and validation chain.
+Existing public-distribution and App-world binding designs remain
+isolated unless they directly conflict with this owner model. They are
+not prerequisites for the current Windows product loop.
 
-| Preset | Read | Write | Delegate |
-| --- | --- | --- | --- |
-| `readOnly` | yes | no | no |
-| `full` | yes | yes | no |
-| `delegate` | yes | yes | one level by default |
+## Optional External Action
 
-The `delegate` preset allows up to one level of further delegation —
-this is intentional. Multi-hop delegation chains break audit
-traceability; the platform refuses them by default.
-
-## App Modes
-
-An app declares what kind of citizen it is. The mode determines what
-the app can write and how many such apps can be active in a world at
-once.
-
-| Mode | Reads world data | Writes world data | Concurrent count per world |
-| --- | --- | --- | --- |
-| `render-app` | yes | no | many |
-| `extension-app` | yes | yes | at most one active |
-
-A world has at most one active `extension-app` binding at any time.
-Re-binding requires explicitly revoking first; the platform does not
-silently transfer write authority.
-
-## App-World Binding Lifecycle
-
-```
-(new) → active → suspended → revoked
-              ↑     ↓
-              └─────┘
-```
-
-- A world starts with no active app binding.
-- An admitted extension-app may move to `active`.
-- An active binding can be `suspended` (paused, may resume) or
-  `revoked` (removed; another app may now bind).
-- Suspension is reversible; revocation is not.
-
-## External Principals
-
-The platform admits external AI hosts (a separate AI provider, an
-MCP-tooled agent, or a future A2A peer) as `ExternalPrincipal`
-entities. They are first-class participants in the authorization
-model — not afterthought integrations.
-
-| Property | Value |
-| --- | --- |
-| Token shape | Scoped, single-use plaintext display |
-| Token visibility after issue | Immutable token ledger only |
-| Capability domains | `action.discover.*`, `action.dry-run.*`, `action.verify.*`, `action.commit.*` |
-| Issuance UI | Desktop External Agent Access panel |
-
-A scoped token does not grant arbitrary action. Each capability
-domain has its own admitted operations. An external AI cannot send
-a gift unless the token has `action.commit.gift` (or equivalent
-admitted capability).
-
-## Reader Scenario: An App Author Picking The Right Mode
-
-You are writing a new app. Your app needs to read world state, show
-it nicely, and let users compose chat messages.
-
-- You do not need to write world truth. World state mutations are
-  not part of your app.
-- You can run alongside other apps — your app should not block other
-  extension-apps from binding.
-
-That is exactly the `render-app` profile. You read world data through
-`@nimiplatform/sdk/realm` or root-client Realm composition, and chat
-composition flows through the admitted chat APIs without your app being a write
-authority on world truth.
-
-If you later add a feature that mutates world rules, you need to
-move to `extension-app` mode and bind to the world. Only one
-extension-app can be active per world; you would need either
-exclusivity admission or your feature would belong elsewhere.
-
-## Reader Scenario: A User Granting An External AI Limited Access
-
-You want an external AI host to be able to read your contacts and
-suggest replies — but you do not want it to send messages without
-your approval, and you do not want it to access your wallet at all.
-
-1. You open the External Agent Access panel in Desktop.
-2. You choose capability domains: `action.discover.contacts`,
-   `action.dry-run.message_compose`. You exclude
-   `action.commit.*` for messaging and exclude all wallet domains.
-3. The panel issues a scoped token with one-time plaintext display.
-4. You give the token to your external AI. From now on, the token
-   ledger shows the issuance, the active scope, and any revocations
-   you make. The platform does not show the token plaintext again.
-5. Anything the external AI proposes outside its scope fails closed
-   in the output firewall — `POLICY_BLOCKED` or `REJECTED`.
-6. Anything the external AI proposes inside its scope but in a
-   sensitive class still requires your approval, recorded as
-   evidence in the audit ledger.
-
-The authority model is what makes this safe. The token is not a
-free-form key; the scope is admitted; the firewall enforces; the
-audit records.
-
-## Why This Shape
-
-| Concern | Why this design responds |
-| --- | --- |
-| AI agents are first-class | The principal model treats agent and external-principal as real participants, not just user shortcuts. |
-| Apps must be replaceable | App modes are not a privileged tier; Desktop is one extension-app peer. |
-| External AI must be safe | Scoped tokens + ledger + firewall + approval are an end-to-end chain, not a single guard. |
-| Audit must reconstruct | Every action carries principal lineage; tokens cannot be re-shown to fake provenance. |
-| World ownership must be unambiguous | At most one active extension-app per world; binding is explicit. |
+External delegated action is an optional capability boundary. If it is
+enabled, authorization must remain scoped and fail closed, but
+Workflow, MCP, World Evolution, public Registry, or Marketplace
+delivery are not current Runtime prerequisites.
 
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
 - [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
-- [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
+- [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
+- [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)

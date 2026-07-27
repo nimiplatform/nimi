@@ -2,196 +2,98 @@
 
 Status: non-authoritative AI handoff.
 
-Authority lives under `.nimi/spec/**`, plus the nearest `AGENTS.md` for local
-working rules. If this file conflicts with spec, the spec wins. Keep this file
-small: it is an entry card for app-boundary review, not a history log.
+Product authority lives under `.nimi/spec/**`. Repository and nearest
+`AGENTS.md` files define working constraints. This page is a compact
+owner map, not a second specification, migration record, or validation
+ledger.
 
-## Read First
+## Core Responsibility Chain
 
-Before high-risk Desktop, Tester, SDK, Kit, Runtime, Realm, or Cognition
-boundary work, read:
+`Realm or Runtime owner → SDK typed access → Kit reusable UI → App composition`
 
-1. `AGENTS.md`
-2. nearest app `AGENTS.md`
-3. `.nimi/spec/platform/app-ecosystem.authority.yaml`
-4. `docs/authority/platform-app-ecosystem-rationale.md`
-5. `docs/authority/platform-app-ecosystem-rationale.md`
-6. `docs/authority/platform-authority-admission-rationale.md`
-7. `docs/authority/platform-ui-design-system-rationale.md`
-8. `config/platform-nimi-data-directory-ownership.yaml`
-9. `.nimi/spec/runtime/app-surface.authority.yaml`
-10. `.nimi/spec/runtime/protected-session.authority.yaml`
-11. `.nimi/spec/sdks/feature-clients.authority.yaml`
-12. `.nimi/spec/sdks/client-core.authority.yaml`
-13. `.nimi/spec/sdks/client-core.authority.yaml`
-14. `.nimi/spec/sdks/client-core.authority.yaml`
-15. `.nimi/spec/sdks/feature-clients.authority.yaml`
+| Concern | Owner |
+| --- | --- |
+| Durable Character identity, world truth, history, account/social truth | Realm |
+| LocalAgent materialization and lifecycle | Runtime |
+| Conversation, operational Memory, Knowledge, provider routing, jobs | Runtime |
+| Typed App-facing access and transport projection | SDK |
+| Reusable UI, shell, accessibility, tokens, and headless primitives | Kit |
+| Product-specific screens, user-intent wiring, and ephemeral UI state | App |
+| Current first-party home and native host composition | Nimi Home / Desktop |
+| Embodiment presentation | Avatar |
+| Developer qualification and deterministic effects | Simulator |
 
-## Responsibility Model
+Character and LocalAgent are related but distinct. Realm owns the
+durable Character. Runtime materializes that Character as a LocalAgent
+for execution. Projection records, App bindings, Desktop stores, and
+Avatar instances do not become identity owners.
 
-Default chain:
+## App Authorization
 
-`Runtime or Realm authority -> SDK projection/DX -> Kit reusable primitive -> app consumer`
-
-- Runtime owns validated local execution, lifecycle, readiness, jobs, provider
-  and model routing, app lifecycle, local memory authority, audit, and
-  fail-closed enforcement.
-- Runtime Agent Chat is Runtime Agent lifecycle. It depends on
-  `RuntimeAgentService`, explicit agent identity, `ConversationAnchor`, agent
-  memory policy, turn planning, presentation/action projection, and agent
-  events.
-- Ordinary app AI sessions are not Runtime-owned by default. Runtime owns the
-  AI consume substrate; app or Realm owns product session truth unless spec
-  admits another owner.
-- Realm owns cloud canonical business truth, account/social/group truth, and
-  cross-device domain commits.
-- Cognition owns admitted cognition records, memory/knowledge access policy,
-  and cognition substrate semantics where spec admits it.
-- SDK owns typed app-facing access, parsers, schemas, request builders, stream
-  assemblers, structured-output helpers, framework adapters, test harnesses,
-  mock transports, and non-authoritative client orchestration. SDK must not own
-  platform truth.
-- Kit owns reusable UI, shell, bridge, accessibility, token, and headless
-  product primitives. Kit must not own app-specific product behavior.
-- Apps own product-specific screens, user-intent wiring, view-model
-  composition, ephemeral UI state, bounded OS helpers, and product data that is
-  not Runtime/Realm/Cognition-owned.
-
-## Boundary Decision Algorithm
-
-For each Desktop or Tester behavior under audit:
-
-1. If it is canonical durable truth, assign it to Runtime, Realm, Cognition, or
-   Platform before touching SDK, Kit, or app code.
-2. If it reads or constructs platform paths, registries, config, method IDs,
-   permissions, capabilities, provider/model routing, lifecycle state, or
-   admission state, do not leave it app-local without a written authority note.
-3. If an SDK projection or DX helper exists, apps must consume it.
-4. If reusable developer ergonomics are missing, SDK may own them only as
-   non-authoritative composition over admitted public surfaces.
-5. If reusable UI, shell, bridge, accessibility, or headless behavior is
-   duplicated, prefer Kit.
-6. If ownership is unclear, stop and write an authority fork note.
-
-## Desktop Audit Targets
-
-Audit Desktop with extra suspicion for:
-
-- root config, product-control, data/cache/temp root, or path construction
-- renderer stores that become executable truth
-- Tauri commands that materialize platform facts instead of bounded OS helpers
-- duplicated method IDs, client shapes, registries, decoders, or enums
-- provider/model routing, model catalogs, AI execution, memory, jobs, sessions
-- SDK DX copied into app code
-- Kit UI, bridge, shell, token, accessibility, or headless primitives copied
-  into app code
-- Desktop-only implementations that Tester or another Nimi app also needs
-
-## Closed Decision Index
-
-This index prevents repeated review. It is not authority. Use the referenced
-spec/code/tests as the source of truth.
-
-- Local/platform roots: Runtime owns app storage, package readiness, and
-  product-control production records; Kit owns runtime config resolution, data
-  root bridge helpers, runtime bridge generated shapes, and governed projection
-  materializers. Desktop commands are bridge/consumer adapters.
-- First-run and AIConfig: SDK owns product-control projection, first-run
-  materialization projection, storage-dir projection, AIProfile CAS DX, and
-  local-image dependency request helpers. Runtime owns readiness/evidence.
-  Desktop may submit explicit host evidence only where spec admits it.
-  Built-in first-run AIConfig selected bindings are projected from Runtime
-  executionEvidenceRef proof through SDK Runtime / Kit helpers, not from
-  Desktop-local runtimeBaselineRef consumer lookup.
-  Product-control setup reconciliation is Runtime-derived from first-run
-  activation/materialization evidence; apps and SDK clients do not submit
-  product-control state or reason fields.
-- Realm and permission projections: Realm owns social/chat/account commits.
-  SDK Realm helpers stay transport/projection only. Kit owns reusable
-  notification presentation. Platform owns permission taxonomy and grant-state
-  vocabulary; SDK may expose typed S-PERM client/mocks without grant truth.
-- Chat and AI loops: Runtime Agent Chat belongs to Runtime Agent lifecycle.
-  Ordinary Nimi Chat product session truth remains app/Realm unless spec
-  changes. `sdks/typescript/core/ai/**`, `sdks/typescript/core/agent/**`,
-  admitted feature helpers, and SDK Runtime projection helpers are SDK DX only;
-  Runtime keeps execution, jobs, routing, memory, audit, and fail-closed
+- App access to Runtime is derived from the active session and app
+  identity.
+- A scaffolded App does not receive Realm JWTs, provider credentials,
+  or independent Runtime proof.
+- Apps consume admitted SDK or host surfaces; they do not call Realm or
+  Runtime private APIs.
+- App-local configuration, docs, and tests never become product
   authority.
-- Kit chat and model UI: Kit owns reusable chat/headless primitives, provider
-  registration, session view state, SDK-runner mapping, and model picker UI
-  preview. Pure app-AI stream/session runners and structured-output helpers
-  live under SDK core AI/Agent/features surfaces; Kit may adapt them into
-  composer/hooks but must not publish a second runner surface. Kit must not
-  synthesize route/model tokens or own product session truth.
-- Runtime/Cognition memory: host-local memory embedding config is not canonical
-  memory. Runtime/Cognition own resolved state, bind/rebuild/cutover facts.
-  RuntimeAgentService owns app-facing canonical agent memory bank status/bind;
-  SDK only projects typed requests/responses.
-- Offline, proxy, and handoff residues: Desktop offline cache/outbox is
-  transport/cache only; Realm owns commit truth. Desktop HTTP proxy is a
-  bounded OS/network helper. Runtime-to-Realm group handoff stays split between
-  SDK Runtime candidate surface and SDK Realm commit extension.
-- Resource residues: Avatar/Agent Center local resources are legal only as
-  private import/configuration evidence, not launch/carrier truth. Account
-  app-library/grants are Runtime Account/App lifecycle projections; Desktop
-  commands remain bridge adapters. Desktop local Avatar import must not
-  synthesize backend capability profile refs or sidecars; missing backend
-  profile evidence remains Avatar/Runtime pending evidence.
 
-## Dual-App Proof Rule
+Direct SDK use and a scaffolded App are integration paths, not
+user-facing product profiles.
 
-When extracting Desktop responsibility into Runtime, Realm, Cognition, SDK, or
-Kit:
+## Consumer Boundaries
 
-1. Desktop consumes the shared surface and deletes app-local ownership.
-2. Tester consumes the same shared surface in a materially different flow.
+- Runtime owns execution, readiness, LocalAgent, Conversation, Memory,
+  Knowledge, provider/model routing, audit outcomes, and fail-closed
+  enforcement.
+- Realm owns durable world and Character truth. Runtime and Apps use
+  admitted Realm consumer surfaces.
+- SDK owns typed access and developer ergonomics, never platform truth.
+- Kit owns reusable presentation primitives only when real consumers
+  need them; it does not prebuild a speculative public feature catalog.
+- Apps own product composition and ephemeral state. They do not cache
+  themselves into a new owner.
+- Nimi Home is the current host, not an irreplaceable cross-platform
+  authority.
+- Avatar renders owner projections; it does not directly drive or take
+  ownership of Character/LocalAgent execution.
+- Simulator qualifies developer-facing modules; it is not the current
+  core platform or a production authority.
 
-Tester is not a demo. It is the ecosystem-level proof.
+## Deferred And Isolated Capabilities
 
-## Required Preflight
-
-Before implementation of authority-bearing refactors, write:
-
-```text
-Spec Status:
-Authority Owner:
-Work Type:
-Parallel Truth:
-Candidate Owner(s):
-Desktop Current Behavior:
-Tester Proof Path:
-Files To Audit:
-Expected Deletion:
-Verification Gates:
-```
-
-`Work Type=alignment` follows existing authority. `Work Type=redesign` changes
-authority and requires `.nimi/spec/**` alignment before code.
+General Workflow, MCP, World Evolution, Marketplace, public Registry,
+Trust Tier, distribution, and commercial settlement are not current
+Runtime or Windows-loop prerequisites. Existing public-distribution
+design remains isolated unless it directly conflicts with the owner map
+above.
 
 ## Implementation Rules
 
-- No legacy compatibility path.
-- No pseudo-success, fake fallback, or MVP simplification.
-- No app bypass of SDK for Runtime or Realm private APIs.
-- No provider/model hardcoding in app code.
-- No app-local path construction for ecosystem roots when Runtime/SDK/Kit owns
-  the projection.
-- Do not move authority into SDK. SDK exposes typed access and DX only.
-- Do not move app-specific product behavior into Kit.
-- Framework adapters such as Vercel AI, LangChain, Agno, or Python bridges must
-  expose capability gaps explicitly.
-- Prefer deletion of duplicated app-local logic after a shared surface exists.
+- Follow the affected `.nimi/spec/**` owner container before changing
+  product semantics.
+- Fail closed on contract violations.
+- Do not add legacy shims, dual paths, pseudo-success, raw private API
+  bypasses, provider/model hardcoding, or forwarding shells.
+- Start at the observed consumer and move upstream only when the real
+  trace requires it.
+- Test product behavior at the nearest owner. Do not substitute
+  migration gates, checker-of-checker systems, file inventories, or
+  evidence-completeness checks for owner behavior.
 
-## Verification Pattern
+## Read First
 
-Run narrow gates for touched layers, then broaden when shared contracts change:
+1. `AGENTS.md`
+2. The nearest descendant `AGENTS.md`
+3. The exact affected authority container under `.nimi/spec/**`
+4. `.nimi/methodology/authority-authoring.yaml` before authority edits
 
-```bash
-pnpm --filter @nimiplatform/sdk test
-pnpm --filter @nimiplatform/desktop test
-pnpm --filter @nimiplatform/tester test
-cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
-cargo check --manifest-path apps/tester/src-tauri/Cargo.toml
-```
+For app boundaries, the usual starting containers are:
 
-When proto, Runtime, or spec changes are touched, also run the relevant
-proto/spec/runtime gates from root `AGENTS.md`.
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/agent-service.authority.yaml`
+- `.nimi/spec/runtime/memory-world.authority.yaml`
+- `.nimi/spec/sdks/client-core.authority.yaml`
+- `.nimi/spec/sdks/feature-clients.authority.yaml`

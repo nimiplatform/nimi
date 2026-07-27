@@ -49,7 +49,7 @@ adapters are independent packages, not base SDK subpaths.
 | `@nimiplatform/sdk/ai` | Native AI model generation surface |
 | `@nimiplatform/sdk/ai-runner` | Framework-neutral AI runner facade |
 | `@nimiplatform/sdk/testing` | Test helpers for SDK consumers |
-| `@nimiplatform/sdk/features/*` | Feature-level modules for conversation, generation, workflow, evaluation, knowledge context, memory context, and toolkits |
+| `@nimiplatform/sdk/features/*` | Demand-driven feature modules backed by a concrete consumer contract |
 
 The removed subpaths must fail closed: `@nimiplatform/sdk/world`,
 `@nimiplatform/sdk/scope`, `@nimiplatform/sdk/ai-provider`,
@@ -58,14 +58,14 @@ forwarded.
 
 ## Why The SDK Exists
 
-Nimi has multiple authority domains. Runtime owns execution. Realm owns
-semantic truth. Desktop owns native shell behavior. Cognition owns standalone
-memory and knowledge authority. Application code needs a stable way to use
-those domains without importing their private implementation.
+Nimi has multiple owner domains. Runtime owns execution, LocalAgent
+Conversation, Memory, and Knowledge. Realm owns Character, World, social, and
+semantic truth. Desktop owns native shell behavior. Application code needs a
+stable way to use those domains without importing their private implementation.
 
 The SDK is that boundary. It projects admitted owner-domain behavior into
-developer-facing TypeScript APIs. It does not invent Runtime, Realm, Desktop,
-or Cognition truth.
+developer-facing TypeScript APIs. It does not invent Runtime, Realm, or Desktop
+truth.
 
 ## Reader Scenario: A First Integration
 
@@ -76,8 +76,8 @@ An app that needs Realm data and Runtime-backed generation should:
 3. Run Runtime work through `client.runtime`, `@nimiplatform/sdk/runtime`, or
    native `@nimiplatform/sdk/ai` helpers. For a first text generation, start
    with [First AI Call](/sdk/first-ai-call).
-4. Use `@nimiplatform/sdk/features/*` only when the feature contract matches
-   the workflow.
+4. Use `@nimiplatform/sdk/features/*` only when an admitted feature contract
+   matches the concrete product need.
 5. Keep portable ids, reason codes, and public errors in
    `@nimiplatform/sdk/types`.
 

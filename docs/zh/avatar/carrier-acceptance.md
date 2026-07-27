@@ -58,7 +58,7 @@ Carrier 视觉接受契约就是每个 Carrier 自己声明能承载什么。具
 
 | 关注点 | 不做的原因 |
 | --- | --- |
-| 决定 Agent 的身份 | 身份是 Realm 的规范态；Carrier 只接受视觉 |
+| 决定身份 | Character 身份归 Realm，LocalAgent 执行身份归 Runtime；Carrier 只接受呈现 |
 | 修改具身化包 | Carrier 是读方；包由创作者发布 |
 | 在准入档位之外渲染 | 契约的上限是显式的 |
 

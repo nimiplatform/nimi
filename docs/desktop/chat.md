@@ -51,12 +51,12 @@ not expose a local turn interception surface.
 
 You open chat, target your agent, and start typing.
 
-1. **Target rail.** You select your agent as the chat target.
+1. **Target rail.** You select a Character/LocalAgent as the chat target.
    The conversation shell resolves the `ConversationAnchor` for
-   `(your_agent_id, this_conversation_id)`.
+   `(local_agent_id, conversation_id)`.
 2. **Compose.** You type. The composer shows typed input shape.
 3. **Send.** The turn is submitted. Runtime's `RuntimeAgentService`
-   accepts the turn under the agent's Chat Track.
+   accepts it for the selected LocalAgent and Conversation.
 4. **Stream begins.** The assistant bubble shows incremental
    content as Mode A chunks arrive.
 5. **Mid-stream stop.** You decide to stop early. The streaming
@@ -64,9 +64,9 @@ You open chat, target your agent, and start typing.
 6. **Realm chat thread.** The turn is recorded in the canonical
    chat thread — Realm `R-CHAT-*`.
 
-The agent's identity is canonical Realm truth; the conversation
-continuity is the runtime-owned anchor; the streaming behavior is
-admitted contract; the thread is canonical chat history.
+The Character's durable identity is Realm truth; LocalAgent execution
+identity and Conversation continuity are Runtime-owned. The Realm chat
+thread remains canonical history.
 
 ## Reader Scenario: Group Chat With An Agent Slot
 
@@ -90,7 +90,7 @@ fails closed.
 | Concern | Owned by |
 | --- | --- |
 | Embodiment / avatar visuals | Avatar app — Desktop chat is no longer a Live2D / VRM carrier |
-| Memory authority | Cognition + Runtime memory bank scopes |
+| Memory authority | Runtime LocalAgent Memory |
 | Canonical thread truth | Realm chat |
 | Turn execution authority | Runtime agent service |
 | Streaming semantics | Runtime streaming contract |

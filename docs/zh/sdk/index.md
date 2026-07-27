@@ -43,7 +43,7 @@ vNext TypeScript SDK 只有一个 base SDK package。外部框架适配器是独
 | `@nimiplatform/sdk/ai` | 原生 AI model generation surface |
 | `@nimiplatform/sdk/ai-runner` | 框架无关的 AI runner facade |
 | `@nimiplatform/sdk/testing` | SDK 消费者测试 helper |
-| `@nimiplatform/sdk/features/*` | conversation、generation、workflow、evaluation、knowledge context、memory context、toolkits 等 feature module |
+| `@nimiplatform/sdk/features/*` | 由具体 consumer contract 驱动的 feature module |
 
 已删除的子路径必须 fail closed：`@nimiplatform/sdk/world`、
 `@nimiplatform/sdk/scope`、`@nimiplatform/sdk/ai-provider`、
@@ -51,9 +51,12 @@ vNext TypeScript SDK 只有一个 base SDK package。外部框架适配器是独
 
 ## SDK 为什么存在
 
-Nimi 有多个权威域。Runtime 持有执行权威，Realm 持有语义真值，Desktop 持有原生 shell 行为，Cognition 持有独立记忆与知识权威。App 需要稳定使用这些域，而不是导入它们的私有实现。
+Nimi 有多个 owner domain。Runtime 持有执行、LocalAgent Conversation、Memory
+与 Knowledge；Realm 持有 Character、World、social 与 semantic truth；
+Desktop 持有原生 shell 行为。App 需要稳定使用这些域，而不是导入它们的私有实现。
 
-SDK 就是这条边界。它把已准入的 owner-domain 行为投影成开发者可用的 TypeScript API。它不自创 Runtime、Realm、Desktop 或 Cognition 真值。
+SDK 就是这条边界。它把已准入的 owner-domain 行为投影成开发者可用的
+TypeScript API。它不自创 Runtime、Realm 或 Desktop 真值。
 
 ## 场景：第一次接入
 
@@ -62,7 +65,7 @@ SDK 就是这条边界。它把已准入的 owner-domain 行为投影成开发�
 1. 用显式 app identity 创建 root client。
 2. 通过 `client.realm` 或 `@nimiplatform/sdk/realm` 读取 Realm 数据。
 3. 通过 `client.runtime`、`@nimiplatform/sdk/runtime` 或原生 `@nimiplatform/sdk/ai` helper 执行 Runtime 工作。第一次文本生成从 [第一次 AI 调用](/zh/sdk/first-ai-call) 开始。
-4. 只有当 feature contract 匹配 workflow 时，才使用 `@nimiplatform/sdk/features/*`。
+4. 只有当已准入 feature contract 匹配具体产品需求时，才使用 `@nimiplatform/sdk/features/*`。
 5. 将可移植 id、reason code 与公开错误放在 `@nimiplatform/sdk/types`。
 
 这个 App 不导入 Runtime 内部、Realm REST route，也不使用已删除的 SDK 兼容路径。

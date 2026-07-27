@@ -8,4 +8,4 @@ the reference page for the command groups admitted by the Nimi host.
 
 ## Source Basis
 
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)
+- [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)

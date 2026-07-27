@@ -5,7 +5,7 @@
 > server-streaming RPC.
 
 Runtime owns several server-streaming RPCs (text generation, voice
-synthesis, scenario job events, workflow events, audit export, long-
+synthesis, scenario job events, audit export, long-
 lived subscriptions). The streaming contract pins **how each
 stream closes** so consumers can write recovery logic that does not
 guess at protocol shape.
@@ -18,7 +18,7 @@ of four close modes:
 | Mode | Close signal | RPCs |
 | --- | --- | --- |
 | **A — completed / failed stream event** | Final event is `STREAM_EVENT_COMPLETED` or `STREAM_EVENT_FAILED` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
-| **B — terminal event then gRPC OK close** | Server emits terminal event, then closes stream cleanly | `SubscribeScenarioJobEvents`, `SubscribeWorkflowEvents` |
+| **B — terminal event then gRPC OK close** | Server emits terminal event, then closes stream cleanly | `SubscribeScenarioJobEvents` |
 | **C — `eof=true` chunk then gRPC OK close** | Server emits `eof=true` chunk, then closes | `ExportAuditEvents` |
 | **D — long-lived subscription stream** | No terminal frame; either side may close | `SubscribeRuntimeHealthEvents`, `SubscribeAIProviderHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
 
@@ -61,7 +61,7 @@ Voice streams (`SPEECH_SYNTHESIZE`):
 
 ## Mode B Event Constraints
 
-`SubscribeScenarioJobEvents` and `SubscribeWorkflowEvents`:
+`SubscribeScenarioJobEvents`:
 
 | Rule | Value |
 | --- | --- |
@@ -69,7 +69,7 @@ Voice streams (`SPEECH_SYNTHESIZE`):
 | Steady-state close | After terminal event, server closes stream gRPC OK |
 | `STOPPING` preempt | Daemon may preempt active streams with gRPC `CANCELLED`; terminal event delivery not guaranteed |
 
-The same job / workflow may emit repeated state events of the same
+The same job may emit repeated state events of the same
 `event_type` while non-terminal. Consumers must overwrite the prior
 snapshot with the latest event content; do **not** assume strict
 event-type monotonicity.
@@ -134,7 +134,7 @@ state from the job snapshot.
 - It does not allow post-establishment errors to surface as gRPC
   errors instead of terminal frames in mode A.
 - It does not allow consumers to assume strict event-type
-  monotonicity within a job / workflow stream.
+  monotonicity within a job stream.
 
 ## Boundary Summary
 

@@ -12,7 +12,6 @@
 | 桌面端与网页端 | `.nimi/spec/desktop/**` |
 | Realm | 外部 Realm authority；本仓库只保留 `docs/spec/realm-readme.md` 与 `docs/spec/realm-external-anchor.md` 指针，并通过 `.nimi/spec/sdks/**` 的 consumer contracts 接入 |
 | Avatar | `.nimi/spec/avatar/**` |
-| Cognition | `.nimi/spec/cognition/**` |
 | Nimi Coding | `nimi-coding/spec/product-scope.yaml`、`nimi-coding/spec/_meta/spec-tree-model.yaml`、`nimi-coding/methodology/**`、`nimi-coding/contracts/**`、`nimi-coding/config/**` |
 
 规范按 kernel + domain 排布。kernel 目录是单一真相源；domain 文件只是辅助阅读，不能重定义 kernel 规则。
@@ -30,7 +29,7 @@ kernel 用带域前缀的规则 ID。看到一条规则引用，就能直接定�
 | `R-*` | Realm |
 | `F-*` | 保留 / 历史 future backlog anchor，不在 active spec 权威内 |
 
-Runtime 内部还有子族：`K-WF-*`（工作流）、`K-STREAM-*`（流式）、`K-MMPROV-*`（多模态 provider）、`K-DELEG-*`（委派能力）、`K-AGCORE-*`（Agent 接入），用来标明规则归哪个契约。
+Runtime 内部还有子族：`K-STREAM-*`（流式）、`K-MMPROV-*`（多模态 provider）、`K-DELEG-*`（可选委派能力）、`K-AGCORE-*`（LocalAgent 接入），用来标明规则归哪个契约。
 
 ## 阅读建议
 

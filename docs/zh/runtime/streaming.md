@@ -7,7 +7,7 @@
 | 模式 | 承载内容 | 关闭语义 |
 | --- | --- | --- |
 | Mode A | 文本与语音生成；连续 chunk 直到终止帧 | 显式 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 终止帧 |
-| Mode B | 状态事件流（工作流事件、状态更新） | 终态状态后关闭 |
+| Mode B | 状态事件流（ScenarioJob 事件、状态更新） | 终态状态后关闭 |
 | Mode C | 审计导出 | `eof` 标记后关闭 |
 | Mode D | 长连接订阅（健康、App 消息、实时事件） | 长连接；只在会话拆除时关闭 |
 
@@ -24,7 +24,7 @@
 | Mode C | `eof` 标记 |
 | Mode D | 会话拆除 |
 
-如果某个 provider 在流中违反契约（形状错误、缺必填字段、schema 违例），流式契约会发一个强类型失败终止帧。工作流切到 `FAILED`。不存在静默截断。
+如果某个 provider 在流中违反契约（形状错误、缺必填字段、schema 违例），流式契约会发一个强类型失败终止帧。当前操作 fail closed。不存在静默截断。
 
 ## 反压
 
@@ -44,7 +44,7 @@
 
 | 失败类型 | 行为 |
 | --- | --- |
-| 帧形状错误 | 强类型失败终止帧；工作流 `FAILED` |
+| 帧形状错误 | 强类型失败终止帧；操作失败 |
 | 缺必填字段 | 强类型失败终止帧 |
 | Schema 违例 | 强类型失败终止帧 |
 | MIME 不匹配 | 强类型失败终止帧 |
@@ -66,16 +66,16 @@ App 发起一次会流式返回的文本生成。
 
 没有发生过的事情：流从未静默截断。要么到达 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED`，要么发出了强类型失败。
 
-## 场景：Mode B 工作流事件流
+## 场景：Mode B ScenarioJob 事件流
 
-App 订阅某个工作流的事件流。
+App 订阅某个 ScenarioJob 的事件流。
 
-1. **流打开。** Mode B。Runtime 开始发送工作流事件。
-2. **事件到达。** `STARTED → NODE_STARTED → NODE_PROGRESS → NODE_COMPLETED → ...`
-3. **工作流到达终态。** Runtime 发出终态状态事件（`COMPLETED` / `FAILED` / `CANCELED` / `SKIPPED`）。
+1. **流打开。** Mode B。Runtime 开始发送 job 事件。
+2. **事件到达。** `SUBMITTED → RUNNING → ...`
+3. **ScenarioJob 到达终态。** Runtime 发出 `COMPLETED`、`FAILED`、`TIMEOUT` 或 `CANCELED`。
 4. **流关闭。** Mode B 关闭语义达成。
 
-App 的 UI 随事件到达增量更新。无须轮询；事件流就是"这个工作流在干什么"的真值来源。
+App 的 UI 随事件到达增量更新。无须轮询；事件流就是“这个 job 在干什么”的真值来源。
 
 ## 场景：慢消费者引发反压
 

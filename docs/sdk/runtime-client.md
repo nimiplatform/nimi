@@ -31,9 +31,9 @@ The runtime client deliberately hides:
 
 It deliberately exposes:
 
-- typed runtime methods grouped by capability area (workflow,
-  streaming, multimodal, delegation surfaces, agent participation
-  projection);
+- typed runtime methods grouped by capability area (generation,
+  streaming, multimodal, LocalAgent, Conversation, Memory, and
+  Knowledge);
 - transport metadata that apps need to make sense of behavior;
 - runtime error projections that apps can react to programmatically;
 - streaming primitives that match the Runtime streaming contract.
@@ -60,7 +60,7 @@ Suppose an app issues a streaming generation through `@nimiplatform/sdk/runtime`
 3. The app consumes the streaming primitive without inventing its own
    chunk semantics. Stage boundaries, terminal frames, and error
    semantics come from the contract.
-4. If the workflow produces a multimodal artifact, the artifact is
+4. If the generation produces a multimodal artifact, the artifact is
    surfaced through a typed shape, not as a free-form URL.
 5. Errors arrive as typed projections defined in the SDK error
    projection. The app does not have to parse free-form messages.

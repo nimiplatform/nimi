@@ -50,9 +50,9 @@ seam.
 | Owner | Who owns this agent |
 | Agents the user can see | Public agent list |
 
-Desktop core only carries agent list + public detail reads. **It
-does not carry agent LLM memory or chat route** — those live in
-the runtime / cognition path.
+Desktop core only carries Character/LocalAgent list projections and
+public detail reads. **It does not own LocalAgent Memory or
+Conversation truth** — those remain in Runtime.
 
 ## Reader Scenario: Discovering And Entering A World
 
@@ -80,14 +80,13 @@ admitted contracts at every step.
 
 You see a public agent in Explore and want to learn more.
 
-1. **Click into Agent Detail.** A bounded `AgentDisplayDetail`
-   seam resolves the agent's public profile.
+1. **Click into Character Detail.** A bounded public-detail seam
+   resolves the Character's public profile and LocalAgent availability.
 2. **Public preview.** You see display name, presentation
    profile preview, public worlds the agent appears in.
-3. **What you cannot see.** The agent's `AGENT_CORE` private
-   memory; the agent's internal worldview kernel; the agent's
-   chat history with other users.
-4. **Action.** If admitted by the agent's policy, you can
+3. **What you cannot see.** The LocalAgent's private Memory,
+   authorization state, or conversations with other users.
+4. **Action.** If allowed by current policy, you can
    initiate a chat — a new `ConversationAnchor` opens; the
    conversation is yours, not visible to others.
 

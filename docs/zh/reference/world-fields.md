@@ -76,19 +76,6 @@
 
 六项基础协议不是相互独立的枚举，而是相互约束。
 
-## 世界演化引擎（Runtime 持有）
-
-当世界在 Runtime 内运行（Runtime 宿主的世界体验），世界演化引擎管理它的演化。WEE 有自己的执行阶段分类，与 Workflow 不同：
-
-`INGRESS → NORMALIZE → SCHEDULE → DISPATCH → TRANSITION → EFFECT → COMMIT_REQUEST → CHECKPOINT → TERMINAL`
-
-回放只用记录态：WEE V1 从已记录的事件、检查点、commit-request 结果回放。回放期间不会重新推理，也不会重选路由。
-
-| 字段 | 归属 |
-| --- | --- |
-| WEE 事件语义 | `runtime/kernel/world-evolution-engine-contract.md`（`K-WEV-*`） |
-| Workflow 部分复用硬切 | `runtime/kernel/world-evolution-engine-contract.md` |
-
 ## 来源依据
 
 - [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)

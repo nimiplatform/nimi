@@ -35,7 +35,6 @@ The host reads these inputs and contracts directly:
 
 | Surface | Purpose |
 | --- | --- |
-| `.nimi/config/spec-generation-inputs.yaml` | Host-specific classified construction inputs |
 | `.nimi/methodology/spec-reconstruction.yaml` | Construction goals, tree shape, and completion gates |
 | `.nimi/contracts/spec-generation-audit.schema.yaml` | Local file-level source and gap evidence |
 | `.nimi/contracts/spec-layout.schema.yaml` | Host-specific instruction and derived-output layout admission |
@@ -54,4 +53,3 @@ command family.
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
 - [`.nimi/contracts/spec-layout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-layout.schema.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

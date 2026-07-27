@@ -32,23 +32,21 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-这些检查验证 package-canonical 文件与宿主专用内容。执行所有权上限本身由
-`.nimi/spec/platform/authority-admission.authority.yaml` 中的 `P-PKG-011` 声明，
-不再由 wrapper 命令承担。两项检查都不会创建产品权威。
+这些检查验证 package-canonical 文件与宿主专用内容。仓库 instructions 把执行
+所有权留给外部 host；两项检查都不会创建产品 authority 或宿主任务状态。
 
 ## 2. 重建产品权威
 
-需要重建时，当前 Codex 任务读取 `.nimi/config/spec-generation-inputs.yaml` 与
-`.nimi/methodology/spec-reconstruction.yaml`，把权威重建到 `.nimi/spec/**`，并在
-`.nimi/local/state/spec-generation/**` 中逐文件记录来源和未解决缺口，不会自行编造
-规则。随后运行：
+需要编辑 authority 时，当前 Codex 任务读取受影响的 authority container 与
+`.nimi/methodology/authority-authoring.yaml`，修改既有 `.nimi/spec/**` owner
+container，不会自行编造规则。随后运行：
 
 ```bash
-pnpm exec nimicoding validate-spec-tree .nimi/spec
-pnpm exec nimicoding validate-spec-audit
+pnpm spec:authority:check
+pnpm spec:authority:compile
 ```
 
-validator 通过说明规范树符合已声明的契约，但不能替代产品负责人对权威决策的复核。
+Validator 通过说明 authority corpus 符合格式与关系契约，但不能替代产品负责人对 authority 决策的复核。
 
 ## 3. 编辑前先分类
 
@@ -113,6 +111,5 @@ scripts 为准：先跑最窄的受影响范围，跨权威边界时再补全局
 
 ## 来源依据
 
-- [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)

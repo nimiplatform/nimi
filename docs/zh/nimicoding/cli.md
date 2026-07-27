@@ -23,10 +23,9 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-宿主边界本身由 `.nimi/spec/platform/authority-admission.authority.yaml` 中的
-`P-PKG-011` 声明：即使安装包内仍带有 topic 生命周期、wave/packet 执行 DAG、
-run ledger、goal bridge 或嵌套宿主启动，这些执行面一律不予准入。sync 与 doctor
-按软件包当前的投影策略核验受管文件，但不负责写入。
+仓库 instructions 把任务生命周期、计划、重试、完成和嵌套宿主启动留给外部
+AI host。sync 与 doctor 按软件包当前的投影策略核验受管文件，但不持有或修改
+宿主任务状态。
 
 ## 验证产品真相
 
@@ -43,7 +42,6 @@ pnpm exec nimicoding validate-ai-governance --profile nimi --scope <scope>
 ## 构建与审计规范树
 
 `.nimi/methodology/spec-reconstruction.yaml` 定义构建规则，
-`.nimi/config/spec-generation-inputs.yaml` 声明 Nimi 的输入，
 `.nimi/contracts/spec-generation-audit.schema.yaml` 约束本地生成证据。
 这些文件只约束产物，不创建任务、不选择执行者，也不运行审计流程。
 
@@ -66,4 +64,3 @@ pnpm exec nimicoding validate-ai-governance --profile nimi --scope <scope>
 
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

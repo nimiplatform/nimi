@@ -163,9 +163,9 @@ route semantics, carrier behavior, and runtime evidence. The helper must not
 create a second Runtime ontology, public APML syntax, or package-local Avatar
 backend authority.
 
-Any future package-local spec root must be admitted through
-`.nimi/spec/platform/authority-admission.authority.yaml` and
-`config/platform-package-authority-admissions.yaml`.
+Package metadata and package-local documentation never become Nimi product
+authority. Product semantics remain in the existing `.nimi/spec/**` owner
+containers.
 
 ## 2. Non-Goals
 
@@ -1582,8 +1582,6 @@ Nimi2D consumes, but does not redefine:
 - `config/avatar-nimi2d-live-action-routes.yaml`
 - `.nimi/spec/runtime/agent-participation.authority.yaml`
 - `.nimi/spec/desktop/ai-consumption.authority.yaml`
-- `.nimi/spec/platform/authority-admission.authority.yaml`
-- `config/platform-package-authority-admissions.yaml`
 
 ## Derived Views
 

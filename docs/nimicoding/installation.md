@@ -40,24 +40,18 @@ seed files without treating host-specific content as package drift.
 pnpm exec nimicoding validate-spec-tree .nimi/spec
 ```
 
-This validator inspects the canonical tree. When spec construction changes
-canonical files, also run `pnpm exec nimicoding validate-spec-audit` against
-`.nimi/local/state/spec-generation/spec-generation-audit.yaml`; a missing or
-incomplete audit fails closed. Neither command creates or updates host task
-state.
+For authority edits, use the repository-managed format command for each
+changed container, then run `pnpm spec:authority:check` and
+`pnpm spec:authority:compile`. These commands validate authority; they do not
+create or update host task state.
 
 ## Projection Ownership
 
 Most `.nimi/{config,contracts,methodology}/**` files are package-canonical.
-Nimi owns the host-specific content of
-`.nimi/config/spec-generation-inputs.yaml`,
-`.nimi/contracts/domain-admission.schema.yaml`, and
-`.nimi/methodology/spec-reconstruction.yaml`; sync preserves those admitted
-overrides.
+Repository-specific methodology and contract files remain host configuration,
+not product authority.
 
 ## Source Basis
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
 - [`.nimi/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/bootstrap.yaml)
-- [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

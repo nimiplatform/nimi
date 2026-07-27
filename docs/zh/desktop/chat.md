@@ -38,14 +38,14 @@
 
 你打开聊天，把目标选为自己的 Agent，开始输入。
 
-1. **选定目标**。把 Agent 选为聊天目标。对话外壳为 `(your_agent_id, this_conversation_id)` 解出对应的 `ConversationAnchor`。
+1. **选定目标**。把 Character/LocalAgent 选为聊天目标。对话外壳为 `(local_agent_id, conversation_id)` 解出对应的 `ConversationAnchor`。
 2. **输入**。输入器按强类型输入形态显示。
-3. **发送**。这一轮被提交。Runtime 的 `RuntimeAgentService` 在 Agent 的 Chat Track 下接受这一轮。
+3. **发送**。这一轮被提交。Runtime 的 `RuntimeAgentService` 为选定 LocalAgent 与 Conversation 接受这一轮。
 4. **流式开始**。助手气泡按 Mode A 分片增量呈现。
 5. **中途停止**。你点了停止。流式契约保留了已收到的部分。
 6. **写入 Realm 聊天线程**。这一轮记入规范化的聊天线程：Realm `R-CHAT-*`。
 
-Agent 身份是 Realm 的规范态；对话连续性归 Runtime 的 anchor；流式语义是已准入契约；线程是规范化聊天历史。
+Character 的持久身份是 Realm 真相；LocalAgent 执行身份与 Conversation 连续性归 Runtime；Realm 聊天线程仍是规范化历史。
 
 ## 场景：群聊里有 Agent 槽位
 
@@ -63,7 +63,7 @@ Agent 身份是 Realm 的规范态；对话连续性归 Runtime 的 anchor；流
 | 关注点 | 归属 |
 | --- | --- |
 | 具身化 / 形象呈现 | Avatar 应用——桌面端聊天不再做 Live2D / VRM 的承载面 |
-| 记忆权威 | Cognition + Runtime 记忆库作用域 |
+| Memory 权威 | Runtime LocalAgent Memory |
 | 规范化线程 | Realm 聊天 |
 | 一轮执行权威 | Runtime Agent 服务 |
 | 流式语义 | Runtime 流式契约 |

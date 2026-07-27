@@ -169,7 +169,6 @@ Fixed rules:
 
 - RuntimeAgentService remains the runtime owner of live agent execution, canonical admission, and runtime-private posture/hook truth
 - if runtime consumes standalone cognition kernels, prompt context, or advisory outputs, that consumption must remain adapter-owned rather than semantic ownership
-- cognition runtime bridge and prompt-serving boundaries are governed by `.nimi/spec/cognition/runtime-bridge.authority.yaml`, `.nimi/spec/cognition/standalone-services.authority.yaml`, and `.nimi/spec/cognition/runtime-bridge.authority.yaml`
 - RuntimeAgentService must not redefine cognition object model, cleanup semantics, or standalone public surface by implementation convention
 - runtime/private cognition consumption does not authorize collapsing cognition authority back into runtime contracts
 
@@ -594,7 +593,6 @@ Fixed rules:
   provider, replication, and runtime-private review/substrate semantics on the
   runtime path
 - extracted standalone cognition semantics must live under the cognition authority home rather than being redefined here
-- cognition memory upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/runtime-bridge.authority.yaml`, `.nimi/spec/cognition/standalone-services.authority.yaml`, and `.nimi/spec/cognition/runtime-bridge.authority.yaml`
 - runtime memory must not absorb cognition kernel, prompt, working-state, or routine ownership by implementation convenience
 - runtime-facing overlap memory semantics are now owned by
   `RuntimeCognitionService`; overlapping record mechanics or adapter reuse do
@@ -1025,7 +1023,6 @@ Fixed rules:
   `RuntimeCognitionService`, while this file preserves the absorbed semantic
   floor for runtime-local bank/page/search/graph/ingest behavior
 - extracted standalone cognition knowledge semantics must live under cognition authority rather than being redefined here
-- cognition knowledge upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/runtime-bridge.authority.yaml`, `.nimi/spec/cognition/standalone-services.authority.yaml`, and `.nimi/spec/cognition/runtime-bridge.authority.yaml`
 - runtime knowledge must not absorb cognition kernel, working-state, prompt, or routine ownership by extension
 - shared page or relation mechanics do not make the retired runtime knowledge
   topology the continuing owner of cognition knowledge projections

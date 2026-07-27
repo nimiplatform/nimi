@@ -7,8 +7,8 @@ SDK 边界存在的目的，是让 App 接入既稳定又诚实。SDK 不只是�
 ## 边界规则
 
 - App 应使用 SDK 的公开导出，不应使用 Runtime 或 Realm 的私有路径。
-- SDK surface 不应静默重定义 Runtime、Realm、桌面端、Cognition 的真值。
-- 包内权威只在 SDK 内核明确准入时才被允许。
+- SDK surface 不应静默重定义 Runtime、Realm 或 Desktop 真值。
+- Package location、source directory 或 docs page 都不能创建公共 SDK 承诺。
 - 一份可读的文档页本身不能创造一个新的 SDK 承诺。承诺先准入；页面是转换后的视图。
 
 ## 为什么边界违例代价高
@@ -52,7 +52,7 @@ SDK 边界存在的目的，是让 App 接入既稳定又诚实。SDK 不只是�
 
 - 私有 runtime 包、内部 client 代码、传输层胶水；
 - 私有 Realm 内部；
-- 桌面端或 Cognition 的内部细节。
+- Desktop internal，或 Runtime-private Memory 与 Knowledge 实现。
 
 边界本身记录在 `.nimi/spec/sdks/client-core.authority.yaml` 与 TypeScript target export map 中。
 
@@ -60,4 +60,3 @@ SDK 边界存在的目的，是让 App 接入既稳定又诚实。SDK 不只是�
 
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
 - [`config/sdks-typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-target-export-map.yaml)
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

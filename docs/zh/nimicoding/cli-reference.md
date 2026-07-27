@@ -6,4 +6,4 @@
 
 ## 来源依据
 
-- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)
+- [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)

@@ -10,7 +10,7 @@ event timeline, not as arbitrary chunk soup.
 | Mode | What it carries | Close semantics |
 | --- | --- | --- |
 | Mode A | Text and voice generation; deltas until terminal | Explicit `STREAM_EVENT_COMPLETED` or `STREAM_EVENT_FAILED` event |
-| Mode B | State event streams (workflow events, status updates) | Closes after a terminal status |
+| Mode B | State event streams (ScenarioJob events, status updates) | Closes after a terminal status |
 | Mode C | Audit export | Closes after an `eof` marker |
 | Mode D | Long-lived subscriptions (health, app messaging, realtime events) | Long-lived; closes only on session teardown |
 
@@ -34,7 +34,7 @@ than truncating silently.
 
 If a provider mid-stream fails the contract — wrong shape, missing
 required field, schema violation — the streaming contract emits a
-typed failure terminal frame. The workflow moves to `FAILED`.
+typed failure terminal frame. The active operation fails closed.
 There is no silent truncation.
 
 ## Backpressure
@@ -60,7 +60,7 @@ Streaming contract failures fail closed:
 
 | Failure type | Behavior |
 | --- | --- |
-| Wrong frame shape | Typed terminal failure; workflow `FAILED` |
+| Wrong frame shape | Typed terminal failure; operation failed |
 | Missing required field | Typed terminal failure |
 | Schema violation | Typed terminal failure |
 | MIME mismatch | Typed terminal failure |
@@ -91,22 +91,19 @@ What did **not** happen: the stream never silently truncated.
 Either it reached `STREAM_EVENT_COMPLETED` or it emitted a typed
 `STREAM_EVENT_FAILED` failure.
 
-## Reader Scenario: Mode B Workflow Event Stream
+## Reader Scenario: Mode B ScenarioJob Event Stream
 
-An app subscribes to a workflow's event stream.
+An app subscribes to a ScenarioJob event stream.
 
-1. **Stream opens.** Mode B. Runtime begins emitting workflow
-   events.
-2. **Events arrive.** `STARTED → NODE_STARTED → NODE_PROGRESS →
-   NODE_COMPLETED → ...`
-3. **Workflow reaches a terminal.** Runtime emits the terminal
-   status event (`COMPLETED` / `FAILED` / `CANCELED` /
-   `SKIPPED`).
+1. **Stream opens.** Mode B. Runtime begins emitting job events.
+2. **Events arrive.** `SUBMITTED → RUNNING → ...`
+3. **ScenarioJob reaches a terminal.** Runtime emits `COMPLETED`,
+   `FAILED`, `TIMEOUT`, or `CANCELED`.
 4. **Stream closes.** The Mode B close semantic is satisfied.
 
 The app's UI updates incrementally as events arrive. There is no
 polling; the event stream is the source of truth for "what's
-happening with this workflow."
+happening with this job."
 
 ## Reader Scenario: A Slow Consumer Applies Backpressure
 

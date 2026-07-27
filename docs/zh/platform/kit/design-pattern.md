@@ -10,10 +10,10 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 | 规则 | 值 |
 | --- | --- |
 | 权威规范 | `.nimi/spec/platform/ui-design-system.authority.yaml` |
-| 权威表格 | `config/platform-*.yaml` |
+| Machine projection | `config/platform-*.yaml` |
 | 管理的消费方 | 由各 app 本地 kit manifest 声明 |
-| 应用本地 spec 可以 | 拥有具体 adoption 清单、app-owned compositions、accent 选择和艺术指导 |
-| 应用本地 spec 不可以 | 重新定义共享 primitive 家族、令牌分类或治理规则 |
+| App 本地组合可以 | 拥有 adoption 选择、app-owned compositions、accent 选择和艺术指导 |
+| App 本地组合不可以 | 重新定义共享 primitive 家族、令牌分类或产品 authority |
 
 ## 主题包模型 (P-DESIGN-002)
 
