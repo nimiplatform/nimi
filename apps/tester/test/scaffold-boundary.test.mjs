@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
@@ -9,10 +8,8 @@ const localAppPlatformSource = readFileSync(new URL('../src/shell/local-app-runt
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const tauriMainSource = readFileSync(new URL('../src-tauri/src/main.rs', import.meta.url), 'utf8');
-const tauriAcceptanceSource = readFileSync(new URL('../src-tauri/src/acceptance.rs', import.meta.url), 'utf8');
 const appSource = [authSource, productSource].join('\n');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
-const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf8');
 
 test('auth glue exposes only the final local-app projection', () => {
   assert.match(authSource, /'local-app'/);
@@ -60,21 +57,15 @@ test('renderer bootstrap installs Kit runtime bridge before render', () => {
   assert.doesNotMatch(mainSource, /Failed to fetch dynamically imported module|Importing a module script failed|function isRetryable/);
 });
 
-test('Tauri scaffold consumes Kit shared command registration and renderer probe', () => {
+test('Tauri scaffold consumes Kit shared command registration', () => {
   assert.match(tauriMainSource, /nimi_shell_tauri::nimi_shell_tauri_local_app_standard_shell_handler!\[/);
   assert.match(tauriMainSource, /RuntimeBridgeLocalAppHost::platform_default/);
   assert.doesNotMatch(tauriMainSource, /@with_runtime_defaults/);
-  assert.match(tauriMainSource, /use acceptance::tester_renderer_entry_probe_script/);
-  assert.match(tauriAcceptanceSource, /capabilities::diagnostics::build_renderer_entry_probe_script/);
-  assert.match(tauriAcceptanceSource, /RendererEntryProbeScriptConfig/);
   assert.doesNotMatch(tauriMainSource, /tauri::generate_handler!\[/);
   assert.doesNotMatch(tauriMainSource, /desktop_macos_smoke_ping/);
   assert.doesNotMatch(tauriMainSource, /globalRecord\.__TAURI__\?\.core\?\.invoke/);
   assert.doesNotMatch(tauriMainSource, /local_developer_app|local-developer-app|developer_registration/);
   assert.doesNotMatch(tauriMainSource, /RuntimeBridgeHostAppSessionProvider|set_runtime_bridge_host_hooks/);
-  assert.doesNotMatch(tauriMainSource, /NIMI_TESTER_TAURI_SHARED_AUTH_ACCEPTANCE|NIMI_TESTER_TAURI_ACCEPTANCE_STORAGE_ROOT/);
-  assert.equal(existsSync(new URL('../src-tauri/src/shared_auth_acceptance.js', import.meta.url)), false);
-  assert.equal(existsSync(new URL('../scripts/shared-auth-broker-live-tauri-acceptance.mjs', import.meta.url)), false);
 });
 
 test('generated shell rejects placeholder and private Desktop imports', () => {
@@ -124,19 +115,4 @@ test('validate script enforces the empty admitted public permission set', () => 
   assert.match(validateSource, /parsed\.permissions\.length !== 0/);
   assert.match(validateSource, /admitted public permission set is empty/);
   assert.doesNotMatch(validateSource, /isCanonicalPermissionScopeName|RUNTIME_ARTIFACT_SCOPES/);
-});
-
-test('local audit accepts the monorepo tester reference source without generated scaffold lock', () => {
-  const result = spawnSync(process.execPath, ['scripts/local-audit.mjs'], {
-    cwd: new URL('..', import.meta.url),
-    encoding: 'utf8',
-  });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /tester-reference source self-check passed/);
-});
-
-test('admission request remains submitted input', () => {
-  assert.match(admission, /developer-submitted listing request/);
-  assert.match(admission, /not an approval, release descriptor, permission grant, or install truth/);
-  assert.match(admission, /Nimi Platform review owns final admission/);
 });

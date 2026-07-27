@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
-const testerCssReport = validateSimulatorAppSource(__dirname).report;
+const testerSource = validateSimulatorAppSource(__dirname);
 
 function manualChunks(id: string) {
   const normalized = id.replaceAll('\\', '/');
@@ -65,7 +65,7 @@ export default defineConfig({
     createSimulatorCssProfileVitePlugin({
       compilerRoot: __dirname,
       foundationEntry: path.join(__dirname, 'src/styles.css'),
-      apps: [{ rootDir: __dirname, report: testerCssReport }],
+      apps: [{ rootDir: __dirname, style: testerSource.style }],
     }),
     react(),
     tailwindcss(),

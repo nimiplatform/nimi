@@ -13,17 +13,8 @@
     "build:prepared": "tsc --noEmit && vite build",
     "build": "pnpm run prepare:workspace-surfaces && pnpm run build:prepared",
     "build:electron": "node scripts/run-electron-build.mjs",
-    "pack:release-evidence": "corepack pnpm run build && corepack pnpm run build:electron && node scripts/pack-release-evidence.mjs",
-    "test:e2e:electron:prepared": "node --test test/e2e/electron-acceptance.test.mjs",
-    "test:e2e:electron": "corepack pnpm run build && corepack pnpm run build:electron && pnpm run test:e2e:electron:prepared",
-    "test:e2e:web:agent-center:prepared": "node --test test/e2e/web-agent-center-acceptance.test.mjs",
-    "test:e2e:web:agent-center": "corepack pnpm run build && pnpm run test:e2e:web:agent-center:prepared",
-    "test:acceptance:prepared": "corepack pnpm run build:prepared && corepack pnpm run build:electron && pnpm run test:e2e:electron:prepared && pnpm run test:e2e:web:agent-center:prepared",
-    "test:acceptance": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:acceptance:prepared",
     "test:unit:prepared": "node --import tsx --test test/*.test.mjs",
-    "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:unit:prepared",
-    "check:bootstrap:prepared": "pnpm run test:unit:prepared && pnpm run build:prepared && pnpm run build:electron && pnpm run test:e2e:electron:prepared",
-    "check:bootstrap": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run check:bootstrap:prepared"
+    "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:unit:prepared"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",
@@ -41,7 +32,6 @@
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "^42.5.0",
     "esbuild": "^0.28.0",
-    "playwright": "^1.61.0",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.3",
     "typescript": "^5.9.3",

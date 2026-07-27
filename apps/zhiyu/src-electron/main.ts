@@ -7,10 +7,8 @@ import {
   registerNimiElectronAppBridge,
 } from '@nimiplatform/kit/shell/electron/main';
 import { openZhiyuAppOwnedStore, type ZhiyuAppOwnedStore } from './app-owned-store.js';
-import { resolveZhiyuLocalDevelopmentAgentId } from './local-development-contract.js';
 
 const APP_ID = 'nimi.zhiyu';
-const LOCAL_DEVELOPMENT_PRELOAD_MARKER = '--nimi-local-development=1';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -21,11 +19,6 @@ const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = readArgument('--nimi-dev-renderer-url')
   || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
-const isLocalDevelopmentBuild = Boolean(readArgument('--nimi-dev-renderer-url'));
-const localDevelopmentAgentId = resolveZhiyuLocalDevelopmentAgentId({
-  localDevelopment: isLocalDevelopmentBuild,
-  selector: readOptionalArgument('--nimi-dev-agent-id'),
-});
 let mainWindow: BrowserWindow | undefined;
 let appOwnedStore: ZhiyuAppOwnedStore | undefined;
 
@@ -61,14 +54,6 @@ app.on('before-quit', () => {
   appOwnedStore = undefined;
 });
 
-function localDevelopmentPreloadArguments(): string[] {
-  if (!isLocalDevelopmentBuild) return [];
-  return [
-    LOCAL_DEVELOPMENT_PRELOAD_MARKER,
-    ...(localDevelopmentAgentId ? [`--nimi-dev-agent-id=${localDevelopmentAgentId}`] : []),
-  ];
-}
-
 function configureZhiyuElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
 }
@@ -81,16 +66,15 @@ app.on('window-all-closed', () => {
 
 async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
-    width: isLocalDevelopmentBuild ? 1060 : 1280,
-    height: isLocalDevelopmentBuild ? 780 : 860,
+    width: 1280,
+    height: 860,
     minWidth: 360,
-    minHeight: isLocalDevelopmentBuild ? 640 : 720,
+    minHeight: 720,
     icon: windowIconPath,
-    title: isLocalDevelopmentBuild ? '知语 · 开发内核联调' : '织羽 Zhiyu',
+    title: '织羽 Zhiyu',
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
-      additionalArguments: localDevelopmentPreloadArguments(),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,

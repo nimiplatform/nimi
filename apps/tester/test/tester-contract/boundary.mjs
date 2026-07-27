@@ -200,17 +200,6 @@ test('tester account menu consumes the shared Kit AccountPanel without owning Ru
   assert.doesNotMatch(headerActionsSource, /NimiLabAccountMenu/);
 });
 
-test('Tester consumes SDK Runtime agent smoke verification surface as second app proof', () => {
-  const helper = read('test/proofs/tester-runtime-smoke-verification.ts');
-  assert.match(helper, /createNimiRuntimeAgentSmokeVerificationSurface/);
-  assert.match(helper, /NimiRuntimeAgentSmokeVerificationSurface/);
-  assert.match(helper, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(helper, /getRuntimePlatformProjection/);
-  assert.doesNotMatch(helper, /createRuntimeAgentSmokeVerificationSurface/);
-  assert.doesNotMatch(helper, /createRuntimeProtectedScopeHelper/);
-  assert.doesNotMatch(helper, /withScopes\(/);
-});
-
 test('tester runtime unavailable flow consumes Kit offline coordinator', () => {
   const authGate = read('src/shell/auth/auth-gate.tsx');
   const unavailablePage = read('src/shell/auth/runtime-unavailable-page.tsx');

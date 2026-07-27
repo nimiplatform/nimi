@@ -34,10 +34,8 @@ test('tester owns an Electron host beside the Tauri host', () => {
   const packageJson = readJson('package.json');
   assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
   assert.match(packageJson.scripts['build:electron'], /tsconfig\.electron\.json/);
-  assert.match(packageJson.scripts['test:e2e:electron'], /electron-acceptance/);
   assert.equal(packageJson.devDependencies['@grpc/grpc-js'], undefined, 'tester must not own raw gRPC');
   assert.match(packageJson.devDependencies.electron || '', /^\^?42\./);
-  assert.match(packageJson.devDependencies.playwright || '', /^\^?1\./);
   assert.match(packageJson.devDependencies.tsx || '', /^\^?4\./);
 });
 
@@ -60,16 +58,11 @@ test('Electron development is supervised by Desktop and not by app-owned scripts
 
 test('Electron host uses canonical tester app identity for Runtime calls', () => {
   const mainSource = read('src-electron/main.ts');
-  const sdkAcceptanceSource = read('src/shell/auth/electron-sdk-acceptance.ts');
   const localAppClientSource = read('src/shell/local-app-runtime-platform.ts');
-  const acceptanceSource = read('test/electron-acceptance.mjs');
 
   assert.match(mainSource, /const APP_ID = 'nimi\.tester'/);
-  assert.match(sdkAcceptanceSource, /testerLocalAppClient/);
   assert.doesNotMatch(localAppClientSource, /(?:appId|sessionId|grantId)\s*[:=]/);
   assert.doesNotMatch(mainSource, /com\.nimiplatform\.tester/);
-  assert.doesNotMatch(sdkAcceptanceSource, /com\.nimiplatform\.tester/);
-  assert.doesNotMatch(acceptanceSource, /com\.nimiplatform\.tester/);
 });
 
 test('Electron local-app host does not synthesize Runtime account authority', () => {

@@ -16,11 +16,11 @@ test.after(cleanupBehaviorModules);
 test('tester production build uses the protocol-owned canonical CSS profile', () => {
   const viteConfig = read('vite.config.ts');
 
-  assert.match(viteConfig, /validateSimulatorAppSource\(__dirname\)\.report/);
+  assert.match(viteConfig, /validateSimulatorAppSource\(__dirname\)/);
   assert.match(viteConfig, /createSimulatorCssProfileVitePlugin\(\{/);
   assert.match(viteConfig, /compilerRoot:\s*__dirname/);
   assert.match(viteConfig, /foundationEntry:\s*path\.join\(__dirname, 'src\/styles\.css'\)/);
-  assert.match(viteConfig, /apps:\s*\[\{ rootDir:\s*__dirname, report:\s*testerCssReport \}\]/);
+  assert.match(viteConfig, /apps:\s*\[\{ rootDir:\s*__dirname, style:\s*testerSource\.style \}\]/);
   assert.doesNotMatch(viteConfig, /kit\/features\/[^'"\n]+\/src/);
   assert.doesNotMatch(viteConfig, /optimizeDeps:\s*\{/);
 });

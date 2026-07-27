@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import {
   NimiRendererHostProvider,
   createNimiRendererHostBinding,
@@ -13,14 +12,8 @@ import './renderer/styles.css';
 import { zhiyuCanonicalRendererFactory } from './renderer/factory';
 import { createZhiyuProductionBindings } from './production/renderer-bindings';
 import { AuthGate } from './shell/auth/auth-gate';
-import { installZhiyuElectronSdkAcceptanceProbe } from './shell/auth/electron-sdk-acceptance';
-import { ZhiyuLocalDevelopmentJourney } from './shell/local-development/ZhiyuLocalDevelopmentJourney';
 
 installNimiShellRuntimeBridge();
-const localDevelopment = window.__nimiZhiyuLocalDevelopment;
-if (!localDevelopment) {
-  installZhiyuElectronSdkAcceptanceProbe();
-}
 
 const root = document.getElementById('root');
 if (!root) {
@@ -71,15 +64,9 @@ function ZhiyuProductionSurface() {
 createRoot(root).render(
   <React.StrictMode>
     <NimiRendererHostProvider binding={rendererHost}>
-      {localDevelopment?.agentId ? (
-        <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
-          <ZhiyuLocalDevelopmentJourney target={{ ...localDevelopment, agentId: localDevelopment.agentId }} />
-        </NimiThemeProvider>
-      ) : (
-        <AuthGate>
-          <ZhiyuProductionSurface />
-        </AuthGate>
-      )}
+      <AuthGate>
+        <ZhiyuProductionSurface />
+      </AuthGate>
     </NimiRendererHostProvider>
   </React.StrictMode>,
 );
