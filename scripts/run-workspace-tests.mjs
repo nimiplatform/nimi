@@ -51,7 +51,7 @@ try {
       for (const surface of suite.provides_workspace_surfaces ?? []) provided.add(surface);
     }
   });
-  process.stdout.write(`\n[workspace-tests] PASS: ${suites.length} suites\n`);
+  process.stdout.write(`\n[workspace-tests] COMMANDS OK: ${suites.length} suites; nested skips are reported by suite owners\n`);
 } catch (error) {
   process.stderr.write(`[workspace-tests] ${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;

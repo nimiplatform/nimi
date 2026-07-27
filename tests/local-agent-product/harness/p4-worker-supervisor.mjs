@@ -51,7 +51,7 @@ export async function executeP4WorkerGate({
   let timer = null;
   let childResult = null;
   const telemetry = {
-    manifestBudgetMs: definition.manifestBudgetMs,
+    defaultBudgetMs: definition.defaultBudgetMs,
     effectiveBudgetMs: definition.effectiveBudgetMs,
     budgetSource: definition.budgetSource,
     durationMs: 0,

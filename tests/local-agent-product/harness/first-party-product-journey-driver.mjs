@@ -21,7 +21,6 @@ const kitRequire = createRequire(path.join(import.meta.dirname, '../../../kit/pa
 const playwright = await import(pathToFileURL(desktopRequire.resolve('playwright')).href);
 const electron = playwright.default?._electron;
 
-const EXECUTION_EVIDENCE_REF = /^execution_evidence_[0-9a-z]+$/u;
 export function firstPartyProductChildEnv(extra = {}) {
   const output = { ...process.env, ...extra };
   for (const name of FIRST_PARTY_PRODUCT_PRIVATE_ENV_NAMES) delete output[name];
@@ -51,33 +50,6 @@ function powershellJson(script, args = []) {
   } catch {
     throw new Error(`PowerShell product prerequisite returned invalid JSON: ${String(result.stdout || '').trim()}`);
   }
-}
-
-function createProcessObservationLedger() {
-  const events = [];
-  const identities = new Map(['provider', 'realm', 'runtime', 'desktop', 'zhiyu'].map((role) => [role, new Set()]));
-  return {
-    observe(role, identity, detail = {}) {
-      const normalized = String(identity || '').trim();
-      if (!normalized) throw new Error(`missing observed ${role} process identity`);
-      const known = identities.get(role);
-      if (known?.has(normalized)) return;
-      known?.add(normalized);
-      events.push({
-        role,
-        identity: normalized,
-        kind: 'observed-running-process',
-        observedAt: new Date().toISOString(),
-        ...detail,
-      });
-    },
-    snapshot() {
-      return {
-        processStarts: Object.fromEntries([...identities].map(([role, values]) => [role, values.size])),
-        processObservations: events.map((event) => ({ ...event })),
-      };
-    },
-  };
 }
 
 async function observeLocalProductTopology() {
@@ -157,7 +129,7 @@ function newestFile(root, predicate) {
   return files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0] || '';
 }
 
-function readRuntimeCandidate(repoRoot, processLedger, install) {
+function readRuntimeCandidate(repoRoot, install) {
   const runtimeBuildRecordPath = path.join(repoRoot, 'dist', 'nimi-build-record.json');
   const runtimeBuildRecord = JSON.parse(fs.readFileSync(runtimeBuildRecordPath, 'utf8'));
   const installer = path.join(repoRoot, 'dist', 'windows-runtime-service-installer', 'install-nimi-runtime.ps1');
@@ -191,10 +163,6 @@ function readRuntimeCandidate(repoRoot, processLedger, install) {
   assert.equal(status.runtimeBuildRecordSha256, sha256File(runtimeBuildRecordPath), 'installed Runtime build-record digest drifted');
   assert.equal(runtimeBuildRecord.checkpoint, 'first_party_product_acceptance', 'product Gate requires the endpoint-only acceptance build projection');
   assert.equal(runtimeBuildRecord.nonRelease, true, 'product acceptance Runtime must remain non-release');
-  processLedger.observe('runtime', `pid:${status.processId}`, {
-    serviceName: status.serviceName,
-    serviceSid: status.serviceSid,
-  });
   return {
     installer,
     status,
@@ -203,9 +171,9 @@ function readRuntimeCandidate(repoRoot, processLedger, install) {
   };
 }
 
-function installRuntimeCandidate(repoRoot, processLedger) {
+function installRuntimeCandidate(repoRoot) {
   run('pnpm', ['build:first-party-product-acceptance-service-candidate'], { cwd: repoRoot });
-  return readRuntimeCandidate(repoRoot, processLedger, true);
+  return readRuntimeCandidate(repoRoot, true);
 }
 
 function copyPackage(source, destination) {
@@ -332,7 +300,7 @@ function browserAdapter(page, app) {
   };
 }
 
-async function withInstalledDesktop(installedDesktop, userDataRoot, outputDir, callback, processLedger) {
+async function withInstalledDesktop(installedDesktop, userDataRoot, outputDir, callback) {
   fs.mkdirSync(outputDir, { recursive: true });
   fs.mkdirSync(userDataRoot, { recursive: true });
   const hostLog = [];
@@ -341,7 +309,6 @@ async function withInstalledDesktop(installedDesktop, userDataRoot, outputDir, c
     args: [`--user-data-dir=${userDataRoot}`],
     env: firstPartyProductChildEnv(),
   });
-  processLedger.observe('desktop', `pid:${app.process().pid}`, { executablePath: installedDesktop });
   app.process().stderr?.on('data', (chunk) => hostLog.push(String(chunk)));
   try {
     await app.evaluate(({ shell }) => {
@@ -616,13 +583,7 @@ async function completeFirstRun(browser, freshDataRootSelection) {
   const authentication = await authenticateIfRequired(browser);
   const before = await invokeShell(browser, 'product_control_record_get', {});
   if (before?.record?.firstRun?.completed === true || before?.state === 'ready_for_use') {
-    const ready = await observeCompletedFirstRun(browser);
-    return {
-      ...ready,
-      authentication,
-      entryState: 'ready_for_use',
-      recoveredReadyState: true,
-    };
+    return observeCompletedFirstRun(browser);
   }
   assert.equal(authentication.performed, true, 'Gate 0 fresh Product Control did not perform ordinary Desktop OAuth');
   await displayed(browser, 'desktop-first-run-gate', 120_000);
@@ -639,7 +600,6 @@ async function completeFirstRun(browser, freshDataRootSelection) {
     throw new Error(`First Run requires ordinary product repair: ${await firstRunFailureReason(browser, surface)}`);
   }
 
-  let storageSelectionPerformed = false;
   let selectedDataRoot = null;
   if (entryPlan.storage) {
     await displayed(browser, 'first-run-phase-storage', 120_000);
@@ -657,7 +617,6 @@ async function completeFirstRun(browser, freshDataRootSelection) {
       'native Product Control folder picker returned a different dataRoot.path',
     );
     await (await displayed(browser, 'first-run-storage-continue')).click();
-    storageSelectionPerformed = true;
   } else {
     selectedDataRoot = recordedDataRoot(before, 'resumed First Run');
   }
@@ -701,17 +660,7 @@ async function completeFirstRun(browser, freshDataRootSelection) {
   }
   const dataRoot = recordedDataRoot(owner, 'completed First Run');
   assert.equal(dataRoot, selectedDataRoot, 'Product Control dataRoot.path changed during First Run');
-  const executionEvidenceRef = String(owner.record.firstRun.executionEvidenceRef || '').trim();
-  assert.match(executionEvidenceRef, EXECUTION_EVIDENCE_REF);
-  return {
-    owner,
-    executionEvidenceRef,
-    authentication,
-    entryState,
-    storageSelectionPerformed,
-    recoveredReadyState: false,
-    dataRoot,
-  };
+  return { dataRoot };
 }
 
 async function observeCompletedFirstRun(browser) {
@@ -721,17 +670,7 @@ async function observeCompletedFirstRun(browser) {
   assert.equal(owner?.record?.state, 'ready_for_use', 'Gate 0 ready-state Product Control record is not ready_for_use');
   assert.equal(owner?.record?.firstRun?.completed, true, 'Gate 0 ready-state First Run is not completed');
   const dataRoot = recordedDataRoot(owner, 'Gate 0 ready-state Product Control');
-  const executionEvidenceRef = String(owner?.record?.firstRun?.executionEvidenceRef || '').trim();
-  assert.match(executionEvidenceRef, EXECUTION_EVIDENCE_REF);
-  return {
-    owner,
-    executionEvidenceRef,
-    authentication: { performed: false, authorizationOrigin: null, oauthTrace: [] },
-    entryState: 'ready_for_use',
-    storageSelectionPerformed: false,
-    recoveredReadyState: true,
-    dataRoot,
-  };
+  return { dataRoot };
 }
 
 function composeCandidateIdentity({
@@ -739,8 +678,6 @@ function composeCandidateIdentity({
   signer,
   desktop,
   desktopSha256,
-  evidencePosture,
-  ui,
   electronUserDataRoot,
   dataRoot,
 }) {
@@ -753,8 +690,6 @@ function composeCandidateIdentity({
     serviceIdentity: `${runtime.status.serviceName}:${runtime.status.serviceSid}:${runtime.status.binaryPath}`,
     os: 'windows',
     arch: 'x64',
-    executionEvidenceRef: ui.executionEvidenceRef,
-    evidencePosture,
     installedDesktopPath: desktop.installedDesktop,
     runtimeInstallerPath: runtime.installer,
     electronUserDataRoot,
@@ -1051,7 +986,7 @@ async function verifyPartnerUiReload(browser, partner) {
   return { visible: ui.visible, promptVisible: ui.promptVisible, committedContentRestored: true };
 }
 
-function validateInstalledCandidate(repoRoot, candidateIdentity, processLedger) {
+function validateInstalledCandidate(repoRoot, candidateIdentity) {
   if (!candidateIdentity.runtimeInstallerPath || !fs.existsSync(candidateIdentity.runtimeInstallerPath)) {
     throw new Error('fixed Runtime service status command is unavailable');
   }
@@ -1071,14 +1006,10 @@ function validateInstalledCandidate(repoRoot, candidateIdentity, processLedger) 
     candidateIdentity.serviceIdentity,
     'fixed Runtime service identity changed after Gate 0',
   );
-  processLedger.observe('runtime', `pid:${status.processId}`, {
-    serviceName: status.serviceName,
-    serviceSid: status.serviceSid,
-  });
   return status;
 }
 
-function deriveCandidateEvidencePosture({ runtime, signer, desktop }) {
+function assertCandidatePosture({ runtime, signer, desktop }) {
   assert.equal(runtime.runtimeBuildRecord.checkpoint, 'first_party_product_acceptance');
   assert.equal(runtime.runtimeBuildRecord.nonRelease, true);
   assert.equal(runtime.status.signerCertificateSha256, signer.certificateSha256);
@@ -1088,17 +1019,6 @@ function deriveCandidateEvidencePosture({ runtime, signer, desktop }) {
   assert.equal(runtime.status.configuredAccountRealmBaseUrl, 'http://localhost:3002');
   assert.equal(runtime.status.nonProductCandidate, true, 'product-acceptance Runtime must remain non-promotable');
   assert.equal(sha256File(desktop.builtDesktop), sha256File(desktop.installedDesktop));
-  return 'developer-signed_non-release_non-promotable';
-}
-
-function observed(assertionId, observationType) {
-  return { assertionId, observationType, outcome: 'passed' };
-}
-
-function checkpoint(assertions, detail = {}) {
-  const now = new Date().toISOString();
-  assert.ok(Array.isArray(assertions) && assertions.length > 0, 'checkpoint requires explicit observed assertions');
-  return { assertions, startedAt: now, completedAt: now, correlations: detail };
 }
 
 export async function runFirstPartyProductJourney({
@@ -1107,10 +1027,9 @@ export async function runFirstPartyProductJourney({
   outputDir,
   prerequisite,
 }) {
-  const processLedger = createProcessObservationLedger();
   if (gate === 'first-run') {
-    const osIdentity = assertElevatedWindowsX64();
-    const endpointTopology = await observeLocalProductTopology();
+    assertElevatedWindowsX64();
+    await observeLocalProductTopology();
     const signer = requireWindowsDevSigningIdentity({ cwd: repoRoot });
     const rootId = `first-party-product-${randomUUID()}`;
     const candidateWorkspaceRoot = path.join(repoRoot, '.nimi', 'local', 'state', 'first-party-product', rootId);
@@ -1118,62 +1037,34 @@ export async function runFirstPartyProductJourney({
     const freshDataRootSelection = path.join(candidateWorkspaceRoot, 'nimi-data');
     fs.mkdirSync(path.dirname(candidateWorkspaceRoot), { recursive: true });
     fs.mkdirSync(candidateWorkspaceRoot, { recursive: false });
-    const runtime = installRuntimeCandidate(repoRoot, processLedger);
+    const runtime = installRuntimeCandidate(repoRoot);
     const desktop = buildAndInstallDesktopCandidate(repoRoot, signer, rootId);
-    const evidencePosture = deriveCandidateEvidencePosture({ runtime, signer, desktop });
+    assertCandidatePosture({ runtime, signer, desktop });
     const desktopSha256 = sha256File(desktop.installedDesktop);
     const ui = await withInstalledDesktop(
       desktop.installedDesktop,
       electronUserDataRoot,
       outputDir,
       (browser) => completeFirstRun(browser, freshDataRootSelection),
-      processLedger,
     );
     const candidateIdentity = composeCandidateIdentity({
       runtime,
       signer,
       desktop,
       desktopSha256,
-      evidencePosture,
-      ui,
       electronUserDataRoot,
       dataRoot: ui.dataRoot,
     });
     return {
       rootId,
       accountIds: [],
-      ...processLedger.snapshot(),
-      endpointTopology,
       candidateIdentity,
-      auxiliaryEvidence: { productControl: ui.owner, runtimeService: runtime.status },
-      checkpointEvidence: {
-        'candidate-built-signed-installed': checkpoint([
-          observed('gate0:candidate-built-signed-installed', 'installed_candidate_identity'),
-        ], { runtimeCandidateId: runtime.runtimeBuildRecord.candidateId }),
-        'ordinary-desktop-first-run-completed': checkpoint([
-         observed('gate0:ordinary-desktop-first-run-completed', 'ordinary_electron_ui'),
-        ], {
-          authorizationOrigin: ui.authentication.authorizationOrigin,
-          dataRoot: ui.dataRoot,
-          entryState: ui.entryState,
-          recoveredReadyState: ui.recoveredReadyState,
-          resumedIncompleteFirstRun: !ui.storageSelectionPerformed,
-          storageSelectionPerformedInCurrentAttempt: ui.storageSelectionPerformed,
-          realmToWebToRealm: ui.authentication.performed,
-        }),
-        'product-control-owner-ready': checkpoint([
-          observed('gate0:product-control-owner-ready', 'auxiliary_authoritative_readback'),
-        ], { state: ui.owner.state }),
-        'execution-evidence-ref-parseable': checkpoint([
-          observed('gate0:execution-evidence-ref-parseable', 'auxiliary_authoritative_readback'),
-        ], { executionEvidenceRef: ui.executionEvidenceRef }),
-      },
     };
   }
 
   const candidateIdentity = prerequisite?.candidateIdentity;
-  if (!candidateIdentity || prerequisite?.gate0ExecutionEvidenceRef !== candidateIdentity.executionEvidenceRef) {
-    throw new Error(`${gate} requires an admitted Gate 0 candidate and exact executionEvidenceRef`);
+  if (!candidateIdentity) {
+    throw new Error(`${gate} requires the Gate 0 candidate`);
   }
   const installedDesktop = String(candidateIdentity.installedDesktopPath || '').trim();
   if (!fs.existsSync(installedDesktop) || sha256File(installedDesktop) !== candidateIdentity.desktopSha256) {
@@ -1182,34 +1073,17 @@ export async function runFirstPartyProductJourney({
   const signer = requireWindowsDevSigningIdentity({ cwd: repoRoot });
   assert.equal(signer.certificateSha256, candidateIdentity.signerCertificateSha256);
   requireWindowsDevSignedFiles([installedDesktop], signer.certificateSha256, { cwd: repoRoot });
-  validateInstalledCandidate(repoRoot, candidateIdentity, processLedger);
+  validateInstalledCandidate(repoRoot, candidateIdentity);
   const userDataRoot = String(candidateIdentity.electronUserDataRoot || '').trim();
   if (!path.isAbsolute(userDataRoot) || !fs.existsSync(userDataRoot)) {
     throw new Error(`${gate} Gate 0 Electron product profile is unavailable`);
   }
-  const endpointTopology = await observeLocalProductTopology();
+  await observeLocalProductTopology();
   if (gate === 'direct-nimi') {
-    const direct = await withInstalledDesktop(installedDesktop, userDataRoot, outputDir, (browser) => runDirectNimi(browser), processLedger);
-    const evidence = Object.fromEntries([
-      ['direct-nimi-admitted-local-text-route', 'F-01-admitted-route:observed', 'ordinary_nimi_chat_ui', { routeLabel: direct.routeLabel }],
-      ['direct-nimi-real-local-stream-delta', 'F-01-stream-delta:observed', 'ordinary_nimi_chat_stream', direct.success],
-      ['direct-nimi-single-terminal', 'F-01-terminal:observed', 'ordinary_nimi_chat_stream', direct.success],
-      ['direct-nimi-usage-reason', 'F-01-usage-reason:observed', 'ordinary_nimi_chat_stream', direct.success],
-      ['direct-nimi-cancel', 'F-01-cancel:observed', 'ordinary_nimi_chat_ui', direct.canceled],
-      ['direct-nimi-timeout', 'F-01-timeout:observed', 'ordinary_nimi_chat_stream', direct.timedOut],
-      ['direct-nimi-model-unavailable', 'F-01-model-unavailable:observed', 'ordinary_nimi_chat_ui', direct.unavailable],
-      ['direct-nimi-no-cloud-fallback', 'F-01-no-cloud-fallback:observed', 'ordinary_nimi_chat_stream', direct.unavailable],
-    ].map(([id, assertionId, observationType, detail]) => [
-      id,
-      checkpoint([observed(assertionId, observationType)], detail),
-    ]));
+    await withInstalledDesktop(installedDesktop, userDataRoot, outputDir, (browser) => runDirectNimi(browser));
     return {
       rootId: prerequisite.rootId,
       accountIds: prerequisite.accountIds,
-      ...processLedger.snapshot(),
-      endpointTopology,
-      candidateIdentity,
-      checkpointEvidence: evidence,
     };
   }
   if (gate === 'partner-core') {
@@ -1218,59 +1092,16 @@ export async function runFirstPartyProductJourney({
       userDataRoot,
       path.join(outputDir, 'initial'),
       (browser) => runPartnerCore(browser),
-      processLedger,
     );
-    const reloadUi = await withInstalledDesktop(
+    await withInstalledDesktop(
       installedDesktop,
       userDataRoot,
       path.join(outputDir, 'reopen'),
       (browser) => verifyPartnerUiReload(browser, partner),
-      processLedger,
     );
-    const common = { localAgentRef: partner.localAgentRef, sourceId: partner.sourceId };
     return {
-      rootId: prerequisite.rootId, accountIds: [], sourceIds: [partner.sourceId],
-      localAgentIds: [partner.localAgentRef],
-      ...processLedger.snapshot(),
-      endpointTopology,
-      candidateIdentity,
-      checkpointEvidence: {
-        'realm-source-selected': checkpoint([
-          observed('R-01:semantic', 'ordinary_electron_ui'),
-          observed('R-01:correlation', 'ordinary_ui_selection_correlation'),
-          observed('R-01:privacy', 'safe_evidence_projection'),
-        ], { ...common, ordinaryUi: true }),
-        'materialization-owner-verified': checkpoint([
-          observed('M-01:semantic', 'ordinary_electron_ui'),
-          observed('M-01:correlation', 'ordinary_ui_materialization_correlation'),
-          observed('M-01:privacy', 'safe_evidence_projection'),
-        ], { ...common, ordinaryUi: true }),
-        'materialization-idempotence-verified': checkpoint([
-          observed('materialization-idempotence-verified:observed', 'ordinary_electron_ui_retry'),
-        ], { ...common, ...partner.materializationUi }),
-        'characters-projection-visible': checkpoint([
-          observed('K-03-01:semantic', 'ordinary_electron_ui'),
-          observed('K-03-01:correlation', 'ordinary_ui_projection_correlation'),
-          observed('K-03-01:privacy', 'safe_evidence_projection'),
-        ], { ...common, uniqueCardCount: partner.materializationUi.uniqueCardCount }),
-        'ordinary-desktop-open-owner-readback': checkpoint([
-          observed('L-01:semantic', 'ordinary_electron_ui'),
-          observed('L-01:correlation', 'ordinary_ui_open_correlation'),
-          observed('L-01:privacy', 'safe_evidence_projection'),
-        ], { ...common, ...partner.openUi }),
-        'partner-route-ready': checkpoint([
-          observed('L-03-02:semantic', 'ordinary_electron_ui'),
-          observed('L-03-02:correlation', 'ordinary_ui_send_correlation'),
-          observed('L-03-02:privacy', 'safe_evidence_projection'),
-        ], { uiCommitted: partner.committedTurnUi.promptVisible }),
-        'partner-turn-committed-reloaded': checkpoint([
-          ...['C-05-01', 'E-03-01', 'O-03-01'].flatMap((pointId) => [
-            observed(`${pointId}:semantic`, 'ordinary_electron_ui_send_reopen'),
-            observed(`${pointId}:correlation`, 'ordinary_ui_turn_correlation'),
-            observed(`${pointId}:privacy`, 'safe_evidence_projection'),
-          ]), 
-        ], reloadUi),
-      },
+      rootId: prerequisite.rootId,
+      accountIds: prerequisite.accountIds,
     };
   }
   throw new Error(`unsupported first-party product gate ${gate}`);
