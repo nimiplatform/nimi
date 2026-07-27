@@ -101,45 +101,6 @@ export type ZhiyuProactiveInterruptibilityStatus = {
   readonly unsupportedFields: readonly string[];
 };
 
-export type ZhiyuDiaryReflectionState = 'blocked' | 'deferred' | 'projected';
-
-export type ZhiyuDiaryReflectionArtifactClass =
-  | 'user-authored-note'
-  | 'agent-generated-reflection'
-  | 'memory-derived-summary'
-  | 'system-generated-audit-summary';
-
-export type ZhiyuDiaryReflectionArtifact = {
-  readonly artifactId: string;
-  readonly artifactClass: ZhiyuDiaryReflectionArtifactClass;
-  readonly ownerDomain: string;
-  readonly createdTimestamp: string;
-  readonly generatedApprovedReviewedStatus: string;
-  readonly sourceAnchor: string;
-  readonly storagePolicyRef: string;
-  readonly retentionOrExportState: string;
-};
-
-export type ZhiyuDiaryReflectionStatus = {
-  readonly transport: 'electron-ipc';
-  readonly ready: boolean;
-  readonly state: ZhiyuDiaryReflectionState;
-  readonly reasonCode: string;
-  readonly actionHint: string;
-  readonly source: string;
-  readonly message: string;
-  readonly ownerUserId: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly localAgentRef: string | null;
-  readonly missingOwner: string;
-  readonly missingStoragePolicyRef: string;
-  readonly missingSdkProjection: string;
-  readonly artifactClasses: readonly ZhiyuDiaryReflectionArtifactClass[];
-  readonly requiredFields: readonly string[];
-  readonly unsupportedFields: readonly string[];
-  readonly artifacts: readonly ZhiyuDiaryReflectionArtifact[];
-};
-
 export type ZhiyuAgentAIConfigReadinessState = 'ready' | 'not_configured' | 'unavailable';
 
 export type ZhiyuExecutionCapabilityEvidence = {
@@ -357,7 +318,6 @@ export type ZhiyuEvidence = {
     readonly proactiveInterruptibility: ZhiyuProactiveInterruptibilityStatus;
   };
   readonly voiceCapture: ZhiyuVoiceCaptureEvidence;
-  readonly diaryReflection: ZhiyuDiaryReflectionStatus;
   readonly delegation: ZhiyuDelegationUxStatus;
   readonly proposal: {
     readonly transport: 'sdk-proposal-intake';
@@ -578,7 +538,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
         'stateConfidence',
         'whyThisState',
         'relationshipContext',
-        'diaryReflection',
         'stateChangeHistory',
       ],
       diagnostics: {
@@ -615,39 +574,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       },
     },
     voiceCapture: createInitialZhiyuVoiceCaptureEvidence(),
-    diaryReflection: {
-      transport: 'electron-ipc',
-      ready: false,
-      state: 'deferred',
-      reasonCode: 'zhiyu-diary-reflection-artifact-authority-not-admitted',
-      actionHint: 'admit_diary_reflection_artifact_projection',
-      source: 'renderer',
-      message: 'Diary and reflection artifact projection is deferred until upstream artifact authority exists.',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
-      missingOwner: 'cognition-runtime-diary-reflection-artifact-owner',
-      missingStoragePolicyRef: 'platform-diary-reflection-retention-export-policy',
-      missingSdkProjection: 'sdk-runtime-diary-reflection-artifact-projection',
-      artifactClasses: [
-        'user-authored-note',
-        'agent-generated-reflection',
-        'memory-derived-summary',
-        'system-generated-audit-summary',
-      ],
-      requiredFields: [
-        'artifact_id',
-        'artifact_class',
-        'owner_domain',
-        'created_timestamp',
-        'generated_approved_reviewed_status',
-        'source_anchor',
-        'storage_policy_ref',
-        'retention_or_export_state',
-      ],
-      unsupportedFields: ['diary_reflection_artifact_projection'],
-      artifacts: [],
-    },
     delegation: createInitialZhiyuDelegationEvidence(),
     proposal: {
       transport: 'sdk-proposal-intake',
@@ -763,6 +689,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       source: 'renderer',
       message: 'Runtime Agent composer has not been used.',
     },
-    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics'],
+    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'avatar', 'diagnostics'],
   };
 }

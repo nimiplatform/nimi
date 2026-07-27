@@ -21,7 +21,6 @@ const UNSUPPORTED_EXPLAINABILITY_FIELDS = [
   'stateConfidence',
   'whyThisState',
   'relationshipContext',
-  'diaryReflection',
   'stateChangeHistory',
 ] as const;
 

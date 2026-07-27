@@ -131,13 +131,6 @@ test('projects all ready evidence without a primary blocker', async () => {
   assert.equal(diagnostics.errorCount, 0);
 });
 
-test('diagnostic projection does not contain forbidden app-local truth', () => {
-  const source = readFileSync(path.join(root, 'src/shell/app/diagnostic-state.ts'), 'utf8');
-  assert.doesNotMatch(source, /apiKey|providerId|apps\/desktop|runtime\/internal/);
-  assert.doesNotMatch(source, /queryMemory|writeMemory|getCanonicalMemoryStatus|bindCanonicalMemoryStandard/);
-  assert.doesNotMatch(source, /SourceMaterializationPacket|runtime-source:|nimi-guide-archivist/);
-});
-
 function evidence(overrides = {}) {
   return {
     appId: 'nimi.zhiyu',

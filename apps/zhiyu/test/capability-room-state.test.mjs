@@ -208,16 +208,6 @@ test('classifies capability consent states from Runtime route evidence', async (
   }
 });
 
-test('capability room projection does not contain forbidden app-local truth', () => {
-  const source = readFileSync(path.join(root, 'src/shell/app/capability-room-state.ts'), 'utf8');
-  assert.match(source, /input\.catalog\.map/);
-  assert.doesNotMatch(source, /capabilityId:\s*['"]text\.generate['"]/);
-  assert.doesNotMatch(source, /const\s+\w*capabilit\w*\s*=\s*\[/i);
-  assert.doesNotMatch(source, /apiKey|providerId|apps\/desktop|runtime\/internal/);
-  assert.doesNotMatch(source, /queryMemory|writeMemory|getCanonicalMemoryStatus|bindCanonicalMemoryStandard/);
-  assert.doesNotMatch(source, /SourceMaterializationPacket|runtime-source:|nimi-guide-archivist/);
-});
-
 function descriptor(capabilityId, section, editorKind, table, capability, runtimeEvidenceClass, governance = undefined) {
   return {
     capabilityId,

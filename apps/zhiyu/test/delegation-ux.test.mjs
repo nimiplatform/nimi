@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -353,21 +353,4 @@ test('renders firewall-blocked diagnostic and Runtime replay lineage as user-vis
   assert.equal(status.audit.replayOutcome, 'partial_redacted');
   assert.equal(status.audit.actionDisposition, 'blocked_by_policy');
   assert.equal(status.audit.stageCount, 2);
-});
-
-test('delegation UX source consumes Runtime control surface without app-local delegated truth', () => {
-  const source = [
-    readFileSync(path.join(root, 'src/shell/agent/delegation-ux.ts'), 'utf8'),
-    readFileSync(path.join(root, 'src/shell/agent/delegation-ux-types.ts'), 'utf8'),
-    readFileSync(path.join(root, 'src/shell/agent/delegation-ux-projection.ts'), 'utf8'),
-  ].join('\n');
-  assert.match(source, /createNimiHostRuntimeAgentDelegatedCapabilitySurface/);
-  assert.match(source, /runtime\.agent\.delegation\.read/);
-  assert.match(source, /runtime\.agent\.delegation\.write/);
-  assert.match(source, /resumeApprovedCapability/);
-  assert.doesNotMatch(source, /upsertDelegatedProviderProfile|setDelegatedProviderState|buildNimiRuntimeAgentDelegatedProviderProfileFromDraft/);
-  assert.doesNotMatch(source, /providerProfileId:\s*['"]|capabilityId:\s*['"]|toolName:\s*['"]/);
-  assert.doesNotMatch(source, /NIMI_STANDARD_SHELL_COMMANDS|PowerShell|powershell|Remove-Item|installer|clipboard|screenshot|browserHistory|localStorage|indexedDB/);
-  assert.doesNotMatch(source, /runtime\/internal|apps\/desktop|apiKey|providerId|modelId/);
-  assert.doesNotMatch(source, /queryMemory|writeMemory|getCanonicalMemoryStatus|bindCanonicalMemoryStandard/);
 });

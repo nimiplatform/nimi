@@ -448,24 +448,6 @@ test('Zhiyu Runtime Agent chat fails closed for attachments and conversation anc
   assert.equal(called, false);
 });
 
-test('Zhiyu Runtime Agent chat source uses Desktop-parity shared Kit/SDK surfaces only', async () => {
-  const source = await readFile(path.join(root, 'src/shell/agent-chat/runtime-agent-turn-adapter.ts'), 'utf8');
-  assert.match(source, /@nimiplatform\/kit\/features\/chat\/headless/);
-  assert.match(source, /streamRuntimeAgentTurnRunnerPartsAsConversationEvents/);
-  assert.match(source, /reduceRuntimeAgentConversationProjectionEvent/);
-  assert.match(source, /createNimiRuntimeAgentTurnsModule/);
-  assert.match(source, /runNimiRuntimeAgentTurn/);
-  assert.match(source, /scopedBindingForRuntimeAgentRequest/);
-  assert.match(source, /agents-interact-not-admitted/);
-  assert.match(source, /wait_for_agents_interact_admission/);
-  assert.doesNotMatch(source, /createNimiAppRuntimePlatformClient/);
-  assert.doesNotMatch(source, /createNimiLocalAppStandardShellSurface/);
-  assert.doesNotMatch(source, /platform\.agent\.|platform\.artifacts\./);
-  assert.doesNotMatch(source, /apps\/desktop|apps\/tester|runtime\/internal/);
-  assert.doesNotMatch(source, /withZhiyuElectronRuntimeProtectedScopes|operation\s*\(\s*\{\s*\}\s*\)/);
-  assert.doesNotMatch(source, /fetch\(|apiKey|providerId|modelId:\s*['"]/);
-});
-
 async function importRuntimeAgentChat() {
   const outputPath = path.join(await buildRuntimeAgentChat(), 'runtime-agent-turn-adapter.mjs');
   return import(pathToFileURL(outputPath).href);

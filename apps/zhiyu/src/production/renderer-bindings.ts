@@ -15,7 +15,6 @@ import { probeZhiyuRuntimeAgentInventory } from '../shell/agent/agent-inventory.
 import { probeZhiyuRuntimeCompanionState } from '../shell/agent/companion-state.js';
 import { probeZhiyuRuntimeConversationHome } from '../shell/agent/conversation-home.js';
 import { probeZhiyuRuntimeDelegationUx } from '../shell/agent/delegation-ux.js';
-import { projectZhiyuDiaryReflectionArtifacts } from '../shell/agent/diary-reflection.js';
 import { resolveZhiyuRuntimeLocalAgentSelection } from '../shell/agent/local-agent-selection.js';
 import { probeZhiyuRuntimeMemoryObservatory } from '../shell/agent/memory-observatory.js';
 import { projectZhiyuProposalIntakeStatus } from '../shell/agent/proposal-intake.js';
@@ -75,7 +74,6 @@ async function loadHome(selectedLocalAgentRef: string | null): Promise<ZhiyuHome
     localAgentRef: localAgent.localAgentRef,
     sourceContextStatus: null,
   });
-  const diaryReflection = projectZhiyuDiaryReflectionArtifacts(localAgent);
   const [conversation, memory, companion, avatar] = await Promise.all([
     probeZhiyuRuntimeConversationHome(localAgent),
     probeZhiyuRuntimeMemoryObservatory(localAgent),
@@ -92,7 +90,6 @@ async function loadHome(selectedLocalAgentRef: string | null): Promise<ZhiyuHome
     conversation,
     memory,
     companion,
-    diaryReflection,
     delegation,
     proposal: projectZhiyuProposalIntakeStatus({ conversation }),
     avatar,

@@ -26,7 +26,6 @@ export type ZhiyuHomeProjection = Pick<
   | 'conversation'
   | 'memory'
   | 'companion'
-  | 'diaryReflection'
   | 'delegation'
   | 'proposal'
   | 'avatar'

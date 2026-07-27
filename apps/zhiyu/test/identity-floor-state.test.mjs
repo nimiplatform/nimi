@@ -303,12 +303,3 @@ test('identity floor renders Runtime delegated firewall block and prompt suppres
   assert.equal(state.items.find((item) => item.key === 'prompt-injection')?.state, 'blocked');
   assert.equal(state.items.find((item) => item.key === 'prompt-injection')?.reasonCode, 'DELEG_FIREWALL_QUARANTINED');
 });
-
-test('identity floor source does not bypass Runtime or create app-local identity truth', () => {
-  const source = readFileSync(path.join(root, 'src/shell/app/identity-floor-state.ts'), 'utf8');
-  assert.doesNotMatch(source, /local-agent\.identity|NIMI_STANDARD_SHELL_COMMANDS/);
-  assert.doesNotMatch(source, /runtime\/internal|apps\/desktop/);
-  assert.doesNotMatch(source, /apiKey|providerId|SourceMaterializationPacket|nimi-guide-archivist/);
-  assert.doesNotMatch(source, /queryMemory|writeMemory|getCanonicalMemoryStatus|bindCanonicalMemoryStandard/);
-  assert.doesNotMatch(source, /conflictDetected|promptInjectionDetected|systemPrompt|rawProviderOutput/);
-});

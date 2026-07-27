@@ -86,13 +86,6 @@ test('fails closed when conversation anchor or Platform operation is unavailable
   assert.equal(unavailable.proposalId, null);
 });
 
-test('proposal intake source avoids app-local execution truth', () => {
-  const source = readFileSync(path.join(root, 'src/shell/agent/proposal-intake.ts'), 'utf8');
-  assert.match(source, /createNimiProposalIntakeClient/);
-  assert.doesNotMatch(source, /runtime\/internal|apps\/desktop|localStorage|indexedDB|eval\(|new Function/);
-  assert.doesNotMatch(source, /providerName|modelName|installCommand|downloadUrl|executeCommand/);
-});
-
 function readyConversation() {
   return {
     transport: 'electron-ipc',

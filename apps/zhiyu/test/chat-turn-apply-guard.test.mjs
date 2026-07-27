@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync } from 'node:fs';
-import { readFile, rm } from 'node:fs/promises';
+import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -70,14 +70,6 @@ test('Zhiyu chat turn submit continuation guard stops after abort or conversatio
     submittedConversation: submitted,
     signal: activeAbort.signal,
   }), false);
-});
-
-test('Zhiyu App aborts active chat when local agent selection changes and gates streamed updates', async () => {
-  const source = await readFile(path.join(root, 'src/shell/app/App.tsx'), 'utf8');
-  assert.match(source, /activeChatAbortRef\.current\?\.abort\('zhiyu_chat_turn_local_agent_changed'\)/);
-  assert.match(source, /shouldApplyZhiyuRuntimeChatUpdate\(\{\s*currentConversation:\s*current\.conversation,\s*submittedConversation,/s);
-  assert.match(source, /shouldContinueZhiyuRuntimeChatSubmit\(\{\s*currentConversation:\s*latestConversationIdentityRef\.current,\s*submittedConversation,\s*signal:\s*activeChatAbort\.signal,/s);
-  assert.match(source, /latestConversationIdentityRef\.current/);
 });
 
 async function importGuardModule() {

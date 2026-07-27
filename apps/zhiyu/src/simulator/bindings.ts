@@ -172,7 +172,6 @@ function simulatedHome(
       participationSource: 'simulator-state-engine',
       projectedFields: ['executionState', 'statusText', 'participationMode'],
     },
-    diaryReflection: { ...initial.diaryReflection, ...identity },
     delegation: initial.delegation,
     proposal: initial.proposal,
     avatar: { ...initial.avatar, ...identity },

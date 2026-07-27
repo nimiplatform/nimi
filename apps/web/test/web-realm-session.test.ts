@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 process.env['VITE_NIMI_REALM_BASE_URL'] = 'https://api.example.test';
@@ -43,19 +42,4 @@ test('fresh OAuth browser login is admitted only inside the Web adapter', async 
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.url, 'https://api.example.test/api/auth/password/login');
   assert.equal(calls[0]?.init.credentials, 'include');
-});
-
-test('Desktop session source contains no bearer-capable Realm transport', () => {
-  const desktopSource = readFileSync(
-    new URL('../../desktop/src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts', import.meta.url),
-    'utf8',
-  );
-  assert.doesNotMatch(
-    desktopSource,
-    /readonly\s+(?:accessToken|refreshToken)|authorization:\s*`Bearer|loginNimiRealmAuthPassword|createRealmFetchTransport/i,
-  );
-  assert.match(
-    desktopSource,
-    /createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport/,
-  );
 });

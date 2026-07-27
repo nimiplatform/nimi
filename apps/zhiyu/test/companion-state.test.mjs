@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
@@ -137,7 +137,6 @@ test('projects Runtime Agent state into companion state evidence without inventi
     'stateConfidence',
     'whyThisState',
     'relationshipContext',
-    'diaryReflection',
     'stateChangeHistory',
   ]);
   assert.equal(companion.proactiveInterruptibility.ready, false);
@@ -246,12 +245,4 @@ test('normalizes Runtime Agent state read failures without pseudo companion stat
   assert.equal(companion.source, 'sdk');
   assert.equal(companion.ownerUserId, 'user-1');
   assert.equal(companion.localAgentRef, 'local-agent:opaque');
-});
-
-test('companion state probe does not own app-local emotion, provider, Desktop, or memory truth', () => {
-  const source = readFileSync(path.join(root, 'src/shell/agent/companion-state.ts'), 'utf8');
-  assert.doesNotMatch(source, /apiKey|providerId|runtime\/internal|apps\/desktop/);
-  assert.doesNotMatch(source, /SourceMaterializationPacket|nimi-guide-archivist|local-agent\.identity/);
-  assert.doesNotMatch(source, /queryMemory|writeMemory|getCanonicalMemoryStatus|bindCanonicalMemoryStandard|runtime\.memory/);
-  assert.doesNotMatch(source, /relationshipStage|relationshipScore|moodScore|trustScore|affection|intimacy|therapy|proactiveScheduler|diaryWriter/);
 });

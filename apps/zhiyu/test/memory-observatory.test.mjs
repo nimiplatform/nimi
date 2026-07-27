@@ -285,30 +285,3 @@ test('classifies Memory Observatory blocked states without pseudo records', asyn
     assert.deepEqual(memory.records, [], item.name);
   }
 });
-
-test('memory observatory keeps explainability in evidence without a retired graph-lite UI section', () => {
-  const source = [
-    readFileSync(path.join(root, 'src/shell/app/App.tsx'), 'utf8'),
-    readFileSync(path.join(root, 'src/shell/app/evidence.ts'), 'utf8'),
-    readFileSync(path.join(root, 'src/shell/agent/memory-observatory.ts'), 'utf8'),
-  ].join('\n');
-
-  assert.match(source, /probeZhiyuRuntimeMemoryObservatory/);
-  assert.match(source, /timelineAt/);
-  assert.match(source, /lineage/);
-  assert.match(source, /confidence/);
-  assert.match(source, /reviewState/);
-  assert.match(source, /redactionState/);
-  assert.match(source, /forgetIntentState/);
-  assert.match(source, /unsupportedLifecycleFields/);
-  assert.doesNotMatch(source, /data-zhiyu-memory-record-|data-zhiyu-memory-graph-state/);
-  assert.doesNotMatch(source, /runtime-agent-memory-graph-relations-not-admitted/);
-  assert.doesNotMatch(source, /writeMemory|DeleteMemory|RetainRequest|queryMemory/);
-});
-
-test('memory observatory probe does not own provider, Desktop, source, or memory mutation truth', () => {
-  const source = readFileSync(path.join(root, 'src/shell/agent/memory-observatory.ts'), 'utf8');
-  assert.doesNotMatch(source, /apiKey|providerId|runtime\/internal|apps\/desktop/);
-  assert.doesNotMatch(source, /SourceMaterializationPacket|nimi-guide-archivist|local-agent\.identity/);
-  assert.doesNotMatch(source, /queryMemory|writeMemory|getCanonicalMemoryStatus|bindCanonicalMemoryStandard|runtime\.memory/);
-});

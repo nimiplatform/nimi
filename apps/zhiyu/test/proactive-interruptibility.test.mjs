@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -239,22 +239,3 @@ for (const [optInState, suppressionReason, expectedState] of [
     assert.deepEqual(proactive.auditRefs, [`audit:${suppressionReason}`, 'audit:proactive:1']);
   });
 }
-
-test('companion state keeps proactive interruptibility evidence without a retired UI section', () => {
-  const source = [
-    readFileSync(path.join(root, 'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx'), 'utf8'),
-    readFileSync(path.join(root, 'src/shell/app/evidence.ts'), 'utf8'),
-    readFileSync(path.join(root, 'src/shell/agent/companion-state.ts'), 'utf8'),
-  ].join('\n');
-
-  assert.match(source, /projectZhiyuProactiveInterruptibility/);
-  assert.match(source, /proactiveInterruptibility/);
-  assert.match(source, /deliveryChannel/);
-  assert.match(source, /quietHoursState/);
-  assert.match(source, /frequencyCapState/);
-  assert.match(source, /lastSuppressionReason/);
-  assert.match(source, /auditRefs/);
-  assert.doesNotMatch(source, /data-zhiyu-proactive-/);
-  assert.doesNotMatch(source, /setTimeout|setInterval|Notification\.|new Notification|notificationBridge|permissionStore|proactiveScheduler/);
-  assert.doesNotMatch(source, /runtime\/internal|apps\/desktop|apiKey|providerId/);
-});

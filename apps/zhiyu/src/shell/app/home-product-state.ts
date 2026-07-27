@@ -23,7 +23,7 @@ export type ZhiyuHomeStatusCard = {
 };
 
 export type ZhiyuHomeGatedSurface = {
-  readonly key: 'memory' | 'capability' | 'proposal' | 'delegation' | 'identity' | 'companion' | 'diary' | 'avatar';
+  readonly key: 'memory' | 'capability' | 'proposal' | 'delegation' | 'identity' | 'companion' | 'avatar';
   readonly title: string;
   readonly description: string;
   readonly stateLabel: string;
@@ -239,16 +239,6 @@ function gatedSurfaces(evidence: ZhiyuEvidence): readonly ZhiyuHomeGatedSurface[
         : '等待伙伴状态',
       reasonCode: evidence.companion.reasonCode,
       actionHint: evidence.companion.actionHint,
-    },
-    {
-      key: 'diary',
-      title: '日记与回顾',
-      description: '长期内容与回顾能力尚在受控开放中，不在本地创建日记仓库。',
-      stateLabel: evidence.diaryReflection.ready
-        ? '日记与回顾已可用'
-        : '等待日记与回顾授权',
-      reasonCode: evidence.diaryReflection.reasonCode,
-      actionHint: evidence.diaryReflection.actionHint,
     },
     {
       key: 'avatar',

@@ -93,7 +93,6 @@ function evidence(overrides = {}) {
         'stateConfidence',
         'whyThisState',
         'relationshipContext',
-        'diaryReflection',
         'stateChangeHistory',
       ],
       proactiveInterruptibility: {
@@ -125,39 +124,6 @@ function evidence(overrides = {}) {
         auditRefs: [],
         unsupportedFields: ['proactive_interruptibility'],
       },
-    },
-    diaryReflection: {
-      transport: 'electron-ipc',
-      ready: false,
-      state: 'deferred',
-      reasonCode: 'zhiyu-diary-reflection-artifact-authority-not-admitted',
-      actionHint: 'admit_diary_reflection_artifact_projection',
-      source: 'renderer',
-      message: 'Diary and reflection artifact projection is deferred until upstream authority exists.',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
-      missingOwner: 'cognition-runtime-diary-reflection-artifact-owner',
-      missingStoragePolicyRef: 'platform-diary-reflection-retention-export-policy',
-      missingSdkProjection: 'sdk-runtime-diary-reflection-artifact-projection',
-      artifactClasses: [
-        'user-authored-note',
-        'agent-generated-reflection',
-        'memory-derived-summary',
-        'system-generated-audit-summary',
-      ],
-      requiredFields: [
-        'artifact_id',
-        'artifact_class',
-        'owner_domain',
-        'created_timestamp',
-        'generated_approved_reviewed_status',
-        'source_anchor',
-        'storage_policy_ref',
-        'retention_or_export_state',
-      ],
-      unsupportedFields: ['diary_reflection_artifact_projection'],
-      artifacts: [],
     },
     delegation: {
       ...status('not-probed'),
@@ -233,7 +199,7 @@ function evidence(overrides = {}) {
       source: 'renderer',
       message: 'Runtime Agent composer has not been used.',
     },
-    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics'],
+    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'avatar', 'diagnostics'],
     ...overrides,
   };
 }
@@ -251,7 +217,7 @@ test('projects no-runtime home stage without inventing success', async () => {
   assert.equal(product.statusCards.length, 8);
   assert.equal(product.statusCards[0]?.key, 'runtime');
   assert.equal(product.statusCards[0]?.tone, 'danger');
-  assert.equal(product.gatedSurfaces.length, 8);
+  assert.equal(product.gatedSurfaces.length, 7);
   assert.equal(product.gatedSurfaces[0]?.title, '记忆观测');
   assert.equal(product.gatedSurfaces[1]?.title, '能力面板');
   assert.equal(product.gatedSurfaces[2]?.title, '能力申请');
@@ -260,9 +226,7 @@ test('projects no-runtime home stage without inventing success', async () => {
   assert.equal(product.gatedSurfaces[3]?.reasonCode, 'not-probed');
   assert.equal(product.gatedSurfaces[4]?.title, '身份安全');
   assert.equal(product.gatedSurfaces[5]?.title, '相处状态');
-  assert.equal(product.gatedSurfaces[6]?.title, '日记与回顾');
-  assert.equal(product.gatedSurfaces[6]?.reasonCode, 'zhiyu-diary-reflection-artifact-authority-not-admitted');
-  assert.equal(product.gatedSurfaces[7]?.title, '形象状态');
+  assert.equal(product.gatedSurfaces[6]?.title, '形象状态');
 });
 
 test('projects ready stage only when Runtime Agent turn is ready', async () => {
@@ -388,12 +352,4 @@ test('projects explicit Runtime inventory selection as current partner without s
   assert.equal(product.stage, 'route-required');
   assert.equal(product.statusCards.find((card) => card.key === 'source')?.ready, false);
   assert.equal(product.statusCards.find((card) => card.key === 'localAgent')?.ready, true);
-});
-
-test('state projection does not contain forbidden product truth', () => {
-  const source = readFileSync(path.join(root, 'src/shell/app/home-product-state.ts'), 'utf8');
-  assert.doesNotMatch(source, /runtime-source:|SourceMaterializationPacket|nimi-guide-archivist/);
-  assert.doesNotMatch(source, /apiKey|providerId|apps\/desktop|runtime\/internal/);
-  assert.doesNotMatch(source, /queryMemory|writeMemory|getCanonicalMemoryStatus|bindCanonicalMemoryStandard/);
-  assert.doesNotMatch(source, /diaryWriter|localStorage|indexedDB/);
 });

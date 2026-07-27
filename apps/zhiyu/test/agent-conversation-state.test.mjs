@@ -429,7 +429,6 @@ function blockedCompanion() {
       'stateConfidence',
       'whyThisState',
       'relationshipContext',
-      'diaryReflection',
       'stateChangeHistory',
     ],
     proactiveInterruptibility: {
