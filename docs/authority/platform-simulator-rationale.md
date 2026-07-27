@@ -367,9 +367,9 @@ qualification.
 The Simulator revalidates source and App-tool evidence, generates the registry,
 and owns final resolver, build, graph, interaction, no-effect, CSS/DOM,
 performance, and release evidence. A forged, stale, path-dependent, or
-source-mismatched App report fails. Structural authority is guarded by
-`pnpm check:simulator-authority`; product gates are admitted only when their
-executable implementation exists.
+source-mismatched App report fails. Structural authority is declared by the
+`P-SIM-*` rules in `.nimi/spec/platform/simulator.authority.yaml`; product gates
+are admitted only when their executable implementation exists.
 
 ## P-SIM-021 — External Repository Equivalence
 

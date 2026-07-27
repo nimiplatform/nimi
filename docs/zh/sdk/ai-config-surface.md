@@ -57,7 +57,7 @@ App 应该把这些状态展示为 model setup 或 account/setup 工作。不要
 
 ## 来源依据
 
-- [`.nimi/spec/sdks/kernel/ai-config-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/ai-config-surface-contract.md)
+- [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
 - [`sdks/typescript/core/ai/config-types.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-types.ts)
 - [`sdks/typescript/core/ai/config-scope.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-scope.ts)
 - [`sdks/typescript/core/ai/config-runtime-binding.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-runtime-binding.ts)

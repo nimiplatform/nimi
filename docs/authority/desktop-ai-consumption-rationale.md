@@ -15,7 +15,7 @@
 - `D-LLM-004` local health authority 收录为 `r043..r044`；`D-LLM-005` typed speech surface、独立 voice route 与 Agent voice non-owner 收录为 `r045..r047`；`D-LLM-006` audit projection 收录为 `r048`；`D-LLM-008` trace continuity 收录为 `r049`；`D-LLM-065` world runtime-only boundary 收录为 `r050`。
 - Streaming：旧 `D-STRM-001` lifecycle 与 Agent output non-owner 收录为 `r051..r052`；`D-STRM-002` buffering、typing、chunk 与 first-chunk UX 收录为 `r053..r054`；`D-STRM-003..004` interruption、retry 与 cancel 收录为 `r055..r057`。
 - `D-STRM-005` ScenarioJob event/terminal semantics 收录为 `r058..r060`；`D-STRM-006` timeout alignment 收录为 `r061`；`D-STRM-007..008` Mode C/D current boundary 收录为 `r062..r064`；`D-STRM-009` backpressure 收录为 `r065`；`D-STRM-010` bounded job recovery/cancel/artifact/connector semantics 收录为 `r066..r068`；`D-STRM-011` PresentationTimeline boundary 收录为 `r069..r070`。
-- 两组内嵌机器数据已降级到 `config/desktop-ai-consumption-llm-adapter.yaml` 与 `config/desktop-ai-consumption-streaming.yaml`；它们保存 speech operation catalog、renderer audit enums、timeout rows、job terminal rows 与 disconnect polling 参数，均非产品权威。
+- 两组内嵌机器数据曾降级为独立的非权威 machine config 投影，治理清理时已一并退役；speech operation catalog、renderer audit enums、timeout rows、job terminal rows 与 disconnect polling 参数不再有第二份投影载体。
 - 下文完整保留三份旧契约散文并重接现行 canonical 路径，供设计理由、取舍与逐句核对使用；现行容器共 3 个 definition 与 70 个 rule。
 
 ### 缺失
@@ -38,7 +38,7 @@
 ## Normative migration dispositions
 
 - `.nimi/spec/desktop/ai-consumption.authority.yaml` 是三簇现行唯一 Desktop product authority；历史 `D-AIPC-*`、`D-LLM-*`、`D-STRM-*` 仅作为本文 rationale anchors。
-- `config/desktop-ai-consumption-llm-adapter.yaml` 与 `config/desktop-ai-consumption-streaming.yaml` 是 gates、tests 与 implementation audits 可消费的非权威 machine config；canonical rules 决定 ownership、wire boundary、timeouts、terminal semantics 与 fail-closed behavior。
+- 本簇不再保留可供 gates、tests 与 implementation audits 消费的非权威 machine config；ownership、wire boundary、timeouts、terminal semantics 与 fail-closed behavior 全部由 canonical rules 决定。
 - Conversation capability presentation 继续由 `.nimi/spec/desktop/agent-projection.authority.yaml` 拥有；AIConfig/AISnapshot umbrella 与 Desktop adaptation/stream mechanics 由本容器拥有，不形成并列真相。
 - Runtime health、route、credential、stream、job、timeline、Agent execution 与 audit truth 仍由各自 Runtime/SDK owner 提供；本文保留的旧跨层引用只解释设计来源，不授予 Desktop 上游 authority。
 
@@ -539,8 +539,8 @@ projection exposed by the scope owner，不得自定义 local preview 真相。
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — D-LLM-015 ~ D-LLM-021 conversation capability submodel rules
 - `.nimi/spec/desktop/ai-consumption.authority.yaml` — Desktop provider adaptation and routing rules
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001 ~ P-AISC-006 AIScopeRef identity contract
-- `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001 ~ K-SCHED-007 scheduling judgement contract
+- `.nimi/spec/platform/core-protocol.authority.yaml` — P-AISC-001 ~ P-AISC-006 AIScopeRef identity contract
+- `.nimi/spec/runtime/memory-world.authority.yaml` — K-SCHED-001 ~ K-SCHED-007 scheduling judgement contract
 
 ## Preserved source: LLM Adapter Contract
 
@@ -594,7 +594,7 @@ AI 请求的凭据通过 `connector_id` 路由（K-KEYSRC-001 managed 路径）�
 - Desktop renderer 全程不接触原始凭据，凭据安全策略由 `D-SEC-009` 定义。
 - `credentialRefId` 概念废弃，统一使用 `connector_id`。
 
-**跨层引用**：K-KEYSRC-001~004、K-CONN-001（.nimi/spec/runtime/connector.md）。
+**跨层引用**：K-KEYSRC-001~004、K-CONN-001（.nimi/spec/runtime/ai-provider.authority.yaml）。
 
 ## D-LLM-004 — 本地 LLM 健康检查
 
@@ -709,7 +709,7 @@ projection 语义。Agent Chat orchestration、single-message / action semantics
 prompt payload、voice workflow、media execution、and Runtime Agent execution truth
 不由 stream layer 拥有，相关真相固定来自 Runtime Agent / SDK projections。
 runtime-owned deferred continuation / `HookIntent` pending truth 固定来自
-`.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`。
+`.nimi/spec/runtime/agent-participation.authority.yaml`。
 
 ## D-STRM-001 — 流式订阅生命周期
 
@@ -937,8 +937,8 @@ timeline authority and Avatar remains the lipsync/render proof owner.
 ## Fact Sources
 
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — Runtime Agent execution / projection authority
-- `.nimi/spec/runtime/kernel/voice-contract.md` — runtime voice workflow boundary
+- `.nimi/spec/runtime/agent-service.authority.yaml` — Runtime Agent execution / projection authority
+- `.nimi/spec/runtime/model-catalog.authority.yaml` — runtime voice workflow boundary
 - Runtime `K-STREAM-001~007` — 流式传输规则
 - Runtime `K-STREAM-008` — 流关闭模式统一分类（Mode A/B/C/D）
 - Runtime `K-STREAM-009` — eof 标记流关闭协议（Mode C）

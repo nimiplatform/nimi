@@ -19,4 +19,4 @@ Reference 是 Nimi 的产品概念字典。每页都是字段列表、表格或�
 
 ## 来源依据
 
-- [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
+- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)

@@ -527,17 +527,17 @@ passes the compact-ref validator; otherwise it must be rejected, not shimmed.
 ## Fact Sources
 
 - `.nimi/spec/desktop/ai-consumption.authority.yaml` — D-AIPC-001~014
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~007
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` —
+- `.nimi/spec/platform/core-protocol.authority.yaml` — P-AISC-001~007
+- `.nimi/spec/platform/core-protocol.authority.yaml` —
   P-AIPS-009 first-party app AIProfile hint, P-AIPS-013 Account Default Profile
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` —
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` —
   P-NAPP-002 registry row schema, P-NAPP-003 AIProfile selection hint
-- `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — K-APP-017 app Open flow
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` — K-AIEXEC-001~007
-- `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-004~006b
-- `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001~007
-- `.nimi/spec/sdks/kernel/runtime-route-contract.md` — S-RUNTIME-074~078
-- `.nimi/spec/sdks/kernel/surface-contract.md` — S-SURFACE-001~011
+- `.nimi/spec/runtime/app-surface.authority.yaml` — K-APP-017 app Open flow
+- `.nimi/spec/runtime/ai-provider.authority.yaml` — K-AIEXEC-001~007
+- `.nimi/spec/runtime/memory-world.authority.yaml` — K-MEM-004~006b
+- `.nimi/spec/runtime/memory-world.authority.yaml` — K-SCHED-001~007
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — S-RUNTIME-074~078
+- `.nimi/spec/sdks/client-core.authority.yaml` — S-SURFACE-001~011
 
 ---
 
@@ -1055,7 +1055,7 @@ Cross-references: `P-SCAF-016` (scaffolded local-app binding custody),
 
 `MUST`: SDK is the TypeScript semantic parser owner for Desktop Open Intent.
 SDK parser behavior must match
-`.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`.
+`scripts/testdata/desktop-open-intent-golden-vectors.yaml`.
 
 `MUST NOT`: SDK must not expose an opener, import Kit, Electron, Tauri, browser
 globals, OS opener code, Desktop private bridge code, or Runtime private
@@ -1099,30 +1099,30 @@ voice truth, credential, playback state, or durable audio bytes.
 
 ## Fact Sources
 
-- `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
-- `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
-- `.nimi/spec/sdks/kernel/surface-contract.md` — `S-SURFACE-*`
-- `.nimi/spec/sdks/kernel/error-projection.md` — `S-ERROR-*`
-- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-010` (`S-PERM-010` records the S-APP-vs-S-PERM placement anti-target for the review-evidence accessor admitted at `S-APP-015`)
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-029`, `P-NAPP-033..P-NAPP-034` (`P-NAPP-015` storage policy, `P-NAPP-018` catalog descriptor shape, `P-NAPP-019` opaque immutable-package slots, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-034` protected local-app launch)
-- `.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md` — `P-NAPP-030..P-NAPP-032`, `P-NAPP-035..P-NAPP-036` (`P-NAPP-030` listing closure, `P-NAPP-031` unified inventory, `P-NAPP-032` local record creation boundary, `P-NAPP-035..036` local-app development/principal kernel)
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-002` closed scope enum, `P-PERM-006` cross-app authorization, `P-PERM-011` `app-local-drafts` qualifier semantics)
-- `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` — `P-AUDIT-001..P-AUDIT-006` (`P-AUDIT-006` review-evidence shape)
-- `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
-- `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-007`
-- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
-- `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — `K-APP-014` (uninstall lifecycle), `K-APP-017` (launch gate), `K-APP-018` (Runtime-mediated file-API non-admission)
-- `.nimi/spec/runtime/kernel/app-projection-contract.md` — `K-APP-022` (principal-keyed app storage), `K-APP-023` (opaque package seam), `K-APP-024` (account/local record inventory), `K-APP-025` (retired adoption path)
-- `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*` (Runtime account/session custody, local-app coordinator and removed public-token boundary consumed by `S-APP-016`)
-- `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` — `K-BIND-*` (Runtime-issued scoped app binding authority consumed by `S-APP-016`)
-- `.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md` — `P-SCAF-*` (generated-app helper naming, final local-app mode and no first-party self-declaration consumed by `S-APP-016`)
-- `.nimi/spec/platform/kernel/desktop-open-intent-contract.md` — `P-DOPEN-*`
-- `.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`
-- `.nimi/spec/runtime/kernel/voice-contract.md` — `K-VOICE-021`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-AICONF-001..S-AICONF-006`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-RUNTIME-119`
+- `.nimi/spec/sdks/client-core.authority.yaml` — `S-SURFACE-*`
+- `.nimi/spec/sdks/client-core.authority.yaml` — `S-ERROR-*`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-PERM-001..S-PERM-010` (`S-PERM-010` records the S-APP-vs-S-PERM placement anti-target for the review-evidence accessor admitted at `S-APP-015`)
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-001..P-NAPP-029`, `P-NAPP-033..P-NAPP-034` (`P-NAPP-015` storage policy, `P-NAPP-018` catalog descriptor shape, `P-NAPP-019` opaque immutable-package slots, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-034` protected local-app launch)
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-030..P-NAPP-032`, `P-NAPP-035..P-NAPP-036` (`P-NAPP-030` listing closure, `P-NAPP-031` unified inventory, `P-NAPP-032` local record creation boundary, `P-NAPP-035..036` local-app development/principal kernel)
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-PERM-001..P-PERM-011` (`P-PERM-002` closed scope enum, `P-PERM-006` cross-app authorization, `P-PERM-011` `app-local-drafts` qualifier semantics)
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-AUDIT-001..P-AUDIT-006` (`P-AUDIT-006` review-evidence shape)
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-MOEX-001..P-MOEX-006`
+- `config/platform-nimi-app-registry.yaml`
+- `config/platform-nimi-app-trust-tiers.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AIPS-001..P-AIPS-013`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AISC-001..P-AISC-007`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-024..K-LENG-027`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-028`
+- `.nimi/spec/runtime/app-surface.authority.yaml` — `K-APP-014` (uninstall lifecycle), `K-APP-017` (launch gate), `K-APP-018` (Runtime-mediated file-API non-admission)
+- `.nimi/spec/runtime/app-surface.authority.yaml` — `K-APP-022` (principal-keyed app storage), `K-APP-023` (opaque package seam), `K-APP-024` (account/local record inventory), `K-APP-025` (retired adoption path)
+- `.nimi/spec/runtime/protected-session.authority.yaml` — `K-ACCSVC-*` (Runtime account/session custody, local-app coordinator and removed public-token boundary consumed by `S-APP-016`)
+- `.nimi/spec/runtime/app-surface.authority.yaml` — `K-BIND-*` (Runtime-issued scoped app binding authority consumed by `S-APP-016`)
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-SCAF-*` (generated-app helper naming, final local-app mode and no first-party self-declaration consumed by `S-APP-016`)
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-DOPEN-*`
+- `scripts/testdata/desktop-open-intent-golden-vectors.yaml`
+- `.nimi/spec/runtime/model-catalog.authority.yaml` — `K-VOICE-021`
 
 ---
 
@@ -1239,12 +1239,12 @@ permission posture/lifecycle 是互斥词汇；review 结果不得 seed 或扩�
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-017`
-- `.nimi/spec/platform/kernel/tables/nimi-app-permission-catalog.yaml`
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-*`
-- `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — `K-APP-*`
-- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-*`
-- `.nimi/spec/sdks/kernel/error-projection.md` — `S-ERROR-*`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-PERM-001..P-PERM-017`
+- `config/platform-nimi-app-permission-catalog.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-*`
+- `.nimi/spec/runtime/app-surface.authority.yaml` — `K-APP-*`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-APP-*`
+- `.nimi/spec/sdks/client-core.authority.yaml` — `S-ERROR-*`
 
 ---
 
@@ -1437,11 +1437,11 @@ W1 admitted managed OAuth acquisition 不拥有 refresh / rotation automation。
 
 SDK may expose typed projection for Runtime local environment plans only as a
 downstream mirror of Runtime truth. The Runtime authority sources are
-`.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md`
+`.nimi/spec/runtime/local-compute.authority.yaml`
 `K-LENG-024` through `K-LENG-027`,
-`.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
+`.nimi/spec/runtime/local-compute.authority.yaml`
 `K-LENG-028`, and the local environment tables under
-`.nimi/spec/runtime/kernel/tables/`.
+`config/runtime-*.yaml`.
 
 Allowed SDK projection families:
 
@@ -1796,7 +1796,7 @@ capability profiles.
 ## S-RUNTIME-114 Probe And Replay Projection
 
 SDK probe methods must align to
-`.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md`.
+`.nimi/spec/runtime/agent-participation.authority.yaml`.
 
 SDK must expose typed request, result, submit-result, and replay ref shapes. It
 must not expose raw APML parser diagnostics, backend command strings, provider
@@ -1806,7 +1806,7 @@ public types.
 ## S-RUNTIME-115 Avatar Evidence Projection
 
 SDK may carry Avatar evidence refs and schema-bound evidence summaries from
-`.nimi/spec/avatar/kernel/avatar-debug-session-contract.md`.
+`.nimi/spec/avatar/embodiment-surface.authority.yaml`.
 
 SDK must not reinterpret Avatar backend evidence as Runtime success. SDK may
 carry `SubmitAvatarDebugProbeResult` envelopes from Avatar to Runtime, but
@@ -1895,8 +1895,7 @@ transcripts.
 SDK participation profile projection must align exactly to the closed axis and
 profile registries in:
 
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-profiles.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 SDK must not add open-string axis values, local lane enums, extra named
 profiles, or compatibility aliases outside the Runtime registry.
@@ -1904,7 +1903,7 @@ profiles, or compatibility aliases outside the Runtime registry.
 ## S-RUNTIME-213 Context Block Projection
 
 SDK context block projection must align to
-`.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`.
+`.nimi/spec/runtime/agent-participation.authority.yaml`.
 
 SDK consumers may pass typed context block references admitted by Runtime, but
 they must not pass raw prompt blobs, raw transcript dumps, raw protocol payloads,
@@ -1913,7 +1912,7 @@ or untyped provider/app-local memory payloads.
 ## S-RUNTIME-214 Output Candidate Projection
 
 SDK output candidate projection must align to
-`.nimi/spec/runtime/kernel/tables/agent-participation-output-destinations.yaml`.
+`.nimi/spec/runtime/agent-participation.authority.yaml`.
 
 SDK must distinguish Runtime execution output from domain transcript commit. For
 Realm GROUP participation, SDK may expose a Runtime-owned non-committal
@@ -1925,10 +1924,7 @@ not expose Runtime direct GROUP write as a participation helper.
 SDK memory, capability, promotion, and concurrency verdict projection must align
 to:
 
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-read-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 SDK must expose verdicts as typed Runtime decisions. SDK must not infer private
 memory read access, canonical capability carryover, canonical memory write, or
@@ -1951,7 +1947,7 @@ participation-specific side audit store.
 
 SDK participation method names, categories, source rules, and input/output
 references are governed by
-`.nimi/spec/sdks/kernel/tables/runtime-agent-participation-methods.yaml`.
+`.nimi/spec/sdks/feature-clients.authority.yaml`.
 
 The table is the SDK method-family registry for implementation admission. It
 does not by itself claim production availability. A method family becomes

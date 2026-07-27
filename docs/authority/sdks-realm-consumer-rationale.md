@@ -17,8 +17,8 @@ This contract governs SDK, Runtime, Desktop, Web, and app consumption of Realm
 API projections. It does not define Realm server truth, Realm domain semantics,
 or Realm product authority.
 
-Realm canonical authority lives outside this repository. The nested
-`.nimi/spec/realm/**` subtree is an external pointer only and must not contain
+Realm canonical authority lives outside this repository. The in-repo
+`docs/spec/realm-*` pointer docs are navigation only and must not contain
 Realm kernel contracts, tables, generated docs, or domain authority mirrors.
 
 ## S-REALMAPI-001 External Authority Boundary
@@ -125,7 +125,7 @@ schema, field, enum, segment kind, limit, or hash branch as local success.
 configured Realm OpenAPI input and updating SDK consumer contracts/tests.
 
 `MUST NOT`: Nimi must not patch drift by copying Realm spec text into
-`.nimi/spec/realm/**`, freezing stale DTOs in handwritten clients, or adding
+`docs/spec/realm-*`, freezing stale DTOs in handwritten clients, or adding
 compatibility aliases that hide server contract changes.
 
 An unknown Packet v3/challenge schema, field, enum, proof family, component or
@@ -135,10 +135,10 @@ compatibility readers are forbidden.
 
 ## S-REALMAPI-006 Pointer-Only Realm Subtree
 
-The only admitted files under `.nimi/spec/realm/**` are pointer/navigation
-files that identify the external Realm authority and route readers to SDK consumer contracts.
+The only admitted in-repo Realm files are the `docs/spec/realm-*` pointer/navigation
+docs that identify the external Realm authority and route readers to SDK consumer contracts.
 
-Forbidden under `.nimi/spec/realm/**`:
+Forbidden as in-repo Realm authority:
 
 - `kernel/**`
 - `kernel/tables/**`
@@ -148,10 +148,9 @@ Forbidden under `.nimi/spec/realm/**`:
 
 ## Traceability
 
-- `.nimi/spec/sdks/kernel/realm-core-contract.md`
-- `.nimi/spec/sdks/kernel/tables/realm-private-operation-carriers.yaml`
-- `.nimi/spec/sdks/kernel/realm-contract.md`
-- `.nimi/spec/sdks/kernel/boundary-contract.md`
+- `.nimi/spec/sdks/realm-consumer.authority.yaml`
+- `config/sdks-realm-private-operation-carriers.yaml`
+- `.nimi/spec/sdks/client-core.authority.yaml`
 - `sdks/typescript/core-generated/realm-client.ts`
 - `sdks/typescript/core-generated/realm-typed-client.ts`
 
@@ -184,7 +183,7 @@ Forbidden under `.nimi/spec/realm/**`:
 >
 > `realm-api-consumer-contract.md` owns the external Realm consumer
 > boundary. This file may constrain SDK facade behavior, but it must not
-> restate Realm server/domain authority or rely on `.nimi/spec/realm/**` as a
+> restate Realm server/domain authority or rely on `docs/spec/realm-*` as a
 > mirrored source of truth.
 
 ## S-REALM-010 Instance Isolation
@@ -262,7 +261,7 @@ Realm SDK 允许在 `accessToken` 为空时调用以下公开决策端点，返�
 
 Realm facade behavior must be derived from generated Realm core, explicit SDK
 consumer contracts, and runtime/client mode configuration. SDK must not consult
-or recreate `.nimi/spec/realm/**` as Realm server authority inside this
+or recreate `docs/spec/realm-*` as Realm server authority inside this
 repository.
 
 ## S-REALM-040 Runtime-Mediated Local App Default
@@ -294,7 +293,7 @@ Status: active product authority.
 Realm generated core under `sdks/**/core-generated` is sourced from the
 configured Realm OpenAPI input from the external Realm authority.
 `.nimi/spec/sdks/**` owns the SDK-family projection boundary; old `sdk/`
-facade contracts and `.nimi/spec/realm/**` mirrors must not be used as
+facade contracts and `docs/spec/realm-*` mirrors must not be used as
 generated Realm authority.
 
 Nimi admits exactly two generated projections from that input: the public SDK
@@ -930,7 +929,7 @@ No publication layer may use selector-read stable methods to smuggle in:
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-024` through `P-ARCH-029`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-ARCH-024` through `P-ARCH-029`
 - `world-evolution-engine-projection-contract.md` — `S-RUNTIME-079` through `S-RUNTIME-084`
 - `runtime-contract.md` — `S-RUNTIME-091`, `S-RUNTIME-102`
 - `runtime-route-contract.md` — `S-RUNTIME-074` through `S-RUNTIME-078`
@@ -1097,8 +1096,8 @@ Projection must remain fail-close:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/world-evolution-engine-contract.md` — `K-WEV-001` through `K-WEV-016`
-- `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-024` through `P-ARCH-028`
+- `.nimi/spec/runtime/memory-world.authority.yaml` — `K-WEV-001` through `K-WEV-016`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-ARCH-024` through `P-ARCH-028`
 - `runtime-contract.md` — `S-RUNTIME-011`, `S-RUNTIME-073`
 - `boundary-contract.md` — `S-BOUNDARY-001`, `S-BOUNDARY-002`
 
@@ -1134,7 +1133,7 @@ Realm commit shortcut.
 SDK group agent requests must carry typed Realm references only: group thread,
 membership snapshot, agent slot, trigger event, read cursor, optional reply
 target, room orchestration projection, and commit handoff references aligned to
-`.nimi/spec/runtime/kernel/tables/realm-group-participation-context.yaml`.
+`.nimi/spec/runtime/agent-participation.authority.yaml`.
 
 SDK must not accept raw prompt blobs, unbounded transcript dumps, app-local
 participant lists, canonical chat history defaults, direct commit handles, or

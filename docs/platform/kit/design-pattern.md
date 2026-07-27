@@ -13,8 +13,8 @@ contract any consuming app must follow.
 
 | Rule | Value |
 | --- | --- |
-| Authority spec | `.nimi/spec/platform/kernel/design-pattern-contract.md` |
-| Authority tables | `.nimi/spec/platform/kernel/tables/` |
+| Authority spec | `.nimi/spec/platform/ui-design-system.authority.yaml` |
+| Authority tables | `config/platform-*.yaml` |
 | Governed consumers | Declared by each app's local kit manifest |
 | App-local spec may | Own concrete adoption inventory, app-owned compositions, accent selection, and art direction |
 | App-local spec may NOT | Redefine shared primitive families, token taxonomies, or governance rules |
@@ -200,8 +200,7 @@ The boundary keeps the shared primitive contract honest.
 
 ## Source Basis
 
-- [`.nimi/spec/platform/kernel/design-pattern-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/design-pattern-contract.md)
-- [`.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml)
-- [`.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml)
-- [`.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml)
-- [`.nimi/spec/platform/kernel/kit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/kit-contract.md)
+- [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
+- [`config/platform-nimi-ui-tokens.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-nimi-ui-tokens.yaml)
+- [`config/platform-nimi-ui-themes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-nimi-ui-themes.yaml)
+- [`config/platform-nimi-ui-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-nimi-ui-primitives.yaml)

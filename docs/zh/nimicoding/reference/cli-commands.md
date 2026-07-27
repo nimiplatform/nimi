@@ -7,9 +7,7 @@ Nimi 仓库已准入 Nimi Coding 表面的字段级参考。所有权概念见
 
 | 命令 | 用途 |
 | --- | --- |
-| `pnpm check:nimicoding-host-hardcut` | 核验已审计的软件包版本，并确认旧执行面没有回流 |
 | `pnpm check:nimi-coding-seed-sync` | 检查受管文件是否齐全、package-canonical 内容是否漂移 |
-| `pnpm nimicoding:sync:apply` | 宿主边界通过后刷新受管文件 |
 | `pnpm nimicoding:doctor` | 检查 bootstrap、受管文件和宿主规范配置 |
 
 ## 规范与治理 Validators
@@ -52,8 +50,7 @@ handoff、closeout 或 provider runtime 命令族。
 
 ## 来源依据
 
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
 - [`.nimi/contracts/spec-layout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-layout.schema.yaml)
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

@@ -12,10 +12,8 @@ For exact syntax, see
 
 | Category | Nimi surface |
 | --- | --- |
-| Host hardcut | `pnpm check:nimicoding-host-hardcut` |
 | Package projection check | `pnpm check:nimi-coding-seed-sync` |
 | Package doctor | `pnpm nimicoding:doctor` |
-| Managed projection refresh | `pnpm nimicoding:sync:apply` |
 | Spec validation | `validate-spec-tree`, `validate-spec-audit`, `validate-spec-governance` |
 | Derived-doc validation | `generate-spec-derived-docs --check` |
 | AI governance validation | `validate-ai-governance` |
@@ -24,15 +22,16 @@ For exact syntax, see
 ## Verify The Host Boundary
 
 ```bash
-pnpm check:nimicoding-host-hardcut
 pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-The hardcut rejects retired execution projections and verifies that the
-installed package itself contains no topic, sweep, adapter, or host-control
-runtime. The sync and doctor wrappers then apply the package's current
-projection policy.
+The host boundary itself is declared by `P-PKG-011` in
+`.nimi/spec/platform/authority-admission.authority.yaml`: topic lifecycle,
+wave/packet execution DAGs, run ledgers, goal bridges, and nested host launches
+stay unadmitted even when the installed package still contains them. The sync
+and doctor wrappers verify the managed projections against the package's
+current projection policy; they do not apply it.
 
 ## Validate Product Truth
 
@@ -73,7 +72,6 @@ an execution command family.
 
 ## Source Basis
 
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

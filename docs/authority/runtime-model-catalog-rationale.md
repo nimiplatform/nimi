@@ -25,7 +25,7 @@ target refs without Runtime-owned catalog snapshot resolution.
 ## K-MCAT-001 SSOT Location
 
 Runtime model/voice schema and behavior rules are defined in this contract (`K-MCAT-*`).
-Runtime default data MUST be loaded from `runtime/catalog/providers/*.yaml` (provider-scoped files), not from `.nimi/spec/runtime/kernel/tables/*`.
+Runtime default data MUST be loaded from `runtime/catalog/providers/*.yaml` (provider-scoped files), not from `config/runtime-*`.
 Source-provider entries under `runtime/catalog/source/providers/` are the authoring SSOT for source-provider metadata, including endpoint/runtime facts that are later projected into snapshot / registry / spec tables. A provider entry MAY be either `<provider>.source.yaml` or a `<provider>/` directory of YAML fragments merged by source tooling.
 `tables/provider-catalog.yaml` is the projected remote-endpoint table for remote providers and therefore intentionally excludes `local`.
 
@@ -543,7 +543,7 @@ provider 默认文本模型元数据只对 `inventory_mode=static_source` provid
 
 ## Verification Anchors
 
-- `K-MCAT-005` / `K-MCAT-006` / `K-MCAT-007`：`pnpm check:runtime-catalog-drift`、`pnpm check:runtime-provider-yaml-first-hardcut`
+- `K-MCAT-005` / `K-MCAT-006` / `K-MCAT-007`：`pnpm check:runtime-catalog-drift`
 - `K-MCAT-018`：`pnpm check:runtime-video-capability-block-enforcement`
 - `K-MCAT-022`：`pnpm check:runtime-provider-activation-alignment`
 - `K-MCAT-024`：`pnpm check:runtime-provider-capability-token-canonicalization`
@@ -1417,7 +1417,7 @@ WorkflowEventType 枚举（12 种）：
 
 ### Cross-Domain Dependencies
 
-- SDK 方法投影缺口由 `.nimi/spec/sdks/kernel/runtime-contract.md` 的 `S-RUNTIME-023` 记录。
+- SDK 方法投影缺口由 `.nimi/spec/sdks/client-core.authority.yaml` 的 `S-RUNTIME-023` 记录。
 - Desktop 侧当前没有对应 Workflow consumer surface。DataSync facade is non-admitted by `D-DSYNC-000~013`; Workflow 消费面必须通过 SDK 方法投影、Desktop UI spec、以及 admitted Runtime bridge/streaming contracts 定义，不得创建 Desktop DataSync flow。
 
 Workflow 服务的跨域消费契约状态：

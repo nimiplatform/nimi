@@ -175,6 +175,6 @@ An accepted item depends on an external standard that has not matured.
 
 ## Source Basis
 
-- [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
+- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - Active product domain specs under `.nimi/spec/<domain>/kernel/**`
 - Roadmap planning records and admitted graduation events

@@ -9,8 +9,8 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 
 | 规则 | 值 |
 | --- | --- |
-| 权威规范 | `.nimi/spec/platform/kernel/design-pattern-contract.md` |
-| 权威表格 | `.nimi/spec/platform/kernel/tables/` |
+| 权威规范 | `.nimi/spec/platform/ui-design-system.authority.yaml` |
+| 权威表格 | `config/platform-*.yaml` |
 | 管理的消费方 | 由各 app 本地 kit manifest 声明 |
 | 应用本地 spec 可以 | 拥有具体 adoption 清单、app-owned compositions、accent 选择和艺术指导 |
 | 应用本地 spec 不可以 | 重新定义共享 primitive 家族、令牌分类或治理规则 |
@@ -166,8 +166,7 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 
 ## 来源依据
 
-- [`.nimi/spec/platform/kernel/design-pattern-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/design-pattern-contract.md)
-- [`.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml)
-- [`.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml)
-- [`.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml)
-- [`.nimi/spec/platform/kernel/kit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/kit-contract.md)
+- [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
+- [`config/platform-nimi-ui-tokens.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-nimi-ui-tokens.yaml)
+- [`config/platform-nimi-ui-themes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-nimi-ui-themes.yaml)
+- [`config/platform-nimi-ui-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-nimi-ui-primitives.yaml)

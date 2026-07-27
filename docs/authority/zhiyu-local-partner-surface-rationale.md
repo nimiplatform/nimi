@@ -804,10 +804,10 @@ Simulator selection/release authority.
 
 Zhiyu unit, unsupervised Electron, and browser-shell tests are executable
 evidence governed by the single platform topology in
-`.nimi/spec/platform/kernel/tables/test-governance-policy.yaml`. Zhiyu must not
-own a per-file inventory, quarantine table, or local classification vocabulary.
-`pnpm check:test-inventory` fails closed when a Zhiyu test source is missing,
-overlapping, or unreachable from its declared suite command.
+`.nimi/spec/platform/testing-discipline.authority.yaml`. Zhiyu must not own a
+per-file inventory, quarantine table, or local classification vocabulary. A
+Zhiyu test source that is missing, overlapping, or unreachable from its declared
+suite command fails closed.
 
 Runtime-backed LocalAgent product acceptance is owned by the platform
 fixed-service Desktop-to-Zhiyu Journey. A Zhiyu-local suite that starts a

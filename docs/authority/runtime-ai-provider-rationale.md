@@ -378,7 +378,7 @@ Rules:
 - `key-source-routing.md` — K-KEYSRC-001~011 (remote binding legality)
 - `connector-contract.md` — K-CONN-001~017 (connector custody and legality)
 - `.nimi/spec/desktop/ai-consumption.authority.yaml` — D-AIPC-001~012 (desktop AI config authority)
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~005 (AIScopeRef)
+- `.nimi/spec/platform/core-protocol.authority.yaml` — P-AISC-001~005 (AIScopeRef)
 
 ---
 
@@ -590,7 +590,7 @@ consume/probe 时解出最小执行凭据子集”，而不是“拥有第三方
 
 第三方 OAuth acquisition 的 browser/device-code orchestration 若被产品化，必须由
 SDK/host typed acquisition facade 拥有（见
-`.nimi/spec/sdks/kernel/connector-auth-acquisition-contract.md`），并通过现有
+`.nimi/spec/sdks/feature-clients.authority.yaml`），并通过现有
 `CreateConnector` / `UpdateConnector` sealed write path 交付 `credential_json`。
 该 admission 不改变 Runtime ConnectorService 的 custody-only 边界。
 
@@ -1506,10 +1506,6 @@ records above.
 - `openai_codex`
 
 非 canonical 名称（包含历史 alias 与 legacy 名称）在配置校验时拒绝。
-
-执行命令：
-
-- `pnpm check:runtime-provider-alias-hardcut`
 
 **约束点**：`CreateConnector` / `TestConnector` / `ListConnectorModels` 的 provider 输入必须是 canonical 值；ConnectorService 入口统一校验并拒绝 alias。
 

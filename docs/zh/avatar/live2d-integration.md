@@ -195,10 +195,7 @@ export default {
 
 ## 来源依据
 
-- [`.nimi/spec/avatar/kernel/live2d-render-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/live2d-render-contract.md)
-- [`.nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md)
-- [`.nimi/spec/avatar/kernel/tables/live2d-compatibility-tiers.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/tables/live2d-compatibility-tiers.yaml)
-- [`.nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml)
-- [`.nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml)
-- [`.nimi/spec/avatar/kernel/backend-branch-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/backend-branch-contract.md)
-- [`.nimi/spec/avatar/kernel/embodiment-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/embodiment-projection-contract.md)
+- [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`config/avatar-live2d-compatibility-tiers.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-live2d-compatibility-tiers.yaml)
+- [`config/avatar-live2d-adapter-manifest.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-live2d-adapter-manifest.schema.yaml)
+- [`config/avatar-live2d-adapter-diagnostics.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-live2d-adapter-diagnostics.yaml)

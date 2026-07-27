@@ -149,13 +149,9 @@ App 看到的是强类型 `TIMEOUT`，不是模糊的"请求失败了"；`Scenar
 
 ## 来源依据
 
-- [`.nimi/spec/runtime/multimodal-provider.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/multimodal-provider.md)
-- [`.nimi/spec/runtime/multimodal-delivery-gates.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/multimodal-delivery-gates.md)
-- [`.nimi/spec/runtime/kernel/multimodal-provider-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/multimodal-provider-contract.md)
-- [`.nimi/spec/runtime/kernel/voice-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/voice-contract.md)
-- [`.nimi/spec/runtime/kernel/delivery-gates-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delivery-gates-contract.md)
-- [`.nimi/spec/runtime/kernel/tables/multimodal-canonical-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/multimodal-canonical-fields.yaml)
-- [`.nimi/spec/runtime/kernel/tables/multimodal-artifact-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/multimodal-artifact-fields.yaml)
-- [`.nimi/spec/runtime/kernel/tables/runtime-delivery-gates.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/runtime-delivery-gates.yaml)
-- [`.nimi/spec/runtime/kernel/tables/voice-enums.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/voice-enums.yaml)
-- [`.nimi/spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
+- [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
+- [`config/spec-frozen/runtime/tables/multimodal-canonical-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/multimodal-canonical-fields.yaml)
+- [`config/spec-frozen/runtime/tables/multimodal-artifact-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/multimodal-artifact-fields.yaml)
+- [`config/runtime-voice-enums.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-voice-enums.yaml)
+- [`config/runtime-tts-provider-capability-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-tts-provider-capability-matrix.yaml)

@@ -18,5 +18,4 @@
 ## 来源依据
 
 - [`.nimi/contracts/`](https://github.com/nimiplatform/nimi/tree/main/.nimi/contracts)
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/methodology/`](https://github.com/nimiplatform/nimi/tree/main/.nimi/methodology)

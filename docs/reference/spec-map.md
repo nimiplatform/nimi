@@ -11,7 +11,7 @@ authority and for navigating the spec directly.
 | Runtime | `.nimi/spec/runtime/**` |
 | SDK | `.nimi/spec/sdks/**` |
 | Desktop and Web | `.nimi/spec/desktop/**` |
-| Realm | External Realm authority, local pointer files in `.nimi/spec/realm/{README.md,external-realm.md}`, and Nimi consumer contracts under `.nimi/spec/sdks/**` |
+| Realm | External Realm authority, local pointer docs in `docs/spec/realm-readme.md` and `docs/spec/realm-external-anchor.md`, and Nimi consumer contracts under `.nimi/spec/sdks/**` |
 | Avatar | `.nimi/spec/avatar/**` |
 | Cognition | `.nimi/spec/cognition/**` |
 | Nimi Coding | `nimi-coding/spec/product-scope.yaml`, `nimi-coding/spec/_meta/spec-tree-model.yaml`, `nimi-coding/methodology/**`, `nimi-coding/contracts/**`, `nimi-coding/config/**` |
@@ -41,7 +41,7 @@ identify which contract a rule belongs to.
 
 ## Reading Tips
 
-- Start at `.nimi/spec/INDEX.md` if you need cross-domain task-shaped
+- Start at `docs/spec/INDEX.md` if you need cross-domain task-shaped
   reading paths.
 - Start at the relevant kernel `index.md` if you know which domain
   you need.
@@ -66,5 +66,5 @@ implementation-owner paths.
 
 ## Source Basis
 
-- [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
+- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc`

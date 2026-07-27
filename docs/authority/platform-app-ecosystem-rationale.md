@@ -104,13 +104,13 @@ closed。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
-- `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
-- `.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md` — `P-NAPP-030..P-NAPP-032`
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
-- `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`
-- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AISC-001..P-AISC-005`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-HOME-001..P-HOME-010`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-030..P-NAPP-032`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-PERM-001..P-PERM-010`
+- `.nimi/spec/cognition/standalone-services.authority.yaml` — `C-APMEM-001..C-APMEM-008`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — `D-LLM-022..D-LLM-026`
 
@@ -336,13 +336,13 @@ permission prompts.
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/tables/nimi-app-permission-catalog.yaml`
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md`
-- `.nimi/spec/runtime/kernel/grant-service.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md`
-- `.nimi/spec/realm/external-realm.md`
-- `.nimi/spec/cognition/kernel/app-memory-access-contract.md`
+- `config/platform-nimi-app-permission-catalog.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/sdks/feature-clients.authority.yaml`
+- `docs/spec/realm-external-anchor.md`
+- `.nimi/spec/cognition/standalone-services.authority.yaml`
 
 ---
 
@@ -1650,7 +1650,7 @@ the admitted launch profile; it never points at raw app code. Windows is the
 current admitted positive row. macOS and Linux remain requirements-only and
 fail closed until their complete native chains are independently admitted.
 Physical launcher/session selection and that per-platform admission are owned
-by `.nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml`.
+by `config/spec-frozen/runtime/tables/protected-local-launch-session-profiles.yaml`.
 
 Desktop is the current protected launcher implementation, not the principal or
 semantic owner. Public names are host-neutral. Ordinary gRPC, endpoint/env
@@ -1666,33 +1666,33 @@ control remains unchanged and Desktop-specific.
 第二套 catalog、permission、Runtime session 或 local-app authority。
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
-- `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
-- `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
-- `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
-- `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md` — `P-CAPCAT-*`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md` — `P-APP-*`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md` — `P-PKG-*`
-- `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-  - `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`
-  - `.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml`
-- `.nimi/spec/platform/kernel/kit-contract.md` — `P-KIT-041C`, `P-KIT-041E`, `P-KIT-044`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-ARCH-001..P-ARCH-021`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-HOME-001..P-HOME-010`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-SUPD-001..P-SUPD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-PKGREL-001..P-PKGREL-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-COLD-001..P-COLD-008`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AIPS-001..P-AIPS-013`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AISC-001..P-AISC-005`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-CAPCAT-*`
+- `.nimi/spec/platform/authority-admission.authority.yaml` — `P-APP-*`
+- `.nimi/spec/platform/authority-admission.authority.yaml` — `P-PKG-*`
+- `config/platform-nimi-app-registry.yaml`
+- `config/platform-nimi-app-release-descriptors.yaml`
+- `config/platform-nimi-app-trust-tiers.yaml`
+  - `config/platform-nimi-app-local-development-admission.yaml`
+  - `config/spec-frozen/platform/tables/protected-local-executable-trust-sets.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml` — `P-KIT-041C`, `P-KIT-041E`, `P-KIT-044`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r038`
-- `.nimi/spec/desktop/kernel/tables/local-app-launch-hosts.yaml`
-- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-022`
-- `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-*`
-- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
-- `.nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml`
-- `.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml`
-- `.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml`
-- `.nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml`
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
+- `config/desktop-local-app-control-surfaces.yaml`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-APP-001..S-APP-022`
+- `.nimi/spec/runtime/protected-session.authority.yaml` — `K-ACCSVC-*`
+- `.nimi/spec/runtime/app-surface.authority.yaml` — `K-APP-*`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-024..K-LENG-027`
+- `config/spec-frozen/runtime/tables/protected-local-launch-session-profiles.yaml`
+- `config/spec-frozen/runtime/tables/protected-local-os-profiles.yaml`
+- `config/spec-frozen/runtime/tables/protected-local-runtime-principal-profiles.yaml`
+- `config/spec-frozen/runtime/tables/protected-local-custody-profiles.yaml`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-028`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 
 ---
@@ -1796,7 +1796,7 @@ stage entered, the stage exited, and the required-truth evidence
 references the stage consumed (`P-AUDIT-001` is the admission location
 for the gate-transition audit-event obligation; the obligation does not
 derive from any other rule. `P-ECO-004` at
-`.nimi/spec/platform/kernel/nimi-ecosystem-contract.md` lines 48-67
+`.nimi/spec/platform/app-ecosystem.authority.yaml` lines 48-67
 admits only the review-state set, the tier-to-adjudicator mapping, the
 no-silent-jump invariant, and the kill-switched-terminal invariant — it
 does NOT admit a state-transition audit-event obligation. This MUST
@@ -2114,7 +2114,7 @@ transition fails admission closed with typed reason
 `MUST`：`P-AUDIT-007` is the admission location for the
 review-state transition audit-event obligation. The obligation does
 NOT derive from `P-ECO-004`. `P-ECO-004` at
-`.nimi/spec/platform/kernel/nimi-ecosystem-contract.md` lines 48-67
+`.nimi/spec/platform/app-ecosystem.authority.yaml` lines 48-67
 admits only the review-state set, the tier-to-adjudicator mapping,
 the no-silent-jump invariant, and the kill-switched-terminal
 invariant — it does NOT admit a state-transition audit-event
@@ -2153,18 +2153,18 @@ and do not redefine them.
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-ecosystem-contract.md` — `P-ECO-001..P-ECO-010`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-ECO-001..P-ECO-010`
   (review-state set, tier-to-adjudicator mapping, trust-tier floor enum;
   consumed by `P-AUDIT-001` and `P-AUDIT-004`, never redefined)
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-013`,
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-013`,
   `P-NAPP-014`, `P-NAPP-018`, `P-NAPP-025` (PR-admission path, immutable
   descriptor verification, descriptor shape, review-decision schema;
   cross-referenced from `P-AUDIT-001`, `P-AUDIT-002`, `P-AUDIT-006`)
-- `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
+- `config/platform-nimi-app-release-descriptors.yaml`
   (`third_party_descriptor_floor.forbidden_install_inputs` consumed at
   `P-AUDIT-001` `submit`-stage forbidden-shortcut clause; descriptor
   shape consumed at `P-AUDIT-006` review-evidence shape)
-- `.nimi/spec/platform/kernel/nimi-app-developer-workflow-contract.md` —
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` —
   `P-DEV-003` (developer-side `nimi audit` command; cross-referenced from
   `P-AUDIT-005`)
 - This contract is the active authority for publish-to-admission gate sequence,
@@ -2605,14 +2605,14 @@ written only to its admitted owner surface and cannot become workflow truth.
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-013`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-013`
   (PR-admission path mechanism), `P-NAPP-014` (release-descriptor
   immutability and digest verification), `P-NAPP-018` (third-party
   release-descriptor shape; consumed by `P-DEV-001` as the
   developer-manifest schema target, and by `P-DEV-004` and
   `P-DEV-005` as the source-reference and reviewable-change-set
   authority surfaces; never redefined)
-- `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` —
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` —
   `P-AUDIT-001` (publish-to-admission gate sequence; consumed at
   `P-DEV-002` `submit` / `review-evidence` / `release-promotion`
   steps), `P-AUDIT-002` (typed audit-pipeline composition; consumed
@@ -2622,7 +2622,7 @@ written only to its admitted owner surface and cannot become workflow truth.
   clause and at `P-DEV-003` `MUST NOT`), `P-AUDIT-005` (developer-side
   `nimi audit` non-gate posture; coupled by mutual cross-reference to
   `P-DEV-003` under the parent plan's rule-ID freeze posture)
-- `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
+- `config/platform-nimi-app-release-descriptors.yaml`
   (`third_party_descriptor_floor.forbidden_install_inputs` referenced
   at `P-DEV-004` `MUST NOT` clause against mutable resolvers; the
   floor enumeration itself is owned by `P-NAPP-018`)
@@ -3086,20 +3086,20 @@ remain fail-closed.
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` --
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` --
   `P-NAPP-013`, `P-NAPP-014`, `P-NAPP-018`, `P-NAPP-023`
-- `.nimi/spec/platform/kernel/nimi-app-developer-workflow-contract.md` --
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` --
   `P-DEV-001..P-DEV-005`
-- `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` --
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` --
   `P-AUDIT-001..P-AUDIT-005`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md` --
+- `.nimi/spec/platform/authority-admission.authority.yaml` --
   `P-APP-001..P-APP-006`
-- `.nimi/spec/platform/kernel/app-permission-contract.md` -- `P-PERM-*`
-- `.nimi/spec/platform/kernel/kit-contract.md` -- `P-KIT-041`, `P-KIT-042`
-- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` -- `S-APP-*`
-- `.nimi/spec/runtime/kernel/account-session-contract.md` -- `K-ACCSVC-*`
-- `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` -- `K-BIND-*`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md` -- `K-APP-*`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` -- `P-PERM-*`
+- `.nimi/spec/platform/ui-design-system.authority.yaml` -- `P-KIT-041`, `P-KIT-042`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` -- `S-APP-*`
+- `.nimi/spec/runtime/protected-session.authority.yaml` -- `K-ACCSVC-*`
+- `.nimi/spec/runtime/app-surface.authority.yaml` -- `K-BIND-*`
+- `.nimi/spec/runtime/app-surface.authority.yaml` -- `K-APP-*`
 
 ---
 
@@ -3242,15 +3242,15 @@ Runtime / Realm / Cognition / SDK boundary invariants。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015`
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
-- `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/platform/kernel/nimi-first-party-integration-contract.md` — `P-FPI-001..P-FPI-008`
-- `.nimi/spec/platform/kernel/nimi-first-party-migration-contract.md` — `P-FPM-001..P-FPM-006`
-- `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-022..P-ARCH-027`
-- `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-PERM-001..P-PERM-010`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-AGID-001..P-AGID-008`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AIPS-001..P-AIPS-013`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-FPI-001..P-FPI-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-FPM-001..P-FPM-006`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-ARCH-022..P-ARCH-027`
+- `config/platform-nimi-app-trust-tiers.yaml`
+- `config/platform-nimi-app-registry.yaml`
 
 ---
 
@@ -3528,12 +3528,9 @@ Public Extension。
 ## P-MOEX-002 — Retired (Existing Mod / Hook Surfaces)
 
 `RETIRED`：既有 Mod / Hook / runtime-mod / SDK mod surface 已完成 physical
-retirement execution。`.nimi/spec/desktop/kernel/mod-governance-contract.md`、
-`.nimi/spec/desktop/kernel/hook-capability-contract.md`、
-`.nimi/spec/desktop/kernel/tables/mod-*`、
-`.nimi/spec/desktop/kernel/tables/hook-*`、
-`.nimi/spec/desktop/kernel/tables/turn-hook-points.yaml`、
-`.nimi/spec/sdks/kernel/mod-contract.md` 等存量 active authority 文件已撤回；
+retirement execution。Desktop mod-governance 与 hook-capability 契约、其
+mod / hook / turn-hook-points 表族，以及 SDK mod 契约等存量 active authority
+文件已撤回；
 对应 SDK exports、runtime CLI、Desktop / Web consumer surfaces、scripts / CI
 guards 与 docs active references 已移除。
 
@@ -3605,8 +3602,8 @@ script / generated SDK anti-targets。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
-- `.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md` — `P-NAPP-030..P-NAPP-032`
-- `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-030..P-NAPP-032`
+- `config/platform-nimi-app-registry.yaml`
 
 ---

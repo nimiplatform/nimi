@@ -144,16 +144,11 @@ next.
 
 ## Source Basis
 
-- [`.nimi/spec/runtime/connector.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/connector.md)
-- [`.nimi/spec/runtime/nimillm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/nimillm.md)
-- [`.nimi/spec/runtime/kernel/connector-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/connector-contract.md)
-- [`.nimi/spec/runtime/kernel/nimillm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/nimillm-contract.md)
-- [`.nimi/spec/runtime/kernel/provider-health-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/provider-health-contract.md)
-- [`.nimi/spec/runtime/kernel/model-catalog-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/model-catalog-contract.md)
-- [`.nimi/spec/runtime/kernel/model-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/model-service-contract.md)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
+- [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
-- [`.nimi/spec/runtime/kernel/tables/provider-catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/provider-catalog.yaml)
-- [`.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml)
-- [`.nimi/spec/runtime/kernel/tables/provider-extension-registry.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/provider-extension-registry.yaml)
-- [`.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml)
-- [`.nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml)
+- [`config/runtime-provider-catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-provider-catalog.yaml)
+- [`config/runtime-provider-capabilities.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-provider-capabilities.yaml)
+- [`config/runtime-provider-extension-registry.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-provider-extension-registry.yaml)
+- [`config/spec-frozen/runtime/tables/connector-rpc-field-rules.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/connector-rpc-field-rules.yaml)
+- [`config/spec-frozen/runtime/tables/key-source-truth-table.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/key-source-truth-table.yaml)

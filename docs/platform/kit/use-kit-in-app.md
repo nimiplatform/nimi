@@ -117,5 +117,5 @@ pnpm run doctor
 
 - [`kit/README.md`](https://github.com/nimiplatform/nimi/blob/main/kit/README.md)
 - [`kit/package.json`](https://github.com/nimiplatform/nimi/blob/main/kit/package.json)
-- [`.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml)
+- [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
 - [`apps/tester/src/tester/tester-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-ai-config-store.ts)

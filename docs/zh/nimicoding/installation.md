@@ -25,13 +25,12 @@ package.json 中声明的项目命令，让宿主边界先完成检查。
 ## 验证集成
 
 ```bash
-pnpm check:nimicoding-host-hardcut
 pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-三项检查都必须通过。Hardcut 会拒绝已经移除的执行面；`sync --check` 随后核验
-package-canonical 文件和必备的 host-owned seed，宿主自有内容不会被误判为包漂移。
+两项检查都必须通过。`sync --check` 核验 package-canonical 文件和必备的 host-owned
+seed，宿主自有内容不会被误判为包漂移。
 
 ## 验证产品权威
 
@@ -54,7 +53,6 @@ pnpm exec nimicoding validate-spec-tree .nimi/spec
 ## 来源依据
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/bootstrap.yaml)
 - [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

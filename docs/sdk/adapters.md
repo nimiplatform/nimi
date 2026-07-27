@@ -55,8 +55,7 @@ provider-native bypasses.
 
 ## Source Basis
 
-- [`.nimi/spec/sdks/kernel/ai-adapter-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/ai-adapter-contract.md)
-- [`.nimi/spec/sdks/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/surface-contract.md)
-- [`.nimi/spec/sdks/kernel/typescript-vnext-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/typescript-vnext-contract.md)
-- [`.nimi/spec/sdks/kernel/tables/adapter-source-roots.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/adapter-source-roots.yaml)
-- [`.nimi/spec/sdks/kernel/tables/typescript-adapter-capability-ledger.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/typescript-adapter-capability-ledger.yaml)
+- [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+- [`config/sdks-adapter-source-roots.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-adapter-source-roots.yaml)
+- [`config/sdks-typescript-adapter-capability-ledger.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-adapter-capability-ledger.yaml)

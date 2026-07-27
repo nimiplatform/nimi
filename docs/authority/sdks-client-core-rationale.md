@@ -47,10 +47,6 @@ The `@nimiplatform/sdk` root entrypoint is the recommended app-level
 composition surface for first-party docs/examples; subpaths remain explicit
 low-level escape hatches or dedicated domain entrypoints.
 
-执行命令：
-
-- `pnpm check:sdk-vnext-package-contract`
-
 ## S-SURFACE-002 Runtime SDK 对外方法投影
 
 The vNext TypeScript app-facing Runtime facade projection groups methods
@@ -58,7 +54,7 @@ by service. Method names must align with the corresponding service entries in
 `config/runtime-rpc-methods.yaml` and use design names. For
 the TypeScript facade only, the service list and projected method set are
 governed by
-`.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml` (S-SURFACE-009);
+`config/sdks-runtime-method-groups.yaml` (S-SURFACE-009);
 each group tracks alignment status and phase independently.
 
 `runtime-method-groups.yaml` is not the cross-language core method source and
@@ -194,7 +190,7 @@ Realm SDK 公开符号（类型名、service 名、公开方法名、property-en
 
 ## S-SURFACE-009 Runtime 方法投影表治理
 
-`.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml` is the structured
+`config/sdks-runtime-method-groups.yaml` is the structured
 fact source for the vNext TypeScript app-facing Runtime facade projection only.
 It uses an explicit-maintenance plus consistency-check model:
 
@@ -968,7 +964,7 @@ Active SDK boundary:
 - `runtime.agent.turns.subscribe(...)` may filter by explicit `agentId` and
   optional `conversationAnchorId`
 - emitted SDK event names and payloads must remain downstream of
-  `config/runtime-agent-event-projection.yaml`
+  `.nimi/spec/runtime/agent-service.authority.yaml`
 - SDK parsing must fail closed on invalid runtime activity category or
   intensity values
 
@@ -1507,7 +1503,7 @@ SDK 错误投影分两层：
 
 ## S-ERROR-002 ReasonCode 事实源
 
-Runtime 相关 ReasonCode 以 `.nimi/spec/runtime/kernel/tables/reason-codes.yaml` 为权威。
+Runtime 相关 ReasonCode 以 `config/runtime-reason-codes.yaml` 为权威。
 SDK 文档不得重新分配 Runtime ReasonCode 数值。
 
 执行命令：
@@ -1519,7 +1515,7 @@ SDK 文档不得重新分配 Runtime ReasonCode 数值。
 SDK 本地错误码唯一事实源为 `tables/sdk-error-codes.yaml`。
 
 Simulator control errors remain owned by
-`.nimi/spec/platform/kernel/tables/simulator-error-codes.yaml` and are not SDK
+`.nimi/spec/platform/simulator.authority.yaml` and are not SDK
 local error codes or Runtime ReasonCodes. `SIMULATOR_*` names must not be added
 to `sdk-error-codes.yaml`, exposed by a production SDK client, or leak through
 the host-neutral facade.
@@ -1554,7 +1550,7 @@ SDK 在版本协商或方法可用性检查阶段触发的本地错误必须使�
 
 retryable 集合分两类来源：
 
-Runtime ReasonCode（权威源：`.nimi/spec/runtime/kernel/tables/reason-codes.yaml`）：
+Runtime ReasonCode（权威源：`config/runtime-reason-codes.yaml`）：
 
 - `AI_PROVIDER_UNAVAILABLE`
 - `AI_PROVIDER_TIMEOUT`
@@ -1589,7 +1585,7 @@ Runtime 内部 transparent retry（auto 连接模式）使用独立 retryable �
 Runtime 响应可携带 `reason_code` 且 gRPC 状态为 `OK`，属于非错误终端原因：
 
 - SDK 必须将这些投射为响应元数据或 `finishReason` 字段，不可作为抛出错误。
-- 非错误终端原因集合由 `.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml` 中 `exit_shape: terminal_reason_non_error` 定义。
+- 非错误终端原因集合由 `config/spec-frozen/runtime/tables/error-mapping-matrix.yaml` 中 `exit_shape: terminal_reason_non_error` 定义。
 - 当前适用（完整集合，以 `error-mapping-matrix.yaml` 中 `exit_shape: terminal_reason_non_error` 为权威）：`AI_FINISH_LENGTH`、`AI_FINISH_CONTENT_FILTER`。
 - 特例：`test_connector` 表面的 `AI_CONNECTOR_CREDENTIAL_MISSING` 使用 `exit_shape: payload_ok_false`（gRPC OK + ok=false payload），SDK 不应将其视为异常。
 - 双模退出形态：`exit_shape: grpc_status_or_payload_ok_false` 表示同一 ReasonCode 在不同 surface 可能以 gRPC 错误或 `ok=false` payload 返回（当前适用：`AI_LOCAL_MODEL_PROFILE_MISSING`、`AI_LOCAL_MODEL_UNAVAILABLE`，surface 为 `local_consume_or_probe`）。SDK 须对两种退出形态等价处理：gRPC 错误路径按常规错误投影，`ok=false` payload 路径按非异常结果投影。
@@ -1725,11 +1721,6 @@ SDK 根入口必须固定为 owner-approved vNext composition surface：
 - `createLocalFirstPartyRuntimePlatformClient`
 - `getPlatformClient`
 - `clearPlatformClient`
-
-执行命令：
-
-- `pnpm check:sdk-root-entry-contract`
-- `pnpm check:no-global-openapi-config`
 
 ## S-BOUNDARY-005 Developer Ergonomics Is Not Truth Ownership
 

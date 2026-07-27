@@ -10,7 +10,7 @@
 | Runtime | `.nimi/spec/runtime/**` |
 | SDK | `.nimi/spec/sdks/**` |
 | 桌面端与网页端 | `.nimi/spec/desktop/**` |
-| Realm | 外部 Realm authority；本仓库只保留 `.nimi/spec/realm/{README.md,external-realm.md}` 指针，并通过 `.nimi/spec/sdks/**` 的 consumer contracts 接入 |
+| Realm | 外部 Realm authority；本仓库只保留 `docs/spec/realm-readme.md` 与 `docs/spec/realm-external-anchor.md` 指针，并通过 `.nimi/spec/sdks/**` 的 consumer contracts 接入 |
 | Avatar | `.nimi/spec/avatar/**` |
 | Cognition | `.nimi/spec/cognition/**` |
 | Nimi Coding | `nimi-coding/spec/product-scope.yaml`、`nimi-coding/spec/_meta/spec-tree-model.yaml`、`nimi-coding/methodology/**`、`nimi-coding/contracts/**`、`nimi-coding/config/**` |
@@ -34,7 +34,7 @@ Runtime 内部还有子族：`K-WF-*`（工作流）、`K-STREAM-*`（流式）�
 
 ## 阅读建议
 
-- 需要跨域、按任务形状阅读：从 `.nimi/spec/INDEX.md` 开始。
+- 需要跨域、按任务形状阅读：从 `docs/spec/INDEX.md` 开始。
 - 已知所属域：从对应 kernel 的 `index.md` 开始。
 - kernel 的 `tables/` 目录是结构化事实源，里面是状态、错误码、能力的枚举；公开文档抽象的列表，原文就是这些表。
 - 生成 spec 视图通过
@@ -49,5 +49,5 @@ Runtime 内部还有子族：`K-WF-*`（工作流）、`K-STREAM-*`（流式）�
 
 ## 来源依据
 
-- [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
+- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc`

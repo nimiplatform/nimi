@@ -44,7 +44,5 @@
 
 ## 来源依据
 
-- [`.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md)
-- [`.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md)
-- [`.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md)
-- [`.nimi/spec/runtime/kernel/voice-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/voice-contract.md)
+- [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
+- [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)

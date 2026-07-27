@@ -17,13 +17,12 @@ pnpm install
 
 仓库已经包含准入后的 `.nimi/**` projections，不需要 package bootstrap 命令。
 
-## 2. 验证 Hardcut
+## 2. 了解宿主边界
 
-```bash
-pnpm check:nimicoding-host-hardcut
-```
-
-该检查确认 Codex 持有执行权，并确保项目侧禁用执行投影保持缺失。
+`.nimi/spec/platform/authority-admission.authority.yaml` 中的 `P-PKG-011` 声明：
+执行权归 Codex，项目侧的执行投影（topic 生命周期、wave/packet DAG、run ledger、
+goal bridge、嵌套宿主启动）一律不予准入。该边界没有单独的门禁命令可跑；仓库以
+确定性方式执法的是第 3 步的受管文件与 doctor 检查。
 
 ## 3. 验证受管文件
 
@@ -32,8 +31,7 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-两条命令都在 Nimi 宿主边界之后运行。package-canonical 文件缺失或漂移时会失败，
-但不会恢复任何执行状态。
+package-canonical 文件缺失或漂移时，两条命令都会失败，但不会恢复任何执行状态。
 
 ## 4. 检查规范构建契约
 
@@ -73,7 +71,6 @@ pnpm exec nimicoding validate-spec-tree .nimi/spec
 
 ## 来源依据
 
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

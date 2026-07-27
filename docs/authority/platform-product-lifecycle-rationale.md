@@ -306,18 +306,17 @@ upstream authority。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
-- `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
-- `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
-- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
-- `.nimi/spec/runtime/kernel/config-contract.md` — `K-CFG-*`
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
-- `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`
-- `.nimi/spec/platform/kernel/tables/first-run-state-machine.yaml`
-- `.nimi/spec/platform/kernel/tables/product-control-record-schema.yaml`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-HOME-001..P-HOME-010`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-SUPD-001..P-SUPD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-PKGREL-001..P-PKGREL-008`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AIPS-001..P-AIPS-013`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AISC-001..P-AISC-005`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-024..K-LENG-027`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-028`
+- `.nimi/spec/runtime/protected-session.authority.yaml` — `K-CFG-*`
+- `.nimi/spec/runtime/local-compute.authority.yaml`
+- `config/platform-first-run-state-machine.yaml`
+- `config/platform-product-control-record-schema.yaml`
 
 ---
 
@@ -535,12 +534,12 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-009..P-COLD-016`
-- `.nimi/spec/platform/kernel/tables/product-control-record-schema.yaml`
-- `.nimi/spec/platform/kernel/tables/first-run-state-machine.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml`
-- `.nimi/spec/platform/kernel/tables/local-config-file-registry.yaml`
-- `.nimi/spec/runtime/kernel/config-contract.md` — `K-CFG-014`, `K-CFG-015`, `K-CFG-016`, `K-CFG-018`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-COLD-009..P-COLD-016`
+- `config/platform-product-control-record-schema.yaml`
+- `config/platform-first-run-state-machine.yaml`
+- `config/platform-nimi-data-directory-ownership.yaml`
+- `config/platform-local-config-file-registry.yaml`
+- `.nimi/spec/runtime/protected-session.authority.yaml` — `K-CFG-014`, `K-CFG-015`, `K-CFG-016`, `K-CFG-018`
 
 ---
 
@@ -556,7 +555,7 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 本契约只定义产品 ontology 与非 owner 边界，shell IA 与实现细节由
 `.nimi/spec/desktop/shell-ui.authority.yaml`（`rule.nimi.desktop.shell-ui.r049..r061`）拥有。
 
-不创建 `.nimi/spec/home/**` 平级 kernel。
+不创建独立的 `home` 权威域。
 
 ## P-HOME-001 — Authority Boundary
 
@@ -574,7 +573,7 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 
 `MUST NOT`:
 
-- 不得创建 `.nimi/spec/home/**` 平级 kernel。
+- 不得创建独立的 `home` 权威域。
 - 不得让 `Nimi Home` 名称作为 schema、registry、table 列名、IPC 命令名、
   或文件路径段被复用为第二种 authority 名义。
 
@@ -604,7 +603,7 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 ## P-HOME-004 — Surface Registry Requirement
 
 `MUST`：`Nimi Home` 的 surface placement 由 Desktop canonical shell UI authority
-拥有，并由 `config/desktop-shell-ui-home-surfaces.yaml` 非权威投影为以下入口：
+拥有，入口为：
 
 - `first-run`
 - `apps`
@@ -691,17 +690,16 @@ health、Apps 等）。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
-- `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
-- `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
-- `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-ARCH-001..P-ARCH-021`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AISC-001..P-AISC-005`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AIPS-001..P-AIPS-013`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-SUPD-001..P-SUPD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-PKGREL-001..P-PKGREL-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-COLD-001..P-COLD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-WEB-*`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
-- `config/desktop-shell-ui-home-surfaces.yaml` — non-authoritative machine projection
-- `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
-- `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-AICONF-001..S-AICONF-006`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-RUNTIME-119`
 
 ---
 
@@ -795,15 +793,14 @@ OS service manager 持有。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
-- `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
-- `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
-- `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-HOME-001..P-HOME-010`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-PKGREL-001..P-PKGREL-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-COLD-001..P-COLD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-WEB-*`
 - `.nimi/spec/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
-- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
-- `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-024..K-LENG-027`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-028`
+- `.nimi/spec/runtime/local-compute.authority.yaml`
 
 ---
 
@@ -902,14 +899,14 @@ identity，必须由显式 `web-release-contract.md` cut 处理。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
-- `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
-- `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
-- `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
-- `.nimi/spec/platform/kernel/tables/release-gate-registry.yaml`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-HOME-001..P-HOME-010`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-SUPD-001..P-SUPD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-COLD-001..P-COLD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-WEB-*`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 - `.nimi/spec/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
-- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-024..K-LENG-027`
+- `.nimi/spec/runtime/local-compute.authority.yaml` — `K-LENG-028`
 
 ---
 
@@ -956,7 +953,7 @@ credentials, CSPs, environment schemas, or release evidence.
 
 ## P-WEB-005 — Evidence Root Admission
 
-Audit evidence roots for `apps/web/**`, `apps/install-gateway/**`, and other platform web/release support surfaces must be admitted through `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`. Audit tooling must not infer these roots from broad `apps/**` ownership or from package names alone.
+Audit evidence roots for `apps/web/**`, `apps/install-gateway/**`, and other platform web/release support surfaces must be admitted through `.nimi/spec/platform/app-ecosystem.authority.yaml`. Audit tooling must not infer these roots from broad `apps/**` ownership or from package names alone.
 
 `apps/simulator/**` evidence is admitted under its own Simulator authority row.
 It cannot be inferred as Web evidence merely because both artifacts are
@@ -1070,16 +1067,16 @@ spec admission。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
-- `.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md` — `P-NAPP-030..P-NAPP-032`
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
-- `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
-- `.nimi/spec/platform/kernel/nimi-first-party-migration-contract.md` — `P-FPM-001..P-FPM-006`
-- `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
-- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-008`
-- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-030..P-NAPP-032`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-PERM-001..P-PERM-010`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-AGID-001..P-AGID-008`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AIPS-001..P-AIPS-013`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-HOME-001..P-HOME-010`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-FPM-001..P-FPM-006`
+- `config/platform-nimi-app-registry.yaml`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-APP-001..S-APP-008`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 - `.nimi/spec/avatar` (kernel authority retained)
 
@@ -1183,13 +1180,13 @@ user product truth。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-first-party-integration-contract.md` — `P-FPI-001..P-FPI-008`
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
-- `.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md` — `P-NAPP-030..P-NAPP-032`
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
-- `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
-- `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
-- `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-FPI-001..P-FPI-008`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-NAPP-030..P-NAPP-032`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-PERM-001..P-PERM-010`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-COLD-001..P-COLD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-PKGREL-001..P-PKGREL-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-SUPD-001..P-SUPD-008`
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
 
 ---

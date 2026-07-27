@@ -12,8 +12,8 @@
 
 ## 0. Normative Imports
 
-- `.nimi/spec/platform/kernel/*`
-- `.nimi/spec/platform/kernel/tables/*`
+- `.nimi/spec/platform/*`
+- `config/platform-*`
 
 ## Scope
 
@@ -21,32 +21,22 @@ This guide points to the Platform authority surfaces for vision. It does not def
 
 ## Reading Path
 
-- `.nimi/spec/platform/kernel/index.md`
-- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
-- `.nimi/spec/platform/kernel/architecture-contract.md`
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
-- `.nimi/spec/platform/kernel/design-pattern-contract.md`
-- `.nimi/spec/platform/kernel/governance-contract.md`
-- `.nimi/spec/platform/kernel/kit-contract.md`
-- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
-- `.nimi/spec/platform/kernel/protocol-contract.md`
-- `.nimi/spec/platform/kernel/release-gate-contract.md`
+- `docs/spec/platform-domain-index.md`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `.nimi/spec/platform/authority-admission.authority.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
-- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
-- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `config/platform-app-slice-admissions.yaml`
+- `config/platform-audit-events.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `config/platform-canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/testing-discipline.authority.yaml`
+- `config/platform-error-code-mapping.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
 
 ---
 
@@ -58,8 +48,8 @@ This guide points to the Platform authority surfaces for vision. It does not def
 
 ## 0. Normative Imports
 
-- `.nimi/spec/platform/kernel/*`
-- `.nimi/spec/platform/kernel/tables/*`
+- `.nimi/spec/platform/*`
+- `config/platform-*`
 
 ## Scope
 
@@ -67,32 +57,22 @@ This guide points to the Platform authority surfaces for architecture. It does n
 
 ## Reading Path
 
-- `.nimi/spec/platform/kernel/index.md`
-- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
-- `.nimi/spec/platform/kernel/architecture-contract.md`
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
-- `.nimi/spec/platform/kernel/design-pattern-contract.md`
-- `.nimi/spec/platform/kernel/governance-contract.md`
-- `.nimi/spec/platform/kernel/kit-contract.md`
-- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
-- `.nimi/spec/platform/kernel/protocol-contract.md`
-- `.nimi/spec/platform/kernel/release-gate-contract.md`
+- `docs/spec/platform-domain-index.md`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `.nimi/spec/platform/authority-admission.authority.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
-- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
-- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `config/platform-app-slice-admissions.yaml`
+- `config/platform-audit-events.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `config/platform-canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/testing-discipline.authority.yaml`
+- `config/platform-error-code-mapping.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
 
 ---
 
@@ -104,8 +84,8 @@ This guide points to the Platform authority surfaces for architecture. It does n
 
 ## 0. Normative Imports
 
-- `.nimi/spec/platform/kernel/*`
-- `.nimi/spec/platform/kernel/tables/*`
+- `.nimi/spec/platform/*`
+- `config/platform-*`
 
 ## Scope
 
@@ -113,32 +93,22 @@ This guide points to the Platform authority surfaces for protocol. It does not d
 
 ## Reading Path
 
-- `.nimi/spec/platform/kernel/index.md`
-- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
-- `.nimi/spec/platform/kernel/architecture-contract.md`
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
-- `.nimi/spec/platform/kernel/design-pattern-contract.md`
-- `.nimi/spec/platform/kernel/governance-contract.md`
-- `.nimi/spec/platform/kernel/kit-contract.md`
-- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
-- `.nimi/spec/platform/kernel/protocol-contract.md`
-- `.nimi/spec/platform/kernel/release-gate-contract.md`
+- `docs/spec/platform-domain-index.md`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `.nimi/spec/platform/authority-admission.authority.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
-- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
-- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `config/platform-app-slice-admissions.yaml`
+- `config/platform-audit-events.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `config/platform-canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/testing-discipline.authority.yaml`
+- `config/platform-error-code-mapping.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
 
 ---
 
@@ -150,8 +120,8 @@ This guide points to the Platform authority surfaces for protocol. It does not d
 
 ## 0. Normative Imports
 
-- `.nimi/spec/platform/kernel/*`
-- `.nimi/spec/platform/kernel/tables/*`
+- `.nimi/spec/platform/*`
+- `config/platform-*`
 
 ## Scope
 
@@ -159,32 +129,22 @@ This guide points to the Platform authority surfaces for ai-last-mile. It does n
 
 ## Reading Path
 
-- `.nimi/spec/platform/kernel/index.md`
-- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
-- `.nimi/spec/platform/kernel/architecture-contract.md`
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
-- `.nimi/spec/platform/kernel/design-pattern-contract.md`
-- `.nimi/spec/platform/kernel/governance-contract.md`
-- `.nimi/spec/platform/kernel/kit-contract.md`
-- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
-- `.nimi/spec/platform/kernel/protocol-contract.md`
-- `.nimi/spec/platform/kernel/release-gate-contract.md`
+- `docs/spec/platform-domain-index.md`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `.nimi/spec/platform/authority-admission.authority.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
-- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
-- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `config/platform-app-slice-admissions.yaml`
+- `config/platform-audit-events.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `config/platform-canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/testing-discipline.authority.yaml`
+- `config/platform-error-code-mapping.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
 
 ---
 
@@ -196,8 +156,8 @@ This guide points to the Platform authority surfaces for ai-last-mile. It does n
 
 ## 0. Normative Imports
 
-- `.nimi/spec/platform/kernel/*`
-- `.nimi/spec/platform/kernel/tables/*`
+- `.nimi/spec/platform/*`
+- `config/platform-*`
 
 ## Scope
 
@@ -205,32 +165,22 @@ This guide points to the Platform authority surfaces for ai-agent-security-inter
 
 ## Reading Path
 
-- `.nimi/spec/platform/kernel/index.md`
-- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
-- `.nimi/spec/platform/kernel/architecture-contract.md`
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
-- `.nimi/spec/platform/kernel/design-pattern-contract.md`
-- `.nimi/spec/platform/kernel/governance-contract.md`
-- `.nimi/spec/platform/kernel/kit-contract.md`
-- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
-- `.nimi/spec/platform/kernel/protocol-contract.md`
-- `.nimi/spec/platform/kernel/release-gate-contract.md`
+- `docs/spec/platform-domain-index.md`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `.nimi/spec/platform/authority-admission.authority.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
-- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
-- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `config/platform-app-slice-admissions.yaml`
+- `config/platform-audit-events.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `config/platform-canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/testing-discipline.authority.yaml`
+- `config/platform-error-code-mapping.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
 
 ---
 
@@ -572,7 +522,7 @@ app-launch scope 不得复用 `P-AISC-006` 的 built-in chat feature scope
 
 ## P-CAPCAT-001 — Canonical Capability Identity Authority
 
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml` is the single
+- `config/platform-canonical-capability-catalog.yaml` is the single
   authoritative enumeration of `CanonicalCapabilityId` values admitted by Nimi apps.
 - Every row declares one capability with fields `capabilityId`, `section`, `editorKind`,
   `sourceRef`, `i18nKeys`, and `runtimeEvidenceClass`; no app, kit module, or runtime
@@ -846,7 +796,7 @@ factory `AIProfile` 仅通过 `CanonicalCapabilityId` 表达能力意图。
 `MUST`:
 
 - `capability_set` 字段中的每个元素必须是
-  `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml` 中
+  `config/platform-canonical-capability-catalog.yaml` 中
   已 admit 的 `capabilityId`，遵循 `P-CAPCAT-*` 的 cross-layer identity
   authority。
 - 当目标 capability 属于 deferred 子条目时，alias 必须在
@@ -1105,33 +1055,33 @@ Account Default Profile content source。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AISC-001..P-AISC-005`
   canonical `AIScopeRef` identity contract
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md` —
+- `.nimi/spec/platform/core-protocol.authority.yaml` —
   `P-CAPCAT-001..P-CAPCAT-003` canonical capability identity authority
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml` —
+- `config/platform-canonical-capability-catalog.yaml` —
   admitted `CanonicalCapabilityId` rows
 - `.nimi/spec/desktop/ai-consumption.authority.yaml` —
   `D-AIPC-001..D-AIPC-012` Desktop consumption rules for `AIProfile` /
   `AIConfig` / `AISnapshot`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` —
+- `.nimi/spec/runtime/ai-provider.authority.yaml` —
   `K-AIEXEC-001..K-AIEXEC-006` runtime profile execution + probe contract
-- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` —
+- `.nimi/spec/runtime/local-compute.authority.yaml` —
   `K-LENG-024..K-LENG-027` runtime local environment authority
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` —
+- `.nimi/spec/runtime/local-compute.authority.yaml` —
   `K-LENG-028`, `K-RPC-025`, materializer registry/projection authority
-- `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`
+- `.nimi/spec/runtime/local-compute.authority.yaml`
   — `K-LENV-ACT-001..K-LENV-ACT-010` activation gate authority
-- `.nimi/spec/runtime/kernel/tables/host-capability-profiles.yaml`
+- `config/spec-frozen/runtime/tables/host-capability-profiles.yaml`
 - `config/runtime-local-compute-packs.yaml`
 - `config/runtime-local-environment-dependencies.yaml`
 - `config/runtime-local-environment-materializers.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` —
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` —
   `S-AICONF-001..S-AICONF-006` SDK AI config typed surface
-- `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` —
+- `.nimi/spec/sdks/feature-clients.authority.yaml` —
   `S-RUNTIME-119` SDK local environment projection
-- `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml` —
+- `config/platform-ai-profile-factory-catalog.yaml` —
   admitted factory `AIProfile` rows
 
 ---
@@ -1289,7 +1239,7 @@ existing Desktop kernel hosted-shell 合同（`D-HOME-*`、`D-SHELL-*` 等）
 
 ## P-ARCH-029 — Consumer API Contract Home
 
-`MUST`: World Evolution Engine 的 app consumer-facing API contract 落点固定为 `.nimi/spec/sdks/kernel/**` 中的 downstream consumer seam contract。
+`MUST`: World Evolution Engine 的 app consumer-facing API contract 落点固定为 `.nimi/spec/sdks/**` 中的 downstream consumer seam contract。
 
 该 contract 只拥有：
 
@@ -1459,10 +1409,9 @@ authority or release evidence.
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/tables/desktop-open-intents.yaml`
-- `.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`
-- `.nimi/spec/platform/kernel/tables/rule-evidence.yaml`
-- `.nimi/spec/desktop/kernel/tables/desktop-open-targets.yaml`
-- `.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml`
+- `config/platform-desktop-open-intents.yaml`
+- `scripts/testdata/desktop-open-intent-golden-vectors.yaml`
+- `config/desktop-open-targets.yaml`
+- `config/platform-standard-shell-capabilities.yaml`
 
 ---

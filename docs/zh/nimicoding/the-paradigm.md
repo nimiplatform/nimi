@@ -30,6 +30,6 @@ Codex 收到“增加一个 profile 字段”的请求。编辑前，它先判�
 
 ## 来源依据
 
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)
 - [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
 - [`.nimi/contracts/surface-taxonomy.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/surface-taxonomy.schema.yaml)

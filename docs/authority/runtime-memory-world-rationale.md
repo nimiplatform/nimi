@@ -169,7 +169,7 @@ Fixed rules:
 
 - RuntimeAgentService remains the runtime owner of live agent execution, canonical admission, and runtime-private posture/hook truth
 - if runtime consumes standalone cognition kernels, prompt context, or advisory outputs, that consumption must remain adapter-owned rather than semantic ownership
-- cognition runtime bridge and prompt-serving boundaries are governed by `.nimi/spec/cognition/kernel/runtime-bridge-contract.md`, `.nimi/spec/cognition/kernel/prompt-serving-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml`
+- cognition runtime bridge and prompt-serving boundaries are governed by `.nimi/spec/cognition/runtime-bridge.authority.yaml`, `.nimi/spec/cognition/standalone-services.authority.yaml`, and `.nimi/spec/cognition/runtime-bridge.authority.yaml`
 - RuntimeAgentService must not redefine cognition object model, cleanup semantics, or standalone public surface by implementation convention
 - runtime/private cognition consumption does not authorize collapsing cognition authority back into runtime contracts
 
@@ -594,7 +594,7 @@ Fixed rules:
   provider, replication, and runtime-private review/substrate semantics on the
   runtime path
 - extracted standalone cognition semantics must live under the cognition authority home rather than being redefined here
-- cognition memory upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`, `.nimi/spec/cognition/kernel/memory-service-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
+- cognition memory upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/runtime-bridge.authority.yaml`, `.nimi/spec/cognition/standalone-services.authority.yaml`, and `.nimi/spec/cognition/runtime-bridge.authority.yaml`
 - runtime memory must not absorb cognition kernel, prompt, working-state, or routine ownership by implementation convenience
 - runtime-facing overlap memory semantics are now owned by
   `RuntimeCognitionService`; overlapping record mechanics or adapter reuse do
@@ -676,7 +676,7 @@ Fixed rules:
 - runtime must not ship a default supervised or attached memory substrate path under `runtime/internal/**`
 - runtime config must not advertise provider-specific memory bootstrap fields as active authority
 - extracting runtime-owned memory logic into internal libraries or subpackages under the existing runtime module does not by itself admit a new provider, public engine identity, or public wire contract
-- any future memory provider admission requires a later redesign under `.nimi/spec/runtime/kernel/**`
+- any future memory provider admission requires a later redesign under `.nimi/spec/runtime/**`
 
 ## K-MEMSUB-003 Runtime-Owned Overlay And Identity Binding
 
@@ -1025,7 +1025,7 @@ Fixed rules:
   `RuntimeCognitionService`, while this file preserves the absorbed semantic
   floor for runtime-local bank/page/search/graph/ingest behavior
 - extracted standalone cognition knowledge semantics must live under cognition authority rather than being redefined here
-- cognition knowledge upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`, `.nimi/spec/cognition/kernel/knowledge-service-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
+- cognition knowledge upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/runtime-bridge.authority.yaml`, `.nimi/spec/cognition/standalone-services.authority.yaml`, and `.nimi/spec/cognition/runtime-bridge.authority.yaml`
 - runtime knowledge must not absorb cognition kernel, working-state, prompt, or routine ownership by extension
 - shared page or relation mechanics do not make the retired runtime knowledge
   topology the continuing owner of cognition knowledge projections
@@ -1667,10 +1667,7 @@ If an implementation uses workflow substrate, it must first project all external
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-022` through `P-ARCH-028`
-- `.nimi/spec/realm/kernel/world-state-contract.md` — `R-WSTATE-001` through `R-WSTATE-006`
-- `.nimi/spec/realm/kernel/world-history-contract.md` — `R-WHIST-001` through `R-WHIST-006`
-- `.nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-ARCH-022` through `P-ARCH-028`
 - `audit-contract.md` — `K-AUDIT-001`, `K-AUDIT-003`, `K-AUDIT-015`, `K-AUDIT-019`, `K-AUDIT-020`, `K-AUDIT-021`
 - `workflow-contract.md` — `K-WF-003`, `K-WF-004`
 - `scheduling-contract.md` — `K-SCHED-001` through `K-SCHED-007`

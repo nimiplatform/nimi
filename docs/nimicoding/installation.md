@@ -27,13 +27,11 @@ projection is refreshed.
 ## Verify The Integration
 
 ```bash
-pnpm check:nimicoding-host-hardcut
 pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-All three checks must pass. The hardcut rejects removed execution surfaces;
-`sync --check` then verifies package-canonical files and required host-owned
+Both checks must pass. `sync --check` verifies package-canonical files and required host-owned
 seed files without treating host-specific content as package drift.
 
 ## Verify Product Authority
@@ -60,7 +58,6 @@ overrides.
 ## Source Basis
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/bootstrap.yaml)
 - [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

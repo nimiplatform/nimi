@@ -169,12 +169,7 @@ runtime.
 
 ## Source Basis
 
-- [`.nimi/spec/runtime/kernel/workflow-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/workflow-contract.md)
-- [`.nimi/spec/runtime/kernel/scenario-job-lifecycle.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/scenario-job-lifecycle.md)
-- [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)
-- [`.nimi/spec/runtime/kernel/tables/workflow-node-types.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/workflow-node-types.yaml)
-- [`.nimi/spec/runtime/kernel/tables/workflow-states.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/workflow-states.yaml)
-- [`.nimi/spec/runtime/kernel/tables/scenario-types.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/scenario-types.yaml)
-- [`.nimi/spec/runtime/kernel/tables/scenario-execution-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/scenario-execution-matrix.yaml)
-- [`.nimi/spec/runtime/kernel/tables/job-states.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/job-states.yaml)
-- [`.nimi/spec/runtime/kernel/tables/state-transitions.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/state-transitions.yaml)
+- [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
+- [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
+- [`config/spec-frozen/runtime/tables/job-states.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/job-states.yaml)

@@ -35,7 +35,7 @@
 
 ---
 
-<!-- migrated-source: .nimi/spec/runtime/kernel/authn-token-validation.md -->
+<!-- migrated-source: .nimi/spec/runtime/security-core.authority.yaml -->
 
 # AuthN Token Validation Contract
 
@@ -152,7 +152,7 @@ to exercise the contract under realistic transport behavior.
 
 ---
 
-<!-- migrated-source: .nimi/spec/runtime/kernel/authz-ownership.md -->
+<!-- migrated-source: .nimi/spec/runtime/security-core.authority.yaml -->
 
 # AuthZ & Ownership Contract
 
@@ -220,7 +220,7 @@ Connector ownership applies to remote credential custody only.
 
 ---
 
-<!-- migrated-source: .nimi/spec/runtime/kernel/endpoint-security.md -->
+<!-- migrated-source: .nimi/spec/runtime/security-core.authority.yaml -->
 
 # Endpoint Security Contract
 
@@ -262,7 +262,7 @@ Phase 1 不提供私网 allowlist（CIDR/hosts）。
 
 ---
 
-<!-- migrated-source: .nimi/spec/runtime/kernel/grant-service.md -->
+<!-- migrated-source: .nimi/spec/runtime/security-core.authority.yaml -->
 
 # Runtime Permission Decision Contract
 
@@ -345,7 +345,7 @@ permission admission slice, not a standalone schema or CRUD change.
 
 ---
 
-<!-- migrated-source: .nimi/spec/runtime/kernel/key-source-routing.md -->
+<!-- migrated-source: .nimi/spec/runtime/security-core.authority.yaml -->
 
 # Key Source & Routing Contract
 
@@ -565,7 +565,7 @@ target identity. `connector_id` remains credential custody only.
 
 ---
 
-<!-- migrated-source: .nimi/spec/runtime/kernel/workspace-binding-contract.md -->
+<!-- migrated-source: .nimi/spec/runtime/security-core.authority.yaml -->
 
 # Workspace Binding Contract
 

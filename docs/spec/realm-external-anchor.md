@@ -25,7 +25,7 @@ to canonical Realm account/resource policy; Runtime never exports bearer
 material or mirrors Realm policy decisions into a local decision store.
 
 No Realm server/domain definitions, forks, or mirrors are part of this pointer
-under `.nimi/spec/realm/**`.
+under these pointer docs.
 
 Source materialization is the external Realm authenticated first-party product
 operation defined by Realm policy v5, not an App permission. Runtime sends no

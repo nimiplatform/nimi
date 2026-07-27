@@ -28,13 +28,13 @@
 
 ```bash
 pnpm install
-pnpm check:nimicoding-host-hardcut
 pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-这些检查验证已审计的软件包版本、package-canonical 文件、宿主专用内容与执行
-所有权上限，但不会创建产品权威。
+这些检查验证 package-canonical 文件与宿主专用内容。执行所有权上限本身由
+`.nimi/spec/platform/authority-admission.authority.yaml` 中的 `P-PKG-011` 声明，
+不再由 wrapper 命令承担。两项检查都不会创建产品权威。
 
 ## 2. 重建产品权威
 

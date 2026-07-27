@@ -38,4 +38,4 @@ error, [Authority Domains](/reference/authority-domains) and
 
 ## Source Basis
 
-- [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
+- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)

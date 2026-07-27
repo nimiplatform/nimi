@@ -348,8 +348,9 @@ The two tracks may share agent state and memory policy, but they must not collap
 
 Life Track model output may not emit free-form execution logic.
 
-It must emit typed `HookIntent` only. Trigger kinds are defined by
-`config/runtime-memory-hook-trigger.yaml`.
+It must emit typed `HookIntent` only. Trigger kinds are Runtime-owned under
+`.nimi/spec/runtime/agent-service.authority.yaml`; no separate enum projection
+carries them.
 
 Fixed rules:
 
@@ -481,8 +482,8 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
 - when `QueryAgentMemory` exposes a stale narrative projection, the stale marker must remain explicit; RuntimeAgentService must not collapse stale narrative context into admitted truth state
 - agent events must expose explicit failure / reschedule / budget states as typed event kinds
 - app-facing transient turn / presentation / state projections must use the
-  stable family-specific envelopes and detail shapes pinned in
-  `config/runtime-agent-event-projection.yaml`
+  stable family-specific envelopes and detail shapes owned by
+  `.nimi/spec/runtime/agent-service.authority.yaml`
 - model-facing agent chat output for the Live2D companion substrate
   continuation is governed by `agent-output-wire-contract.md`; APML output must
   be validated and projected into typed runtime events before apps treat it as
@@ -990,8 +991,8 @@ Fixed rules:
 - `proactive_interruptibility_v1` is default off. No app or SDK consumer may
   enable it by rendering UI state or fabricating projection fields.
 - Every proactive suggested, delivered, or suppressed outcome must be projected
-  as one of the `runtime.agent.proactive.*` events admitted in
-  `config/runtime-agent-event-projection.yaml` and must carry an `audit_ref`.
+  as one of the `runtime.agent.proactive.*` events admitted by
+  `.nimi/spec/runtime/agent-service.authority.yaml` and must carry an `audit_ref`.
 - `delivery_channel` is exactly `in_app_surface` or
   `notification.not_admitted`. `notification.not_admitted` is explicit
   non-delivery for OS notifications and must not be treated as a fake

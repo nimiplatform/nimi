@@ -19,14 +19,13 @@ pnpm install
 The repository already contains its admitted `.nimi/**` projections.
 No package bootstrap command is required.
 
-## 2. Verify The Hardcut
+## 2. Review The Host Boundary
 
-```bash
-pnpm check:nimicoding-host-hardcut
-```
-
-This confirms that Codex owns execution and that forbidden project-side
-execution projections remain absent.
+`P-PKG-011` in `.nimi/spec/platform/authority-admission.authority.yaml` declares
+that Codex owns execution and that project-side execution projections — topic
+lifecycles, wave/packet DAGs, run ledgers, goal bridges, nested host launches —
+stay unadmitted. There is no separate boundary gate to run: the projection and
+doctor checks in step 3 are what the repository enforces deterministically.
 
 ## 3. Verify Managed Projections
 
@@ -35,8 +34,8 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-Both commands run after the Nimi boundary check. They fail on missing or
-drifted package-canonical projections without restoring any execution state.
+Both commands fail on missing or drifted package-canonical projections without
+restoring any execution state.
 
 ## 4. Inspect Spec Construction Contracts
 
@@ -79,7 +78,6 @@ to apply the boundary to a real change.
 
 ## Source Basis
 
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

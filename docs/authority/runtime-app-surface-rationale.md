@@ -167,7 +167,7 @@ portable proof, stronger permission, or persistent Nimi-managed autostart.
 - `protected-local-session-contract.md` — `K-PLOCAL-*`
 - `account-session-contract.md` — `K-ACCSVC-*`
 - `grant-service.md` — `K-GRANT-*`
-- `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`
+- `config/platform-nimi-app-local-development-admission.yaml`
 
 ---
 
@@ -448,7 +448,7 @@ this rule. Each dimension produces exactly one typed sub-state per
 admitted enum for that dimension.
 
 **Disambiguation from `P-NAPP-008`.** `P-NAPP-008` at
-`.nimi/spec/platform/kernel/nimi-app-admission-contract.md:103-118`
+`.nimi/spec/platform/app-ecosystem.authority.yaml:103-118`
 admits the typed `health_repair_projection` set of eight overall
 **STATES** the app can be in:
 
@@ -531,7 +531,7 @@ absence is the typed default and is not itself one of `P-NAPP-008` 's
 admitted degraded states.
 
 The typed reason `os_storage_disclosure_missing` (`P-NAPP-028` at
-`.nimi/spec/platform/kernel/nimi-app-admission-contract.md` MUST NOT
+`.nimi/spec/platform/app-ecosystem.authority.yaml` MUST NOT
 clause) covers both "missing under app-owned-os-storage" and
 "populated under nimi-mediated-default" admission-time invariants.
 `K-APP-019` 's `storage` dimension surfaces the same typed reason at
@@ -913,12 +913,12 @@ truth and are not repartitioned or owned by the app principal.
 ## Fact Sources
 
 - `tables/local-app-principal-record-schema.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-app-local-trust-classes.yaml`
+- `config/platform-nimi-app-local-trust-classes.yaml`
 - `protected-local-session-contract.md` — `K-PLOCAL-*`
 - `grant-service.md` — `K-GRANT-*`
 - `account-session-contract.md` — `K-ACCSVC-*`
 - `runtime-agent-service-contract.md` — `K-AGCORE-*`
-- `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-*`
+- `.nimi/spec/cognition/standalone-services.authority.yaml` — `C-APMEM-*`
 
 ---
 
@@ -944,7 +944,7 @@ carries or redeems account bearer material;
 all local app Realm access uses the Runtime-mediated broker.
 
 Default Nimi Avatar launch is no longer a Desktop scoped-binding consumer.
-Avatar default launch is governed by `.nimi/spec/avatar/kernel/app-shell-contract.md`
+Avatar default launch is governed by `.nimi/spec/avatar/embodiment-surface.authority.yaml`
 `K-NAV-SHELL-FIRST-PARTY-RUNTIME-*` and uses local first-party Runtime account
 projection. This contract continues to govern explicit binding-only / embedded /
 delegated / external capability consumers.

@@ -2,8 +2,8 @@
 
 > Status: Running today. The SDK transport contract and the SDK
 > error projection contract are shipped under
-> `.nimi/spec/sdks/kernel/transport-contract.md` +
-> `.nimi/spec/sdks/kernel/error-projection.md`.
+> `.nimi/spec/sdks/client-core.authority.yaml` +
+> `.nimi/spec/sdks/client-core.authority.yaml`.
 
 The SDK Transport And Error surface covers how the SDK talks to
 runtime over admitted transports + how runtime errors project into
@@ -13,7 +13,7 @@ typed SDK errors that apps can handle predictably.
 
 | Concern | Authority |
 | --- | --- |
-| Transport bindings | `.nimi/spec/sdks/kernel/transport-contract.md` |
+| Transport bindings | `.nimi/spec/sdks/client-core.authority.yaml` |
 | Connection lifecycle | Per admitted transport |
 | Reconnect strategy | Transport-level only (does NOT rescue contract failure) |
 
@@ -25,7 +25,7 @@ responsible for "fixing" contract-level errors.
 
 | Concern | Authority |
 | --- | --- |
-| Error projection from runtime to SDK | `.nimi/spec/sdks/kernel/error-projection.md` |
+| Error projection from runtime to SDK | `.nimi/spec/sdks/client-core.authority.yaml` |
 | Reason code surfacing | Typed; never silently dropped |
 | Decode / content-type / schema failures | Surface as typed SDK errors; not retried |
 | Auth / transport failures | Surface as typed SDK errors; may retry per transport policy |
@@ -67,6 +67,5 @@ Runtime daemon enters STOPPING; SDK transport disconnects.
 
 ## Source Basis
 
-- [`.nimi/spec/sdks/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/transport-contract.md)
-- [`.nimi/spec/sdks/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/error-projection.md)
-- [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+- [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)

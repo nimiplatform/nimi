@@ -12,13 +12,13 @@
 > **Authority**: Avatar kernel contract
 > **Status**: Active multi-backend carrier authority
 > **Sibling contracts**:
-> - [VRM backend contract](vrm-backend-contract.md)
-> - [Live2D render contract](live2d-render-contract.md)
-> - [Nimi2D backend contract](nimi2d-backend-contract.md)
-> - [Embodiment projection contract](embodiment-projection-contract.md)
-> - [App shell contract](app-shell-contract.md)
-> - [Avatar event contract](avatar-event-contract.md)
-> - [Carrier visual acceptance contract](carrier-visual-acceptance-contract.md)
+> - [VRM backend contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Nimi2D backend contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [App shell contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Avatar event contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Carrier visual acceptance contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 
 ---
 
@@ -40,7 +40,7 @@ Nimi2D / 未来 3D 等）必须 conform 此契约。
 
 `BackendBranch` 是 `apps/avatar` 私有契约：
 
-- 在 `.nimi/spec/avatar/kernel/` 内 admit；不导出到 `kit/**`
+- 在 `.nimi/spec/avatar/` 内 admit；不导出到 `kit/**`
 - 不被其他 app 直接消费（自包含 Avatar carrier authority）
 - `kind` 分支只在 `createBackendBranch(model)` 一个工厂位置出现；其余代码
   必须按 `BackendBranch` interface 编程（不允许散落 `if (kind === ...)`）
@@ -337,10 +337,10 @@ component 不允许 emit 未在 event-contract 列出的 kind。
 > **Authority**: Avatar kernel contract
 > **Status**: active industrial baseline (supersedes retired small-button surface framing)
 > **Sibling contracts**:
-> - [Embodiment projection contract](embodiment-projection-contract.md)
-> - [Live2D render contract](live2d-render-contract.md)
-> - [Agent script contract](agent-script-contract.md)
-> - [Avatar event contract](avatar-event-contract.md)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Agent script contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Avatar event contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 >
 > **First-Party Runtime Boundary**：
 > 本 contract 约束默认 Nimi Avatar app。Avatar 是 Runtime-admitted local first-party Nimi app（default app id `nimi.avatar`），Desktop 启动时只传递 `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`。Avatar 使用 Runtime account projection 与 Runtime-mediated Realm/service operations only；public `GetAccessToken` is a deny-all tombstone pending A.3d removal，first-party identity 不产生 bearer exception。它不得持有 access/refresh token、authorization header、durable auth session、shared auth truth、independent Realm auth truth、或 Avatar-local JWT subject truth。Desktop 不得把 scoped binding、visual package truth、conversation anchor truth、account/user truth、Realm/auth material 透传给默认 Avatar 启动路径。
@@ -733,7 +733,7 @@ Text input is a transient composer, similar to a command/search input:
 
 ## K-NAV-SHELL-OUTPUT-009 Transient overlay lifecycle events
 
-Precise schema lives in [avatar-event-contract.md](avatar-event-contract.md). Required event families:
+Precise schema lives in [avatar-event-contract.md](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml). Required event families:
 
 - `avatar.shell.context_menu.*`
 - `avatar.shell.action_radial.*`
@@ -988,7 +988,7 @@ avatar.app.shutdown:
 | NAS handler execution | — | `agent-script-contract.md` |
 | `avatar.user.*` / `avatar.app.*` / `avatar.shell.*` event schema | App shell emits | `avatar-event-contract.md` defines schema |
 | Mock driver vs real SDK binding | — | `mock-fixture-contract.md` |
-| Lipsync timing / voice playback truth | — | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` |
+| Lipsync timing / voice playback truth | — | `.nimi/spec/runtime/agent-participation.authority.yaml` |
 
 ---
 
@@ -1024,7 +1024,7 @@ Minimum permission set for industrial baseline shell。窗口控制走 kit 标�
 
 ## 13. First-Party Runtime Boundary (K-NAV-SHELL-FIRST-PARTY-RUNTIME)
 
-> Upstream authority：`.nimi/spec/runtime/kernel/account-session-contract.md`（`K-ACCSVC-*`）、`.nimi/spec/sdks/kernel/runtime-contract.md`（`S-RUNTIME-109` / `S-RUNTIME-110`）、`.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`（explicit binding-only modes only）。
+> Upstream authority：`.nimi/spec/runtime/protected-session.authority.yaml`（`K-ACCSVC-*`）、`.nimi/spec/sdks/client-core.authority.yaml`（`S-RUNTIME-109` / `S-RUNTIME-110`）、`.nimi/spec/runtime/app-surface.authority.yaml`（explicit binding-only modes only）。
 
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-001 默认 Avatar 禁止的能力
 
@@ -1227,10 +1227,10 @@ The guard `pnpm check:avatar-projection-no-cue-semantics` must prove:
 > **Authority**: Avatar kernel contract
 > **Status**: Active Avatar generated motion provider authority
 > **Sibling contracts**:
-> - [Backend branch contract](backend-branch-contract.md)
-> - [Embodiment projection contract](embodiment-projection-contract.md)
-> - [VRM backend contract](vrm-backend-contract.md)
-> - [Avatar event contract](avatar-event-contract.md)
+> - [Backend branch contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [VRM backend contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Avatar event contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 
 ---
 
@@ -1249,11 +1249,11 @@ Avatar must not subscribe to raw `apml.*` parser events or define APML syntax.
 Runtime owns:
 
 - APML parsing and validation in
-  `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
+  `.nimi/spec/runtime/agent-participation.authority.yaml`
 - typed presentation and state projection in
-  `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+  `.nimi/spec/runtime/agent-participation.authority.yaml`
 - activity ids and categories in
-  `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
+  `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 Avatar owns:
 
@@ -1457,11 +1457,11 @@ contract.
 # Avatar Kit UI Consumption Contract
 
 > Authority: Avatar-local consumption of `@nimiplatform/kit`.
-> Upstream foundation: `.nimi/spec/platform/kernel/design-pattern-contract.md`.
+> Upstream foundation: `.nimi/spec/platform/ui-design-system.authority.yaml`.
 
 ## K-NAV-KIT-UI-001 — Local Ownership
 
-Avatar is a first-party app and consumes the shared Nimi design system as a downstream product surface. Concrete Avatar adoption rows, retained Avatar-owned compositions, and Avatar hard-cut exceptions live only in `.nimi/spec/avatar/kernel/tables/nimi-kit-*.yaml`.
+Avatar is a first-party app and consumes the shared Nimi design system as a downstream product surface. Concrete Avatar adoption rows, retained Avatar-owned compositions, and Avatar hard-cut exceptions live only in `config/avatar-nimi-kit-*.yaml`.
 
 Platform design authority may define shared primitives, token taxonomy, material tiers, theme-pack schema, and generic app integration rules. It must not list Avatar renderer modules, Avatar component inventories, Avatar token exceptions, or Avatar consumption progress.
 
@@ -1474,7 +1474,7 @@ Avatar shell entrypoints consume:
 - `@nimiplatform/kit/ui/themes/dark.css`
 - `@nimiplatform/kit/ui/themes/nimi-accent.css`
 
-Avatar does not own an app-specific accent pack in this contract. It uses the shared `nimi-accent` pack unless a later Avatar-local spec change admits an Avatar accent pack under `.nimi/spec/avatar/kernel/tables/nimi-kit-themes.yaml`.
+Avatar does not own an app-specific accent pack in this contract. It uses the shared `nimi-accent` pack unless a later Avatar-local spec change admits an Avatar accent pack under `.nimi/spec/platform/ui-design-system.authority.yaml`.
 
 ## K-NAV-KIT-UI-003 — Shell Surface Scope
 
@@ -1501,13 +1501,13 @@ Avatar renderer styles must not define a parallel root design token registry. Hi
 > **Authority**: Avatar kernel contract
 > **Status**: Active `kind: 'live2d'` BackendBranch implementation authority.
 > **Sibling contracts**:
-> - [Backend branch contract](backend-branch-contract.md) — multi-backend carrier abstraction
-> - [VRM backend contract](vrm-backend-contract.md)
-> - [Embodiment projection contract](embodiment-projection-contract.md)
-> - [Live2D asset compatibility contract](live2d-asset-compatibility-contract.md)
-> - [App shell contract](app-shell-contract.md)
-> - [Agent script contract](agent-script-contract.md)
-> - [Avatar event contract](avatar-event-contract.md)
+> - [Backend branch contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml) — multi-backend carrier abstraction
+> - [VRM backend contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Live2D asset compatibility contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [App shell contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Agent script contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Avatar event contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 
 ---
 
@@ -1517,7 +1517,7 @@ This contract is the `kind: 'live2d'` BackendBranch implementation detail.
 Multi-backend carrier abstraction, BackendProjection ontology surface,
 BackendAudioConsumer wLipSync pipeline, BackendHitRegion, BackendNominalBounds,
 and BackendSurface lifecycle live in
-[`backend-branch-contract.md`](backend-branch-contract.md).
+[`backend-branch-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml).
 
 This contract **does not** define the carrier-public contract; it defines how
 the Live2D branch implements `BackendBranch` using Cubism SDK for Web. Other
@@ -1599,7 +1599,7 @@ Avatar app 接收 `model_path`（来自 `avatar.app.start.detail.model_path` 或
 ```
 
 Existing-asset adaptation is governed by
-[`live2d-asset-compatibility-contract.md`](live2d-asset-compatibility-contract.md).
+[`live2d-asset-compatibility-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml).
 The loader may consume an Avatar-owned adapter manifest only through that
 contract's explicit manifest sources. It must not silently rewrite upstream
 Cubism assets or treat arbitrary Live2D package loading as semantic companion
@@ -1975,10 +1975,10 @@ Avatar shell 在 click 时 call `hitTestArea` 填入 `avatar.user.click.detail.r
 > **Authority**: Avatar kernel contract
 > **Status**: Active contract for existing Live2D asset adaptation
 > **Sibling contracts**:
-> - [Live2D render contract](live2d-render-contract.md)
-> - [Carrier visual acceptance contract](carrier-visual-acceptance-contract.md)
-> - [Agent script contract](agent-script-contract.md)
-> - [Embodiment projection contract](embodiment-projection-contract.md)
+> - [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Carrier visual acceptance contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Agent script contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 
 ---
 
@@ -2281,11 +2281,11 @@ Driver constraints:
 > **Authority**: Avatar kernel contract
 > **Status**: Active `kind: 'vrm'` BackendBranch implementation authority
 > **Sibling contracts**:
-> - [Backend branch contract](backend-branch-contract.md)
-> - [Live2D render contract](live2d-render-contract.md)
-> - [Embodiment projection contract](embodiment-projection-contract.md)
-> - [Carrier visual acceptance contract](carrier-visual-acceptance-contract.md)
-> - [App shell contract](app-shell-contract.md)
+> - [Backend branch contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Carrier visual acceptance contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [App shell contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 
 ---
 
@@ -2298,7 +2298,7 @@ generated motion provider 接入、`.vrma` interchange support、audio consumer 
 lipsync driver 接入。
 
 VRM backend 实现 `BackendBranch` 抽象；carrier abstraction 公共契约见
-[backend-branch-contract.md](backend-branch-contract.md)。
+[backend-branch-contract.md](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)。
 
 VRM library 版本 pin：`@pixiv/three-vrm@^3.5.2` /
 `@pixiv/three-vrm-animation@^3.5.2` / `@pixiv/three-vrm-core@^3.5.2` /
@@ -2402,7 +2402,7 @@ The VRM branch consumes:
 - mapping sidecars conforming to `tables/mapping-sidecar.schema.yaml`
 
 Provider output is defined by
-[`generated-motion-provider-contract.md`](generated-motion-provider-contract.md):
+[`generated-motion-provider-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml):
 an executable `THREE.AnimationClip` or fail-closed evidence. Missing capability,
 unsafe pose, low-confidence mapping, or an unknown route must fail closed; idle
 fallback is not support for a non-idle route.
@@ -2665,12 +2665,12 @@ throttled 上报到 carrier（详 design-07）。
 > **Status**: Active Avatar-local `kind: 'nimi2d'` BackendBranch boundary.
 >   Default generated asset admission remains Nimi2D Generation Bench-gated.
 > **Sibling contracts**:
-> - [Backend branch contract](backend-branch-contract.md)
-> - [Embodiment projection contract](embodiment-projection-contract.md)
-> - [Generated motion provider contract](generated-motion-provider-contract.md)
-> - [Carrier visual acceptance contract](carrier-visual-acceptance-contract.md)
-> - [Nimi2D Live Action Bench contract](nimi2d-live-action-bench-contract.md)
-> - [Nimi2D package authority](../../nimi2d/kernel/index.md)
+> - [Backend branch contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Generated motion provider contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Carrier visual acceptance contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - Nimi2D Live Action Bench contract (retired)
+> - [Nimi2D package authority](https://github.com/nimiplatform/nimi/blob/main/docs/spec/nimi2d-domain-index.md)
 
 ---
 
@@ -3016,13 +3016,13 @@ This contract does not admit:
 > **Status**: Active multi-backend embodiment projection authority. Earlier
 >   Live2D-only framing is superseded.
 > **Sibling contracts**:
-> - [Backend branch contract](backend-branch-contract.md)
-> - [VRM backend contract](vrm-backend-contract.md)
-> - [Live2D render contract](live2d-render-contract.md)
-> - [Nimi2D backend contract](nimi2d-backend-contract.md)
-> - [App shell contract](app-shell-contract.md)
-> - [Agent script contract](agent-script-contract.md)
-> - [Avatar event contract](avatar-event-contract.md)
+> - [Backend branch contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [VRM backend contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Nimi2D backend contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [App shell contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Agent script contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Avatar event contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 
 ---
 
@@ -3130,7 +3130,7 @@ without Avatar backend proof.
 - physics / lipsync / drag sway 的 renderer implementation
 - backend binary / asset layout / licensing
 
-当前 shipped branch 是 [Live2D render contract](live2d-render-contract.md)。
+当前 shipped branch 是 [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)。
 
 ---
 
@@ -3159,14 +3159,14 @@ Multi-backend authority 不移除 Live2D branch；它只把 Live2D 收回到 bac
 - `Activity_<CamelCase>` default activity fallback mapping
 - Cubism parameter / expression / pose / physics details
 
-这些都由 [Live2D render contract](live2d-render-contract.md) 约束，而不是本 contract。
+这些都由 [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml) 约束，而不是本 contract。
 
 ---
 
 ## 7. BackendProjection Ontology Surface
 
 > Re-anchored from earlier Live2D-coupled parameter-id model. Canonical
-> structure now lives in [`backend-branch-contract.md`](backend-branch-contract.md).
+> structure now lives in [`backend-branch-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml).
 
 The projection layer is delivered to NAS handlers and the carrier as a
 backend-agnostic ontology surface:
@@ -3236,7 +3236,7 @@ export interface NasActivityHandler {
 }
 ```
 
-详 [`agent-script-contract.md`](agent-script-contract.md) §"NAS handler `requires`"。
+详 [`agent-script-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml) §"NAS handler `requires`"。
 
 ## 10. Not Admitted In This Contract
 
@@ -3271,15 +3271,15 @@ export interface NasActivityHandler {
 > **Authority**: Avatar kernel contract
 > **Status**: Baseline updated 2026-04-21 (consumer-aligned to mounted runtime substrate)
 > **Upstream platform refs**:
-> - [Runtime HookIntent contract](../../runtime/kernel/agent-hook-intent-contract.md)
-> - [Runtime presentation/activity projection seam](../../runtime/kernel/agent-presentation-stream-contract.md)
-> - [Runtime transient presentation seam](../../runtime/kernel/agent-presentation-stream-contract.md)
-> - [Conversation anchor contract](../../runtime/kernel/agent-conversation-anchor-contract.md)
+> - [Runtime HookIntent contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+> - [Runtime presentation/activity projection seam](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+> - [Runtime transient presentation seam](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+> - [Conversation anchor contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
 > **Sibling kernel contracts**:
-> - [Agent script contract](agent-script-contract.md)
-> - [Embodiment projection contract](embodiment-projection-contract.md)
-> - [App shell contract](app-shell-contract.md)
-> - [Live2D render contract](live2d-render-contract.md)
+> - [Agent script contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [App shell contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 
 ---
 
@@ -3983,7 +3983,7 @@ into public APML syntax.
 
 **Baseline updated 2026-04-21**。Avatar app 具体 rendering 实现（Cubism SDK 接入 /
 lip-sync pipeline / TTS 绑定 / model 加载策略 / settings UI 等）不在本 spec 范围，仅定义
-Avatar-local event contract。平台级 runtime projection 以 `.nimi/spec/runtime/kernel/**`
+Avatar-local event contract。平台级 runtime projection 以 `.nimi/spec/runtime/**`
 为准。
 
 ---
@@ -3995,16 +3995,16 @@ Avatar-local event contract。平台级 runtime projection 以 `.nimi/spec/runti
 > **Authority**: Avatar kernel contract
 > **Status**: Active NAS 1.0 authority
 > **Upstream platform refs**:
-> - [APML model-facing wire authority](../../runtime/kernel/agent-output-wire-contract.md)
-> - [Runtime presentation/activity projection seam](../../runtime/kernel/agent-presentation-stream-contract.md)
-> - [Runtime HookIntent contract](../../runtime/kernel/agent-hook-intent-contract.md)
-> - [Runtime transient presentation seam](../../runtime/kernel/agent-presentation-stream-contract.md)
+> - [APML model-facing wire authority](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+> - [Runtime presentation/activity projection seam](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+> - [Runtime HookIntent contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+> - [Runtime transient presentation seam](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
 > **Sibling kernel contracts**:
-> - [Avatar event contract](avatar-event-contract.md)
-> - [Embodiment projection contract](embodiment-projection-contract.md)
-> - [Live2D render contract](live2d-render-contract.md)
-> - [App shell contract](app-shell-contract.md)
-> - [Mock fixture contract](mock-fixture-contract.md)
+> - [Avatar event contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Embodiment projection contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Live2D render contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [App shell contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - Mock fixture contract (retired)
 ---
 ## 0. 阅读指南
 本 contract 定义 **NimiAgentScript (NAS) 1.0** —— 由 embodiment package creator 编写的 **convention-based JavaScript handlers**，为自己的 backend package 实现具体动作 / 表情 / 交互逻辑。当前 shipped backend branch 仍然是 Live2D，但 NAS 不再把 Live2D 当 semantic home。
@@ -4229,7 +4229,7 @@ VRM 资产规则：
 - **必需**：恰好 1 个 `*.vrm` 文件（同时存在 `*.model3.json` + `*.vrm` →
   显式 `avatar-model.json` 才允许；否则 fail-close）
 - **可选 `motions/<preset_id>.vrma`**：覆盖 builtin preset；preset id 必须
-  在 `.nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml` registry 中
+  在 `config/avatar-vrm-motion-presets.yaml` registry 中
   admit；引用未 admit preset 的 override → registry reject 并 fall back
   到 builtin
 - **可选 `poster.png`** / `poster.jpg`：degraded surface fallback；不影响
@@ -4765,7 +4765,7 @@ Examples:
 
 ## Reference Appendices
 
-API cheatsheet and ctx quick reference moved to [`agent-script-reference.md`](agent-script-reference.md) in the same kernel authority root, so this contract stays focused on handler convention, sandbox, discovery, and execution model.
+API cheatsheet and ctx quick reference moved to [`agent-script-reference.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml) in the same kernel authority root, so this contract stays focused on handler convention, sandbox, discovery, and execution model.
 
 ---
 
@@ -4876,7 +4876,7 @@ require their own implementation and test evidence before support is claimed.
 
 # Agent Script Contract Reference Appendices
 
-This file carries the reference appendices for [`agent-script-contract.md`](agent-script-contract.md). It remains under `.nimi/spec/avatar/kernel/**` authority and does not introduce parallel semantic truth.
+This file carries the reference appendices for [`agent-script-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml). It remains under `.nimi/spec/avatar/**` authority and does not introduce parallel semantic truth.
 
 ## Appendix C: Embodiment Backend API v1 Cheatsheet
 

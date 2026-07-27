@@ -106,11 +106,11 @@ Fixed rules:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
+- `.nimi/spec/runtime/agent-service.authority.yaml`
 - `.nimi/spec/desktop/agent-projection.authority.yaml`
-- `.nimi/spec/avatar/kernel/app-shell-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and dual-entry session correspondence
-- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and conversation continuity correspondence
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — runtime projection reader guide and dual-entry session correspondence
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml` — Live2D companion reader guide and conversation continuity correspondence
 
 ---
 
@@ -215,11 +215,11 @@ Fixed rules:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — broad event-bus deferral and runtime event owner map
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and HookIntent / app-event boundary correspondence
-- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and HookIntent correspondence
+- `.nimi/spec/runtime/agent-service.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — broad event-bus deferral and runtime event owner map
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — runtime projection reader guide and HookIntent / app-event boundary correspondence
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml` — Live2D companion reader guide and HookIntent correspondence
 
 ---
 
@@ -422,12 +422,10 @@ Fixed rules:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and APML correspondence
-- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and APML decision correspondence
+- `.nimi/spec/runtime/agent-service.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — runtime projection reader guide and APML correspondence
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml` — Live2D companion reader guide and APML decision correspondence
 
 ---
 
@@ -634,13 +632,13 @@ Fixed rules:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — runtime-owned live agent lifecycle and app-facing control-plane boundary
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime-owned transient presentation / turn seam and current emotion projection
-- `.nimi/spec/runtime/kernel/voice-contract.md` — runtime-owned `VoiceReference` and voice asset truth
+- `.nimi/spec/runtime/agent-service.authority.yaml` — runtime-owned live agent lifecycle and app-facing control-plane boundary
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — runtime-owned transient presentation / turn seam and current emotion projection
+- `.nimi/spec/runtime/model-catalog.authority.yaml` — runtime-owned `VoiceReference` and voice asset truth
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — desktop-local carrier decommission and avatar-app handoff boundary
-- `.nimi/spec/avatar/kernel/index.md` — Avatar first-party carrier authority map
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and core presentation correspondence
-- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and presentation correspondence
+- `docs/spec/avatar-domain-index.md` — Avatar first-party carrier authority map
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — runtime projection reader guide and core presentation correspondence
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml` — Live2D companion reader guide and presentation correspondence
 
 ---
 
@@ -851,7 +849,7 @@ Active owner map:
 - Desktop owns only chat shell bridge / handoff semantics under
   `.nimi/spec/desktop/agent-projection.authority.yaml`
 - Avatar owns Avatar-local `avatar.*` event naming and consume semantics under
-  `.nimi/spec/avatar/kernel/avatar-event-contract.md`
+  `.nimi/spec/avatar/embodiment-surface.authority.yaml`
 - SDK may consume admitted runtime agent projections but does not own platform
   event ontology
 
@@ -965,18 +963,13 @@ Fixed rules:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
-- `.nimi/spec/runtime/kernel/runtime-agent-app-consume-contract.md`
-- `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
+- `.nimi/spec/runtime/agent-service.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 - `.nimi/spec/desktop/agent-projection.authority.yaml`
-- `.nimi/spec/avatar/kernel/avatar-event-contract.md`
-- `.nimi/spec/avatar/kernel/tables/activity-mapping.yaml`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime projection reader guide and core projection correspondence
-- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and runtime projection correspondence
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml`
+- `config/avatar-activity-mapping.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — runtime projection reader guide and core projection correspondence
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml` — Live2D companion reader guide and runtime projection correspondence
 
 ---
 
@@ -3097,14 +3090,14 @@ routing, audit lineage, or domain writeback.
 
 Avatar external-entry consumption is downstream of:
 
-- `.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
   `K-AGCORE-079..094`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/delegated-mcp-adapter-contract.md`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/delegation.authority.yaml`
   `K-DELEG-100..119`
-- `.nimi/spec/runtime/kernel/delegated-a2a-future-seam-contract.md`
+- `.nimi/spec/runtime/delegation.authority.yaml`
   `K-DELEG-120..129`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
   `K-AGCORE-049..051`
 
 Avatar must inherit the external-entry boundary matrix. It must not reinterpret
@@ -3178,10 +3171,10 @@ fallback driver, localhost state path, fixture carrier, or static success state.
 > Authority: Avatar kernel contract
 > Status: Active owner-boundary authority
 > Related contracts:
-> - [App shell contract](app-shell-contract.md)
-> - [Avatar event contract](avatar-event-contract.md)
-> - [Companion participation consumer contract](companion-participation-consumer-contract.md)
-> - [Backend branch contract](backend-branch-contract.md)
+> - [App shell contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Avatar event contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+> - [Companion participation consumer contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+> - [Backend branch contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 
 ---
 

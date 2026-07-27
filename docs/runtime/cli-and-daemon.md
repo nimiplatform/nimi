@@ -137,10 +137,7 @@ admitted at startup; request credentials are admitted per request.
 
 ## Source Basis
 
-- [`.nimi/spec/runtime/cli.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/cli.md)
-- [`.nimi/spec/runtime/config.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/config.md)
-- [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
-- [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
-- [`.nimi/spec/runtime/kernel/daemon-lifecycle.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/daemon-lifecycle.md)
-- [`.nimi/spec/runtime/kernel/config-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/config-contract.md)
-- [`.nimi/spec/runtime/kernel/tables/daemon-health-states.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/daemon-health-states.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
+- [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
+- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
+- [`config/spec-frozen/runtime/tables/daemon-health-states.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/daemon-health-states.yaml)

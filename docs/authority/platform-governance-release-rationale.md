@@ -12,8 +12,8 @@
 
 ## 0. Normative Imports
 
-- `.nimi/spec/platform/kernel/*`
-- `.nimi/spec/platform/kernel/tables/*`
+- `.nimi/spec/platform/*`
+- `config/platform-*`
 
 ## Scope
 
@@ -21,34 +21,23 @@ This guide points to the Platform authority surfaces for open-source-governance.
 
 ## Reading Path
 
-- `.nimi/spec/platform/kernel/index.md`
-- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
-- `.nimi/spec/platform/kernel/architecture-contract.md`
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
-- `.nimi/spec/platform/kernel/design-pattern-contract.md`
-- `.nimi/spec/platform/kernel/governance-contract.md`
-- `.nimi/spec/platform/kernel/kit-contract.md`
-- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
-- `.nimi/spec/platform/kernel/protocol-contract.md`
-- `.nimi/spec/platform/kernel/release-gate-contract.md`
-- `.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml`
+- `docs/spec/platform-domain-index.md`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `.nimi/spec/platform/authority-admission.authority.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
-- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
-- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
-- `.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `config/platform-app-slice-admissions.yaml`
+- `config/platform-audit-events.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `config/platform-canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/testing-discipline.authority.yaml`
+- `config/platform-error-code-mapping.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 
 ---
 
@@ -126,7 +115,7 @@ are not product authority.
 
 ## P-GOV-025 — Cross-Domain Audit Evidence Root Admission
 
-`.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml` may admit exact
+`.nimi/spec/platform/app-ecosystem.authority.yaml` may admit exact
 implementation evidence roots for non-platform owner domains only when the row
 names the owning domain, names existing `.nimi/spec/**` authority refs owned by
 that domain, and keeps the admission as audit-planning metadata. This admission
@@ -135,7 +124,7 @@ workspace layout, package names, or broad owner-domain defaults.
 
 ## P-GOV-026 — Release Promise Freeze
 
-`.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml` is the
+`.nimi/spec/platform/governance-release.authority.yaml` is the
 cross-domain release-promise freeze for the first publishable Nimi capability
 set. The table records each public capability promise with its canonical owner,
 login requirement, failure behavior, partial or deferred reason, and authority

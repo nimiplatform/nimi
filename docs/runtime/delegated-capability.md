@@ -212,16 +212,10 @@ the user's behalf.
 
 ## Source Basis
 
-- [`.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md)
-- [`.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md)
-- [`.nimi/spec/runtime/kernel/delegated-audit-replay-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-audit-replay-contract.md)
-- [`.nimi/spec/runtime/kernel/delegated-approval-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-approval-contract.md)
-- [`.nimi/spec/runtime/kernel/delegated-mcp-adapter-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-mcp-adapter-contract.md)
-- [`.nimi/spec/runtime/kernel/delegated-a2a-future-seam-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-a2a-future-seam-contract.md)
-- [`.nimi/spec/runtime/kernel/tables/delegation-provider-profiles.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/delegation-provider-profiles.yaml)
-- [`.nimi/spec/runtime/kernel/tables/delegation-request-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/delegation-request-fields.yaml)
-- [`.nimi/spec/runtime/kernel/tables/delegation-result-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/delegation-result-fields.yaml)
-- [`.nimi/spec/runtime/kernel/tables/delegation-reason-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/delegation-reason-codes.yaml)
-- [`.nimi/spec/runtime/kernel/tables/delegation-protocol-adapters.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/delegation-protocol-adapters.yaml)
-- [`.nimi/spec/platform/ai-last-mile.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ai-last-mile.md)
-- [`.nimi/spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ai-agent-security-interface.md)
+- [`.nimi/spec/runtime/delegation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/delegation.authority.yaml)
+- [`config/spec-frozen/runtime/tables/delegation-provider-profiles.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/delegation-provider-profiles.yaml)
+- [`config/spec-frozen/runtime/tables/delegation-request-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/delegation-request-fields.yaml)
+- [`config/spec-frozen/runtime/tables/delegation-result-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/delegation-result-fields.yaml)
+- [`config/spec-frozen/runtime/tables/delegation-reason-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/delegation-reason-codes.yaml)
+- [`config/spec-frozen/runtime/tables/delegation-protocol-adapters.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/delegation-protocol-adapters.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

@@ -299,13 +299,13 @@ World/detail/source-detail path; it does not add a section/productIntent pair.
 
 ## Fact Sources
 
-- `.nimi/spec/desktop/kernel/tables/explore-sections.yaml` — Explore section catalog.
-- `.nimi/spec/desktop/kernel/tables/explore-open-targets.yaml` — Explore Desktop Open target and productIntent catalog.
-- `.nimi/spec/desktop/kernel/tables/realm-source-materialization-actions.yaml` — source-generic WorldCharacter/PersonaCharacter state-to-action table.
+- `config/desktop-product-surfaces-explore-sections.yaml` — Explore section catalog.
+- `config/desktop-open-targets.yaml` — Explore Desktop Open target and productIntent catalog.
+- `.nimi/spec/desktop/product-surfaces.authority.yaml` — source-generic WorldCharacter/PersonaCharacter state-to-action table.
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — navigation, World Detail layout, and Apps surface boundary.
-- `.nimi/spec/sdks/kernel/realm-api-consumer-contract.md` — external Realm consumer boundary and current generated API floor.
-- `.nimi/spec/sdks/kernel/realm-core-contract.md` — current World/Character generated-core projection boundary.
-- `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md` — Packet v3 to SnapshotV2/LocalAgent materialization and Runtime-local deletion.
+- `.nimi/spec/sdks/realm-consumer.authority.yaml` — external Realm consumer boundary and current generated API floor.
+- `.nimi/spec/sdks/realm-consumer.authority.yaml` — current World/Character generated-core projection boundary.
+- `.nimi/spec/runtime/agent-service.authority.yaml` — Packet v3 to SnapshotV2/LocalAgent materialization and Runtime-local deletion.
 
 ## Preserved source: Home Feed Contract
 
@@ -443,11 +443,9 @@ activity 内容如何生成不在本契约范围（`R-FEED-010`）。
 
 ## Fact Sources
 
-- `.nimi/spec/desktop/kernel/tables/home-feed-scopes.yaml` — `Home` 表面 feed scope 呈现 catalog
-- `.nimi/spec/realm/kernel/feed-contract.md` — `R-FEED-001` ~ `R-FEED-010`（Realm Post / Feed canonical 真值、三个 feed scope、Create Post admission）
-- `.nimi/spec/realm/kernel/social-contract.md` 与 `.nimi/spec/realm/kernel/core-contract.md` — Friendship 与 core source relationship admission
+- `config/desktop-product-surfaces-home-feed-scopes.yaml` — `Home` 表面 feed scope 呈现 catalog
 - `.nimi/spec/desktop/shell-ui.authority.yaml` — `Nimi Home` installed shell 与 primary navigation tab placement
-- `.nimi/spec/desktop/kernel/explore-surface-contract.md` — `D-EXPL-001` ~ `D-EXPL-013`（Realm discovery；与 `Home` feed 表面互不重叠）
+- `.nimi/spec/desktop/product-surfaces.authority.yaml` — `D-EXPL-001` ~ `D-EXPL-013`（Realm discovery；与 `Home` feed 表面互不重叠）
 
 ## Preserved source: Support Surface Contract
 
@@ -589,10 +587,10 @@ preference 状态本身损坏、或 ordinary shell 因 fail-closed 状态不可�
 - `.nimi/spec/desktop/shell-runtime.authority.yaml` — `rule.nimi.desktop.shell-runtime.r066..r072`
 - `config/desktop-shell-ui-app-tabs.yaml` — non-authoritative machine projection
 - `config/desktop-shell-ui-log-areas.yaml` — non-authoritative machine projection
-- `.nimi/spec/platform/kernel/local-config-migration-contract.md` — `P-MIG-001..P-MIG-008`
-- `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001`, `P-COLD-009..P-COLD-016`
-- `.nimi/spec/platform/kernel/tables/first-run-state-machine.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-MIG-001..P-MIG-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-COLD-001`, `P-COLD-009..P-COLD-016`
+- `config/platform-first-run-state-machine.yaml`
+- `config/platform-nimi-data-directory-ownership.yaml`
 
 ## Preserved source: Relationship And Profile Surface Contract
 
@@ -639,9 +637,9 @@ human/source profile modal behavior from contextual consumers.
 - `config/desktop-shell-ui-app-tabs.yaml` — non-authoritative Desktop app-tab machine projection.
 - `config/desktop-shell-ui-renderer-design-overlays.yaml` — non-authoritative shared
   profile detail modal overlay governance.
-- `.nimi/spec/desktop/kernel/tables/relationship-categories.yaml` — contextual
+- `config/desktop-product-surfaces-relationship-categories.yaml` — contextual
   relationship/source categories.
-- `.nimi/spec/desktop/kernel/explore-surface-contract.md` — PersonaCharacter
+- `.nimi/spec/desktop/product-surfaces.authority.yaml` — PersonaCharacter
   discovery and source-state primary actions.
-- `.nimi/spec/sdks/kernel/realm-api-consumer-contract.md` — external Realm social and typed source consumer boundary.
-- `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md` — Packet v3/SnapshotV2 materialization and Runtime-local LocalAgent lifecycle.
+- `.nimi/spec/sdks/realm-consumer.authority.yaml` — external Realm social and typed source consumer boundary.
+- `.nimi/spec/runtime/agent-service.authority.yaml` — Packet v3/SnapshotV2 materialization and Runtime-local LocalAgent lifecycle.

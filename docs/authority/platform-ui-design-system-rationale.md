@@ -12,8 +12,8 @@
 
 ## 0. Normative Imports
 
-- `.nimi/spec/platform/kernel/*`
-- `.nimi/spec/platform/kernel/tables/*`
+- `.nimi/spec/platform/*`
+- `config/platform-*`
 
 ## Scope
 
@@ -21,32 +21,22 @@ This guide points to the Platform authority surfaces for design-pattern. It does
 
 ## Reading Path
 
-- `.nimi/spec/platform/kernel/index.md`
-- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md`
-- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
-- `.nimi/spec/platform/kernel/architecture-contract.md`
-- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
-- `.nimi/spec/platform/kernel/design-pattern-contract.md`
-- `.nimi/spec/platform/kernel/governance-contract.md`
-- `.nimi/spec/platform/kernel/kit-contract.md`
-- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
-- `.nimi/spec/platform/kernel/protocol-contract.md`
-- `.nimi/spec/platform/kernel/release-gate-contract.md`
+- `docs/spec/platform-domain-index.md`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `.nimi/spec/platform/authority-admission.authority.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/platform/governance-release.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
-- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
-- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
-- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
-- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
-- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
+- `.nimi/spec/platform/core-protocol.authority.yaml`
+- `config/platform-app-slice-admissions.yaml`
+- `config/platform-audit-events.yaml`
+- `.nimi/spec/platform/app-ecosystem.authority.yaml`
+- `config/platform-canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/testing-discipline.authority.yaml`
+- `config/platform-error-code-mapping.yaml`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
 
 ---
 
@@ -59,7 +49,7 @@ This guide points to the Platform authority surfaces for design-pattern. It does
 ## P-DESIGN-001 — Foundation Authority
 
 - The Nimi design pattern is the single authoritative source for shared kit primitives, semantic tokens, theme-pack schemas, material taxonomy, and external app integration rules.
-- Cross-app design authority must live in `.nimi/spec/platform/kernel/design-pattern-contract.md` and the structured fact sources under `.nimi/spec/platform/kernel/tables/`.
+- Cross-app design authority must live in `.nimi/spec/platform/ui-design-system.authority.yaml` and the structured fact sources under `config/platform-*.yaml`.
 - App-local specs own concrete kit consumption inventories, retained app-owned compositions, and product art direction. They may not redefine shared primitive families, token taxonomies, or governance rules.
 
 ## P-DESIGN-002 — Theme Pack Model
@@ -705,7 +695,7 @@ back to ordinary gRPC or inherit another principal's state.
 
 Kit owns one shared Electron/Tauri main/native adapter family for Runtime's exact
 first-party protected profiles. The sole operation-set input is
-`.nimi/spec/runtime/kernel/tables/first-party-protected-runtime-profiles.yaml`;
+`config/spec-frozen/runtime/tables/first-party-protected-runtime-profiles.yaml`;
 Kit, Desktop and app code cannot maintain another method/profile selector. The
 compiler emits exact unary and stream entrypoint families for
 `desktop_machine_product_v1`, `desktop_account_product_v1`, and

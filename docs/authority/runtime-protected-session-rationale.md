@@ -411,7 +411,7 @@ signing, a service/process mismatch, a replaceable executable object, or a
 signer-policy mismatch fails protected control closed.
 
 Executable-trust semantics are platform-neutral. The same-OS row in
-`.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml`
+`config/spec-frozen/platform/tables/protected-local-executable-trust-sets.yaml`
 alone selects native running-process targeting, opened-executable identity,
 code-signing verification, signer constraint, executable role, and
 service/launch authority. The verified-transport profile only references that

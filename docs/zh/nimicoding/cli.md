@@ -9,10 +9,8 @@ Nimi 通过宿主边界使用 `@nimiplatform/nimi-coding` 0.3.1。项目命令�
 
 | 类别 | Nimi 表面 |
 | --- | --- |
-| Host hardcut | `pnpm check:nimicoding-host-hardcut` |
 | 受管文件一致性 | `pnpm check:nimi-coding-seed-sync` |
 | Package doctor | `pnpm nimicoding:doctor` |
-| 受管文件刷新 | `pnpm nimicoding:sync:apply` |
 | 规范验证 | `validate-spec-tree`、`validate-spec-audit`、`validate-spec-governance` |
 | 派生文档验证 | `generate-spec-derived-docs --check` |
 | AI 治理验证 | `validate-ai-governance` |
@@ -21,13 +19,14 @@ Nimi 通过宿主边界使用 `@nimiplatform/nimi-coding` 0.3.1。项目命令�
 ## 验证 Host 边界
 
 ```bash
-pnpm check:nimicoding-host-hardcut
 pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-Hardcut 会拒绝已经退出软件包的执行面，并确认当前安装包没有 topic、sweep、adapter
-或 host-control runtime。随后，sync 与 doctor 再按 0.3.1 的规则核验受管文件。
+宿主边界本身由 `.nimi/spec/platform/authority-admission.authority.yaml` 中的
+`P-PKG-011` 声明：即使安装包内仍带有 topic 生命周期、wave/packet 执行 DAG、
+run ledger、goal bridge 或嵌套宿主启动，这些执行面一律不予准入。sync 与 doctor
+按软件包当前的投影策略核验受管文件，但不负责写入。
 
 ## 验证产品真相
 
@@ -65,7 +64,6 @@ pnpm exec nimicoding validate-ai-governance --profile nimi --scope <scope>
 
 ## 来源依据
 
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

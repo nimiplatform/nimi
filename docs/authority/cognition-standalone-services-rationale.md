@@ -8,7 +8,7 @@
 
 # Cognition Guide
 
-> Normative Imports: `.nimi/spec/cognition/kernel/*`
+> Normative Imports: `.nimi/spec/cognition/*`
 
 ## Scope
 
@@ -16,31 +16,14 @@ This guide points to the cognition authority surfaces for index. It does not def
 
 ## Reading Path
 
-- `.nimi/spec/cognition/kernel/index.md`
-- `.nimi/spec/cognition/kernel/cognition-contract.md`
-- `.nimi/spec/cognition/kernel/completion-contract.md`
-- `.nimi/spec/cognition/kernel/family-contract.md`
-- `.nimi/spec/cognition/kernel/knowledge-service-contract.md`
-- `.nimi/spec/cognition/kernel/memory-service-contract.md`
-- `.nimi/spec/cognition/kernel/prompt-serving-contract.md`
-- `.nimi/spec/cognition/kernel/reference-contract.md`
-- `.nimi/spec/cognition/kernel/runtime-bridge-contract.md`
-- `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`
-- `.nimi/spec/cognition/kernel/skill-service-contract.md`
-- `.nimi/spec/cognition/kernel/surface-contract.md`
+- `docs/spec/cognition-domain-index.md`
+- `.nimi/spec/cognition/standalone-services.authority.yaml`
+- `.nimi/spec/cognition/runtime-bridge.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml`
-- `.nimi/spec/cognition/kernel/tables/artifact-families.yaml`
-- `.nimi/spec/cognition/kernel/tables/completion-gates.yaml`
-- `.nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml`
-- `.nimi/spec/cognition/kernel/tables/memory-service-operations.yaml`
-- `.nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml`
-- `.nimi/spec/cognition/kernel/tables/public-surface.yaml`
-- `.nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml`
-- `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
-- `.nimi/spec/cognition/kernel/tables/skill-service-operations.yaml`
+- `.nimi/spec/cognition/standalone-services.authority.yaml`
+- `.nimi/spec/cognition/runtime-bridge.authority.yaml`
 
 ---
 
@@ -162,14 +145,14 @@ approval 或单独 CRUD endpoint 都不能宣称 admission 完成。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-*`
-- `.nimi/spec/platform/kernel/tables/nimi-app-permission-catalog.yaml`
-- `.nimi/spec/runtime/kernel/grant-service.md` — Runtime owner-internal decision boundary
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — RuntimeAgent relations
-- `.nimi/spec/cognition/kernel/memory-service-contract.md` — memory owner truth
-- `.nimi/spec/cognition/kernel/knowledge-service-contract.md` — knowledge owner truth
-- `.nimi/spec/cognition/kernel/skill-service-contract.md` — skill owner truth
-- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — public SDK projection
+- `.nimi/spec/platform/app-ecosystem.authority.yaml` — `P-PERM-*`
+- `config/platform-nimi-app-permission-catalog.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml` — Runtime owner-internal decision boundary
+- `.nimi/spec/runtime/agent-service.authority.yaml` — RuntimeAgent relations
+- `.nimi/spec/cognition/standalone-services.authority.yaml` — memory owner truth
+- `.nimi/spec/cognition/standalone-services.authority.yaml` — knowledge owner truth
+- `.nimi/spec/cognition/standalone-services.authority.yaml` — skill owner truth
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — public SDK projection
 
 ---
 
@@ -216,7 +199,7 @@ Fixed rules:
 
 ## C-COG-003 No Parallel Truth
 
-The standalone cognition authority must live in `/.nimi/spec/cognition/kernel/**`.
+The standalone cognition authority must live in `/.nimi/spec/cognition/**`.
 
 Fixed rules:
 

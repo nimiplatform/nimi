@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Applies to `.nimi/spec/realm/**`.
+- Applies to the external Realm pointer docs under `docs/spec/realm-*`.
 
 ## Authority
 

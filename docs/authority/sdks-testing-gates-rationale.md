@@ -30,14 +30,11 @@ AI-runner-facing export authority posture 必须通过一致性检查。
 
 执行命令：
 
-- `pnpm check:sdk-vnext-package-contract`
 - `pnpm check:sdk-vnext-public-surface-smoke`
-- `pnpm check:sdk-root-entry-contract`
-- `pnpm check:no-global-openapi-config`
 - `pnpm check:sdk-vnext-realm-consumer-smoke`
 - `pnpm check:reason-code-constants`
 - `pnpm check:sdk-vnext-runtime-facade`
-- `pnpm check:sdk-ai-runner-export-posture`
+- `pnpm check:sdk-vnext-ai-runner-consumer-smoke`
 - `pnpm check:sdk-doctor`
 
 AI-runner-facing 公开 export 的 authority posture 必须与
@@ -74,7 +71,6 @@ checks without restoring removed `scope` subpaths.
 
 执行命令：
 
-- `pnpm check:sdk-vnext-package-contract`
 - `pnpm check:sdk-consumer-smoke`
 
 ## S-GATE-050 Runtime Projection Gate

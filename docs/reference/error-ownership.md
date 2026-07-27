@@ -7,17 +7,17 @@ contract, rule prefix, and authoritative source.
 
 | Layer | Owner contract | Rule prefix | What it owns |
 | --- | --- | --- | --- |
-| Platform protocol | `.nimi/spec/platform/kernel/protocol-contract.md` | `P-PROTO-*` | Cross-world protocol error codes, action hints, audit event taxonomy |
-| Runtime | `.nimi/spec/runtime/kernel/error-model.md` | `K-ERR-*` | Reason codes, error classification, retry vs contract-failure distinction |
-| Runtime streaming | `.nimi/spec/runtime/kernel/streaming-contract.md` | `K-STREAM-*` | Terminal frames, stream-level failure semantics |
-| SDK | `.nimi/spec/sdks/kernel/error-projection.md` | `S-ERROR-*` | App-facing error projection, typed error shapes |
+| Platform protocol | `.nimi/spec/platform/core-protocol.authority.yaml` | `P-PROTO-*` | Cross-world protocol error codes, action hints, audit event taxonomy |
+| Runtime | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-ERR-*` | Reason codes, error classification, retry vs contract-failure distinction |
+| Runtime streaming | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-STREAM-*` | Terminal frames, stream-level failure semantics |
+| SDK | `.nimi/spec/sdks/client-core.authority.yaml` | `S-ERROR-*` | App-facing error projection, typed error shapes |
 | Desktop | `.nimi/spec/desktop/shell-ui.authority.yaml` | `rule.nimi.desktop.shell-ui.*` | UI error boundary, retry policy, user-facing error rendering |
 
 ## Translation Tables
 
 The Platform-to-Runtime mapping is the canonical translation point
 between protocol-level errors and runtime reason codes:
-`.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`.
+`config/platform-error-code-mapping.yaml`.
 
 Per-layer enumerations live in their own tables:
 
@@ -26,7 +26,7 @@ Per-layer enumerations live in their own tables:
 | `platform/kernel/tables/protocol-error-codes.yaml` | Platform |
 | `runtime/kernel/tables/reason-codes.yaml` | Runtime |
 | `runtime/kernel/tables/error-mapping-matrix.yaml` | Runtime cross-layer |
-| `.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml` | SDK |
+| `config/sdks-error-codes.yaml` | SDK |
 | `canonical/desktop/shell-runtime.authority.yaml` | Desktop |
 
 ## Distinguishing Transport Recovery From Contract Failure
@@ -60,15 +60,13 @@ lands as:
 
 ## Source Basis
 
-- [`.nimi/spec/platform/kernel/protocol-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/protocol-contract.md)
-- [`.nimi/spec/platform/kernel/tables/protocol-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/protocol-error-codes.yaml)
-- [`.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/error-code-mapping.yaml)
-- [`.nimi/spec/runtime/kernel/error-model.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/error-model.md)
-- [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)
-- [`.nimi/spec/runtime/kernel/audit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/audit-contract.md)
-- [`.nimi/spec/runtime/kernel/tables/reason-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/reason-codes.yaml)
-- [`.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml)
-- [`.nimi/spec/sdks/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/error-projection.md)
-- [`.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`config/platform-protocol-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-error-codes.yaml)
+- [`config/platform-error-code-mapping.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-error-code-mapping.yaml)
+- [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
+- [`config/runtime-reason-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-reason-codes.yaml)
+- [`config/spec-frozen/runtime/tables/error-mapping-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/error-mapping-matrix.yaml)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+- [`config/sdks-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-error-codes.yaml)
 - [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
 - [`.nimi/spec/desktop/shell-runtime.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-runtime.authority.yaml)

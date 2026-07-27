@@ -20,7 +20,7 @@
 
 ## 冻结邻接素材(零改动保留)
 
-- `tables/delegated-projection-admissions.yaml` — realm 冻结,处置权 = realm 合流包(.nimi/spec/realm 委托投影保管声明)。
+- `tables/delegated-projection-admissions.yaml` — realm 冻结,处置权 = realm 合流包(委托投影保管声明)。
 - `tables/protected-local-executable-trust-sets.yaml` — protected-local 冻结家族成员(runtime 冻结六件套以带锚点路径字符串引用其身份),处置权 = dev-kernel 解缠包;语义已由 app-ecosystem 容器覆盖。
 
 不得基于本索引推断权威;权威只在 canonical 容器。

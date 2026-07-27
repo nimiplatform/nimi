@@ -8,7 +8,7 @@
 
 # Nimi2D Guide
 
-> Normative Imports: `.nimi/spec/nimi2d/kernel/*`
+> Normative Imports: `.nimi/spec/nimi2d/*`
 
 ## Scope
 
@@ -17,27 +17,13 @@ product rules.
 
 ## Reading Path
 
-- `.nimi/spec/nimi2d/kernel/index.md`
-- `.nimi/spec/nimi2d/kernel/authority-boundary-contract.md`
-- `.nimi/spec/nimi2d/kernel/codex-image2-provider-contract.md`
-- `.nimi/spec/nimi2d/kernel/layer-input-contract.md`
-- `.nimi/spec/nimi2d/kernel/renderability-governance-contract.md`
-- `.nimi/spec/nimi2d/kernel/base-body-contract.md`
-- `.nimi/spec/nimi2d/kernel/wardrobe-slot-contract.md`
-- `.nimi/spec/nimi2d/kernel/capability-tier-contract.md`
-- `.nimi/spec/nimi2d/kernel/package-manifest-contract.md`
-- `.nimi/spec/nimi2d/kernel/generation-bench-contract.md`
+- `docs/spec/nimi2d-domain-index.md`
+- `.nimi/spec/nimi2d/asset-package.authority.yaml`
+- `.nimi/spec/nimi2d/generation-supply.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/nimi2d/kernel/tables/layer-input.schema.yaml`
-- `.nimi/spec/nimi2d/kernel/tables/reject-codes.yaml`
-- `.nimi/spec/nimi2d/kernel/tables/slot-taxonomy.yaml`
-- `.nimi/spec/nimi2d/kernel/tables/capability-channel-matrix.yaml`
-- `.nimi/spec/nimi2d/kernel/tables/package-manifest.schema.yaml`
-- `.nimi/spec/nimi2d/kernel/tables/generation-bench-gates.yaml`
-- `.nimi/spec/nimi2d/kernel/tables/generation-bench-corpus.schema.yaml`
-- `.nimi/spec/nimi2d/kernel/tables/generation-bench-result.schema.yaml`
+- `.nimi/spec/nimi2d/asset-package.authority.yaml`
 
 ---
 
@@ -178,8 +164,8 @@ create a second Runtime ontology, public APML syntax, or package-local Avatar
 backend authority.
 
 Any future package-local spec root must be admitted through
-`.nimi/spec/platform/kernel/package-authority-admission-contract.md` and
-`.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml`.
+`.nimi/spec/platform/authority-admission.authority.yaml` and
+`config/platform-package-authority-admissions.yaml`.
 
 ## 2. Non-Goals
 
@@ -280,10 +266,10 @@ in Git history and must not be used as active truth.
 
 The Nimi2D boundary is valid only if:
 
-- `.nimi/spec/INDEX.md` lists `nimi2d` as an active domain.
-- `.nimi/spec/nimi2d/index.md` imports the Nimi2D kernel.
-- `.nimi/spec/nimi2d/kernel/index.md` references this contract.
-- `.nimi/spec/nimi2d/kernel/index.md` references the Codex Image2 provider
+- `docs/spec/INDEX.md` lists `nimi2d` as an active domain.
+- `.nimi/spec/nimi2d/asset-package.authority.yaml` imports the Nimi2D kernel.
+- `docs/spec/nimi2d-domain-index.md` references this contract.
+- `docs/spec/nimi2d-domain-index.md` references the Codex Image2 provider
   contract when Image2 is used for Nimi2D image resources.
 - No `.nimi/spec/nimi2d/**` file defines production Avatar runtime backend
   execution or Runtime projection truth.
@@ -300,9 +286,9 @@ The Nimi2D boundary is valid only if:
 > **Status**: Active Nimi2D base body authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
-> - [Authority boundary contract](authority-boundary-contract.md)
-> - [Renderability governance contract](renderability-governance-contract.md)
-> - [Layer input contract](layer-input-contract.md)
+> - [Authority boundary contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Renderability governance contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/generation-supply.authority.yaml)
+> - [Layer input contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 > **Table**: [Slot taxonomy](tables/slot-taxonomy.yaml)
 
 ## 0. Purpose
@@ -367,7 +353,7 @@ Current v1 admits the topology family:
 
 - `topology_id: "nimi.nimi2d.base-body.topology"`
 - `topology_version: 1`
-- `slot_taxonomy_ref: ".nimi/spec/nimi2d/kernel/tables/slot-taxonomy.yaml"`
+- `slot_taxonomy_ref: ".nimi/spec/nimi2d/asset-package.authority.yaml"`
 
 Changing required anchors, required slots, skeleton ownership, or wardrobe
 compatibility semantics requires a topology version bump.
@@ -506,9 +492,9 @@ Base body validation is valid only if:
 > **Status**: Active Nimi2D capability tier authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
-> - [Base body contract](base-body-contract.md)
-> - [Wardrobe and slot contract](wardrobe-slot-contract.md)
-> - [Renderability governance contract](renderability-governance-contract.md)
+> - [Base body contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Wardrobe and slot contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Renderability governance contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/generation-supply.authority.yaml)
 > **Table**: [Capability channel matrix](tables/capability-channel-matrix.yaml)
 
 ## 0. Purpose
@@ -708,10 +694,10 @@ Tier validation is valid only if:
 > **Status**: Active Nimi2D Codex Image2 provider authority
 > **Owner**: Nimi2D image resource provider surface
 > **Parents**:
-> - [Authority boundary contract](authority-boundary-contract.md)
-> - [Layer input contract](layer-input-contract.md)
-> - [Wardrobe and slot contract](wardrobe-slot-contract.md)
-> - [Generation Bench contract](generation-bench-contract.md)
+> - [Authority boundary contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Layer input contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Wardrobe and slot contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Generation Bench contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/generation-supply.authority.yaml)
 
 ## 0. Purpose
 
@@ -1054,11 +1040,11 @@ Provider closure is valid only if:
 > **Status**: Active Nimi2D Generation Bench authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
-> - [Layer input contract](layer-input-contract.md)
-> - [Base body contract](base-body-contract.md)
-> - [Wardrobe and slot contract](wardrobe-slot-contract.md)
-> - [Capability tier contract](capability-tier-contract.md)
-> - [Package manifest contract](package-manifest-contract.md)
+> - [Layer input contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Base body contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Wardrobe and slot contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Capability tier contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Package manifest contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 > **Tables**:
 > - [Generation Bench gates](tables/generation-bench-gates.yaml)
 > - [Generation Bench corpus schema](tables/generation-bench-corpus.schema.yaml)
@@ -1415,7 +1401,7 @@ diagnostic atlas gates.
 
 ## Contracts
 
-### [`authority-boundary-contract.md`](authority-boundary-contract.md)
+### [`authority-boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 
 Nimi2D authority boundary:
 
@@ -1434,7 +1420,7 @@ Nimi2D authority boundary:
 - stop rules for drift into production runtime, product UI, raw images, raw
   APML, or false capability claims
 
-### [`codex-image2-provider-contract.md`](codex-image2-provider-contract.md)
+### [`codex-image2-provider-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/generation-supply.authority.yaml)
 
 Nimi2D Codex Image2 provider authority:
 
@@ -1447,7 +1433,7 @@ Nimi2D Codex Image2 provider authority:
 - automation must route through provider commands and Codex CLI response
   contracts instead of manual session-only prompts
 
-### [`layer-input-contract.md`](layer-input-contract.md)
+### [`layer-input-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 
 Nimi2D layer input authority:
 
@@ -1460,7 +1446,7 @@ Nimi2D layer input authority:
 - fail-closed typed rejection for invalid, incomplete, guessed, repaired, raw
   image, or out-of-root input
 
-### [`renderability-governance-contract.md`](renderability-governance-contract.md)
+### [`renderability-governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/generation-supply.authority.yaml)
 
 Nimi2D renderability and governance invariants:
 
@@ -1474,7 +1460,7 @@ Nimi2D renderability and governance invariants:
 - upstream content-admission evidence is required, while Nimi2D does not own
   pixel classification
 
-### [`base-body-contract.md`](base-body-contract.md)
+### [`base-body-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 
 Nimi2D base body authority:
 
@@ -1485,7 +1471,7 @@ Nimi2D base body authority:
 - topology is versioned and reused across all outfits
 - base body must not define Avatar runtime execution
 
-### [`wardrobe-slot-contract.md`](wardrobe-slot-contract.md)
+### [`wardrobe-slot-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 
 Nimi2D wardrobe and slot authority:
 
@@ -1497,7 +1483,7 @@ Nimi2D wardrobe and slot authority:
   exists
 - slot taxonomy is closed by `tables/slot-taxonomy.yaml`
 
-### [`capability-tier-contract.md`](capability-tier-contract.md)
+### [`capability-tier-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 
 Nimi2D asset capability tier authority:
 
@@ -1508,7 +1494,7 @@ Nimi2D asset capability tier authority:
 - tier claims are asset/package claims only, not runtime execution truth
 - overclaimed capability fails closed
 
-### [`package-manifest-contract.md`](package-manifest-contract.md)
+### [`package-manifest-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 
 Nimi2D package manifest authority:
 
@@ -1522,7 +1508,7 @@ Nimi2D package manifest authority:
   admission as external refs
 - runtime blend/composer/Avatar route fields are forbidden
 
-### [`generation-bench-contract.md`](generation-bench-contract.md)
+### [`generation-bench-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/generation-supply.authority.yaml)
 
 Nimi2D Generation Bench authority:
 
@@ -1590,19 +1576,14 @@ runtime contracts.
 
 Nimi2D consumes, but does not redefine:
 
-- `.nimi/spec/avatar/kernel/embodiment-projection-contract.md`
-- `.nimi/spec/avatar/kernel/backend-branch-contract.md`
-- `.nimi/spec/avatar/kernel/nimi2d-backend-contract.md`
-- `.nimi/spec/avatar/kernel/generated-motion-provider-contract.md`
-- `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md`
-- `.nimi/spec/avatar/kernel/tables/backend-capability-profile.schema.yaml`
-- `.nimi/spec/avatar/kernel/tables/nimi2d-backend-capability-profile.schema.yaml`
-- `.nimi/spec/avatar/kernel/tables/nimi2d-live-action-routes.yaml`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `config/runtime-agent-event-projection.yaml`
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml`
+- `config/avatar-backend-capability-profile.schema.yaml`
+- `config/avatar-nimi2d-backend-capability-profile.schema.yaml`
+- `config/avatar-nimi2d-live-action-routes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 - `.nimi/spec/desktop/ai-consumption.authority.yaml`
-- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
-- `.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml`
+- `.nimi/spec/platform/authority-admission.authority.yaml`
+- `config/platform-package-authority-admissions.yaml`
 
 ## Derived Views
 
@@ -1617,7 +1598,7 @@ No Nimi2D derived view is currently admitted as independent authority.
 > **Authority**: `.nimi/spec/nimi2d`
 > **Status**: Active Nimi2D layer input authority
 > **Owner**: Nimi2D generated asset/package contract surface
-> **Parent**: [Authority boundary contract](authority-boundary-contract.md)
+> **Parent**: [Authority boundary contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 > **Tables**:
 > - [Layer input schema](tables/layer-input.schema.yaml)
 > - [Reject codes](tables/reject-codes.yaml)
@@ -1963,11 +1944,11 @@ Layer input admission is valid only if:
 > **Status**: Active Nimi2D package manifest authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
-> - [Capability tier contract](capability-tier-contract.md)
-> - [Base body contract](base-body-contract.md)
-> - [Wardrobe and slot contract](wardrobe-slot-contract.md)
-> - [Renderability governance contract](renderability-governance-contract.md)
-> - [Layer input contract](layer-input-contract.md)
+> - [Capability tier contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Base body contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Wardrobe and slot contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Renderability governance contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/generation-supply.authority.yaml)
+> - [Layer input contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 > **Table**: [Package manifest schema](tables/package-manifest.schema.yaml)
 
 ## 0. Purpose
@@ -2280,8 +2261,8 @@ Package manifest validation is valid only if:
 > **Authority**: `.nimi/spec/nimi2d`
 > **Status**: Active Nimi2D renderability/governance authority
 > **Owner**: Nimi2D generated asset/package contract surface
-> **Parent**: [Authority boundary contract](authority-boundary-contract.md)
-> **Input dependency**: [Layer input contract](layer-input-contract.md)
+> **Parent**: [Authority boundary contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> **Input dependency**: [Layer input contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 
 ## 0. Purpose
 
@@ -2525,9 +2506,9 @@ Governance validation is valid only if:
 > **Status**: Active Nimi2D wardrobe/slot authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
-> - [Base body contract](base-body-contract.md)
-> - [Renderability governance contract](renderability-governance-contract.md)
-> - [Layer input contract](layer-input-contract.md)
+> - [Base body contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+> - [Renderability governance contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/generation-supply.authority.yaml)
+> - [Layer input contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
 > **Table**: [Slot taxonomy](tables/slot-taxonomy.yaml)
 
 ## 0. Purpose

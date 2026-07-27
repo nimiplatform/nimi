@@ -31,14 +31,14 @@ Install the workspace and run the Nimi compatibility checks:
 
 ```bash
 pnpm install
-pnpm check:nimicoding-host-hardcut
 pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-The checks verify the audited package release, package-managed projections,
-declared host overrides, and the execution ownership ceiling. They do not
-create product authority.
+The checks verify package-managed projections and declared host overrides. The
+execution ownership ceiling itself is declared by `P-PKG-011` in
+`.nimi/spec/platform/authority-admission.authority.yaml` rather than by a
+wrapper command. Neither check creates product authority.
 
 ## 2. Reconstruct Product Authority
 

@@ -8,7 +8,7 @@
 
 # Cli
 
-> Normative Imports: `.nimi/spec/runtime/kernel/*`
+> Normative Imports: `.nimi/spec/runtime/*`
 
 ## Scope
 
@@ -16,32 +16,19 @@ This guide points to the runtime authority surfaces for cli. It does not define 
 
 ## Reading Path
 
-- `.nimi/spec/runtime/kernel/index.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
-- `.nimi/spec/runtime/kernel/audit-contract.md`
-- `.nimi/spec/runtime/kernel/auth-service.md`
-- `.nimi/spec/runtime/kernel/authn-token-validation.md`
-- `.nimi/spec/runtime/kernel/authz-ownership.md`
+- `docs/spec/runtime-domain-index.md`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/ai-provider.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/rpc-foundations.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
 
 ## Tables
 
 - `config/runtime-accelerator-consumer-requirements.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 ---
 
@@ -49,7 +36,7 @@ This guide points to the runtime authority surfaces for cli. It does not define 
 
 # Config
 
-> Normative Imports: `.nimi/spec/runtime/kernel/*`
+> Normative Imports: `.nimi/spec/runtime/*`
 
 ## Scope
 
@@ -57,32 +44,19 @@ This guide points to the runtime authority surfaces for config. It does not defi
 
 ## Reading Path
 
-- `.nimi/spec/runtime/kernel/index.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
-- `.nimi/spec/runtime/kernel/audit-contract.md`
-- `.nimi/spec/runtime/kernel/auth-service.md`
-- `.nimi/spec/runtime/kernel/authn-token-validation.md`
-- `.nimi/spec/runtime/kernel/authz-ownership.md`
+- `docs/spec/runtime-domain-index.md`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/ai-provider.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/rpc-foundations.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
 
 ## Tables
 
 - `config/runtime-accelerator-consumer-requirements.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 ---
 
@@ -90,7 +64,7 @@ This guide points to the runtime authority surfaces for config. It does not defi
 
 # Connector
 
-> Normative Imports: `.nimi/spec/runtime/kernel/*`
+> Normative Imports: `.nimi/spec/runtime/*`
 
 ## Scope
 
@@ -98,32 +72,19 @@ This guide points to the runtime authority surfaces for connector. It does not d
 
 ## Reading Path
 
-- `.nimi/spec/runtime/kernel/index.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
-- `.nimi/spec/runtime/kernel/audit-contract.md`
-- `.nimi/spec/runtime/kernel/auth-service.md`
-- `.nimi/spec/runtime/kernel/authn-token-validation.md`
-- `.nimi/spec/runtime/kernel/authz-ownership.md`
+- `docs/spec/runtime-domain-index.md`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/ai-provider.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/rpc-foundations.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
 
 ## Tables
 
 - `config/runtime-accelerator-consumer-requirements.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 ---
 
@@ -131,7 +92,7 @@ This guide points to the runtime authority surfaces for connector. It does not d
 
 # Local Model
 
-> Normative Imports: `.nimi/spec/runtime/kernel/*`
+> Normative Imports: `.nimi/spec/runtime/*`
 
 ## Scope
 
@@ -139,32 +100,19 @@ This guide points to the runtime authority surfaces for local-model. It does not
 
 ## Reading Path
 
-- `.nimi/spec/runtime/kernel/index.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
-- `.nimi/spec/runtime/kernel/audit-contract.md`
-- `.nimi/spec/runtime/kernel/auth-service.md`
-- `.nimi/spec/runtime/kernel/authn-token-validation.md`
-- `.nimi/spec/runtime/kernel/authz-ownership.md`
+- `docs/spec/runtime-domain-index.md`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/ai-provider.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/rpc-foundations.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
 
 ## Tables
 
 - `config/runtime-accelerator-consumer-requirements.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 ---
 
@@ -172,7 +120,7 @@ This guide points to the runtime authority surfaces for local-model. It does not
 
 # Multimodal Delivery Gates
 
-> Normative Imports: `.nimi/spec/runtime/kernel/*`
+> Normative Imports: `.nimi/spec/runtime/*`
 
 ## Scope
 
@@ -180,32 +128,19 @@ This guide points to the runtime authority surfaces for multimodal-delivery-gate
 
 ## Reading Path
 
-- `.nimi/spec/runtime/kernel/index.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
-- `.nimi/spec/runtime/kernel/audit-contract.md`
-- `.nimi/spec/runtime/kernel/auth-service.md`
-- `.nimi/spec/runtime/kernel/authn-token-validation.md`
-- `.nimi/spec/runtime/kernel/authz-ownership.md`
+- `docs/spec/runtime-domain-index.md`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/ai-provider.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/rpc-foundations.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
 
 ## Tables
 
 - `config/runtime-accelerator-consumer-requirements.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 ---
 
@@ -213,7 +148,7 @@ This guide points to the runtime authority surfaces for multimodal-delivery-gate
 
 # Multimodal Provider
 
-> Normative Imports: `.nimi/spec/runtime/kernel/*`
+> Normative Imports: `.nimi/spec/runtime/*`
 
 ## Scope
 
@@ -221,32 +156,19 @@ This guide points to the runtime authority surfaces for multimodal-provider. It 
 
 ## Reading Path
 
-- `.nimi/spec/runtime/kernel/index.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
-- `.nimi/spec/runtime/kernel/audit-contract.md`
-- `.nimi/spec/runtime/kernel/auth-service.md`
-- `.nimi/spec/runtime/kernel/authn-token-validation.md`
-- `.nimi/spec/runtime/kernel/authz-ownership.md`
+- `docs/spec/runtime-domain-index.md`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/ai-provider.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/rpc-foundations.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
 
 ## Tables
 
 - `config/runtime-accelerator-consumer-requirements.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 ---
 
@@ -254,7 +176,7 @@ This guide points to the runtime authority surfaces for multimodal-provider. It 
 
 # Nimillm
 
-> Normative Imports: `.nimi/spec/runtime/kernel/*`
+> Normative Imports: `.nimi/spec/runtime/*`
 
 ## Scope
 
@@ -262,32 +184,19 @@ This guide points to the runtime authority surfaces for nimillm. It does not def
 
 ## Reading Path
 
-- `.nimi/spec/runtime/kernel/index.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
-- `.nimi/spec/runtime/kernel/audit-contract.md`
-- `.nimi/spec/runtime/kernel/auth-service.md`
-- `.nimi/spec/runtime/kernel/authn-token-validation.md`
-- `.nimi/spec/runtime/kernel/authz-ownership.md`
+- `docs/spec/runtime-domain-index.md`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/ai-provider.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/rpc-foundations.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
 
 ## Tables
 
 - `config/runtime-accelerator-consumer-requirements.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 ---
 
@@ -295,7 +204,7 @@ This guide points to the runtime authority surfaces for nimillm. It does not def
 
 # Proto Governance
 
-> Normative Imports: `.nimi/spec/runtime/kernel/*`
+> Normative Imports: `.nimi/spec/runtime/*`
 
 ## Scope
 
@@ -303,32 +212,19 @@ This guide points to the runtime authority surfaces for proto-governance. It doe
 
 ## Reading Path
 
-- `.nimi/spec/runtime/kernel/index.md`
-- `.nimi/spec/runtime/kernel/account-session-contract.md`
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
-- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
-- `.nimi/spec/runtime/kernel/audit-contract.md`
-- `.nimi/spec/runtime/kernel/auth-service.md`
-- `.nimi/spec/runtime/kernel/authn-token-validation.md`
-- `.nimi/spec/runtime/kernel/authz-ownership.md`
+- `docs/spec/runtime-domain-index.md`
+- `.nimi/spec/runtime/protected-session.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/ai-provider.authority.yaml`
+- `.nimi/spec/runtime/app-surface.authority.yaml`
+- `.nimi/spec/runtime/rpc-foundations.authority.yaml`
+- `.nimi/spec/runtime/security-core.authority.yaml`
 
 ## Tables
 
 - `config/runtime-accelerator-consumer-requirements.yaml`
-- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
-- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`
+- `config/runtime-activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
 
 ---
 

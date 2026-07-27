@@ -141,8 +141,9 @@ Desktop testing gate、feature coverage 与 rule evidence 必须作为 kernel �
 - `rule-evidence.yaml` 必须把 `D-GATE-*` 和高风险 `D-*` 规则映射到真实 gate / spec / 测试文件
 - Simulator selection additionally requires the current `P-SIM-*` authority,
   `nimi-app doctor --conformance simulator --json`, and the Simulator final
-  graph gate. The structural `pnpm check:simulator-authority` gate proves only
-  the authority/owner wiring and cannot substitute those executable tests.
+  graph gate. Authority/owner wiring is declared in
+  `.nimi/spec/platform/simulator.authority.yaml` and cannot substitute those
+  executable tests.
 
 执行命令：
 
@@ -180,7 +181,7 @@ Desktop design primitive adoption 以 advisory/soft gate 方式跟踪：
 
 # Testing Gates
 
-> Normative Imports: `.nimi/spec/desktop/kernel/*`
+> Normative Imports: `.nimi/spec/desktop/*`
 
 ## Scope
 
@@ -188,12 +189,12 @@ This guide points to the desktop authority surfaces for testing-gates. It does n
 
 ## Reading Path
 
-- `.nimi/spec/desktop/kernel/index.md`
+- `docs/spec/desktop-domain-index.md`
 - `.nimi/spec/desktop/agent-projection.authority.yaml`
 - `.nimi/spec/desktop/ai-consumption.authority.yaml`
 - `.nimi/spec/desktop/shell-runtime.authority.yaml`
 
 ## Tables
 
-- `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
-- `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
+- `config/desktop-shell-ui-app-tabs.yaml`
+- `config/desktop-shell-ui-build-chunks.yaml`

@@ -275,17 +275,17 @@ Runtime Agent Chat.
 
 Adjacent owner boundaries are fixed:
 
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` owns live
+- `.nimi/spec/runtime/agent-service.authority.yaml` owns live
   Runtime Agent execution, agent lifecycle, memory policy, conversation
   continuity, transient turn / presentation projection, and agent events.
-- `.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md` owns
+- `.nimi/spec/runtime/agent-participation.authority.yaml` owns
   participation profiles, prompt assembly policy, execution owner axes, output
   candidates, and canonical Agent Chat reference posture.
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md` owns model-facing
+- `.nimi/spec/runtime/agent-participation.authority.yaml` owns model-facing
   Agent output wire validation and APML projection.
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` owns Runtime
+- `.nimi/spec/runtime/agent-participation.authority.yaml` owns Runtime
   Agent presentation stream families and projection envelopes.
-- `.nimi/spec/runtime/kernel/voice-contract.md` owns runtime voice workflow,
+- `.nimi/spec/runtime/model-catalog.authority.yaml` owns runtime voice workflow,
   `VoiceReference`, `VoiceAsset`, and scenario job truth.
 - the avatar units in
   `.nimi/spec/desktop/agent-projection.authority.yaml` own only
@@ -299,11 +299,9 @@ Adjacent owner boundaries are fixed:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
-- `.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`
-- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- `.nimi/spec/runtime/kernel/voice-contract.md`
+- `.nimi/spec/runtime/agent-service.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/model-catalog.authority.yaml`
 - `.nimi/spec/desktop/agent-projection.authority.yaml`
 - `.nimi/spec/desktop/ai-consumption.authority.yaml`
 
@@ -504,7 +502,7 @@ overlay 已退役；其历史语义由本 carve-out 取代。
   projection evidence. Desktop must not create or reinterpret them as local
   execution truth.
 - snapshot 若携带 deferred continuation / `HookIntent` proposal、admission、或 outcome
-  evidence，也只能作为对 `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
+  evidence，也只能作为对 `.nimi/spec/runtime/agent-participation.authority.yaml`
   的只读引用或副本；snapshot 不得成为 deferred continuation product semantics 的平行 owner
 
 thread-level `routeSnapshot` 不再是允许的规范 contract。
@@ -532,7 +530,7 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
   prompt truth from `runtimeFields`.
 - AI / Agent submit path 若还需要 deferred continuation / `HookIntent` proposal、
   admission、或 outcome 决策，必须消费
-  `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` 定义的 runtime-owned outputs；
+  `.nimi/spec/runtime/agent-participation.authority.yaml` 定义的 runtime-owned outputs；
   不得经由 capability health、`runtimeFields`、scheduler queues、或 UI local state
   派生一份平行 deferred continuation truth
 - AI / Agent submit path must not use capability health, metadata,
@@ -579,9 +577,9 @@ binding truth, generation policy, or workflow ownership.
 
 本契约不拥有 runtime persistent `AgentPresentationProfile`、message/action envelope truth、
 voice workflow / `VoiceReference` truth、broader voice session truth、或具体 renderer backend /
-asset packaging truth。`.nimi/spec/runtime/kernel/agent-presentation-contract.md`
+asset packaging truth。`.nimi/spec/runtime/agent-participation.authority.yaml`
 （`K-AGCORE-022` ~ `K-AGCORE-026`）继续拥有 persistent presentation truth；
-`.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+`.nimi/spec/runtime/agent-participation.authority.yaml`
 （`K-AGCORE-036` ~ `K-AGCORE-039`）继续拥有 runtime-owned transient turn /
 presentation seam 与 current emotion projection；
 Runtime Agent Chat / Voice projections continue to own message / action / voice
@@ -616,9 +614,9 @@ Desktop agent chat 的 canonical avatar transient surface / bridge authority 固
 
 adjacent authority 边界固定为：
 
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
   （`K-AGCORE-022` ~ `K-AGCORE-026`）继续拥有 persistent avatar profile / default voice truth
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
   （`K-AGCORE-036` ~ `K-AGCORE-039`）继续拥有 `runtime.agent.turn.*` /
   `runtime.agent.presentation.*` / `runtime.agent.state.emotion_changed`
   的 runtime-owned transient projection truth
@@ -1115,18 +1113,18 @@ Fixed rules:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime persistent presentation truth and non-owner boundary
-- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` — conversation continuity anchor truth
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — transient turn, presentation, emotion, and timeline projection truth
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — runtime persistent presentation truth and non-owner boundary
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — conversation continuity anchor truth
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — transient turn, presentation, emotion, and timeline projection truth
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — Desktop Agent Chat presentation/projection boundary
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — Runtime Agent execution and presentation projection authority
-- `.nimi/spec/runtime/kernel/voice-contract.md` — Runtime voice workflow / asset semantics
-- `.nimi/spec/platform/kernel/kit-contract.md` — reusable `kit/features/avatar` admission and ownership hardcut
-- `.nimi/spec/avatar/kernel/index.md` — Avatar first-party authority map
-- `.nimi/spec/avatar/kernel/app-shell-contract.md` — Avatar shell launch, fail-closed, and foreground companion UX boundary
-- `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md` — Avatar carrier visual proof requirements
-- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — core substrate reader guide and correspondence matrix
-- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — reader guide and first-30-second demo correspondence
+- `.nimi/spec/runtime/agent-service.authority.yaml` — Runtime Agent execution and presentation projection authority
+- `.nimi/spec/runtime/model-catalog.authority.yaml` — Runtime voice workflow / asset semantics
+- `.nimi/spec/platform/ui-design-system.authority.yaml` — reusable `kit/features/avatar` admission and ownership hardcut
+- `docs/spec/avatar-domain-index.md` — Avatar first-party authority map
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml` — Avatar shell launch, fail-closed, and foreground companion UX boundary
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml` — Avatar carrier visual proof requirements
+- `.nimi/spec/runtime/agent-participation.authority.yaml` — core substrate reader guide and correspondence matrix
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml` — reader guide and first-30-second demo correspondence
 
 ## D-LLM-078a Cross-Reference — Configuration
 
@@ -1291,11 +1289,11 @@ app-local carrier truth.
 
 ## Traceability
 
-- `.nimi/spec/platform/kernel/agent-center-contract.md`
-- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
-- `.nimi/spec/runtime/kernel/voice-contract.md`
-- `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md`
-- `.nimi/spec/sdks/kernel/runtime-avatar-control-client-contract.md`
+- `.nimi/spec/platform/ui-design-system.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`
+- `.nimi/spec/runtime/model-catalog.authority.yaml`
+- `.nimi/spec/avatar/embodiment-surface.authority.yaml`
+- `.nimi/spec/sdks/feature-clients.authority.yaml`
 
 ## Preserved source: Agent Delegation Control Surface Contract
 
@@ -1536,7 +1534,5 @@ participation execution truth is introduced.
 
 ## Traceability
 
-- `.nimi/spec/sdks/kernel/realm-group-agent-participation-client-contract.md`
-- `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
-- `.nimi/spec/runtime/kernel/realm-group-participation-consumer-contract.md`
-- `.nimi/spec/runtime/kernel/multi-agent-room-orchestration-contract.md`
+- `.nimi/spec/sdks/realm-consumer.authority.yaml`
+- `.nimi/spec/runtime/agent-participation.authority.yaml`

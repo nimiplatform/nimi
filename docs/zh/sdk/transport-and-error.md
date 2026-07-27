@@ -1,6 +1,6 @@
 # 传输与错误
 
-> 状态：运行中 (Running)。SDK 传输合同和 SDK 错误转换合同已发布在 `.nimi/spec/sdks/kernel/transport-contract.md` + `.nimi/spec/sdks/kernel/error-projection.md`。
+> 状态：运行中 (Running)。SDK 传输合同和 SDK 错误转换合同已发布在 `.nimi/spec/sdks/client-core.authority.yaml` + `.nimi/spec/sdks/client-core.authority.yaml`。
 
 SDK 传输与错误表面涵盖了 SDK 如何通过已准入的传输方式与运行时通信，以及运行时错误如何转换为类型化的 SDK 错误，以便应用程序可以可靠地处理这些错误。
 
@@ -8,7 +8,7 @@ SDK 传输与错误表面涵盖了 SDK 如何通过已准入的传输方式与�
 
 | 关注点 | 权威 |
 | --- | --- |
-| 传输绑定 | `.nimi/spec/sdks/kernel/transport-contract.md` |
+| 传输绑定 | `.nimi/spec/sdks/client-core.authority.yaml` |
 | 连接生命周期 | 每个已准入的传输 |
 | 重连策略 | 仅限传输层（不修复合同级错误） |
 
@@ -18,7 +18,7 @@ SDK 传输与错误表面涵盖了 SDK 如何通过已准入的传输方式与�
 
 | 关注点 | 权威 |
 | --- | --- |
-| 从运行时到 SDK 的错误转换 | `.nimi/spec/sdks/kernel/error-projection.md` |
+| 从运行时到 SDK 的错误转换 | `.nimi/spec/sdks/client-core.authority.yaml` |
 | 原因代码显示 | 类型化；永远不会静默丢弃 |
 | 解码/内容类型/模式失败 | 显示为类型化的 SDK 错误；不会重试 |
 | 认证/传输失败 | 显示为类型化的 SDK 错误；根据传输策略可能重试 |
@@ -50,6 +50,5 @@ SDK 传输与错误表面涵盖了 SDK 如何通过已准入的传输方式与�
 
 ## 来源依据
 
-- [`.nimi/spec/sdks/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/transport-contract.md)
-- [`.nimi/spec/sdks/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/error-projection.md)
-- [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+- [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)

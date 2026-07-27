@@ -7,9 +7,7 @@ surface. For ownership concepts, see [Command Surface](/nimicoding/cli).
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm check:nimicoding-host-hardcut` | Verify the audited package release and absence of retired execution surfaces |
 | `pnpm check:nimi-coding-seed-sync` | Check managed projection presence and package-canonical drift |
-| `pnpm nimicoding:sync:apply` | Refresh managed projections after the host boundary passes |
 | `pnpm nimicoding:doctor` | Inspect bootstrap, projection, and host spec configuration health |
 
 ## Spec And Governance Validators
@@ -53,8 +51,7 @@ command family.
 
 ## Source Basis
 
-- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
 - [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
 - [`.nimi/contracts/spec-layout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-layout.schema.yaml)
-- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/spec/platform/authority-admission.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/authority-admission.authority.yaml)

@@ -264,7 +264,7 @@ Realm SDK `ready()` 与 Runtime SDK `ready()` 都采用 fail-close 语义（`S-R
 > Authority: Desktop Kernel
 >
 > **Authority Disposition**：
-> Desktop 不再拥有 local first-party 机器层 account session truth、token custody、refresh、logout、user-switch 权威。该权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `.nimi/spec/runtime/kernel/account-session-contract.md`）拥有。本契约下列规则的 disposition 固定为：
+> Desktop 不再拥有 local first-party 机器层 account session truth、token custody、refresh、logout、user-switch 权威。该权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `.nimi/spec/runtime/protected-session.authority.yaml`）拥有。本契约下列规则的 disposition 固定为：
 >
 > | Rule | Disposition | Replacement Authority |
 > |---|---|---|
@@ -625,7 +625,7 @@ Content Security Policy 约束：
 
 ## D-SEC-009 — AI 凭据委托模型
 
-AI provider 凭据（API key）的唯一托管者是 Runtime ConnectorService（K-CONN-001: custodian not distributor，定义于 .nimi/spec/runtime/connector.md）：
+AI provider 凭据（API key）的唯一托管者是 Runtime ConnectorService（K-CONN-001: custodian not distributor，定义于 .nimi/spec/runtime/ai-provider.authority.yaml）：
 
 - Desktop renderer **不接触**原始 API key。用户通过 UI 输入凭据后，Desktop 调用 SDK `CreateConnector` / `UpdateConnector`（K-RPC-007/008）将凭据写入 Runtime，写入后即刻丢弃内存副本。
 - AI 请求通过 `connector_id`（managed 路径，K-KEYSRC-001）路由到 Runtime，Runtime 在执行上下文中解密注入凭据（K-KEYSRC-004 step 6），下游不直接访问 CredentialStore。
@@ -814,7 +814,7 @@ subscription/cache. No instance may observe another instance's state.
 ## Fact Sources
 
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — Runtime Agent Chat execution/projection authority
+- `.nimi/spec/runtime/agent-service.authority.yaml` — Runtime Agent Chat execution/projection authority
 - `tables/store-slices.yaml` — Slice 枚举
 - `tables/app-tabs.yaml` — AppTab 枚举
 

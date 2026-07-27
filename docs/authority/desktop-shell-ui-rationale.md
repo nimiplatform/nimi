@@ -154,7 +154,7 @@ branch. The App-owned canonical renderer factory instead receives the opaque
 
 检测结果驱动所有 feature flag 的默认值（`D-SHELL-001` ~ `D-SHELL-003`、`D-BOOT-004`）。
 
-**统一 Feature Flag 派生表**（规范：`.nimi/spec/desktop/shell-runtime.authority.yaml` `rule.nimi.desktop.shell-runtime.r042`；机器投影：`config/desktop-shell-runtime-feature-flags.yaml`）：
+**统一 Feature Flag 派生表**（规范：`.nimi/spec/desktop/shell-runtime.authority.yaml` `rule.nimi.desktop.shell-runtime.r042`）：
 
 | Flag | Desktop 默认 | Web 默认 | 控制规则 |
 |---|---|---|---|
@@ -302,7 +302,7 @@ operations, but never the selected component tree or design-language source.
 
 baseline surface 的 arbitrary Tailwind value 与 inline style 默认禁止：
 
-- `rounded-[...]`、`z-[...]` 与 `style={{...}}` 只有在 `tables/renderer-design-allowlists.yaml` 中登记后才允许保留。
+- `rounded-[...]`、`z-[...]` 与 <span v-pre>`style={{...}}`</span> 只有在 `tables/renderer-design-allowlists.yaml` 中登记后才允许保留。
 - allowlist 必须带 `scope`、`reason` 与 `source_rule`，用于描述动态几何、受控动画或 renderer bridge 需要的例外。
 - allowlist 是过渡治理工具，不等于永久自由区；新增例外必须说明为什么不能落入共享 token / primitive。
 
@@ -768,7 +768,6 @@ require page-owned focus state.
 - `tables/settings-open-targets.yaml` - Settings Desktop Open targets
 - `tables/agents-open-targets.yaml` - Agents Desktop Open targets
 - `.nimi/spec/desktop/shell-runtime.authority.yaml` — Feature flag 规范
-- `config/desktop-shell-runtime-feature-flags.yaml` — non-authoritative machine projection
 - `tables/build-chunks.yaml` — Vite 分包枚举
 - `tables/renderer-design-tokens.yaml` — baseline semantic design token
 - `tables/renderer-design-surfaces.yaml` — baseline / secondary / exception surface mapping
@@ -939,20 +938,20 @@ truth.
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
-- `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
-- `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
-- `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
-- `.nimi/spec/desktop/kernel/ui-shell-contract.md` — desktop shell 既有 `D-SHELL-*` 与本契约 placement 互不重叠
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-HOME-001..P-HOME-010`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-SUPD-001..P-SUPD-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-PKGREL-001..P-PKGREL-008`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml` — `P-COLD-001..P-COLD-008`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AIPS-001..P-AIPS-013`
+- `.nimi/spec/platform/core-protocol.authority.yaml` — `P-AISC-001..P-AISC-005`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — desktop shell 既有 `D-SHELL-*` 与本契约 placement 互不重叠
 - `.nimi/spec/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
 - `.nimi/spec/desktop/ai-consumption.authority.yaml` — `D-AIPC-001..D-AIPC-012`
 - `.nimi/spec/desktop/agent-projection.authority.yaml` — `D-LLM-022..D-LLM-026`
-- `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
-- `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
-- `.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml`
-- `.nimi/spec/desktop/kernel/tables/apps-open-targets.yaml`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-AICONF-001..S-AICONF-006`
+- `.nimi/spec/sdks/feature-clients.authority.yaml` — `S-RUNTIME-119`
+- `.nimi/spec/platform/product-lifecycle.authority.yaml`
+- `config/desktop-open-targets.yaml`
 
 ## Preserved source: Menu Bar Shell Contract
 
@@ -1041,7 +1040,6 @@ Desktop hide, window close, renderer reload, crash, and explicit quit.
 - `.nimi/spec/desktop/shell-runtime.authority.yaml` — 退出路径与 daemon 生命周期
 - `.nimi/spec/desktop/bridge-ipc.authority.yaml` — daemon lifecycle / health sync IPC authority
 - `ui-shell-contract.md` — shell feature flag 与入口语义
-- `config/desktop-shell-runtime-feature-flags.yaml` — non-authoritative menu bar shell flag projection
 - `config/desktop-ipc-commands.yaml` — non-authoritative menu bar IPC command inventory
 
 ## Preserved source: Desktop Kit UI Consumption Contract
@@ -1378,7 +1376,7 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 
 **映射治理规则**：
 
-- 当 `.nimi/spec/runtime/kernel/tables/reason-codes.yaml` 新增 ReasonCode 且 `surface` 包含 `consume` 或 `connector` 时，必须评估是否需要添加 D-ERR-007 映射条目。
+- 当 `config/runtime-reason-codes.yaml` 新增 ReasonCode 且 `surface` 包含 `consume` 或 `connector` 时，必须评估是否需要添加 D-ERR-007 映射条目。
 - 评估标准：该 ReasonCode 是否可能在 Desktop 用户操作流中触达。可通过 UI 触达的码必须添加中文映射；仅内部使用的码（如 management RPC 专用码）可跳过。
 - 此评估应作为 reason-codes.yaml 变更 PR 的 review checklist 项。
 
@@ -1547,11 +1545,10 @@ developer diagnostics）的默认可见性为不可见 / 不可达。
 
 ## Fact Sources
 
-- `.nimi/spec/desktop/kernel/ui-shell-contract.md` — `D-SHELL-001`, `D-SHELL-002`, `D-SHELL-009`
-- `.nimi/spec/desktop/kernel/support-surface-contract.md` — `D-SUP-001..D-SUP-008`
-- `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
+- `.nimi/spec/desktop/shell-ui.authority.yaml` — `D-SHELL-001`, `D-SHELL-002`, `D-SHELL-009`
+- `.nimi/spec/desktop/product-surfaces.authority.yaml` — `D-SUP-001..D-SUP-008`
+- `config/desktop-shell-ui-app-tabs.yaml`
 - `.nimi/spec/desktop/shell-runtime.authority.yaml` — `rule.nimi.desktop.shell-runtime.r042`
-- `config/desktop-shell-runtime-feature-flags.yaml` — non-authoritative machine projection
 
 ## Preserved source: Telemetry Contract
 

@@ -95,9 +95,8 @@ VRM 包可以包含：
 
 ## 来源依据
 
-- [`.nimi/spec/avatar/kernel/vrm-backend-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/vrm-backend-contract.md)
-- [`.nimi/spec/avatar/kernel/generated-motion-provider-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/generated-motion-provider-contract.md)
-- [`.nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml)
-- [`.nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml)
+- [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`config/avatar-vrm-motion-presets.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-vrm-motion-presets.yaml)
+- [`config/avatar-generated-motion-routes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-generated-motion-routes.yaml)
 - [`apps/avatar/assets/vrm-motion-presets/THIRD_PARTY_LICENSES.md`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/assets/vrm-motion-presets/THIRD_PARTY_LICENSES.md)
 - [`apps/avatar/src/shell/renderer/vrm/vrm-motion-preset-registry.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/vrm/vrm-motion-preset-registry.ts)

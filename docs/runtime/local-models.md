@@ -170,11 +170,8 @@ through the materializer with a single confirmation UI.
 
 ## Source Basis
 
-- [`.nimi/spec/runtime/local-model.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/local-model.md)
-- [`.nimi/spec/runtime/kernel/local-category-capability.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/local-category-capability.md)
-- [`.nimi/spec/runtime/kernel/local-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/local-engine-contract.md)
-- [`.nimi/spec/runtime/kernel/device-profile-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/device-profile-contract.md)
-- [`.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml)
-- [`.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml)
+- [`.nimi/spec/runtime/local-compute.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/local-compute.authority.yaml)
+- [`config/runtime-local-engine-catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-local-engine-catalog.yaml)
+- [`config/runtime-local-adapter-routing.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-local-adapter-routing.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
-- [`.nimi/spec/runtime/kernel/scheduling-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/scheduling-contract.md)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

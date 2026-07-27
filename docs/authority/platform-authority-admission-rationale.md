@@ -12,7 +12,7 @@
 
 ## P-APP-001 — Single Admission Source
 
-`.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml` is the only repo-wide admission source for app-local spec slices. Files under `apps/**/spec/**` are not repo-wide authority by location alone; they become audit authority only when an `admission_posture=active` admission row names their app id, authority root, owner domain, and evidence roots.
+`config/platform-app-slice-admissions.yaml` is the only repo-wide admission source for app-local spec slices. Files under `apps/**/spec/**` are not repo-wide authority by location alone; they become audit authority only when an `admission_posture=active` admission row names their app id, authority root, owner domain, and evidence roots.
 
 ## P-APP-002 — Subordinate Authority Scope
 
@@ -98,7 +98,7 @@ The Nimi host must not require, generate, route, or mirror any nimi-coding-owned
 - goal bridge, automatic continuation, or package-owned resume loop;
 - nested launch of the external AI host.
 
-If the installed package still contains those surfaces, they remain unadmitted and must not affect host task execution, gates, evidence validity, or completion. `pnpm check:nimicoding-host-hardcut` must fail closed if a host entrypoint or active projection restores them.
+If the installed package still contains those surfaces, they remain unadmitted and must not affect host task execution, gates, evidence validity, or completion. A host entrypoint or active projection that restores them is an admission violation under `P-PKG-011`, not a configurable option.
 
 This hardcut governs repository-work orchestration only. It does not rename, retire, or constrain Runtime `K-WF-*` product workflows, Nimi App product or developer workflows, Nimi2D Image2 pipelines, domain-native motion and scenario terms such as `greet_wave`, or other product semantics whose owner contracts are outside `P-PKG-*`.
 

@@ -14,33 +14,19 @@ Desktop 的 canonical product authority 已迁至 `.nimi/spec/desktop/**`。本�
 
 ## Non-authoritative machine config
 
-- `config/desktop-agent-projection-avatar-surface.yaml`
-- `config/desktop-agent-projection-conversation-capabilities.yaml`
-- `config/desktop-agent-projection-delegation.yaml`
-- `config/desktop-agent-projection-participation.yaml`
-- `config/desktop-ai-consumption-llm-adapter.yaml`
-- `config/desktop-ai-consumption-streaming.yaml`
 - `config/desktop-command-execution-classification.yaml`
 - `config/desktop-ipc-commands.yaml`
 - `config/desktop-local-app-control-surfaces.yaml`
-- `config/desktop-local-app-launch-hosts.yaml`
 - `config/desktop-open-targets.yaml`
 - `config/desktop-product-surfaces-explore-sections.yaml`
 - `config/desktop-product-surfaces-home-feed-scopes.yaml`
 - `config/desktop-product-surfaces-relationship-categories.yaml`
 - `config/desktop-product-surfaces-relationship-friend-request-states.yaml`
-- `config/desktop-realm-source-materialization-actions.yaml`
-- `config/desktop-shell-runtime-bootstrap-phases.yaml`
-- `config/desktop-shell-runtime-data-sync-flows.yaml`
-- `config/desktop-shell-runtime-feature-flags.yaml`
-- `config/desktop-shell-runtime-retry-status-codes.yaml`
 - `config/desktop-shell-runtime-store-slices.yaml`
 - `config/desktop-shell-ui-app-tabs.yaml`
 - `config/desktop-shell-ui-build-chunks.yaml`
 - `config/desktop-shell-ui-error-codes.yaml`
-- `config/desktop-shell-ui-home-surfaces.yaml`
 - `config/desktop-shell-ui-kit-adoption.yaml`
-- `config/desktop-shell-ui-kit-allowlists.yaml`
 - `config/desktop-shell-ui-kit-compositions.yaml`
 - `config/desktop-shell-ui-log-areas.yaml`
 - `config/desktop-shell-ui-renderer-design-allowlists.yaml`
