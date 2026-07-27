@@ -22,10 +22,6 @@ units:
     kind: definition
     title: Runtime key source and routing plane
     meaning: The Runtime key source and routing plane selects mutually exclusive managed connector, inline remote, configured, or anonymous local execution paths through fixed identity, credential, endpoint, target, routing, and audit checks without path fallback.
-  - id: definition.nimi.runtime.security-core.workspace-binding-plane
-    kind: definition
-    title: Runtime workspace binding plane
-    meaning: The Runtime workspace binding plane defines a Runtime-issued workspace-specific non-secret relation and attachment for WORKSPACE_PRIVATE knowledge authorization whose production consumption remains blocked pending separate Runtime operation admission.
   - id: rule.nimi.runtime.security-core.r001
     kind: rule
     title: Authorization metadata has one bearer shape
@@ -203,7 +199,7 @@ units:
     title: JWT posture never establishes protected origin
     modality: must_not
     statement: A valid JWT or ordinary request-body authorization is interpreted as protected local origin for an RPC whose closed posture requires a separately verified carrier and role.
-    condition: Whenever Runtime evaluates an RPC with binding-only, protected-origin, blocked-pending-authority, or deny-all posture.
+    condition: Whenever a Runtime operation requires independently verified protected origin.
     failure: Deny the RPC until its independently required protected origin is verified.
     relations:
       - type: applies_to
@@ -480,7 +476,7 @@ units:
     kind: rule
     title: Current public permission admission is bounded
     modality: must
-    statement: The admitted third-party public-permission set is exactly agents.interact for owner-selected open-conversation, send-turn, subscribe-turn, and conversation-snapshot operations, Runtime owns its durable revocable decision lifecycle and enforcement, and a restricted process-bound app session may otherwise use only base entitlements without listing protected Agent inventory or constructing a selector, while voice, artifact, principal substitution, direct Avatar control, embedded rendering, and every other public permission remain unavailable.
+    statement: The admitted third-party LocalAgent interaction permission covers only owner-selected Conversation operations, Runtime owns its durable revocable decision lifecycle and enforcement, and a restricted process-bound App session may otherwise use only admitted base entitlements without account-wide LocalAgent inventory, caller-built selectors, principal substitution, direct Avatar control, or embedded rendering.
     condition: Whenever a third-party public permission, decision, selector, or protected operation is evaluated.
     failure: Admit only the complete P-PERM-017 agents.interact four-operation slice and return typed unavailable for incomplete, denied, expired, revoked, mismatched, or out-of-subset access.
     relations:
@@ -542,7 +538,7 @@ units:
     kind: rule
     title: Inline credentials remain a caller-owned escape hatch
     modality: must
-    statement: Inline remote credentials are limited to development, direct external Agent, and temporary call scenarios, Desktop always uses managed connectors without renderer access to raw API keys, and Runtime only guarantees audit redaction rather than extra inline credential custody.
+    statement: Inline remote credentials are limited to separately admitted development, direct external SDK consumer, and temporary call scenarios, Desktop always uses managed connectors without renderer access to raw API keys, and Runtime guarantees audit redaction without projecting inline credentials to consumers.
     condition: Whenever inline metadata is offered or projected.
     failure: Reject inline credentials from Desktop-managed product paths and redact them from audit output.
     relations:
@@ -710,156 +706,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.key-routing-plane
-  - id: rule.nimi.runtime.security-core.r067
-    kind: rule
-    title: Workspace binding production use remains blocked
-    modality: must_not
-    statement: The workspace binding relation or attachment is consumed in production before a separate Runtime operation admission changes its blocked-pending posture.
-    condition: Until the workspace knowledge operation slice is separately admitted.
-    failure: Return typed unavailable or deny without issuing, resolving, or consuming an active workspace binding.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r068
-    kind: rule
-    title: Workspace binding has one owner and purpose
-    modality: must
-    statement: If separately admitted, RuntimeAccountService alone issues and revokes workspace bindings only for purpose workspace.knowledge.consume as non-secret selectors distinct from Avatar or agent app binding, tokens, Realm credentials, and subject or account truth, with no resolver or probe semantics on the public projection.
-    condition: Whenever a separately admitted workspace binding issue or revoke surface is defined.
-    failure: Reject other owners, purposes, capability families, credential interpretations, and public resolver or probe behavior.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r069
-    kind: rule
-    title: Workspace binding relation has an exact tuple
-    modality: must
-    statement: A workspace relation contains Runtime-issued opaque binding_id, Runtime-authenticated runtime_app_id and app_instance_id, Runtime-derived device_id, Runtime account-projected account_id and realm_environment_id, Realm membership-projected workspace_id, exact purpose workspace.knowledge.consume, a non-empty subset of admitted Runtime knowledge scopes, required issued_at and expires_at, required state, and reason_code on non-allow state.
-    condition: Whenever a separately admitted workspace relation is minted, stored, or evaluated.
-    failure: Deny issuance or resolution when any field, authority source, value, or requirement is absent or inconsistent.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r070
-    kind: rule
-    title: Workspace attachment is closed and credential free
-    modality: must
-    statement: A KnowledgeRequestContext workspace attachment contains only binding_id, optional binding_handle, runtime_app_id, app_instance_id, workspace_id, and optional realm_environment_id, and contains no account_id, device_id, subject_user_id, Realm access or refresh token, Runtime app session token, raw JWT, decoded subject, or membership proof.
-    condition: Whenever a workspace attachment is minted, carried, logged, or parsed.
-    failure: Reject the attachment when an allowed field is malformed or any forbidden identity, proof, or credential field is present.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r071
-    kind: rule
-    title: Workspace issue derives every authority input
-    modality: must
-    statement: A separately admitted issue path requires a Runtime-authenticated caller, authenticated account state, Runtime-derived caller app, app instance, device, account, and Realm environment, active workspace membership projection, and non-empty admitted knowledge scopes, and emits only an attachment plus redacted audit and event evidence.
-    condition: Whenever Runtime issues a workspace binding.
-    failure: Deny issuance when any current context, membership, scope, or redaction requirement fails.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r072
-    kind: rule
-    title: Workspace revoke verifies owner and is idempotent
-    modality: must
-    statement: A separately admitted revoke path requires a Runtime-authenticated caller, verifies ownership of the stored relation, revokes idempotently, and emits binding.revoked with a typed reason.
-    condition: Whenever Runtime revokes a workspace binding.
-    failure: Deny caller mismatch and never report revocation success without the idempotent state and typed event result.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r073
-    kind: rule
-    title: Active workspace bindings are short-lived and memory only
-    modality: must
-    statement: Active workspace bindings have short TTLs, do not survive daemon restart, and are never persisted as active capabilities, while an optional redacted ledger is audit evidence only and cannot reactivate an old binding id.
-    condition: Whenever Runtime stores, expires, restarts, or audits workspace binding state.
-    failure: Treat prior active state as not found after restart and reject every recovery attempt from the redacted ledger.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r074
-    kind: rule
-    title: Workspace resolver is internal and context bound
-    modality: must
-    statement: ResolveWorkspaceBinding is an internal account-owned seam whose input includes protocol-envelope app id and app instance id, Runtime-derived or verified device identity, the attachment, owner-supplied target workspace id, required knowledge scopes, and knowledge action for audit.
-    condition: Whenever the separately admitted workspace resolver evaluates a knowledge request.
-    failure: Deny resolution when invoked publicly or without every Runtime-bound and owner-bound input.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r075
-    kind: rule
-    title: Workspace resolver decisions are closed
-    modality: must
-    statement: Workspace resolution returns exactly ALLOW, DENY_MISSING_ATTACHMENT, DENY_MALFORMED_ATTACHMENT, DENY_NOT_FOUND, DENY_REVOKED, DENY_EXPIRED, DENY_REPLAY, DENY_ACCOUNT_UNAVAILABLE, DENY_CALLER_MISMATCH, DENY_WORKSPACE_MISMATCH, DENY_ENV_MISMATCH, DENY_DEVICE_MISMATCH, or DENY_SCOPE_MISSING.
-    condition: Whenever the workspace resolver returns a decision.
-    failure: Return the applicable deny result instead of an unknown, ambiguous, or success-like decision.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r076
-    kind: rule
-    title: Workspace allow requires all current relation evidence
-    modality: must
-    statement: ALLOW requires authenticated account state, active membership at consume time, an active present unexpired binding, exact workspace knowledge purpose, caller app and instance and device and account and Realm environment matches, attachment workspace matching the target bank owner, and relation scopes covering every required scope.
-    condition: Whenever the workspace resolver considers ALLOW.
-    failure: Return the corresponding deny decision on any mismatch or missing condition.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r077
-    kind: rule
-    title: Workspace resolver uses Runtime projection truth
-    modality: must_not
-    statement: Workspace resolution performs a synchronous Realm membership lookup for each knowledge RPC or delegates membership or authorization truth to SDK, Desktop, app, or another consumer cache.
-    condition: Whenever the workspace resolver validates current membership and caller binding.
-    failure: Deny when the Runtime-owned membership projection is missing or stale.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r078
-    kind: rule
-    title: Workspace binding invalidation triggers are closed
-    modality: must
-    statement: Workspace bindings revoke or become invalid on logout, account switch, membership loss, Realm environment change, custody unavailable, refresh failure, reauthentication required, account expiration, device mismatch, scope change, replay detection, policy revocation, and daemon restart with daemon_restart_no_recovery evidence when a redacted ledger exists.
-    condition: Whenever a workspace binding invalidation trigger occurs.
-    failure: Make the binding unusable immediately and never reactivate its old id.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r079
-    kind: rule
-    title: Workspace binding audit is complete and redacted
-    modality: must
-    statement: Issue, revoke, expire, replay, and resolver-deny audit includes binding_id, runtime_app_id, app_instance_id, device_id, account_id, realm_environment_id, workspace_id, knowledge_action when consumed, required_scopes, decision, reason_code, action_hint, and event_sequence, and excludes attachment handles as secrets, tokens, raw JWT, decoded subject, refresh material, and caller-supplied subject proof.
-    condition: Whenever Runtime records workspace binding lifecycle or resolution evidence.
-    failure: Reject or fail the auditable operation when required evidence or redaction is missing.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r080
-    kind: rule
-    title: Workspace binding failure matrix is exhaustive
-    modality: must
-    statement: Missing or malformed attachment, unknown binding id, revoked or expired binding, replay, account unavailable, caller or workspace or Realm environment or device mismatch, missing scope, missing or stale membership, and direct app_id or subject_user_id proof all fail closed.
-    condition: Whenever workspace knowledge authorization encounters any listed state.
-    failure: Return the applicable deny result without fallback, inferred proof, or partial success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r081
-    kind: rule
-    title: Workspace consumers only carry the admitted attachment
-    modality: must_not
-    statement: SDK, Desktop, Web, or an app computes workspace authorization, caches membership as resolver truth, invokes the internal resolver, converts a workspace binding into Realm REST credentials, or carries fields outside the admitted attachment.
-    condition: Whenever a consumer handles workspace knowledge binding context.
-    failure: Reject the consumer path and preserve Runtime-owned resolution and credential separation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
   - id: rule.nimi.runtime.security-core.r082
     kind: rule
     title: Local-app authority classes keep exact meanings
@@ -902,23 +748,3 @@ units:
         target: definition.nimi.runtime.security-core.key-routing-plane
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
-  - id: rule.nimi.runtime.security-core.r086
-    kind: rule
-    title: Workspace binding cannot authorize adjacent products
-    modality: must_not
-    statement: A workspace binding is accepted for Avatar, agent, app messaging, world, grant, Realm REST, or direct account-token access, or Avatar or agent scoped binding relation semantics are broadened to satisfy WORKSPACE_PRIVATE knowledge authorization.
-    condition: Whenever a consumer presents workspace binding material outside workspace knowledge consumption.
-    failure: Deny the adjacent product operation and require its independently admitted authority path.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane
-  - id: rule.nimi.runtime.security-core.r087
-    kind: rule
-    title: Workspace resolver caller metadata is exact
-    modality: must
-    statement: The internal workspace resolver obtains caller app id from x-nimi-app-id, caller app instance id from x-nimi-app-instance-id, and device identity only from Runtime account or app registry derivation or verification.
-    condition: Whenever the workspace resolver binds protocol-envelope caller identity.
-    failure: Deny resolution when caller metadata is absent, mismatched, or supplied through another authority source.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.workspace-binding-plane

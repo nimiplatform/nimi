@@ -4,1109 +4,241 @@ scope: desktop.bridge-ipc
 units:
   - id: definition.nimi.desktop.bridge-ipc.transport-plane
     kind: definition
-    title: Desktop bridge transport plane
-    meaning: The Desktop bridge transport plane is the explicit renderer-to-Tauri-backend communication surface carried through @tauri-apps/api/core invoke operations and @tauri-apps/api/event events with defensive payload parsing and bridge error normalization.
+    title: Desktop renderer-to-host bridge plane
+    meaning: The Desktop bridge is a bounded typed renderer-to-native-host carriage surface with defensive input validation, explicit failure, and no authority of its own.
   - id: definition.nimi.desktop.bridge-ipc.command-registration-plane
     kind: definition
-    title: Desktop bridge command registration plane
-    meaning: The Desktop bridge command registration plane is the shipped Tauri invoke surface together with its renderer exports, Kit capability exports, and app-local or Kit-owned native command implementations.
+    title: Desktop host capability plane
+    meaning: The host capability plane exposes only purpose-specific Nimi Home and shell-native operations owned by the verified host, SDK, Kit, Runtime, Realm, installer, or operating system.
   - id: definition.nimi.desktop.bridge-ipc.event-stream-plane
     kind: definition
-    title: Desktop bridge event and stream plane
-    meaning: The Desktop bridge event and stream plane carries native-host-opened streams, renderer event listeners, sequence cursors, stream closure, update state events, account events, and running-process Desktop Open Intent events.
+    title: Desktop bridge event plane
+    meaning: The bridge event plane projects typed host and owner events to renderer consumers without becoming durable state, replay authority, account truth, or product event ownership.
   - id: definition.nimi.desktop.bridge-ipc.runtime-defaults
     kind: definition
-    title: Desktop runtime defaults projection
-    meaning: The runtime_defaults projection is a defensively parsed Desktop shell response containing only non-security shell hints and no Runtime, Realm, account, credential, route, endpoint, listener, executable, service, trust, or configuration authority.
+    title: Desktop shell hints projection
+    meaning: Shell hints are non-security presentation defaults and never Runtime, Realm, account, credential, route, endpoint, executable, service, trust, authorization, or configuration authority.
   - id: definition.nimi.desktop.bridge-ipc.protected-account-carrier
     kind: definition
-    title: Desktop protected account carrier
-    meaning: The Desktop protected account carrier is the Runtime-authenticated desktop_control connection opened after OpenDesktopSession whose caller, process, origin, app, device, and account authority is injected by the verified native host rather than renderer payloads.
+    title: Protected Home host carrier
+    meaning: The protected Home host carrier is established and held by the verified native host; Runtime derives the current caller, App, process, account, session, and authorization rather than accepting renderer claims.
   - id: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
     kind: definition
-    title: Desktop Runtime service control plane
-    meaning: The Desktop Runtime service control plane is the shared protected-local typed status, start, and restart surface for the fixed Runtime operating-system service with a redacted service result distinct from Runtime provider health.
+    title: Runtime service-control projection
+    meaning: Runtime service control is a bounded protected host capability for truthful status and owner-admitted lifecycle intent, distinct from Runtime AI, provider, App, and product readiness.
   - id: definition.nimi.desktop.bridge-ipc.shell-network-helper
     kind: definition
-    title: Desktop unauthenticated shell network helper
-    meaning: The Desktop unauthenticated shell network helper is a bounded public-origin fetch surface that carries no Runtime, Realm, provider, account, connector, token, cookie, or credential authority.
+    title: Desktop public shell fetch plane
+    meaning: The public shell fetch plane is bounded to unauthenticated shell content and carries no Runtime, Realm, provider, account, connector, token, cookie, or credential authority.
   - id: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
     kind: definition
-    title: Desktop invoke infrastructure
-    meaning: Desktop invoke infrastructure is the shared invoke and invokeChecked entrypoint that verifies Tauri runtime presence, creates invoke correlation identifiers, records structured lifecycle events, and normalizes native failures to NimiError.
+    title: Desktop bridge invocation infrastructure
+    meaning: Shared invocation infrastructure performs defensive validation, correlation, cancellation, and typed error normalization without defining product methods or owner truth.
   - id: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
     kind: definition
-    title: Desktop SDK typed Runtime path
-    meaning: The Desktop SDK typed Runtime path carries application-logic and Runtime-owned product intents through generated purpose-specific machine, account-product, account and Realm broker, and bundled-Avatar clients rather than a full Runtime facade or generic bridge selector.
+    title: SDK typed product path
+    meaning: Product logic uses standard typed SDK and demand-driven Kit surfaces; the bridge carries only host-required calls and never becomes a generic Runtime or Realm facade.
   - id: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane
     kind: definition
     title: Desktop shell-native helper plane
-    meaning: The Desktop shell-native helper plane carries native browser, callback observation, picker, reveal, notification, window, dialog, menu-bar, and other host-local operations that are not application-logic RPC or Runtime configuration truth.
-  - id: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-    kind: definition
-    title: Shared Kit Tauri bridge carrier
-    meaning: The shared Kit Tauri bridge carrier consists of kit/shell/protected-local for typed protected native carriage and operating-system service control and kit/shell/tauri for app-agnostic Tauri shell glue consumed by Desktop.
-  - id: definition.nimi.desktop.bridge-ipc.desktop-update-plane
-    kind: definition
-    title: Desktop self-update bridge plane
-    meaning: The Desktop self-update bridge plane comprises desktop_release_info_get, desktop_update_state_get, desktop_update_check, desktop_update_download, desktop_update_install, desktop_update_restart, and the desktop-update://state event consumed by subscribeDesktopUpdateState.
-  - id: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-    kind: definition
-    title: Runtime local asset service plane
-    meaning: The Runtime local asset service plane is the RuntimeLocalService-owned inventory, verified catalog, recommendation, install, import, removal, intake, health, readiness, transfer, progress, lifecycle, and local speech bundle truth consumed through typed Runtime APIs.
-  - id: definition.nimi.desktop.bridge-ipc.local-runtime-helper-plane
-    kind: definition
-    title: Desktop local Runtime helper plane
-    meaning: The Desktop local Runtime helper plane is a lazily loaded shell-native helper surface limited to the local asset manifest picker while general file selection and reveal use Kit standard shell capabilities.
-  - id: definition.nimi.desktop.bridge-ipc.avatar-handoff-plane
-    kind: definition
-    title: Desktop Avatar handoff plane
-    meaning: The Desktop Avatar handoff plane contains the retained launch handoff, bounded live-instance close handoff, and read-only live instance registry projection after desktop-local Avatar import, registry, binding, and asset-read carriage is decommissioned.
-  - id: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-    kind: definition
-    title: Running Desktop Open Intent bridge
-    meaning: The running Desktop Open Intent bridge is the host-stamped loopback focus and navigation intake for an already running Desktop process with a protected presence descriptor and a dedicated renderer event.
-  - id: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-    kind: definition
-    title: Desktop local-development supervisor
-    meaning: The Desktop local-development supervisor owns project confirmation UI and the native build-coordinator, dev-server, Electron or Tauri host, process-witness, origin, output-root, restart, and termination chain for one authorized local-development run.
-  - id: definition.nimi.desktop.bridge-ipc.local-app-control-role
-    kind: definition
-    title: Desktop local_app_control role
-    meaning: The Runtime-derived local_app_control role exists only on the verified Desktop control connection to coordinate Developer Mode, project evaluation, revocation, native launch, and process binding without owning Runtime principal, record, permission, lease, session, account, or operation-policy truth.
-  - id: definition.nimi.desktop.bridge-ipc.coverage-boundary
-    kind: definition
-    title: Desktop bridge IPC coverage boundary
-    meaning: Desktop bridge IPC authority covers renderer-to-native carriage, shipped command and event surfaces, wire parsing, redaction, transport selection, native helper ownership, and fail-closed bridge behavior while application-logic RPC and Runtime-owned product truth remain on typed SDK and Runtime paths.
+    meaning: Shell-native helpers provide bounded browser, callback, picker, reveal, notification, window, dialog, and similar host-local operations without owning application, Runtime, Realm, or security truth.
   - id: rule.nimi.desktop.bridge-ipc.r001
     kind: rule
-    title: Account control uses one verified Desktop connection
+    title: The bridge is typed and bounded
     modality: must
-    statement: Desktop account control and lifecycle commands use one Runtime-authenticated desktop_control connection after OpenDesktopSession, treat its session identifier as correlation only and never renderer authority, and disable the bridge after disconnect or Desktop process exit or exec until fresh full verification.
-    condition: Whenever Desktop carries Runtime account control or lifecycle traffic.
-    failure: Reject account traffic without the verified connection and invalidate the connection on disconnect, exit, or exec.
+    statement: Every renderer-to-host operation has a purpose-specific typed request, typed result, explicit owner, and fail-closed validation.
+    condition: Whenever a bridge command or event is exposed.
+    failure: Reject untyped payloads, generic forwarding, and ambiguous ownership.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
+        target: definition.nimi.desktop.bridge-ipc.transport-plane
   - id: rule.nimi.desktop.bridge-ipc.r002
     kind: rule
-    title: Renderer assertions cannot replace verified process context
+    title: Renderer input never establishes authority
     modality: must_not
-    statement: Renderer metadata, preload arguments, app-owned host stamps, or public gRPC establish protected account origin or replace the K-PLOCAL verified process context.
-    condition: Whenever protected Desktop account origin is established or revalidated.
-    failure: Deny protected account access until native process context is fully verified.
+    statement: App id, accountId, subject, caller kind, host role, endpoint, session, permission, grant, executable path, renderer metadata, or a request field establishes protected origin or owner authorization.
+    condition: Whenever the native host receives renderer input.
+    failure: Derive protected identity and authorization from the verified host and Runtime session or reject the request.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
   - id: rule.nimi.desktop.bridge-ipc.r003
     kind: rule
-    title: Desktop cannot regain account custody through generic commands
+    title: The bridge exposes no generic product proxy
     modality: must_not
-    statement: auth_session_load, auth_session_save, or auth_session_clear is registered, exported, or published as a shell capability, or generic runtime_bridge_unary or runtime_bridge_stream_open carries protected account authority instead of exact RuntimeAccountService-owned typed carrier operations.
-    condition: Whenever Desktop account commands, renderer exports, or shell capabilities are assembled.
-    failure: Remove the retired or generic surface and reject protected account traffic outside the exact typed carrier.
+    statement: The bridge accepts a method id, service name, raw bytes, arbitrary URL, arbitrary filesystem path, bearer metadata, or generic request object to invoke Runtime, Realm, provider, installer, or operating-system behavior.
+    condition: Whenever renderer code requests product or host behavior.
+    failure: Use an admitted typed SDK, Kit, or purpose-specific host capability.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.command-registration-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
   - id: rule.nimi.desktop.bridge-ipc.r004
     kind: rule
-    title: Runtime defaults remain non-security shell hints
-    modality: must
-    statement: runtime_defaults is defensively parsed by parseRuntimeDefaults and contains no realm object, Realm or JWKS or revocation endpoint, bearer, account or subject, provider or model or connector route, local endpoint, credential reference, Runtime listener, executable or service selector, trust path, or configuration document.
-    condition: Whenever Desktop produces or consumes runtime_defaults.
-    failure: Reject the defaults payload instead of projecting prohibited or unparsed fields.
+    title: Protected carrier material stays host private
+    modality: must_not
+    statement: Renderer or App code receives protected endpoints, process proof, session proof, service identity, Realm JWT, Provider Credential, account principal, authorization decision, or host security material.
+    condition: Whenever the protected carrier is opened or used.
+    failure: Keep material inside the verified native host and expose only bounded typed results.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-defaults
+        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
   - id: rule.nimi.desktop.bridge-ipc.r005
     kind: rule
-    title: Retained auth cleanup stays unreachable
+    title: Account UX consumes Runtime projection
     modality: must
-    statement: Any temporarily retained non-app-facing auth_session cleanup code remains unreachable from Tauri invoke registration, renderer exports, capability catalogs, and SDK or app imports.
-    condition: Whenever retired auth-session cleanup code remains in the source tree.
-    failure: Reject the shipped surface while any retained cleanup code is reachable.
+    statement: Desktop account UX sends typed user intent and renders Runtime-owned status, login, logout, switch, permission, presence, and failure projection without storing or reconstructing account or authorization truth.
+    condition: Whenever account UX uses the bridge.
+    failure: Reject renderer-owned account state and raw credential handling.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.command-registration-plane
+        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
   - id: rule.nimi.desktop.bridge-ipc.r006
     kind: rule
-    title: Account revalidation remains Runtime-mediated
+    title: Scaffolded Local Apps use host-injected SDK access
     modality: must
-    statement: Authenticated local consumer revalidation uses GetAccountSessionStatus, SubscribeAccountSessionEvents, InvokeRealmUnary, and scoped binding validation while Desktop only renders Runtime account projection and routes user intent without app-local shared-session coherence or raw-token transport.
-    condition: Whenever Desktop revalidates or presents authenticated local account state.
-    failure: Deny revalidation through any Desktop-owned session or raw-token path.
+    statement: A Desktop-hosted App Tools scaffolded Local App receives standard SDK access through its verified host session and never obtains Realm JWT, Provider Credential, Runtime proof, account identity, or generic bridge access.
+    condition: Whenever the Desktop host launches or serves a scaffolded Local App.
+    failure: Fail closed when the verified App session or owner authorization is unavailable.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
+        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
   - id: rule.nimi.desktop.bridge-ipc.r007
     kind: rule
-    title: Account session projection has an exact renderer wire
+    title: Direct SDK authentication stays outside the bridge
     modality: must
-    statement: The protected account session projection exposes exactly runtime_account_session_status, runtime_account_session_events_open, and runtime_account_session_events_close, accepts only afterSequence as a canonical unsigned decimal renderer string, and injects caller, app instance, account, device, process, and origin in the verified native host.
-    condition: Whenever the account session snapshot or event projection crosses renderer IPC.
-    failure: Reject extra commands, noncanonical cursors, and renderer-authored authority fields.
+    statement: A direct SDK consumer may use standard Realm Auth and maintain its own Realm token, but Desktop bridge APIs do not accept or project that direct token path into a scaffolded Local App.
+    condition: Whenever direct and scaffolded SDK contexts are composed.
+    failure: Reject direct bearer carriage through the Desktop bridge.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.event-stream-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
+        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
   - id: rule.nimi.desktop.bridge-ipc.r008
     kind: rule
-    title: Account sequences and protected streams fail closed
+    title: Product logic stays on SDK and Kit
     modality: must
-    statement: Electron and Tauri return the same redacted account snapshot and event shape, serialize every uint64 sequence as a decimal string, and reject protected account streams through generic runtime_bridge_stream_open.
-    condition: Whenever an account snapshot, event, or stream is serialized or opened.
-    failure: Reject mismatched, unredacted, nondecimal, or generically opened protected account traffic.
+    statement: Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, App, and permission product logic uses standard SDK and demand-driven Kit surfaces; the bridge supplies only native carriage required by the current host.
+    condition: Whenever Desktop product logic needs an owner capability.
+    failure: Reject a Desktop-only product API or bridge-owned domain behavior.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.event-stream-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
+        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
   - id: rule.nimi.desktop.bridge-ipc.r009
     kind: rule
-    title: Realm broker carrier deadline preserves Runtime timeout semantics
+    title: Service control is protected and observational
     modality: must
-    statement: runtime_account_invoke_realm_unary treats renderer timeoutMs as the Runtime operation budget and adds a fixed native carrier completion margin so Runtime can return the typed Realm timeout result without a carrier race that misclassifies Realm unavailability as Runtime L2.
-    condition: Whenever the protected Realm unary broker applies a renderer timeout.
-    failure: Return the typed Runtime result or reject the call rather than racing the Runtime budget.
+    statement: Runtime status, start, restart, repair, and update intent use the bounded protected host boundary, and UI reports success only after observing the requested verified service state.
+    condition: Whenever Desktop requests or presents Runtime service state.
+    failure: Reject renderer service control, direct stop, executable selection, and acknowledgement-only success.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
+        target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
   - id: rule.nimi.desktop.bridge-ipc.r010
     kind: rule
-    title: Service lifecycle controls only the fixed Runtime service
-    modality: must
-    statement: The product daemon lifecycle surface controls only the fixed Runtime service, keeps app install, import, update, promotion, and repair unavailable as Desktop commands, and leaves local-app launch to local_app_control without treating a UI confirmation boolean, app identifier, project path, nonce, metadata, or portable bearer as authorization.
-    condition: Whenever Desktop handles service lifecycle or local-app launch intent.
-    failure: Reject non-Runtime service operations and unauthorized local-app launch inputs.
+    title: Runtime service lifetime is not Desktop lifetime
+    modality: must_not
+    statement: Closing Desktop stops Runtime, Desktop directly owns the service process, or a renderer selects the Runtime binary or service identity.
+    condition: Whenever Desktop or Runtime starts or exits.
+    failure: Preserve the independent trusted Runtime service lifecycle.
     relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-app-control-role
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
   - id: rule.nimi.desktop.bridge-ipc.r011
     kind: rule
-    title: Service control has exactly three selector-free operations
+    title: Host events are projections only
     modality: must
-    statement: The shared protected-local service surface exposes exactly status, start, and restart, registers or exports no runtime_bridge_stop, and accepts no binary path, argv, endpoint, config path, service name, code-signing policy, or environment override.
-    condition: Whenever the Desktop product service-control surface is registered or invoked.
-    failure: Reject extra operations and every caller-selected service or execution input.
+    statement: Bridge events preserve typed source, ordering, lifecycle, cancellation, and failure state but never become account, App, Runtime, Realm, LocalAgent, Conversation, update, or permission truth.
+    condition: Whenever the host emits or the renderer consumes an event.
+    failure: Re-read the owning state before an authoritative decision.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
+        target: definition.nimi.desktop.bridge-ipc.event-stream-plane
   - id: rule.nimi.desktop.bridge-ipc.r012
     kind: rule
-    title: Service control result is closed and redacted
+    title: Stale streams close
     modality: must
-    statement: Every service-control result has state, optional releaseId, optional reasonCode, and retryable only, uses exactly stopped, start_pending, running, restart_pending, or unavailable as state, and exposes no process identifier, gRPC or HTTP address, process path, service ACL, code-signing detail, account material, or credential.
-    condition: Whenever status, start, or restart returns a result.
-    failure: Reject results with an unknown state, missing required field, or prohibited detail.
+    statement: Process replacement, account switch, Runtime restart, authorization revoke, host disconnect, or owner cancellation closes affected bridge streams and requires fresh owner state.
+    condition: Whenever a stream dependency changes.
+    failure: Reject events from the stale stream and do not synthesize replay.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
+        target: definition.nimi.desktop.bridge-ipc.event-stream-plane
   - id: rule.nimi.desktop.bridge-ipc.r013
     kind: rule
-    title: Windows service control uses verified SCM semantics
+    title: Shell defaults are non-security hints
     modality: must
-    statement: On Windows, status queries fixed service NimiRuntime and reports running only after a verified protected handshake, start requests only SERVICE_QUERY_STATUS and SERVICE_START for that service, and restart requests verified Runtime drain and self-exit before reporting running for a new process identifier, creation marker, or boot epoch that passes mutual verification.
-    condition: Whenever Desktop performs Windows Runtime service control.
-    failure: Report unavailable or repair-required instead of success when the fixed-service or mutual-verification conditions fail.
+    statement: Shell defaults may influence presentation only and never select Runtime, Realm, endpoint, route, model, account, credential, service, trust, permission, or executable authority.
+    condition: Whenever shell defaults are parsed or applied.
+    failure: Ignore the hint as authority and require owner projection.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
+        target: definition.nimi.desktop.bridge-ipc.runtime-defaults
   - id: rule.nimi.desktop.bridge-ipc.r014
     kind: rule
-    title: Service control never obtains direct stop authority
-    modality: must_not
-    statement: Desktop receives SERVICE_STOP or treats a hung or unverified Runtime process as recoverable through the bridge rather than signed installer, service-updater, or administrator repair, while Linux and macOS deviate from the same typed result and denial posture or Desktop quit stops Runtime.
-    condition: Whenever any operating system implements Runtime service control or Desktop quits.
-    failure: Deny direct stop and fail closed to the platform repair path while leaving Runtime running on Desktop quit.
+    title: Shell-native helpers stay purpose specific
+    modality: must
+    statement: Browser, callback, picker, reveal, notification, window, dialog, and similar helpers validate bounded inputs and never become arbitrary command, filesystem, network, or product-domain proxies.
+    condition: Whenever a shell-native helper is exposed.
+    failure: Reject inputs outside the helper's declared host purpose.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
+        target: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane
   - id: rule.nimi.desktop.bridge-ipc.r015
     kind: rule
-    title: Service status never fabricates provider readiness
+    title: Public shell fetch carries no credentials
     modality: must_not
-    statement: Verified service running is treated as provider readiness, provider health is fabricated through service-control IPC, or the UI displays green readiness before the first authoritative provider-health sample instead of unknown or checking.
-    condition: Whenever Desktop combines service status with Runtime provider health.
-    failure: Keep the projections distinct and display unknown or checking until Runtime-owned provider health arrives.
+    statement: The public shell fetch path carries cookies, authorization, Realm or Runtime calls, Provider Credentials, connector secrets, AI route state, or protected local operations.
+    condition: Whenever Desktop performs a public shell fetch.
+    failure: Reject the request or use the standard owner path.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
+        target: definition.nimi.desktop.bridge-ipc.shell-network-helper
   - id: rule.nimi.desktop.bridge-ipc.r016
     kind: rule
-    title: Whole-document Runtime configuration commands are absent
-    modality: must_not
-    statement: runtime_bridge_config_get or runtime_bridge_config_set is registered as a production surface, or Desktop reads or writes Runtime configuration outside a bounded typed redacted status or exact typed mutation independently admitted by Runtime authority.
-    condition: Whenever Desktop exposes or consumes Runtime configuration through IPC.
-    failure: Remove the whole-document command and reject unadmitted configuration access.
+    title: Errors remain typed and scrubbed
+    modality: must
+    statement: Bridge failures preserve owner category and actionable state while removing credentials, protected paths, session material, process proof, and other authority-bearing diagnostics from renderer-visible output.
+    condition: Whenever a native or owner operation fails.
+    failure: Return a typed scrubbed error without local success fallback.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.coverage-boundary
+        target: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
   - id: rule.nimi.desktop.bridge-ipc.r017
     kind: rule
-    title: Typed Runtime configuration carries no generic authority
-    modality: must_not
-    statement: A Desktop Runtime configuration message carries a path, unknown JSON, raw provider secret, Realm endpoint override, listener address, service identity, executable selector, environment merge, or last-writer-wins document semantics, or a restart-required response grants direct stop or file access.
-    condition: Whenever an admitted typed Runtime configuration status or mutation crosses Desktop IPC.
-    failure: Reject the message and expose only the independently admitted typed field, operation, and optional restart request.
+    title: Missing native capability fails closed
+    modality: must
+    statement: A missing host capability, protected carrier, Runtime owner operation, authorization, or valid result produces typed unavailable or failure rather than a silent skip, empty success, fixture, or browser fallback.
+    condition: Whenever a bridge dependency is missing.
+    failure: Return the typed failure before product mutation.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.coverage-boundary
+        target: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
   - id: rule.nimi.desktop.bridge-ipc.r018
     kind: rule
-    title: HTTP helper rejects authenticated and private authority
-    modality: must
-    statement: http_request rejects renderer-supplied Authorization, cookies, bearer-shaped or JWT-shaped values, provider credentials, Realm bases, and Runtime endpoints, and never substitutes for Runtime-owned account or connector acquisition and exchange operations.
-    condition: Whenever the Desktop shell network helper receives a request.
-    failure: Reject the request before network dispatch.
+    title: Avatar remains an independent projection
+    modality: must_not
+    statement: The Desktop bridge exposes a third-party Avatar driver, embedded renderer, raw motion API, App-owned Avatar execution, or LocalAgent truth surface.
+    condition: Whenever Avatar-related bridge capability is proposed.
+    failure: Preserve Runtime LocalAgent projection and Avatar-owned rendering boundaries.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shell-network-helper
+        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
   - id: rule.nimi.desktop.bridge-ipc.r019
     kind: rule
-    title: Retained shell fetch is bounded to public origins
-    modality: must
-    statement: Any retained unauthenticated shell fetch uses its own exact public-origin allowlist and response limit and confers no Runtime, Realm, provider, account, or connector authority.
-    condition: Whenever an unauthenticated shell fetch remains available.
-    failure: Reject origins or responses outside the exact bound and reject every authority claim.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shell-network-helper
-  - id: rule.nimi.desktop.bridge-ipc.r020
-    kind: rule
-    title: HTTP helper calls are correlated and measured
-    modality: must
-    statement: Every http_request invocation creates a unique invokeId and records requestUrl, requestMethod, and requestBodyBytes in its structured bridge log.
-    condition: Whenever http_request is invoked.
-    failure: Fail the invocation observability contract when correlation or required request measurements are absent.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shell-network-helper
-  - id: rule.nimi.desktop.bridge-ipc.r021
-    kind: rule
-    title: External URLs open in the system browser
-    modality: must
-    statement: open_external_url opens an admitted external URL in the operating-system browser.
-    condition: Whenever renderer intent requests an admitted external URL.
-    failure: Return a bridge error instead of silently treating a failed or rejected open as success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane
-  - id: rule.nimi.desktop.bridge-ipc.r022
-    kind: rule
-    title: Private publication cannot use a Desktop-only dialog
+    title: Host mechanism is not product ontology
     modality: must_not
-    statement: Private or governance-chain data publication is implemented as a Desktop-only native dialog without an explicit Runtime-owned or Realm-owned product workflow and product specification.
-    condition: Whenever Desktop presents publication of private or governance-chain data.
-    failure: Deny publication until the Runtime-owned or Realm-owned workflow is admitted.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane
-  - id: rule.nimi.desktop.bridge-ipc.r023
-    kind: rule
-    title: Standard shell UI commands remain Kit-owned
-    modality: must
-    statement: confirm_dialog, start_window_drag, and focus_main_window use the Kit standard shell command names and semantics without app-local Tauri command forks, while Desktop injects only native confirm and end-to-end override policy, focus target policy, and fullscreen drag protection through Kit host adapter hooks.
-    condition: Whenever Desktop registers or implements the standard shell UI capabilities.
-    failure: Reject app-local forks and policy injection outside the Kit host adapter hooks.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.command-registration-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r024
-    kind: rule
-    title: Menu-bar IPC carries health summary and explicit quit completion
-    modality: must
-    statement: menu_bar_sync_runtime_health sends only the Runtime and provider health summary needed by the native menu bar, and menu_bar_complete_quit confirms app quit only after renderer shell cleanup completes.
-    condition: Whenever renderer state is synchronized to the menu bar or explicit quit is finalized.
-    failure: Reject excess health payload and defer quit completion until cleanup finishes.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane
-  - id: rule.nimi.desktop.bridge-ipc.r025
-    kind: rule
-    title: OAuth exchange and custody stay in Runtime
-    modality: must_not
-    statement: Desktop exposes product oauth_token_exchange or owns account or connector code exchange, PKCE verifier, client secret, tokens, or provider credential custody.
-    condition: Whenever OAuth login or connector authorization crosses Desktop.
-    failure: Deny Desktop exchange and route the typed operation to Runtime under its isolated service principal.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r026
-    kind: rule
-    title: Native OAuth shell exposes only callback observation
-    modality: must
-    statement: A native shell opens the system browser and forwards only an exact callback observation to a typed protected Runtime login or connector attempt without exposing a PKCE verifier, client secret, access token, refresh token, or provider credential to Desktop or renderer.
-    condition: Whenever the native shell participates in OAuth.
-    failure: Reject callback forwarding with excess or credential-bearing material.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane
-  - id: rule.nimi.desktop.bridge-ipc.r027
-    kind: rule
-    title: External Agent authority stays in Runtime
-    modality: must
-    statement: Runtime owns the External Agent gateway, token and session and grant ledgers, action descriptor registry, execution-context verification, completion ledger, and audit surfaces.
-    condition: Whenever Desktop presents or controls External Agent state.
-    failure: Reject Desktop-owned authority or persistence for an External Agent control surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r028
-    kind: rule
-    title: Desktop consumes External Agent through typed SDK projection
-    modality: must
-    statement: Desktop consumes External Agent state and controls through typed SDK Runtime projection without a parallel Tauri gateway, token ledger, action descriptor registry, verification path, completion waiter, or audit store.
-    condition: Whenever Desktop implements an External Agent feature.
-    failure: Remove the parallel surface and fail closed until typed Runtime projection is available.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r029
-    kind: rule
-    title: Every IPC call uses the shared invoke entrypoint
-    modality: must
-    statement: Every Desktop IPC call uses invoke or invokeChecked and verifies hasTauriInvoke through Tauri runtime presence without depending on withGlobalTauri.
-    condition: Whenever renderer code invokes a Desktop native command.
-    failure: Reject the call before dispatch when the shared entrypoint or Tauri runtime is absent.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
-  - id: rule.nimi.desktop.bridge-ipc.r030
-    kind: rule
-    title: Invoke lifecycle is uniquely correlated and logged
-    modality: must
-    statement: Every shared IPC invocation creates invokeId in command-timestamp-random form and records invoke-start followed by exactly one invoke-success or invoke-failed structured event.
-    condition: Whenever invoke or invokeChecked dispatches a command.
-    failure: Treat missing correlation or terminal lifecycle logging as an invocation contract failure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
-  - id: rule.nimi.desktop.bridge-ipc.r031
-    kind: rule
-    title: Bridge errors normalize to structured NimiError
-    modality: must
-    statement: toBridgeNimiError normalizes every Tauri or Runtime bridge failure to structured NimiError, and user-readable text is read only from details.userMessage or a display-layer conversion.
-    condition: Whenever an IPC invocation fails.
-    failure: Return a structured NimiError instead of raw native failure or ad hoc user text.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
-  - id: rule.nimi.desktop.bridge-ipc.r032
-    kind: rule
-    title: Infrastructure commands have bounded purposes
-    modality: must
-    statement: get_system_resource_snapshot collects CPU, memory, and GPU resource data for device profiling, and log_renderer_event forwards renderer structured logs to the Tauri backend logger.
-    condition: Whenever either IPC infrastructure command is invoked.
-    failure: Reject payload or behavior outside the command's bounded purpose.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
-  - id: rule.nimi.desktop.bridge-ipc.r033
-    kind: rule
-    title: Protected-local compatibility uses exact protocol negotiation
-    modality: must
-    statement: Independently serviced Desktop and Runtime releases establish production compatibility only after mutual operating-system process and code-signing verification negotiates the exact protected_local_protocol_version, and unsupported versions block protected control without semver inference.
-    condition: Whenever Desktop opens protected control to Runtime.
-    failure: Block protected control when mutual verification or exact protocol negotiation fails.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r034
-    kind: rule
-    title: Release activation truth remains installer-owned
-    modality: must
-    statement: Installer-owned activation and rollback policy is not duplicated in peer-auth records, and typed status may return the verified Runtime releaseId without executing a candidate binary to discover its version.
-    condition: Whenever protected-local compatibility or service status handles release identity.
-    failure: Reject peer-auth release policy and candidate execution as compatibility evidence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
-  - id: rule.nimi.desktop.bridge-ipc.r035
-    kind: rule
-    title: Synthetic fixtures cannot relax production trust
-    modality: must_not
-    statement: A synthetic non-product fixture shares production trust roots or relaxes production protected-local process, signing, or protocol verification.
-    condition: Whenever non-product compatibility fixtures are used.
-    failure: Reject the fixture until it uses distinct trust roots and preserves all production checks.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r036
-    kind: rule
-    title: Release info has no fallback version
-    modality: must
-    statement: desktop_release_info_get returns DesktopReleaseInfo only after release metadata initializes successfully.
-    condition: Whenever Desktop release information is requested.
-    failure: Return an error on initialization failure without synthesizing a fallback version.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-update-plane
-  - id: rule.nimi.desktop.bridge-ipc.r037
-    kind: rule
-    title: Update download stops before installation
-    modality: must
-    statement: desktop_update_download only downloads, verifies, and caches Desktop update bytes and ends successful execution in downloaded state without entering installation.
-    condition: Whenever a Desktop update download succeeds.
-    failure: Reject implicit installation and report an error unless verified bytes are cached in downloaded state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-update-plane
-  - id: rule.nimi.desktop.bridge-ipc.r038
-    kind: rule
-    title: Desktop installation consumes only compatible verified Desktop bytes
-    modality: must
-    statement: desktop_update_install consumes only cached verified Desktop update bytes, never stops, stages, replaces, or selects Runtime, and remains unavailable when a signed compatibility record requires a Runtime service release until the signed installer or service updater reports a mutually compatible installed pair.
-    condition: Whenever Desktop update installation is requested.
-    failure: Reject installation without verified cached Desktop bytes or a compatible installed Desktop and Runtime pair.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-update-plane
-  - id: rule.nimi.desktop.bridge-ipc.r039
-    kind: rule
-    title: Update snapshots and events share one state machine
-    modality: must
-    statement: desktop_update_state_get and desktop-update://state events share exactly idle, checking, available, downloading, downloaded, installing, readyToRestart, and error state semantics in that transition order.
-    condition: Whenever the updater publishes a snapshot or event.
-    failure: Reject unknown states and snapshot or event semantics that diverge from the shared state machine.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-update-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.event-stream-plane
-  - id: rule.nimi.desktop.bridge-ipc.r040
-    kind: rule
-    title: Kit protected-local carries typed calls without owning authority
-    modality: must
-    statement: kit/shell/protected-local is the shared native protected carrier and typed operating-system service-control host surface for Tauri and Electron, carries typed calls only, and leaves endpoint, origin, service lifecycle, credential, and security authority to Runtime and the operating system.
-    condition: Whenever Desktop or Electron uses protected-local carriage.
-    failure: Reject untyped carriage and Kit-owned endpoint, origin, lifecycle, credential, or security truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r041
-    kind: rule
-    title: Kit Tauri glue owns no parallel protected subsystem
-    modality: must_not
-    statement: kit/shell/tauri app-agnostic shell glue owns a parallel daemon manager, executable resolver, configuration document, token store, or authenticated HTTP proxy instead of consuming the protected-local carrier.
-    condition: Whenever shared Tauri shell glue implements Runtime-facing behavior.
-    failure: Remove the parallel subsystem and route exact typed behavior through the protected-local carrier.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r042
-    kind: rule
-    title: Shared command families use Kit surfaces
-    modality: must
-    statement: Non-security runtime_defaults, typed Runtime service status and start and restart, open_external_url, confirm_dialog, start_window_drag, focus_main_window, invoke infrastructure, and log_renderer_event use shared Kit surfaces.
-    condition: Whenever Desktop registers or implements those shared command families.
-    failure: Reject app-local ownership of a shared command family.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.command-registration-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r043
-    kind: rule
-    title: Apps cannot duplicate shared bridge implementations
-    modality: must_not
-    statement: An app duplicates a shared bridge command implementation in app-local Rust or uses a path attribute to compile another app's Rust source for shared bridge functionality.
-    condition: Whenever a Desktop app adds or registers bridge implementation code.
-    failure: Reject the duplicate or cross-app source inclusion and use the shared Kit implementation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.command-registration-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r044
-    kind: rule
-    title: App-local bridge ownership is limited
-    modality: must
-    statement: Desktop menu-bar and Desktop self-update commands remain app-local while External Agent state and control travel through SDK Runtime projection rather than app-local command authority.
-    condition: Whenever app-local Desktop bridge commands are assigned ownership.
-    failure: Reject shared-command duplication and app-local External Agent authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.command-registration-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r045
-    kind: rule
-    title: First-party product calls use distinct generated clients
-    modality: must
-    statement: First-party Desktop product calls use only generated purpose-specific clients derived from desktop_machine_product_v1 and desktop_account_product_v1, never obtain, return, store, cast to, or pass a full SDK Runtime facade, keep machine, account-product, account and Realm broker, and bundled-Avatar clients distinct, and never fall back between profiles.
-    condition: Whenever Desktop production code calls Runtime product behavior.
-    failure: Reject full-facade access, profile fallback, and calls outside the generated purpose-specific client.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r046
-    kind: rule
-    title: Renderer product intents carry no transport authority
-    modality: must
-    statement: Desktop feature code expresses named product intents, Electron or Tauri main binds the exact registered main sender and main frame before selecting the generated native intent entrypoint, and renderer payloads contain no endpoint, profile, role, principal, account, owner authority, app identifier, session, boot epoch, token, grant, scope, authority metadata, generic request bytes, or arbitrary method identifier.
-    condition: Whenever a renderer initiates a first-party Runtime product call.
-    failure: Reject unbound senders, method-level intents, and payloads containing transport or authority material.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r047
-    kind: rule
-    title: Product clients invalidate on native and account changes
-    modality: must
-    statement: Machine calls invalidate on sender, process, connection, or Runtime boot change, and account calls and streams additionally invalidate and cancel before later delivery or commit on logout, account switch, or account-generation change.
-    condition: Whenever a bound Desktop product client observes a lifecycle or account change.
-    failure: Cancel the affected call or stream and reject later delivery or commit.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.event-stream-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r048
-    kind: rule
-    title: First-party UI exposes product repair states only
-    modality: must
-    statement: First-party Desktop UI projects only product repair states such as retry, reconnect, or relogin and does not expose permission, profile, or carrier concepts.
-    condition: Whenever a typed Runtime product call requires user-visible repair.
-    failure: Replace technical authority concepts with the applicable product repair state or fail closed.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r049
-    kind: rule
-    title: Binding bootstrap admits no protected capability
-    modality: must_not
-    statement: RegisterApp or OpenSession, or listing a generated method, authorizes an AI, connector, scenario, account, lifecycle, or other protected operation without its own admitted transport, origin, and policy.
-    condition: Whenever Desktop bootstrap or generated method availability is interpreted.
-    failure: Deny the protected operation until its independent admission is satisfied.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r050
-    kind: rule
-    title: Portable protected credentials remain physically removed
-    modality: must_not
-    statement: Desktop or SDK issues, validates, revokes, delegates, enumerates, injects, or consumes a former public protected-token grant identity, or local-app grant UX returns a credential instead of using exact protected owner methods.
-    condition: Whenever Desktop handles protected grants or local-app grant intent.
-    failure: Reject the portable credential path and preserve the removed identities as reserved.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r051
-    kind: rule
-    title: RuntimeLocalService owns local asset truth and orchestration
-    modality: must
-    statement: RuntimeLocalService owns local asset inventory, list, import, install, health, readiness, intake, audit, transfer sessions, and progress watching, while StartLocalAsset and StopLocalAsset remain reachable Runtime Config orchestration actions through desktop_machine_product_v1 typed named intents with their existing reachability, pending and reconcile, authoritative result, and error semantics.
-    condition: Whenever Desktop presents or executes local asset state or lifecycle.
-    failure: Reject a Desktop-owned truth path and preserve the typed Runtime operation and its existing semantics.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r052
-    kind: rule
-    title: Local asset ownership cannot be narrowed into a parallel toggle
-    modality: must_not
-    statement: Desktop hides, removes, downgrades, or rejects the existing StartLocalAsset or StopLocalAsset product action under a no-new-toggle rationale, or introduces a new independent manual toggle, generic RuntimeLocalService client, full Runtime facade, or broad Runtime exposure.
-    condition: Whenever Desktop changes local model lifecycle controls.
-    failure: Restore the existing generated typed actions and remove the parallel or broad surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r053
-    kind: rule
-    title: Persistent Agent presentation stays Runtime-owned
-    modality: must_not
-    statement: Desktop Avatar current-surface state becomes canonical IPC truth for the Runtime-owned persistent AgentPresentationProfile exposed through runtime.agent.
-    condition: Whenever Desktop projects Agent or Avatar presentation state.
-    failure: Keep persistent presentation on the SDK Runtime path and retain current-surface state as renderer-local transient state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r054
-    kind: rule
-    title: Runtime product services stay on typed SDK paths
-    modality: must
-    statement: Runtime health and AI provider health reads and event subscriptions and Workflow, Knowledge, Audit, AppMessage, and Script services travel through their typed SDK Runtime projections rather than generic Tauri carriage.
-    condition: Whenever Desktop consumes those Runtime product services.
-    failure: Reject generic bridge routing and use the applicable typed SDK projection.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r055
-    kind: rule
-    title: Protected Runtime calls expose no generic renderer selector
-    modality: must_not
-    statement: An authorization bearer establishes protected origin, or protected Runtime calls travel outside the mutually verified shared native carrier or expose a generic unary or stream selector, authorization, Desktop session identifier, boot epoch, process tuple, lifecycle intent proof, account material, token, profile, role, principal, owner selector, or serialized method and request pair to renderer IPC.
-    condition: Whenever Desktop carries a protected Runtime call.
-    failure: Reject the protected call before dispatch.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r056
-    kind: rule
-    title: SDK transport cannot synthesize protected authority
-    modality: must_not
-    statement: SDK transport injects or upgrades protected authority from a bearer, metadata.extra, app identifier, caller enum, or renderer payload.
-    condition: Whenever SDK transport constructs a protected Runtime request.
-    failure: Reject the request and require verified native-host authority injection.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r057
-    kind: rule
-    title: IPC bridge carries only admitted native and protected helper classes
-    modality: must
-    statement: The IPC bridge carries only typed fixed-service status and start and restart, independently admitted bounded typed redacted Runtime configuration, unauthenticated shell network help, native browser and callback observation, SDK-projected External Agent state, and shell-native or host-local helpers.
-    condition: Whenever a command family is assigned to the IPC bridge path.
-    failure: Reject command families outside the admitted native and protected helper classes.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.coverage-boundary
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane
-  - id: rule.nimi.desktop.bridge-ipc.r058
-    kind: rule
-    title: SDK path owns application logic and local model truth
-    modality: must
-    statement: The SDK path carries platform-independent application-logic RPC and RuntimeLocalService local model truth, keeps persistent Avatar presentation on Runtime projection, and leaves only transient Avatar interaction state on the renderer surface.
-    condition: Whenever Desktop selects between SDK Runtime and IPC bridge paths.
-    failure: Reject Tauri-owned application logic, local model truth, or persistent Avatar truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.coverage-boundary
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r059
-    kind: rule
-    title: IPC does not own Runtime process or configuration truth
-    modality: must_not
-    statement: IPC shell carriage owns Runtime process-management or configuration truth, or an independent SDK consumer uses an equivalent public CLI path for protected service or configuration operations without an independently admitted native protected carrier.
-    condition: Whenever Desktop or another SDK consumer claims protected service or configuration access.
-    failure: Deny the claim and fail closed when no independently admitted native carrier exists.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.coverage-boundary
-  - id: rule.nimi.desktop.bridge-ipc.r060
-    kind: rule
-    title: Passive local assets stay on RuntimeLocalService
-    modality: must
-    statement: VAE, AE, CLIP, ControlNet, LoRA, and auxiliary asset lists, verified catalog, installation, import, removal, intake, transfer and progress, and lifecycle use RuntimeLocalService as truth, and any retained Tauri command acts only as a host helper rather than a second product execution path.
-    condition: Whenever Desktop handles a passive local asset.
-    failure: Reject Desktop-owned asset truth or a second execution path.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r061
-    kind: rule
-    title: Local image configuration passes through unchanged
-    modality: must
-    statement: Desktop passes local image workflow engineConfig, components, and profile_overrides unchanged through SDK Runtime to Runtime.
-    condition: Whenever Desktop submits a local image workflow.
-    failure: Reject Desktop rewriting, including conversion to absolute paths.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r062
-    kind: rule
-    title: Cloud calls use Runtime connector APIs only
-    modality: must_not
-    statement: Desktop cloud behavior restores a legacy adapter factory or calls listModels or healthCheck directly to bypass Runtime connector APIs.
-    condition: Whenever Desktop performs a cloud connector or model operation.
-    failure: Reject the bypass and route the operation through Runtime connector APIs.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r063
-    kind: rule
-    title: Service status and Runtime health remain distinct
-    modality: must_not
-    statement: Service status fabricates Runtime-owned health before a verified carrier is active, or Runtime health fabricates operating-system service and protected-handshake state.
-    condition: Whenever Desktop combines D-IPC service status with SDK health streams.
-    failure: Keep the projections distinct and report only the authoritative source's state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
-  - id: rule.nimi.desktop.bridge-ipc.r064
-    kind: rule
-    title: High-capacity bridge modules load lazily once
-    modality: must
-    statement: The local Runtime bridge loader and loadExternalAgentBridge use dynamic import and cache the first loading Promise for subsequent calls.
-    condition: Whenever local-ai or external-agent bridge functionality is first requested.
-    failure: Reject eager main-bundle loading and duplicate concurrent module loads.
+    statement: A Tauri command name, Electron channel, transport class, operating-system object, service-manager primitive, fixed framing length, or concrete Runtime method list becomes cross-layer product authority.
+    condition: Whenever bridge or host semantics are documented.
+    failure: Keep only the product outcome and owner boundary in authority.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.transport-plane
-  - id: rule.nimi.desktop.bridge-ipc.r065
+  - id: rule.nimi.desktop.bridge-ipc.r020
     kind: rule
-    title: App-local local Runtime IPC is manifest-picker only
-    modality: must
-    statement: loadLocalRuntimeBridge loads the local Runtime helper lazily, and the shipped app-local runtime_local command surface contains only runtime_local_pick_asset_manifest_path.
-    condition: Whenever Desktop loads or registers app-local local Runtime helper IPC.
-    failure: Reject eager loading and every extra app-local runtime_local command.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-runtime-helper-plane
-  - id: rule.nimi.desktop.bridge-ipc.r066
-    kind: rule
-    title: Retired local model command families stay absent
+    title: Desktop implementation does not make the Host Contract exclusive
     modality: must_not
-    statement: A runtime_local_models or runtime_local_artifacts CRUD, lifecycle, or catalog command remains registered or shipped, or catalog search, catalog variants, install planning, or install execution bypasses typed RuntimeLocalService APIs.
-    condition: Whenever Desktop assembles local Runtime commands or catalog behavior.
-    failure: Remove the retired command and route catalog or installation behavior through RuntimeLocalService.
+    statement: A capability is defined as valid only because the current Desktop implementation or bridge command provides it when another qualified Home host could satisfy the same public contract.
+    condition: Whenever a Nimi Home host capability is specified.
+    failure: Define the product behavior at the replaceable Home Host Contract and keep Desktop as one implementation.
     relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-runtime-helper-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r067
-    kind: rule
-    title: Picker and reveal helpers use exact shell surfaces
-    modality: must
-    statement: runtime_local_pick_asset_manifest_path selects resolved/local-asset-id/asset.manifest.json, while asset file and bundle directory selection use Kit file-dialog.open and asset or root reveal uses Kit file-reveal.reveal without registering app-local picker or reveal commands.
-    condition: Whenever Desktop selects or reveals a local asset path.
-    failure: Reject paths outside the manifest shape and app-local general picker or reveal commands.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-runtime-helper-plane
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.shared-tauri-carrier
-  - id: rule.nimi.desktop.bridge-ipc.r068
-    kind: rule
-    title: Recommendation feed remains Runtime-owned
-    modality: must_not
-    statement: Tauri retains a recommendation feed, model-index, or host-fit helper surface instead of Desktop reading the capability-scoped candidate feed through RuntimeLocalService.GetRecommendationFeed.
-    condition: Whenever Desktop presents local model recommendations.
-    failure: Remove the Tauri helper and use the typed RuntimeLocalService feed.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r069
-    kind: rule
-    title: Local asset inventory and transfers use Runtime truth
-    modality: must
-    statement: Local asset listing, verified listing, installation, import, removal, health, readiness, intake, transfer sessions, and progress use typed RuntimeLocalService APIs, and Active Downloads and Active Imports come from ListLocalTransfers plus WatchLocalTransfers.
-    condition: Whenever Desktop reads or mutates local asset state or displays active transfers.
-    failure: Reject Desktop or Tauri local transfer and inventory state as truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r070
-    kind: rule
-    title: Retained runtime_local IPC remains shell-native only
-    modality: must_not
-    statement: A shipped runtime_local command exposes or implies Desktop or Tauri local Runtime state as local model truth rather than shell-native helper behavior.
-    condition: Whenever a runtime_local helper remains in the shipped app.
-    failure: Remove the stateful behavior or the command and use RuntimeLocalService truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-runtime-helper-plane
-  - id: rule.nimi.desktop.bridge-ipc.r071
-    kind: rule
-    title: Local Speech is one Runtime-owned bundle projection
-    modality: must
-    statement: Ordinary-user local speech appears as one Local Speech bundle projection, and any speech-related helper status is rendered only as Runtime-owned bundle state without creating a Desktop-persisted speech bundle owner or implying Desktop-owned environment, bootstrap, host readiness, capability materialization, or installation truth.
-    condition: Whenever Desktop presents local speech state.
-    failure: Reject parallel Desktop speech ownership and project only Runtime-owned bundle state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r072
-    kind: rule
-    title: Local Speech materialization requires explicit download
-    modality: must_not
-    statement: Ordinary-user local speech environment bootstrap, host initialization, or capability materialization starts before explicit Download confirmation or is triggered silently by capability selection, route attempts, passive refresh, or recommendation helpers.
-    condition: Whenever local speech prerequisites are absent.
-    failure: Keep the prerequisites unmaterialized until explicit Download confirmation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r073
-    kind: rule
-    title: Existing local asset orchestration remains reachable without a new toggle
-    modality: must
-    statement: Desktop Local Model Center adds no manual start or stop toggle independent of existing product orchestration, preserves StartLocalAsset and StopLocalAsset through generated machine-product typed intents, and reflects local model readiness directly from Runtime state.
-    condition: Whenever Desktop presents local model lifecycle controls.
-    failure: Remove the independent toggle and restore the existing typed actions or Runtime readiness projection.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r074
-    kind: rule
-    title: Automatic intake requires structured declarations
-    modality: must
-    statement: Automatic local model intake applies only to existing structured go-runtime local model records and verified, catalog, or manual-download intake sources carrying an explicit declaration.
-    condition: Whenever Runtime considers automatic local asset intake.
-    failure: Route undeclared or unstructured assets to unregistered-asset intake instead of automatic admission.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r075
-    kind: rule
-    title: Copied local files use confidence-bounded Runtime intake
-    modality: must
-    statement: Bare files copied under ~/.nimi/models enter RuntimeLocalService.ScanUnregisteredAssets, root or unknown-directory files are never silently admitted, chat, image, video, tts, stt, vae, ae, clip, controlnet, lora, and auxiliary folders count as high-confidence declarations, complete high-confidence items may auto-import, and low-confidence items only prefill review UI without silent registration.
-    condition: Whenever Runtime scans user-copied local model files.
-    failure: Reject silent admission or registration outside the declared confidence rules.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r076
-    kind: rule
-    title: Recommendation resolution and ranking stay in RuntimeLocalService
-    modality: must_not
-    statement: Desktop uses Tauri audit or event payloads to claim ownership of recommendation request resolution, model-index caching, or host-fit ranking.
-    condition: Whenever Desktop consumes recommendation data.
-    failure: Reject the ownership claim and use RuntimeLocalService recommendation results.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.runtime-local-service-plane
-  - id: rule.nimi.desktop.bridge-ipc.r077
-    kind: rule
-    title: Desktop-local Avatar carrier commands remain decommissioned
-    modality: must_not
-    statement: Desktop registers or ships desktop_agent_avatar_resource_pick_vrm, desktop_agent_avatar_resource_pick_live2d, desktop_agent_avatar_resource_import_vrm, desktop_agent_avatar_resource_import_live2d, desktop_agent_avatar_resource_list, desktop_agent_avatar_resource_delete, desktop_agent_avatar_resource_read_asset, desktop_agent_avatar_resource_read_relative_asset, desktop_agent_avatar_binding_get, desktop_agent_avatar_binding_set, or desktop_agent_avatar_binding_clear.
-    condition: Whenever the shipped Desktop invoke surface is assembled.
-    failure: Remove the decommissioned command from registration and shipped bridge code.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.avatar-handoff-plane
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.command-registration-plane
-  - id: rule.nimi.desktop.bridge-ipc.r078
-    kind: rule
-    title: Stale Avatar carrier references fail closed
-    modality: must
-    statement: Desktop renderer code fails closed when it encounters a stale reference to a decommissioned Avatar carrier command and never recreates local carrier execution or silently proxies the behavior through another helper.
-    condition: Whenever stale renderer code reaches a retired Avatar carrier path.
-    failure: Return an explicit unavailable error without side effects or proxy behavior.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.avatar-handoff-plane
-  - id: rule.nimi.desktop.bridge-ipc.r079
-    kind: rule
-    title: Avatar launch handoff remains the write-side bridge
-    modality: must
-    statement: desktop_avatar_launch_handoff remains the admitted write-side Desktop Avatar command on the canonical bridge path.
-    condition: Whenever Desktop launches an Avatar app handoff.
-    failure: Reject replacement through a retired local Avatar carrier command.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.avatar-handoff-plane
-  - id: rule.nimi.desktop.bridge-ipc.r080
-    kind: rule
-    title: Avatar close handoff targets one live instance
-    modality: must
-    statement: desktop_avatar_close_handoff requests closure only for a specific live avatar_instance_id.
-    condition: Whenever Desktop requests Avatar instance closure.
-    failure: Reject the request when the target instance is absent or stale.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.avatar-handoff-plane
-  - id: rule.nimi.desktop.bridge-ipc.r081
-    kind: rule
-    title: Avatar inventory is read-only live projection
-    modality: must
-    statement: desktop_avatar_instance_registry_list reads only Avatar-published live instance projection state without mutation, persistence, or fabricated inventory, and retained shell-owned cosmetic storage remains separate from Avatar import or binding truth.
-    condition: Whenever Desktop reads Avatar instances or stores cosmetic surfaces.
-    failure: Reject inventory mutation, persistence, fabrication, and conflation with retired carrier truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.avatar-handoff-plane
-  - id: rule.nimi.desktop.bridge-ipc.r082
-    kind: rule
-    title: Desktop Open Intent bridge is running-only intake
-    modality: must_not
-    statement: The Desktop Open Intent bridge starts Desktop, registers a single-instance launch queue, or admits operating-system custom-scheme production transport instead of accepting host-stamped focus and navigation requests only for an already running Desktop process.
-    condition: Whenever a Desktop Open Intent arrives.
-    failure: Reject non-running, queued, launch, or custom-scheme intake.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-  - id: rule.nimi.desktop.bridge-ipc.r083
-    kind: rule
-    title: Desktop Open presence uses the stable host-control root
-    modality: must
-    statement: The Desktop Open Intent presence descriptor is stored at ~/.nimi/run/desktop/open-intent/presence.v1.json under resolve_nimi_dir and never under product nimi_data.
-    condition: Whenever the running bridge publishes presence.
-    failure: Refuse to publish or consume a descriptor outside the stable host-control path.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-  - id: rule.nimi.desktop.bridge-ipc.r084
-    kind: rule
-    title: Desktop Open presence writes are protected and atomic
-    modality: must
-    statement: Presence descriptor writes use owner-only permissions where supported, atomic temporary-file replacement, symlink refusal, startup stale cleanup, and token and Authorization redaction.
-    condition: Whenever Desktop creates, replaces, reads, or cleans the presence descriptor.
-    failure: Reject unsafe descriptor paths or writes and remove stale unsafe presence without exposing secrets.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-  - id: rule.nimi.desktop.bridge-ipc.r085
-    kind: rule
-    title: Desktop Open loopback accepts one authenticated request shape
-    modality: must
-    statement: The exact-loopback Desktop Open bridge accepts only bearer-authenticated POST /v1/open-intent, rejects GET, OPTIONS, and browser preflight shapes, exposes no CORS surface, and validates the full DesktopOpenEnvelope before focusing Desktop.
-    condition: Whenever the loopback bridge receives an HTTP request.
-    failure: Reject the request before focus when method, path, bearer, origin posture, or envelope validation fails.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-  - id: rule.nimi.desktop.bridge-ipc.r086
-    kind: rule
-    title: Desktop Open readiness tracks the live renderer listener
-    modality: must
-    statement: desktop_open_intent_set_ready marks the bridge ready only after the renderer listener is mounted with a fresh heartbeat, and PageLoad Started, renderer reload, listener cleanup, window destruction, ExitRequested, or a stale heartbeat resets readiness to not-ready.
-    condition: Whenever renderer listener readiness or lifecycle changes.
-    failure: Keep or reset the bridge to not-ready until a mounted listener has a fresh heartbeat.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.event-stream-plane
-  - id: rule.nimi.desktop.bridge-ipc.r087
-    kind: rule
-    title: Not-ready Desktop Open requests are never replayed
-    modality: must
-    statement: A not-ready Desktop Open request returns desktop-open-desktop-not-ready immediately without queueing or replay.
-    condition: Whenever the running bridge receives a request while renderer readiness is false or stale.
-    failure: Return the typed not-ready error and discard the request.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-  - id: rule.nimi.desktop.bridge-ipc.r088
-    kind: rule
-    title: Accepted Desktop Open requests use a dedicated event
-    modality: must
-    statement: An accepted Desktop Open request focuses and shows Desktop and emits the dedicated Desktop Open Intent renderer event without reusing menu-bar://open-tab.
-    condition: Whenever a fully validated ready request is accepted.
-    failure: Reject acceptance that cannot focus, show, and emit the dedicated event.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.event-stream-plane
-  - id: rule.nimi.desktop.bridge-ipc.r089
-    kind: rule
-    title: Desktop owns the Open target catalog values
-    modality: must_not
-    statement: Platform duplicates Desktop Open target information-architecture values instead of referencing the Desktop-owned target catalog.
-    condition: Whenever Platform or Desktop defines Desktop Open targets.
-    failure: Remove the duplicate values and resolve targets from the Desktop-owned catalog.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.desktop-open-intent-bridge
-  - id: rule.nimi.desktop.bridge-ipc.r090
-    kind: rule
-    title: Local-development confirmation presents exact user-facing inputs
-    modality: must
-    statement: Desktop canonicalizes and validates non-authorizing app-tools project inputs, reads the current Runtime account projection over protected control, and presents app name and identifier, canonical project root, shell kind, current account, declared public permissions, host posture, run once, always allow this project, and cancel or deny before requesting Runtime authorization.
-    condition: Whenever nimi-app dev requests local-development authorization.
-    failure: Deny authorization until validated inputs and the complete confirmation UI are present.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-  - id: rule.nimi.desktop.bridge-ipc.r091
-    kind: rule
-    title: Developer Mode grants nothing and consent has exact lifetimes
-    modality: must
-    statement: Developer Mode is available with a production account, defaults off, grants nothing, uses exactly one Dev Trust Set, ends run_once with the supervisor run, preserves Runtime-owned allow_project consent across supervisor, Desktop, and Runtime replacement, invalidates live leases and sessions on mode-off, account switch or logout, supervisor end, or boot-epoch replacement without invalidating exact durable project consent, and applies Runtime owner invalidation on revoke, tombstone, or project, account, permission requirement, shell, entry, or risk mismatch.
-    condition: Whenever Desktop evaluates Developer Mode or local-development consent lifetime.
-    failure: Deny launch or terminate live authority when any exact mode, trust, lifetime, or invalidation condition is violated.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-  - id: rule.nimi.desktop.bridge-ipc.r092
-    kind: rule
-    title: Approval UI cannot persist Runtime authorization
-    modality: must_not
-    statement: Renderer state, Desktop preferences, app-owned configuration, browser storage, or a generic keyring persists or reconstructs local-development authorization, generation, or revocation instead of Desktop using protected typed Runtime operations to list and revoke Runtime-owned allow-project records.
-    condition: Whenever Desktop stores or manages local-development approval state.
-    failure: Reject local persistence and resolve authorization state from Runtime.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-  - id: rule.nimi.desktop.bridge-ipc.r093
-    kind: rule
-    title: Supervisor owns one verified native development chain
-    modality: must
-    statement: After authorization, the Desktop supervisor starts and monitors the build coordinator, dev server, and Electron or Tauri host as one run, retains native process witnesses, binds each host restart to Runtime, validates renderer origin and controlled project output roots, terminates on reject, revoke, invalid project change, or supervisor, dev-server, or host exit, and keeps HMR and controlled rebuild or restart within the same run without repeated confirmation.
-    condition: Whenever an authorized local-development run is active.
-    failure: Terminate the chain when any witness, binding, origin, output, authorization, or process condition fails.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-  - id: rule.nimi.desktop.bridge-ipc.r094
-    kind: rule
-    title: Electron development data uses an opaque authorization partition
-    modality: must
-    statement: The Desktop supervisor creates and validates the fixed active-user Nimi profile-root ancestry and a mode-0700 authorization-scoped opaque Chromium user-data directory before Electron launch, places only a domain-separated one-way digest in --user-data-dir, keeps authorization, Runtime, account, project, and session material out of argv, treats the partition as app-owned browser data rather than authorization persistence, and permits replacement only by an explicitly isolated CDP acceptance evidence directory.
-    condition: Whenever the supervisor launches Electron for local development or acceptance.
-    failure: Reject launch when ancestry, permissions, opacity, argv redaction, or isolation fails.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-  - id: rule.nimi.desktop.bridge-ipc.r095
-    kind: rule
-    title: CDP observation is exact and non-authorizing
-    modality: must
-    statement: A non-release Electron acceptance build attaches at most one exact-loopback CDP observation port to one explicitly named local-app identifier only while the dev-kernel checkpoint is active, the Desktop supervisor validates the profile and preserves the normal authorization-scoped partition, app mismatch, partial input, non-loopback posture, invalid port, or ordinary build produces no observation arguments, and CDP conveys no protected authority or replacement for verified process and session carriage.
-    condition: Whenever an Electron acceptance build requests CDP observation.
-    failure: Omit observation arguments or reject launch when the exact acceptance conditions fail.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-  - id: rule.nimi.desktop.bridge-ipc.r096
-    kind: rule
-    title: Local-development technical authority stays native-private
-    modality: must_not
-    statement: Desktop returns a launch ticket, session proof, Runtime epoch, protected endpoint, credential, token, or native carrier handle to CLI or renderer, or direct tauri dev, manual Electron, remote or uncontrolled dev servers, or direct localhost gRPC traverses the supervised protected path.
-    condition: Whenever local-development status is projected or an unsupervised host attempts protected access.
-    failure: Return only stable request, status, and failure projections and deny the unsupervised path.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-  - id: rule.nimi.desktop.bridge-ipc.r097
-    kind: rule
-    title: Every development replacement gets fresh live authority
-    modality: must
-    statement: Every edit, build, or process replacement produces a fresh host and payload digest observation, launch lease, verified process bind, and local-app session, retains a durable allow-project record only when Runtime proves the same canonical project identity, never inherits the old process or session, presents native Windows execution risk disclosure before first approval and after risk text or revision changes, and never creates persistent local-development autostart.
-    condition: Whenever a local-development payload, host process, or native risk disclosure changes.
-    failure: Deny replacement or terminate the run until fresh live authority and any required disclosure are complete.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-development-supervisor
-  - id: rule.nimi.desktop.bridge-ipc.r098
-    kind: rule
-    title: local_app_control owns coordination but no Runtime truth
-    modality: must_not
-    statement: local_app_control exists outside the verified Desktop control connection, merges with desktop_account_host or a local-app child session, exposes a third-party public permission decision or management action while none is admitted, or owns principal, record, permission, lease, session, account, or operation-policy truth.
-    condition: Whenever Desktop establishes or uses the local_app_control role.
-    failure: Reject the role or operation outside its exact verified coordination boundary.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-app-control-role
-  - id: rule.nimi.desktop.bridge-ipc.r099
-    kind: rule
-    title: Renderer local-app control is status and decision only
-    modality: must
-    statement: Renderer IPC carries only renderer-safe status, project selectors, and explicit user decisions, keeps PrepareLocalAppLaunch, process binding, and native carrier attachment in the Desktop native supervisor, and excludes principal, record, permission-decision, lineage, attestation, SID partition, process tuple, session proof, Runtime endpoint, bearer, and authorization metadata from renderer state, storage, network, logs, and errors.
-    condition: Whenever local_app_control data crosses renderer IPC.
-    failure: Reject the payload before renderer exposure or keep the operation native-only.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.bridge-ipc.local-app-control-role

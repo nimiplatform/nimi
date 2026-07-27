@@ -8,8 +8,8 @@ units:
     meaning: The Runtime delegated capability gateway plane owns delegated provider profile identity and lifecycle, trust tiers, normalized capability descriptors and effect classes, delegated session identity and context slices, normalized delegation request and result envelopes, streaming segment envelopes, the protocol metadata evidence boundary, descriptor drift detection, and gateway evidence custody before a firewall verdict.
   - id: definition.nimi.runtime.delegation.mcp-adapter-plane
     kind: definition
-    title: Runtime delegated MCP adapter plane
-    meaning: The Runtime delegated MCP adapter plane owns MCP adapter admission, the official protocol SDK dependency boundary, provider profile binding, admitted transport classes, server session lifecycle custody, tool discovery and allowlist filtering, tool schema drift checks, tool call admission, quarantined gateway evidence creation, command environment hygiene, timeout and cancellation, and the MCP protocol revision result boundary.
+    title: Deferred MCP adapter boundary
+    meaning: MCP is outside the current Runtime core and its future owner, adapter, transport, protocol, tool, credential, lifecycle, and product semantics remain undecided; the absent capability never blocks Local AI, LocalAgent, Conversation, Memory, Knowledge, voice, or ordinary readiness.
   - id: definition.nimi.runtime.delegation.output-firewall-plane
     kind: definition
     title: Runtime delegated output firewall plane
@@ -38,11 +38,11 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r002
     kind: rule
-    title: Provider profile identity is fixed
+    title: Provider profiles require separately admitted capability owners
     modality: must
-    statement: Every delegated provider profile carries a stable provider_profile_id plus provider_kind, display_name, trust_tier, lifecycle_state, a protocol_adapter_ref, and conditional custody_ref and grant_scope_ref references, provider_kind admits only MCP_TOOL_PROVIDER, REMOTE_AGENT_SEAM, RUNTIME_NATIVE_PROVIDER, and CONTROLLED_TEST_PROVIDER, and REMOTE_AGENT_SEAM stays inactive for production until A2A support is separately admitted.
+    statement: A delegated provider profile exists only for a separately admitted Runtime capability with stable identity, lifecycle, authorization, credential custody, and audit ownership, while MCP and A2A provider kinds remain inactive and unavailable until their future owner and product contracts are separately decided.
     condition: Whenever a delegated provider profile is created, stored, or projected.
-    failure: Reject profiles missing required identity fields or carrying undeclared provider kinds.
+    failure: Reject a profile without an admitted capability owner or one that activates MCP or A2A by registry presence alone.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.delegation.capability-gateway-plane
@@ -100,7 +100,7 @@ units:
     kind: rule
     title: Delegated sessions are Runtime owned and typed
     modality: must
-    statement: A delegated session is Runtime-owned and carries delegation_session_id, provider_profile_id, agent_id, conditional conversation_anchor_id and runtime_turn_id, opened_at, session_state limited to OPEN, PAUSED_FOR_APPROVAL, CLOSING, CLOSED, and FAILED, policy_snapshot_id, and audit_trace_id.
+    statement: A delegated session is Runtime-owned, remains related to its Runtime-issued LocalAgent, Conversation, turn, provider, policy, and audit references, and exposes only typed lifecycle state.
     condition: Whenever a delegated session is opened, updated, or closed.
     failure: Reject sessions missing required fields or carrying undeclared states.
     relations:
@@ -178,131 +178,11 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r016
     kind: rule
-    title: MCP is an adapter source not semantic authority
+    title: MCP remains deferred and non-core
     modality: must
-    statement: Runtime owns MCP adapter admission, provider profile binding, server lifecycle, tool discovery, tool filtering, tool call admission, timeout, drift handling, and quarantined evidence creation, and MCP wire objects never become public Runtime ontology but are normalized into the delegated gateway semantics before firewall admission to model context, projection, or action paths.
-    condition: Whenever MCP data enters Runtime.
-    failure: Reject MCP wire objects consumed as Runtime semantic authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r017
-    kind: rule
-    title: The MCP dependency is the official SDK adapter only
-    modality: must
-    statement: Runtime MCP implementation uses the official modelcontextprotocol go-sdk package as the protocol adapter dependency unless a later high-risk admission explicitly replaces it, and the dependency never defines Nimi provider identity, request or result vocabulary, approval state, firewall verdict, audit retention, or Runtime agent projection semantics.
-    condition: Whenever the MCP protocol dependency is selected or consumed.
-    failure: Reject unofficial protocol dependencies and dependency-defined Nimi semantics.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r018
-    kind: rule
-    title: MCP providers bind to delegated profiles
-    modality: must
-    statement: Each MCP provider binds to a Runtime delegated provider profile with provider_id, provider_kind fixed to MCP_TOOL_PROVIDER, an admitted transport_kind, a Runtime-owned allowed_tools list, an inherited trust_tier, and a conditional credential_ref referencing connector, key-source, or grant authority.
-    condition: Whenever an MCP provider is bound.
-    failure: Reject unbound MCP providers and bindings missing required fields.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r019
-    kind: rule
-    title: stdio_command is the admitted MCP transport
-    modality: must
-    statement: stdio_command is the production MCP transport class for Runtime-owned local gateway execution, and remote HTTP transports require separate admission proving target-resource authorization, credential custody, timeout, and response quarantine.
-    condition: Whenever an MCP transport class is admitted or used.
-    failure: Reject undeclared transports and unadmitted remote HTTP usage.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r020
-    kind: rule
-    title: MCP sessions and imports stay Runtime internal
-    modality: must
-    statement: Runtime owns starting, connecting, monitoring, timing out, and closing MCP server sessions, no Desktop, Avatar, Web, SDK, or app layer instantiates an MCP client or server session directly, and only Runtime-owned MCP adapter implementation paths import the MCP protocol SDK.
-    condition: Whenever an MCP session is created or the MCP SDK is imported.
-    failure: Reject consumer-layer MCP sessions and non-Runtime MCP SDK imports.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r021
-    kind: rule
-    title: Discovery normalizes and allowlists tools
-    modality: must
-    statement: MCP discovery calls tool listing through the adapter dependency and normalizes each listed tool into Runtime gateway evidence that is neither model context nor runtime.agent.* projection, provider profiles without an explicit allowed tool list are rejected, only allowed tools may be returned from discovery or called, and unknown tools may be ignored during listing but never become callable or visible as available Runtime delegated capabilities.
-    condition: Whenever MCP tools are discovered, listed, or exposed.
-    failure: Reject allowlist-free profiles and unlisted tool exposure or invocation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r022
-    kind: rule
-    title: Tool schema digests gate calls
-    modality: must
-    statement: When an allowed tool declares an expected input schema digest Runtime compares the current MCP tool input schema digest before a tool call, and a digest mismatch is provider drift that fails closed with a delegation reason code.
-    condition: Whenever a digest-configured MCP tool is called.
-    failure: Fail closed on digest mismatch instead of calling the drifted tool.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r023
-    kind: rule
-    title: Tool call admission preconditions are complete
-    modality: must
-    statement: Runtime calls an MCP tool only after the provider profile exists and is active, the provider kind is MCP_TOOL_PROVIDER, the transport kind is admitted, the tool name is allowlisted, the expected schema digest check passes when configured, and the request timeout is bounded.
-    condition: Whenever an MCP tool call is admitted.
-    failure: Reject tool calls missing any admission precondition.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r024
-    kind: rule
-    title: MCP output is quarantined until a firewall verdict
-    modality: must
-    statement: MCP call output is recorded as quarantined gateway evidence carrying firewall_state not_evaluated, model_context_admitted false, projection_admitted false, and action_admitted false, and only an admitted firewall verdict may transform that evidence into accepted observation, suggestion, artifact, failure, approval, or action input semantics, so unverdicted evidence is never consumed by Runtime model prompt or context construction, Runtime agent final decision logic, runtime.agent.* projection, Desktop UI state, Avatar presentation state, or action execution.
-    condition: Whenever MCP call output is recorded or consumed.
-    failure: Fail closed on pre-verdict consumption of quarantined MCP evidence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r025
-    kind: rule
-    title: No raw token passthrough
-    modality: must
-    statement: Runtime never passes raw user, provider, connector, OAuth, API key, or bearer tokens through MCP request arguments, SDK metadata, environment injection, app payloads, Avatar payloads, or Desktop payloads, credential material remains under connector, key-source, grant, authn, and authz authority, and MCP adapter code receives only the minimum credential material needed inside Runtime-owned execution.
-    condition: Whenever credential material approaches the MCP adapter surface.
-    failure: Reject raw token passthrough and custody outside the declared authorities.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r026
-    kind: rule
-    title: stdio environments are bounded
-    modality: must
-    statement: stdio_command MCP servers run with a Runtime-constructed bounded process environment that never inherits arbitrary secret-bearing environment variables, preserving allowlisted operational variables such as PATH, temporary-directory variables, and OS process bootstrap variables only when needed for process startup.
-    condition: Whenever an MCP stdio server process is launched.
-    failure: Reject inherited secret-bearing environments.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r027
-    kind: rule
-    title: MCP timeouts and failures map fail-closed
-    modality: must
-    statement: MCP discovery and tool calls use bounded contexts, cancellation or timeout closes the MCP session and returns a fail-closed gateway failure, and MCP connection failure, discovery failure, unlisted tool, schema drift, tool call protocol error, timeout, and server lifecycle failure map to delegation failure semantics and delegation reason codes.
-    condition: Whenever an MCP call times out, is cancelled, or fails.
-    failure: Reject unbounded calls and unmapped failure outcomes.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.mcp-adapter-plane
-  - id: rule.nimi.runtime.delegation.r028
-    kind: rule
-    title: The MCP revision result boundary fails closed
-    modality: must
-    statement: The Runtime MCP gateway advertises no MCP extensions during connect and treats extension negotiation results as quarantined adapter evidence only, a tools/call result carrying model-requested inputRequests, an unsolicited task handle, or an extension-negotiated continuation is an unsupported result shape that fails closed as result-invalid rather than being partially accepted, deferred, or silently stripped, the gateway never polls, resumes, or acknowledges task handles, and a future remote-HTTP transport admission must satisfy the stateless no-session-affinity model and the revision required request headers under its own admission.
-    condition: Whenever MCP protocol revision features appear in connect or tool results.
-    failure: Fail closed as result-invalid instead of partial acceptance or silent stripping.
+    statement: Runtime exposes no current MCP product contract, SDK surface, transport, server lifecycle, tool registry, execution path, or readiness dependency, and any future MCP design requires separate owner and security authority without redefining Runtime core architecture.
+    condition: Whenever MCP is proposed, referenced, configured, or unavailable.
+    failure: Keep MCP unavailable and isolated rather than inferring a Runtime owner, adapter design, or successful execution.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.delegation.mcp-adapter-plane
@@ -600,7 +480,7 @@ units:
     kind: rule
     title: Approval requests are typed and firewall clean
     modality: must
-    statement: An approval request carries approval_request_id, delegation_request_id, agent_id, effect_class, sensitivity_class, provider_profile_id, capability_id, summary_ref, policy_snapshot_id, and created_at, and summary_ref points to Runtime-reviewed approval copy that never exposes raw provider output that has not passed firewall review.
+    statement: A delegated approval request preserves its Runtime-issued request, LocalAgent, provider, capability, policy, sensitivity, and audit relations, and presents only Runtime-reviewed approval copy that never exposes unreviewed raw provider output.
     condition: Whenever a delegated approval request is created.
     failure: Reject requests missing fields or exposing unreviewed provider output.
     relations:
@@ -730,9 +610,9 @@ units:
     kind: rule
     title: A2A is a future seam only
     modality: must
-    statement: A2A is admitted only as a future Runtime delegated provider adapter seam, any production A2A implementation requires new admitted authority before code, dependency, runtime registration, UI claim, or integration fixture lands, MCP remains the only production delegated protocol adapter, and the MCP adapter admission never implements, imports, registers, exposes, or fakes A2A support.
-    condition: Whenever A2A support is proposed or referenced.
-    failure: Reject production A2A work without new admitted authority.
+    statement: A2A and MCP are isolated future delegated-provider seams only; neither has a current production adapter, Runtime registration, SDK surface, UI claim, readiness role, or implementation authority, and either requires separate product, security, and owner admission before production work.
+    condition: Whenever A2A or MCP support is proposed or referenced.
+    failure: Reject production A2A or MCP work without new admitted authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.delegation.a2a-future-seam-plane

@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.desktop.shell-ui.home-shell
     kind: definition
     title: Desktop Nimi Home shell
-    meaning: The Desktop Nimi Home shell is the hosted product-control information architecture and first-run, return-run, Apps, Agent Chat, health, account, settings, diagnostics, update, and explicit failure projection surface that consumes upstream typed authority without becoming its owner.
+    meaning: The Desktop Nimi Home shell is the current replaceable implementation of the Nimi Home Contract for product control, first-run and return-run state, Apps, LocalAgent conversation, health, account, settings, diagnostics, update, and explicit failure projection without becoming the owner of upstream truth.
   - id: definition.nimi.desktop.shell-ui.menu-bar
     kind: definition
     title: Desktop menu-bar shell
@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.desktop.shell-ui.kit-consumption
     kind: definition
     title: Desktop Kit UI consumption surface
-    meaning: The Desktop Kit UI consumption surface is the app-specific inventory of shared Kit styles, themes, primitives, shell facades, Avatar and Agent Center consumers, retained compositions, and controlled exceptions without a parallel shared primitive, token, custody, or product-truth owner.
+    meaning: The Desktop Kit UI consumption surface is the App-specific inventory of shared Kit styles, themes, primitives, shell facades, Avatar and LocalAgent settings consumers, retained compositions, and controlled exceptions without a parallel shared primitive, token, custody, or product-truth owner.
   - id: definition.nimi.desktop.shell-ui.error-boundary
     kind: definition
     title: Desktop error boundary
@@ -42,11 +42,11 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.r002
     kind: rule
-    title: Characters projects Runtime Agent inventory only
+    title: Characters projects Runtime LocalAgent inventory only
     modality: must
-    statement: The Characters primary surface projects Runtime ListAgents source-materialized ACTIVE agents owned by the current account and routes selection to the existing Source Detail dossier without renderer-local Agent truth.
+    statement: The Characters primary surface projects Runtime source-materialized active LocalAgents available to the current account and routes selection to the existing Source Detail dossier without renderer-local LocalAgent truth.
     condition: Whenever Desktop lists or opens a Character.
-    failure: Keep the surface unavailable or empty according to the typed Runtime projection rather than inventing an Agent row.
+    failure: Keep the surface unavailable or empty according to the typed Runtime projection rather than inventing a LocalAgent row.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
@@ -328,7 +328,7 @@ units:
     kind: rule
     title: Dense operational surfaces are solid-first
     modality: must
-    statement: Settings, Runtime Config, Local Model Center, audit, diagnostics, inspector, and equivalent dense operational surfaces use solid-first presentation and admit local glass only when contrast, scanning, reduced-transparency, and performance remain valid; Chat and Agent gain no glass exception from this rule.
+    statement: Settings, Runtime Config, Local Model Center, audit, diagnostics, inspector, and equivalent dense operational surfaces use solid-first presentation and admit local glass only when contrast, scanning, reduced-transparency, and performance remain valid; Chat and LocalAgent surfaces gain no glass exception from this rule.
     condition: Whenever Desktop applies material to a dense operational surface.
     failure: Fall back to solid presentation and reject unproven glass or exception expansion.
     relations:
@@ -510,7 +510,7 @@ units:
     kind: rule
     title: Avatar UI consumes typed projections and Kit custody
     modality: must
-    statement: Desktop passes resolved Avatar and Runtime presentation projections to Kit Avatar, injects the standard Kit Shell Agent Center capability for managed local bytes and custody metadata, and leaves selected opaque refs with Runtime and renderer execution with Avatar.
+    statement: Desktop passes resolved Avatar and Runtime presentation projections to Kit Avatar, composes only demand-driven Kit LocalAgent settings and host capabilities, and leaves selected opaque references with Runtime and renderer execution with Avatar.
     condition: Whenever Desktop presents Avatar selection, evidence, or handoff UI.
     failure: Reject arbitrary filesystem product truth and Desktop-owned picker, custody, selection, preview, or renderer truth.
     relations:
@@ -540,11 +540,11 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.r048
     kind: rule
-    title: Agent Center is a bounded Kit and Runtime consumer
+    title: LocalAgent settings are bounded Kit and Runtime consumers
     modality: must
-    statement: Desktop places Kit Agent Center, supplies navigation, scoped Runtime SDK adapters, Kit Shell host capability, typed Avatar launch, and evidence hooks, edits Agent AI configuration only through typed revisioned Runtime controls, drops local_history and ui.last_section without replacement, and owns no reusable Agent Center panels, local configuration, readiness, diagnostics, route, transcript, presentation selection, credential, or voice artifact truth.
-    condition: Whenever Desktop renders or configures Agent Center.
-    failure: Reject Desktop-local Agent Center implementations, arbitrary injected panels, app-local persistence, pseudo voice, and readiness derived outside Runtime, Kit Shell, and Avatar evidence.
+    statement: Desktop places only the LocalAgent settings required by current Nimi Home journeys, supplies navigation, typed Runtime SDK and bounded host capabilities, and edits LocalAgent AI configuration only through revisioned Runtime controls; it owns no reusable settings framework, App-local configuration truth, readiness, route, transcript, presentation selection, credential, or voice artifact truth.
+    condition: Whenever Desktop renders or configures LocalAgent settings.
+    failure: Reject Desktop-local owner truth, arbitrary injected panels, App-local persistence, pseudo voice, and readiness derived outside Runtime and Avatar owners.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.kit-consumption
@@ -552,9 +552,9 @@ units:
     kind: rule
     title: Nimi Home is a hosted shell not a product ontology owner
     modality: must
-    statement: Desktop owns Nimi Home hosted information architecture, navigation, placement, windowing, and first-run and return-run implementation while Platform retains product ontology.
+    statement: Desktop implements the current Nimi Home information architecture, navigation, placement, windowing, and first-run and return-run shell against the Nimi Home Contract and remains replaceable without changing Realm, Runtime, SDK, Kit, LocalAgent, permission, App, or credential semantics.
     condition: Whenever Desktop composes Nimi Home.
-    failure: Reject Desktop-defined ontology or an upstream owner taking over Desktop shell placement.
+    failure: Reject Desktop-defined product ontology, Desktop-only ordinary capability, or host identity used as underlying authority.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.home-shell
@@ -600,10 +600,10 @@ units:
         target: definition.nimi.desktop.shell-ui.home-shell
   - id: rule.nimi.desktop.shell-ui.r054
     kind: rule
-    title: Agent Chat is an in-shell reference surface only
+    title: LocalAgent Conversation is an in-shell reference surface only
     modality: must_not
-    statement: Nimi Home Agent Chat placement owns transcript, history, identity, grant, memory, or ConversationAnchor truth instead of only shell entry and navigation.
-    condition: Whenever Agent Chat appears in Nimi Home.
+    statement: Nimi Home LocalAgent Conversation placement owns transcript, history, LocalAgent identity, grant, Memory, or Conversation truth instead of only shell entry and navigation.
+    condition: Whenever LocalAgent Conversation appears in Nimi Home.
     failure: Consume the admitted Runtime, SDK, Realm, Cognition, and permission projections and reject shell-local truth.
     relations:
       - type: applies_to
@@ -612,7 +612,7 @@ units:
     kind: rule
     title: Home AI execution carries explicit scope
     modality: must
-    statement: Every Nimi Home Agent Chat or shell-internal Runtime AI execution path carries an explicit AIScopeRef.
+    statement: Every Nimi Home LocalAgent Conversation or shell-internal Runtime AI execution path carries an explicit AIScopeRef.
     condition: Whenever Nimi Home submits AI execution intent.
     failure: Reject the request before execution when AIScopeRef is absent or invalid.
     relations:

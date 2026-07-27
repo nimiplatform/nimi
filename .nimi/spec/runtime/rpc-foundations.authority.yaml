@@ -5,1663 +5,224 @@ units:
   - id: definition.nimi.runtime.rpc-foundations.audit-plane
     kind: definition
     title: Runtime audit plane
-    meaning: The Runtime audit plane owns common audit fields, bounded stores, redaction, usage and health records, export, correlation, participation lineage, and the protected Desktop audit projection.
+    meaning: The Runtime audit plane records owner-relevant security, authorization, execution, lifecycle, resource, and failure facts with correlation and redaction without treating evidence production as product success.
   - id: definition.nimi.runtime.rpc-foundations.error-plane
     kind: definition
     title: Runtime structured error plane
-    meaning: The Runtime structured error plane combines gRPC status with stable Runtime reason codes, safe metadata, exact exceptional mappings, and fail-closed disclosure boundaries.
+    meaning: The Runtime structured error plane exposes stable typed owner failures and safe metadata while preserving fail-closed disclosure and never converting missing authority or capability into success.
   - id: definition.nimi.runtime.rpc-foundations.pagination-plane
     kind: definition
-    title: Runtime pagination and filtering plane
-    meaning: The Runtime pagination and filtering plane owns cursor integrity, page limits, stable ordering, filter semantics, and the method-specific List RPC matrix.
+    title: Runtime pagination plane
+    meaning: The Runtime pagination plane provides bounded deterministic listing with opaque owner-issued continuation state and typed validation.
   - id: definition.nimi.runtime.rpc-foundations.route-description-plane
     kind: definition
     title: Runtime route description plane
-    meaning: The Runtime route description plane owns typed metadata for resolved capability routes while keeping option listing, resolution, health, description, and execution authority separate.
+    meaning: The Runtime route description plane projects Runtime-resolved AI capability, route, model, readiness, and health facts without exposing credentials or allowing consumers to infer execution truth.
   - id: definition.nimi.runtime.rpc-foundations.streaming-plane
     kind: definition
     title: Runtime streaming plane
-    meaning: The Runtime streaming plane classifies every server stream by close protocol and owns establishment, framing, terminal, timeout, shutdown, backpressure, and replay boundaries.
+    meaning: The Runtime streaming plane owns typed establishment, ordered data, cancellation, terminal state, bounded buffering, and stale-session closure for Runtime streams.
   - id: definition.nimi.runtime.rpc-foundations.target-identity-plane
     kind: definition
     title: Runtime target identity plane
-    meaning: The Runtime target identity plane separates durable local and cloud intent from inventory facts, credential custody, runtime proof, and resolved execution bindings.
-  - id: definition.nimi.runtime.rpc-foundations.reason-code-registry
-    kind: definition
-    title: Runtime reason-code registry
-    meaning: The Runtime reason-code registry is the closed name, numeric value, and family assignment consumed by generated protocol, SDK, audit, and deterministic verification surfaces.
-  - id: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-    kind: definition
-    title: Runtime activation-gate registry
-    meaning: The Runtime activation-gate registry is the closed owner, state, and audit projection for local dependency, source, profile, resolver, host, and workflow readiness failures.
-  - id: definition.nimi.runtime.rpc-foundations.metadata-registry
-    kind: definition
-    title: Runtime metadata registry
-    meaning: The Runtime metadata registry is the closed set of admitted gRPC metadata keys and their exact value and requirement conditions.
+    meaning: The Runtime target identity plane separates durable user or product intent from current inventory, credential custody, readiness, and resolved execution binding.
   - id: rule.nimi.runtime.rpc-foundations.r001
     kind: rule
-    title: Every audit event has the common floor
+    title: Audit follows owner actions
     modality: must
-    statement: Every Runtime audit event contains trace_id, app_id, domain, operation, reason_code, and timestamp.
-    condition: Whenever any AI execution, authentication, permission, lifecycle, knowledge, local, or global audit path records an event.
-    failure: Reject or fail the auditable operation rather than persist an event missing any common-floor field.
+    statement: Security-relevant authentication, authorization, credential, lifecycle, execution, resource, and protected host actions record an owner-attributed result with correlation and time.
+    condition: Whenever an auditable Runtime action succeeds or fails.
+    failure: Reject unaudited sensitive mutation and do not replace the owner action with evidence-only success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.audit-plane
   - id: rule.nimi.runtime.rpc-foundations.r002
     kind: rule
-    title: Audit success and failure coverage is complete
-    modality: must
-    statement: Management and consume RPCs record success and failure, baseline knowledge writes cover knowledge.bank.create, knowledge.bank.delete, knowledge.page.put, knowledge.page.delete, knowledge.link.add, and knowledge.link.remove, and durable hybrid-readiness state changes remain audited even though SearchHybrid itself adds no read-audit baseline.
-    condition: Whenever an admitted management, consume, knowledge-write, or hybrid-readiness transition completes or fails.
-    failure: Treat a missing required success, failure, or readiness event as an audit contract violation.
+    title: Audit reveals no authority material
+    modality: must_not
+    statement: Audit, trace, health, usage, or diagnostic projection contains credentials, bearer material, session proof, protected process proof, raw private content, provider secrets, or enough data to replay authority.
+    condition: Whenever Runtime records or exports diagnostic facts.
+    failure: Redact or reject the record while preserving a useful owner reason.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.audit-plane
   - id: rule.nimi.runtime.rpc-foundations.r003
     kind: rule
-    title: Request and trace identity share one baseline ULID
+    title: Audit stores are bounded
     modality: must
-    statement: The current Runtime baseline uses one ULID for both request_id and trace_id while preserving the fields for future fan-out separation.
-    condition: Whenever an AI execution path creates request and trace identity.
-    failure: Reject divergent or non-ULID baseline identities instead of silently breaking correlation.
+    statement: Runtime audit and diagnostic storage applies owner-approved retention, access control, and resource bounds and never becomes an unbounded evidence-completeness system.
+    condition: Whenever audit or diagnostic records are retained or queried.
+    failure: Enforce the bound and preserve the product operation's truthful result.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.audit-plane
   - id: rule.nimi.runtime.rpc-foundations.r004
     kind: rule
-    title: Application identity carriers are fixed
+    title: Errors preserve owner category
     modality: must
-    statement: AI consume and ScenarioJob query carry app_id in the request body, while Connector management carries application identity only in x-nimi-app-id metadata.
-    condition: Whenever Runtime accepts application identity for these RPC families.
-    failure: Reject a missing, conflicting, or misplaced application identity.
+    statement: Runtime returns typed categories for unauthenticated, permission denied, unavailable, validation, conflict, readiness, rate limit, resource exhaustion, cancellation, timeout, and internal failure with stable owner-attributed reasons.
+    condition: Whenever a Runtime operation cannot complete successfully.
+    failure: Return a typed failure rather than generic or successful output.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
+        target: definition.nimi.runtime.rpc-foundations.error-plane
   - id: rule.nimi.runtime.rpc-foundations.r005
     kind: rule
-    title: Audit retention and redaction are mandatory
-    modality: must
-    statement: Audit storage uses configurable finite retention, redacts credentials, tokens, secrets, authorization input, and other sensitive fields, and never records reconstructable plaintext credential fragments; diagnostics may retain only irreversible digests or bounded masks.
-    condition: Whenever Runtime stores or exports audit data.
-    failure: Stop the audit write or export when finite retention or required redaction cannot be enforced.
+    title: Error metadata is safe and bounded
+    modality: must_not
+    statement: Runtime error output includes credentials, tokens, protected paths, raw provider payloads, private prompts, account secrets, process proof, internal stack data, or unbounded free-form metadata.
+    condition: Whenever Runtime projects an error to SDK, App, host, or user-facing consumer.
+    failure: Return the stable safe reason and bounded recovery metadata only.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.error-plane
   - id: rule.nimi.runtime.rpc-foundations.r006
     kind: rule
-    title: Global audit records have one field schema
+    title: Unknown input fails closed
     modality: must
-    statement: AuditEventRecord contains audit_id, optional request_id, required app_id, optional subject_user_id, required domain, required operation, required reason_code, required trace_id, required timestamp, optional payload, caller_kind, caller_id, surface_id, principal_id, principal_type, external_principal_type, capability, token_id, parent_token_id, consent_id, consent_version, policy_version, resource_selector_hash, and scope_catalog_version, with proto field numbers preserving wire order.
-    condition: Whenever Runtime persists or returns a global audit record.
-    failure: Reject a record that omits a required field, introduces an undeclared stable field, or changes admitted wire identity.
+    statement: Unknown operation, enum, version, identity, cursor, projection, capability, or reason input produces a typed validation or unsupported failure and is never reinterpreted as a default success path.
+    condition: Whenever Runtime receives an unknown contract value.
+    failure: Reject the input before owner mutation.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.error-plane
   - id: rule.nimi.runtime.rpc-foundations.r007
     kind: rule
-    title: Global audit storage is bounded and queryable
+    title: Pagination is deterministic and bounded
     modality: must
-    statement: The global audit ring holds 20000 events by default, accepts auditRingBufferSize configuration, evicts oldest events by FIFO, and ListAuditEvents paginates with filters for app_id, subject_user_id, domain, reason_code, caller_kind, caller_id, and time_range.
-    condition: Whenever Runtime stores or lists global audit events.
-    failure: Reject unbounded retention, non-FIFO overflow, or an undeclared audit filter.
+    statement: List operations use a stable owner-defined ordering, bounded page size, explicit filters, and opaque continuation state that cannot be forged into broader access.
+    condition: Whenever Runtime exposes a paginated list.
+    failure: Reject invalid continuation or filters and never return an unbounded or nondeterministic page.
     relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.pagination-plane
   - id: rule.nimi.runtime.rpc-foundations.r008
     kind: rule
-    title: Usage storage is bounded and dimensioned
+    title: Pagination preserves authorization
     modality: must
-    statement: The usage ring holds 50000 samples by default, accepts usageStatsBufferSize configuration, evicts by FIFO, aggregates app_id by subject_user_id by caller_kind by caller_id by capability by model_id, and ListUsageStats paginates and filters on those dimensions.
-    condition: Whenever Runtime stores or lists usage samples.
-    failure: Reject unbounded usage retention, non-FIFO overflow, or a query dimension outside the admitted set.
+    statement: Every page and continuation request re-evaluates the current authenticated session, App authorization, account scope, and operation owner policy rather than inheriting authority from the cursor.
+    condition: Whenever a list continues after the first page.
+    failure: Reject stale or unauthorized continuation without leaking existence.
     relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.pagination-plane
   - id: rule.nimi.runtime.rpc-foundations.r009
     kind: rule
-    title: Audit export has one chunk protocol
+    title: Route descriptions are Runtime facts
     modality: must
-    statement: ExportAuditEvents server-streams AuditExportChunk with export_id, zero-based increasing sequence, chunk bytes, eof, and mime_type; requests may select format, deflate compression, and time range, and the server closes with gRPC OK after eof=true.
-    condition: Whenever Runtime exports audit events.
-    failure: Terminate with a typed stream failure rather than omit ordering, emit data after eof, or report success without the eof close protocol.
+    statement: Runtime route descriptions project current admitted capability, target, model, readiness, health, and limitation facts without Provider Credentials, raw provider payloads, or consumer-inferred fallback.
+    condition: Whenever a consumer inspects an AI route.
+    failure: Return typed unavailable when Runtime cannot resolve the requested route facts.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
+        target: definition.nimi.runtime.rpc-foundations.route-description-plane
   - id: rule.nimi.runtime.rpc-foundations.r010
     kind: rule
-    title: Usage records have one schema
-    modality: must
-    statement: UsageStatRecord contains app_id, subject_user_id, caller_kind, caller_id, capability, model_id, window, bucket_start, request_count, success_count, error_count, input_tokens, output_tokens, compute_ms, and queue_wait_ms.
-    condition: Whenever Runtime stores or returns usage statistics.
-    failure: Reject usage data that cannot be represented by the admitted fields.
+    title: Consumers do not own route selection
+    modality: must_not
+    statement: SDK, Kit, Desktop, Avatar, or App guesses provider, model, local or cloud route, fallback, capability, Quota, Budget, Rate Limit, or readiness from names, cached state, or partial metadata.
+    condition: Whenever a consumer presents or executes AI intent.
+    failure: Use the typed Runtime projection or report unavailable.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.route-description-plane
   - id: rule.nimi.runtime.rpc-foundations.r011
     kind: rule
-    title: Usage windows are closed
+    title: Streams establish before data
     modality: must
-    statement: UsageWindow is exactly MINUTE, HOUR, or DAY.
-    condition: Whenever Runtime aggregates or returns a usage window.
-    failure: Reject an unknown window instead of coercing it to an admitted duration.
+    statement: A Runtime stream reports successful establishment only after current authentication, authorization, target access, readiness, and operation admission succeed.
+    condition: Whenever a Runtime stream is opened.
+    failure: End with the typed owner failure before emitting successful data.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
   - id: rule.nimi.runtime.rpc-foundations.r012
     kind: rule
-    title: Runtime health snapshots have one schema
+    title: Streams preserve ordering and terminal truth
     modality: must
-    statement: GetRuntimeHealthResponse and RuntimeHealthEvent excluding sequence contain status, reason, queue_depth, active_workflows, active_inference_jobs, cpu_milli, memory_bytes, vram_bytes, and sampled_at.
-    condition: Whenever Runtime returns or emits a health snapshot.
-    failure: Reject a health snapshot missing an admitted field rather than synthesize health.
+    statement: Runtime owns event ordering, correlation, cancellation, and terminal state, and consumers do not reorder, fabricate, or infer successful completion from connection close or partial data.
+    condition: Whenever stream data or terminal state is produced or consumed.
+    failure: Preserve the typed terminal failure or unavailable state.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
   - id: rule.nimi.runtime.rpc-foundations.r013
     kind: rule
-    title: Runtime audit service methods and consumer posture are closed
+    title: Streams close on stale authority
     modality: must
-    statement: RuntimeAuditService is exactly ListAuditEvents, ListDesktopAuditEvents, ExportAuditEvents, ListUsageStats, GetRuntimeHealth, ListAIProviderHealth, SubscribeAIProviderHealthEvents, and SubscribeRuntimeHealthEvents; raw ListAuditEvents and ExportAuditEvents are not Desktop protected consumers or renderer, SDK, Kit, or public TCP fallbacks, and only ListDesktopAuditEvents uses the protected Desktop projection.
-    condition: Whenever Runtime registers or a consumer invokes an audit service method.
-    failure: Reject undeclared methods and every attempt to substitute a raw audit method for the protected Desktop projection.
+    statement: Process replacement, protected connection loss, account switch, logout, Runtime restart, permission revoke, target-access loss, or owner cancellation closes affected streams before later data is accepted.
+    condition: Whenever a stream's authority dependency changes.
+    failure: Close the stream with typed cancellation, unauthenticated, permission, or unavailable state.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
   - id: rule.nimi.runtime.rpc-foundations.r014
     kind: rule
-    title: Provider health snapshots have one schema
+    title: Streams apply resource bounds
     modality: must
-    statement: AIProviderHealthSnapshot contains provider_name, state, reason, consecutive_failures, last_changed_at, last_checked_at, and repeated non-nesting AIProviderSubHealth records of the same field shape.
-    condition: Whenever Runtime returns provider health.
-    failure: Reject malformed, recursively nested, or field-incomplete provider health data.
+    statement: Runtime streams bound message size, buffering, subscriber lag, rate, lifetime, and replay according to the owning operation and report resource or slow-consumer failure explicitly.
+    condition: Whenever a stream produces or buffers data.
+    failure: Apply backpressure or close with a typed resource failure rather than consume unbounded resources.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
   - id: rule.nimi.runtime.rpc-foundations.r015
     kind: rule
-    title: Local and global audit stores remain independent
+    title: Durable target intent is credential free
     modality: must
-    statement: LocalService audit uses local-state.json, a 5000-event FIFO limit, localAuditCapacity, and ListLocalAudits, while RuntimeAuditService global audit uses the separate default 20000-event auditRingBufferSize ring and ListAuditEvents or ExportAuditEvents; Phase 1 performs no copy, merge, or cross-store aggregation.
-    condition: Whenever Runtime stores or queries local or global audit events.
-    failure: Reject writes, queries, or configuration that conflate the two stores.
+    statement: A durable target reference expresses user or product intent only and contains no Provider Credential, bearer, session proof, endpoint authority, current readiness, or resolved execution binding.
+    condition: Whenever Runtime stores or transports durable AI target intent.
+    failure: Reject authority material and re-resolve current execution facts at use time.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
   - id: rule.nimi.runtime.rpc-foundations.r016
     kind: rule
-    title: Audit field models retain their scopes
+    title: Execution targets revalidate current facts
     modality: must
-    statement: The common six-field floor applies to all audit paths, AI execution adds request_id, user_id, optional client_id, optional connector_id, provider, model, request_source, usage, and failure grpc_code, global storage uses AuditEventRecord with AI extensions in payload, and local storage uses LocalAuditEvent; authentication and permission identity fields have values only in runtime.auth or runtime.grant.
-    condition: Whenever Runtime selects an audit field model.
-    failure: Reject a model that omits its floor, leaks domain-only fields, or substitutes one store schema for another.
+    statement: Runtime resolves durable intent against current connector, model, local asset, credential, route, authorization, Quota, Budget, Rate Limit, and readiness facts immediately before execution.
+    condition: Whenever Runtime turns durable intent into execution.
+    failure: Fail closed when any required current fact is unavailable or no longer admitted.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
   - id: rule.nimi.runtime.rpc-foundations.r017
     kind: rule
-    title: Sensitive audit keys use deterministic masks
+    title: Contract version mismatch is explicit
     modality: must
-    statement: Audit ingress matches key names case-insensitively for api_key, credential, secret, authorization, token except token_id, parent_token_id, page_token, and next_page_token, and password; values of length at least eight retain first four plus three asterisks plus last four, shorter values become three asterisks, and redaction occurs only at the audit write layer.
-    condition: Whenever payload or metadata is written to audit storage.
-    failure: Reject the write when the central redactor cannot apply the exact mask or an upstream pre-redaction is treated as sufficient.
+    statement: Runtime and SDK reject unsupported contract versions or shapes with a typed compatibility failure and never silently reinterpret them through legacy, partial, or guessed semantics.
+    condition: Whenever a request, response, event, or target version is incompatible.
+    failure: Return typed unsupported or upgrade-required state before mutation.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.error-plane
   - id: rule.nimi.runtime.rpc-foundations.r018
     kind: rule
-    title: AI execution audit extensions are fixed
-    modality: must
-    statement: ExecuteScenario, StreamScenario, ScenarioJob, and equivalent AI execution events add request_id, user_id, optional client_id equal to app_instance_id, connector_id when applicable, provider, model, request_source, usage, and grpc_code on failure to the common audit floor; non-AI domains do not require those extensions.
-    condition: Whenever Runtime audits AI execution.
-    failure: Reject missing required AI execution context or the forced population of AI-only fields in unrelated domains.
+    title: Protocol mechanics are not cross-layer product authority
+    modality: must_not
+    statement: A concrete Runtime method membership list, service grouping, field inventory, framing length, transport name, operating-system primitive, or language-specific generated surface defines Nimi product ontology or owner boundaries.
+    condition: Whenever Runtime protocol semantics are promoted into product authority.
+    failure: Keep the typed product outcome and owner boundary in authority and leave mechanics to the owning contract and implementation.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.error-plane
   - id: rule.nimi.runtime.rpc-foundations.r019
     kind: rule
-    title: Cross-layer correlation keys are fixed
+    title: Deferred services do not enter readiness
     modality: must
-    statement: Cross-layer Runtime, SDK, and Desktop diagnosis uses trace_id first, then request_id when present, app_id, domain, and a timestamp window, and never treats message text or UI-local time alone as sufficient correlation.
-    condition: Whenever a cross-layer audit or support query is constructed.
-    failure: Reject a query posture that cannot preserve the admitted structured correlation keys.
+    statement: General Workflow, MCP, and World Evolution have no current Runtime core method family, activation gate, reason family, or readiness prerequisite and remain deferred and non-blocking.
+    condition: Whenever Runtime protocol or readiness capabilities are declared.
+    failure: Keep the capability unavailable until a separate product authority admits it.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
+        target: definition.nimi.runtime.rpc-foundations.error-plane
   - id: rule.nimi.runtime.rpc-foundations.r020
     kind: rule
-    title: Trace identity propagates unchanged
-    modality: must
-    statement: Runtime includes trace_id in every audit floor, SDK and Desktop preserve it in logs and errors, and Desktop IPC, SDK runtime client, and Runtime gRPC remain queryable by the same trace_id.
-    condition: Whenever a call crosses Runtime, SDK, or Desktop boundaries.
-    failure: Treat trace rewriting or loss as a correlation failure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r021
-    kind: rule
-    title: Audit queries stay structured and redacted
-    modality: must
-    statement: Audit query surfaces expose trace_id, request_id, app_id, domain, reason_code, and timestamp as structured fields, keep credential, proof, and token plaintext redacted, and prioritize a copyable trace_id in Desktop and operations views.
-    condition: Whenever audit evidence is queried or displayed.
-    failure: Reject raw-log-only querying or a result that exposes protected material.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r022
-    kind: rule
-    title: Participation cannot create a side audit store
+    title: Fixtures never produce protocol success
     modality: must_not
-    statement: Runtime Agent Participation creates a participation-specific audit or replay store, bypasses the common floor or global record semantics, or treats delegated gateway references as a second replay authority.
-    condition: Whenever participation execution or replay evidence is recorded.
-    failure: Use typed payload extensions and reconstruct replay from Runtime audit lineage, including delegated evidence references only as lineage.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r023
-    kind: rule
-    title: Audit metadata maps to exact record fields
-    modality: must
-    statement: x-nimi-caller-kind maps to caller_kind, x-nimi-caller-id to caller_id, x-nimi-surface-id to surface_id, and x-nimi-access-token-id to token_id; x-nimi-trace-id remains the protocol correlation envelope rather than a newly introduced audit-context key.
-    condition: Whenever Runtime accepts audit-context metadata.
-    failure: Reject an unknown mapping or any attempt to remap trace authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
-  - id: rule.nimi.runtime.rpc-foundations.r024
-    kind: rule
-    title: Desktop audit projection is bounded and protected
-    modality: must
-    statement: ListDesktopAuditEvents is available only on desktop_control for the verified Nimi Desktop process; its request admits exact filters trace_id, request_id, app_id, domain, operation, reason_code, caller_kind, required from_time and to_time spanning at most seven days, page_size, and page_token, defaults page_size zero to 50, rejects above 100, binds tokens to the complete filter set, returns only events and next_page_token, and projects each event to audit_id, request_id, app_id, domain, operation, reason_code, trace_id, timestamp, and caller_kind from canonical global storage before transport.
-    condition: Whenever Desktop reads Runtime audit events.
-    failure: Fail closed on an unauthorized carrier, forbidden filter or field, invalid range or token, missing canonical storage, synthetic substitute, or UI-side redaction substitute, and audit projection reads without copying filters or returned payloads.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r025
-    kind: rule
-    title: Runtime errors have two orthogonal layers
-    modality: must
-    statement: Every Runtime failure uses a gRPC code for failure stage and a ReasonCode for business cause, without requiring one-to-one mapping.
-    condition: Whenever Runtime returns a typed failure.
-    failure: Reject a projection that collapses either layer into free text.
+    statement: A mock response, fixture stream, empty page, silent skip, schema presence, generated type, or checker result is reported as successful Runtime product behavior without the owning operation executing.
+    condition: Whenever Runtime protocol acceptance is reported.
+    failure: Report only the exercised behavior and classify unrun connectivity as not verified.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r026
-    kind: rule
-    title: Reason-code semantics have one authority
-    modality: must
-    statement: Runtime reason-code names, values, families, use conditions, and failure meanings are owned by this canonical authority, while config/runtime-reason-codes.yaml and its config fragments are machine projections only and cannot create or widen product semantics.
-    condition: Whenever a reason code is defined, generated, checked, or consumed.
-    failure: Reject a code absent from canonical authority or a config row interpreted as independent product authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r027
-    kind: rule
-    title: Unary and streaming errors use exact carriers
-    modality: must
-    statement: Unary failures carry ReasonCode in google.rpc.ErrorInfo within Status.details, generation streams use unary status before establishment and prefer terminal reason_code after establishment, and state-event streams use fatal gRPC status rather than terminal-frame semantics.
-    condition: Whenever Runtime transports a failure.
-    failure: Reject a carrier that loses the stable reason or invents terminal semantics for a state-event stream.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r028
-    kind: rule
-    title: Connector error mappings are exact
-    modality: must
-    statement: Owner mismatch or unauthenticated remote access returns NOT_FOUND with AI_CONNECTOR_NOT_FOUND, a disabled connector returns FAILED_PRECONDITION with AI_CONNECTOR_DISABLED, missing consume or list-model credentials return FAILED_PRECONDITION with AI_CONNECTOR_CREDENTIAL_MISSING, and TestConnector returns OK with ok=false and AI_CONNECTOR_CREDENTIAL_MISSING.
-    condition: Whenever the listed connector condition occurs.
-    failure: Return the exact mapping rather than exposing existence, collapsing the cause, or reporting success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r029
-    kind: rule
-    title: Remote model listing normalizes provider failures
-    modality: must
-    statement: ListConnectorModels for a remote connector maps provider 401, 429, 5xx, and timeout failures to UNAVAILABLE with AI_PROVIDER_UNAVAILABLE.
-    condition: Whenever remote provider model listing fails upstream.
-    failure: Reject an upstream-specific or untyped public mapping.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r030
-    kind: rule
-    title: Error mapping coverage is complete
-    modality: must
-    statement: The Runtime error mapping matrix covers consume, connector, and media entry classes, at least one constrained scenario for every ReasonCode, and each scenario gRPC code plus status-error or ok=false exit semantics.
-    condition: Whenever the mapping matrix is generated or verified.
-    failure: Fail the mapping gate when an admitted code, entry class, gRPC code, or exit semantic is absent.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r031
-    kind: rule
-    title: Media idempotency conflict has one exit
-    modality: must
-    statement: SubmitScenarioJob idempotency conflict from x-nimi-idempotency-key returns ALREADY_EXISTS with AI_MEDIA_IDEMPOTENCY_CONFLICT, while an absent key performs no deduplication.
-    condition: Whenever media job submission evaluates idempotency.
-    failure: Reject silent downgrade to provider or internal error and never invent deduplication without the key.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r032
-    kind: rule
-    title: Missing local management targets use plain not found
-    modality: must
-    statement: Local model management RPCs including StartLocalAsset, StopLocalAsset, and RemoveLocalAsset return NOT_FOUND without a specific reason code when local_model_id does not exist; AI_LOCAL_* codes remain consume and probe semantics.
-    condition: Whenever a local management target is absent.
-    failure: Reject reuse of consume or probe reason families for the management not-found result.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-  - id: rule.nimi.runtime.rpc-foundations.r033
-    kind: rule
-    title: User-reachable failures are structurally stable
-    modality: must
-    statement: Grant, connector, and AI failures expose reasonCode, actionHint, traceId, and retryable; ErrorInfo.Reason carries reasonCode, ErrorInfo.Metadata carries action_hint and when available trace_id and retryable, bridge or SDK status-message JSON never replaces ErrorInfo, and ScenarioJob failures project safe metadata to reason_metadata.
-    condition: Whenever a user-reachable synchronous or asynchronous failure is returned.
-    failure: Reject free-text-only failure, missing stable fields, or loss of safe metadata during job polling.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-  - id: rule.nimi.runtime.rpc-foundations.r034
-    kind: rule
-    title: Internal error text cannot drive clients
-    modality: must_not
-    statement: Provider SDK text, raw storage errors, or other internal implementation details are exposed as the user decision basis or the only client branch signal.
-    condition: Whenever Runtime maps a grant, connector, or AI failure.
-    failure: Map to a stable reasonCode, keep details server-side under traceId, and return the typed public shape.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-  - id: rule.nimi.runtime.rpc-foundations.r035
-    kind: rule
-    title: Local speech bundle reasons remain distinct
-    modality: must
-    statement: Local Speech gating and repair uses exactly AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED, AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED, AI_LOCAL_SPEECH_ENV_INIT_FAILED, AI_LOCAL_SPEECH_HOST_INIT_FAILED, AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED, and AI_LOCAL_SPEECH_BUNDLE_DEGRADED; confirmation required is fail-closed rather than background retry, preflight does not impersonate init failure, env, host, and capability failures remain distinct, degraded never appears healthy, capability and slice detail stays structured metadata, and Desktop LOCAL_AI_SPEECH aliases remain diagnostic only.
-    condition: Whenever Runtime, SDK, or Desktop represents Local Speech bundle failure.
-    failure: Reject silent bootstrap, collapsed reasons, false health, or a Desktop alias promoted to canonical truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r036
-    kind: rule
-    title: Local app failures use closed safe reasons
-    modality: must
-    statement: Local-app principal, record, permission, launch, and session failures use the LOCAL_APP_* family and expose only stable reason, action hint, retryability, and trace id; they hide internal ids, lineage, SID partition, process proof, attestation refs, endpoint, bearer, and native verification detail, require Desktop action for principal, record, provenance, Developer Mode, approval, and risk failures, require a new owner-approved launch for replay, process mismatch, revocation, or account change, preserve identity session on permission denial when valid, and never treat operation unavailable as proxy fallback.
-    condition: Whenever Runtime returns a local-app kernel failure.
-    failure: Reject leaked authority detail, silent retry or approval, old-carrier reuse, or generic proxy fallback.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r037
-    kind: rule
-    title: Connector pagination cannot mint local target identity
-    modality: must_not
-    statement: Connector pagination exposes retired local connector ordering or turns model, audit, or list fields into durable target references.
-    condition: Whenever connector or model pagination projects target-related fields.
-    failure: Keep local assets and profiles under RuntimeLocalService and reject durable identity inferred from list facts.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r038
-    kind: rule
-    title: Connector pagination limits are fixed
-    modality: must
-    statement: ListConnectors and ListConnectorModels default page_size to 50, cap it at 200, and clamp values above 200.
-    condition: Whenever either Connector List RPC paginates.
-    failure: Reject a different default, maximum, or overflow behavior.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r039
-    kind: rule
-    title: Page tokens bind cursor and filters
-    modality: must
-    statement: A page_token is opaque, contains at least a sort breakpoint and filter digest, and returns INVALID_ARGUMENT with PAGE_TOKEN_INVALID when malformed, structurally invalid, or bound to different filters; base64url JSON of cursor and SHA-256 filter JSON is an implementation recommendation rather than a cryptographic-signature requirement.
-    condition: Whenever a paginated RPC accepts a non-empty page token.
-    failure: Reject the token without resetting to the first page or changing filters.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r040
-    kind: rule
-    title: Connector ordering is stable
-    modality: must
-    statement: ListConnectors orders active remote credential connectors by created_at descending then connector_id ascending, RuntimeLocalService separately owns local asset and profile ordering, and ListConnectorModels orders model_id ascending.
-    condition: Whenever connector or connector-model records are listed.
-    failure: Reject unstable, local-connector-first, or undeclared ordering.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r041
-    kind: rule
-    title: Connector filters normalize exactly once
-    modality: must
-    statement: kind_filter and status_filter silently ignore UNSPECIFIED, provider_filter trims and ignores empty values after ConnectorService entry normalization, performs no second normalization, and no matches returns an empty list without error.
-    condition: Whenever Connector List filters are evaluated.
-    failure: Reject duplicate normalization or a no-match error.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r042
-    kind: rule
-    title: Generic pagination defaults are fixed
-    modality: must
-    statement: Unless explicitly overridden, every paginated List RPC defaults page_size to 50, caps and clamps at 200, treats page_size zero as default, treats absent or empty page_token as the first page, and returns next_page_token with empty string meaning no next page.
-    condition: Whenever an admitted List RPC paginates without a narrower rule.
-    failure: Reject a response missing next_page_token or a different default, cap, clamp, or first-page behavior.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r043
-    kind: rule
-    title: List RPC pagination matrix is closed
-    modality: must
-    statement: "Pagination and ordering are: ListConnectors paginated by connector ordering and connector filters; ListConnectorModels paginated by model_id; ListLocalAssets and ListVerifiedAssets by kind then asset_id with their admitted local filters; ListLocalServices by service_id; ListNodeCatalog by node_type then node_id; ListLocalAudits by timestamp descending; ListLocalTransfers by created_at descending then install_session_id; ListAuditEvents by timestamp descending; ListDesktopAuditEvents by timestamp then audit_id descending under its bounded override; ListUsageStats by bucket_start descending; ListAIProviderHealth unpaginated by provider_name; ListModels paginated by model_id; ListKnowledgeBanks by scope then bank_id; ListPages and SearchHybrid and ListLinks and ListBacklinks and TraverseGraph by their required bank, page, query, link, and depth filters with declared updated_at, score, or depth ordering; ListBanks by scope then bank_id; ListAgents by created_at descending then agent_id; ListAgentConversationSummaries by updated_at descending then conversation_anchor_id; ListPendingHooks by scheduled_for then intent_id; SearchCatalogModels by verified descending then title, with only the filters admitted by the former matrix."
-    condition: Whenever Runtime defines or executes one of the listed List RPCs.
-    failure: Reject pagination on ListAIProviderHealth, missing required filters, or ordering and filters outside the closed matrix.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r044
-    kind: rule
-    title: Route description has one Runtime owner
-    modality: must
-    statement: runtime.route.describe produces app-facing typed metadata for one resolved canonical capability route, Runtime alone owns that metadata, and the result describes capability policy, input, reasoning, and workflow semantics without health success, fallback, or Desktop cache truth.
-    condition: Whenever a resolved route is described.
-    failure: Reject provider probing, consumer-generated metadata, health synthesis, or fallback decisions in describe.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r045
-    kind: rule
-    title: Route operations keep separate responsibilities
-    modality: must
-    statement: runtime.route.listOptions returns only selectable options, runtime.route.resolve returns only a resolved binding, runtime.route.checkHealth returns only binding health and capability-scoped readiness, and runtime.route.describe returns only typed route metadata; audio.synthesize and audio.transcribe health remain independently proven even on one speech engine, and plain-speech health never proves voice workflow readiness.
-    condition: Whenever route listing, resolution, health, or description runs.
-    failure: Fail closed when one operation fills another operation’s truth or independent capability proof is absent.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r046
-    kind: rule
-    title: Route description envelope and text metadata are typed
-    modality: must
-    statement: A Phase 1 describe result contains canonical capability, metadataVersion v1, Runtime-produced resolvedBindingRef, matching metadataKind, and matching typed metadata; text.generate requires supportsThinking, traceModeSupport exactly none, hide, or separate, supportsImageInput, supportsAudioInput, supportsVideoInput, and supportsArtifactRefInput.
-    condition: Whenever describe returns text.generate or its common envelope.
-    failure: Reject a noncanonical capability, heuristic binding, mismatched discriminator, missing field, or invalid type.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r047
-    kind: rule
-    title: Image route metadata is closed
-    modality: must
-    statement: image.generate metadata requires supportedResponseFormats, maxImagesPerRequest, supportsNegativePrompt, supportsReferenceImages, supportsMask, supportsSeed, supportsSize, supportsAspectRatio, supportsQuality, and supportsStyle, may include defaultResponseFormat, providerExtensionNamespace, and providerExtensionSchemaVersion, describes only canonical ImageGenerateScenarioSpec request capability, exposes no raw provider allowlist or transport override, and creates no second image execution plane outside SubmitScenarioJob and artifact output.
-    condition: Whenever describe returns image.generate metadata.
-    failure: Reject missing typed fields, raw adapter schema, transport override, or alternate image execution control.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r048
-    kind: rule
-    title: Voice workflow route metadata is closed
-    modality: must
-    statement: voice_workflow.voice_clone requires workflowType voice_clone, requiresTargetSynthesisBinding, textPromptMode exactly unsupported, optional, or required, supportsLanguageHints, supportsPreferredName, referenceAudioUriInput, referenceAudioBytesInput, and allowedReferenceAudioMimeTypes; voice_workflow.voice_design requires workflowType voice_design, requiresTargetSynthesisBinding, instructionTextMode and previewTextMode from the same closed modes, supportsLanguage, and supportsPreferredName; both may expose only providerExtensionNamespace and providerExtensionSchemaVersion as optional extension identity.
-    condition: Whenever describe returns voice workflow metadata.
-    failure: Reject missing workflow fields, a wrong discriminator, concrete extension keys, transport overrides, or runtime-private schema.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r049
-    kind: rule
-    title: Plain audio route metadata is closed
-    modality: must
-    statement: audio.synthesize requires supportedAudioFormats, supportedTimingModes drawn from none, word, and char, supportsLanguage, and supportsEmotion, and may include defaultAudioFormat, voiceRenderHints, providerExtensionNamespace, and providerExtensionSchemaVersion; audio.transcribe requires tiers, supportedResponseFormats, supportsLanguage, supportsPrompt, supportsTimestamps, and supportsDiarization, and may include maxSpeakerCount and extension namespace and version.
-    condition: Whenever describe returns audio synthesis or transcription metadata.
-    failure: Reject missing fields, undeclared timing modes, or free-form provider payload.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r050
-    kind: rule
-    title: Route metadata derives one way from Runtime truth
-    modality: must
-    statement: Text multimodal and artifact support derives from Runtime preflight and artifact modality truth, reasoning derives from typed reasoning capability truth, image derives from source-authored image_request_options and resolved image catalog truth plus verified private local support class, voice workflows derive from source-authored workflow request_options, workflow binding and local speech truth, synthesis derives from source-authored voice.request_options and resolved synthesis catalog truth, and transcription derives from source-authored transcription and resolved transcription catalog truth.
-    condition: Whenever Runtime produces route metadata.
-    failure: Fail closed rather than infer metadata from provider name, input_contract_ref naming, consumer cache, adapter heuristic, or local versus cloud assumptions.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r051
-    kind: rule
-    title: Route description fails closed on incomplete truth
-    modality: must
-    statement: Describe rejects noncanonical capability, absent or non-Runtime resolvedBindingRef, metadataKind mismatch, missing or invalid typed fields, inability to derive the minimum metadata set, unresolved workflow compatibility, and metadata available only through naming or hardcoded allowlists.
-    condition: Whenever describe input or derivation is incomplete or inconsistent.
-    failure: Return a typed failure without fabricated false defaults or substitution of audio.synthesize metadata for voice workflow metadata.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r052
-    kind: rule
-    title: Route description cannot add a daemon RPC
-    modality: must_not
-    statement: Phase 1 adds DescribeRoute, GetRouteMetadata, or an equivalent top-level daemon RPC, or interprets host, SDK, or private adapter projection asymmetry as a second metadata authority.
-    condition: Whenever route description transport is exposed.
-    failure: Keep describe a logical operation and one-way typed projection over Runtime truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r053
-    kind: rule
-    title: Voice workflow capabilities stay independent
-    modality: must
-    statement: voice_workflow.voice_clone and voice_workflow.voice_design each retain independent selection, workflow-model resolution, target-synthesis compatibility when required, workflow health, and workflow metadata; no plain audio or shared speech-host success substitutes, and local workflow success is family-scoped to the currently admitted qwen3_tts baseline while voxcpm, omnivoice, and every unadmitted family fail closed.
-    condition: Whenever a voice workflow is selected, resolved, health-checked, or described.
-    failure: Reject inherited audio.synthesize bindings, metadata, or generic local workflow success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r054
-    kind: rule
-    title: Voice assets own the public lifecycle
-    modality: must
-    statement: GetVoiceAsset, ListVoiceAssets, and DeleteVoiceAsset operate Runtime-managed VoiceAsset truth; provider_voice_ref remains internal, privileged, or debug only, ordinary profile and SDK binding accepts only preset_voice_id or voice_asset_id, runtime_authoritative_delete succeeds on Runtime deletion, best_effort_provider_delete may clean provider state after local deletion, and stronger unadmitted deletion semantics fail closed.
-    condition: Whenever a public voice asset is read, listed, bound, or deleted.
-    failure: Reject a naked provider handle as public identity or an ambiguous acknowledgement as stronger deletion success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r055
-    kind: rule
-    title: Workflow family validation cannot imply transcription
-    modality: must
-    statement: A workflow-capable speech family’s plain TTS or workflow success never proves audio.transcribe; STT requires its own family binding, health, execution truth, and acceptance sentinel before a complete tts, stt, voice_design, and voice_clone chain is admitted.
-    condition: Whenever app-facing workflow or speech acceptance is evaluated.
-    failure: Reject whole-chain success when independent STT evidence is absent.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r056
-    kind: rule
-    title: Every server stream has one close mode
-    modality: must
-    statement: Mode A uses done=true for StreamScenario text and speech, mode B emits a terminal event then gRPC OK for SubscribeScenarioJobEvents, SubscribeWorkflowEvents, and SubscribeAgentVoiceStream, mode C emits eof=true then gRPC OK for ExportAuditEvents, and mode D has no terminal frame for SubscribeRuntimeHealthEvents, SubscribeAIProviderHealthEvents, SubscribeAccountSessionEvents, SubscribeMemoryEvents, SubscribeAgentEvents, SubscribeRuntimeAgentAIConfigReadiness, SubscribeAppMessages, WatchAppInstallJobEvents, ReadRealtimeEvents, WatchLocalTransfers, and grpc.health.v1.Health/Watch.
-    condition: Whenever Runtime registers or consumes a server-streaming RPC.
-    failure: Reject an unclassified stream or a close signal from another mode.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r057
-    kind: rule
-    title: Generation stream establishment follows validation
-    modality: must
-    statement: For text and speech StreamScenario, key-source evaluation steps one through nine complete before establishment, step ten begins routed inference, pre-establishment failures use gRPC error, and post-establishment business or upstream failures prefer a done=true terminal event with reason_code.
-    condition: Whenever StreamScenario validates and establishes a generation stream.
-    failure: Reject early establishment or a failure carrier from the wrong phase.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r058
-    kind: rule
-    title: Text stream frames are constrained
-    modality: must
-    statement: A nonterminal text event has nonempty text_delta, a done=true terminal frame carries usage with minus one token values when upstream usage is absent, and the terminal frame may include a final text_delta.
-    condition: Whenever text StreamScenario emits an event.
-    failure: Reject an empty nonterminal delta or terminal frame without usage.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r059
-    kind: rule
-    title: Speech stream output truth is explicit
-    modality: must
-    statement: Speech StreamScenario uses ScenarioStreamDelta.artifact with nonempty audio MIME chunks rather than realtime audio_chunk, completion carries finish_reason without artifact delta, failure carries reason_code, ScenarioStreamStarted declares voice_output_mode native_stream or simulated_stream from the closed voice output modes, native_stream delivers playable delta before full synthesis completion, completion-time slicing is simulated_stream, and stream_simulated remains compatibility metadata rather than primary proof.
-    condition: Whenever speech StreamScenario emits started, delta, completed, or failed events.
-    failure: Reject an undeclared output mode, empty or non-audio delta, missing failure reason, realtime-field substitution, or simulated output represented as native.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r060
-    kind: rule
-    title: State streams close after terminal snapshots
-    modality: must
-    statement: SubscribeScenarioJobEvents and SubscribeWorkflowEvents use no done flag, close gRPC OK after steady-state terminal events, may repeat nonterminal event_type with newest snapshots replacing older snapshots, and may be preempted with CANCELLED during daemon STOPPING without guaranteed terminal delivery.
-    condition: Whenever a state-event stream emits or closes.
-    failure: Reject assumptions of strictly monotonic event types or fabricated terminal state during shutdown.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r061
-    kind: rule
-    title: AI chunks use a minimum framing unit
-    modality: must
-    statement: Streaming AI output buffers until at least 32 bytes are available and flushes every remaining byte at the terminal boundary.
-    condition: Whenever Runtime frames AI output chunks.
-    failure: Reject subminimum nonterminal framing or loss of terminal remainder.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r062
-    kind: rule
-    title: First-byte and total timeouts are independent
-    modality: must
-    statement: Streaming RPCs default first nonempty chunk timeout to 60 seconds and total close timeout to 120 seconds, do not reset total timeout after first byte, and first-byte timeout returns DEADLINE_EXCEEDED with AI_PROVIDER_TIMEOUT.
-    condition: Whenever a streaming RPC waits for first output or completion.
-    failure: Terminate with the typed timeout rather than reset, merge, or silently extend either budget.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r063
-    kind: rule
-    title: Close mode classification is normative
-    modality: must
-    statement: Modes A, B, C, and D retain their exact signal and RPC membership, every new server stream declares one mode, and SDK consumers implement the close semantics of that mode.
-    condition: Whenever a stream surface or SDK consumer is added or changed.
-    failure: Fail admission for missing, conflicting, or consumer-ignored close classification.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r064
-    kind: rule
-    title: Audit export stops at eof
-    modality: must
-    statement: ExportAuditEvents marks the last block eof=true, closes gRPC OK immediately afterward, and clients stop reading after eof.
-    condition: Whenever an audit export reaches its last block.
-    failure: Reject data after eof or normal close without eof.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r065
-    kind: rule
-    title: Long subscriptions close only by cancellation conditions
-    modality: must
-    statement: Mode D has no business terminal signal, closes with CANCELLED when daemon STOPPING or the observed resource becomes unavailable, and leaves client reconstruction policy to SDK or Desktop; daemon STOPPING may also preempt modes A, B, and C with CANCELLED and then emits no fabricated terminal, failure, or eof frame.
-    condition: Whenever Runtime closes a long subscription or preempts an active stream during shutdown.
-    failure: Reject a success-like terminal frame that masks cancellation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r066
-    kind: rule
-    title: Streaming layers share explicit backpressure budgets
-    modality: must
-    statement: Runtime declares per-stream server queue depth and flush granularity, SDK converts slow consumers to deterministic cancel, pause, or failure instead of unbounded memory, and Desktop drops reconstructable intermediates before terminal, error, or audit events.
-    condition: Whenever Runtime, SDK, or Desktop buffers stream events.
-    failure: End or shed work within budget rather than grow an unbounded queue or block nonreconstructable events.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r067
-    kind: rule
-    title: Slow consumers receive deterministic failure
-    modality: must
-    statement: Queue overflow ends the stream with RESOURCE_EXHAUSTED or CANCELLED, prioritizes terminal or failure states over reconstructable deltas, SDK projects a stable close error, and Desktop never reports model completion.
-    condition: Whenever a consumer exceeds the stream backpressure budget.
-    failure: Reject silent hanging, loss of terminal priority, or false completion.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r068
-    kind: rule
-    title: Retry follows stream replay safety
-    modality: must
-    statement: Subscription and safely replayable read streams may reconstruct after backpressure, non-idempotent execution streams never auto-replay, execution retry requires caller decision, and Desktop displays interruption with trace_id.
-    condition: Whenever a stream closes from backpressure or transport interruption.
-    failure: Reject automatic non-idempotent replay or a UI state that hides interruption.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r069
-    kind: rule
-    title: Runtime target identity is the durable execution layer
-    modality: must
-    statement: AIConfig, AIProfile execution, workflow AI nodes, memory embedding, route APIs, and AI execution use Runtime Target v2 instead of raw model_id, target_model_id, localModelId, goRuntimeLocalModelId, targetId or profileId, or connector_id plus model_id; connector identity is credential custody and local identity belongs to asset and profile readiness.
-    condition: Whenever durable Runtime execution intent is stored or resolved.
-    failure: Reject every retired durable identity shape.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r070
-    kind: rule
-    title: Durable target grammars are discriminated and proof free
-    modality: must
-    statement: A local durable ref is kind local-runtime, version v2, and exactly one nonempty profile_binding_id or readiness_ref, forbidding targetId, profileId, localAssetId, assetId, filename, path, digest, localModelId, goRuntimeLocalModelId, and model_id; a cloud durable ref is kind cloud, version v2, connector_id, remote_model_catalog_id, provider_model_id, and provider, with connector custody and provider model facts insufficient alone.
-    condition: Whenever a durable local or cloud target ref is created or parsed.
-    failure: Reject empty, ambiguous, proof-bearing, display-bearing, path-bearing, or retired refs.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r071
-    kind: rule
-    title: Remote model catalog identity binds a snapshot
-    modality: must
-    statement: ConnectorService mints remote_model_catalog_id from connector id, connector snapshot id, endpoint profile id, inventory snapshot id, provider, provider model id, and capability; provider, endpoint, auth kind, provider auth profile, credential revision, provider catalog version, and model, capability, or availability changes invalidate ids, display-only changes do not, stale ids return AI_REMOTE_MODEL_CATALOG_STALE, and missing ids return AI_REMOTE_MODEL_CATALOG_ID_REQUIRED.
-    condition: Whenever Runtime mints or validates a remote model catalog target.
-    failure: Reject stale or missing identity without inference or reminting from provider facts.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r072
-    kind: rule
-    title: Durable intent inventory and resolution are distinct
-    modality: must
-    statement: Durable refs contain persisted intent, RuntimeTargetInventoryProjection contains capability and target items with target_ref, display, readiness, and compatibility, and resolved execution binding is typed, carries route_metadata_ref, and appears on execute, stream, and describe surfaces; inventory is never persisted as execution truth.
-    condition: Whenever Runtime projects or resolves target information.
-    failure: Reject shape conflation or persistence of inventory and runtime proof as durable intent.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r073
-    kind: rule
-    title: Every local file import mints a new asset
-    modality: must
-    statement: Each user file import creates a new installed local_asset_id even when filename, bytes, digest, or asset_id, engine, and kind match; asset_id remains verified catalog or template metadata and display name remains editable nonidentity.
-    condition: Whenever Runtime imports a user local asset.
-    failure: Reject deduplication that reuses an installed identity.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r074
-    kind: rule
-    title: Local connector identity cannot return
-    modality: must_not
-    statement: LOCAL_MODEL, CONNECTOR_KIND_LOCAL_MODEL, LocalConnectorCategory, Connector.local_category, or retired numeric local connector records project as active connector vocabulary or durable target refs.
-    condition: Whenever connector records or vocabulary are read, migrated, or exposed.
-    failure: Quarantine retired records and route local identity through Runtime local assets and profiles.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r075
-    kind: rule
-    title: Memory embedding uses Target v2
-    modality: must
-    statement: Cloud memory embedding persists connector_id, remote_model_catalog_id, provider_model_id, and provider, local memory embedding persists the local discriminant, and provider, model, and profile facts appear only after resolution rather than as durable identity.
-    condition: Whenever a memory embedding target is persisted or resolved.
-    failure: Return AI_MEMORY_EMBEDDING_TARGET_REF_INVALID for a malformed or retired durable binding.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r076
-    kind: rule
-    title: Workflow voice and RPC execution use Target v2
-    modality: must
-    statement: AI workflow nodes, voice workflow nodes, and admitted AI RPC requests consume v2 durable refs or resolved binding inputs, while residual model_id or target_model_id is allowed only for audit, provider execution, catalog, model service, or voice asset compatibility under a guard that prevents durable minting.
-    condition: Whenever workflow, voice, or RPC execution handles a target field.
-    failure: Reject raw fields used to create or persist durable identity.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r077
-    kind: rule
-    title: Component compatibility precedes local execution
-    modality: must
-    statement: Compatibility is validated before warm, health, generate, StartLocalAsset, lease or acquire, and resident load; unknown compatibility returns AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN and known incompatibility returns AI_LOCAL_COMPONENT_INCOMPATIBLE without collapsing to slot-missing or generic local-model-unavailable.
-    condition: Whenever Runtime prepares a local component operation.
-    failure: Return the exact compatibility reason before execution.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r078
-    kind: rule
-    title: Target identity reason codes are atomically registered
-    modality: must
-    statement: AI_LOCAL_CONNECTOR_RETIRED is 317, AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN is 378, AI_LOCAL_COMPONENT_INCOMPATIBLE is 379, AI_REMOTE_MODEL_CATALOG_ID_REQUIRED is 381, AI_REMOTE_MODEL_CATALOG_STALE is 382, and AI_MEMORY_EMBEDDING_TARGET_REF_INVALID is 444 across canonical authority, machine registry, proto, generated clients, SDK constants, and error mappings before use.
-    condition: Whenever any Runtime Target v2 reason is admitted or emitted.
-    failure: Fail admission or execution when any required registry or generated surface is missing or disagrees.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r079
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/avatar/kernel/agent-script-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r080
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/avatar/kernel/app-shell-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r081
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/avatar/kernel/avatar-event-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r082
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r083
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r084
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/avatar/kernel/live2d-render-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r085
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r086
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r087
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/desktop/ai-consumption.authority.yaml
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r088
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/desktop/shell-runtime.authority.yaml
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r089
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/rpc-foundations.authority.yaml
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r090
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/security-core.authority.yaml
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r091
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r092
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/platform/kernel/nimi-app-admission-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r093
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/platform/kernel/nimi-first-party-integration-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r094
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/platform/kernel/nimi-home-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r095
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/ai-profile-execution-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r096
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/connector-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r097
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r098
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/local-category-capability.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r099
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r100
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/local-profile-application-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r101
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/model-catalog-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r102
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/model-catalog-local-resolver-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r103
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/model-service-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r104
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/nimillm-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r105
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/rpc-surface.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r106
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/runtime-memory-service-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r107
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r108
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/tables/runtime-agent-ai-config.yaml
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r109
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/voice-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r110
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/runtime/kernel/workflow-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r111
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/sdks/kernel/ai-config-surface-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r112
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/sdks/kernel/connector-auth-acquisition-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r113
-    kind: rule
-    lifecycle: removed
-    title: Target classification for .nimi/spec/sdks/kernel/runtime-route-contract.md
-    reason: Removed because this per-file target inventory registry is admission class 7 and its checker consumer was retired.
-  - id: rule.nimi.runtime.rpc-foundations.r114
-    kind: rule
-    title: GENERAL reason-code assignments are closed
-    modality: must
-    statement: The GENERAL Runtime reason-code family is exactly REASON_CODE_UNSPECIFIED=0, ACTION_EXECUTED=1, PROTOCOL_ENVELOPE_INVALID=2, PROTOCOL_DOMAIN_FIELD_CONFLICT=3, CAPABILITY_CATALOG_MISMATCH=4, APP_NOT_REGISTERED=5, EXTERNAL_PRINCIPAL_NOT_REGISTERED=6, PRINCIPAL_UNAUTHORIZED=8.
-    condition: Whenever Runtime emits, persists, generates, or compares a GENERAL reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r115
-    kind: rule
-    title: AUTH reason-code assignments are closed
-    modality: must
-    statement: The AUTH Runtime reason-code family is exactly SESSION_EXPIRED=7, AUTH_TOKEN_INVALID=300, AUTH_TOKEN_EXPIRED=301, AUTH_UNSUPPORTED_PROOF_TYPE=302, AUTH_REVOCATION_UNAVAILABLE=303.
-    condition: Whenever Runtime emits, persists, generates, or compares a AUTH reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r116
-    kind: rule
-    title: REALM reason-code assignments are closed
-    modality: must
-    statement: The REALM Runtime reason-code family is exactly REALM_UNAVAILABLE=661, REALM_NOT_FOUND=662, REALM_CONFLICT=663, REALM_RATE_LIMITED=664, REALM_REQUEST_REJECTED=665, REALM_CONTRACT_INVALID=666, REALM_OPERATION_FAILED=667.
-    condition: Whenever Runtime emits, persists, generates, or compares a REALM reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r117
-    kind: rule
-    title: PROTECTED_LOCAL reason-code assignments are closed
-    modality: must
-    statement: The PROTECTED_LOCAL Runtime reason-code family is exactly PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED=620, PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED=621, PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED=622, DESKTOP_CONTROL_TRANSPORT_REQUIRED=623, DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE=624, DESKTOP_EXECUTABLE_TRUST_FAILED=625, DESKTOP_TEST_TRUST_FORBIDDEN=626, PROTECTED_ORIGIN_ROLE_MISMATCH=627, LIFECYCLE_CHALLENGE_REQUIRED=628, LIFECYCLE_CHALLENGE_MISMATCH=629, LIFECYCLE_CHALLENGE_REPLAY=630, PROTECTED_LOCAL_LEDGER_UNAVAILABLE=631, PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED=632, PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH=633, PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED=634, PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE=635, PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN=636, RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID=637, LIFECYCLE_INTENT_REQUIRED=638, LIFECYCLE_INTENT_MISMATCH=639, LIFECYCLE_INTENT_REPLAY=640, LIFECYCLE_INTENT_EXPIRED=641.
-    condition: Whenever Runtime emits, persists, generates, or compares a PROTECTED_LOCAL reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r118
-    kind: rule
-    title: LOCAL_APP reason-code assignments are closed
-    modality: must
-    statement: The LOCAL_APP Runtime reason-code family is exactly LOCAL_APP_PRINCIPAL_REQUIRED=642, LOCAL_APP_RECORD_NOT_FOUND=643, LOCAL_APP_RECORD_TOMBSTONED=644, LOCAL_APP_PROVENANCE_UNAVAILABLE=645, LOCAL_APP_LAUNCH_LEASE_REQUIRED=646, LOCAL_APP_LAUNCH_LEASE_MISMATCH=647, LOCAL_APP_LAUNCH_LEASE_REPLAY=648, LOCAL_APP_PROCESS_MISMATCH=649, LOCAL_APP_SESSION_REVOKED=650, LOCAL_APP_PERMISSION_REQUIRED=651, LOCAL_APP_PERMISSION_DENIED=652, LOCAL_APP_PERMISSION_REVOKED=653, LOCAL_APP_ACCOUNT_CHANGED=654, LOCAL_APP_OPERATION_UNAVAILABLE=655, LOCAL_APP_PRESENCE_REQUIRED=656, LOCAL_APP_PRESENCE_EXPIRED=657, LOCAL_APP_DEVELOPER_MODE_DISABLED=658, LOCAL_APP_RISK_DISCLOSURE_REQUIRED=660.
-    condition: Whenever Runtime emits, persists, generates, or compares a LOCAL_APP reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r119
-    kind: rule
-    title: CONNECTOR reason-code assignments are closed
-    modality: must
-    statement: The CONNECTOR Runtime reason-code family is exactly AI_CONNECTOR_NOT_FOUND=310, AI_CONNECTOR_DISABLED=311, AI_CONNECTOR_CREDENTIAL_MISSING=312, AI_CONNECTOR_INVALID=313, AI_CONNECTOR_IMMUTABLE=314, AI_CONNECTOR_LIMIT_EXCEEDED=315, AI_CONNECTOR_ID_REQUIRED=316, AI_LOCAL_CONNECTOR_RETIRED=317.
-    condition: Whenever Runtime emits, persists, generates, or compares a CONNECTOR reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r120
-    kind: rule
-    title: REQUEST_CREDENTIAL reason-code assignments are closed
-    modality: must
-    statement: The REQUEST_CREDENTIAL Runtime reason-code family is exactly AI_REQUEST_CREDENTIAL_CONFLICT=330, AI_REQUEST_CREDENTIAL_MISSING=211, AI_REQUEST_CREDENTIAL_INVALID=212, AI_REQUEST_CREDENTIAL_REQUIRED=210, AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN=213.
-    condition: Whenever Runtime emits, persists, generates, or compares a REQUEST_CREDENTIAL reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r121
-    kind: rule
-    title: APP reason-code assignments are closed
-    modality: must
-    statement: The APP Runtime reason-code family is exactly AI_APP_ID_REQUIRED=340, AI_APP_ID_CONFLICT=341.
-    condition: Whenever Runtime emits, persists, generates, or compares a APP reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r122
-    kind: rule
-    title: MODEL reason-code assignments are closed
-    modality: must
-    statement: The MODEL Runtime reason-code family is exactly AI_MODEL_ID_REQUIRED=350, AI_MODEL_NOT_FOUND=200, AI_MODALITY_NOT_SUPPORTED=351, AI_LOCAL_MODEL_UNAVAILABLE=352, AI_LOCAL_MODEL_PROFILE_MISSING=353, AI_LOCAL_MODEL_ALREADY_INSTALLED=354, AI_LOCAL_ENDPOINT_REQUIRED=355, AI_LOCAL_TEMPLATE_NOT_FOUND=356, AI_LOCAL_MANIFEST_INVALID=357, AI_LOCAL_MODEL_INVALID_TRANSITION=358, AI_LOCAL_DOWNLOAD_FAILED=359, AI_LOCAL_DOWNLOAD_HASH_MISMATCH=360, AI_LOCAL_HF_REPO_INVALID=361, AI_LOCAL_HF_SEARCH_FAILED=362, AI_LOCAL_MANIFEST_SCHEMA_INVALID=363, AI_LOCAL_SERVICE_UNAVAILABLE=364, AI_LOCAL_SERVICE_ALREADY_INSTALLED=365, AI_LOCAL_SERVICE_INVALID_TRANSITION=366, AI_LOCAL_ASSET_ALREADY_INSTALLED=367, AI_LOCAL_ASSET_SLOT_MISSING=368, AI_LOCAL_ASSET_SLOT_FORBIDDEN=369, AI_LOCAL_PROFILE_SLOT_CONFLICT=376, AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN=377, AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN=378, AI_LOCAL_COMPONENT_INCOMPATIBLE=379.
-    condition: Whenever Runtime emits, persists, generates, or compares a MODEL reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r123
-    kind: rule
-    title: PROVIDER reason-code assignments are closed
-    modality: must
-    statement: The PROVIDER Runtime reason-code family is exactly AI_MODEL_NOT_READY=201, AI_CONTENT_FILTER_BLOCKED=209, AI_PROVIDER_ENDPOINT_FORBIDDEN=390, AI_PROVIDER_AUTH_FAILED=391, AI_PROVIDER_UNAVAILABLE=202, AI_PROVIDER_INTERNAL=392, AI_PROVIDER_RATE_LIMITED=393, AI_PROVIDER_TIMEOUT=394, AI_INPUT_INVALID=206, AI_OUTPUT_INVALID=207, AI_STREAM_BROKEN=208.
-    condition: Whenever Runtime emits, persists, generates, or compares a PROVIDER reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r124
-    kind: rule
-    title: MODEL_ROUTE reason-code assignments are closed
-    modality: must
-    statement: The MODEL_ROUTE Runtime reason-code family is exactly AI_ROUTE_UNSUPPORTED=204, AI_ROUTE_FALLBACK_DENIED=205, AI_MODEL_PROVIDER_MISMATCH=380, AI_REMOTE_MODEL_CATALOG_ID_REQUIRED=381, AI_REMOTE_MODEL_CATALOG_STALE=382.
-    condition: Whenever Runtime emits, persists, generates, or compares a MODEL_ROUTE reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r125
-    kind: rule
-    title: FINISH reason-code assignments are closed
-    modality: must
-    statement: The FINISH Runtime reason-code family is exactly AI_FINISH_LENGTH=370, AI_FINISH_CONTENT_FILTER=371.
-    condition: Whenever Runtime emits, persists, generates, or compares a FINISH reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r126
-    kind: rule
-    title: MEDIA reason-code assignments are closed
-    modality: must
-    statement: The MEDIA Runtime reason-code family is exactly AI_MEDIA_SPEC_INVALID=410, AI_MEDIA_OPTION_UNSUPPORTED=411, AI_MEDIA_JOB_NOT_FOUND=412, AI_MEDIA_JOB_NOT_CANCELLABLE=413, AI_MEDIA_IDEMPOTENCY_CONFLICT=414, AI_ARTIFACT_UPLOAD_INVALID=415, AI_ARTIFACT_UPLOAD_TOO_LARGE=416, AI_REALTIME_SESSION_NOT_FOUND=417, AI_REALTIME_SESSION_CLOSED=418.
-    condition: Whenever Runtime emits, persists, generates, or compares a MEDIA reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r127
-    kind: rule
-    title: VOICE reason-code assignments are closed
-    modality: must
-    statement: The VOICE Runtime reason-code family is exactly AI_VOICE_INPUT_INVALID=420, AI_VOICE_WORKFLOW_UNSUPPORTED=421, AI_VOICE_ASSET_NOT_FOUND=422, AI_VOICE_ASSET_EXPIRED=423, AI_VOICE_ASSET_SCOPE_FORBIDDEN=424, AI_VOICE_TARGET_MODEL_MISMATCH=425, AI_VOICE_JOB_NOT_FOUND=426, AI_VOICE_JOB_NOT_CANCELLABLE=427.
-    condition: Whenever Runtime emits, persists, generates, or compares a VOICE reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r128
-    kind: rule
-    title: MODULE reason-code assignments are closed
-    modality: must
-    statement: The MODULE Runtime reason-code family is exactly AI_MODULE_CONFIG_INVALID=430.
-    condition: Whenever Runtime emits, persists, generates, or compares a MODULE reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r129
-    kind: rule
-    title: WORKFLOW reason-code assignments are closed
-    modality: must
-    statement: The WORKFLOW Runtime reason-code family is exactly WF_DAG_INVALID=440, WF_NODE_CONFIG_MISMATCH=441, WF_TIMEOUT=442, WF_TASK_NOT_FOUND=443.
-    condition: Whenever Runtime emits, persists, generates, or compares a WORKFLOW reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r130
-    kind: rule
-    title: MEMORY_EMBEDDING reason-code assignments are closed
-    modality: must
-    statement: The MEMORY_EMBEDDING Runtime reason-code family is exactly AI_MEMORY_EMBEDDING_TARGET_REF_INVALID=444.
-    condition: Whenever Runtime emits, persists, generates, or compares a MEMORY_EMBEDDING reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r131
-    kind: rule
-    title: APP_AUTH reason-code assignments are closed
-    modality: must
-    statement: The APP_AUTH Runtime reason-code family is exactly APP_TOKEN_EXPIRED=102, APP_TOKEN_REVOKED=103, EXTERNAL_PRINCIPAL_PROOF_MISSING=113, EXTERNAL_PRINCIPAL_PROOF_INVALID=114, APP_MODE_WORLD_RELATION_FORBIDDEN=117, APP_MODE_DOMAIN_FORBIDDEN=500, APP_MODE_SCOPE_FORBIDDEN=501, APP_MODE_MANIFEST_INVALID=502.
-    condition: Whenever Runtime emits, persists, generates, or compares a APP_AUTH reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r132
-    kind: rule
-    title: PAGE reason-code assignments are closed
-    modality: must
-    statement: The PAGE Runtime reason-code family is exactly PAGE_TOKEN_INVALID=520.
-    condition: Whenever Runtime emits, persists, generates, or compares a PAGE reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r133
-    kind: rule
-    title: KNOWLEDGE reason-code assignments are closed
-    modality: must
-    statement: The KNOWLEDGE Runtime reason-code family is exactly KNOWLEDGE_BANK_ALREADY_EXISTS=530, KNOWLEDGE_BANK_NOT_FOUND=531, KNOWLEDGE_BANK_SCOPE_INVALID=532, KNOWLEDGE_BANK_ACCESS_DENIED=533, KNOWLEDGE_PAGE_NOT_FOUND=534, KNOWLEDGE_PAGE_SLUG_CONFLICT=535, KNOWLEDGE_PAGE_ACCESS_DENIED=536, KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE=537, KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE=538, KNOWLEDGE_VECTOR_INDEX_NOT_READY=539, KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS=540, KNOWLEDGE_LINK_NOT_FOUND=541, KNOWLEDGE_LINK_ALREADY_EXISTS=542, KNOWLEDGE_LINK_INVALID=543, KNOWLEDGE_GRAPH_DEPTH_INVALID=544, KNOWLEDGE_INGEST_TASK_NOT_FOUND=545.
-    condition: Whenever Runtime emits, persists, generates, or compares a KNOWLEDGE reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r134
-    kind: rule
-    title: APP_MESSAGE reason-code assignments are closed
-    modality: must
-    statement: The APP_MESSAGE Runtime reason-code family is exactly APP_MESSAGE_PAYLOAD_TOO_LARGE=550, APP_MESSAGE_RATE_LIMITED=551, APP_MESSAGE_LOOP_DETECTED=552.
-    condition: Whenever Runtime emits, persists, generates, or compares a APP_MESSAGE reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r135
-    kind: rule
-    title: AGENT_PRESENTATION reason-code assignments are closed
-    modality: must
-    statement: The AGENT_PRESENTATION Runtime reason-code family is exactly AGENT_PRESENTATION_REVISION_CONFLICT=614.
-    condition: Whenever Runtime emits, persists, generates, or compares a AGENT_PRESENTATION reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r136
-    kind: rule
-    title: LOCAL_SPEECH reason-code assignments are closed
-    modality: must
-    statement: The LOCAL_SPEECH Runtime reason-code family is exactly AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED=560, AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED=561, AI_LOCAL_SPEECH_ENV_INIT_FAILED=562, AI_LOCAL_SPEECH_HOST_INIT_FAILED=563, AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED=564, AI_LOCAL_SPEECH_BUNDLE_DEGRADED=565.
-    condition: Whenever Runtime emits, persists, generates, or compares a LOCAL_SPEECH reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r137
-    kind: rule
-    title: APP_STORAGE reason-code assignments are closed
-    modality: must
-    statement: The APP_STORAGE Runtime reason-code family is exactly APP_STORAGE_PATH_INVALID=566, APP_STORAGE_ENTRY_NOT_FOUND=567, APP_STORAGE_QUOTA_EXCEEDED=568, APP_STORAGE_UNAVAILABLE=569.
-    condition: Whenever Runtime emits, persists, generates, or compares a APP_STORAGE reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r138
-    kind: rule
-    title: WORKSPACE_BINDING reason-code assignments are closed
-    modality: must
-    statement: The WORKSPACE_BINDING Runtime reason-code family is exactly WORKSPACE_BINDING_MISSING=570, WORKSPACE_BINDING_MALFORMED=571, WORKSPACE_BINDING_NOT_FOUND=572, WORKSPACE_BINDING_REVOKED=573, WORKSPACE_BINDING_EXPIRED=574, WORKSPACE_BINDING_REPLAY=575, WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE=576, WORKSPACE_BINDING_CALLER_MISMATCH=577, WORKSPACE_BINDING_WORKSPACE_MISMATCH=578, WORKSPACE_BINDING_ENV_DEVICE_MISMATCH=579, WORKSPACE_BINDING_SCOPE_MISSING=580.
-    condition: Whenever Runtime emits, persists, generates, or compares a WORKSPACE_BINDING reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r139
-    kind: rule
-    title: ARTIFACT reason-code assignments are closed
-    modality: must
-    statement: The ARTIFACT Runtime reason-code family is exactly ARTIFACT_INVALID_INPUT=600, ARTIFACT_NOT_FOUND=601, ARTIFACT_TOO_LARGE=602, ARTIFACT_FORBIDDEN=603, ARTIFACT_MIME_MISMATCH=604.
-    condition: Whenever Runtime emits, persists, generates, or compares a ARTIFACT reason code.
-    failure: Reject every unlisted name, changed numeric value, duplicate assignment, or cross-family reassignment.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r140
-    kind: rule
-    title: Reason-code numbering and matching are stable
-    modality: must
-    statement: Legacy values 7 and 200 through 213 remain frozen, new values follow the admitted family ranges including 300 authentication, 310 connector, 330 request credential, 340 app, 350 model, 370 finish, 380 model route, 390 provider, 410 media, 420 voice, 430 module, 500 app auth, 520 page, 530 knowledge, 560 local speech, 566 app storage, and 614 agent presentation, no new 200 through 299 values are allocated, and consumers match names rather than numeric values.
-    condition: Whenever a reason code is added, generated, or matched.
-    failure: Reject number reuse, an out-of-policy new legacy-range value, or client behavior dependent on numeric comparison.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r141
-    kind: rule
-    title: Reason-code config is an exact machine projection
-    modality: must
-    statement: config/runtime-reason-codes.yaml and the shard files under the config/runtime-reason-codes/ directory contain exactly the canonical reason-code rows required by generators and deterministic checks, retain compatibility source_rule metadata only for traceability, and confer no independent authority.
-    condition: Whenever the reason-code machine registry is read or changed.
-    failure: Fail the projection gate on a missing, extra, duplicate, renumbered, refamilied, or semantically interpreted machine row.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r142
-    kind: rule
-    title: Activation-gate reason names are closed
-    modality: must
-    statement: Runtime activation-gate reasons are exactly engine_package_missing, model_asset_missing, companion_asset_missing, selected_source_record_missing, accelerator_runtime_missing, accelerator_runtime_unconfirmed, uv_missing, python_runtime_missing, python_venv_missing, python_package_set_missing, torch_wheel_missing, vulkan_runtime_unavailable, metal_runtime_unavailable, local_model_resolve_install_level_invalid, local_model_resolve_slot_omitted, local_model_resolve_host_unsupported, source_hf_auth_required, source_hf_gated_unaccepted, source_hf_access_denied, source_manual_association_required, expected_integrity_mismatch, profile_backend_mismatch, profile_model_family_mismatch, native_backend_package_model_family_unsupported, workflow_required_component_missing, workflow_backend_unsupported.
-    condition: Whenever Runtime projects activation readiness.
-    failure: Reject an unknown consumer-invented reason or a ready-like fallback.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-  - id: rule.nimi.runtime.rpc-foundations.r143
-    kind: rule
-    title: Activation-gate ownership rows 1 through 7 are exact
-    modality: must
-    statement: The activation-gate rows are exactly engine_package_missing=>dependency_family/native-engine-package.*/setup_required/dependency_blocking, model_asset_missing=>dependency_family/model.asset/setup_required/dependency_blocking, companion_asset_missing=>dependency_family/model.companion-asset/setup_required/dependency_blocking, selected_source_record_missing=>selected_source_record/any_required_dependency/setup_required/dependency_blocking, accelerator_runtime_missing=>dependency_family/accelerator.cuda.runtime/setup_required/dependency_blocking, accelerator_runtime_unconfirmed=>dependency_family/accelerator.cuda.runtime/setup_required/confirmation_blocking, uv_missing=>dependency_family/python.tool.uv/setup_required/dependency_blocking.
-    condition: Whenever Runtime maps an activation blocker to owner, state, and audit shape.
-    failure: Reject a missing row or any owner, reference, state, or audit-shape mismatch.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-  - id: rule.nimi.runtime.rpc-foundations.r144
-    kind: rule
-    title: Activation-gate ownership rows 8 through 14 are exact
-    modality: must
-    statement: The activation-gate rows are exactly python_runtime_missing=>dependency_family/python.runtime/setup_required/dependency_blocking, python_venv_missing=>dependency_family/python.venv/setup_required/dependency_blocking, python_package_set_missing=>dependency_family/python.package-set/setup_required/dependency_blocking, torch_wheel_missing=>dependency_family/python.torch-wheel/setup_required/dependency_blocking, vulkan_runtime_unavailable=>host_capability_projection/host_profile.vulkan/unsupported/host_capability_blocking, metal_runtime_unavailable=>host_capability_projection/host_profile.metal/unsupported/host_capability_blocking, local_model_resolve_install_level_invalid=>local_model_resolver/K-MCAT-034/unsupported/resolver_blocking.
-    condition: Whenever Runtime maps an activation blocker to owner, state, and audit shape.
-    failure: Reject a missing row or any owner, reference, state, or audit-shape mismatch.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-  - id: rule.nimi.runtime.rpc-foundations.r145
-    kind: rule
-    title: Activation-gate ownership rows 15 through 21 are exact
-    modality: must
-    statement: The activation-gate rows are exactly local_model_resolve_slot_omitted=>local_model_resolver/K-MCAT-036/unsupported/resolver_slot_note, local_model_resolve_host_unsupported=>local_model_resolver/K-MCAT-037/unsupported/resolver_blocking, source_hf_auth_required=>source_readiness/K-LOCAL-023/setup_required/source_access_blocking, source_hf_gated_unaccepted=>source_readiness/K-LOCAL-023/setup_required/source_access_blocking, source_hf_access_denied=>source_readiness/K-LOCAL-023/failed/source_access_blocking, source_manual_association_required=>source_readiness/K-LOCAL-023/setup_required/manual_association_blocking, expected_integrity_mismatch=>source_readiness/K-LOCAL-023/failed/source_integrity_blocking.
-    condition: Whenever Runtime maps an activation blocker to owner, state, and audit shape.
-    failure: Reject a missing row or any owner, reference, state, or audit-shape mismatch.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-  - id: rule.nimi.runtime.rpc-foundations.r146
-    kind: rule
-    title: Activation-gate ownership rows 22 through 26 are exact
-    modality: must
-    statement: The activation-gate rows are exactly profile_backend_mismatch=>profile_validation/K-AIEXEC-008/unsupported/descriptor_validation_blocking, profile_model_family_mismatch=>profile_validation/K-AIEXEC-008/unsupported/descriptor_validation_blocking, native_backend_package_model_family_unsupported=>dependency_family/native-engine-package.stablediffusion-ggml/setup_required/dependency_blocking, workflow_required_component_missing=>workflow_readiness/K-AIEXEC-010/setup_required/workflow_blocking, workflow_backend_unsupported=>workflow_readiness/K-AIEXEC-012/unsupported/workflow_blocking.
-    condition: Whenever Runtime maps an activation blocker to owner, state, and audit shape.
-    failure: Reject a missing row or any owner, reference, state, or audit-shape mismatch.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-  - id: rule.nimi.runtime.rpc-foundations.r147
-    kind: rule
-    title: Activation state priority is fixed
-    modality: must
-    statement: Activation state priority is exactly unsupported before repair_required before failed before cancelled before setup_in_progress before setup_required before ready.
-    condition: Whenever multiple activation states are aggregated.
-    failure: Reject a lower-priority or ready state that masks a higher-priority blocker.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-  - id: rule.nimi.runtime.rpc-foundations.r148
-    kind: rule
-    title: Activation projections remain owner-bound and fail closed
-    modality: must
-    statement: Activation reasons are Runtime-owned, dependency reasons carry dependency family, dependency id, environment key, selected source record id when present, dependency state, activation state, and bounded detail, host capability reasons create no dependency family or selected source, speech driver readiness uses python_package_set_missing, non-ready states never project any ready posture, and local resolver reasons remain deterministic catalog outcomes.
-    condition: Whenever activation-gate evidence is produced or consumed.
-    failure: Reject invented reasons, incomplete dependency evidence, synthesized source records, or any ready-like projection for a non-ready state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-  - id: rule.nimi.runtime.rpc-foundations.r149
-    kind: rule
-    title: Activation config is an exact machine projection
-    modality: must
-    statement: config/runtime-activation-gate-reason-codes.yaml contains exactly the canonical activation reason, owner, state-priority, and audit-shape rows required by deterministic consumers and confers no independent authority.
-    condition: Whenever the activation machine registry is read or changed.
-    failure: Fail the projection gate on a missing, extra, reordered-priority, or semantically widened machine row.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.activation-gate-registry
-  - id: rule.nimi.runtime.rpc-foundations.r150
-    kind: rule
-    title: Runtime metadata keys are closed
-    modality: must
-    statement: Runtime metadata keys are exactly x-nimi-key-source, x-nimi-protocol-version, x-nimi-participant-protocol-version, x-nimi-participant-id, x-nimi-domain, x-nimi-provider-type, x-nimi-provider-endpoint, x-nimi-provider-api-key, x-nimi-app-id, x-nimi-app-instance-id, x-nimi-client-id, x-nimi-idempotency-key, authorization, x-nimi-runtime-version, x-nimi-caller-kind, x-nimi-caller-id, x-nimi-surface-id, x-nimi-access-token-id, x-nimi-access-token-secret, x-nimi-session-id, x-nimi-session-token, x-nimi-trace-id.
-    condition: Whenever Runtime accepts or emits gRPC metadata.
-    failure: Reject every undeclared metadata key as an authority input.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
-  - id: rule.nimi.runtime.rpc-foundations.r151
-    kind: rule
-    title: Metadata requirements 1 through 6 are exact
-    modality: must
-    statement: Metadata requirements are exactly x-nimi-key-source=>allowed[inline,managed]/required[inline routing or explicit managed override (managed requires connector_id)]; x-nimi-protocol-version=>allowed[]/required[runtime entrypoint protocol context propagation]; x-nimi-participant-protocol-version=>allowed[]/required[runtime entrypoint participant protocol context propagation]; x-nimi-participant-id=>allowed[]/required[runtime entrypoint participant context propagation]; x-nimi-domain=>allowed[]/required[runtime entrypoint domain context propagation]; x-nimi-provider-type=>allowed[]/required[inline].
-    condition: Whenever Runtime parses, requires, or emits one of these metadata keys.
-    failure: Reject a missing required key, invalid allowed value, alternate carrier, or widened requirement condition.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
-  - id: rule.nimi.runtime.rpc-foundations.r152
-    kind: rule
-    title: Metadata requirements 7 through 12 are exact
-    modality: must
-    statement: Metadata requirements are exactly x-nimi-provider-endpoint=>allowed[]/required[inline provider has no default endpoint]; x-nimi-provider-api-key=>allowed[]/required[inline]; x-nimi-app-id=>allowed[]/required[ConnectorService RPC]; x-nimi-app-instance-id=>allowed[]/required[Runtime-authenticated local first-party calls that must resolve app-instance-scoped authority]; x-nimi-client-id=>allowed[]/required[optional audit context]; x-nimi-idempotency-key=>allowed[]/required[optional dedup context].
-    condition: Whenever Runtime parses, requires, or emits one of these metadata keys.
-    failure: Reject a missing required key, invalid allowed value, alternate carrier, or widened requirement condition.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
-  - id: rule.nimi.runtime.rpc-foundations.r153
-    kind: rule
-    title: Metadata requirements 13 through 18 are exact
-    modality: must
-    statement: Metadata requirements are exactly authorization=>allowed[]/required[authenticated runtime call (optional for anonymous)]; x-nimi-runtime-version=>allowed[]/required[always (response header metadata)]; x-nimi-caller-kind=>allowed[]/required[audit context propagation]; x-nimi-caller-id=>allowed[]/required[audit context propagation]; x-nimi-surface-id=>allowed[]/required[audit context propagation]; x-nimi-access-token-id=>allowed[]/required[audit context propagation].
-    condition: Whenever Runtime parses, requires, or emits one of these metadata keys.
-    failure: Reject a missing required key, invalid allowed value, alternate carrier, or widened requirement condition.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
-  - id: rule.nimi.runtime.rpc-foundations.r154
-    kind: rule
-    title: Metadata requirements 19 through 22 are exact
-    modality: must
-    statement: Metadata requirements are exactly x-nimi-access-token-secret=>allowed[]/required[loopback runtime entrypoint token-authenticated call]; x-nimi-session-id=>allowed[]/required[loopback runtime entrypoint session-authenticated app call]; x-nimi-session-token=>allowed[]/required[loopback runtime entrypoint session-authenticated app call]; x-nimi-trace-id=>allowed[]/required[L0 correlation envelope (correlated under K-AUDIT-020)].
-    condition: Whenever Runtime parses, requires, or emits one of these metadata keys.
-    failure: Reject a missing required key, invalid allowed value, alternate carrier, or widened requirement condition.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
-  - id: rule.nimi.runtime.rpc-foundations.r155
-    kind: rule
-    title: Metadata config is an exact machine projection
-    modality: must
-    statement: config/runtime-metadata-keys.yaml contains exactly the canonical metadata key, allowed-value, and required-condition rows required by deterministic consumers, retains compatibility source_rule metadata only for traceability, and confers no independent authority.
-    condition: Whenever the metadata machine registry is read or changed.
-    failure: Fail the projection gate on a missing, extra, renamed, revalued, or semantically interpreted machine row.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.metadata-registry
-  - id: rule.nimi.runtime.rpc-foundations.r156
-    kind: rule
-    title: Global audit record wire types are exact
-    modality: must
-    statement: AuditEventRecord uses exactly audit_id:string as a unique ULID, request_id:string, app_id:string, subject_user_id:string, domain:string, operation:string, reason_code:ReasonCode, trace_id:string, timestamp:Timestamp, payload:Struct, caller_kind:CallerKind, caller_id:string, surface_id:string, principal_id:string, principal_type:string, external_principal_type:string, capability:string, token_id:string, parent_token_id:string, consent_id:string, consent_version:string, policy_version:string, resource_selector_hash:string, and scope_catalog_version:string.
-    condition: Whenever Runtime defines, persists, lists, or exports a global audit record.
-    failure: Reject a global audit record whose field type, audit identity shape, or wire schema differs from the admitted schema.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r157
-    kind: rule
-    title: Audit export chunk wire types are exact
-    modality: must
-    statement: AuditExportChunk uses exactly export_id:string, sequence:uint64, chunk:bytes, eof:bool, and mime_type:string.
-    condition: Whenever ExportAuditEvents emits a chunk.
-    failure: Terminate the export with a typed failure rather than emit a chunk with a missing, substituted, or differently typed field.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r158
-    kind: rule
-    title: Usage record wire types and windows are exact
-    modality: must
-    statement: UsageStatRecord uses exactly app_id:string, subject_user_id:string, caller_kind:CallerKind, caller_id:string, capability:string, model_id:string, window:UsageWindow, bucket_start:Timestamp, request_count:int64, success_count:int64, error_count:int64, input_tokens:int64, output_tokens:int64, compute_ms:int64, and queue_wait_ms:int64; UsageWindow MINUTE means minute aggregation, HOUR means hour aggregation, and DAY means day aggregation.
-    condition: Whenever Runtime stores, aggregates, or returns usage statistics.
-    failure: Reject a usage record with a missing or differently typed field or a window with a different aggregation meaning.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r159
-    kind: rule
-    title: Runtime and provider health wire types are exact
-    modality: must
-    statement: GetRuntimeHealthResponse and RuntimeHealthEvent excluding sequence use exactly status:RuntimeHealthStatus, reason:string, queue_depth:int32, active_workflows:int32, active_inference_jobs:int32, cpu_milli:int64, memory_bytes:int64, vram_bytes:int64, and sampled_at:Timestamp; AIProviderHealthSnapshot uses exactly provider_name:string, state:string, reason:string, consecutive_failures:int32, last_changed_at:Timestamp, last_checked_at:Timestamp, and repeated AIProviderSubHealth records with the same non-nesting field structure.
-    condition: Whenever Runtime returns or emits a Runtime or AI Provider health record.
-    failure: Reject a health record whose field type, repeated shape, or nesting differs from the admitted schema.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r160
-    kind: rule
-    title: Authentication audit fields have one exact domain scope
-    modality: must
-    statement: principal_id, principal_type, token_id, parent_token_id, consent_id, consent_version, policy_version, and scope_catalog_version have values only on runtime.auth or runtime.grant audit events and remain empty outside those domains.
-    condition: Whenever Runtime populates authentication or permission identity fields in an audit event.
-    failure: Reject an audit write that populates any listed field outside its admitted domains.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r161
-    kind: rule
-    title: Audit service membership does not widen other consumers
-    modality: must_not
-    statement: RuntimeAuditService membership for ListUsageStats, GetRuntimeHealth, ListAIProviderHealth, SubscribeAIProviderHealthEvents, or SubscribeRuntimeHealthEvents widens that method's separately admitted fields, callers, transport, or SDK and Desktop consumption posture.
-    condition: Whenever an audit service method is registered, projected, or consumed.
-    failure: Preserve each method's separately admitted consumption contract and reject the widened projection or carrier.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r162
-    kind: rule
-    title: Desktop audit projection transport values and read audit are exact
-    modality: must
-    statement: Public TCP, ordinary gRPC, portable credentials, renderer-selected origin, local-app transports, and generic method-id or bytes proxying cannot authorize ListDesktopAuditEvents; every nonempty textual filter is an exact bounded identifier, from_time and to_time are valid timestamps with from_time no later than to_time, Runtime records successful and rejected projection reads in canonical audit storage without copying request filters or returned event payloads, and Desktop presents the returned trace_id as selectable text without changing it.
-    condition: Whenever ListDesktopAuditEvents authorizes, validates, records, or presents a Desktop audit read.
-    failure: Fail closed on an excluded carrier, unbounded identifier, invalid timestamp relation, missing read audit, copied filter or event content, or changed or nonselectable trace identity.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r163
-    kind: rule
-    title: Local app failure action classes are exact
-    modality: must
-    statement: Local-app principal, record, and provenance failures require Desktop owner action and are not silently retried by the app; lease replay, process mismatch, session revocation, and account change require a new owner-approved launch or session and never reuse the old carrier; grant required, revoked, or superseded returns denied permission while a still-valid identity session may remain; and Developer Mode disabled, approval-required, and risk-disclosure failures require explicit Desktop interaction and never background-approve or autostart.
-    condition: Whenever Runtime or Desktop handles a LOCAL_APP failure action.
-    failure: Reject silent app retry, old-carrier reuse, unnecessary valid-session destruction, background approval, or automatic startup.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.error-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.reason-code-registry
-  - id: rule.nimi.runtime.rpc-foundations.r164
-    kind: rule
-    title: Local model and audit List RPC matrices are exact
-    modality: must
-    statement: ListLocalAssets orders kind ascending then asset_id ascending and filters status_filter, kind_filter, engine_filter, and category_filter; ListVerifiedAssets orders kind ascending then asset_id ascending and filters kind_filter, engine_filter, and category_filter; ListLocalServices orders service_id ascending and filters status_filter; ListNodeCatalog orders node_type ascending then node_id ascending and filters type_filter; ListLocalAudits orders timestamp descending and filters app_id, subject_user_id, and time_range; ListLocalTransfers orders created_at descending then install_session_id ascending and filters session_kind, state, model_id, and artifact_id; ListAuditEvents orders timestamp descending and filters app_id, subject_user_id, domain, reason_code, caller_kind, caller_id, and time_range; ListDesktopAuditEvents orders timestamp descending then audit_id descending and uses only its bounded filters; ListUsageStats orders bucket_start descending and filters app_id, subject_user_id, caller_kind, caller_id, capability, and model_id; ListAIProviderHealth is unpaginated, orders provider_name ascending, and has no filters; and ListModels orders model_id ascending and filters status_filter.
-    condition: Whenever Runtime executes one of these List RPCs.
-    failure: Reject an omitted required ordering key, changed direction, undeclared filter, or pagination on ListAIProviderHealth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r165
-    kind: rule
-    title: Cognition memory agent and catalog List RPC matrices are exact
-    modality: must
-    statement: ListKnowledgeBanks orders scope ascending then bank_id ascending and filters scope_filter, app_id, and workspace_id; ListPages orders updated_at descending then page_id ascending and requires bank_id while filtering entity_type and slug_prefix; SearchHybrid orders score descending then page_id ascending and requires bank_id and query while filtering entity_type; ListLinks orders updated_at descending then link_id ascending and requires bank_id and from_page_id while filtering link_type; ListBacklinks orders updated_at descending then link_id ascending and requires bank_id and to_page_id while filtering link_type; TraverseGraph orders depth ascending then page_id ascending and requires bank_id and root_page_id while filtering link_type and max_depth; ListBanks orders scope ascending then bank_id ascending and filters scope_filter, app_id, workspace_id, agent_id, and world_id; ListAgents orders created_at descending then agent_id ascending and filters lifecycle_status and autonomy_enabled; ListAgentConversationSummaries orders updated_at descending then conversation_anchor_id ascending and requires agent_id while filtering status_filter; ListPendingHooks orders scheduled_for ascending then intent_id ascending and requires agent_id while filtering trigger_family_filter, trigger_detail_filter, and admission_state_filter; and SearchCatalogModels orders verified descending then title ascending and requires query while filtering category_filter and engine_filter.
-    condition: Whenever Runtime executes one of these cognition, memory, agent, or catalog List RPCs.
-    failure: Reject an omitted required filter, changed ordering key or direction, or filter outside the admitted matrix.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.pagination-plane
-  - id: rule.nimi.runtime.rpc-foundations.r166
-    kind: rule
-    title: Phase 1 route metadata kinds and scalar types are closed
-    modality: must
-    statement: Phase 1 metadataKind is exactly text.generate, image.generate, audio.synthesize, audio.transcribe, voice_workflow.voice_clone, or voice_workflow.voice_design, and an unlisted capability cannot acquire stable metadata through a free object, provider raw payload, or Desktop-local derivation; text.generate supportsThinking, supportsImageInput, supportsAudioInput, supportsVideoInput, and supportsArtifactRefInput are boolean; image.generate supportedResponseFormats is string[], maxImagesPerRequest is number, and supportsNegativePrompt, supportsReferenceImages, supportsMask, supportsSeed, supportsSize, supportsAspectRatio, supportsQuality, and supportsStyle are boolean.
-    condition: Whenever Runtime constructs or validates a Phase 1 describe result for text or image generation.
-    failure: Reject an unlisted metadata kind, free-form metadata, or any listed field with a different scalar or container type.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r167
-    kind: rule
-    title: Voice and audio route metadata types are exact
-    modality: must
-    statement: voice_workflow.voice_clone uses workflowType literal voice_clone, requiresTargetSynthesisBinding:boolean, textPromptMode from unsupported, optional, or required, supportsLanguageHints:boolean, supportsPreferredName:boolean, referenceAudioUriInput:boolean, referenceAudioBytesInput:boolean, and allowedReferenceAudioMimeTypes:string[]; voice_workflow.voice_design uses workflowType literal voice_design, requiresTargetSynthesisBinding:boolean, instructionTextMode and previewTextMode from unsupported, optional, or required, supportsLanguage:boolean, and supportsPreferredName:boolean; audio.synthesize uses supportedAudioFormats:string[], supportedTimingModes as an array drawn only from none, word, and char, supportsLanguage:boolean, and supportsEmotion:boolean; and audio.transcribe uses tiers:string[], supportedResponseFormats:string[], supportsLanguage:boolean, supportsPrompt:boolean, supportsTimestamps:boolean, and supportsDiarization:boolean.
-    condition: Whenever Runtime constructs or validates a voice workflow, synthesis, or transcription describe result.
-    failure: Reject a wrong literal, scalar type, container type, or member outside an admitted closed mode.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
-  - id: rule.nimi.runtime.rpc-foundations.r168
-    kind: rule
-    title: Specialized subscription stream semantics are preserved
-    modality: must
-    statement: SubscribeAgentVoiceStream treats nonfinal chunks only as transient transport and derives final replay authority from exactly one durable audio artifact; SubscribeRuntimeAgentAIConfigReadiness sends an initial snapshot when connected and then emits config or readiness changes; and a mode D client or server may close the stream, with clients detecting server closure through gRPC status or runtime.disconnected before deciding whether to reconstruct.
-    condition: Whenever either specialized subscription is established, emits, replays, or closes.
-    failure: Reject transient chunks as replay authority, a readiness subscription without its initial snapshot, or a closure path hidden from the consumer.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane
-  - id: rule.nimi.runtime.rpc-foundations.r169
-    kind: rule
-    title: Durable target references exclude runtime and display evidence
-    modality: must_not
-    statement: A durable Runtime target reference contains runtime proof, resolved endpoint paths, selected-source evidence, execution metadata, or display-only fields.
-    condition: Whenever local or cloud execution intent is minted, persisted, parsed, or migrated.
-    failure: Reject the reference instead of stripping the forbidden evidence or treating it as durable identity.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r170
-    kind: rule
-    title: Target classification scan and dispositions are closed
-    modality: must
-    statement: The G0 and G12 target classification inventory uses rg -n "\b(model_id|target_model_id|connector_id|LOCAL_MODEL|targetId|profileId|localModelId|goRuntimeLocalModelId)\b" .nimi/spec --glob "!**/generated/**" --glob "!**/gen/**"; every hit is classified as exactly must_migrate, allowed_non_identity_fact, retired_history, or unrelated_domain; every allowed_non_identity_fact names the guard that prevents durable target-reference minting; and every must_migrate remains owned by this hard cut unless an explicit downstream owner is named.
-    condition: Whenever the Runtime Target v2 G0 or G12 classification inventory is produced or reviewed.
-    failure: Fail the target-identity gate on an unclassified hit, unknown classification, missing nonidentity guard, or unowned migration row.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.target-identity-plane
-  - id: rule.nimi.runtime.rpc-foundations.r171
-    kind: rule
-    title: Sensitive audit key matching uses substrings
-    modality: must
-    statement: Sensitive audit key detection performs case-insensitive substring matching for api_key, credential, secret, authorization, token, and password patterns while preserving only the admitted structural token identifier exemptions.
-    condition: Whenever the audit write layer evaluates a payload or metadata key for redaction.
-    failure: Reject the audit write when case-sensitive or exact-name-only matching would leave an admitted sensitive pattern unredacted.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r172
-    kind: rule
-    title: AI audit client identity requires a declared instance
-    modality: must
-    statement: AI execution audit client_id equals app_instance_id only when application registration declares an instance identifier and remains empty when no instance identifier was declared.
-    condition: Whenever Runtime populates client_id on an AI execution audit event.
-    failure: Reject a synthesized, mismatched, or undeclared client instance identity.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-  - id: rule.nimi.runtime.rpc-foundations.r173
-    kind: rule
-    title: Simulated stream metadata retains downgrade audit meaning
-    modality: must
-    statement: ScenarioStreamCompleted.stream_simulated remains compatibility metadata for text and speech downgrade auditing while voice_output_mode remains the positive primary proof of native or simulated speech output.
-    condition: Whenever Runtime completes or audits a text or speech generation stream with simulated-stream compatibility metadata.
-    failure: Reject loss of downgrade audit meaning or use of stream_simulated=false alone as proof of native realtime output.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.audit-plane
-      - type: applies_to
-        target: definition.nimi.runtime.rpc-foundations.streaming-plane

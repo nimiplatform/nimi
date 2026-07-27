@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.cognition.standalone-services.app-memory-access
     kind: definition
     title: C-APMEM-001 app memory access
-    meaning: App memory access is the fail-closed Cognition-owned resource-selection and resource-policy boundary for a third-party Nimi App seeking access to Cognition-owned memory, knowledge, or skill resources.
+    meaning: App memory access is the fail-closed boundary for a Third-party Local App seeking explicitly authorized Cognition-owned resources, which remain independent from Runtime LocalAgent operational Memory, Knowledge, and Conversation truth.
   - id: definition.nimi.cognition.standalone-services.public-surface
     kind: definition
     title: C-COG-026 C-COG-027 standalone public surface
@@ -350,7 +350,7 @@ units:
     kind: rule
     title: C-COG-046 knowledge non-ownership
     modality: must_not
-    statement: KnowledgeService owns Runtime bank authorization, shared-truth replication, workflow truth, Agent Core admission, shared citation, or Runtime review semantics.
+    statement: KnowledgeService owns Runtime operational Knowledge authorization, shared-truth replication, Workflow truth, LocalAgent admission, shared citation, or Runtime review semantics.
     condition: Whenever standalone knowledge overlaps or integrates with an external knowledge owner.
     failure: Keep the concern reference-only with its owner and preserve only standalone local projection, relation, and ingest semantics.
     relations:
@@ -520,11 +520,11 @@ units:
         target: definition.nimi.cognition.standalone-services.app-memory-access
   - id: rule.nimi.cognition.standalone-services.r046
     kind: rule
-    title: C-APMEM-005 conversation-derived memory
+    title: C-APMEM-005 Cognition memory stays independent
     modality: must
-    statement: Conversion of app conversation to Cognition memory requires a current admitted memory.write decision, Cognition-selected collection, Runtime-derived app principal and account, canonical conversation anchor and persona relation, and typed audit event, while app_id is display metadata only.
-    condition: Whenever app conversation is proposed as Cognition memory.
-    failure: Deny conversion when any required fact is absent and prohibit later cache or background backfill.
+    statement: Any explicitly authorized use of App conversation content by standalone Cognition remains Cognition-owned resource activity, enters through the public Runtime-to-Cognition Bridge, and never replaces or reconstructs Runtime LocalAgent operational Conversation, Memory, or Knowledge truth.
+    condition: Whenever App or LocalAgent conversation content is proposed for standalone Cognition use.
+    failure: Deny the operation without current authorization and Bridge context, and reject Cognition ownership of Runtime LocalAgent truth.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.standalone-services.app-memory-access

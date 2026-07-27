@@ -36,24 +36,16 @@ units:
     meaning: The SDK route plane owns the app-facing runtime route typed surface, covering the v2 durable target identity hard cut, the route logical operation set, the typed describe result projection and its fail-closed consumption, the selection, resolve, and health host projection boundary, and the runtime client projection boundary.
   - id: definition.nimi.sdks.feature-clients.delegation-plane
     kind: definition
-    title: SDK delegation plane
-    meaning: The SDK delegation plane owns typed clients and projections over the Runtime Delegated Capability Gateway, covering provider, session, request, result, firewall, approval, and audit projections, the type escape prohibition, consumer no-bypass, and the implementation availability boundary, without owning Runtime delegation semantics, approval policy, provider lifecycle, credentials, firewall verdicts, or audit truth.
+    title: SDK delegated capability boundary
+    meaning: The SDK may expose bounded typed projection for a separately admitted Runtime delegated capability without owning provider, session, approval, credential, firewall, execution, or audit truth; MCP and A2A clients are not current SDK capabilities and registry or type presence never claims availability.
   - id: definition.nimi.sdks.feature-clients.avatar-control-plane
     kind: definition
-    title: SDK avatar control plane
-    meaning: The SDK avatar control plane owns typed clients for Avatar configuration, presentation profile mutation, debug probe and replay projection, Avatar evidence projection, the pinned method registry, the type escape prohibition, consumer no-bypass, the retired Avatar package client surface, and the Avatar live instance binding client.
-  - id: definition.nimi.sdks.feature-clients.agent-participation-plane
-    kind: definition
-    title: SDK agent participation plane
-    meaning: The SDK agent participation plane owns typed clients and projections over Runtime Agent Participation authority, covering the participation client boundary, axis, profile, context block, and output candidate projections, verdict and audit projections, the participation method registry, the type escape prohibition, consumer no-bypass, and the implementation availability boundary.
-  - id: definition.nimi.sdks.feature-clients.companion-plane
-    kind: definition
-    title: SDK companion plane
-    meaning: The SDK companion plane owns the typed client boundary for companion participation projection and bounded controls, covering typed projection objects, the companion participation control module and its profile-scoped availability guard, fail-closed decoding, and the candidate versus commit boundary.
+    title: SDK Avatar projection plane
+    meaning: The SDK Avatar projection plane provides only typed first-party Nimi Home and Avatar integration for Runtime-owned LocalAgent presentation state and Avatar-owned rendering diagnostics, with no Third-party App driver, embedded renderer, raw motion, raw expression, or LocalAgent truth surface.
   - id: definition.nimi.sdks.feature-clients.package-plane
     kind: definition
     title: SDK package plane
-    meaning: The SDK package plane owns SDK package governance and the TypeScript vNext implementation target, covering TypeScript package metadata ownership, documentation and audit evidence boundaries, release gate alignment, the sdks family metadata boundary, the vNext public source-root target set, the doctor migration-assessment package boundary, and the OpenAI-compatible adapter boundary.
+    meaning: The SDK package plane owns the smallest TypeScript public source and adapter boundaries required by current admitted Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, error, and authorization journeys.
   - id: rule.nimi.sdks.feature-clients.r001
     kind: rule
     title: Adapters never own routing decisions
@@ -148,7 +140,7 @@ units:
     kind: rule
     title: Adjacent live config families stay non-authoritative
     modality: must
-    statement: The SDK host surface may expose typed adjacent live config families next to AIConfig capabilities with memory embedding as the first admitted family, the memory embedding config family allows at least memoryEmbeddingConfig.get reading the Runtime-owned current binding intent with input carrying explicit runtime target identity, memoryEmbeddingConfig.update submitting explicit user intent where the SDK only constructs the typed request without persisting intent, and memoryEmbeddingConfig.subscribe delivering non-authoritative refresh notification within the SDK consumer lifecycle without masquerading as a Runtime event stream, the family owns no host-local editable config truth and never returns or persists resolved embedding profiles, bank bind results, migration state, or cutover outcomes because committed text.embed intent belongs to Runtime Agent AI Config and resolved memory operation state remains Runtime memory and RuntimeCognitionService projection, the memory embedding runtime family allows at least memoryEmbeddingRuntime.inspect reading runtime-resolved state, availability, and bind and cutover readiness, memoryEmbeddingRuntime.requestBind requesting a canonical bind, and memoryEmbeddingRuntime.requestCutover requesting an explicit cutover when admitted runtime policy requires rebuild or generation cutover, these are host product logical methods that may map to a runtime-private typed path without being interpreted as a new daemon public method family, when the runtime canonical bank lifecycle target is not uniquely identified by the AIScopeRef the input carries explicit runtime target identity and the host never guesses the bank owner from active chat selection, renderer-local current agent, or a default app scope, the runtime-side logical owner aligns with the runtime-private memory embedding operation family and the host facade never extends a second product semantics, and the SDK never requires a synchronous durable config reader from the host or treats Desktop localStorage, Tester fixtures, or renderer stores as canonical binding intent input while ephemeral test harnesses may mock Runtime methods only with preserved request and response shapes.
+    statement: The SDK may expose typed mutation intent, status, readiness, and change projection for Runtime-owned LocalAgent Memory and Knowledge configuration, but never persists or infers Runtime embedding intent, binding, bank, rebuild, migration, or cutover truth from host storage, active UI selection, fixtures, or a default scope.
     condition: Whenever adjacent live config or memory embedding families are exposed.
     failure: Reject persisted intent, guessed bank owners, and second product semantics.
     relations:
@@ -188,7 +180,7 @@ units:
     kind: rule
     title: AI config transport is host-local with subscriptions
     modality: must
-    statement: The Phase 1 SDK AI config surface is a host-local surface rather than a daemon RPC projection, config read and write operations use desktop host persistence and not runtime daemon RPC, probe operations consume the existing runtime route and health RPCs, scheduling probe operations consume the runtime scheduler Peek, snapshot record and read operations use desktop host persistence, no AIConfig CRUD RPC is added on the runtime daemon, host-local persistence stores only compact AIConfig logical refs and params and rejects or drops any RuntimeRouteBinding-like shape, selected source record, install or materialization evidence, workflow binding id, local path, backend environment evidence, provider health, scheduler state, or credential payload before persistence, generic adjacent live config may use host-local persistence and subscription surfaces but Runtime Local Agent memory embedding is excluded because committed text.embed intent belongs to Runtime Agent AI Config and is mutated through Runtime and SDK ai-config surfaces, memory embedding runtime-resolved state and canonical bind, rebuild, and cutover requests may be exposed as host typed logical methods only over an admitted typed runtime boundary that never degrades into a productized wrapper of private loopback convenience HTTP, and the SDK provides aiConfig.subscribe notifying consumers on apply or update changes of a scope as a host-local event that never uses the runtime daemon event stream and drives conversation capability projection recomputation.
+    statement: App-owned AI configuration intent may use the owning host persistence and typed subscriptions, while Runtime-resolved provider credentials, route, model selection, readiness, usage, Quota, Budget, Rate Limit, LocalAgent AI configuration, Memory, and Knowledge state remain Runtime projections; the SDK never persists Runtime execution evidence or wraps a private loopback endpoint as a product API.
     condition: Whenever AI config transport or change subscriptions are composed.
     failure: Reject daemon CRUD RPCs, forbidden persisted payloads, and loopback wrappers.
     relations:
@@ -398,7 +390,7 @@ units:
     kind: rule
     title: App storage projection is an exact JSON set
     modality: must
-    statement: The general Runtime facade may expose a typed storage projection backed by Runtime GetAppStorage only to an independently admitted host or owner caller, for LOCAL_APP the final standardShell carrier exposes no GetAppStorage, absolute roots, or storage-root accessor because Runtime and the native host re-key private storage by the inherited principal and session context so the app observes no principal id and cannot request any root, the 0K checkpoint admits exactly storage.readJson, storage.writeJson, and storage.removeJson on the protected local-app carrier which the SDK exposes as storage.readJson taking a relative path, storage.writeJson taking a relative path and value, and storage.removeJson taking a relative path, these calls are the app.private_storage base entitlement rather than public permissions and each call binds to the exact current principal, session, and account partition and canonical relative JSON path with no permission row, prompt, owner selector, or grant participating, Runtime enforces a 240-byte canonical relative JSON-suffixed path, a 256 KiB document bound, a 16 MiB principal-partition quota, symlink and non-regular file rejection, and idempotent remove, the SDK projects only the JSON value, sizeBytes, or removed and rejects any root, path, or authority field, data.pathResolve, generic file operations, directory operations, binary storage, caller-selected quota or root, and every other storage operation remain typed unavailable, and the SDK never reads the runtime owner state root nimi.json, parses Runtime config, or concatenates nimi-data app paths as a local fallback and never accepts app id, project path, renderer metadata, manifest data, or an app-supplied principal as a storage selector because enforcement and storage truth remain Runtime-owned.
+    statement: A Local App may use bounded typed App-private JSON storage as a base entitlement under the current Runtime-derived principal, session, and account partition, while SDK receives no storage root, absolute path, principal identifier, quota authority, generic file operation, binary storage, directory access, or authority-bearing selector; Runtime enforces canonical relative paths, resource bounds, filesystem safety, atomic writes, and idempotent removal according to the owning implementation contract.
     condition: Whenever app-private storage operations are exposed or invoked.
     failure: Reject root and selector inputs and keep non-admitted operations typed unavailable.
     relations:
@@ -448,7 +440,7 @@ units:
     kind: rule
     title: Local-app bootstrap custody is bounded
     modality: must
-    statement: The local-app SDK bootstrap accepts exactly one host-neutral standardShell input and exposes only bounded session status, product-facing permission status and request, and Nimi-mediated app-private JSON storage, a valid session may use base entitlements without any permission while protected Nimi, Realm, Agent, and Cognition operations remain unavailable until their complete public-permission slice is admitted, permissions.status and permissions.request map only to Runtime GetLocalAppPermissionStatus and RequestLocalAppPermission carrying a public permissionId plus a bounded user-facing reason and returning only permissionId, public posture, canRequest, and a typed reason, they never carry internal operation or resource identity, never return request, challenge, grant, principal, or record identifiers, and cannot approve, revoke, enumerate grants, or proxy an Account method, SDK input and output never contain Runtime or Realm clients, account caller posture, local-app principal, record, or permission-decision ids, launch binding or nonce, launch host, release or capability refs, app session metadata, endpoint, authorization, credential, ordinary gRPC, generic method-id or bytes forwarding, or developer-registration fallback, a missing or unadmitted carrier or unavailable permission is a typed fail-closed result never replaced by renderer metadata, and app-native SQLite, media, settings, cache, routes, and product commands remain outside this Runtime permission client.
+    statement: The Local App SDK bootstrap accepts only the verified host-injected shell integration and exposes typed session posture, product permission posture and request, App-private storage, and admitted business operations; it exposes no account, principal, authorization decision, credential, Realm JWT, Provider Credential, Runtime proof, endpoint, generic method forwarding, or host security material, and App-native data and product commands remain App-owned.
     condition: Whenever the local-app bootstrap surface is constructed or consumed.
     failure: Fail closed on missing carriers and reject authority material in input or output.
     relations:
@@ -466,9 +458,9 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r042
     kind: rule
-    title: The selected voice client is two exact methods
+    title: Local App voice consumption stays Runtime owned
     modality: must
-    statement: The local-app runtime platform client exposes exactly two additional Agent methods from the Runtime voice authority, agent.transcribeVoice taking agentId, clientRequestId, audio, and mimeType and agent.subscribeVoiceStream taking agentId, conversationAnchorId, turnId, voiceStreamId, and an optional cursor, transcribeVoice accepts only a byte array up to 8 MiB and the closed Runtime audio MIME set and returns only clientRequestId and text with transcript text bounded to 64 KiB UTF-8, subscribeVoiceStream returns one correlated page with an opaque cursor and exactly one typed Runtime voice event with chunk bytes decoded to a byte array and every event matching all caller-supplied agent, anchor, turn, and voice-stream selectors while a terminal event ends consumption, the SDK and Kit carrier reject model, connector, provider, target ref, route policy, fallback, prompt, language, diarization, timestamps, response format, timeout, label, extension, principal, account, grant, session, endpoint, or token fields before dispatch, they never construct ExecuteScenario, SubmitScenarioJob, generic Runtime unary or stream calls, realtime sessions, or a provider fallback, missing protected carrier, grant, committed Runtime Agent AI Config intent or readiness, conversation correlation, or stream truth fails closed with the typed local-app error envelope, and these methods carry data only because Runtime owns local-app authorization, AI route, job execution, stream truth, artifacts, and audit while the SDK owns no route cache, voice truth, credential, playback state, or durable audio bytes.
+    statement: When separately admitted for a Local App, voice input or output is a typed Runtime LocalAgent projection preserving LocalAgent and Conversation continuity; SDK and Kit never select provider, model, route, fallback, prompt, identity, credential, or Avatar control, never create durable voice truth, and fail closed when authorization, readiness, correlation, or Runtime stream truth is unavailable.
     condition: Whenever the local-app selected voice client is exposed or invoked.
     failure: Fail closed with the typed error envelope and reject forbidden fields and constructed calls.
     relations:
@@ -508,7 +500,7 @@ units:
     kind: rule
     title: The permission catalog is closed
     modality: must
-    statement: PermissionID contains only the stable product ids of the public permissions section of the platform app permission catalog table, only ids with admission admitted and manifest_allowed true may enter permission.request, known-but-reserved ids may be used for the typed unavailable projection of permission.status but a request fails closed before calling the transport, and the current SDK request positive set is exactly agents.interact for its owner-selected open-conversation, send-turn, subscribe-turn, and conversation-snapshot operations without exposing Agent inventory, selector construction, voice, artifact, principal substitution, direct Avatar control, or embedded rendering and without affecting app launch, private storage, host commands, or app-owned UI.
+    statement: PermissionID contains only stable product ids admitted by the Platform public permission authority, reserved or future ids remain typed unavailable, and the current LocalAgent interaction permission allows only owner-selected LocalAgent Conversation operations without account-wide LocalAgent inventory, caller-built selectors, principal substitution, direct Avatar control, embedded rendering, or authority over App launch, private storage, host commands, or App-owned UI.
     condition: Whenever permission ids are validated for status or request.
     failure: Fail closed before transport on reserved or unadmitted ids.
     relations:
@@ -746,59 +738,19 @@ units:
         target: definition.nimi.sdks.feature-clients.route-plane
   - id: rule.nimi.sdks.feature-clients.r070
     kind: rule
-    title: Delegation clients are typed projections only
+    title: Admitted delegated clients remain typed projections only
     modality: must
-    statement: The SDK consumes Runtime Delegated Capability Gateway state as typed projections and command envelopes without owning Runtime delegation semantics, approval policy, provider lifecycle, credentials, firewall verdicts, or audit truth, SDK delegation APIs exist only as typed clients for the Runtime-owned contracts covering External Agent gateway, status, token, action, and audit projection, provider profile projection, provider lifecycle projection, delegated session projection, delegated request projection, delegated result projection, firewall verdict projection, approval request and decision projection, and audit and replay projection, and the SDK never exposes protocol-native MCP or A2A wire objects as stable public Nimi types.
-    condition: Whenever delegation client surfaces are exposed.
-    failure: Reject semantic ownership and protocol-native wire exposure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.delegation-plane
-  - id: rule.nimi.sdks.feature-clients.r071
-    kind: rule
-    title: Delegation projections align to Runtime contracts
-    modality: must
-    statement: Provider projection fields align to the Runtime delegation provider authority and may expose display and status fields but never raw connector credentials, authorization headers, provider secret material, or adapter-local handles, delegation session projection aligns to the Runtime delegation session authority and delegation request projection aligns to the Runtime delegation request authority with SDK consumers observing request state and submitting Runtime-owned commands and never mutating request internals by local object replacement, External Agent action descriptors, issue, revoke, and list token operations, execution context verification, completion, and audit replay stay Runtime-owned commands and projections for which the SDK may expose typed methods without preserving Desktop or Tauri command names or retired extension-specific identity fields, delegation result projection aligns to the Runtime delegation result authority, and the SDK distinguishes provider completion from firewall acceptance because a completed provider result is not accepted Runtime context until a firewall verdict exists.
-    condition: Whenever delegation provider, session, request, or result projections are exposed.
-    failure: Reject secret exposure, local mutation, and completion treated as acceptance.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.delegation-plane
-  - id: rule.nimi.sdks.feature-clients.r072
-    kind: rule
-    title: Firewall and approval projections stay typed
-    modality: must
-    statement: Firewall projection aligns to the Runtime delegation firewall authority exposing verdict, reason, confidence, provenance, and quarantine state as typed fields without exposing raw quarantined payload by default, and approval projection aligns to the Runtime delegation approval authority with SDK approval methods submitting typed Runtime decisions while owning no approval policy and never auto-approving outside Runtime policy.
-    condition: Whenever firewall or approval projections are exposed.
-    failure: Reject raw quarantined payload defaults and out-of-policy approval.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.delegation-plane
-  - id: rule.nimi.sdks.feature-clients.r073
-    kind: rule
-    title: Delegation audit replay preserves controls
-    modality: must
-    statement: Delegation audit and replay projection aligns to the Runtime delegation audit authority and the general Runtime audit authority, and the SDK may expose replay views only while preserving redaction, access control, and invalid-lineage failure states.
-    condition: Whenever delegation audit or replay views are exposed.
-    failure: Reject redaction, access control, and lineage bypasses.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.delegation-plane
-  - id: rule.nimi.sdks.feature-clients.r074
-    kind: rule
-    title: Delegation types admit no escapes
-    modality: must
-    statement: Delegation SDK types use named interfaces, enums, tagged unions, or schema-bound references, stable SDK delegation contracts never use untyped catch-all fields for provider output, protocol metadata, or adapter-specific payloads, and protocol evidence is represented only by typed evidence refs and the protocol metadata fields admitted by the Runtime delegation result authority.
-    condition: Whenever delegation SDK types are defined.
-    failure: Reject untyped catch-all fields and unadmitted evidence shapes.
+    statement: The SDK exposes a delegated capability client only after Runtime separately admits the capability, operations, authorization, failure, and owner contract, and the SDK then remains a typed projection and command carrier without credentials, provider-native payloads, MCP or A2A clients, approval policy, firewall verdict ownership, execution truth, or audit truth.
+    condition: Whenever a delegated capability client is proposed or exposed.
+    failure: Reject unadmitted capability publication, semantic ownership, and protocol-native wire exposure.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.delegation-plane
   - id: rule.nimi.sdks.feature-clients.r075
     kind: rule
-    title: No delegation bypass and no premature support
+    title: No direct delegated-provider bypass or premature support
     modality: must
-    statement: The SDK never provides helper APIs that connect Desktop, Avatar, apps, Web, or direct consumers directly to MCP or A2A providers because all delegated operations route through Runtime-owned gateway APIs, the delegation contract admits the SDK typed contract only, SDK implementation methods, generated clients, Desktop, Avatar, and app consumers, provider configuration UX, approval UX, and replay UX each require their own admitted implementation and tests before support is claimed, and until those gates exist the SDK never claims production delegated provider configuration, approval, or replay support.
+    statement: The SDK never connects Desktop, Avatar, Apps, Web, or Direct SDK Consumers directly to an unadmitted delegated provider, MCP, or A2A surface, and type, registry, generated code, or documentation presence never claims production support without an admitted Runtime owner contract and real implementation.
     condition: Whenever delegation consumers or support claims are evaluated.
     failure: Reject direct provider connections and unearned support claims.
     relations:
@@ -806,50 +758,40 @@ units:
         target: definition.nimi.sdks.feature-clients.delegation-plane
   - id: rule.nimi.sdks.feature-clients.r076
     kind: rule
-    title: Avatar control clients are typed only
+    title: Avatar integration is first-party and projection-only
     modality: must
-    statement: The SDK may expose Avatar configuration and debug or probe APIs only as typed clients for the referenced Desktop, Runtime, and Avatar authority contracts, and the SDK owns no configuration semantics, probe semantics, backend execution, or replay truth.
-    condition: Whenever Avatar control client surfaces are exposed.
-    failure: Reject SDK-owned configuration, probe, execution, or replay truth.
+    statement: The SDK exposes only typed integration required by Nimi Home and Avatar to consume Runtime LocalAgent presentation output and Avatar rendering diagnostics, owns none of the underlying semantics, and provides no Third-party App direct Avatar control.
+    condition: Whenever an Avatar SDK surface is exposed.
+    failure: Reject SDK-owned presentation or rendering truth, Third-party direct control, embedded renderer, or raw backend command surface.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.avatar-control-plane
   - id: rule.nimi.sdks.feature-clients.r077
     kind: rule
-    title: Presentation selection follows Runtime CAS truth
+    title: Presentation selection follows Runtime truth
     modality: must
-    statement: SDK avatar configuration methods aligned to the retired Desktop-owned Agent Center avatar configuration schema are retired because that Desktop schema is no longer active semantic authority, current selection truth is the Runtime AgentPresentationProfile written through the Runtime Agent presentation mutation surface while host-local asset custody is a Kit Shell standard agent-center capability surface and not an SDK semantic configuration record, the typed SDK Agent record projection carries the optional presentation profile and the committed presentation revision as separate fields so a caller can read the current compare-and-swap token even after clear, set, patch, and clear helpers require the caller's expected revision, preserve proto3 optional presence so false and empty-string clears remain distinct from omission in every generated SDK, and surface stale writes as the typed Runtime conflict rather than retrying or overwriting a newer profile, SDK request builders and read projections implement the exact positive bare and qualified opaque-ref grammar of the Runtime agent core authority including its byte limits, namespace allow and deny rules, percent-decoded validation pass, and the https-only profile media URL restriction while also rejecting empty voice-reference suffixes, these client checks never replace Runtime authorization, owner and durability resolution, or atomic validation, and the SDK never reintroduces a runtime avatar configuration namespace as a Desktop-owned schema facade, compatibility shim, or app-local config store while opaque refs stay opaque and are never dereferenced into Avatar package descriptors or backend capability profiles.
+    statement: Runtime owns LocalAgent presentation, activity, emotion, and voice truth, Nimi Home may request admitted configuration through the standard authorized Runtime surface, Avatar consumes the resulting projection, and SDK validation never replaces Runtime authorization or becomes an App-local configuration owner.
     condition: Whenever avatar presentation configuration is read or mutated.
-    failure: Reject retired schema facades, silent conflict overwrites, and ref dereferencing.
+    failure: Reject Desktop or App-owned presentation truth, stale overwrite, bypass of Runtime authorization, or direct backend control.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.avatar-control-plane
   - id: rule.nimi.sdks.feature-clients.r078
     kind: rule
-    title: Probe, replay, and evidence stay projections
+    title: Avatar diagnostics stay first-party projections
     modality: must
-    statement: SDK avatar probe methods align to the Runtime avatar debug projection authority exposing typed request, result, submit-result, and replay ref shapes and never exposing raw APML parser diagnostics, backend command strings, provider payloads, MCP or A2A protocol objects, or raw Avatar backend payloads as stable public types, the SDK may carry Avatar evidence refs and schema-bound evidence summaries from the Avatar debug session authority, never reinterprets Avatar backend evidence as Runtime success, and may carry submit-probe-result envelopes from Avatar to Runtime while the Runtime probe result status remains the accepted public diagnostic status.
+    statement: First-party Nimi Home and Avatar diagnostics may carry typed Runtime and Avatar status or evidence projections without exposing raw model, provider, protocol, motion, renderer, or backend command payloads and without reinterpreting rendering evidence as Runtime LocalAgent success.
     condition: Whenever avatar probe, replay, or evidence surfaces are exposed.
     failure: Reject raw payload exposure and evidence reinterpretation.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.avatar-control-plane
-  - id: rule.nimi.sdks.feature-clients.r079
-    kind: rule
-    title: Avatar method names are pinned
-    modality: must
-    statement: Admitted SDK avatar control method names are pinned by the runtime-avatar-control-methods table, and until implementation and test gates exist these names are contract targets only and never reported as production support.
-    condition: Whenever avatar control method names are declared or reported.
-    failure: Reject unpinned names and unearned support claims.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.avatar-control-plane
   - id: rule.nimi.sdks.feature-clients.r080
     kind: rule
-    title: Avatar control types admit no escapes
+    title: Avatar projection types admit no escapes
     modality: must
-    statement: Runtime Avatar control SDK types use named interfaces, enums, tagged unions, or schema refs, and stable SDK contracts never use the any type, unknown-record maps, free-form maps for provider payloads, protocol-native MCP or A2A objects, or raw backend command payloads.
-    condition: Whenever avatar control SDK types are defined.
+    statement: Avatar projection and diagnostic SDK types use named interfaces, enums, tagged unions, or schema refs and never expose free-form provider, protocol, raw motion, raw renderer, or backend command payloads.
+    condition: Whenever Avatar projection SDK types are defined.
     failure: Reject untyped escapes and raw payload types.
     relations:
       - type: applies_to
@@ -876,134 +818,14 @@ units:
         target: definition.nimi.sdks.feature-clients.avatar-control-plane
   - id: rule.nimi.sdks.feature-clients.r083
     kind: rule
-    title: Live instance binding is two guarded methods
+    title: Live Avatar association remains owner mediated
     modality: must
-    statement: The SDK admits runtime.agent.anchors.registerAvatarLiveInstance and runtime.agent.anchors.resolveAvatarLiveInstance as the only client methods mapping Desktop and Avatar live-instance recovery to the Runtime live-instance binding authority, registration requires the protected runtime.agent.write scope, resolution requires the protected runtime.agent.read scope, both methods require local agent identity and an explicit avatarInstanceId, registration additionally requires an explicit conversationAnchorId, and the SDK returns the Runtime binding plus the ConversationAnchorSnapshot and never infers anchor continuity from same-agent identity or app-local storage.
-    condition: Whenever avatar live-instance binding methods are exposed or invoked.
-    failure: Reject missing scopes or identities and inferred anchor continuity.
+    statement: Runtime and Avatar may associate the active first-party Avatar instance with an explicit LocalAgent for projection recovery, Runtime retains conversation continuity and authorization truth, and no Third-party App receives a binding entity or selector API.
+    condition: Whenever a live Avatar instance is associated with a LocalAgent.
+    failure: Reject inferred continuity, App-owned binding truth, or Third-party binding control.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.avatar-control-plane
-  - id: rule.nimi.sdks.feature-clients.r084
-    kind: rule
-    title: Participation clients stay consumers
-    modality: must
-    statement: The SDK consumes Runtime Agent Participation authority as typed clients and projections without owning participation execution semantics, prompt assembly, provider or model routing, memory promotion, Realm GROUP commit, cross-profile concurrency, audit truth, or protocol-native MCP or A2A wire truth, SDK participation APIs exist only as typed clients for the Runtime-owned agent participation contracts, and SDK methods submit typed participation requests, read typed profile and context metadata, observe Runtime-owned output candidates, and read Runtime audit and replay views while never constructing participation prompts, selecting AI providers or models, deciding memory, capability, or concurrency verdicts, or committing domain transcripts.
-    condition: Whenever participation client surfaces are exposed or invoked.
-    failure: Reject prompt construction, routing selection, verdict decisions, and domain commits.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.agent-participation-plane
-  - id: rule.nimi.sdks.feature-clients.r085
-    kind: rule
-    title: Participation projections align to registries
-    modality: must
-    statement: SDK participation profile projection aligns exactly to the closed axis and profile registries of the runtime agent participation axis model and profiles tables without adding open-string axis values, local lane enums, extra named profiles, or compatibility aliases outside the Runtime registry, context block projection aligns to the runtime participation context blocks table so consumers may pass typed context block references admitted by Runtime but never raw prompt blobs, raw transcript dumps, raw protocol payloads, or untyped provider or app-local memory payloads, output candidate projection aligns to the runtime participation output destinations table, and the SDK distinguishes Runtime execution output from domain transcript commit so that for Realm GROUP participation it may expose a Runtime-owned non-committal candidate and a Realm-authenticated commit path owned by the Realm chat authority while never exposing Runtime direct GROUP write as a participation helper.
-    condition: Whenever participation profiles, context blocks, or output candidates are projected.
-    failure: Reject registry extensions, raw payloads, and direct GROUP writes.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.agent-participation-plane
-  - id: rule.nimi.sdks.feature-clients.r086
-    kind: rule
-    title: Verdicts and audit stay Runtime decisions
-    modality: must
-    statement: SDK memory, capability, promotion, and concurrency verdict projection aligns to the runtime participation memory policy, memory read scopes, capability scopes, and concurrency policy tables exposing verdicts as typed Runtime decisions, the SDK never infers private memory read access, canonical capability carryover, canonical memory write, or cross-profile admission locally, participation audit and replay projection layers on the existing Runtime audit authority including the delegated gateway evidence where it participates, and the SDK may expose typed audit and replay views only while preserving redaction, access control, invalid-lineage failure states, and the absence of any participation-specific side audit store.
-    condition: Whenever participation verdicts or audit views are projected.
-    failure: Reject local verdict inference and side audit stores.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.agent-participation-plane
-  - id: rule.nimi.sdks.feature-clients.r087
-    kind: rule
-    title: The participation registry is not availability
-    modality: must
-    statement: SDK participation method names, categories, source rules, and input and output references are governed by the runtime-agent-participation-methods table, the table is the SDK method-family registry for implementation admission and never by itself claims production availability, a method family becomes public-production only when SDK implementation or generation, admitted transport, and owner tests bind the registry entry, and missing implementation fails closed as unavailable and is never advertised as active support.
-    condition: Whenever participation methods are registered or availability is claimed.
-    failure: Fail closed on missing implementation and reject registry-only availability.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.agent-participation-plane
-  - id: rule.nimi.sdks.feature-clients.r088
-    kind: rule
-    title: Participation types admit no escapes
-    modality: must
-    statement: Participation SDK public types use named interfaces, enums, tagged unions, or schema-bound references, stable SDK participation contracts never use the any type, unknown-record maps, free-form maps, raw prompt blobs, raw MCP or A2A payloads, raw provider payloads, or raw memory payloads, and Runtime-internal system prompt parameters stay implementation details that never become SDK public API.
-    condition: Whenever participation SDK types are defined.
-    failure: Reject untyped escapes and internal prompt exposure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.agent-participation-plane
-  - id: rule.nimi.sdks.feature-clients.r089
-    kind: rule
-    title: No participation bypass or premature support
-    modality: must
-    statement: The SDK never provides helper APIs that let Desktop, Web, Avatar, or apps bypass Runtime participation authority with direct provider calls, direct model selection, direct Realm GROUP AI writes, raw prompt assembly, or direct MCP or A2A client creation, all participation execution routes through Runtime-owned authority with all domain commits remaining under their domain owners, the participation contract admits the SDK typed contract and method registry only so SDK implementation methods, generated client code, proto stubs, Desktop surfaces, Avatar surfaces, app integrations, OASIS consumers, Scenario consumers, A2A production entry, and MCP production entry each require their own admitted implementation and tests before support is claimed, and until those gates exist the SDK never claims production Runtime Agent Participation support.
-    condition: Whenever participation consumers or support claims are evaluated.
-    failure: Reject bypass helpers and unearned support claims.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.agent-participation-plane
-  - id: rule.nimi.sdks.feature-clients.r090
-    kind: rule
-    title: Companion data is typed projection only
-    modality: must
-    statement: The SDK exposes companion participation data as typed projection objects matching the Runtime-owned CompanionParticipationProjection and never exposes raw prompt blobs, provider payloads, raw APML or debug payloads, MCP or A2A payloads, or domain state blobs as the primary companion surface API.
-    condition: Whenever companion participation data is exposed.
-    failure: Reject raw payload exposure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.companion-plane
-  - id: rule.nimi.sdks.feature-clients.r091
-    kind: rule
-    title: The companion module is bounded and guarded
-    modality: must
-    statement: The Runtime SDK exposes companion participation through the typed module runtime.companionParticipation owning the SDK product API and providing getProjection, request, cancel, and openReplay, each control routes to Runtime-owned participation or replay RPC methods, the SDK never implements app-local execution, prompt assembly, provider or model routing, memory write, cognition write, or domain commit, SDK entrypoints also export decodeCompanionParticipationProjection for strict projection decoding and the generated companion participation enum types with the generated protobuf shape never being the primary application API, and because the companion participation method family is admitted only to the Runtime profiles that carry it the consume-surface method declarations stay optional with access passing through the fail-closed method-required guard so a consume surface without the admitted methods returns the typed method-unavailable failure instead of manufacturing the module.
-    condition: Whenever the companion participation module is exposed or consumed.
-    failure: Fail closed through the method guard on unadmitted surfaces and reject app-local execution.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.companion-plane
-  - id: rule.nimi.sdks.feature-clients.r092
-    kind: rule
-    title: Companion decoding fails closed
-    modality: must
-    statement: SDK companion decoders fail closed on an unknown surface kind, an unknown trigger source, an unknown status, a missing profile ref for execution requests, a missing room orchestration ref for domain contexts, a missing candidate ref for candidate-ready, and a missing commit ref for committed-by-owner.
-    condition: Whenever companion projections are decoded.
-    failure: Fail closed on unknown or missing discriminators.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.companion-plane
-  - id: rule.nimi.sdks.feature-clients.r093
-    kind: rule
-    title: Candidates never imply commits
-    modality: must_not
-    statement: The SDK infers companion commit from candidate text or app-side display state instead of preserving the distinction between Runtime candidate projection and domain or canonical commit projection.
-    condition: Whenever companion candidates or commits are projected.
-    failure: Reject inferred commits.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.companion-plane
-  - id: rule.nimi.sdks.feature-clients.r094
-    kind: rule
-    title: Package metadata aligns with release gates
-    modality: must
-    statement: The package.json, tsconfig.json, and tsconfig.build.json files under the sdks TypeScript root are the active TypeScript package governance evidence aligned with the single base-package layout, the public subpath contract, the TypeScript build contract, and the SDK release gates, SDK root package metadata stays aligned with SDK testing and release gates without introducing unpublished package names, ungoverned exports, hidden build entrypoints, or release behavior outside the admitted gate, surface, and boundary authorities, and Simulator support uses the already public testing subpath without creating a Simulator-specific SDK package, root export, transport, or compatibility layer while its implementation and package evidence remain reachable from the ordinary SDK build, test, and coverage gates and from the Simulator final-graph qualification gate.
-    condition: Whenever SDK package metadata or release behavior changes.
-    failure: Reject ungoverned exports and Simulator-specific packages.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.package-plane
-  - id: rule.nimi.sdks.feature-clients.r095
-    kind: rule
-    title: Support documents are evidence not authority
-    modality: must
-    statement: SDK package support documents are package evidence and not independent semantic authority so when they conflict with the sdks authority the authority wins and the support document is corrected, and spec-first full audit may cover SDK root support files only through explicit evidence-root admission with audit tools never inferring SDK root support ownership from package names or workspace membership alone.
-    condition: Whenever support documents or audit evidence roots are evaluated.
-    failure: Reject document-over-authority conflicts and inferred audit ownership.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.package-plane
   - id: rule.nimi.sdks.feature-clients.r096
     kind: rule
     title: The sdks family boundary admits no shims
@@ -1016,21 +838,11 @@ units:
         target: definition.nimi.sdks.feature-clients.package-plane
   - id: rule.nimi.sdks.feature-clients.r097
     kind: rule
-    title: The vNext source-root target set is fixed
+    title: TypeScript source roots follow current product demand
     modality: must
-    statement: The sdks TypeScript tree is the next major implementation target for the nimiplatform sdk package with the public source-root targets fixed to core contracts, core ai, core ai-runner, core testing, features conversation, features knowledge-context, features memory-context, features generation, features workflow, features evaluation, features toolkits, adapters vercel-ai, adapters openai-compatible, adapters mcp, adapters mastra, adapters langgraph, adapters llamaindex, adapters react, adapters next, and doctor.
-    condition: Whenever vNext source-root targets are defined or extended.
-    failure: Reject targets outside the fixed set.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.package-plane
-  - id: rule.nimi.sdks.feature-clients.r098
-    kind: rule
-    title: Doctor is read-only assessment only
-    modality: must
-    statement: Doctor is the independent migration-assessment sdk-doctor package and neither a base SDK subpath nor an adapter, it performs read-only static analysis of an external app and never executes target code, reaches the network, or mutates the scanned project, its only framework-API-to-capability authority is the framework-api-capability-map table while adapter capability truth stays in adapter manifests and the typescript-adapter-capability-ledger table so the doctor never carries private mappings or infers capabilities, a detected target-framework API absent from the map is reported as unknown-api and never silently skipped or counted as supported, and doctor output is a developer assessment projection only that is not an admission evidence surface and creates no capability claim.
-    condition: Whenever the doctor package analyzes or reports.
-    failure: Reject execution, network access, private mappings, and silent skips.
+    statement: The TypeScript SDK keeps the smallest public source roots required by current Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI consume, error, and authorization journeys, and does not prebuild Workflow, MCP, framework-adapter, toolkit, evaluation, migration-doctor, or ecosystem-completeness directories without a concrete admitted consumer.
+    condition: Whenever TypeScript SDK source roots are added or retained.
+    failure: Reject speculative catalog expansion and require a current owner and consumer contract.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.package-plane

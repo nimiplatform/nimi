@@ -5,587 +5,220 @@ units:
   - id: definition.nimi.platform.simulator.product
     kind: definition
     title: Independent Simulator product
-    meaning: The Simulator product identity is one independent browser product whose complete capability set comprises, as the ratified product target, a publicly deployed Nimi ecosystem landing, guided concept explanation, per-product experiences, cross-product demonstrations, deterministic scenario replay, and UI/UX regression probing, all operating through one Shell, one React root, one deterministic State Engine, one generated selected-module registry, and one independently deployable artifact; absent target capabilities are unmet product obligations rather than present facts.
+    meaning: Simulator is the lower-priority public Nimi ecosystem website and browser preview product for selected App experiences using clearly disclosed Mock or Deterministic Data with no real Realm, Runtime, account, permission, credential, or LocalAgent side effects.
   - id: definition.nimi.platform.simulator.selected-source-protocol
     kind: definition
-    title: Simulator selected-source protocol
-    meaning: The selected-source protocol is the Simulator-owned curation, ordering, canonical renderer-factory and style closure, registry generation, and resolution contract that resolves each admitted selected App source revision through selected-source descriptors; keeping admitted revisions current with product releases is a product obligation.
-  - id: definition.nimi.platform.simulator.module-contract
-    kind: definition
-    lifecycle: removed
-    title: Simulator module contract
-    reason: Removed because exact manifest, schema, path, identifier, and fixture mechanics are implementation and qualification topology rather than Simulator product authority.
+    title: Selected App preview boundary
+    meaning: Simulator previews only explicitly selected, reviewed, host-neutral App presentation sources required by current product journeys and does not become a public source registry, arbitrary hosting platform, or distribution authority.
   - id: definition.nimi.platform.simulator.renderer-factory
     kind: definition
-    title: Canonical renderer factory
-    meaning: A canonical renderer factory is the selected App-owned synchronous host-neutral constructor shared by production entries, selected Nimi host invocations, and Simulator rendering for isolated per-instance App resources and named surfaces.
+    title: App-owned preview renderer
+    meaning: Each selected App owns its renderer, resources, routes, presentation, and product semantics; Simulator supplies only the bounded preview host context.
   - id: definition.nimi.platform.simulator.adapter
     kind: definition
-    title: App-owned Simulator Adapter
-    meaning: A Simulator Adapter is the selected App-owned per-renderer-instance lifecycle boundary that supplies exact host-neutral bindings while leaving App rendering and App resource construction to the canonical renderer factory.
+    title: App-owned Simulator adapter
+    meaning: A selected App may provide the minimal adapter needed to construct its host-neutral preview without transferring App or product authority to Simulator.
   - id: definition.nimi.platform.simulator.state-engine
     kind: definition
-    title: Deterministic Simulator State Engine
-    meaning: The Simulator State Engine solely owns immutable deterministic scenario, ecosystem, private App-module, logical-time, randomness, operation-order, replay, lifecycle, and reset state for one simulated session; Shell chrome presentation state and session-local routing remain outside it as non-deterministic presentation concerns that must never feed back into deterministic state.
+    title: Deterministic Simulator state
+    meaning: Simulator may own deterministic, session-ephemeral presentation scenarios, logical ordering, seeded randomness, reset, and replay for preview only.
   - id: definition.nimi.platform.simulator.session-projection
     kind: definition
     title: Simulated session projection
-    meaning: A simulated session projection is deterministic presentation state derived from one Scenario persona and status with an independent route, store, lifecycle, login attempt, and optional override for each renderer instance, never a real or inferred account or persistent session.
+    meaning: A simulated session is clearly labeled deterministic presentation state and never a real or inferred Nimi account, Runtime session, App permission, or persistent identity.
   - id: definition.nimi.platform.simulator.interaction-protocol
     kind: definition
-    title: Simulator interaction protocol
-    meaning: The Simulator interaction protocol is the typed schema-validated presentation-only command and event path among selected live instances through the ordered State Engine.
+    title: Simulated presentation interaction
+    meaning: Simulated interactions coordinate selected preview instances through typed presentation-only intent and events without creating real App-to-App, Runtime, Realm, permission, or messaging authority.
   - id: definition.nimi.platform.simulator.effect-boundary
     kind: definition
     title: Simulator effect boundary
-    meaning: The Simulator effect boundary is the credential-free reviewed-source execution environment that permits only Simulator-owned presentation effects and excludes real Runtime, Realm, provider, model, account, credential, permission, persistence, authentication, and network paths without claiming hostile-code isolation.
+    meaning: Simulator admits only reviewed presentation effects required for preview and excludes real authentication, credentials, product mutation, provider execution, local host control, installation, and persistent side effects.
   - id: definition.nimi.platform.simulator.owner-boundary
     kind: definition
     title: Simulator owner boundary
-    meaning: The Simulator owner boundary limits platform ownership to its independent public product identity, ecosystem experience, selected-source protocol, deterministic presentation and per-instance session overrides, concrete presentation leases, permitted effects, and final build while every referenced App, Kit, SDK, Runtime, Realm, messaging, identity, admission, authorization, and trust semantic remains with its existing owner.
+    meaning: Simulator owns its public website, preview shell, disclosure, deterministic presentation scenarios, and session-local controls while Realm, Runtime, SDK, Kit, Apps, LocalAgent, Avatar, authorization, and distribution semantics remain with their existing owners.
   - id: definition.nimi.platform.simulator.failure-model
     kind: definition
     title: Simulator failure model
-    meaning: The Simulator failure model is the closed typed non-retryable operation, instance, module-graph, and terminal session-integrity failure partition for deterministic execution.
+    meaning: Simulator exposes explicit typed preview, adapter, instance, scenario, and session failure without retries or fallbacks that imply real product success.
   - id: rule.nimi.platform.simulator.p-sim-001a
     kind: rule
-    title: P-SIM-001 independent product identity
+    title: Simulator retains its current core position
     modality: must
-    statement: The Simulator remains one independent public browser product with one Shell, one React root, one deterministic State Engine, one generated selected-module registry, and one independently deployable artifact.
-    condition: Whenever the Simulator is built, deployed, or presented.
-    failure: Reject a shared App root, second State Engine, handwritten registry, or non-independent artifact.
+    statement: Simulator remains the public Nimi ecosystem website and a browser preview and check surface for selected current App experiences.
+    condition: Whenever Simulator product scope is planned or presented.
+    failure: Reject a new product category unrelated to the current public website and bounded preview role.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.product
   - id: rule.nimi.platform.simulator.p-sim-001b
     kind: rule
-    title: P-SIM-001 persistent simulation disclosure
+    title: Simulation is always disclosed
     modality: must
-    statement: The Simulator renders persistent accessible simulation disclosure outside every App root in normal, loading, full-window, modal, instance-failure, and session-failure states.
-    condition: Whenever any Simulator surface is visible.
-    failure: Treat the surface as invalid while disclosure is hidden, inaccessible, App-owned, or absent.
+    statement: Every Simulator preview clearly and accessibly discloses that displayed identity, account, permission, data, LocalAgent, Conversation, and product state is simulated or deterministic.
+    condition: Whenever a Simulator preview is visible.
+    failure: Treat an undisclosed preview as invalid.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.product
   - id: rule.nimi.platform.simulator.p-sim-001c
     kind: rule
-    title: P-SIM-001 presentation truth boundary
-    modality: must_not
-    statement: Simulated data, identity, authorization, handoff, context, or outcomes are presented as Runtime, Realm, account, permission, installation, provider, model, or persistent-world truth.
-    condition: Whenever simulated state, a cross-product relation, or an outcome is rendered or returned.
-    failure: Label the value or relation as simulated presentation state and remove the product-truth claim.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.session-projection
-  - id: rule.nimi.platform.simulator.p-sim-002a
-    kind: rule
-    title: P-SIM-002 independent build boundary
+    title: Simulator is lower priority and non-blocking
     modality: must
-    statement: The Simulator owns its HTML, browser-public environment schema, build, artifact manifest, deployment route, and content-security policy, and Web may link to it without bundling its Shell or selected App graph.
-    condition: Whenever Simulator or Web build and deployment boundaries are resolved.
-    failure: Reject shared bundling, shared Shell ownership, or an environment and deployment boundary not owned by Simulator.
+    statement: Simulator work and completeness do not block the current Windows Nimi Home, Runtime, Local AI, Character materialization, LocalAgent, Memory, Knowledge, Avatar, SDK, Kit, or Third-party Local App closure.
+    condition: Whenever Simulator readiness is related to current product closure.
+    failure: Remove Simulator as a prerequisite and report its own state separately.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.product
-  - id: rule.nimi.platform.simulator.p-sim-002b
+  - id: rule.nimi.platform.simulator.p-sim-002
     kind: rule
-    title: P-SIM-002 one credential-free source build
-    modality: must
-    statement: One Simulator-owned final build compiles selected App source into a credential-free artifact and credential-free browser-public environment without remote modules, App-prebuilt renderer bundles, runtime plugins, iframes, Workers, or service-worker module loading.
-    condition: Whenever the final Simulator artifact is constructed or loaded.
-    failure: Fail the build or load before executing a forbidden graph or exposing a credential.
+    title: Simulator creates no real side effects
+    modality: must_not
+    statement: Simulator creates, changes, deletes, or authorizes a real Realm record, Runtime resource, account, permission, credential, LocalAgent, Conversation, Memory, Knowledge, App installation, Avatar state, provider job, or host operation.
+    condition: Whenever a preview interaction is executed.
+    failure: Keep the effect in deterministic session-local presentation state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.effect-boundary
-  - id: rule.nimi.platform.simulator.p-sim-002c
-    kind: rule
-    title: P-SIM-002 shell-mode exclusion
-    modality: must_not
-    statement: The Simulator becomes a Desktop or Web shell mode or extends Desktop shell-mode values.
-    condition: Whenever a shell mode or Simulator entry is defined.
-    failure: Keep the Simulator as an independent product entry and reject the added shell mode.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
   - id: rule.nimi.platform.simulator.p-sim-003
     kind: rule
-    title: P-SIM-003 Simulator-owned source selection
-    modality: must
-    statement: Simulator-owned source selection controls curated source inclusion, ordering, registry generation, and resolution while every production entry, selected Nimi host invocation, and Simulator renderer resolves the same canonical renderer-factory and style closure.
-    condition: Whenever selected source is described, materialized, ordered, or registered.
-    failure: Reject App-owned selection, a handwritten registry, or a divergent renderer-factory or style closure.
+    title: Simulator receives no real credentials
+    modality: must_not
+    statement: Simulator requests, stores, forwards, or derives Realm JWT, Provider Credential, Runtime proof, account bearer, protected endpoint, host session, or real App authorization.
+    condition: Whenever Simulator loads or runs a preview.
+    failure: Reject the credential path and keep the preview deterministic and credential free.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.simulator.selected-source-protocol
-  - id: rule.nimi.platform.simulator.p-sim-004a
+        target: definition.nimi.platform.simulator.effect-boundary
+  - id: rule.nimi.platform.simulator.p-sim-004
     kind: rule
-    lifecycle: removed
-    title: P-SIM-004 current protocol versions
-    reason: Removed because exact protocol-version topology is an implementation contract and does not define the Simulator product.
-  - id: rule.nimi.platform.simulator.p-sim-004b
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-004 closed manifest parser and fields
-    reason: Removed because exact manifest parser fields and mandatory fixture fields are implementation and qualification topology.
-  - id: rule.nimi.platform.simulator.p-sim-004c
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-004 closed identifiers paths and surfaces
-    reason: Removed because exact identifier, byte-budget, route, path, and readiness-contract mechanics are implementation and qualification topology.
-  - id: rule.nimi.platform.simulator.p-sim-004d
-    kind: rule
-    title: P-SIM-004 renderer module boundary
+    title: App renderers remain App owned
     modality: must
-    statement: A renderer module exposes only its protocol, module identity, and canonical factory, has no import side effects or self-mount, contains no Simulator-only UI, and contributes no Simulator module surface to a production graph.
-    condition: Whenever a selected renderer module is loaded or bundled.
-    failure: Reject an unknown surface, import effect, self-mount, Simulator-only UI, or production inclusion.
+    statement: A selected App owns its renderer, routes, resources, product copy, and presentation behavior, while Simulator supplies only the bounded preview host and mock inputs.
+    condition: Whenever Simulator renders a selected App.
+    failure: Reject a Simulator-owned fork of App product behavior.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.renderer-factory
-  - id: rule.nimi.platform.simulator.p-sim-004e
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-004 namespaces and result envelope
-    reason: Removed because exact namespace and result-envelope fields are implementation contract mechanics rather than Simulator product authority.
   - id: rule.nimi.platform.simulator.p-sim-005
     kind: rule
-    title: P-SIM-005 qualification is not App admission
-    modality: must_not
-    statement: Simulator product, module, instance, source-curation, automation, or qualification identity publishes, installs, signs, trusts, grants, reviews, admits, or creates Platform App identity, Runtime principal identity, a public review workflow, a self-service publication pipeline, an App Store, arbitrary remote loading, or a second App-admission system.
-    condition: Whenever Simulator identity, source curation, automation, or qualification is used.
-    failure: Keep those identities and activities bounded to Simulator and defer product identity, admission, trust, authorization, and publication to their existing owners.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.owner-boundary
-  - id: rule.nimi.platform.simulator.p-sim-006a
-    kind: rule
-    title: P-SIM-006 canonical renderer factory identity
+    title: Preview adapters are minimal and demand driven
     modality: must
-    statement: Every App production entry, selected Nimi host invocation, and Simulator renderer entry reaches the same selected App-owned synchronous factory export and canonical style-input closure.
-    condition: Whenever a selected App renderer is resolved or constructed.
-    failure: Reject a copied renderer, alternate factory, divergent graph, divergent style closure, or host-discriminated construction.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.renderer-factory
-  - id: rule.nimi.platform.simulator.p-sim-006b
-    kind: rule
-    title: P-SIM-006 per-instance renderer construction
-    modality: must
-    statement: The canonical factory constructs per-instance providers, stores, query clients, localization, routes, subscriptions, caches, and named surfaces, exposes exactly one required main surface and only declared additional surfaces, and receives protocol, scope, capabilities, localization, Kit, SDK, App projection, App commands, App events, route, clock, and surface-lifecycle bindings.
-    condition: Whenever a selected renderer instance is constructed.
-    failure: Reject missing required construction, undeclared surfaces, shared mutable resources, or incomplete bindings.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.renderer-factory
-  - id: rule.nimi.platform.simulator.p-sim-006c
-    kind: rule
-    title: P-SIM-006 host-neutral renderer prohibition
-    modality: must_not
-    statement: A canonical renderer factory calls createRoot, constructs production transport or browser history, installs a process-global host, reuses module-scope mutable renderer resources, imports State Engine internals, or receives host kind, Simulator discriminator, shell mode, environment, provider identity, or raw Simulator module, instance, or epoch identity.
-    condition: Whenever a canonical factory is defined or invoked.
-    failure: Reject the factory and remove the host-specific or shared-state behavior.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.renderer-factory
-  - id: rule.nimi.platform.simulator.p-sim-007a
-    kind: rule
-    title: P-SIM-007 App-owned Adapter lifecycle
-    modality: must
-    statement: Each selected App owns its Adapter, creates one Adapter per renderer instance, keeps module evaluation, factory creation, and construction side-effect free, and permits Simulator host-resource allocation first during prepare.
-    condition: Whenever an Adapter is loaded, created, or advanced through lifecycle.
-    failure: Reject shared instances, early effects, or Simulator-owned App adaptation.
+    statement: A Simulator adapter exists only for a concrete selected App preview journey, remains host neutral and presentation-only, and does not become a mandatory App framework, SDK layer, capability catalog, or lifecycle owner.
+    condition: Whenever a selected App needs Simulator integration.
+    failure: Reject speculative adapter surface without a current preview consumer.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.adapter
-  - id: rule.nimi.platform.simulator.p-sim-007b
+  - id: rule.nimi.platform.simulator.p-sim-006
     kind: rule
-    title: P-SIM-007 exact Adapter boundary
-    modality: must
-    statement: An Adapter supplies exact host-neutral Kit, SDK, App projection, App command, App event, route, clock, localization, scope, and surface-lifecycle bindings and exposes only protocol, module identity, behavior, create, prepare, activate, deactivate, and dispose contract surfaces.
-    condition: Whenever an Adapter is validated or invoked.
-    failure: Reject missing, unknown, inexact, or host-specific bindings or methods.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.adapter
-  - id: rule.nimi.platform.simulator.p-sim-007c
-    kind: rule
-    title: P-SIM-007 Adapter authority prohibition
+    title: Selected sources do not create a registry product
     modality: must_not
-    statement: An Adapter renders App UI, returns React nodes, queries or mutates App DOM, constructs or reconstructs renderer resources, replaces routes, patches source, injects App CSS, selects an alternate factory, exposes a host discriminator, or calls real Runtime, Realm, native, provider, storage, or network surfaces.
-    condition: Whenever an Adapter is defined or invoked.
-    failure: Reject the Adapter before the prohibited action executes.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.adapter
-  - id: rule.nimi.platform.simulator.p-sim-008
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-008 one exact resolver graph
-    reason: Removed because exact resolver tuple and package-resolution mechanics are implementation and qualification topology.
-  - id: rule.nimi.platform.simulator.p-sim-009
-    kind: rule
-    title: P-SIM-009 reproducible selected-source materialization
-    modality: must
-    statement: The selected-module registry is generated only from Simulator-owned source selection and validated module contracts; Shell source has no App-specific imports or registry rows; source preparation is reproducible, non-authoritative, credential-free, and root-independent; and release source remains fail-closed on mutable or workspace-only input.
-    condition: Whenever selected source is materialized or a registry is generated.
-    failure: Reject mutable, path-dependent, credential-bearing, source-scripted, or handwritten registry input.
+    statement: A selected preview source list, generated import map, renderer descriptor, fixture catalog, or build input is treated as public distribution, Marketplace, Registry, Trust Tier, installation, or product admission authority.
+    condition: Whenever Simulator selects preview sources.
+    failure: Keep source selection internal to the bounded current preview build.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.selected-source-protocol
-  - id: rule.nimi.platform.simulator.p-sim-010a
+  - id: rule.nimi.platform.simulator.p-sim-007
     kind: rule
-    title: P-SIM-010 deterministic state partition ownership
+    title: Arbitrary source hosting is out of scope
+    modality: must_not
+    statement: Simulator accepts arbitrary source repositories, unreviewed code, user uploads, package installation, general remote execution, or public App hosting.
+    condition: Whenever Simulator source intake is proposed.
+    failure: Keep the source unavailable until a separate product and security authority admits it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.selected-source-protocol
+  - id: rule.nimi.platform.simulator.p-sim-current-008
+    kind: rule
+    title: Simulated state is deterministic and ephemeral
     modality: must
-    statement: The State Engine owns only immutable deterministic scenario, ecosystem, and private App-module partitions; Shell chrome presentation state and session-local routing stay outside the State Engine as non-deterministic presentation concerns; each App reducer writes only its module partition; each Simulator interaction writes only declared Simulator partitions; and each presented product experience is covered by the current Scenario.
-    condition: Whenever scenario state is initialized, reduced, or projected.
-    failure: Reject incomplete product-experience coverage or a write outside the declared partition.
+    statement: Preview scenarios use explicit deterministic fixtures, seeded variation, ordered operations, and session-local state that resets without becoming account, App, Realm, Runtime, or LocalAgent persistence.
+    condition: Whenever Simulator produces or restores scenario state.
+    failure: Reject hidden nondeterminism and persistent product truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.state-engine
-  - id: rule.nimi.platform.simulator.p-sim-010b
+  - id: rule.nimi.platform.simulator.p-sim-009
     kind: rule
-    title: P-SIM-010 simulated persistence boundary
-    modality: must_not
-    statement: State Engine data becomes Runtime Scenario input or is persisted or consumed as Runtime, Realm, App registry, identity, permission, account, message-delivery, model, provider, memory, or world truth.
-    condition: Whenever deterministic state is seeded, consumed, reset, or presented.
-    failure: Keep persistence-shaped behavior as erasable Scenario state and reject foreign truth consumption.
+    title: Reset restores the selected fixture
+    modality: must
+    statement: Simulator reset discards session-local mutations and returns each selected preview to its declared deterministic starting state without contacting product owners.
+    condition: Whenever a user resets a preview or session.
+    failure: Report reset failure rather than retain hidden state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.state-engine
-  - id: rule.nimi.platform.simulator.p-sim-010c
+  - id: rule.nimi.platform.simulator.p-sim-010
     kind: rule
-    title: P-SIM-010 simulated session truth
-    modality: must
-    statement: One Scenario persona and closed initial status produce independent projected sessions, login attempts, routes, stores, and lifecycles per renderer instance; an override changes only its instance; reset clears overrides; identity-shaped identifiers use the sim- prefix; ecosystem identity derives idempotently from the one persona; and simulated login, logout, and OAuth completion are declared State Engine commands and events.
-    condition: Whenever simulated account or session presentation is initialized, changed, or reset.
-    failure: Reject a second persona, cross-instance override, non-simulated identity, non-idempotent derivation, or undeclared auth transition.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.session-projection
-  - id: rule.nimi.platform.simulator.p-sim-010d
-    kind: rule
-    title: P-SIM-010 no real session effects
+    title: Simulated sessions never become identity
     modality: must_not
-    statement: A simulated account or authentication transition creates a Runtime or Realm call, token, credential, Cookie, browser-storage record, persistent session, or account authority.
-    condition: Whenever simulated account state is created or changed.
-    failure: Block the effect and retain presentation-only session state.
+    statement: A simulated persona, account label, App session, permission posture, LocalAgent selector, or route is accepted as real identity or authorization by any product owner.
+    condition: Whenever simulated session data crosses a preview boundary.
+    failure: Keep the data inside the Simulator presentation session.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.session-projection
   - id: rule.nimi.platform.simulator.p-sim-011
     kind: rule
-    title: P-SIM-011 serial queue and atomic publication
+    title: Instance state is isolated
     modality: must
-    statement: Each session uses one FIFO queue for commands and declared read queries with one global acceptance sequence; a drain runs synchronously to quiescence without await, host yield, or microtask checkpoint; commands validate owner and write sets and atomically commit one immutable snapshot, one revision increment, and ordered events or commit nothing with a typed result; queries read only declared projections and commit no state, revision, randomness, or event; and commit, subscriber, event, target, result-recording, and Promise-observation order remains fixed.
-    condition: Whenever an operation is accepted, drained, committed, or observed.
-    failure: Reject any partial, unordered, impure, or undeclared commit and terminate integrity when deterministic draining cannot complete.
+    statement: Each preview instance has isolated App resources and session-local presentation state, and one instance cannot mutate another except through an explicitly simulated presentation interaction.
+    condition: Whenever multiple preview instances are visible.
+    failure: Reject hidden shared mutable state.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.simulator.state-engine
+        target: definition.nimi.platform.simulator.session-projection
   - id: rule.nimi.platform.simulator.p-sim-012
     kind: rule
-    title: P-SIM-012 deterministic time randomness async and replay
-    modality: must
-    statement: Logical time advances only through explicit operations; state-affecting asynchronous work reserves release order before awaiting and releases by allocation sequence; reducers are synchronous and pure; real time, timers, Promise settlement order, ambient randomness, and cryptographic randomness do not affect committed state; and replay of the same accepted scenario and operations reproduces the same final state and visible outcome.
-    condition: Whenever time, asynchronous work, randomness, reduction, or replay can affect state.
-    failure: Reject the operation or replay on nondeterministic influence, impure reduction, out-of-order release, or a non-reproduced final state or visible outcome.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.state-engine
-  - id: rule.nimi.platform.simulator.p-sim-013
-    kind: rule
-    title: P-SIM-013 lifecycle cleanup and reset
-    modality: must
-    statement: Instance lifecycle follows closed transitions with only close-during-prepare interrupt; disposal invalidates the instance token before unmount, disposes renderer and Adapter at most once, then performs host cleanup once in reverse registration order; cleanup is cancellation-safe; no instance reset hook exists; and Scenario reset closes the old epoch, performs ordered cleanup outside the FIFO drain, then reconstructs the new epoch and settles every accepted result.
-    condition: Whenever an instance transitions, disposes, fails, or participates in Scenario reset.
-    failure: Terminate session integrity on cleanup rejection, stale commit, duplicate disposal, invalid transition, or pending accepted result.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.state-engine
-  - id: rule.nimi.platform.simulator.p-sim-014a
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-014 visible readiness truth
-    reason: Removed because paint observation, animation-frame sequencing, and readiness DOM markers are qualification evidence mechanics.
-  - id: rule.nimi.platform.simulator.p-sim-014b
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-014 readiness ownership and invalidation
-    reason: Removed because readiness predicates and product-specific DOM checkpoints are qualification evidence mechanics.
-  - id: rule.nimi.platform.simulator.p-sim-015
-    kind: rule
-    title: P-SIM-015 typed cross-App interaction
-    modality: must
-    statement: Cross-product behavior, including simulated identity, authorization, handoff, and context carry, uses the Simulator interaction protocol and Simulator-owned catalog; validates typed input before queue acceptance; resolves selected targets and live instances; routes changes through the ordered State Engine; forbids direct App imports, foreign-store mutation, real authority widening, and product App-message transport; and returns explicit typed failure for missing or unsupported targets.
-    condition: Whenever an App emits or receives a simulated cross-App interaction.
-    failure: Reject invalid input before queue acceptance and return a typed failure without real authority, product messaging, direct mutation, silent no-op, or success-shaped placeholder.
+    title: Simulated interactions create no platform bus
+    modality: must_not
+    statement: Simulator interaction events become a Runtime, Realm, SDK, Kit, App-to-App, LocalAgent, or public platform event protocol.
+    condition: Whenever selected preview instances coordinate.
+    failure: Keep the event typed, presentation-only, and local to the simulated session.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.interaction-protocol
+  - id: rule.nimi.platform.simulator.p-sim-013
+    kind: rule
+    title: Product owners remain authoritative
+    modality: must
+    statement: Simulator projections of Realm, Runtime, LocalAgent, Avatar, App, permission, AI, SDK, and Kit concepts follow their public semantics but never claim current owner state or implementation acceptance.
+    condition: Whenever Simulator presents a Nimi domain concept.
+    failure: Label the projection simulated and reject owner claims.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.owner-boundary
+  - id: rule.nimi.platform.simulator.p-sim-014
+    kind: rule
+    title: Future platform expansion is deferred
+    modality: must
+    statement: Marketplace, public App distribution, Registry, Trust Tier, arbitrary source hosting, cross-product platform orchestration, real authentication, real Runtime connectivity, and any new Simulator product class remain outside the current Simulator scope.
+    condition: Whenever Simulator expansion is proposed.
+    failure: Isolate the proposal until separate product authority admits it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.owner-boundary
+  - id: rule.nimi.platform.simulator.p-sim-015
+    kind: rule
+    title: Failures remain visible and local
+    modality: must
+    statement: Adapter, renderer, fixture, scenario, interaction, and instance failures are typed, visible, and isolated to the affected preview when possible.
+    condition: Whenever a Simulator component fails.
+    failure: Do not convert failure into empty success or a claim about real product state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.failure-model
   - id: rule.nimi.platform.simulator.p-sim-016
     kind: rule
-    title: P-SIM-016 Kit SDK and Simulator owner boundaries
-    modality: must
-    statement: Kit retains reusable provider-scoped renderer host, opaque identity scope, mandatory theme and overlay targets, coordinator types, and host-neutral result mapping; Simulator owns only concrete lease allocation and permitted effect execution; SDK retains a host-neutral presentation facade derived from public types without production transport, endpoint, credential, principal, or Runtime or Realm truth; and canonical UI receives only that facade and host-neutral NimiError without Simulator identities or error codes.
-    condition: Whenever Simulator integrates Kit or SDK surfaces.
-    failure: Reject transferred ownership, global fallback, shell inference, production transport, Simulator-named public error, or exposed Simulator identity.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.owner-boundary
-  - id: rule.nimi.platform.simulator.p-sim-017
-    kind: rule
-    title: P-SIM-017 DOM CSS route and overlay composition
-    modality: must
-    statement: Simulator owns one React root and Shell route serialization; Apps install no browser-history owner; each selected product experience uses the same canonical renderer-factory and style-input closure as its real product, with instance-scoped DOM identities and styles; Kit CSS emits once; App CSS owns no document root, reset, unscoped global selector, unnamespaced global identity, remote import, or host-only safelist; and one Shell coordinator owns document-level overlays, focus, inertness, scroll lock, and z-index leases.
-    condition: Whenever selected App UI is composed in the Simulator document.
-    failure: Reject a divergent renderer or style closure, global collision, duplicate owner, unscoped output, or App-owned Shell coordination.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
-  - id: rule.nimi.platform.simulator.p-sim-018a
-    kind: rule
-    title: P-SIM-018 reviewed shared execution context
-    modality: must
-    statement: Selected reviewed renderer source executes in one trusted shared JavaScript context without claiming hostile-code isolation, and bootstrap verifies browser descriptors and installs effect guards before importing Shell, Kit, SDK, selected source, or an effect-capable dependency.
-    condition: Whenever a Simulator browser session starts.
-    failure: Stop before selected source evaluation if bootstrap or guards are absent or late.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
-  - id: rule.nimi.platform.simulator.p-sim-018b
-    kind: rule
-    title: P-SIM-018 no-real-effects browser boundary
-    modality: must
-    statement: Typed ports, runtime guards, reviewed source, and deployment content-security policy jointly deny real effects; network, cross-context execution, navigation, form submission, authentication, Runtime or Realm requests, Cookie use, browser storage, and persistent browser sessions remain absent.
-    condition: Whenever selected source executes or browser policy admits an effect.
-    failure: Block the effect and terminate integrity on guard bypass or prohibited credential, persistence, authentication, or network activity.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
-  - id: rule.nimi.platform.simulator.p-sim-019
-    kind: rule
-    title: P-SIM-019 closed errors and failure scope
-    modality: must
-    statement: Simulator errors use the closed enum and are non-retryable within one deterministic operation; invalid input, unsupported behavior, denied capability, exhaustion, stale epoch, disposed instance, and invalid lifecycle commit nothing; attributable renderer or Adapter faults fail one instance after cleanup; shared module-load faults fail their graph; guard bypass, State Engine invariant failure, shared dependency corruption, ambiguous global async failure, or unprovable cleanup terminates the session with SIMULATOR_INTEGRITY_FAILURE; and error text contains no credential, absolute path, raw source, or Scenario-defined free-text status.
-    condition: Whenever Simulator classifies or reports a failure.
-    failure: Reject an unknown, retrying, overbroad, underbroad, state-committing, or sensitive error result.
+    title: Simulator checks do not prove product connectivity
+    modality: must_not
+    statement: A deterministic preview, visual check, fixture test, build, source registry, or replay is reported as successful Realm, Runtime, LocalAgent, Avatar, account, permission, or Third-party App product connectivity.
+    condition: Whenever Simulator acceptance is summarized.
+    failure: Report only preview behavior and classify real connectivity as not verified.
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.failure-model
-  - id: rule.nimi.platform.simulator.p-sim-020
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-020 independent qualification owners
-    reason: Removed because integrated qualification ownership topology does not define Simulator product identity or architecture.
-  - id: rule.nimi.platform.simulator.p-sim-021
-    kind: rule
-    title: P-SIM-021 external source equivalence
-    modality: must
-    statement: Workspace and external-repository source use the same selected-product interface, canonical renderer-factory and style closure, registry, final build, and product behavior; external location creates no separate trust, Runtime, publication, authority, credential, or relaxed product mode.
-    condition: Whenever source outside the workspace is selected or materialized.
-    failure: Reject an ambiguous, credential-bearing, source-configured, authority-widening, or behaviorally divergent external source.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.selected-source-protocol
-  - id: rule.nimi.platform.simulator.p-sim-022
-    kind: rule
-    title: P-SIM-022 structural performance boundaries
-    modality: must
-    statement: Simulator preserves public-site isolation, empty-Shell isolation, singleton identity, lazy App graphs, lazy App CSS, projection-scoped rendering, complete cleanup, zero runtime materialization, and stable chunk attribution as blocking structural invariants, while unadmitted numerical ceilings remain diagnostic and cannot block component construction.
-    condition: Whenever the relevant build graph or runtime surface exists.
-    failure: Block on the first structural invariant violation and reject an unadmitted numerical ceiling as product authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
-  - id: rule.nimi.platform.simulator.p-sim-024a
-    kind: rule
-    title: P-SIM-024 current product experiences
-    modality: must
-    statement: A complete Simulator product provides the Nimi ecosystem landing and guided story, independent browser experiences of Desktop, Zhiyu, and other selected products, a visible deterministic cross-product journey among selected product surfaces, deterministic scenario replay, and UI/UX regression probing as capabilities of that same product.
-    condition: Whenever completeness of the current Simulator product is claimed.
-    failure: Reject completeness while the ecosystem story, required product experiences, visible cross-product relation, or one-product boundary is absent.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
-  - id: rule.nimi.platform.simulator.p-sim-024b
-    kind: rule
-    title: P-SIM-024 hard-cut current App source
-    modality: must
-    statement: App UI and UX updates enter Simulator only through selection and rebuild of current App source, without historical App versions, compatibility shims, retained old manifests, dual resolver paths, Simulator-owned UI copies, or patched App source.
-    condition: Whenever selected App UI or UX is updated.
-    failure: Reject the compatibility path, copy, patch, or historical source and rebuild from current canonical source.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.selected-source-protocol
-  - id: rule.nimi.platform.simulator.owner-matrix-product-boundary
-    kind: rule
-    title: Simulator owner-matrix product boundary
-    modality: must_not
-    statement: Simulator owns or redefines App identity, admission, trust, publication, canonical UI, store, route, provider, persistence, product messaging, Kit primitives, SDK public semantics, Runtime execution, Realm business truth, provider or model truth, permission, account, credential, endpoint, principal, or platform architecture direction.
-    condition: Whenever Simulator integrates or references another owner surface.
-    failure: Keep the semantic with its existing owner and retain only a bounded Simulator projection or cross-reference.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.owner-boundary
-  - id: rule.nimi.platform.simulator.owner-matrix-integration-boundary
-    kind: rule
-    title: Simulator owner-matrix integration boundary
-    modality: must
-    statement: Simulator remains an App-layer browser product, imports no Runtime internals, lets Web link without bundling, treats external repositories only as source locations, supplies only per-instance bindings and presentation projections to selected Apps, and keeps Simulator interactions independent from product App messaging.
-    condition: Whenever Simulator crosses Web, App, app-tools, Runtime, Realm, or messaging boundaries.
-    failure: Reject a new platform truth layer, bundled Web graph, trust tier, App semantic fork, authority transfer, or product-message claim.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.owner-boundary
-  - id: rule.nimi.platform.simulator.m-10-production-bundle-exclusion
-    kind: rule
-    title: Simulator production-bundle exclusion (M-10)
-    modality: must_not
-    statement: A production App entry imports a Simulator module or includes a Simulator module surface in its production bundle.
-    condition: Whenever a production App graph is resolved or bundled.
-    failure: Fail the production build until the Simulator dependency is removed; Simulator remains only an independent, publicly deployed Simulator product surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
-  - id: rule.nimi.platform.simulator.p-sim-018c
-    kind: rule
-    title: P-SIM-018 simulator-browser-effects effect catalog closure
-    modality: must
-    statement: The Simulator browser-effect boundary governs selected App renderer source, App Simulator Adapters, and selected dependencies across module evaluation, instance lifecycle, render, and callback phases; permits only owner-scoped presentation effects with cleanup for allocated resources; and forbids selected-source network access, persistent storage, cookies, origin-private filesystems, file pickers, service-worker registration, Workers, cross-context channels, top-level navigation, clipboard access, wall-clock authority, and nondeterministic randomness.
-    condition: Whenever governed code declares or invokes a browser effect.
-    failure: Reject an undeclared, owner-ineligible, state-authoritative, uncleaned, or forbidden effect with SIMULATOR_EFFECT_FORBIDDEN.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
-  - id: rule.nimi.platform.simulator.p-sim-018d
-    kind: rule
-    title: P-SIM-018 simulator-browser-effects owner and proof closure
-    modality: must
-    statement: SimulatorClockPort alone mediates state-affecting scheduling; Simulator Shell or Kit owners alone mediate document or window effects, global DOM state, assigned instance overlay portals, and observers; performance observation has no state authority; root-scoped handlers and node mutation remain within assigned roots, instance scope, and Simulator CSS boundaries; and manifest exemptions or runtime monkey patches never widen the effect boundary.
-    condition: Whenever an allowed browser effect is admitted.
-    failure: Reject an effect without the required owner, target, purpose, cleanup, or product boundary.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
-  - id: rule.nimi.platform.simulator.p-sim-010e
-    kind: rule
-    title: P-SIM-010 simulator-state-engine-policy snapshot and quiescence invariants
-    modality: must
-    statement: The State Engine snapshot is immutable and partitioned into scenario, ecosystem, and modules; each successful state command increments its revision exactly once; and quiescence requires an empty operation queue, no running subscriber or event callback, no due logical-clock job waiting to enqueue, and no immediately releasable asynchronous reservation, while active reset or lifecycle cleanup prevents session quiescence.
-    condition: Whenever State Engine snapshot, revision, or quiescence state is evaluated.
-    failure: Reject mutable or mispartitioned state, an incorrect revision, or a false quiescence claim.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.state-engine
-  - id: rule.nimi.platform.simulator.p-sim-010f
-    kind: rule
-    title: P-SIM-010 simulator-state-engine-policy reservation stream and identity invariants
-    modality: must
-    statement: Async reservations synchronously capture epoch, issuer, causation, command type, payload schema, and allocation sequence before awaiting, accept one schema-validated terminal without raw exceptions, release or cancel by allocation order without Promise timing authority, and streams allocate and terminate by allocation sequence without stale-epoch delivery; operation, event, job, instance, overlay, stream, readiness, and async-reservation identities contain the current epoch and their own sequence, the first epoch is one, and reset restarts allocation sequences at one only in the new epoch.
-    condition: Whenever asynchronous work, streams, canonical identities, or reset sequencing is allocated, settled, delivered, or replayed.
-    failure: Terminate session integrity on an untyped, duplicate, stale, out-of-order, Promise-ordered, or identity-inconsistent terminal.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.state-engine
-  - id: rule.nimi.platform.simulator.p-sim-003a
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-003 simulator-source-policy descriptor and inventory contract
-    reason: Removed because full commit pins, root and authority-index digests, inventories, and inventory digests are source qualification mechanics.
-  - id: rule.nimi.platform.simulator.p-sim-009a
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-009 simulator-source-policy digest and registry contract
-    reason: Removed because whole-root digest encoding, inventory and report digests, and generated proof fields are qualification evidence mechanics.
-  - id: rule.nimi.platform.simulator.p-sim-010g
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-010 simulator-scenario-contract tracked artifact and schema
-    reason: Removed because an exact Scenario file path and mandatory Scenario artifact fields are implementation mechanics.
-  - id: rule.nimi.platform.simulator.p-sim-014c
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-014 simulator-scenario-contract launch readiness and build binding
-    reason: Removed because readiness DOM markers, Scenario digests, artifact binding, and final qualification observations are qualification evidence mechanics.
-  - id: rule.nimi.platform.simulator.p-sim-022a
-    kind: rule
-    title: P-SIM-022 simulator-performance-policy bounded resource structure
-    modality: must
-    statement: The simulator-performance-policy requires repeated instance opening, closing, and Scenario reset to reuse immutable code while allocating isolated mutable state and to return listeners, overlay leases, pending resources, asynchronous reservations, streams, lifecycle work, and instance-owned heap references to their structural post-cleanup baseline without unbounded growth.
-    condition: Whenever instances are repeatedly opened or closed or a Scenario is reset.
-    failure: Treat leaked ownership, retained pending work, cross-instance state reuse, or unbounded resource growth as invalid Simulator behavior.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
-  - id: rule.nimi.platform.simulator.p-sim-008a
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-008 simulator-mandatory-singletons closed package graph
-    reason: Removed because the exact mandatory package list and resolver-proof catalog are implementation and qualification topology.
-  - id: rule.nimi.platform.simulator.p-sim-019a
-    kind: rule
-    title: P-SIM-019 simulator-error-codes closed enum and envelope
-    modality: must
-    statement: The simulator-error-codes enum is the closed Simulator diagnostics vocabulary and contains exactly SIMULATOR_INVALID_MANIFEST, SIMULATOR_SOURCE_MISMATCH, SIMULATOR_UNSUPPORTED, SIMULATOR_CAPABILITY_DENIED, SIMULATOR_RESOURCE_EXHAUSTED, SIMULATOR_INVALID_PAYLOAD, SIMULATOR_INVALID_LIFECYCLE, SIMULATOR_STALE_EPOCH, SIMULATOR_INSTANCE_DISPOSED, SIMULATOR_INSTANCE_FAILED, SIMULATOR_MODULE_FAILED, SIMULATOR_EFFECT_FORBIDDEN, and SIMULATOR_INTEGRITY_FAILURE; each member identifies only a product-facing failure class, and every error has exactly code, fixed-catalog message, nullable module, instance, and operation identities, and retryable false, with queued operation identities derived from epoch and sequence and pre-queue operation identity null.
-    condition: Whenever Simulator constructs or serializes an error.
-    failure: Reject an unknown code, missing or extra field, retryable result, non-canonical operation identity, or non-fixed message.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.failure-model
-  - id: rule.nimi.platform.simulator.p-sim-019b
-    kind: rule
-    title: P-SIM-019 simulator-error-codes scope and SDK reachability
-    modality: must
-    statement: Configuration-stage failures surface before any session exists, fail closed without creating a partial session or changing state, and are unreachable through the SDK facade; operation-stage unsupported behavior, denied capability, resource exhaustion, invalid payload, invalid lifecycle, stale epoch, disposed instance, and forbidden effect fail without state change; attributable instance and shared-module failures change only Shell diagnostics at their declared scope; integrity failure is session-terminal; invalid-lifecycle failures are unreachable through the SDK facade; and every SDK-reachable Simulator error maps to a host-neutral NimiError without exposing its raw Simulator code.
-    condition: Whenever an error is scoped, committed, or mapped to the SDK facade.
-    failure: Reject a partial session, state-changing operation failure, incorrect failure scope, SDK-reachable configuration-stage or invalid-lifecycle error, or public raw Simulator code.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.failure-model
-  - id: rule.nimi.platform.simulator.p-sim-017a
-    kind: rule
-    lifecycle: removed
-    title: P-SIM-017 simulator-listener-families coordination closure
-    reason: Removed because the exact browser-listener catalog and subscriber sequencing are implementation and qualification topology.
-  - id: definition.nimi.platform.simulator.ecosystem-experience
-    kind: definition
-    title: Nimi ecosystem experience
-    meaning: The Nimi ecosystem experience is the ratified complete capability target comprising the public ecosystem landing, guided concept story, independent per-product browser experiences, interactive cross-product journeys, deterministic scenario replay, and UI/UX regression probing; every capability must be delivered within the one Simulator product identity, and an absent capability is an unmet product obligation rather than a present fact.
-  - id: definition.nimi.platform.simulator.cross-product-simulation
-    kind: definition
-    title: Disclosed cross-product simulation
-    meaning: A disclosed cross-product simulation is a deterministic presentation of identity, authorization, handoff, and context carry among product experiences that demonstrates ecosystem relations without creating or widening real identity, permission, account, Runtime, Realm, messaging, or persistent-world authority.
-  - id: rule.nimi.platform.simulator.p-sim-001d
-    kind: rule
-    title: P-SIM-001 one ecosystem experience product
-    modality: must
-    statement: The ecosystem landing, guided story, per-product experiences, cross-product demonstrations, deterministic scenario replay, and UI/UX regression probing operate as capabilities and journeys of the same Simulator product.
-    condition: Whenever a Simulator capability, route, deployment, or product identity is presented.
-    failure: Reject a second product identity, split product architecture, or capability presented outside the independent Simulator product.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.ecosystem-experience
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
-  - id: rule.nimi.platform.simulator.p-sim-005a
-    kind: rule
-    title: P-SIM-005 automation and qualification subordination
-    modality: must_not
-    statement: Automation or qualification defines Simulator product identity, product architecture, capability ownership, or a separate product path.
-    condition: Whenever automation or qualification drives or observes Simulator behavior.
-    failure: Use the same user-visible Simulator product paths and keep product identity and architecture independent from the driver or observer.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
-  - id: rule.nimi.platform.simulator.p-sim-015a
-    kind: rule
-    title: P-SIM-015 disclosed cross-product authority boundary
-    modality: must
-    statement: Simulated cross-product identity, authorization, handoff, and context carry remain deterministic, visibly disclosed presentation behavior and never create, grant, persist, or widen real authority.
-    condition: Whenever a cross-product journey is explained, driven, replayed, or observed.
-    failure: Block the real effect, retain only erasable simulated state, and restore persistent simulation disclosure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.cross-product-simulation
-      - type: applies_to
-        target: definition.nimi.platform.simulator.session-projection

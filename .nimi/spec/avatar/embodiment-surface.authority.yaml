@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.avatar.embodiment.product-boundary
     kind: definition
     title: Avatar embodiment product boundary
-    meaning: The Avatar embodiment product is the downstream validation and rendering surface that converts typed Runtime truth into backend-neutral cues and backend execution while leaving participation, provenance, input ontology, Realm truth, host mechanics, and backend-package internals with their existing owners.
+    meaning: Avatar is the LocalAgent shape, state, and voice projection product that renders Live2D, VRM, Nimi2D, motion, expression, pose, look-at, voice playback, and lipsync from Runtime-owned LocalAgent execution, Conversation, activity, emotion, voice, and presentation output without becoming their owner or a Third-party App driver.
   - id: definition.nimi.avatar.embodiment.backend-branch
     kind: definition
     title: BackendBranch carrier protocol
@@ -158,26 +158,6 @@ units:
         target: definition.nimi.avatar.embodiment.backend-branch
       - type: applies_to
         target: definition.nimi.avatar.embodiment.projection-output
-  - id: rule.nimi.avatar.embodiment.r012
-    kind: rule
-    title: Agent Script Contract 6.1 NAS projection API closure
-    modality: must
-    statement: NAS projection exposes exactly triggerMotion, stopMotion, setSignal, getSignal, addSignal, setExpression, clearExpression, setPose, clearPose, wait, getSurfaceBounds, and optional runDefaultActivity with typed arguments and returns.
-    condition: Whenever an isolated NAS handler receives a projection capability.
-    failure: Reject an unknown method, malformed call, branch-local extension, or capability object with additional ambient authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.nas-projection-api
-  - id: rule.nimi.avatar.embodiment.r013
-    kind: rule
-    title: Agent Script Contract 9.2 capability result semantics
-    modality: must
-    statement: NAS wait executes only inside the isolated handler, getSurfaceBounds returns the invocation-start snapshot, getSignal reads the invocation-local mirror updated by setSignal and addSignal, and every other capability call crosses a typed Avatar-owned projection boundary.
-    condition: Whenever a NAS capability call is evaluated.
-    failure: Reject a live synchronous renderer read, stale cross-invocation mirror, untyped transport value, or local placeholder success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.nas-projection-api
   - id: rule.nimi.avatar.embodiment.r014
     kind: rule
     title: Embodiment Projection Contract 7 reset boundary
@@ -212,21 +192,21 @@ units:
         target: definition.nimi.avatar.embodiment.renderer-smoothing
   - id: rule.nimi.avatar.embodiment.r017
     kind: rule
-    title: Avatar Event Contract 1 namespace closure
+    title: Avatar events remain presentation observations
     modality: must
-    statement: Avatar-owned events use only avatar.user, avatar.app, avatar.shell, avatar.composition, avatar.audio, avatar.lipsync, avatar.activity, avatar.motion, avatar.expression, avatar.pose, avatar.lookat, avatar.speak, avatar.emote, avatar.hit_region, avatar.carrier.lifecycle, avatar.debug, avatar.model, and avatar.before families, with backend-specific subfamilies admitted only by their backend authority.
-    condition: Whenever Avatar publishes or subscribes to a product event.
-    failure: Reject an unknown Avatar family, an Avatar event outside the avatar namespace, or a backend-specific family without backend admission.
+    statement: Avatar-owned events report only Avatar rendering, playback, interaction, backend, and lifecycle observations under the Avatar owner and do not become Runtime LocalAgent truth or a public raw motion, expression, pose, renderer, or driver API.
+    condition: Whenever Avatar publishes or consumes a product event.
+    failure: Reject an event that claims Runtime truth, exposes raw backend control, or grants Third-party Avatar driving authority.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.event-family
   - id: rule.nimi.avatar.embodiment.r018
     kind: rule
-    title: Avatar Event Contract 2 core event envelope
+    title: Avatar event envelopes are typed and bounded
     modality: must
-    statement: Every Avatar event has one declared stable identity, typed detail payload, rate tier, lifecycle meaning, and cancellation posture, and only avatar.before.activity.start is publicly cancellable in the core family.
+    statement: Every Avatar event has one declared identity, typed detail payload, bounded rate posture, lifecycle meaning, and owner-defined handling, with no generic public cancellation or driver hook.
     condition: Whenever an Avatar event is emitted, handled, canceled, or evolved.
-    failure: Reject an undeclared identity, malformed payload, unbounded high-rate publication, or cancellation outside the admitted before-event.
+    failure: Reject an undeclared identity, malformed payload, unbounded high-rate publication, or generic consumer control hook.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.event-family
@@ -276,9 +256,9 @@ units:
     kind: rule
     title: K-NAV-SHELL-FIRST-PARTY-RUNTIME-003 minimal launch intent
     modality: must
-    statement: Default Avatar launch accepts required agent_id plus optional avatar_instance_id and non-authoritative launch_source only, treats every identifier as a selector pending Runtime validation, resolves conversation continuity and selected visual identity only through typed Runtime or SDK projection, and permits only the verified Avatar native host to consume the shared canonical Product Control resolver internally when required to materialize the exact Runtime-authorized account, agent, backend kind, asset ref, and materialization ref under dataRoot.path; Avatar renderer, NAS, third-party app, and SDK surfaces receive neither the raw root nor arbitrary path authority.
+    statement: Default Avatar launch carries only the minimal intent needed to select a Runtime-authorized LocalAgent and optional Avatar instance, treats all caller input as untrusted until Runtime validation, resolves Conversation continuity and visual identity only through typed Runtime or SDK projections, and permits only the verified Avatar native host to materialize the exact Runtime-authorized visual package under the protected data root; Avatar renderer, NAS, third-party App, and SDK surfaces receive neither the raw root nor arbitrary path authority.
     condition: Whenever Desktop or another host launches the default first-party Avatar or an authorized visual package is materialized.
-    failure: Reject missing or invalid agent identity, a mismatched materialization tuple, raw-root disclosure, renderer or NAS path authority, and any launch-carried binding, anchor, package, account, user, Realm, credential, calibration, model, render, or performance truth.
+    failure: Reject missing or invalid LocalAgent selection, a mismatched materialization result, raw-root disclosure, renderer or NAS path authority, and any launch-carried account, user, Realm, credential, calibration, model, render, or performance truth.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.shell-lifecycle

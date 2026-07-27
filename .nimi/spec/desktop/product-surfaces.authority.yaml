@@ -74,7 +74,7 @@ units:
     modality: must
     statement: The source-generic action mapping is exactly materialization_available to Become my partner and MaterializeRealmSource with CharacterSourceRefV3 plus fresh requestId, sign_in_required to disabled Sign in required, source_not_ready to disabled Source not ready, source_access_denied to disabled Source unavailable, materializing to disabled Materializing, local_agent_available to Open partner using Runtime-owned opaque localAgentRef, local_agent_ambiguous to fail-closed Open from partners, runtime_unavailable to disabled Runtime unavailable, and materialization_error to fail-closed Materialization unavailable with the bounded typed Runtime reason; Desktop receives only bounded LocalAgentSourceContextStatus, never source snapshot, packet, proof, raw diagnostics, prompt, context, caller-selected audience, or caller-selected LocalAgent identity.
     condition: Whenever Desktop derives or performs a WorldCharacter or PersonaCharacter primary action from source state.
-    failure: Reject unknown or partial state as unavailable, disable ineligible or duplicate actions, and never acquire packets, synthesize identity, present Create LocalAgent language, open LocalAgent Chat from a bare source, or report materialization success without Runtime inventory and provenance.
+    failure: Reject unknown or partial state as unavailable, disable ineligible or duplicate actions, and never acquire packets, synthesize identity, present Create LocalAgent language, open LocalAgent Conversation from a bare source, or report materialization success without Runtime inventory and provenance.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.explore
@@ -182,7 +182,7 @@ units:
     kind: rule
     title: Home feed and Nimi Home do not overlap
     modality: must
-    statement: Home remains the Realm feed and Create Post surface inside Nimi Home, while the enclosing installed Nimi Home shell retains hosted-shell information architecture, navigation, windowing, first-run and return-run state, surface registry, Apps placement, Agent Chat placement, self-update UI, and failure-projection ownership.
+    statement: Home remains the Realm feed and Create Post surface inside Nimi Home, while the enclosing installed Nimi Home shell retains hosted-shell information architecture, navigation, windowing, first-run and return-run state, surface registry, Apps placement, LocalAgent conversation placement, self-update UI, and failure-projection ownership.
     condition: Whenever Desktop composes, names, or assigns ownership to Home or Nimi Home.
     failure: Reject an interpretation that equates the two objects, gives shell ownership to Home feed, or lets Home feed redefine or narrow enclosing shell authority.
     relations:

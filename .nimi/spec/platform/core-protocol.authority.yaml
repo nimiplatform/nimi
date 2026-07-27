@@ -32,8 +32,8 @@ units:
     meaning: Render-app mode permits read-only world-primitive access and app-auth access without a world binding, while extension-app mode permits read-write world-primitive access and app-auth access only with an active world binding.
   - id: definition.nimi.platform.core-protocol.action-plane
     kind: definition
-    title: External Agent action plane
-    meaning: The Runtime action plane comprises the External Agent gateway and server entry, token, session, and grant ledger, action descriptor registry, execution-context verification, completion ledger, and audit-query boundary exposed to consumers through typed SDK projection.
+    title: Isolated external action capability plane
+    meaning: The existing ExternalAgent-named gateway is an isolated optional action capability and legacy service namespace, not a Nimi Agent product entity, Runtime core prerequisite, or LocalAgent owner; if admitted, consumers reach it only through typed Runtime and SDK projection.
   - id: definition.nimi.platform.core-protocol.execution-principal
     kind: definition
     title: AI execution principal
@@ -256,7 +256,7 @@ units:
     kind: rule
     title: P-PROTO-070 cross-primitive consistency
     modality: must
-    statement: Transit satisfies Social, Economy, and Context constraints, Presence changes preserve Social admission, Timeflow preserves Economy settlement windows, and Context injection preserves Identity and Agent core anchors.
+    statement: Transit satisfies Social, Economy, and Context constraints, Presence changes preserve Social admission, Timeflow preserves Economy settlement windows, and Context injection preserves Identity and LocalAgent core anchors.
     condition: Whenever multiple primitives participate in one operation.
     failure: Reject the operation when any cross-primitive constraint fails.
     relations:
@@ -336,7 +336,7 @@ units:
     kind: rule
     title: P-ALMI-001 two-part AI last mile
     modality: must
-    statement: The AI last mile provides both relationship continuity through World, Agent, and Memory and standardized capability access through Local AI Runtime and the External Agent action plane.
+    statement: The current AI last mile provides LocalAgent Conversation, Memory, Knowledge, and Local AI Runtime capability; any existing external action capability remains separately admitted and non-blocking.
     condition: Whenever the AI last mile is delivered.
     failure: Treat the last mile as unavailable when either part is absent.
     relations:
@@ -346,8 +346,8 @@ units:
     kind: rule
     title: P-ALMI-002 Runtime action plane boundary
     modality: must
-    statement: Action execution uses Runtime-owned descriptors, the ExternalAgent gateway, permission checks, persisted execution state, completion records, and the audit boundary, while Desktop, Web, Kit, and apps consume only typed SDK projections.
-    condition: Whenever an External Agent action is discovered, executed, completed, or audited.
+    statement: When separately admitted, external action execution uses Runtime-owned descriptors, permission checks, execution state, completion results, and audit while Desktop, Web, Kit, and Apps consume only typed SDK projections; the legacy ExternalAgent namespace creates no Agent ontology.
+    condition: Whenever an external action capability is discovered, executed, completed, or audited.
     failure: Reject renderer-local, host-only, app-local, or Tauri-local action, token, success, handler-state, or audit authority.
     relations:
       - type: applies_to
@@ -722,11 +722,11 @@ units:
         target: definition.nimi.platform.core-protocol.participant-profile
   - id: rule.nimi.platform.core-protocol.p-almi-003-participant-types
     kind: rule
-    title: participant-profiles P-ALMI-003 closed participant type projection
+    title: participant-profiles P-ALMI-003 participant projections do not create product ontology
     modality: must
-    statement: The closed participant type set is human, nimi-agent, external-agent, external-app, external-service, device, and service, where external-app and external-service refine the Service principal projection and do not create new execution-principal types.
-    condition: Whenever a protocol participant type is declared or mapped to an execution principal.
-    failure: Reject an unknown participant type or a projection that creates an unauthorized principal type.
+    statement: A protocol participant projection may represent a human, a Runtime LocalAgent, an external participant, an App, a device, or a service only as context for an already admitted execution principal, and participant labels never introduce an Agent product entity, transfer LocalAgent ownership, or create a new authorization principal.
+    condition: Whenever a participant is declared or mapped to an execution principal.
+    failure: Reject a projection that creates an unauthorized principal, a parallel Agent ontology, or ownership inferred from a participant label.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.execution-principal
@@ -1268,10 +1268,6 @@ units:
     kind: definition
     title: P-ARCH Desktop-hosted Nimi Home shell
     meaning: Desktop is the current host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the public distribution, installation, and authorization unit.
-  - id: definition.nimi.platform.core-protocol.world-evolution-engine
-    kind: definition
-    title: P-ARCH World Evolution Engine placement
-    meaning: World Evolution Engine is a shared cross-app and cross-domain execution layer whose Platform authority is limited to placement, boundary, naming, and packaging guardrails while Runtime owns its execution semantics.
   - id: definition.nimi.platform.core-protocol.world-domain-facade
     kind: definition
     title: P-ARCH sdk world facade
@@ -1354,9 +1350,9 @@ units:
     kind: rule
     title: P-ARCH-004 Runtime responsibility allocation
     modality: must
-    statement: Runtime remains an independent local background process owning multimodal AI inference, explicit local-or-cloud AI routing, process and model management, Workflow DAG, GPU arbitration, local data and knowledge stores, Credential Plane, MCP Server, local audit, inter-app communication, app authorization gateway, and the Runtime-facing cognition and agent-core bridge.
+    statement: Runtime remains an independent local service owning Local and Cloud AI consume, explicit route selection, process and model management, local Text, STT and TTS, Token, Quota and Budget, Credential custody, LocalAgent materialization and lifecycle, Conversation, operational Memory and Knowledge, LocalAgent state, voice and events, local audit, App authorization, and bounded bridges to independent Realm and Cognition authority.
     condition: Whenever Platform architecture allocates Runtime responsibilities.
-    failure: Reject an allocation that removes these responsibilities from Runtime or makes Runtime dependent on an app layer.
+    failure: Reject an allocation that removes these core responsibilities from Runtime, makes Runtime dependent on an App layer, or promotes Workflow, MCP, or World Evolution into a Runtime core prerequisite.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.architecture-layer-model
@@ -1372,11 +1368,11 @@ units:
         target: definition.nimi.platform.core-protocol.architecture-layer-model
   - id: rule.nimi.platform.core-protocol.p-arch-010
     kind: rule
-    title: P-ARCH-010 frozen version-one execution stack
+    title: P-ARCH-010 current AI execution owner boundary
     modality: must
-    statement: Version one uses Go, llama plus media plus sidecar for local models, nimiLLM for remote models, explicit local or cloud routing without silent fallback, Runtime-owned connector or provider credential custody without caller injection, and Workflow DAG as an independent capability.
-    condition: Whenever the version-one execution stack is implemented or described.
-    failure: Reject a substituted language or stack, hidden route fallback, caller credential injection, or collapsed workflow capability.
+    statement: Runtime owns explicit Local or Cloud AI routing without silent fallback, Runtime-owned connector and Provider Credential custody without caller injection, and honest typed readiness and failure, while general product Workflow remains a deferred non-core capability with no current DAG or execution contract.
+    condition: Whenever the current AI execution stack is implemented or described.
+    failure: Reject hidden route fallback, caller credential injection, App-owned AI execution truth, or Workflow treated as a core prerequisite.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-route
@@ -1422,116 +1418,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.desktop-home-shell
-  - id: rule.nimi.platform.core-protocol.p-arch-022
-    kind: rule
-    title: P-ARCH-022 World Evolution Engine owner split
-    modality: must
-    statement: Platform owns only World Evolution Engine placement, boundary, naming, and packaging guardrails, and Runtime owns its execution semantics through a Runtime kernel contract.
-    condition: Whenever World Evolution Engine authority is allocated.
-    failure: Reject Platform-authored execution semantics or an execution placement without a Runtime semantic owner.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-023
-    kind: rule
-    title: P-ARCH-023 World Evolution Engine non-owner boundary
-    modality: must_not
-    statement: World Evolution Engine is defined as a narrative feature shell, SDK semantic owner, Realm canonical truth owner, consumer-specific orchestration shell, or replacement owner for world state, world history, or narrative truth.
-    condition: Whenever World Evolution Engine placement or ownership is described.
-    failure: Reject the ownership expansion and preserve each referenced canonical owner.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-024
-    kind: rule
-    title: P-ARCH-024 World Evolution Engine SDK-only cross-layer access
-    modality: must
-    statement: World Evolution Engine performs every cross-layer Realm or Runtime read, control, and commit request through an SDK public surface without importing runtime/internal/**, Realm private clients or transports, SDK private internals, host bridge details, app-private clients, or another private boundary.
-    condition: Whenever World Evolution Engine crosses a Realm or Runtime layer boundary.
-    failure: Reject the placement as inadmissible before the private dependency or bypass executes.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-025a
-    kind: rule
-    title: P-ARCH-025 admitted World Evolution Engine placement shapes
-    modality: must
-    statement: World Evolution Engine uses either a Runtime semantic contract with an SDK-mediated consumer seam or Platform boundary text plus a Runtime semantic contract and optional adapter-driven consumer helper layer.
-    condition: Whenever World Evolution Engine is placed or packaged.
-    failure: Reject any placement shape outside the closed admitted set.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-025b
-    kind: rule
-    title: P-ARCH-025 pure consumer helper boundary
-    modality: must
-    statement: A kit/** or equivalent shared World Evolution Engine helper remains pure consumer logic and does not acquire Runtime or Realm write authority, canonical truth ownership, or private-client dependencies.
-    condition: Whenever an optional shared consumer helper provides the default integration surface.
-    failure: Reject or remove the helper when it crosses the consumer-only boundary.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-026
-    kind: rule
-    title: P-ARCH-026 inadmissible World Evolution Engine placements
-    modality: must_not
-    statement: SDK becomes World Evolution Engine semantic owner, an app or host directly accesses Runtime internals or Realm private surfaces, a consumer couples to shared-kernel internals, a private bridge, singleton, or client creates a second control path, or shared code acquires commit authorization, canonical history, canonical state, Runtime audit, or stable-event truth.
-    condition: Whenever a World Evolution Engine placement or control path is proposed or used.
-    failure: Reject the placement and remove the duplicate authority or private access path.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-027a
-    kind: rule
-    title: P-ARCH-027 consumer interaction boundary
-    modality: must
-    statement: Apps, narrative-engine, and other World Evolution Engine consumers interact only through an SDK public surface, host-injected facade, or explicit adapter or event boundary.
-    condition: Whenever a consumer interacts with World Evolution Engine.
-    failure: Reject an interaction through a private Runtime or Realm boundary.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-027b
-    kind: rule
-    title: P-ARCH-027 shared execution rewrite hardcut
-    modality: must_not
-    statement: An app or narrative consumer independently rewrites the tick loop, replay semantics, checkpoint semantics, or shared execution authority, or kit/**, an app, or narrative-engine acquires write, commit-authorization, or canonical-truth authority.
-    condition: Whenever a World Evolution Engine consumer implements execution behavior.
-    failure: Reject the duplicate implementation or authority and route the consumer through the shared boundary.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-028a
-    kind: rule
-    title: P-ARCH-028 workflow surface is not engine truth
-    modality: must_not
-    statement: Platform placement text promotes Runtime workflow DAG, task, node, or output-event surfaces to World Evolution Engine semantic ownership, canonical naming, or stable-event truth.
-    condition: Whenever existing Runtime workflow surfaces are considered for World Evolution Engine use.
-    failure: Reject the promotion and preserve Runtime-local ownership.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-028b
-    kind: rule
-    title: P-ARCH-028 Runtime decides partial workflow reuse
-    modality: must
-    statement: Any reuse of Runtime workflow or output-event stream shape, status vocabulary, or adapter seams remains a Runtime-local candidate until a Runtime kernel contract explicitly decides its extent.
-    condition: Whenever partial workflow reuse is proposed for World Evolution Engine.
-    failure: Withhold canonical reuse and stable semantics until the Runtime contract makes the decision.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
-  - id: rule.nimi.platform.core-protocol.p-arch-029
-    kind: rule
-    title: P-ARCH-029 consumer API contract home and owner split
-    modality: must
-    statement: The World Evolution Engine app-consumer API contract resides in the sdks domain authority containers under .nimi/spec/sdks/** and owns only facade composition, read and observe versus command and request admissibility, and no-leak, no-widening, and no-bypass framing, while Runtime owns execution semantics, SDK projection owns visible shape, and host and app owners retain implementation strategy.
-    condition: Whenever the consumer-facing World Evolution Engine API is specified or changed.
-    failure: Reject a different contract home or an authority allocation that widens the consumer contract beyond its seam.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-evolution-engine
   - id: rule.nimi.platform.core-protocol.p-arch-030
     kind: rule
     title: P-ARCH-030 independent audit layers
@@ -1546,7 +1432,7 @@ units:
     kind: rule
     title: P-ARCH-031 sdk world facade boundary
     modality: must_not
-    statement: sdk/world replaces Realm world truth, Runtime provider execution, World Evolution Engine, or K-WEV ownership, becomes a second public platform entry, or absorbs renderer-driver implementation, provider-native request ownership, or shared-projection truth when internal orchestration is factored into a core such as nimi-world.
+    statement: sdk/world replaces Realm World truth, Runtime AI or LocalAgent execution, or renderer authority, becomes a second public platform entry, absorbs provider-native request ownership, or publishes World Evolution as a current capability.
     condition: Whenever sdk/world or its internal core is implemented, projected, or renamed.
     failure: Reject the authority expansion and retain sdk/world as the app-facing facade adjacent to its canonical owners.
     relations:

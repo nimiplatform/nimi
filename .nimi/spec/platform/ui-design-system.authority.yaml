@@ -40,8 +40,8 @@ units:
     meaning: A reusable Kit module surface owns common layout, rendering, interaction, loading, failure, disabled, and responsive behavior while consuming domain truth only through typed owner projections and adapters.
   - id: definition.nimi.platform.ui-design-system.agent-center-surface
     kind: definition
-    title: Agent Center surface
-    meaning: Agent Center is the reusable first-party Kit module for presenting and editing admitted Runtime Local Agent projections without owning Runtime execution, lifecycle, memory, transcript, configuration persistence, resource readiness, or semantic presentation truth.
+    title: LocalAgent Center surface
+    meaning: LocalAgent Center is the current first-party Kit composition used only where a concrete Nimi Home or Avatar journey needs to present or edit admitted Runtime LocalAgent projections, without owning execution, lifecycle, Conversation, Memory, Knowledge, AI resources, configuration persistence, or semantic presentation truth and without becoming a mandatory public module catalog.
   - id: definition.nimi.platform.ui-design-system.runtime-projection
     kind: definition
     title: Runtime-owned UI projection
@@ -458,11 +458,11 @@ units:
         target: definition.nimi.platform.ui-design-system.density-system
   - id: rule.nimi.platform.ui-design-system.p-agent-center-001a
     kind: rule
-    title: P-AGENT-CENTER-001 Kit surface ownership
+    title: P-AGENT-CENTER-001 current Kit composition ownership
     modality: must
-    statement: Kit owns the reusable Agent Center layout, sections, state assembly, typed controls, appearance feature behavior, loading, failure, disabled, and narrow-layout contracts while combining Runtime-owned presentation selection with host-local Kit Shell asset custody.
-    condition: Whenever Agent Center is rendered or composed by a first-party app.
-    failure: Reject an app fork of reusable Agent Center behavior or ownership transfer of Runtime selection truth.
+    statement: Kit owns the shared LocalAgent Center layout, typed controls, loading, failure, disabled, and responsive behavior required by its current first-party consumers while combining Runtime-owned LocalAgent projection with bounded host asset custody.
+    condition: Whenever LocalAgent Center is rendered by a current first-party consumer.
+    failure: Reject duplicated shared behavior or ownership transfer of Runtime LocalAgent truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
@@ -472,8 +472,8 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 Runtime and resource ownership boundary
     modality: must_not
-    statement: Kit Agent Center owns Runtime Agent execution, lifecycle, memory, event, transcript, AI configuration persistence, scoped binding, semantic presentation selection, Avatar carrier lifecycle, preview render truth, backend readiness, compatibility, calibration, or launch payload truth.
-    condition: Whenever Agent Center consumes or edits agent state.
+    statement: Kit LocalAgent Center owns LocalAgent execution, lifecycle, Conversation, Memory, Knowledge, events, AI configuration persistence, authorization, semantic presentation selection, Avatar lifecycle, render truth, backend readiness, calibration, or launch truth.
+    condition: Whenever LocalAgent Center consumes or edits LocalAgent state.
     failure: Keep the truth with Runtime, SDK custody, Avatar, or Kit Shell as applicable and expose only a typed bounded projection.
     relations:
       - type: applies_to
@@ -482,19 +482,9 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 bounded app integration
     modality: must
-    statement: Apps may place and chrome Agent Center and inject admitted typed adapters, host bridges, copy, navigation, and placement callbacks, but may not fork route truth, bypass Runtime mutations, reconstruct memory, persist transcript or presentation truth, restore private bridges or local stores, derive diagnostics locally, inject arbitrary feature panels, or send raw context, prompts, private memory, proofs, provider payloads, credentials, or tool data to Kit.
-    condition: Whenever an app integrates the Agent Center module.
-    failure: Reject the untyped, app-authoritative, raw-data, or arbitrary-panel integration.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.ui-design-system.agent-center-surface
-  - id: rule.nimi.platform.ui-design-system.p-agent-center-002a
-    kind: rule
-    title: P-AGENT-CENTER-002 complete generic sections
-    modality: must
-    statement: Agent Center provides generic Overview, Model, Behavior, Cognition, Appearance, and Advanced sections covering admitted Runtime status, configuration, readiness, autonomy, cognition, presentation selection, host asset custody, preview status, diagnostics, source identity, binding, revision, and audit projections, while partner placement keeps advanced diagnostics secondary.
-    condition: Whenever the complete reusable Agent Center surface is presented.
-    failure: Reject missing generic ownership, app-specific section authority, or first-viewport promotion of secondary diagnostics.
+    statement: Current first-party Apps may place LocalAgent Center and inject only admitted typed adapters, host capabilities, copy, navigation, and placement callbacks, while arbitrary feature panels, private bridges, raw context, prompts, Memory, Knowledge, proof, provider, credential, or tool payloads remain outside Kit.
+    condition: Whenever an App integrates LocalAgent Center.
+    failure: Reject untyped, App-authoritative, raw-data, or speculative integration.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
@@ -502,8 +492,8 @@ units:
     kind: rule
     title: P-AGENT-CENTER-002 bounded context summary
     modality: must
-    statement: Overview and Advanced may render only the closed read-only turn-context summary of state, reason, versions, hashes, ordered lane identifiers and status counts, budget, truncation, transcript, memory, media and tool counts, and route or catalog digest without rendering or reconstructing raw context.
-    condition: Whenever Agent Center presents Local Agent context status.
+    statement: LocalAgent Center may render only bounded read-only state, reason, readiness, budget, truncation, count, and safe correlation facts without rendering or reconstructing source, prompt, Conversation, private Memory or Knowledge, proof, provider, credential, or tool context.
+    condition: Whenever LocalAgent Center presents LocalAgent context status.
     failure: Treat unknown or raw context as unavailable and do not reconstruct execution input.
     relations:
       - type: applies_to
@@ -512,8 +502,8 @@ units:
     kind: rule
     title: P-AGENT-CENTER-003 no local persisted config
     modality: must_not
-    statement: Agent Center persists app-local or Kit-local configuration, selected-but-uncommitted appearance success, dropped local history or last-section state, retired policy fields, or private host asset bridges; Runtime owns presentation selections, Kit Shell owns only local byte custody and validation metadata, and Web imports no assets without a standard shell host.
-    condition: Whenever Agent Center reads, changes, imports, or persists appearance and local preference state.
+    statement: LocalAgent Center persists App-local or Kit-local Runtime configuration, selected-but-uncommitted success, Conversation history, Memory, Knowledge, authorization, or private host bridges; Runtime owns LocalAgent and presentation selections while Kit Shell owns only bounded local asset custody.
+    condition: Whenever LocalAgent Center reads, changes, imports, or persists state.
     failure: Remove the local record or bridge and require committed Runtime presentation truth plus bounded Kit Shell custody.
     relations:
       - type: applies_to
@@ -522,8 +512,8 @@ units:
     kind: rule
     title: P-AGENT-CENTER-004 Runtime-owned optional audio
     modality: must
-    statement: Agent Center renders and edits synthesis and voice-workflow intent only through the Runtime AI configuration adapter, Runtime voice owns generation and artifacts, and apps do not fabricate playable artifacts or independent synthesis and workflow truth.
-    condition: Whenever optional agent audio is configured, generated, or presented.
+    statement: LocalAgent Center renders and edits admitted voice intent only through the Runtime AI configuration adapter, Runtime owns voice generation and artifacts, and Apps do not fabricate playable artifacts or independent voice or general Workflow truth.
+    condition: Whenever optional LocalAgent audio is configured, generated, or presented.
     failure: Reject app-local audio truth or pseudo artifacts and retain Runtime ownership.
     relations:
       - type: applies_to
@@ -532,38 +522,28 @@ units:
     kind: rule
     title: P-AGENT-CENTER-005 typed dependency boundary
     modality: must_not
-    statement: Production Agent Center imports Runtime internals, app code, SDK-private modules, or app aliases instead of the public Kit SDK contract or explicitly injected typed adapters.
-    condition: Whenever Agent Center production code obtains Runtime or app capability.
+    statement: Production LocalAgent Center imports Runtime internals, App code, SDK-private modules, or App aliases instead of the public Kit SDK contract or explicitly injected typed adapters.
+    condition: Whenever LocalAgent Center obtains Runtime or App capability.
     failure: Remove the private dependency and consume only the typed public projection or adapter.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-005b
     kind: rule
-    title: P-AGENT-CENTER-005 closed Local Agent inputs
+    title: P-AGENT-CENTER-005 closed LocalAgent inputs
     modality: must
-    statement: Agent Center accepts only the bounded source-context status and turn-context summary; unknown or partial schema, enum, state, lane, or reason becomes unavailable or failed state, and no adapter assembles, overrides, or attaches Local Agent context.
-    condition: Whenever Agent Center receives a Local Agent projection.
+    statement: LocalAgent Center accepts only bounded source readiness and turn-context status; unknown or partial state becomes unavailable or failed, and no adapter assembles, overrides, or attaches LocalAgent context.
+    condition: Whenever LocalAgent Center receives a LocalAgent projection.
     failure: Fail closed in the UI and reject raw, partial, or context-authoring input.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.runtime-projection
-  - id: rule.nimi.platform.ui-design-system.p-agent-center-006a
-    kind: rule
-    title: P-AGENT-CENTER-006 surface ownership mapping
-    modality: must
-    statement: Every Agent Center child maps to reusable Kit core, Runtime projection or setting, typed host transport, Avatar or Runtime resource boundary, or app-only placement outside Agent Center; Desktop becomes a placement wrapper, partner apps retain partner chrome and developer tooling outside, and shared appearance uses Kit Shell plus Runtime presentation writes.
-    condition: Whenever an existing or new Agent Center child surface is placed or migrated.
-    failure: Block the surface while it is unmapped or retains app-specific feature content inside Kit core.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.ui-design-system.agent-center-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-006b
     kind: rule
     title: P-AGENT-CENTER-006 intent presentation and truth separation
     modality: must_not
-    statement: Kit or an app promotes bounded summary fields into source, prompt, context, memory, proof, or execution authority; apps own only Local Agent intent capture, placement, copy, navigation, and bounded presentation while Runtime owns source snapshot and context execution truth.
-    condition: Whenever bounded Local Agent state is rendered or used by an app.
+    statement: Kit or an App promotes bounded summary fields into source, prompt, context, Memory, Knowledge, proof, authorization, or execution authority; Apps own only LocalAgent intent capture, placement, copy, navigation, and bounded presentation while Runtime owns source, context, and execution truth.
+    condition: Whenever bounded LocalAgent state is rendered or used by an App.
     failure: Reject the promoted authority and return to the Runtime-owned typed projection.
     relations:
       - type: applies_to
@@ -691,7 +671,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.kit-module-family
     kind: definition
     title: Kit module family
-    meaning: A Kit module family is a foundation, feature, logic, infrastructure, renderer, host, or backend-renderer module inside the single cross-app Kit package with a bounded ownership role and declared dependency direction.
+    meaning: A Kit module is a demand-driven integration above the SDK with a bounded owner and dependency direction, admitted only for a concrete Nimi Home, Avatar, Simulator, or Third-party reference App consumer and real journey rather than to complete a catalog or framework taxonomy.
   - id: definition.nimi.platform.ui-design-system.kit-public-surface
     kind: definition
     title: Kit public surface
@@ -784,7 +764,7 @@ units:
     kind: rule
     title: P-KIT-041C standard shell capability contract
     modality: must
-    statement: Shell capabilities are the single standard contract for identifiers, operations, commands, negative states, and shared error envelopes across Tauri and Electron; represent binding-only transport, typed service lifecycle, non-security defaults, browser callbacks, shell UI, diagnostics, data, storage, configuration, local assets, local agent, AI Profile, AI Config, Avatar, Agent Center, platform projection, file dialog, reveal, export, artifacts, and floating windows; carry authentication only through Runtime account transport; exclude renderer session control and lifecycle stop; reject protected methods and lifecycle selectors from generic transport; make host gaps typed failures; keep renderer probing diagnostic and generic caller metadata local-agent-owned; and limit Agent Center host operations to local asset custody, validation, preview resolution, sidecar association, and scoped removal without configuration, selection, readiness, path, or launch truth.
+    statement: Shell capabilities are the single standard contract for identifiers, operations, commands, negative states, and shared error envelopes across Tauri and Electron; represent typed service lifecycle, non-security defaults, browser callbacks, shell UI, diagnostics, data, storage, configuration, local assets, LocalAgent, AI Profile, AI Config, Avatar, LocalAgent Center, platform projection, file dialog, reveal, export, artifacts, and floating windows; carry authentication only through Runtime account transport; exclude renderer session control and lifecycle stop; reject protected methods and lifecycle selectors from generic transport; make host gaps typed failures; keep renderer probing diagnostic; and limit LocalAgent Center host operations to local asset custody, validation, preview resolution, and scoped removal without LocalAgent configuration, authorization, readiness, path, or launch truth.
     condition: Whenever a standard shell operation is defined or implemented.
     failure: Reject parallel truth, a missing standard family, pseudo-success, forbidden session or protected behavior, selector payload, path leakage, or promoted asset custody.
     relations:
@@ -836,7 +816,7 @@ units:
     kind: rule
     title: P-KIT-041E bounded restart recovery
     modality: must
-    statement: Runtime restart invalidates host registration and protected sessions, permits at most one rebuild and retry for public binding-only transport, requires protected callers to reopen natively, classifies only the admitted unauthorized pair for account probing, preserves owner handling for registration, revocation, and expiry, and never retries endpoint, business, unrelated permission, or unclassified failures indefinitely.
+    statement: Runtime restart invalidates host registration and protected sessions, requires the verified host and Runtime to establish fresh session-derived identity and authorization, preserves owner handling for registration, revocation, and expiry, and never retries endpoint, business, unrelated permission, or unclassified failures indefinitely.
     condition: Whenever an Electron-carried Runtime call encounters restart or authorization failure.
     failure: Close stale state and reject protected metadata reconstruction, misclassification, or unbounded retry.
     relations:
@@ -846,7 +826,7 @@ units:
     kind: rule
     title: P-KIT-044 exact local-app carrier boundary
     modality: must
-    statement: Kit never creates or accepts account, principal, provenance, record, permission decision, launch, process, session, owner-operation, endpoint, proof, or security truth; Electron and Tauri share one verified Runtime-bound client exposing only session posture, permission status or request carrying a public permission identifier and bounded user reason, principal-partitioned relative-path JSON read and write results containing value and byte size plus remove containing removed, and the agents.interact owner-selected open-conversation, send-turn, subscribe-turn, and conversation-snapshot operations; every other reserved request is unavailable and no generic proxy, root, filesystem fallback, internal selector, Agent inventory, selector construction, artifact, voice, principal substitution, direct Avatar control, embedded rendering, or other RuntimeAgent surface exists; app-native data and commands remain app-owned; and protected identity material remains host-private.
+    statement: Kit never creates or accepts account, principal, provenance, permission decision, launch, process, session, endpoint, proof, or security truth; Electron and Tauri share one verified Runtime-bound client exposing bounded session posture, permission posture, App-private storage, and owner-admitted LocalAgent operations, while every other reserved request is unavailable and no generic proxy, filesystem fallback, internal selector, account-wide LocalAgent inventory, caller-built authorization, credential, direct Avatar control, embedded rendering, or private Runtime Agent Service surface exists; App-native data and commands remain App-owned and protected identity material remains host-private.
     condition: Whenever a local-app host opens, exposes, or uses its native session.
     failure: Reject caller-supplied authority, unadmitted operations, root disclosure, generic forwarding, filesystem substitution, or protected-material projection.
     relations:
@@ -896,11 +876,11 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-043
     kind: rule
-    title: P-KIT-043 shared capability semantics
+    title: P-KIT-043 capability integration follows demand
     modality: must
-    statement: Core Runtime-capabilities logic is the single app-independent owner of capability normalization, wildcard matching, and generated catalog semantics, is safe for Runtime and renderer consumers, and has no UI, styling, app, or shell-specific dependency.
-    condition: Whenever shared capability semantics are implemented or consumed.
-    failure: Reject an app-local catalog, visual or shell dependency, or single-app ownership.
+    statement: Kit integrates shared Runtime and Realm capability semantics only when a current consumer journey requires them, remains above the standard SDK, and does not create a second SDK, mandatory App framework, generated feature catalog, or speculative capability directory.
+    condition: Whenever shared Kit capability semantics are implemented or consumed.
+    failure: Reject speculative catalog expansion, duplicate SDK semantics, or a Kit feature without a current consumer journey.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
@@ -908,9 +888,9 @@ units:
     kind: rule
     title: P-KIT-050 reusable module admission
     modality: must
-    statement: A new shared capability module enters Kit only when reused by or explicitly planned for at least two apps and declares its public surface and dependency direction before consumers adopt it.
+    statement: A new capability module enters Kit only for a concrete Nimi Home, Avatar, Simulator, or Third-party reference App requirement with a real journey, bounded owner, public surface, and dependency direction; one real consumer is sufficient and speculative multi-App planning is not admission.
     condition: Whenever a new Kit module family is proposed.
-    failure: Keep the capability app-owned until reuse and public-boundary conditions are satisfied.
+    failure: Keep the capability App-owned until a concrete integration need and bounded public boundary exist.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
@@ -968,7 +948,7 @@ units:
     kind: rule
     title: P-KIT-072 Avatar ownership hardcut
     modality: must_not
-    statement: Avatar owns Runtime-persistent presentation, app-transient interaction, agent identity, memory, voice workflow or assets, thread continuity, app permission, placement or orchestration truth, imports app stores, host bridges, or Runtime internals, or invents fallback assets, voices, or pseudo-success when required profile fields are unresolved.
+    statement: Avatar owns Runtime-persistent presentation, App-transient interaction, LocalAgent identity, Memory, Knowledge, Conversation, voice truth, App permission, placement or orchestration truth, imports App stores, private host bridges, or Runtime internals, or invents fallback assets, voices, or pseudo-success when required projection inputs are unresolved.
     condition: Whenever Avatar consumes presentation or interaction state.
     failure: Keep truth with its owner and fail closed on unresolved required presentation fields.
     relations:
@@ -978,7 +958,7 @@ units:
     kind: rule
     title: P-KIT-073 Avatar backend renderer seam
     modality: must
-    statement: An explicitly delivered Avatar backend renderer preserves normalized headless presentation, owns only stage-rendering semantics, accepts framing limited to auto, full-body, bottom-companion, or head-shoulders after app synonym mapping, and excludes asset import, storage, registry, agent binding, fallback, packaging, viewport lifecycle, pointer parity, camera choreography, authoring, and model inspection unless separately admitted.
+    statement: An explicitly delivered Avatar backend renderer preserves normalized headless presentation, owns only stage-rendering semantics, accepts bounded framing after App synonym mapping, and excludes asset import, storage, registry, LocalAgent ownership or product binding, fallback truth, packaging, App lifecycle, raw driver APIs, authoring, and model inspection unless separately admitted.
     condition: Whenever an optional Avatar backend renderer is published or invoked.
     failure: Reject an undelivered export, unknown framing term, transferred truth, or unadmitted behavior.
     relations:
@@ -1044,30 +1024,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
-  - id: rule.nimi.platform.ui-design-system.nimi-kit-registry-closure
-    kind: rule
-    title: nimi-kit-registry consumption closure
-    modality: must
-    statement: A Kit module is consumable only through a public entrypoint listed by an active module registration, and an unregistered, pending, removed, private, or unlisted module surface is unavailable to consumers.
-    condition: Whenever a Kit module or entrypoint is published, imported, or resolved.
-    failure: Reject consumption outside the active registered public surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.ui-design-system.kit-public-surface
-  - id: rule.nimi.platform.ui-design-system.nimi-kit-registry-schema
-    kind: rule
-    title: nimi-kit-registry registration schema and module boundary
-    modality: must
-    statement: Every Kit module registration declares stable identity and subpath, module kind and surface level, adapter contract, internal and peer dependency sets, public exports partitioned into headless and UI surfaces, reuse entrypoints, admission status, and owner; every internal dependency resolves to a registered Kit module, every external dependency is explicit, and every categorized or reuse entrypoint belongs to the module's declared public exports.
-    condition: Whenever a Kit module registration is created, changed, or consumed.
-    failure: Reject an incomplete registration, undeclared dependency, dangling internal dependency, or entrypoint outside the declared public surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
-      - type: applies_to
-        target: definition.nimi.platform.ui-design-system.kit-module-family
-      - type: applies_to
-        target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: definition.nimi.platform.ui-design-system.nimi-ui-compositions-compact-density
     kind: definition
     title: nimi-ui-compositions compact density

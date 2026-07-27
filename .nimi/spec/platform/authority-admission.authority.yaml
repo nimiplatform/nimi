@@ -25,7 +25,7 @@ units:
   - id: definition.nimi.platform.authority-admission.realm-delegated-projection
     kind: definition
     title: P-PKG-009 Realm external authority consumption boundary
-    meaning: Realm authority is externally owned in the Realm repository and referenced cross-repo as realm:spec/realm/<container>.authority.yaml, the host consumes it only through pinned consumer contracts and the realm contract lock chain, the host spec root carries no nested Realm authority mirror, and this host definition neither defines Realm ownership nor creates authority for the host to author Realm semantics.
+    meaning: Realm is an independent external authority consumed by Nimi through public Realm contracts and Nimi-owned consumer projections, and Nimi does not gain authority over Realm server semantics by hosting Runtime, SDK, Desktop, or App integration.
   - id: rule.nimi.platform.authority-admission.p-app-001
     kind: rule
     title: P-APP-001 app location grants no independent authority
@@ -130,9 +130,9 @@ units:
     kind: rule
     title: P-PKG-009 Realm authority is consumed, never host-authored
     modality: must_not
-    statement: The Nimi host authors, mirrors, or infers source ownership for externally owned Realm authority, whether by admitting a nested Realm authority subtree under its own spec root or by rewriting pinned consumer contracts away from their admitted Realm source.
+    statement: The Nimi host authors, mirrors, or infers ownership of Realm Account, Auth, Profile, World, Character, Source, access-control, or cloud-audit truth instead of consuming the independent Realm authority through public contracts.
     condition: Whenever Realm semantics are consumed, referenced, or maintained by the host.
-    failure: Reject the host-authored semantics and preserve the externally owned Realm boundary and the pinned consumer-contract lock chain.
+    failure: Reject the host-authored semantics and preserve the independent Realm owner boundary.
     relations:
       - type: applies_to
         target: definition.nimi.platform.authority-admission.realm-delegated-projection

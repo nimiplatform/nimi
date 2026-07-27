@@ -264,7 +264,7 @@ units:
     kind: rule
     title: Generated voice metadata and cleanup are bounded
     modality: must
-    statement: A generated assistant voice artifact stores agent_id, conversation_anchor_id, turn_id, message_id, voice_reference, speech_model_id, route_policy, mime_type, byte_digest, created_at, and retention_scope, and cleanup by agent_id or conversation_anchor_id removes matching durable audio and voice metadata without mutating committed text or conversation history.
+    statement: A generated assistant voice artifact preserves Runtime-issued LocalAgent, Conversation, turn, message, voice, route, media, integrity, creation, and retention relations, and scoped cleanup removes matching durable audio and voice metadata without mutating committed text or Conversation history.
     condition: Whenever generated assistant voice is stored or cleaned up.
     failure: Reject storage with incomplete metadata and reject cleanup that changes text or conversation history.
     relations:
@@ -282,11 +282,11 @@ units:
         target: definition.nimi.runtime.service-operations.artifact-plane
   - id: rule.nimi.runtime.service-operations.r026
     kind: rule
-    title: Generated voice cleanup wire semantics are fixed
+    title: Generated voice cleanup stays bounded
     modality: must
-    statement: CleanupGeneratedVoiceArtifactsRequest accepts optional agent_id and conversation_anchor_id with at least one required and AND matching when both are present, returns int32 deleted_count and repeated string deleted_artifact_ids, is idempotent with zero for no matches, and deletes only generated_agent_voice retention records rather than scenario media, uploads, text, or history.
-    condition: Whenever CleanupGeneratedVoiceArtifacts runs.
-    failure: Reject an empty selector or any deletion outside the matching generated voice retention class.
+    statement: Generated voice cleanup requires an explicit Runtime-issued LocalAgent or Conversation scope, is idempotent when no artifact matches, and deletes only matching generated voice retention records rather than scenario media, uploads, text, or Conversation history.
+    condition: Whenever generated voice cleanup runs.
+    failure: Reject an empty scope or any deletion outside the matching generated voice retention class.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -314,7 +314,7 @@ units:
     kind: rule
     title: Inline artifact retrieval has a hard size ceiling
     modality: must
-    statement: ReadArtifactBytes returns complete bodies only through 32 MiB and returns ARTIFACT_TOO_LARGE for a larger stored artifact without truncation, while generic chunked artifact retrieval remains unavailable until separately admitted.
+    statement: Artifact reads return a complete body only within the owner-defined bounded-read policy, reject larger stored artifacts without truncation, and keep generic chunked artifact retrieval unavailable until separately admitted.
     condition: Whenever Runtime evaluates an artifact for inline retrieval.
     failure: Return ARTIFACT_TOO_LARGE rather than truncate, stream, or partially succeed.
     relations:
@@ -409,18 +409,6 @@ units:
     statement: ScenarioJob transitions are exactly SUBMITTED to QUEUED on queue acceptance, RUNNING on provider acceptance, FAILED on pre-run terminal error, CANCELED on user cancel, or TIMEOUT on timeout; QUEUED to RUNNING on provider acceptance, FAILED on pre-run terminal error, CANCELED on user cancel, or TIMEOUT on timeout; and RUNNING to COMPLETED on provider success, FAILED on provider or Runtime failure, CANCELED on user cancel, or TIMEOUT on timeout, with no terminal-state exit.
     condition: Whenever a ScenarioJob status changes.
     failure: Reject the transition and preserve the last valid status.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.service-operations.lifecycle-registry
-      - type: applies_to
-        target: definition.nimi.runtime.service-operations.scenario-job-plane
-  - id: rule.nimi.runtime.service-operations.r039
-    kind: rule
-    title: Scenario jobs and workflows remain distinct state machines
-    modality: must
-    statement: ScenarioJob begins at SUBMITTED and never produces SKIPPED, while Workflow begins at ACCEPTED and may use branch-driven SKIPPED; neither state model is projected as the other.
-    condition: Whenever Runtime maps ScenarioJob or Workflow lifecycle state.
-    failure: Reject cross-model state conversion or a SKIPPED ScenarioJob.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.lifecycle-registry
@@ -560,7 +548,7 @@ units:
     kind: rule
     title: Protected state and boot epoch precede every listener
     modality: must
-    statement: Before any admitted listener opens Runtime validates protected_local.db against its secure-store anti-rollback anchor, generates a 32-byte CSPRNG boot epoch, and atomically anchors revocation of all nonterminal prior-epoch protected state.
+    statement: Before any protected listener accepts traffic, Runtime validates its protected state against the secure-store anti-rollback owner, creates a fresh unpredictable boot identity, and invalidates all nonterminal authority from prior boots.
     condition: Whenever a Runtime production service boots.
     failure: Disable protected features on ledger unavailability, corruption, rollback mismatch, endpoint ownership failure, or missing required OS primitive without public-TCP or portable-session fallback.
     relations:
@@ -620,7 +608,7 @@ units:
     kind: rule
     title: STOPPING preempts active subsystems without fabricated terminals
     modality: must
-    statement: STOPPING rejects new ScenarioJob and Workflow work as UNAVAILABLE, may close established job, workflow, StreamScenario, and long-lived subscription streams with CANCELLED without fabricated completion, sends supervised engines TERM then KILL after timeout before server close, stops provider probes, and invalidates in-memory sessions on process exit.
+    statement: STOPPING rejects new Runtime job work as unavailable, may close established jobs and long-lived streams with typed cancellation without fabricated completion, terminates supervised engines within bounded shutdown policy, stops provider probes, and invalidates in-memory sessions on process exit.
     condition: Whenever daemon shutdown affects active child state machines.
     failure: Cancel or terminate the child path and reject any fabricated terminal frame, new work, lingering subscription, or engine left beyond its timeout.
     relations:
@@ -660,7 +648,7 @@ units:
     kind: rule
     title: Protocol metadata values have a hard bound
     modality: must
-    statement: Every protocol-envelope metadata field value is at most 4096 bytes within the existing 64 KiB gRPC or HTTP header budget.
+    statement: Protocol-envelope metadata remains within the owning transport's bounded header and field budgets and rejects oversized metadata before dispatch.
     condition: Whenever the protocol interceptor parses envelope metadata.
     failure: Return PROTOCOL_ENVELOPE_INVALID before handler execution for any oversized field.
     relations:

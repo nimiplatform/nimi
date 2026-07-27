@@ -5,15 +5,15 @@ units:
   - id: definition.nimi.desktop.ai-consumption.profile-config
     kind: definition
     title: Desktop AI profile configuration consumption surface
-    meaning: The Desktop AI profile configuration consumption surface is the typed SDK and host projection for scope-owned AIProfile templates, full materialized AIConfig intent, adjacent scope-owned live configuration, and owner-sliced AISnapshot execution evidence; Desktop owns placement and interaction for its resident scopes but not global configuration, Runtime facts, credentials, Agent Chat execution, or another scope's persistence.
+    meaning: The Desktop AI profile configuration consumption surface is the typed SDK and host projection for scope-owned AIProfile templates, full materialized AIConfig intent, adjacent scope-owned live configuration, and owner-sliced AISnapshot execution evidence; Desktop owns placement and interaction for its resident scopes but not global configuration, Runtime facts, credentials, LocalAgent Conversation execution, or another scope's persistence.
   - id: definition.nimi.desktop.ai-consumption.llm-adapter
     kind: definition
     title: Desktop LLM adaptation consumption surface
-    meaning: The Desktop LLM adaptation consumption surface is the Runtime-aligned provider, route, credential, local-health, media, audit, trace, and world-generation projection consumed through typed SDK surfaces without Desktop-owned provider execution, route inference, credential custody, or Agent Chat orchestration.
+    meaning: The Desktop LLM adaptation consumption surface is the Runtime-aligned provider, route, credential, local-health, media, audit, trace, and world-generation projection consumed through typed SDK surfaces without Desktop-owned provider execution, route inference, credential custody, or LocalAgent Conversation orchestration.
   - id: definition.nimi.desktop.ai-consumption.streaming
     kind: definition
     title: Desktop streaming consumption surface
-    meaning: The Desktop streaming consumption surface owns renderer subscription lifecycle, incremental presentation, explicit cancellation, timeout, interruption, backpressure, job progress, and retry affordances while Runtime and SDK own stream protocols, Agent outputs, actions, continuations, jobs, presentation timelines, and execution truth.
+    meaning: The Desktop streaming consumption surface owns renderer subscription lifecycle, incremental presentation, explicit cancellation, timeout, interruption, backpressure, job progress, and retry affordances while Runtime and SDK own stream protocols, LocalAgent outputs, actions, continuations, jobs, presentation timelines, and execution truth.
   - id: rule.nimi.desktop.ai-consumption.r001
     kind: rule
     title: Durable AI target identity uses v2 references
@@ -116,11 +116,11 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r011
     kind: rule
-    title: AIConfig does not absorb Agent Chat behavior
+    title: AIConfig does not absorb LocalAgent Conversation behavior
     modality: must_not
-    statement: Desktop promotes Agent Chat behavior settings, turn planning, prompt or context assembly, message or action outputs, voice workflows, media execution, memory policy, or Runtime Agent projections into top-level AIConfig truth.
+    statement: Desktop promotes LocalAgent Conversation behavior settings, turn planning, prompt or context assembly, message or action outputs, voice workflows, media execution, memory policy, or Runtime LocalAgent projections into top-level AIConfig truth.
     condition: Whenever Desktop models or edits AIConfig.
-    failure: Consume the Runtime and SDK Agent projection and keep AIConfig limited to configuration intent.
+    failure: Consume the Runtime and SDK LocalAgent projection and keep AIConfig limited to configuration intent.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -258,9 +258,9 @@ units:
     kind: rule
     title: AIConfig and AISnapshot remain the conversation capability umbrella
     modality: must
-    statement: Conversation capability selection and derived projection remain an AIConfig capabilities submodel, execution capability evidence remains AISnapshot.conversationCapabilitySlice, and voice workflow and Runtime-fields boundaries remain subordinate invariants; Desktop Agent projection remains adjacent presentation authority rather than configuration truth.
+    statement: Conversation capability selection and derived projection remain an AIConfig capabilities submodel, execution capability evidence remains a typed owner projection, and voice and Runtime-field boundaries remain subordinate invariants; Desktop LocalAgent projection remains adjacent presentation behavior rather than configuration truth.
     condition: Whenever Desktop composes conversation capability and AI configuration models.
-    failure: Reject peer ownership between the legacy capability model and the three-tier model or absorption of Agent presentation truth into configuration.
+    failure: Reject peer ownership between configuration models or absorption of LocalAgent presentation truth into configuration.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -396,10 +396,10 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r039
     kind: rule
-    title: Agent route resolution fails closed
+    title: LocalAgent route resolution fails closed
     modality: must
-    statement: Desktop core does not own an Agent Chat route API, and route resolution without agentId, with control-plane failure, or with invalid payload returns failure without a synthesized LOCAL or AGENT_LOCAL success route.
-    condition: Whenever Desktop requests or receives Agent Chat route resolution.
+    statement: Desktop core does not own a LocalAgent Conversation route API, and route resolution without an explicit localAgentId, with control-plane failure, or with invalid input returns the typed Runtime failure without synthesizing a successful route.
+    condition: Whenever Desktop requests or receives LocalAgent Conversation route resolution.
     failure: Reject the turn route and present the typed Runtime failure.
     relations:
       - type: applies_to
@@ -416,11 +416,11 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r041
     kind: rule
-    title: Agent Chat execution stays on Runtime Agent APIs
+    title: LocalAgent Conversation execution stays on Runtime
     modality: must_not
-    statement: Desktop wraps a local kernel Agent turn, assembles prompts, synthesizes state deltas, memory writes, or audit events, or replaces Runtime Agent truth with a local mode enum.
-    condition: Whenever Desktop submits or consumes an Agent Chat turn.
-    failure: Route typed user intent through Runtime Agent APIs and consume the SDK projection.
+    statement: Desktop wraps a local kernel LocalAgent turn, assembles prompts, synthesizes state deltas, memory writes, or audit events, or replaces Runtime LocalAgent truth with a local mode enum.
+    condition: Whenever Desktop submits or consumes a LocalAgent Conversation turn.
+    failure: Route typed user intent through Runtime Agent Service and consume the SDK projection.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.llm-adapter
@@ -476,11 +476,11 @@ units:
         target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: rule.nimi.desktop.ai-consumption.r047
     kind: rule
-    title: Voice adaptation does not own Agent voice truth
+    title: Voice adaptation does not own LocalAgent voice truth
     modality: must_not
-    statement: Desktop LLM adaptation decides Agent voice workflow admission, voice identity, workflow return path, voice action execution, playback-ready outcome, voice session, transcript, or caption semantics.
-    condition: Whenever Agent Chat consumes a voice projection.
-    failure: Render only the admitted Runtime Agent and Voice projection.
+    statement: Desktop LLM adaptation decides LocalAgent voice admission, voice identity, return path, voice action execution, playback-ready outcome, voice session, transcript, or caption semantics.
+    condition: Whenever LocalAgent Conversation consumes a voice projection.
+    failure: Render only the admitted Runtime LocalAgent and Voice projection.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.llm-adapter
@@ -526,10 +526,10 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r052
     kind: rule
-    title: Stream rendering cannot invent Agent outputs
+    title: Stream rendering cannot invent LocalAgent outputs
     modality: must_not
     statement: Desktop stream consumption splits, merges, reorders, or fabricates assistant messages, actions, voice actions, prompt payloads, deferred continuations, HookIntent decisions, continuation timers, interruption rules, or recursive chain limits outside Runtime-owned projection truth.
-    condition: Whenever an Agent Chat stream includes message, action, modality, or deferred-continuation projection.
+    condition: Whenever a LocalAgent Conversation stream includes message, action, modality, or deferred-continuation projection.
     failure: Preserve the exact Runtime-resolved relation and keep missing output absent.
     relations:
       - type: applies_to
@@ -538,7 +538,7 @@ units:
     kind: rule
     title: Text deltas render incrementally
     modality: must
-    statement: Desktop appends each text_delta to the current message, keeps a typing indicator only while the stream is active, relies on the Runtime minimum 32-byte chunk contract without a second semantic buffer, and hides token usage when the terminal usage value is -1.
+    statement: Desktop appends each typed text delta in Runtime order, keeps a typing indicator only while the stream is active, does not add a semantic buffer that changes ordering or terminal behavior, and hides usage when Runtime reports it unavailable.
     condition: Whenever Desktop renders streamed text.
     failure: Reject whole-message replacement, stale progress indication, fabricated usage, or chunk reassembly that changes semantic order.
     relations:
@@ -698,7 +698,7 @@ units:
     kind: rule
     title: PresentationTimeline requires typed Runtime projection
     modality: must
-    statement: Desktop consumes PresentationTimeline only after Runtime admits its concrete schema and SDK exposes typed data, aligns rendering only to Runtime timebase and offsets, and preserves agent_id, conversation_anchor_id, turn_id, and stream_id linkage in Avatar handoff and diagnostics.
+    statement: Desktop consumes PresentationTimeline only after Runtime and SDK expose a typed projection, aligns rendering only to Runtime timing, and preserves Runtime-issued LocalAgent, Conversation, turn, and stream continuity references in Avatar handoff and diagnostics.
     condition: Whenever a stream carries presentation timeline metadata.
     failure: Keep timeline behavior unavailable or diagnostic-only until the typed projection and linkage are complete.
     relations:

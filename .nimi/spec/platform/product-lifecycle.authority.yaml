@@ -41,15 +41,15 @@ units:
   - id: definition.nimi.platform.product-lifecycle.home-surface
     kind: definition
     title: Nimi Home surface
-    meaning: Nimi Home is the Platform-owned product-entry and shell ontology currently rendered by the Desktop-hosted shell; it projects other owners without acquiring their truth, while Desktop owns shell information architecture and implementation and Web retains its separate entry boundary.
+    meaning: Nimi Home is the core product entry and control contract for account state, permissions, Runtime health and repair, AI route and model configuration, current local-development Apps, Realm World and Character browsing, PersonaCharacter creation, LocalAgent materialization and lifecycle, Avatar and Voice entry, and Support; Desktop is the current replaceable host implementation and owns none of the underlying Realm, Runtime, LocalAgent, App, permission, or credential truth.
   - id: definition.nimi.platform.product-lifecycle.home-placement
     kind: definition
     title: Nimi Home placement set
     meaning: The Nimi Home placement set contains first-run, apps, agent-chat, runtime-health, app-health, account, settings, diagnostics, developer-mode, and failure-projection, each with an explicit source authority and forbidden ownership.
   - id: definition.nimi.platform.product-lifecycle.home-agent-chat
     kind: definition
-    title: Home Agent Chat projection
-    meaning: Agent Chat inside Nimi Home is an in-shell reference surface that carries explicit AI scope identity but does not own transcript, history, identity, grant, memory, or ConversationAnchor truth.
+    title: Home LocalAgent conversation projection
+    meaning: LocalAgent conversation inside Nimi Home is a consumer projection of Runtime-owned execution, durable Conversation, Memory, Knowledge, state, and errors and does not become LocalAgent identity or truth.
   - id: definition.nimi.platform.product-lifecycle.home-apps
     kind: definition
     title: Home Apps projection
@@ -212,9 +212,9 @@ units:
     kind: rule
     title: P-COLD-011 ordinary-shell readiness floor
     modality: must
-    statement: Ordinary shell entry requires ready_for_use backed by login, a valid product-control record, selected nimi_data, Account Default Profile, built-in AI configurations, Runtime baseline readiness, and execution verification.
+    statement: Ordinary-user ready_for_use requires login plus real Runtime readiness for admitted local Text, basic STT, and basic TTS; Cloud AI, Workflow, MCP, World Evolution, public distribution, Marketplace, Simulator expansion, Linux, and complete macOS closure are not readiness prerequisites.
     condition: When first run attempts to enter ordinary product use.
-    failure: Deny ordinary shell entry and remain in the precise first-run state.
+    failure: Deny ordinary product entry while a required local Text, STT, or TTS capability is unready, keep the precise setup or repair state, and leave Support, diagnostics, model setup, configuration, and repair reachable.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
@@ -268,9 +268,9 @@ units:
     kind: rule
     title: P-COLD-013 Windows data-root access security
     modality: must
-    statement: On Windows, the native Desktop host uses the shared Kit protected-local adapter to prepare the user-owned selected tree for the exact fixed NimiRuntime service SID before the typed operation, grants inheritable access only to that tree, rejects reparse-point roots, and requires independent Runtime verification and recording.
+    statement: On Windows, first run preserves the user's ownership of the selected Nimi data root, grants only the minimum Runtime access needed for that selected tree, rejects substituted or unsafe roots, and requires independent Runtime identity, ownership, scope, and integrity verification before configuration or mutation.
     condition: When Windows first run prepares service access to selected nimi_data.
-    failure: Fail closed before configuration or mutation when any identity, ownership, inheritance, root-integrity, or Runtime-verification condition fails.
+    failure: Fail closed to setup or repair before configuration or mutation when identity, ownership, scope, root integrity, least privilege, or Runtime verification fails.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
@@ -648,9 +648,9 @@ units:
     kind: rule
     title: P-HOME-001 product-entry ownership split
     modality: must
-    statement: Nimi Home expresses only Platform-owned product-entry and shell ontology, placement, and cross-domain projection permission; Desktop owns shell information architecture and implementation, and Web remains a separate entry boundary unless explicitly admitted otherwise.
+    statement: Nimi Home owns the product entry and control contract while Desktop is its current replaceable host implementation; protected installer, service control, and OS integration use a Home Host Contract, and ordinary product capability continues through public SDK and Kit surfaces.
     condition: Whenever Nimi Home scope or ownership is defined.
-    failure: Reject ownership that moves Desktop implementation or Web entry authority into Nimi Home.
+    failure: Reject Desktop-only product ontology, host ownership of Realm or Runtime truth, or ordinary capability exposed only through a private Desktop API.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-surface
@@ -678,9 +678,9 @@ units:
     kind: rule
     title: P-HOME-002 hosted-shell binding
     modality: must_not
-    statement: The Desktop-hosted shell rewrites Nimi Home ontology instead of implementing the Platform-owned placement through Desktop-owned shell contracts.
+    statement: The Desktop-hosted shell rewrites Nimi Home product capability or makes Desktop identity an irreplaceable authority instead of implementing the Nimi Home Contract through the protected Home Host Contract and public SDK or Kit surfaces.
     condition: When Desktop renders or changes Nimi Home.
-    failure: Reject the Desktop-local ontology and retain the hosted-shell owner split.
+    failure: Reject the Desktop-local authority and retain the replaceable host owner split.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-surface
@@ -688,7 +688,7 @@ units:
     kind: rule
     title: P-HOME-003 non-owner boundaries
     modality: must_not
-    statement: Nimi Home owns installer, downloader, materializer, selected-source, Runtime model catalog, host capability, local compute pack, Realm account, Realm cloud, Realm world, Realm economy, Realm social, cognition memory, knowledge artifact, Avatar kernel, shared content-pack channel, or cross-app agent-identity truth.
+    statement: Nimi Home owns installer execution, service-control truth, Runtime model or credential truth, LocalAgent materialization or execution truth, Runtime Conversation, Memory, or Knowledge truth, Realm Account, Character, World, or Source truth, Avatar rendering truth, App authorization truth, or protected OS-operation truth.
     condition: Whenever Nimi Home consumes or presents a cross-domain projection.
     failure: Reject Home ownership and require a neutral projection from the corresponding owner.
     relations:
@@ -716,21 +716,21 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-home-006
     kind: rule
-    title: P-HOME-006 Agent Chat placement is non-owning
+    title: P-HOME-006 LocalAgent Conversation placement is non-owning
     modality: must_not
-    statement: Home Agent Chat becomes more than an in-shell reference placement or owns transcript, history, chat-derived memory, cross-app agent identity, grant, memory, or ConversationAnchor truth.
-    condition: When Agent Chat is placed or used in Nimi Home.
+    statement: Home LocalAgent Conversation becomes more than an in-shell reference placement or owns transcript, history, chat-derived Memory, cross-app LocalAgent identity, grant, Memory, or Conversation truth.
+    condition: When LocalAgent Conversation is placed or used in Nimi Home.
     failure: Reject the ownership and retain neutral projection from the corresponding owner.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-agent-chat
   - id: rule.nimi.platform.product-lifecycle.p-home-007
     kind: rule
-    title: P-HOME-007 explicit AI scope identity
+    title: P-HOME-007 explicit Runtime AI context
     modality: must
-    statement: Every Agent Chat execution path and every other Nimi Home path invoking Runtime AI execution carries an explicit canonical AI scope reference.
+    statement: Every LocalAgent conversation and other Nimi Home path invoking Runtime AI execution carries the explicit Runtime-owned capability and target context required for authorization and routing.
     condition: Whenever Nimi Home invokes Runtime AI execution.
-    failure: Reject execution before Runtime invocation when the scope reference is absent.
+    failure: Reject execution before Runtime invocation when the required capability or target context is absent.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-agent-chat
@@ -778,7 +778,7 @@ units:
     kind: rule
     title: P-HOME-009 no displaced app truth or recursive naming
     modality: must_not
-    statement: Hiding Avatar moves package, install, or update truth into Agent Chat, or the shell introduces a Home tab named Home as recursive authority.
+    statement: Hiding Avatar moves package, install, or update truth into LocalAgent Conversation, or the shell introduces a Home tab named Home as recursive authority.
     condition: When app truth is placed or Home navigation is named.
     failure: Reject the displaced truth or recursive name and retain the canonical owner and placement.
     relations:

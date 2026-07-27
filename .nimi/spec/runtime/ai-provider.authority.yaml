@@ -100,7 +100,7 @@ units:
     kind: rule
     title: Runtime holds no global active profile
     modality: must_not
-    statement: Runtime maintains a runtime-global active AI profile, treats ResolveProfile or ApplyProfile as establishing a persistent global binding, links profile resolve or apply across scopes, or interprets scoped committed Runtime Agent AI Config as a runtime-global active profile.
+    statement: Runtime maintains a runtime-global active AI profile, treats profile resolution or application as establishing a persistent global binding, links profile resolution across scopes, or interprets scoped committed Runtime LocalAgent AI configuration as a runtime-global active profile.
     condition: Always.
     failure: Reject any global-profile interpretation and keep resolve and apply per call.
     relations:
@@ -160,10 +160,10 @@ units:
         target: definition.nimi.runtime.ai-provider.profile-execution-plane
   - id: rule.nimi.runtime.ai-provider.r014
     kind: rule
-    title: Workflow identity split is fixed
+    title: Media pipeline identity stays internal
     modality: must
-    statement: Reusable asset identity, Runtime-owned prepared asset identity and selected-source evidence, portable profile slice and companion occurrence identity, consumer-scoped AIConfig slice identity, and Runtime-owned workflow binding ids and materialization cache keys remain distinct, and Runtime-owned identities never enter AIProfile or AIConfig.
-    condition: Whenever profile workflow identities are created, stored, or projected.
+    statement: Reusable asset identity, Runtime-prepared asset identity, selected-source evidence, portable profile intent, consumer-scoped AIConfig intent, and Runtime-internal media pipeline execution identity remain distinct, and Runtime execution identity never enters portable AIProfile or AIConfig.
+    condition: Whenever media generation identities are created, stored, or projected.
     failure: Reject identity leakage across the split or into portable payloads.
     relations:
       - type: applies_to
@@ -630,10 +630,10 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r060
     kind: rule
-    title: Workflow external async aligns with the job lifecycle
+    title: Provider media tasks align with the job lifecycle
     modality: must
-    statement: Workflow external asynchronous node event semantics align with the multimodal task lifecycle.
-    condition: Whenever workflow external async nodes emit events.
+    statement: Provider-backed asynchronous media generation stages use the Runtime multimodal task lifecycle and do not create a general Workflow product.
+    condition: Whenever provider-backed asynchronous media stages emit events.
     failure: Reject event semantics that diverge from the multimodal task lifecycle.
     relations:
       - type: applies_to
@@ -730,10 +730,10 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r070
     kind: rule
-    title: Workflow transport keys stay runtime private
+    title: Media provider transport keys stay Runtime private
     modality: must_not
-    statement: A provider extension base URL override crosses the provider baseline scheme, host, or canonical base path to reach management endpoints, private operational paths, or non-workflow API surfaces, or transport and adapter routing keys including api_key_header, base_url, headers, workflow_paths, clone_paths, design_paths, preview_paths, and create_paths are promoted by source catalogs, snapshots, or app-facing route describe into canonical provider truth.
-    condition: Whenever workflow provider extensions carry transport routing keys.
+    statement: A provider extension cannot escape its admitted origin or canonical base path, and provider transport, credential-header, adapter route, voice clone, voice design, preview, and create path details remain Runtime private rather than catalog, snapshot, SDK, or App-facing truth.
+    condition: Whenever media provider extensions carry transport routing details.
     failure: Reject cross-origin or path-escaping overrides and keep transport keys runtime private.
     relations:
       - type: applies_to

@@ -24,8 +24,8 @@ units:
     meaning: The Runtime voice plane owns voice creation scenario execution, the VoiceReference and VoiceAsset public contracts, voice discovery channels, tenant and target binding guarantees, agent voice output policy, voice streaming and interruption truth, and the third-party voice transport boundary.
   - id: definition.nimi.runtime.model-catalog.workflow-plane
     kind: definition
-    title: Runtime workflow plane
-    meaning: The Runtime workflow plane owns workflow DAG definitions, the closed node and state registries, the workflow event stream protocol, execution and resume modes, node tracking and retry fields, and cancellation semantics for AI-orchestrating workflows.
+    title: Deferred product Workflow boundary
+    meaning: General product Workflow is outside the current Runtime core, its future owner and DAG, node, state, event, resume, retry, cancellation, SDK, and protocol semantics remain undecided, and its absence never blocks Local AI, LocalAgent, Conversation, Memory, Knowledge, voice, or ordinary readiness.
   - id: rule.nimi.runtime.model-catalog.r001
     kind: rule
     title: Catalog snapshot and source layout is fixed
@@ -218,20 +218,20 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
   - id: rule.nimi.runtime.model-catalog.r020
     kind: rule
-    title: Workflow models are declared explicitly
+    title: Voice generation pipelines are declared explicitly
     modality: must
-    statement: voice_workflow_models declare workflow_model_id, workflow_type limited to voice_clone or voice_design, input_contract_ref, output_persistence, target_model_refs, and langs_ref, and a declared request-options provider extension carries only extension namespace and schema identity for metadata projection.
-    condition: Whenever a voice workflow model is declared in catalog source.
-    failure: Reject workflow model declarations with missing fields or transport-bearing extension truth.
+    statement: Voice clone and voice design generation pipelines declare typed input, output retention, supported targets, and language capability through Runtime catalog truth without exposing provider transport or creating a general Workflow product.
+    condition: Whenever a voice generation pipeline is declared in catalog source.
+    failure: Reject incomplete capability declarations and transport-bearing public metadata.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
   - id: rule.nimi.runtime.model-catalog.r021
     kind: rule
-    title: Workflow binding matrix is explicit
+    title: Voice pipeline compatibility is Runtime owned
     modality: must
-    statement: model_workflow_bindings declare the workflow-to-synthesis compatibility matrix as the single binding truth, implicit provider-side compatibility does not exist, whether a workflow family requires a target synthesis binding is expressed only by binding truth, resolve, describe, and health checking consume the matrix whenever it requires a target synthesis model, and cross-plane local and cloud reuse holds only when explicitly declared by authority.
-    condition: Whenever workflow-to-synthesis compatibility is declared or consumed.
+    statement: Runtime catalog truth declares voice generation and synthesis compatibility explicitly, consumers never guess provider-side compatibility, and any local or cloud reuse is admitted by Runtime rather than inferred from names.
+    condition: Whenever voice generation and synthesis compatibility is declared or consumed.
     failure: Reject implicit, guessed, or cross-plane compatibility outside the declared matrix.
     relations:
       - type: applies_to
@@ -308,10 +308,10 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
   - id: rule.nimi.runtime.model-catalog.r029
     kind: rule
-    title: Workflow handle policies gate activation
+    title: Voice asset policies gate activation
     modality: must
-    statement: A source provider or family whose voice workflow can produce reusable handle or asset truth declares voice handle policies answering persistence, scope, default_ttl, delete_semantics, and runtime_reconciliation_required with values drawn from the runtime voice enum registry, and a workflow-capable provider or family without a declared handle policy is never marked active or admitted.
-    condition: Whenever a workflow-capable provider or family is declared or admitted.
+    statement: A provider capable of producing reusable voice assets declares Runtime-owned retention, scope, deletion, and reconciliation policy, and remains unavailable until those owner policies are admitted.
+    condition: Whenever a voice-asset-capable provider or family is declared or admitted.
     failure: Deny activation and admission until the handle policy is declared.
     relations:
       - type: applies_to
@@ -520,9 +520,9 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
   - id: rule.nimi.runtime.model-catalog.r050
     kind: rule
-    title: Agent voice policy is runtime owned
+    title: LocalAgent voice policy is Runtime owned
     modality: must
-    statement: Agent voice output policy lives on Runtime with avatar autoplay persisted per agent only on the runtime agent presentation profile, desktop autoplay fixed false for Desktop agent chat until a Desktop authority admits a user-facing setting, default_voice_reference as the agent-owned reference for ordinary synthesis, the synthesis intent, local or cloud speech route policy, and voice clone and design intent owned by runtime agent AI config, and durable voice artifact retention with user cleanup, while Desktop, Zhiyu, and Avatar render controls and consume projections without deciding provider route, model binding, workflow choice, or whether a committed assistant message has voice semantics, voice identity follows the agent profile rather than avatar assets, avatar instances, or chat surfaces, and hosts never persist autoplay in app-local or kit-local config.
+    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, local or cloud speech route policy, voice identity, user-visible playback posture, and durable voice artifact retention, while Desktop, Zhiyu, and Avatar render controls and consume projections without deciding provider route, model binding, or whether a committed assistant message has voice semantics; voice identity follows the LocalAgent profile rather than Avatar assets, Avatar instances, or conversation surfaces.
     condition: Whenever agent voice policy is stored, mutated, or consumed.
     failure: Reject consumer-owned policy state and route or identity decisions outside Runtime.
     relations:
@@ -540,11 +540,11 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-plane
   - id: rule.nimi.runtime.model-catalog.r052
     kind: rule
-    title: Agent voice has three orthogonal axes
+    title: LocalAgent voice output remains typed
     modality: must
-    statement: Agent voice truth separates the transport execution mode, voice_output_mode limited to native_stream, simulated_stream, batch_final_artifact, and text_only from the runtime voice enum registry, and voice_playback_state limited to active, completed, failed, interrupted, and canceled, no axis absorbs another, playback states are never encoded as output modes, consumers read the positive voice_output_mode rather than inferring realtime from event shape, and realtime acceptance requires the positive native_stream value.
-    condition: Whenever agent voice output truth is projected or consumed.
-    failure: Reject axis conflation, inferred realtime acceptance, and playback states as output modes.
+    statement: Runtime projects LocalAgent voice generation mode, output availability, stream or artifact continuity, and playback state as distinct typed facts, and consumers never infer voice success, realtime readiness, or playback state from event shape alone.
+    condition: Whenever LocalAgent voice output truth is projected or consumed.
+    failure: Reject conflated or consumer-inferred voice truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
@@ -552,7 +552,7 @@ units:
     kind: rule
     title: Voice streams keep turn identity and admitted transport
     modality: must
-    statement: A voice stream stays bound to the same agent_id, conversation_anchor_id, turn_id, stream_id, and committed message_id as its text turn, transient native chunks flow only through the admitted SubscribeAgentVoiceStream transport consumed by SDK as a typed agent voice stream, raw audio bytes never embed in runtime agent app messages or presentation projection events, exactly one final durable audio artifact persists for replay when a stream completes successfully, and per-chunk durable artifact identities require a separately admitted retention authority before use.
+    statement: A voice stream preserves the same Runtime-issued LocalAgent, Conversation, turn, stream, and committed-message continuity as its text turn, SDK consumes it through a typed Runtime stream, raw audio bytes never become app-message or presentation-event truth, and durable replay artifacts follow Runtime retention authority.
     condition: Whenever agent voice streams or their artifacts are produced or consumed.
     failure: Reject identity drift, undeclared transports, inline raw bytes, and per-chunk durable minting.
     relations:
@@ -590,81 +590,11 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-plane
   - id: rule.nimi.runtime.model-catalog.r057
     kind: rule
-    title: Workflow definitions are explicit DAGs
+    title: General product Workflow remains deferred and non-core
     modality: must
-    statement: A workflow definition declares workflow_type, nodes, and edges where each edge carries from_node_id, from_output, to_node_id, and to_input, nodes declare depends_on prerequisites consumed for topological ordering, submission requires app_id and at least one node in an acyclic graph with timeout_ms as the total workflow timeout, and acceptance returns a ULID task_id with an accepted flag.
-    condition: Whenever a workflow is defined or submitted.
-    failure: Reject cyclic, empty, or unidentified workflow submissions.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.model-catalog.workflow-plane
-  - id: rule.nimi.runtime.model-catalog.r058
-    kind: rule
-    title: Workflow node registry is closed
-    modality: must
-    statement: Workflow nodes admit exactly the fifteen registered types spanning the AI nodes AI_GENERATE, AI_STREAM, AI_EMBED, AI_IMAGE, AI_VIDEO, AI_TTS, AI_STT, AI_TTS_CREATE_VOICE, and AI_TTS_SYNTHESIZE, the transform nodes TRANSFORM_EXTRACT, TRANSFORM_TEMPLATE, and TRANSFORM_SCRIPT, and the control nodes CONTROL_BRANCH, CONTROL_MERGE, and CONTROL_NOOP, each node carries its matching typed config through the type_config discriminator whose branch agrees with node_type at runtime validation, and CONTROL_MERGE strategies admit only ALL, ANY, and N_OF_M with min_completed.
-    condition: Whenever workflow nodes are declared or validated.
-    failure: Reject unknown node types, mismatched config branches, and undeclared merge strategies.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.model-catalog.workflow-plane
-  - id: rule.nimi.runtime.model-catalog.r059
-    kind: rule
-    title: AI nodes execute through scenarios
-    modality: must
-    statement: AI workflow node execution lands on the unified scenario surface with AI_GENERATE and AI_STREAM as TEXT_GENERATE, AI_EMBED as TEXT_EMBED, AI_IMAGE as IMAGE_GENERATE, AI_VIDEO as VIDEO_GENERATE, AI_TTS as SPEECH_SYNTHESIZE, AI_STT as SPEECH_TRANSCRIBE, and AI_TTS_CREATE_VOICE as VOICE_CLONE or VOICE_DESIGN selected by workflow_type, and any compatibility wrapper preserves scenario semantics externally.
-    condition: Whenever an AI workflow node executes.
-    failure: Reject AI node execution that bypasses scenario semantics.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.model-catalog.workflow-plane
-  - id: rule.nimi.runtime.model-catalog.r060
-    kind: rule
-    title: Workflow states are closed
-    modality: must
-    statement: Workflow status admits exactly ACCEPTED, QUEUED, RUNNING, COMPLETED, FAILED, CANCELED, and SKIPPED with COMPLETED, FAILED, CANCELED, and SKIPPED as the only terminal states, and node status reuses the same enumeration.
-    condition: Whenever workflow or node status is created, transitioned, or projected.
-    failure: Reject undeclared states or terminal semantics outside the closed set.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.model-catalog.workflow-plane
-  - id: rule.nimi.runtime.model-catalog.r061
-    kind: rule
-    title: Workflow events carry a fixed protocol
-    modality: must
-    statement: SubscribeWorkflowEvents streams events carrying event_type, a monotonically increasing sequence, task_id, trace_id, timestamp, node_id for node-level events, progress_percent from zero to one hundred, reason_code on failure and completion events, and an extension payload, event types admit exactly STARTED, NODE_STARTED, NODE_PROGRESS, NODE_COMPLETED, NODE_SKIPPED, COMPLETED, FAILED, CANCELED, NODE_EXTERNAL_SUBMITTED, NODE_EXTERNAL_RUNNING, NODE_EXTERNAL_COMPLETED, and NODE_EXTERNAL_FAILED, and the NODE_COMPLETED payload of a voice-creating node can carry voice_asset_id for downstream nodes.
-    condition: Whenever workflow events are emitted or consumed.
-    failure: Reject undeclared event types, sequence regressions, or lost voice asset payloads.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.model-catalog.workflow-plane
-  - id: rule.nimi.runtime.model-catalog.r062
-    kind: rule
-    title: Execution and resume modes are closed
-    modality: must
-    statement: Node execution modes admit exactly INLINE for in-process synchronous execution and EXTERNAL_ASYNC for delegation through callback_ref whose callback protocol remains unadmitted until separately defined, and external resume strategies admit exactly AUTO continuing automatically on external completion and MANUAL awaiting an explicit trigger.
-    condition: Whenever workflow node execution or resume modes are declared or executed.
-    failure: Reject undeclared modes and callback execution before its protocol is admitted.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.model-catalog.workflow-plane
-  - id: rule.nimi.runtime.model-catalog.r063
-    kind: rule
-    title: Node tracking and retry fields are fixed
-    modality: must
-    statement: Node status tracking carries node_id, status, attempt, reason, provider_job_id, next_poll_at, retry_count, and last_error, and node retry configuration uses retry_max_attempts with zero meaning no retry plus a retry_backoff policy string.
-    condition: Whenever node status or retry configuration is stored or projected.
-    failure: Reject undeclared tracking fields or retry semantics.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.model-catalog.workflow-plane
-  - id: rule.nimi.runtime.model-catalog.r064
-    kind: rule
-    title: Workflow cancellation is asynchronous and honest
-    modality: must
-    statement: CancelWorkflow acknowledges only acceptance of the cancellation request, actual cancellation takes effect at the execution engine's next checkpoint, nodes already terminal are not canceled, and completed cancellation emits the CANCELED event.
-    condition: Whenever a workflow cancellation is requested or completed.
-    failure: Reject synchronous-success claims and cancellations of terminal nodes.
+    statement: Runtime exposes no current general product Workflow DAG, node registry, execution, event stream, resume, retry, cancellation, or SDK contract, while media pipelines described as voice or image workflows remain internal capability implementation and do not create a general Workflow product.
+    condition: Whenever general product Workflow is proposed, documented, or unavailable.
+    failure: Keep the future capability isolated and unavailable rather than inferring a Runtime owner, API, protocol, or readiness dependency.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.workflow-plane

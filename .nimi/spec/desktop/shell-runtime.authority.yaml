@@ -4,937 +4,233 @@ scope: desktop.shell-runtime
 units:
   - id: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
     kind: definition
-    title: Desktop shell bootstrap phase plane
-    meaning: The Desktop shell bootstrap phase plane is the production-host sequence that resolves signed Desktop release metadata, verified Runtime service posture, typed SDK and protected-host composition, Runtime-owned account projection, optional Runtime host capabilities, and shell readiness without treating shell completion as account, product-control, feature-data, Realm, provider, or model readiness.
+    title: Nimi Home host bootstrap plane
+    meaning: The Nimi Home host bootstrap plane composes verified Runtime service posture, protected host capabilities, standard SDK and Kit surfaces, Runtime-owned account projection, and truthful readiness without becoming an owner of those facts.
   - id: definition.nimi.desktop.shell-runtime.account-session-plane
     kind: definition
-    title: Desktop account session projection plane
-    meaning: The Desktop account session plane is the redacted renderer projection and login-gate UX derived from RuntimeAccountService over the verified non-portable Desktop control connection; Runtime retains account truth, bearer and refresh custody, refresh, revocation, logout, switching, and Realm invocation authority.
+    title: Nimi Home account projection plane
+    meaning: The account projection plane renders Runtime-owned local account state and user intent while Runtime retains credential custody, login lifecycle, refresh, revocation, logout, switching, Realm mediation, and authorization truth.
   - id: definition.nimi.desktop.shell-runtime.security-boundary
     kind: definition
-    title: Desktop shell Runtime security boundary
-    meaning: The Desktop shell Runtime security boundary combines protected process and release verification, credential non-custody, bounded endpoint and CSP defenses, verified local-asset integrity presentation, error scrubbing, and local-app carrier leak prevention without allowing renderer, environment, loopback, or bearer assertions to create authority.
+    title: Nimi Home host security boundary
+    meaning: The Nimi Home host security boundary keeps protected installation, service-control, process, credential, account, and session authority in the verified native host and Runtime while renderer and App code receive only typed bounded projections.
   - id: definition.nimi.desktop.shell-runtime.state-plane
     kind: definition
-    title: Desktop renderer state plane
-    meaning: The Desktop renderer state plane is the per-renderer composition of redacted account projection, transient Runtime execution inputs and projections, and UI navigation state whose persistence mechanics never become account, Realm, Runtime, Agent, route, message, action, workflow, or product truth.
+    title: Nimi Home presentation state plane
+    meaning: The presentation state plane owns navigation, transient view models, user input, and non-authoritative UI cache without owning Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, permission, AI route, or App truth.
   - id: definition.nimi.desktop.shell-runtime.sync-plane
     kind: definition
-    title: Desktop data synchronization non-admission plane
-    meaning: The Desktop synchronization plane is a non-admission boundary that assigns canonical Realm, Runtime, Cognition, SDK, and Kit responsibilities to their owners while limiting Desktop to product views, user-intent wiring, ephemeral view models, query invalidation, and bounded offline shell scaffolds rather than an app-local DataSync platform facade.
+    title: Desktop data ownership boundary
+    meaning: Desktop consumes typed Realm, Runtime, SDK, and Kit data and may invalidate or cache views, but it does not create a general synchronization authority or parallel product store.
   - id: definition.nimi.desktop.shell-runtime.degradation-plane
     kind: definition
-    title: Desktop offline degradation plane
-    meaning: The Desktop degradation plane is the explicit L0, L1, and L2 projection of Runtime and Realm availability together with non-authoritative IndexedDB cache and outbox transport, fail-closed feature behavior, and fresh-authority reconnect semantics.
+    title: Nimi Home degradation plane
+    meaning: The degradation plane presents explicit Runtime, Realm, Local AI, and feature availability, keeps support and repair reachable, and prevents cached or partial state from masquerading as owner truth.
   - id: definition.nimi.desktop.shell-runtime.self-update-plane
     kind: definition
     title: Desktop self-update plane
-    meaning: The Desktop self-update plane is the Desktop-host implementation beneath Platform update policy that updates only verified Desktop bytes, projects signed Desktop and installed Runtime compatibility, and delegates Runtime installation, activation, rollback, repair, and service replacement to the signed service updater and operating-system service manager.
+    meaning: Desktop self-update owns verified Desktop application bytes only; Runtime installation, service identity, update, repair, rollback, and removal remain trusted service lifecycle responsibilities.
   - id: definition.nimi.desktop.shell-runtime.network-plane
     kind: definition
-    title: Desktop shell network plane
-    meaning: The Desktop shell network plane contains bounded unauthenticated shell fetch, typed request retry and error projection, and connectivity observation while authenticated Realm unary, realtime, media, replay, and credential-bearing transport remain Runtime-owned and unavailable through a Desktop-local network facade.
+    title: Desktop shell network boundary
+    meaning: Desktop may perform bounded unauthenticated shell fetches, while authenticated Realm access, Runtime operations, Provider Credentials, AI routes, and protected local calls use their standard owner paths.
   - id: rule.nimi.desktop.shell-runtime.r001
     kind: rule
-    title: Bootstrap phases have one ordered machine projection
+    title: Desktop is the current replaceable Home host
     modality: must
-    statement: The Desktop production bootstrap machine projects exactly runtime-defaults, platform-client, runtime-host, external-agent, auth-session, and bootstrap-ready in ascending order one through six, treats every phase except bootstrap-ready as asynchronous, and applies enableRuntimeBootstrap only to runtime-host and external-agent.
-    condition: Whenever the Desktop production bootstrap sequence is assembled or machine-projected.
-    failure: Reject missing, reordered, extra, wrongly synchronous, or wrongly gated bootstrap phases.
+    statement: Desktop implements the current Nimi Home Host Contract but gains no permanent authority over Realm, Runtime, LocalAgent, Apps, permissions, credentials, installation, or service lifecycle from being first party.
+    condition: Whenever Desktop responsibility or privilege is interpreted.
+    failure: Reject Desktop-only product authority and retain the owning Realm, Runtime, Platform, or protected host decision.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
   - id: rule.nimi.desktop.shell-runtime.r002
     kind: rule
-    title: Bootstrap consumes signed Desktop and fixed Runtime service truth
+    title: Bootstrap consumes owner facts
     modality: must
-    statement: Bootstrap reads Desktop signed release metadata and typed status for the fixed installer-owned Runtime operating-system service through the Kit protected carrier, permits runtime_defaults only as defensively parsed non-security shell hints, and never stages, selects, executes, probes, configures, or discovers a production Runtime binary, endpoint, service, trust path, credential, account, Realm base, provider route, or configuration document from PATH, environment, argv, user files, or renderer input.
-    condition: Whenever Desktop establishes initial release or Runtime service posture.
-    failure: Project typed unavailable, release-invalid, or repair-required state without fallback release, candidate execution, or caller-selected Runtime configuration.
+    statement: Nimi Home bootstrap obtains verified Runtime service posture, protected host capability, SDK and Kit composition, current account projection, and feature readiness from their owners and reports each unavailable or pending state explicitly.
+    condition: Whenever Nimi Home starts or rebuilds its composition.
+    failure: Reject local inference, cached authority, and synthetic ready state.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
   - id: rule.nimi.desktop.shell-runtime.r003
     kind: rule
-    title: Desktop does not synchronize Runtime security configuration
-    modality: must_not
-    statement: Desktop reads, merges, writes, or injects a Runtime JSON document, Runtime configuration path, Realm JWT verification input, listener setting, service selector, or credential, or interprets a typed restart-required result as direct stop, binary-selection, or file-access authority.
-    condition: Whenever bootstrap or settings handles Runtime configuration.
-    failure: Reject the whole-document or path operation and use only an independently admitted typed redacted Runtime operation and typed fixed-service restart request.
+    title: Runtime lifetime is independent of Desktop
+    modality: must
+    statement: Desktop does not spawn, select, directly stop, or own the Runtime service, and quitting Desktop does not define Runtime lifetime.
+    condition: Whenever Desktop starts, exits, repairs, or observes Runtime.
+    failure: Use the protected host and trusted service lifecycle boundary.
     relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.security-boundary
   - id: rule.nimi.desktop.shell-runtime.r004
     kind: rule
-    title: SDK bootstrap uses verified protected host composition
+    title: Account truth remains Runtime owned
     modality: must
-    statement: Desktop initializes its local Runtime-backed SDK composition with the verified native protected carrier and supplies no Realm base, Realm bearer, subject provider, refresh provider, persisted auth session, or anonymous product fallback; RegisterApp and OpenSession remain binding-only and OpenDesktopSession independently establishes protected Desktop origin.
-    condition: Whenever Desktop initializes the production SDK or opens its Runtime binding.
-    failure: Keep protected product behavior unavailable until exact protected origin and operation admission succeed.
+    statement: Desktop renders Runtime account status and sends typed login, logout, switch, permission, and presence intent through the verified host but never stores or reconstructs canonical account, authorization, or session truth.
+    condition: Whenever Nimi Home presents account or permission UX.
+    failure: Reject Desktop-owned account truth and display the typed Runtime state.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
   - id: rule.nimi.desktop.shell-runtime.r005
     kind: rule
-    title: Canonical renderer construction is host-neutral
-    modality: must
-    statement: The app-owned canonical renderer factory accepts production or Simulator bindings without detecting the binding kind, executing Desktop bootstrap, constructing protected carriage, selecting alternate UI, or sharing module-scope providers, stores, routes, query clients, localization, subscriptions, cleanup, or readiness between renderer instances.
-    condition: Whenever Desktop or Simulator constructs a canonical renderer instance.
-    failure: Reject host detection, production bootstrap in Simulator, alternate UX, and cross-instance state or resource sharing.
+    title: Desktop receives no App-path credentials
+    modality: must_not
+    statement: Desktop renderer or App state receives, reads, stores, refreshes, or forwards Realm App-path tokens, Provider Credentials, protected session proof, or account bearer material.
+    condition: Whenever local account, Realm, AI, or connector capability is composed.
+    failure: Keep custody inside Runtime and expose only typed projection.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
+        target: definition.nimi.desktop.shell-runtime.security-boundary
   - id: rule.nimi.desktop.shell-runtime.r006
     kind: rule
-    title: Runtime host assembly is gated and Runtime-owned
+    title: Ordinary product capability uses SDK and Kit
     modality: must
-    statement: When enableRuntimeBootstrap is active, the Desktop production host assembles only verified protected carriage, redacted Runtime status, admitted local LLM health and execution capabilities, speech and missing-data resolvers, and core or host-only route and memory capabilities, while RuntimeLocalService remains the sole local-model readiness truth and a missing, degraded, or conflicting selected record makes the binding unavailable and not sendable without erasing its display selection.
-    condition: Whenever Desktop assembles Runtime host capabilities or hydrates local route readiness.
-    failure: Reject host-local readiness truth, unverified carriage, and fail-open sending on missing or conflicting Runtime records.
+    statement: Nimi Home consumes ordinary Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, App, and permission capabilities through standard SDK and demand-driven Kit composition.
+    condition: Whenever a Nimi Home product surface accesses owner capability.
+    failure: Reject App-local REST, private Runtime imports, generic bridge forwarding, or a Desktop-only parallel API.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
   - id: rule.nimi.desktop.shell-runtime.r007
     kind: rule
-    title: External Agent bootstrap consumes Runtime projection only
-    modality: must_not
-    statement: Desktop bootstrap registers renderer-local External Agent action descriptors, starts a Desktop-owned action gateway, or resynchronizes descriptors through Tauri as product authority instead of optionally initializing typed SDK subscriptions to Runtime-owned gateway, status, action, grant, and audit projections.
-    condition: Whenever External Agent surfaces participate in Desktop bootstrap.
-    failure: Remove the Desktop-owned gateway or descriptor path and keep the surface unavailable until Runtime projection is present.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-  - id: rule.nimi.desktop.shell-runtime.r008
-    kind: rule
-    title: Account bootstrap queries Runtime projection
+    title: Sensitive OS operations use the Home Host Contract
     modality: must
-    statement: Desktop account bootstrap uses the verified desktop_account_host origin to query Runtime account status and subscribe when reactive state is needed, never calls bootstrapAuthSession, exchanges or reads tokens, reads or clears shared session files, reuses binding-only bootstrap as account proof, or synthesizes anonymous ordinary product use.
-    condition: Whenever Desktop resolves initial account state.
-    failure: Route unauthenticated, unavailable, expired, or reauthentication-required projection to the explicit login or repair state and deny ordinary account use.
+    statement: Installer, Runtime service control, protected local access, file picker, reveal, browser callback, notification, window, and other sensitive OS operations remain bounded native host capabilities rather than renderer or product-domain authority.
+    condition: Whenever Nimi Home requests an OS-sensitive operation.
+    failure: Reject direct renderer execution and generic native command forwarding.
     relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-  - id: rule.nimi.desktop.shell-runtime.r009
-    kind: rule
-    title: Shell bootstrap readiness is not product readiness
-    modality: must
-    statement: A successful shell bootstrap sets bootstrapReady true and bootstrapError null, while ordinary product use additionally requires ready_for_use product control, selected nimi_data, authenticated Runtime account projection, and required first-run baseline evidence; a shell-fatal failure leaves bootstrapReady false, records a redacted error, clears only Desktop memory projection, and never mutates Runtime custody.
-    condition: Whenever bootstrap completes or fails.
-    failure: Reject product readiness inferred from shell readiness and reject fatal failure handling that changes Runtime-owned state or fabricates success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r010
-    kind: rule
-    title: Bootstrap is idempotent and process-singleton safe
-    modality: must
-    statement: One Desktop production host scopes bootstrapRuntime to one cached bootstrapPromise, and Electron acquires its process single-instance lock before protected bridge registration or renderer creation so a losing process opens no second Desktop session, reuses no active Chromium profile, exits without bootstrap, and sends only a non-authorizing focus notification with no open intent, account material, session material, or queued work.
-    condition: Whenever bootstrap is invoked repeatedly or another Desktop process starts.
-    failure: Reject duplicate initialization, duplicate protected sessions, shared active profiles, and authority-bearing focus notifications.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.security-boundary
+  - id: rule.nimi.desktop.shell-runtime.r008
+    kind: rule
+    title: Renderer state is non-authoritative
+    modality: must_not
+    statement: Navigation, selected rows, current tabs, draft input, local stores, query cache, optimistic state, or recent-item state becomes account, Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, permission, route, model, or App truth.
+    condition: Whenever Desktop renderer state is stored or restored.
+    failure: Re-read the owner projection and present unresolved state honestly.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.state-plane
+  - id: rule.nimi.desktop.shell-runtime.r009
+    kind: rule
+    title: Desktop creates no synchronization authority
+    modality: must_not
+    statement: Desktop adds a general DataSync facade, conflict owner, offline product database, cross-App event broker, or durable outbox that replaces Realm or Runtime truth.
+    condition: Whenever Desktop coordinates data refresh or offline behavior.
+    failure: Keep synchronization and conflict semantics with the owning service and limit Desktop to view cache and explicit user retry.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.sync-plane
+  - id: rule.nimi.desktop.shell-runtime.r010
+    kind: rule
+    title: Cached data never proves a write
+    modality: must_not
+    statement: Cached, optimistic, queued, or offline UI state is reported as a committed Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, permission, or App mutation.
+    condition: Whenever an owner service is unavailable or a write is pending.
+    failure: Show pending, stale, unavailable, or failed state and require owner confirmation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.degradation-plane
   - id: rule.nimi.desktop.shell-runtime.r011
     kind: rule
-    title: Feature data loads only after authenticated projection
+    title: Reconnect revalidates authority
     modality: must
-    statement: Initial authenticated feature data is not loaded synchronously in bootstrapRuntime and begins only after Runtime projects authenticated, through independently admitted Runtime-mediated operations whose private refresh remains inside Runtime; bootstrapReady never implies feature-data readiness.
-    condition: Whenever Desktop triggers initial account-scoped feature loading.
-    failure: Deny synchronous, token-bearing, direct-Realm, unadmitted, or readiness-inferred feature loading.
+    statement: After Runtime restart, account switch, authorization revoke, host replacement, or connectivity loss, Desktop discards stale authority and rebuilds projections through fresh verified owner sessions.
+    condition: Whenever Nimi Home reconnects.
+    failure: Reject replay of cached credentials, sessions, permissions, or owner success.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
+        target: definition.nimi.desktop.shell-runtime.degradation-plane
   - id: rule.nimi.desktop.shell-runtime.r012
     kind: rule
-    title: Shell lifecycle and backend reachability remain distinct
+    title: Support remains available during readiness failure
     modality: must
-    statement: Menu-bar CloseRequested hides the macOS main window when enabled, explicit quit stops only Desktop-owned subscriptions and watchers and leaves the Runtime service running, and Runtime or Realm unavailability after shell construction is an explicit degraded feature state rather than fabricated readiness or an implicit daemon stop; explicit ready probes still fail closed.
-    condition: Whenever the main window closes, Desktop quits, or Runtime or Realm reachability changes.
-    failure: Reject daemon stop on Desktop quit, hidden close treated as quit, soft-success probes, and backend reachability inferred from shell readiness.
+    statement: Support, diagnostics, configuration, model acquisition, and repair remain reachable when Runtime, Realm, account, Local AI, or feature readiness is incomplete.
+    condition: Whenever ordinary product readiness is not satisfied.
+    failure: Reject a gate that hides the recovery path.
     relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.degradation-plane
   - id: rule.nimi.desktop.shell-runtime.r013
     kind: rule
-    title: Account projection has a closed state model
+    title: Local AI readiness is bounded
     modality: must
-    statement: Desktop account projection uses only bootstrapping, anonymous, login-pending, authenticated, refresh-pending, expired, reauth-required, switching, logging-out, and unavailable, enables account features only for authenticated with an admitted mediated Realm operation, pauses new Realm work for refresh-pending or switching, clears account memory and subscriptions for expired, reauth-required, or anonymous, and renders unavailable as repair rather than anonymous or cloud-offline.
-    condition: Whenever Runtime account status is mapped into Desktop state or feature wiring.
-    failure: Reject unknown states, token-derived state, unsafe feature enablement, and unavailable-to-anonymous or unavailable-to-offline coercion.
+    statement: Ordinary-user Local AI readiness requires authenticated product state and real local Text, STT, and TTS availability, while Workflow, MCP, World Evolution, public distribution, and future platform capabilities remain non-blocking.
+    condition: Whenever Nimi Home computes ordinary readiness.
+    failure: Keep ordinary use not ready when a required local capability is missing and reject future-capability prerequisites.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
+        target: definition.nimi.desktop.shell-runtime.degradation-plane
   - id: rule.nimi.desktop.shell-runtime.r014
     kind: rule
-    title: Account control requires verified live Desktop origin
+    title: LocalAgent projections stay non-owning
     modality: must
-    statement: Login, logout, switching, status, and lifecycle control use one non-portable OpenDesktopSession on mutually authenticated desktop_control whose Desktop process, executable trust, account, device, and origin are Runtime-derived, and public TCP, renderer metadata, app identifiers, caller enums, RegisterApp, OpenSession, source-host claims, or portable bearers never establish that origin.
-    condition: Whenever Desktop performs account control or consumes account truth.
-    failure: Deny account control until the live protected Desktop origin is fully verified.
+    statement: Nimi Home presents LocalAgent inventory, lifecycle intent, Conversation, state, Memory and Knowledge status, voice, Avatar entry, and errors from typed Runtime projections without executing turns or reconstructing truth from UI cache.
+    condition: Whenever Nimi Home displays or controls a LocalAgent.
+    failure: Reject Desktop-owned LocalAgent, Conversation, Memory, Knowledge, activity, emotion, or voice truth.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
+        target: definition.nimi.desktop.shell-runtime.state-plane
   - id: rule.nimi.desktop.shell-runtime.r015
     kind: rule
-    title: Desktop owns no account token or durable session
-    modality: must_not
-    statement: Desktop or its renderer, main process, SDK carrier, Zustand store, IndexedDB, DataSync residue, public-web facade, settings or profile UI, bootstrap watcher, or app-local file receives, persists, caches, refreshes, or reconstructs account access tokens, refresh tokens, raw JWTs, token-bearing setters, shared session files, or durable login truth.
-    condition: Whenever local first-party account material is created, transported, displayed, stored, refreshed, or cleared.
-    failure: Reject the material before Desktop exposure and clear the redacted account projection when Runtime reports session loss.
+    title: Character and LocalAgent owners remain separated
+    modality: must
+    statement: Nimi Home consumes Realm PersonaCharacter and WorldCharacter data and sends Character or World Source materialization intent to Runtime, while Realm keeps source truth and Runtime keeps LocalAgent identity and lifecycle.
+    condition: Whenever Nimi Home browses Character data or materializes a LocalAgent.
+    failure: Reject Desktop source acquisition, source-free materialization, or merged Realm and Runtime ownership.
     relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.state-plane
   - id: rule.nimi.desktop.shell-runtime.r016
     kind: rule
-    title: Account events drive renderer projection
-    modality: must
-    statement: Desktop consumes the exact protected Runtime account event stream, enables subscriptions only after authenticated, pauses new Realm work during refresh, clears account memory, subscriptions, and stale L1 state on expired, reauth-required, or anonymous, renders unavailable as repair, and requires a fresh status query after replay truncation, sequence gap, malformed decimal sequence, or delivery-order violation before accepting later events.
-    condition: Whenever an account event is delivered or event continuity is uncertain.
-    failure: Reject local Zustand event ownership, stale continuation, and later events accepted before fresh status reconciliation.
+    title: Desktop does not execute AI providers
+    modality: must_not
+    statement: Desktop owns Provider Credentials, chooses Runtime routes or models as execution truth, calls unadmitted provider endpoints, or treats Cloud AI as proof that required Local AI is ready.
+    condition: Whenever Desktop presents or submits AI intent.
+    failure: Use typed Runtime AI configuration and execution projections.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
+        target: definition.nimi.desktop.shell-runtime.security-boundary
   - id: rule.nimi.desktop.shell-runtime.r017
     kind: rule
-    title: Runtime owns refresh and expiration
-    modality: must_not
-    statement: Desktop exposes a public account refresh helper, schedules proactive or reactive token refresh, persists refresh outcomes, treats decoded expiry as authority, or owns revocation reaction instead of consuming Runtime-owned refresh, expiration, and account status projection.
-    condition: Whenever account credentials approach expiry, refresh, rotate, fail, or are revoked.
-    failure: Disable authenticated feature data on failed Runtime projection and require Runtime-mediated recovery without Desktop token logic.
+    title: Desktop update does not own Runtime update
+    modality: must
+    statement: Desktop self-update verifies and replaces Desktop application bytes only; Runtime service update, repair, rollback, and replacement remain trusted service lifecycle operations.
+    condition: Whenever Desktop or Runtime update is offered or applied.
+    failure: Reject cross-owner replacement or a success projection before verified installed state.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
+        target: definition.nimi.desktop.shell-runtime.self-update-plane
   - id: rule.nimi.desktop.shell-runtime.r018
     kind: rule
-    title: Authenticated Realm operations remain Runtime-mediated
-    modality: must
-    statement: Desktop local first-party Realm operations use typed SDK clients backed by InvokeRealmUnary with Runtime-owned bearer injection and internal refresh, expose only redacted account and bounded result projections, and never use a Desktop Realm SDK session, direct Realm adapter, app-owned subject provider, caller-selected Realm base, or generic proxy.
-    condition: Whenever Desktop performs an authenticated Realm operation.
-    failure: Deny the operation until an exact Runtime-mediated row is admitted and available.
+    title: Shell networking cannot bypass owners
+    modality: must_not
+    statement: A Desktop-local fetch helper carries authenticated Realm calls, Runtime operations, cookies, tokens, Provider Credentials, connector secrets, AI routes, or protected local commands.
+    condition: Whenever Desktop performs a shell network request.
+    failure: Use the standard Realm, Runtime, SDK, or protected host path.
     relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.network-plane
   - id: rule.nimi.desktop.shell-runtime.r019
     kind: rule
-    title: Account lifecycle invalidates stale work
+    title: Failures remain owner-specific
     modality: must
-    statement: Logout, token expiry, remote revocation, account switch, same-account credential rotation, Realm mismatch, unavailable custody, protected disconnect, and Runtime boot replacement are consumed as Runtime status or events and invalidate affected account requests, streams, subscriptions, and projections before later delivery or commit.
-    condition: Whenever Runtime account generation, custody, process, connection, or boot identity changes.
-    failure: Cancel stale work and reject later delivery, commit, replay, or renderer-local revalidation.
+    statement: Desktop distinguishes Runtime unavailable, Realm offline, unauthenticated, permission denied, readiness incomplete, validation failure, cancellation, and unsupported capability without converting them into anonymous, cached, local, or mock success.
+    condition: Whenever an owner operation or stream fails.
+    failure: Render the typed failure and preserve recovery action.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
+        target: definition.nimi.desktop.shell-runtime.degradation-plane
   - id: rule.nimi.desktop.shell-runtime.r020
     kind: rule
-    title: Login route decisions remain typed and owner-mediated
-    modality: must
-    statement: Anonymous email entry uses an admitted typed Runtime-owned login-route decision projecting exactly register_with_otp, login_with_otp, or login_with_password, while Desktop only routes UX and owns neither direct account exchange nor login truth.
-    condition: Whenever Desktop chooses the registration, OTP, or password login form.
-    failure: Reject guessed, direct-token, or Desktop-owned route decisions.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-  - id: rule.nimi.desktop.shell-runtime.r021
-    kind: rule
-    title: External principal access UI projects Runtime ledger truth
-    modality: must
-    statement: The Runtime Config External Agent Access panel reads Runtime gateway and ledger projection, issues only principalId, subjectAccountId, mode, actions, and ttlSeconds, displays plaintext token once in the issuing renderer session, refreshes and revokes through typed Runtime APIs, clears matching plaintext on revoke, preserves distinct expired and revoked ledger rows with revoked time, and disables mutation with a readable error when the gateway is unavailable.
-    condition: Whenever Desktop presents External Principal token issuance, listing, refresh, or revocation.
-    failure: Reject Desktop persistence, local lifecycle calculation, Tauri ledger truth, missing revocation clearing, and mutation while the Runtime gateway is unavailable.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r022
-    kind: rule
-    title: Web and cloud session plumbing cannot become Desktop truth
+    title: Product connectivity remains unclaimed when unrun
     modality: must_not
-    statement: An explicitly admitted Web or cloud adapter session is imported into local first-party Desktop app-store, bootstrap, Runtime transport, account projection, or persistence as account truth or token fallback.
-    condition: Whenever Desktop and Web or cloud adapter code share SDK or UI surfaces.
-    failure: Preserve the adapter fence and deny local Desktop account use of browser session material.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r023
-    kind: rule
-    title: Protected Runtime trust exceeds loopback reachability
-    modality: must
-    statement: Before sending account or lifecycle material, Desktop verifies the fixed Runtime service principal, live same-object executable identity, platform code-signing policy, service-manager launch authority, protected protocol, and mutual process context, rejects user-started signed binaries, squatted sockets or pipes, and environment-selected endpoints, and uses typed fixed-service start or restart without directly spawning Runtime.
-    condition: Whenever Desktop opens or restores protected Runtime control.
-    failure: Reject protected control and project repair-required state when any trust evidence is missing, stale, or mismatched.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r024
-    kind: rule
-    title: Local AI endpoints require loopback defense
-    modality: must
-    statement: Desktop renderer accepts local AI provider endpoints only at localhost, 127.0.0.1, or [::1] and reports LOCAL_AI_ENDPOINT_NOT_LOOPBACK otherwise, while Runtime independently enforces its HTTPS, explicit loopback, high-risk range, DNS revalidation, and connection-pinning policy.
-    condition: Whenever a local AI provider endpoint is entered or used.
-    failure: Reject non-loopback renderer input and never treat renderer validation as protected-origin or complete endpoint-security proof.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r025
-    kind: rule
-    title: Bearer custody remains outside Desktop
-    modality: must_not
-    statement: Desktop renderer, main, preload, native host, SDK carrier, stores, network helpers, or logs receives or recovers account bearer, refresh token, signed-upload credential, provider secret, or authorization metadata, or guesses anonymous success after Runtime custody failure.
-    condition: Whenever authenticated account, Realm, media, connector, or provider work crosses Desktop.
-    failure: Reject the credential-bearing path and return typed unavailable or reauthentication state without fallback.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r026
-    kind: rule
-    title: Native OAuth participation is callback-only
-    modality: must_not
-    statement: Desktop or renderer owns OAuth code exchange, PKCE verifier, client secret, account or connector tokens, provider credentials, or a product oauth_token_exchange command; the native shell may only open the system browser and forward an exact callback observation to a typed protected Runtime attempt.
-    condition: Whenever Desktop participates in account or connector OAuth.
-    failure: Reject excess callback material and route exchange and custody to Runtime.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r027
-    kind: rule
-    title: Renderer and host assertions never create trust
-    modality: must_not
-    statement: Renderer URLs, origins, metadata, app identifiers, preload arguments, host self-description, environment, argv, runtime endpoints, binary paths, trust paths, caller roles, or Realm endpoints establish protected identity or select production trust; Electron and Tauri bind protected calls to exact native-created sender and main-frame objects before secondary URL and navigation integrity checks.
-    condition: Whenever a renderer invokes a protected operation or production configuration is selected.
-    failure: Deny the operation before dispatch and ignore production environment or argv overrides.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r028
-    kind: rule
-    title: Synthetic and checkpoint trust stays isolated
-    modality: must
-    statement: Non-product fixtures use distinct trust roots and cannot connect ordinary synthetic Runtime configuration to a real account Realm, while an admitted signed dev-kernel checkpoint binds its exact trial, candidate, isolated service partition, exact Realm development deployment, and loopback provider fixture without environment selection, cross-candidate inheritance, product evidence, or provider-issued account authority.
-    condition: Whenever a synthetic fixture or dev-kernel checkpoint participates in Desktop trust.
-    failure: Reject production trust sharing, unbound partitions, real-account access by ordinary fixtures, and checkpoint evidence presented as product evidence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r029
-    kind: rule
-    title: Local model integrity presentation distinguishes provenance
-    modality: must
-    statement: Verified catalog or manifest-based local assets require non-empty expected hashes and reject import mismatch or empty verified hashes, while an explicitly user-confirmed manual or orphan local_unverified import may have empty hashes, remains visibly unverified, and never becomes provenance-verified or Desktop-owned readiness truth; RuntimeLocalService retains format, engine, transfer, lifecycle, and health authority.
-    condition: Whenever Desktop imports, presents, or starts a local model asset.
-    failure: Reject invalid verified assets, provenance upgrade of local_unverified assets, and Desktop-local install or readiness success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r030
-    kind: rule
-    title: Desktop webview CSP fails closed
-    modality: must
-    statement: Tauri webviews enable CSP, production script-src forbids eval and inline scripts, connect-src is limited to explicitly admitted origins and loopback surfaces without granting authenticated transport authority, Desktop development disables Vite HMR and React Fast Refresh to preserve production-equivalent script constraints, and Web relies on server CSP rather than Tauri policy.
-    condition: Whenever Desktop or Web shell content security policy is configured.
-    failure: Reject permissive Desktop script policy, undeclared connect origins, and CSP interpreted as transport admission.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r031
-    kind: rule
-    title: Runtime ConnectorService owns provider credentials
-    modality: must
-    statement: Desktop accepts provider credential input only long enough to call typed CreateConnector or UpdateConnector, immediately discards its memory copy, routes AI through connector_id, and never reads, persists, distributes, or injects a provider API key because Runtime ConnectorService alone stores and injects managed credentials.
-    condition: Whenever Desktop creates, updates, or uses a cloud AI connector.
-    failure: Reject direct provider-key custody, app-level provider calls, and credential persistence outside Runtime.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r032
-    kind: rule
-    title: Errors scrub provider credential patterns
-    modality: must
-    statement: Before bridge errors reach UI or logs, both message and details.rawMessage replace x-nimi-provider-api-key, provider_api_key, and providerApiKey values with [REDACTED_PROVIDER_API_KEY], and each newly admitted credential field extends the scrubber and its tests.
-    condition: Whenever Desktop normalizes or logs a bridge or Runtime error.
-    failure: Reject unsanitized error projection and update scrubbing before exposing a new credential field.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r033
-    kind: rule
-    title: External Agent security truth remains Runtime-owned
-    modality: must_not
-    statement: Desktop persists or recomputes External Agent issued, valid, expired, or revoked state, default scopes, action and operation matching, wildcard expansion, grant escalation, execution-context verification, completion eligibility, principal isolation, or audit truth; Desktop displays only typed Runtime projection and one-time issued plaintext.
-    condition: Whenever Desktop presents or controls External Agent access.
-    failure: Reject Desktop or Tauri security ownership and require Runtime ledger, scope, execution, completion, and audit results.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r034
-    kind: rule
-    title: Local-app carriers expose no technical authority
-    modality: must_not
-    statement: A local-app renderer or application observes or persists account bearer or refresh material, Runtime endpoint, authorization header, principal, record, grant or session identity, lineage, attestation, SID partition, lease, challenge, process proof, Runtime epoch, native carrier handle, method identifier, generic bytes, trust override, or auth callback instead of exact typed Kit posture and business inputs or results.
-    condition: Whenever a local-app operation, status, log, error, network call, preload, or Tauri command crosses the native carrier boundary.
-    failure: Reject or keep native-only the leaking operation, invalidate the old carrier before projecting lifecycle failure, and require a fresh owner-approved launch and session for retry.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r035
-    kind: rule
-    title: Auth slice stores only redacted projection
-    modality: must
-    statement: createAuthSlice stores only Runtime-derived account status and redacted user or account display projection and exposes projection-state operations without auth.token, accessToken, refreshToken, raw JWT, token-bearing setAuthSession, durable login truth, or local refresh ownership.
-    condition: Whenever the Desktop auth slice schema or operations are defined.
-    failure: Reject token fields, token-bearing setters, and account state not derived from Runtime projection.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r036
-    kind: rule
-    title: Runtime slice remains extensible transient projection
-    modality: must
-    statement: createRuntimeSlice carries RuntimeFieldMap and optional defensively parsed runtimeDefaults, initializes targetType to empty, mode to STORY, turnIndex to 1, and localProviderEndpoint to empty, permits additional string keys, and never derives provider, model, connector, route, selection, sendability, Agent behavior, turn, message, action, workflow, memory, or execution truth from runtime_defaults, environment, migration, hydration, thread metadata, or Desktop defaults.
-    condition: Whenever Runtime slice fields are initialized, extended, hydrated, migrated, or consumed.
-    failure: Reject non-extensible schema, authority-bearing defaults, and Runtime or Agent truth inferred from transient fields.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r037
-    kind: rule
-    title: Deferred continuation state is process-local evidence
-    modality: must_not
-    statement: Desktop store, hydration, migration, timer recovery, thread metadata, or UI state decides whether a Runtime-owned deferred continuation or HookIntent exists, remains valid, should be delivered, or supplies promptPayload, or restores a persisted pending timer without admitted Runtime outputs.
-    condition: Whenever Desktop displays or recovers deferred continuation state.
-    failure: Fail closed without the admitted Runtime-owned message, action, hook, and anchor outputs and keep pending indicators process-local.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r038
-    kind: rule
-    title: UI slice owns navigation and bootstrap presentation only
-    modality: must
-    statement: createUiSlice owns activeTab, navigationBackStack, selectedChatId, selectedProfileId, selectedProfileIsSource, profileDetailOverlayOpen, statusBanner, bootstrapReady, and bootstrapError, pushes the current tab for a detail transition, avoids self-push within one detail tab, pops on navigateBack, and returns to chat only when the stack is empty without a parallel previousTab or detail-panel return owner.
-    condition: Whenever Desktop UI state or detail navigation is updated.
-    failure: Reject missing required UI state, duplicate return-source truth, and navigation behavior that violates the stack semantics.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r039
-    kind: rule
-    title: Every renderer gets an independent store graph
-    modality: must
-    statement: canonical createAppStore composes auth, runtime, and UI slices for each renderer instance, production binds exactly one instance, Simulator creates and disposes a fresh instance, and no module-scope mutable singleton or Zustand middleware shares or persists account, Realm, Runtime, Agent, route, message, workflow, or product truth; admitted persistence uses owner-specific Tauri, Runtime, Realm, or offline stores.
-    condition: Whenever a renderer store is created, bound, persisted, or disposed.
-    failure: Reject shared renderer state, unauthorized middleware persistence, and cross-instance observation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r040
-    kind: rule
-    title: HMR and Simulator state cannot become product truth
-    modality: must_not
-    statement: HMR continuity stores more than process-local UI or projection cache, or Simulator projection hydrates production, survives scenario reset, enters persistence, sets Desktop bootstrap or account readiness, or becomes Runtime, Realm, Agent, or product-control truth.
-    condition: Whenever HMR or Simulator preserves or resets renderer state.
-    failure: Erase the non-product state and reject production hydration or authority claims.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r041
-    kind: rule
-    title: Store slice machine catalog is closed
-    modality: must
-    statement: The Desktop store-slice machine catalog contains exactly auth mapped to createAuthSlice and auth-slice.ts, runtime mapped to createRuntimeSlice and runtime-slice.ts, and ui mapped to createUiSlice and ui-slice.ts, with semantics bounded by the account, Runtime projection, and UI rules in this authority.
-    condition: Whenever the Desktop store-slice catalog is consumed or changed.
-    failure: Reject unknown, missing, duplicated, or semantically widened slice rows.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r042
-    kind: rule
-    title: Desktop shell feature flags have exact defaults and bounds
-    modality: must
-    statement: The shell feature catalog contains exactly enableRuntimeTab true on Desktop and false on Web as migration guard only, enableDeveloperTools false on Desktop and Web and reachable only through admitted Developer Mode, enableSettingsExtensions true on Desktop and false on Web, enableTitlebarDrag true on Desktop and false on Web, enableMenuBarShell true only on macOS Desktop and false on other Desktop platforms and Web, and enableRuntimeBootstrap true on Desktop and false on Web for the admitted runtime-host and external-agent phases.
-    condition: Whenever shell feature defaults or gates are projected.
-    failure: Reject unknown defaults, product-authority inference from migration guards, and feature enablement outside the admitted gate.
+    statement: A build, typecheck, unit test, fixture, file-presence check, or shell bootstrap projection is reported as a completed Realm, Runtime, LocalAgent, Avatar, or Third-party App product journey.
+    condition: Whenever Desktop acceptance is summarized.
+    failure: Classify unrun connectivity as not verified.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r043
-    kind: rule
-    title: Desktop DataSync facade is not admitted
-    modality: must_not
-    statement: apps/desktop/src/runtime/data-sync, @runtime/data-sync, dataSync business methods, global token or polling hot state, generated Realm service wrappers, or an equivalent Desktop-local platform facade owns transport, auth, product data, Runtime, Realm, Cognition, SDK, or Kit truth.
-    condition: Whenever Desktop adds or resolves a shared data-access or synchronization layer.
-    failure: Remove the DataSync facade and consume the owning SDK or Kit public surface, keeping an unavailable feature when no admitted replacement exists.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r044
-    kind: rule
-    title: Auth responsibilities stay with Runtime Realm SDK and Kit
-    modality: must_not
-    statement: Desktop DataSync exposes login, registration, logout, password, OAuth, OTP, two-factor, token refresh, credential exchange, session truth, or token custody instead of limiting Desktop to auth UI intent and post-auth navigation over Runtime, Realm, SDK, and Kit owners.
-    condition: Whenever authentication behavior is assigned to Desktop data synchronization.
-    failure: Reject the app-local auth method and route it to the admitted owner.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r045
-    kind: rule
-    title: Account and profile truth stays in Realm surfaces
-    modality: must_not
-    statement: Desktop DataSync wraps current-user, public profile, account settings, notification preferences, creator eligibility, or account-data services as app-local platform access; Desktop may own panels, form state, validation, and query invalidation over SDK Realm or Platform Client domains.
-    condition: Whenever Desktop consumes account or profile data.
-    failure: Remove the wrapper and use the admitted Realm or SDK owner surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r046
-    kind: rule
-    title: Human chat truth stays in Realm and shared chat surfaces
-    modality: must_not
-    statement: Desktop DataSync exposes loadChats, startChat, loadMessages, sendMessage, syncChatEvents, flushChatOutbox, or markChatRead as canonical human-chat authority; Desktop may own selected-chat UI, upload placeholders, query wiring, and bounded offline cache or outbox scaffold that consumes Kit or SDK public chat surfaces.
-    condition: Whenever Desktop reads, writes, or synchronizes human chat.
-    failure: Reject the DataSync method and preserve Realm canonical truth and non-authoritative shell scaffolding.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r047
-    kind: rule
-    title: Social graph truth stays in Realm
-    modality: must_not
-    statement: Desktop DataSync becomes authority for relationships, friend requests, blocks, social snapshots, friendship quota, or social mutation while Desktop may own relationship UI, confirmation, optimistic query invalidation, and bounded offline mutation scaffolding over Realm and SDK or Kit headless surfaces.
-    condition: Whenever Desktop consumes social graph state or mutation.
-    failure: Reject Desktop canonical social truth and route the operation to the Realm-owned surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r048
-    kind: rule
-    title: World truth stays in Realm
-    modality: must_not
-    statement: Desktop DataSync acts as a world service registry for world lists, details, history, lore, bindings, scenes, or audit truth while Desktop may own product composition and navigation over SDK Realm reads and reusable Kit display or headless surfaces.
-    condition: Whenever Desktop consumes world data.
-    failure: Reject the app-local world registry and use the admitted owner surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r049
-    kind: rule
-    title: Economy truth stays in Realm and Kit commerce
-    modality: must_not
-    statement: Desktop DataSync exposes balance, transaction, subscription, Spark checkout, withdrawal, gift, or gift-review authority or rewraps Realm economy services; Desktop may own wallet, notification, and gift UI state, cadence, redirect handling, and user-intent wiring through Kit commerce Realm helpers.
-    condition: Whenever Desktop consumes or mutates economy data.
-    failure: Reject the Desktop economy facade and require online Realm-owned execution through admitted Kit or SDK surfaces.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r050
-    kind: rule
-    title: Feed and resource truth stays in Realm
-    modality: must_not
-    statement: Desktop DataSync remains canonical for posts, feeds, likes, moderation reports, resource uploads, finalization, or attachments while Desktop may own composer state, local previews, query invalidation, and product error presentation over Realm, SDK request builders, and Kit primitives.
-    condition: Whenever Desktop consumes feed, post, or resource behavior.
-    failure: Reject the app-local facade and route canonical operations to admitted Realm and SDK surfaces.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r051
-    kind: rule
-    title: Explore truth stays in Realm
-    modality: must_not
-    statement: Desktop DataSync wraps Explore search, public recommendations, discovery feeds, or public source profile reads as app-local truth while Desktop may own panel state and previews over typed SDK or Kit discovery surfaces.
-    condition: Whenever Desktop presents Explore discovery.
-    failure: Reject the wrapper and use the Realm-owned typed discovery surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r052
-    kind: rule
-    title: Notification truth stays in Realm
-    modality: must_not
-    statement: Desktop DataSync owns notification list, unread count, or read-state mutation while Desktop may own filtering, optimistic read overrides, and query invalidation over SDK Realm notification helpers.
-    condition: Whenever Desktop presents or mutates notifications.
-    failure: Reject app-local notification truth and reconcile through the admitted Realm helper.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r053
-    kind: rule
-    title: Settings truth stays in Realm owners
-    modality: must_not
-    statement: Desktop DataSync exposes account settings, notification preferences, creator eligibility, password, OAuth linking, or two-factor authority while Desktop may own form state, autosave timing, validation, localization, and post-mutation query or session refresh wiring over SDK Realm settings surfaces.
-    condition: Whenever Desktop presents account or security settings.
-    failure: Reject the app-local settings authority and use the admitted Realm or SDK surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r054
-    kind: rule
-    title: Source and LocalAgent ownership stays separated
-    modality: must_not
-    statement: Desktop DataSync owns creator source creation, LocalAgent route, execution, memory, lifecycle, or mixed Realm and Runtime authority; Realm owns source reads, Runtime owns local execution and lifecycle, Cognition owns memory and knowledge policy, and Desktop owns only source display and user intent.
-    condition: Whenever Desktop consumes source or LocalAgent state.
-    failure: Reject the mixed owner and route each responsibility to its admitted domain.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r055
-    kind: rule
-    title: Transit truth stays in Realm and admitted workflows
-    modality: must_not
-    statement: Desktop DataSync remains world-transit service authority while Desktop may own transit UI intent and display state over Realm and admitted Runtime or Realm workflows and shared SDK or Kit access.
-    condition: Whenever Desktop presents or mutates world transit.
-    failure: Reject the Desktop transit service and require an admitted owner workflow.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r056
-    kind: rule
-    title: Replacement owner order is fixed
-    modality: must
-    statement: Data responsibility resolves in the order Realm for canonical business truth, Runtime for execution, readiness, jobs, and local lifecycle, Cognition for memory, knowledge, skill policy and records, SDK for typed schemas, transport, parsers, stream assembly, tests, and non-authoritative client orchestration, Kit for reusable UI, shell, bridge, accessibility, commerce, and headless primitives, and Desktop for product screens, intent wiring, ephemeral view models, and bounded operating-system helpers.
-    condition: Whenever a removed or proposed Desktop DataSync responsibility needs an owner.
-    failure: Keep the feature unavailable rather than select a lower owner or recreate parallel truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r057
-    kind: rule
-    title: Shared data surfaces require real reuse evidence
-    modality: must
-    statement: Desktop consumes an existing shared owner surface for each product data responsibility, and a newly needed shared surface is first defined in its owning layer and proven by a materially different consumer flow before Desktop treats it as shared.
-    condition: Whenever Desktop adopts or requests a reusable data surface.
-    failure: Reject Desktop-local rewrapping and unproven shared-surface claims.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r058
-    kind: rule
-    title: Degradation levels are closed and source-specific
-    modality: must
-    statement: Desktop projects exactly L0 when Runtime and Realm are reachable with full admitted behavior, L1 when Runtime is reachable and Realm is unreachable with local AI and current-renderer local interaction but no cloud synchronization, online social, economy, or cross-device truth, and L2 when Runtime and Realm are unavailable with cached read-only UI and settings presentation but no AI or data mutation.
-    condition: Whenever Desktop derives its runtime degradation level.
-    failure: Reject unknown levels, source conflation, and capabilities outside the selected level.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-  - id: rule.nimi.desktop.shell-runtime.r059
-    kind: rule
-    title: Realm connectivity is tri-state and transport-derived
-    modality: must
-    statement: Realm connectivity is exactly unknown, reachable, or unreachable; only DNS, connect, TLS, timeout, response-read failure, or HTTP 408, 502, 503, or 504 sets unreachable, a successful refresh or admitted operation sets reachable, and authentication, reauthentication, permission, validation, rate limit, conflict, not-found, contract, or ordinary operation errors do not mutate connectivity, while anonymous, expired, reauth-required, or unavailable account projection clears stale L1 without claiming reachability.
-    condition: Whenever Desktop classifies Realm connectivity from an operation result or account event.
-    failure: Reject connectivity changes from non-transport errors and reject account state presented as Realm reachability.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-  - id: rule.nimi.desktop.shell-runtime.r060
-    kind: rule
-    title: L1 outboxes are bounded intent transport
-    modality: must
-    statement: In L1, the bounded Desktop chat shell outbox is FIFO with enqueued_at and a maximum of one thousand records, admitted social post interactions may queue, friendship, source materialization, and LocalAgent linkage fail closed unless an owner contract admits durable intent, economy never queues, and cached world or source views display an offline marker.
-    condition: Whenever a user submits Realm-dependent behavior while Realm is unreachable and Runtime remains available.
-    failure: Reject overflow and non-admitted queued mutations with explicit user-visible failure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r061
-    kind: rule
-    title: Outbox replay never means Realm commit
-    modality: must_not
-    statement: A Desktop cache or outbox record is treated as canonical Chat or Social truth, Realm commit success, or permission to delete pending intent before the admitted Realm or SDK operation accepts it; non-network replay failure is marked failed, stops automatic retry, and remains user-visible.
-    condition: Whenever cached or queued intent is displayed, replayed, accepted, or failed.
-    failure: Preserve the pending or failed transport record and reject fabricated commit or silent deletion.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.sync-plane
-  - id: rule.nimi.desktop.shell-runtime.r062
-    kind: rule
-    title: L2 is read-only for owner mutations
-    modality: must
-    statement: In L2, Desktop allows browsing admitted cached chat history and shell settings presentation, returns a user-readable Runtime-unavailable result for AI, disables local asset install, start, and stop, account, connector, daemon, External Agent, and Realm mutations, and may stage only explicitly Desktop-owned local UI preferences without implying Runtime configuration or cloud commit.
-    condition: Whenever Runtime and Realm are unavailable.
-    failure: Reject owner mutations, generic configuration staging, local-model commands, and pseudo-success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-  - id: rule.nimi.desktop.shell-runtime.r063
-    kind: rule
-    title: Reconnect requires fresh protected authority
-    modality: must
-    statement: Reconnect may restore only binding-only OpenSession before Desktop repeats the full protected endpoint, process, executable, and OpenDesktopSession handshake, and a local app additionally requires a fresh launch lease, exact process bind, and request-empty local-app session; cached metadata, session identifiers, carriers, and queued work never authorize replay.
-    condition: Whenever Runtime, Desktop control, or a local-app child reconnects.
-    failure: Deny protected replay until every fresh authority step succeeds.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r064
-    kind: rule
-    title: Connection recovery uses bounded backoff and reconciliation
-    modality: must
-    statement: Realm connection recovery uses exponential backoff from one second capped at thirty seconds independently of per-request retry, flushes admitted outboxes after reachable, resolves accepted conflicts by server-timestamp last-write-wins, stops non-network failures, and Runtime recovery reconnects and opens a fresh SDK session before refreshing typed service, health, connector, local-asset, and External Agent projections.
-    condition: Whenever Realm or Runtime connectivity recovers after disconnection.
-    failure: Reject unbounded retry, request-policy conflation, stale-session reuse, and projection recovery without owner refresh.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-  - id: rule.nimi.desktop.shell-runtime.r065
-    kind: rule
-    title: Offline caches and outboxes stay non-authoritative
-    modality: must
-    statement: Production offline storage uses IndexedDB for at most fifty messages per conversation and twenty conversations plus visited source or world metadata, keeps cache and outbox stores separate, uses no automatic TTL, refreshes online through feature-local admitted loaders, reads local-asset inventory only from Runtime when reachable, and fails closed rather than silently replacing missing IndexedDB with process memory; explicit in-memory stores are test or development only.
-    condition: Whenever Desktop creates, reads, refreshes, or falls back from offline storage.
-    failure: Reject production memory fallback, cached local-model truth, cache-as-mutation, merged cache and outbox truth, and excess retained chat data.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.state-plane
-  - id: rule.nimi.desktop.shell-runtime.r066
-    kind: rule
-    title: Desktop update implementation remains subordinate to Platform policy
-    modality: must
-    statement: Platform owns release channel, trust, compatibility, and rollback policy, Nimi Home owns user-facing discovery and consent, and the Desktop self-update plane only implements the atomic Desktop host release and signed Runtime service-updater coordination without creating a peer policy owner.
-    condition: Whenever Desktop presents or executes product self-update.
-    failure: Reject Desktop-owned channel, trust, compatibility, rollback, or product-policy truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.self-update-plane
-  - id: rule.nimi.desktop.shell-runtime.r067
-    kind: rule
-    title: Desktop packages never carry production Runtime bytes
-    modality: must_not
-    statement: A Desktop package contains, stages, selects, executes, replaces, or probes a production Runtime binary, reads user Runtime version or current files, or changes the fixed service through PATH, environment, argv, cache, manifest guess, or user choice; it contains only its signed Desktop metadata and Platform release-root public key.
-    condition: Whenever Desktop is packaged, installed, updated, repaired, or queries Runtime release identity.
-    failure: Reject the package or operation and delegate Runtime installation and repair to the signed service updater and operating-system service manager.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.self-update-plane
-  - id: rule.nimi.desktop.shell-runtime.r068
-    kind: rule
-    title: Desktop and Runtime compatibility uses signed exact records
-    modality: must
-    statement: Independently serviced Desktop and Runtime releases are compatible only when mutual operating-system process and signing verification negotiates the exact protected-local protocol and both signed trust records admit the observed peer release identifiers; semver and runtime discovery never prove compatibility.
-    condition: Whenever Desktop establishes or updates a protected Desktop and Runtime release pair.
-    failure: Keep the old coherent pair active or project protected control unavailable until a signed mutually compatible pair is installed.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.self-update-plane
-  - id: rule.nimi.desktop.shell-runtime.r069
-    kind: rule
-    title: Installed Runtime release truth comes from fixed service verification
-    modality: must
-    statement: Typed Runtime service status derives from the fixed operating-system service definition, service principal, protected handshake, platform signing, and same-open-file executable verification, returns only verified installed release identity, and treats missing, expired, rollback, incompatible, or mismatched evidence as unavailable or repair-required without executing a stopped or candidate Runtime or synthesizing fallback release information.
-    condition: Whenever Desktop projects installed Runtime release or compatibility state.
-    failure: Reject unverified release identity and fabricated or candidate-derived status.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.self-update-plane
-  - id: rule.nimi.desktop.shell-runtime.r070
-    kind: rule
-    title: Updater trust configuration is immutable product input
-    modality: must
-    statement: Desktop updater public key and endpoint come only from compile-time Rust builder configuration, packaged production accepts no runtime environment override, and separately signed synthetic updater fixtures use external test roots and cannot supply production evidence.
-    condition: Whenever Desktop initializes updater configuration.
-    failure: Reject mutable production updater trust, environment overrides, and synthetic evidence presented as product proof.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.self-update-plane
-  - id: rule.nimi.desktop.shell-runtime.r071
-    kind: rule
-    title: Release and updater surfaces fail closed
-    modality: must
-    statement: desktop_release_info_get returns DesktopReleaseInfo only after metadata initialization, renderer stores initialization failure separately without fallback version, Desktop update actions use managed native commands, and a Web adapter returns exactly unsupported for Desktop release and self-update surfaces rather than null, idle, no-op subscription, or pseudo-state.
-    condition: Whenever a renderer requests release metadata or Desktop update behavior.
-    failure: Return an explicit error or unsupported result without fallback or pseudo-success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.self-update-plane
-  - id: rule.nimi.desktop.shell-runtime.r072
-    kind: rule
-    title: Update availability and execution remain exact
-    modality: must
-    statement: DesktopReleaseInfo exposes updaterAvailable and optional updaterUnavailableReason, silent check is a no-op only when unavailable while manual action displays that reason, Settings projects Desktop and verified installed Runtime release identifiers, compatibility, target Desktop release, and updater state without Runtime paths or credentials, download only verifies and caches Desktop bytes, install consumes only those bytes after required Runtime service activation, and restart restarts only Desktop.
-    condition: Whenever bootstrap or Settings presents or executes Desktop update.
-    failure: Reject known-unavailable command calls, Runtime mutation by Desktop updater, unverified bytes, incompatible install, hidden service-updater failure, and fallback release state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.self-update-plane
-  - id: rule.nimi.desktop.shell-runtime.r073
-    kind: rule
-    title: Retryable HTTP status set is closed
-    modality: must
-    statement: Desktop request retry recognizes exactly HTTP 408, 425, 429, 500, 502, 503, and 504 as retryable status codes.
-    condition: Whenever requestWithRetry classifies an HTTP status failure.
-    failure: Reject retry for an unlisted status and reject omission of a listed status.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-  - id: rule.nimi.desktop.shell-runtime.r074
-    kind: rule
-    title: Per-request retry has exact bounded policy
-    modality: must
-    statement: requestWithRetry defaults to three attempts, one hundred twenty milliseconds initial delay, nine hundred milliseconds maximum delay, and delay equal to the minimum of the cap and initialDelayMs times two to the attempt-minus-one plus uniform jitter from zero through half initialDelayMs, retries listed status failures as status and AbortError or TypeError as network, and remains independent from Runtime gRPC and connection-recovery backoff.
-    condition: Whenever Desktop or its typed network helper retries one HTTP request.
-    failure: Reject unbounded, differently classified, cross-transport, or connection-level retry behavior.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-  - id: rule.nimi.desktop.shell-runtime.r075
-    kind: rule
-    title: Retry events expose exact lifecycle
-    modality: must
-    statement: onRetryEvent emits retrying with delayMs, reasonKind, and optional status before each retry, recovered with retryCount after retry recovery, and retry_exhausted at terminal failure without emitting recovered or success for a failed request.
-    condition: Whenever requestWithRetry retries, recovers, or exhausts attempts.
-    failure: Reject missing, malformed, reordered, or pseudo-success retry events.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-  - id: rule.nimi.desktop.shell-runtime.r076
-    kind: rule
-    title: Shell fetch is bounded and unauthenticated
-    modality: must_not
-    statement: createProxyFetch or http_request acts as general CORS bypass, authenticated Runtime or Realm transport, connector or provider transport, private-LAN proxy, arbitrary HTTPS proxy, or user-entered URL proxy, or accepts Authorization, cookies, bearer or JWT-shaped values, provider credentials, Realm bases, or Runtime endpoints; any retained use is limited to an exact public-origin allowlist and response bound.
-    condition: Whenever Desktop dispatches a shell network helper request.
-    failure: Reject the request before network dispatch and use the applicable typed Runtime, Realm broker, connector, or SDK owner surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r077
-    kind: rule
-    title: Network errors normalize without success fallback
-    modality: must
-    statement: normalizeApiError preserves structured status and message for admitted API errors, maps network failures to a structured Error, and uses fallbackMessage only as display text when no safe message can be parsed without changing failure classification, connectivity, retry exhaustion, or product result.
-    condition: Whenever Desktop maps a network or API failure for UI consumption.
-    failure: Return a structured failure and reject raw credential-bearing errors, swallowed failure, or fallback text treated as success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r078
-    kind: rule
-    title: Authenticated Realm transport stays in Runtime
-    modality: must
-    statement: Desktop owns account-control and lifecycle UX and verified process launch, Runtime remains the sole owner of authenticated Realm unary, realtime, and media transport, and Desktop, Electron/Tauri main, preload, renderer, and app code cannot mint, request, inject, cache, or refresh Realm bearer or signed-upload credentials.
-    condition: Whenever authenticated Realm unary, realtime, media, connection, or replay behavior is proposed or consumed by Desktop.
-    failure: Deny the Desktop transport and require an admitted Runtime-owned operation and projection.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.account-session-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r079
-    kind: rule
-    title: Renderer realtime protocol details remain non-admitted
-    modality: must_not
-    statement: Desktop independently admits or implements bearer-authenticated Socket.IO URL selection, port rewriting, session-open, session-ready, event acknowledgement, replay, synchronization, or renderer LRU delivery truth before Runtime protocol and compatibility authority and a separate exact Desktop carrier integration are admitted.
-    condition: Whenever detailed Realm realtime transport behavior is proposed in Desktop.
-    failure: Keep the detailed realtime path unavailable and reject host-local caches, outboxes, observations, or renderer state as protocol or replay proof.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-  - id: rule.nimi.desktop.shell-runtime.r080
-    kind: rule
-    title: Polling and realtime coordination remains non-admitted
-    modality: must_not
-    statement: Desktop treats polling stop and resume, realtime primary or secondary selection, cross-channel deduplication, reconnect replay, shared event LRU, or notification polling interaction as admitted product behavior before the owning Runtime protocol and exact Desktop integration are independently admitted.
-    condition: Whenever Desktop coordinates polling and realtime channels for Realm data.
-    failure: Reject implementation authority inferred from historical conflict evidence and keep only independently admitted SDK or Runtime projections.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-  - id: rule.nimi.desktop.shell-runtime.r081
-    kind: rule
-    title: Host-only route and memory capabilities fail closed
-    modality: must
-    statement: A host-only Agent chat route capability returns an explicit unavailable failure when its admitted Runtime route cannot resolve or pass required health, and a host-only Agent memory capability consumes only the admitted Runtime or Cognition cache projection and returns an explicit unavailable failure when that projection is absent or invalid; neither capability fabricates fallback route, memory, readiness, or success.
-    condition: Whenever Desktop bootstrap assembles or invokes a host-only Agent route or memory capability.
-    failure: Keep the capability unavailable and not sendable without owner-projected route, health, or cache evidence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-  - id: rule.nimi.desktop.shell-runtime.r082
-    kind: rule
-    title: Feature requests establish Realm reachability without gating shell bootstrap
-    modality: must
-    statement: Bootstrap does not call Realm ready as a shell-readiness gate; after authenticated projection, the first independently admitted Runtime-mediated Realm feature request observes reachability, a transport failure records a feature-data error and renders explicit empty or load-failed degraded data while shell bootstrap may remain ready, and any explicit ready probe still exposes its failure directly.
-    condition: Whenever Desktop bootstrap or initial authenticated feature loading observes Realm reachability.
-    failure: Reject Realm readiness inferred from shell completion, swallowed ready-probe failure, direct-Realm fallback, and feature transport failure presented as successful data.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.degradation-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.network-plane
-  - id: rule.nimi.desktop.shell-runtime.r083
-    kind: rule
-    title: Shell-fatal bootstrap failure is redacted and observable
-    modality: must
-    statement: A shell-fatal bootstrap failure emits one structured error-level event and exposes only the redacted bootstrap error projection while successful completion clears that projection; logging never includes account material, credentials, Runtime paths, protected carrier details, or raw native failure text.
-    condition: Whenever Desktop bootstrap reaches terminal success or shell-fatal failure.
-    failure: Reject missing fatal observability, non-error fatal severity, stale success errors, and sensitive bootstrap diagnostics.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
-      - type: applies_to
-        target: definition.nimi.desktop.shell-runtime.security-boundary
