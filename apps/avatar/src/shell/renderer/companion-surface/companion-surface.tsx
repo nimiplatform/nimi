@@ -4,8 +4,6 @@
 
 import {
   useCallback,
-  useEffect,
-  useRef,
   type CSSProperties,
   type ChangeEvent,
   type FormEvent,
@@ -50,7 +48,6 @@ import { createAbortError, normalizeText, toErrorMessage } from '../avatar-shell
 import type { AvatarShellSettings } from '../settings-state.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
-import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 import { assertAcceptedCompanionParticipationProjection } from '../companion-participation-projection.js';
 import {
   derivePresenceState,
@@ -64,8 +61,7 @@ export type CompanionSurfaceProps = {
   companion: CompanionState;
   voice: VoiceCompanionState;
   shellSettings: AvatarShellSettings;
-  // composition state at mount time. Required so surface evidence carries the
-  // correct posture annotation (`ready` vs `fixture_active`).
+  // Composition posture controls whether companion interaction is ready.
   compositionState: string;
   setCompanion: (updater: (current: CompanionState) => CompanionState) => void;
   setVoice: (updater: (current: VoiceCompanionState) => VoiceCompanionState) => void;
@@ -127,10 +123,6 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     bindingPresent: Boolean(binding),
     compositionReady: compositionState === 'ready' || compositionState === 'fixture_active',
   });
-  const previousPresenceRef = useRef<{
-    stateId: PresenceState['stateId'];
-    privacyIndicator: PresenceState['privacyIndicator'];
-  } | null>(null);
   const label = t(presence.labelKey);
   const draftValue = companion.draft ?? '';
   const composerExpanded = companion.inputVisible || companion.sendState === 'sending' || Boolean(companion.sendError);
@@ -150,44 +142,6 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
   const rootStyle: CompanionSurfaceStyle = {
     '--avatar-voice-level': levelPercent,
   };
-
-  useEffect(() => {
-    const previous = previousPresenceRef.current;
-    if (!previous || previous.stateId !== presence.stateId) {
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.audio.lifecycle.state_changed',
-        detail: {
-          from_state: previous?.stateId ?? null,
-          to_state: presence.stateId,
-          voice_status: voice.status,
-          audio_playback_state: voice.audioPlaybackState,
-          lipsync_active: voice.lipsyncActive,
-          changed_at: new Date().toISOString(),
-        },
-      });
-    }
-    if (!previous || previous.privacyIndicator !== presence.privacyIndicator) {
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.audio.privacy.indicator_changed',
-        detail: {
-          indicator: presence.privacyIndicator,
-          visible: presence.privacyIndicator !== 'none',
-          foreground_only: true,
-          changed_at: new Date().toISOString(),
-        },
-      });
-    }
-    previousPresenceRef.current = {
-      stateId: presence.stateId,
-      privacyIndicator: presence.privacyIndicator,
-    };
-  }, [
-    presence.stateId,
-    presence.privacyIndicator,
-    voice.status,
-    voice.audioPlaybackState,
-    voice.lipsyncActive,
-  ]);
 
   const submitText = useCallback(
     (event: FormEvent<HTMLFormElement>) => {

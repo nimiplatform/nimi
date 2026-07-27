@@ -1,5 +1,4 @@
 use super::*;
-use serde_json::json;
 use tauri::{PhysicalPosition, State, WebviewWindow};
 
 #[tauri::command]
@@ -12,45 +11,7 @@ pub(crate) async fn nimi_avatar_get_launch_context(
         .ok_or_else(|| {
             "avatar launch context is required; launch from desktop orchestrator".to_string()
         })?;
-    record_avatar_backend_evidence(
-        &context,
-        "avatar.renderer.launch-context-read",
-        json!({
-            "source": "avatar-backend",
-            "window_label": window.label()
-        }),
-    );
     Ok(context)
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_record_evidence(
-    window: WebviewWindow,
-    registry: State<'_, AvatarInstanceRegistry>,
-    payload: AvatarEvidenceRecordInput,
-) -> Result<String, String> {
-    let context = registry
-        .context_for_window(window.label())?
-        .ok_or_else(|| {
-            "avatar evidence requires launch context; launch from desktop orchestrator".to_string()
-        })?;
-    let path = avatar_evidence_projection::append_evidence_record(context, payload)?;
-    Ok(path.display().to_string())
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_write_evidence_artifact(
-    window: WebviewWindow,
-    registry: State<'_, AvatarInstanceRegistry>,
-    payload: AvatarEvidenceArtifactInput,
-) -> Result<AvatarEvidenceArtifactWriteResult, String> {
-    let context = registry
-        .context_for_window(window.label())?
-        .ok_or_else(|| {
-            "avatar evidence artifact requires launch context; launch from desktop orchestrator"
-                .to_string()
-        })?;
-    avatar_evidence_projection::write_visual_artifact(context, payload)
 }
 
 // Window control primitives (drag / size / ignore-cursor / constrain /

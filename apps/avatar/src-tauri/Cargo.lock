@@ -2673,9 +2673,6 @@ dependencies = [
 name = "nimiplatform-avatar"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
- "chrono",
- "dirs",
  "dotenvy",
  "nimi-shell-tauri",
  "notify",

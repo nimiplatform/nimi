@@ -80,32 +80,23 @@ describe('createVrmRuntime', () => {
   });
 
   it('start() loader rejection -> failed_closed with reason load_failed', async () => {
-    const evidence = vi.fn();
     const runtime = createVrmRuntime({
       manifest: manifest(),
       loaderOverride: async () => {
         throw new Error('boom');
       },
-      onEvidence: evidence,
     });
     await runtime.start();
     expect(runtime.getState()).toMatchObject({ kind: 'failed_closed', reason: 'load_failed' });
-    expect(evidence).toHaveBeenCalledWith('load_failed', expect.objectContaining({ reason: 'boom' }));
-    expect(evidence).toHaveBeenCalledWith(
-      'failed_closed',
-      expect.objectContaining({ reason: 'load_failed' }),
-    );
   });
 
-  it('context lost -> timer fires -> retry succeeds -> ready (emits context_restored)', async () => {
+  it('context lost -> timer fires -> retry succeeds -> ready', async () => {
     const vrm = stubVrm();
-    const evidence = vi.fn();
     const timer = makeFakeTimer();
     let nowMs = 1_000_000;
     const runtime = createVrmRuntime({
       manifest: manifest(),
       loaderOverride: async () => vrm,
-      onEvidence: evidence,
       setTimeoutFn: timer.setTimeoutFn,
       clearTimeoutFn: timer.clearTimeoutFn,
       nowFn: () => nowMs,
@@ -116,7 +107,6 @@ describe('createVrmRuntime', () => {
     runtime.notifyContextLost();
     expect(runtime.getState().kind).toBe('context_lost');
     expect(timer.pending()).toBe(true);
-    expect(evidence).toHaveBeenCalledWith('context_lost', expect.objectContaining({ lostAt: 1_000_000 }));
 
     // Advance virtual clock by exactly the retry window.
     nowMs += VRM_CONTEXT_LOST_RETRY_MS;
@@ -126,20 +116,14 @@ describe('createVrmRuntime', () => {
     await Promise.resolve();
 
     expect(runtime.getState().kind).toBe('ready');
-    expect(evidence).toHaveBeenCalledWith(
-      'context_restored',
-      expect.objectContaining({ restoreDurationMs: VRM_CONTEXT_LOST_RETRY_MS }),
-    );
   });
 
   it('context_lost -> second context_lost before timer -> failed_closed (context_lost_twice)', async () => {
     const vrm = stubVrm();
-    const evidence = vi.fn();
     const timer = makeFakeTimer();
     const runtime = createVrmRuntime({
       manifest: manifest(),
       loaderOverride: async () => vrm,
-      onEvidence: evidence,
       setTimeoutFn: timer.setTimeoutFn,
       clearTimeoutFn: timer.clearTimeoutFn,
     });
@@ -153,21 +137,15 @@ describe('createVrmRuntime', () => {
       reason: 'context_lost_twice',
     });
     expect(timer.pending()).toBe(false);
-    expect(evidence).toHaveBeenCalledWith(
-      'failed_closed',
-      expect.objectContaining({ reason: 'context_lost_twice' }),
-    );
   });
 
   it('context_lost -> notifyContextRestored before timer does not skip mandatory retry reload', async () => {
     const vrm = stubVrm();
-    const evidence = vi.fn();
     const timer = makeFakeTimer();
     let nowMs = 5_000;
     const runtime = createVrmRuntime({
       manifest: manifest(),
       loaderOverride: async () => vrm,
-      onEvidence: evidence,
       setTimeoutFn: timer.setTimeoutFn,
       clearTimeoutFn: timer.clearTimeoutFn,
       nowFn: () => nowMs,
@@ -180,10 +158,6 @@ describe('createVrmRuntime', () => {
     runtime.notifyContextRestored();
     expect(timer.pending()).toBe(true);
     expect(runtime.getState().kind).toBe('context_lost');
-    expect(evidence).not.toHaveBeenCalledWith(
-      'context_restored',
-      expect.objectContaining({ restoreDurationMs: 200 }),
-    );
 
     nowMs += VRM_CONTEXT_LOST_RETRY_MS - 200;
     timer.fire();
@@ -191,17 +165,12 @@ describe('createVrmRuntime', () => {
     await Promise.resolve();
 
     expect(runtime.getState().kind).toBe('ready');
-    expect(evidence).toHaveBeenCalledWith(
-      'context_restored',
-      expect.objectContaining({ restoreDurationMs: VRM_CONTEXT_LOST_RETRY_MS }),
-    );
   });
 
   it('context_lost -> timer fires -> retry rejects -> failed_closed (context_lost_recovery_failed)', async () => {
     const vrm = stubVrm();
     let calls = 0;
     const timer = makeFakeTimer();
-    const evidence = vi.fn();
     const runtime = createVrmRuntime({
       manifest: manifest(),
       loaderOverride: async () => {
@@ -209,7 +178,6 @@ describe('createVrmRuntime', () => {
         if (calls === 1) return vrm;
         throw new Error('gpu-stale');
       },
-      onEvidence: evidence,
       setTimeoutFn: timer.setTimeoutFn,
       clearTimeoutFn: timer.clearTimeoutFn,
     });
@@ -222,10 +190,6 @@ describe('createVrmRuntime', () => {
       kind: 'failed_closed',
       reason: 'context_lost_recovery_failed',
     });
-    expect(evidence).toHaveBeenCalledWith(
-      'failed_closed',
-      expect.objectContaining({ reason: 'context_lost_recovery_failed' }),
-    );
   });
 
   it('shutdown() cancels pending retry timer', async () => {

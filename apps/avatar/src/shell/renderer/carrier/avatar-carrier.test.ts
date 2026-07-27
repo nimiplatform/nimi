@@ -17,8 +17,6 @@ const createLive2DBackendSessionMock = vi.fn();
 const createLive2DCarrierVisualHostMock = vi.fn();
 const backendApplyCommandMock = vi.fn();
 const backendUnloadMock = vi.fn();
-const recordAvatarEvidenceEventuallyMock = vi.fn();
-const writeAvatarEvidenceArtifactMock = vi.fn();
 
 function admissionDetail(): Record<string, string> {
   return {
@@ -134,13 +132,6 @@ vi.mock('../nas/handler-registry.js', async () => {
   };
 });
 
-vi.mock('../app-shell/avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) =>
-    recordAvatarEvidenceEventuallyMock(...args),
-  writeAvatarEvidenceArtifact: (...args: unknown[]) =>
-    writeAvatarEvidenceArtifactMock(...args),
-}));
-
 function createBundle(): AgentDataBundle {
   return {
     activity: {
@@ -246,8 +237,6 @@ describe('avatar runtime carrier', () => {
     createLive2DCarrierVisualHostMock.mockReset();
     backendApplyCommandMock.mockReset();
     backendUnloadMock.mockReset();
-    recordAvatarEvidenceEventuallyMock.mockReset();
-    writeAvatarEvidenceArtifactMock.mockReset();
     scanNasHandlersMock.mockResolvedValue({
       activity: [],
       event: [],
@@ -291,11 +280,6 @@ describe('avatar runtime carrier', () => {
       drawFrame: vi.fn(),
       resize: vi.fn(),
       unload: vi.fn(),
-    });
-    writeAvatarEvidenceArtifactMock.mockResolvedValue({
-      artifactPath: '/tmp/avatar-carrier-preview.png',
-      artifactMimeType: 'image/png',
-      artifactByteLength: 128,
     });
     createLive2DBackendSessionMock.mockResolvedValue(live2dBackendSession({
       compatibility: {
@@ -485,7 +469,6 @@ describe('avatar runtime carrier', () => {
         capabilityProfileResolved: true,
       },
       observedAt: '2026-05-01T00:00:00.000Z',
-      recordEvidence: false,
     });
 
     expect(session.backendKind).toBe('live2d');
@@ -535,16 +518,6 @@ describe('avatar runtime carrier', () => {
         conversationAnchorId: 'anchor-1',
         probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
         status: AvatarDebugProbeStatus.PASSED,
-        evidenceRefs: expect.arrayContaining([
-          expect.stringContaining('avatar.debug.session/'),
-          'backend_capability_profile_ref:avatar.live2d.capability-profile:ren',
-          'live2d_backend_load_ref:avatar.live2d.backend-load:ren',
-          'live2d_capability_profile_ref:avatar.live2d.capability-profile:ren',
-          'live2d_route_support_ref:avatar.live2d.route-support:ren',
-          'live2d_lipsync_evidence_ref:avatar.live2d.lipsync:ren:profile:mouth-open-only',
-          'live2d_hit_region_ref:avatar.live2d.hit-region:ren:alpha_mask_plus_bbox',
-          expect.stringContaining('live2d_expression_inventory_ref:avatar.live2d.expression-inventory:ren:'),
-        ]),
       }),
       expect.objectContaining({
         bindingId: 'binding-1',
@@ -579,17 +552,6 @@ describe('avatar runtime carrier', () => {
     });
 
     expect(submitDebugProbeResult).not.toHaveBeenCalled();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.debug.probe-submit-skipped',
-        detail: expect.objectContaining({
-          probe_id: 'probe-runtime-package-validation',
-          agent_id: 'agent-1',
-          conversation_anchor_id: 'anchor-1',
-          reason: 'runtime_avatar_debug_probe_not_avatar_submittable',
-        }),
-      }),
-    );
 
     carrier.shutdown();
   });

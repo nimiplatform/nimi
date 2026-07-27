@@ -67,7 +67,6 @@ import {
   createVrmCapabilityProfile,
   type VrmCapabilityProfile,
 } from './vrm-capability-profile.js';
-import { writeAvatarEvidenceArtifact, type AvatarEvidenceArtifactWriteResult } from '../app-shell/avatar-evidence.js';
 import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
 
 export type VrmCarrierSurfaceInput = {
@@ -107,8 +106,6 @@ export type VrmVisualAcceptanceStats = {
   canvasWidth: number;
   canvasHeight: number;
 };
-
-type VrmVisualAcceptanceArtifact = AvatarEvidenceArtifactWriteResult;
 
 const VRM_VISUAL_ACCEPTANCE_GRID_SIZE = 24;
 const VRM_VISUAL_ACCEPTANCE_ALPHA_THRESHOLD = 127;
@@ -150,29 +147,6 @@ export function sampleVrmVisiblePixels(input: {
   };
 }
 
-function vrmVisualArtifactId(stats: VrmVisualAcceptanceStats): string {
-  return `vrm-visible-frame-${stats.canvasWidth}x${stats.canvasHeight}-${stats.sampledPixelChecksum}`;
-}
-
-function rendererCanvas(gl: unknown): HTMLCanvasElement | null {
-  const canvas = (gl as { domElement?: unknown }).domElement;
-  return canvas instanceof HTMLCanvasElement ? canvas : null;
-}
-
-async function writeVrmVisibleFrameArtifact(input: {
-  gl: unknown;
-  stats: VrmVisualAcceptanceStats;
-}): Promise<VrmVisualAcceptanceArtifact> {
-  const canvas = rendererCanvas(input.gl);
-  if (!canvas || typeof canvas.toDataURL !== 'function') {
-    throw new Error('VRM carrier visual artifact requires a renderer canvas');
-  }
-  return writeAvatarEvidenceArtifact({
-    artifactId: vrmVisualArtifactId(input.stats),
-    dataUrl: canvas.toDataURL('image/png'),
-  });
-}
-
 export function createVrmCarrierSurface(
   input: VrmCarrierSurfaceInput,
 ): VrmCarrierSurfaceHandle {
@@ -196,9 +170,6 @@ export function createVrmCarrierSurface(
     useEffect(() => {
       const runtime = createVrmRuntime({
         manifest: input.manifest,
-        onEvidence: (kind, detail) => {
-          props.onLifecycleEvidence?.(kind, detail);
-        },
         ...input.runtimeOptions,
       });
       runtimeRef = runtime;
@@ -247,11 +218,7 @@ export function createVrmCarrierSurface(
             };
           },
           onDegraded: (detail) => {
-            props.onLifecycleEvidence?.('hit_region_degraded', {
-              source: 'vrm-carrier-surface',
-              reason_code: detail.reason_code,
-              recorded_at: detail.recordedAt,
-            });
+            console.warn(`[avatar:vrm] hit-region degraded: ${detail.reason_code}`);
           },
         });
         props.onHitRegionChange?.(hitRegion);
@@ -260,7 +227,6 @@ export function createVrmCarrierSurface(
       state.kind,
       props.onAudioConsumerReady,
       props.onHitRegionChange,
-      props.onLifecycleEvidence,
     ]);
 
     // Wire webglcontextlost / restored once the canvas DOM mounts.
@@ -304,7 +270,7 @@ export function createVrmCarrierSurface(
       input.setProjectionAdapter(adapter);
       const profile = createVrmCapabilityProfile(vrm);
       input.onCapabilityProfile?.(profile);
-    }, [vrm, props.onLifecycleEvidence]);
+    }, [vrm]);
 
     // Wave 2 chunk 2-E: derive camera framing from the loaded VRM scene
     // bbox + the bottom-companion default (vrm-backend-contract.md §4).
@@ -368,7 +334,7 @@ export function createVrmCarrierSurface(
           cameraProps={cameraProps}
           onMountError={() => {
             setCanvasError(true);
-            props.onLifecycleEvidence?.('failed_closed', { reason: 'no_webgl' });
+            console.warn('[avatar:vrm] WebGL canvas failed to mount');
           }}
         >
           <VrmScene vrm={vrm} />
@@ -384,14 +350,7 @@ export function createVrmCarrierSurface(
               <VrmRenderTargetCaptureLoop
                 vrm={vrm}
                 renderTarget={input.renderTarget}
-                onVisualAcceptance={(stats, artifact) => {
-                  setVisualStats(stats);
-                  void artifact;
-                }}
-                onVisualAcceptanceArtifactFailure={(stats, error) => {
-                  void stats;
-                  void error;
-                }}
+                onVisualAcceptance={setVisualStats}
                 onVisualAcceptanceMissing={(stats) => {
                   setVisualStats(stats);
                 }}
@@ -472,20 +431,16 @@ function VrmRenderTargetCaptureLoop({
   vrm,
   renderTarget,
   onVisualAcceptance,
-  onVisualAcceptanceArtifactFailure,
   onVisualAcceptanceMissing,
 }: {
   vrm: VRM;
   renderTarget: VrmRenderTarget;
-  onVisualAcceptance: (stats: VrmVisualAcceptanceStats, artifact: VrmVisualAcceptanceArtifact) => void;
-  onVisualAcceptanceArtifactFailure: (stats: VrmVisualAcceptanceStats, error: unknown) => void;
+  onVisualAcceptance: (stats: VrmVisualAcceptanceStats) => void;
   onVisualAcceptanceMissing: (stats: VrmVisualAcceptanceStats) => void;
 }): null {
   const lastCapturedAtMsRef = useRef<number>(-Infinity);
   const visualAcceptedRef = useRef(false);
   const missingReportedRef = useRef(false);
-  const artifactWritePendingRef = useRef(false);
-  const artifactFailureReportedRef = useRef(false);
   const visualAttemptCountRef = useRef(0);
   const { gl, scene, camera } = useThree();
   useFrame(() => {
@@ -514,23 +469,8 @@ function VrmRenderTargetCaptureLoop({
       visualAttemptCountRef.current += 1;
       const stats = sampleVrmVisiblePixels({ renderTarget, viewport });
       if (stats.visiblePixels > 0) {
-        if (artifactWritePendingRef.current) {
-          return;
-        }
-        artifactWritePendingRef.current = true;
-        void writeVrmVisibleFrameArtifact({ gl, stats })
-          .then((artifact) => {
-            visualAcceptedRef.current = true;
-            artifactWritePendingRef.current = false;
-            onVisualAcceptance(stats, artifact);
-          })
-          .catch((error: unknown) => {
-            artifactWritePendingRef.current = false;
-            if (!artifactFailureReportedRef.current) {
-              artifactFailureReportedRef.current = true;
-              onVisualAcceptanceArtifactFailure(stats, error);
-            }
-          });
+        visualAcceptedRef.current = true;
+        onVisualAcceptance(stats);
         return;
       }
       if (visualAttemptCountRef.current >= VRM_VISUAL_ACCEPTANCE_MAX_MISSING_ATTEMPTS) {

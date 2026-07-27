@@ -20,7 +20,6 @@ const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
 const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
-const recordAvatarEvidenceEventuallyMock = vi.fn();
 let tauriRuntime = false;
 type AvatarLaunchContextForTest = {
   agentId: string;
@@ -49,11 +48,6 @@ function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): Ava
 
 vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
-}));
-
-vi.mock('./app-shell/avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) =>
-    recordAvatarEvidenceEventuallyMock(...args),
 }));
 
 vi.mock('./app-shell/tauri-commands.js', () => ({
@@ -385,7 +379,6 @@ beforeEach(() => {
   bootstrapAvatarMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
   constrainWindowToVisibleAreaMock.mockReset();
-  recordAvatarEvidenceEventuallyMock.mockReset();
   setAlwaysOnTopMock.mockReset();
   setAlwaysOnTopMock.mockResolvedValue(undefined);
   hideAvatarWindowMock.mockReset();
@@ -435,22 +428,6 @@ describe('App context menu overlay', () => {
         }),
       }),
     );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.context_menu.opened',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          client_x: 180,
-          client_y: 220,
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({ surface: 'context-menu' }),
-      }),
-    );
   });
 
   it('dismisses context menu on Escape and outside click', async () => {
@@ -476,12 +453,6 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.context_menu.dismissed',
-        detail: expect.objectContaining({ reason: 'escape' }),
-      }),
-    );
 
     fireEvent.pointerDown(stage, {
       button: 2,
@@ -495,12 +466,6 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.context_menu.dismissed',
-        detail: expect.objectContaining({ reason: 'outside_click' }),
-      }),
-    );
   });
 
   it('requests foreground priority from the menu without creating conversation turns', async () => {
@@ -541,12 +506,6 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.foreground_priority.requested',
-        detail: expect.objectContaining({ source: 'context_menu' }),
-      }),
-    );
   });
 
   it('keeps interrupt disabled when the current anchor has no active Runtime turn', async () => {
@@ -604,66 +563,8 @@ describe('App context menu overlay', () => {
     });
     expect(handle.requestCompanionParticipation).not.toHaveBeenCalled();
     expect(handle.startVoiceCapture).not.toHaveBeenCalled();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.interrupt.requested',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          agent_id: 'local-agent:owner-product:agent-product-01',
-          conversation_anchor_id: 'anchor-01',
-          active_turn_id: 'turn-active-01',
-          active_turn_phase: 'streaming',
-          source: 'context_menu',
-          reason: 'user_cancel',
-        }),
-      }),
-    );
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
-    });
-  });
-
-  it('records interrupt failure when Runtime rejects turn interrupt', async () => {
-    const handle = createBootstrapHandle();
-    const interruptActiveTurn = vi.fn(async () => {
-      throw new Error('runtime denied interrupt');
-    });
-    (handle as unknown as {
-      interruptActiveTurn: typeof interruptActiveTurn;
-    }).interruptActiveTurn = interruptActiveTurn;
-    bootstrapAvatarMock.mockResolvedValue(handle);
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-      seedActiveTurnBundle({ turnId: 'turn-denied-01', phase: 'started' });
-    });
-
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 226,
-      clientX: 140,
-      clientY: 180,
-    });
-    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-interrupt'));
-
-    await waitFor(() => {
-      expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          kind: 'avatar.shell.interrupt.failed',
-          detail: expect.objectContaining({
-            avatar_instance_id: 'avatar-instance-01',
-            agent_id: 'local-agent:owner-product:agent-product-01',
-            conversation_anchor_id: 'anchor-01',
-            active_turn_id: 'turn-denied-01',
-            reason_code: 'runtime_turn_interrupt_rejected',
-            error: 'runtime denied interrupt',
-          }),
-        }),
-      );
     });
   });
 
@@ -719,16 +620,6 @@ describe('App context menu overlay', () => {
       expect(hideAvatarWindowMock).toHaveBeenCalledTimes(1);
     });
     expect(closeAvatarWindowMock).not.toHaveBeenCalled();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.hide-requested',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          agent_id: 'local-agent:owner-product:agent-product-01',
-          source: 'context_menu',
-        }),
-      }),
-    );
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     });
@@ -760,16 +651,6 @@ describe('App context menu overlay', () => {
       expect(closeAvatarWindowMock).toHaveBeenCalledTimes(1);
     });
     expect(hideAvatarWindowMock).not.toHaveBeenCalled();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.close-requested',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          agent_id: 'local-agent:owner-product:agent-product-01',
-          source: 'context_menu',
-        }),
-      }),
-    );
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     });
@@ -832,15 +713,9 @@ describe('App context menu overlay', () => {
         detail: expect.objectContaining({ source: 'double_click' }),
       }),
     );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.foreground_priority.requested',
-        detail: expect.objectContaining({ source: 'double_click' }),
-      }),
-    );
   });
 
-  it('toggles always-on-top from the menu and records a shell settings event', async () => {
+  it('toggles always-on-top from the menu', async () => {
     setTauriRuntime(true);
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
@@ -872,15 +747,6 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(false);
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.settings.changed',
-        detail: expect.objectContaining({
-          key: 'always_on_top',
-          value: false,
-        }),
-      }),
-    );
   });
 
   it('opens transient settings overlay from context menu with only admitted shell settings', async () => {
@@ -910,12 +776,6 @@ describe('App context menu overlay', () => {
     expect(screen.getByText('Always on top')).toBeTruthy();
     expect(screen.getByText('Show voice captions')).toBeTruthy();
     expect(screen.queryByText('Auto-open new replies')).toBeNull();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({ surface: 'settings-overlay' }),
-      }),
-    );
   });
 
   it('persists voice caption setting changes from the settings overlay', async () => {
@@ -941,19 +801,10 @@ describe('App context menu overlay', () => {
     expect(captions.checked).toBe(true);
     fireEvent.click(captions);
 
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.settings.changed',
-        detail: expect.objectContaining({
-          key: 'show_voice_captions',
-          value: false,
-        }),
-      }),
-    );
     expect(readAvatarShellSettings().showVoiceCaptions).toBe(false);
   });
 
-  it('dismisses settings overlay by explicit close and records surface unmount evidence', async () => {
+  it('dismisses settings overlay by explicit close', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -977,12 +828,6 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-settings-overlay')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-unmounted',
-        detail: expect.objectContaining({ surface: 'settings-overlay' }),
-      }),
-    );
   });
 
   it('keeps appearance disabled when the current carrier manifest is unavailable', async () => {
@@ -1041,37 +886,11 @@ describe('App context menu overlay', () => {
     expect(container.textContent).not.toContain('ren.model3.json');
     expect(handle.requestCompanionParticipation).not.toHaveBeenCalled();
     expect(handle.startVoiceCapture).not.toHaveBeenCalled();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.appearance.opened',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          agent_id: 'local-agent:owner-product:agent-product-01',
-          conversation_anchor_id: 'anchor-01',
-          model_id: 'ren-prod',
-          backend_kind: 'live2d',
-          source_authority: 'runtime',
-          scale: 1,
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({ surface: 'appearance-overlay' }),
-      }),
-    );
 
     fireEvent.click(screen.getByTestId('avatar-appearance-overlay-close'));
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-appearance-overlay')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-unmounted',
-        detail: expect.objectContaining({ surface: 'appearance-overlay' }),
-      }),
-    );
   });
 
   it('keeps debug disabled when the runtime-bound debug facade is unavailable', async () => {
@@ -1133,24 +952,6 @@ describe('App context menu overlay', () => {
     expect(screen.getByText('runtime.audit.avatar_debug.replay/probe-backend-load-01')).toBeTruthy();
     expect(handle.requestCompanionParticipation).not.toHaveBeenCalled();
     expect(handle.startVoiceCapture).not.toHaveBeenCalled();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.debug.opened',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          agent_id: 'local-agent:owner-product:agent-product-01',
-          conversation_anchor_id: 'anchor-01',
-          client_x: 140,
-          client_y: 180,
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({ surface: 'debug-overlay' }),
-      }),
-    );
   });
 
   it('requests only Avatar backend debug probes from the debug overlay', async () => {
@@ -1196,47 +997,6 @@ describe('App context menu overlay', () => {
     expect(handle.startVoiceCapture).not.toHaveBeenCalled();
   });
 
-  it('records debug request failure evidence when Runtime rejects a probe request', async () => {
-    const avatarDebug = createAvatarDebugFacade({
-      requestError: new Error('runtime denied avatar debug probe'),
-    });
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ avatarDebug }));
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 331,
-      clientX: 140,
-      clientY: 180,
-    });
-    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-debug'));
-    await screen.findByTestId('avatar-debug-overlay');
-    fireEvent.click(screen.getByTestId('avatar-debug-overlay-request-probes'));
-
-    await waitFor(() => {
-      expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          kind: 'avatar.shell.debug.request-failed',
-          detail: expect.objectContaining({
-            avatar_instance_id: 'avatar-instance-01',
-            agent_id: 'local-agent:owner-product:agent-product-01',
-            conversation_anchor_id: 'anchor-01',
-            probe_kind: 'backend_load',
-            reason_code: 'runtime_avatar_debug_request_rejected',
-            error: 'runtime denied avatar debug probe',
-          }),
-        }),
-      );
-    });
-  });
-
   it('dismisses debug overlay by Escape and outside click', async () => {
     const avatarDebug = createAvatarDebugFacade();
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ avatarDebug }));
@@ -1279,7 +1039,7 @@ describe('App context menu overlay', () => {
     });
   });
 
-  it('dismisses debug overlay by explicit close and records surface unmount evidence', async () => {
+  it('dismisses debug overlay by explicit close', async () => {
     const avatarDebug = createAvatarDebugFacade();
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ avatarDebug }));
 
@@ -1304,11 +1064,5 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-debug-overlay')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-unmounted',
-        detail: expect.objectContaining({ surface: 'debug-overlay' }),
-      }),
-    );
   });
 });

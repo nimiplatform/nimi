@@ -15,12 +15,9 @@ import {
   type Nimi2DPixiRendererHandle,
 } from './nimi2d-pixi-renderer.js';
 import {
-  captureNimi2DMountedVisualFrame,
   createNimi2DAlphaHitProbe,
   type Nimi2DAlphaHitProbe,
-  type Nimi2DMountedVisualFrameStats,
 } from './nimi2d-carrier-visual-proof.js';
-import { writeAvatarEvidenceArtifact } from '../app-shell/avatar-evidence.js';
 
 export type Nimi2DCarrierSurfaceInput = {
   loadedPackage: Nimi2DRenderPlan;
@@ -122,17 +119,6 @@ function describeError(error: unknown): string {
     : String(error || 'Nimi2D carrier surface failed');
 }
 
-function visualStatsDetail(stats: Nimi2DMountedVisualFrameStats): Record<string, unknown> {
-  return {
-    visible_pixels: stats.visiblePixels,
-    sampled_pixels: stats.sampledPixels,
-    sampled_pixel_checksum: stats.sampledPixelChecksum,
-    canvas_width: stats.canvasWidth,
-    canvas_height: stats.canvasHeight,
-    grid_size: stats.gridSize,
-  };
-}
-
 function requestFrame(callback: () => void): number {
   if (typeof window.requestAnimationFrame === 'function') {
     return window.requestAnimationFrame(callback);
@@ -170,8 +156,6 @@ export function createNimi2DCarrierSurface(input: Nimi2DCarrierSurfaceInput): Ba
     const alphaProbeRef = useRef<Nimi2DAlphaHitProbe | null>(null);
     const audioAnnouncedRef = useRef(false);
     const hitRegionAnnouncedRef = useRef(false);
-    const mountedVisualRecordedRef = useRef(false);
-    const mountedVisualFailureRecordedRef = useRef(false);
     const [snapshot, setSnapshot] = useState<Nimi2DComposerSnapshot>(() => input.composer.snapshot());
     const [rendererStatus, setRendererStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
     const [layerRefs, setLayerRefs] = useState<string[]>([]);
@@ -182,60 +166,8 @@ export function createNimi2DCarrierSurface(input: Nimi2DCarrierSurfaceInput): Ba
       const pixiHost = pixiHostRef.current;
       if (!pixiHost) return undefined;
       let disposed = false;
-      let mountedVisualFrame = 0;
       setRendererStatus('loading');
       setLayerRefs([]);
-      mountedVisualRecordedRef.current = false;
-      mountedVisualFailureRecordedRef.current = false;
-      const captureMountedVisualFrame = (canvas: HTMLCanvasElement): void => {
-        mountedVisualFrame = requestFrame(() => {
-          if (disposed || mountedVisualRecordedRef.current) return;
-          try {
-            const capture = captureNimi2DMountedVisualFrame({ canvas });
-            void writeAvatarEvidenceArtifact({
-              artifactId: capture.artifactId,
-              dataUrl: capture.dataUrl,
-            }).then((artifact) => {
-              if (disposed || mountedVisualRecordedRef.current) return;
-              mountedVisualRecordedRef.current = true;
-              props.onLifecycleEvidence?.('mounted_visual_frame_ready', {
-                source: 'nimi2d-carrier-surface',
-                model_kind: 'nimi2d',
-                mode: 'mounted_pixi_canvas_capture',
-                human_visible_artifact_path: artifact.artifactPath,
-                artifact_mime_type: artifact.artifactMimeType,
-                artifact_byte_length: artifact.artifactByteLength,
-                ...visualStatsDetail(capture.stats),
-              });
-            }).catch((error: unknown) => {
-              if (disposed || mountedVisualFailureRecordedRef.current) return;
-              mountedVisualFailureRecordedRef.current = true;
-              props.onLifecycleEvidence?.('mounted_visual_frame_failed', {
-                source: 'nimi2d-carrier-surface',
-                model_kind: 'nimi2d',
-                mode: 'mounted_pixi_canvas_capture',
-                reason_code: 'artifact_write_failed',
-                error: describeError(error),
-                ...visualStatsDetail(capture.stats),
-              });
-            });
-          } catch (error: unknown) {
-            if (disposed || mountedVisualFailureRecordedRef.current) return;
-            mountedVisualFailureRecordedRef.current = true;
-            const stats = error instanceof Error && 'stats' in error
-              ? (error as { stats?: Nimi2DMountedVisualFrameStats }).stats
-              : null;
-            props.onLifecycleEvidence?.('mounted_visual_frame_failed', {
-              source: 'nimi2d-carrier-surface',
-              model_kind: 'nimi2d',
-              mode: 'mounted_pixi_canvas_capture',
-              reason_code: 'canvas_capture_failed',
-              error: describeError(error),
-              ...(stats ? visualStatsDetail(stats) : {}),
-            });
-          }
-        });
-      };
       void createNimi2DPixiRenderer({
         host: pixiHost,
         renderPlan: input.loadedPackage,
@@ -246,14 +178,6 @@ export function createNimi2DCarrierSurface(input: Nimi2DCarrierSurfaceInput): Ba
           if (disposed) return;
           setLayerRefs(ready.layerRefs);
           setRendererStatus('ready');
-          props.onLifecycleEvidence?.('renderer_pipeline_ready', {
-            source: 'nimi2d-carrier-surface',
-            model_kind: 'nimi2d',
-            renderer: 'pixi.js',
-            mode: 'pixi_renderer_foundation',
-            layer_count: ready.layerRefs.length,
-          });
-          captureMountedVisualFrame(ready.canvas);
         },
       }).then((renderer) => {
         if (disposed) {
@@ -266,23 +190,14 @@ export function createNimi2DCarrierSurface(input: Nimi2DCarrierSurfaceInput): Ba
         if (disposed) return;
         pixiRendererRef.current = null;
         setRendererStatus('failed');
-        props.onLifecycleEvidence?.('renderer_pipeline_failed', {
-          source: 'nimi2d-carrier-surface',
-          model_kind: 'nimi2d',
-          renderer: 'pixi.js',
-          mode: 'pixi_renderer_foundation',
-          error: error instanceof Error ? error.message : String(error),
-        });
+        console.warn(`[avatar:nimi2d] Pixi renderer failed: ${describeError(error)}`);
       });
       return () => {
         disposed = true;
-        if (mountedVisualFrame) {
-          cancelFrame(mountedVisualFrame);
-        }
         pixiRendererRef.current?.destroy();
         pixiRendererRef.current = null;
       };
-    }, [props.onLifecycleEvidence]);
+    }, []);
 
     useEffect(() => {
       pixiRendererRef.current?.updateSnapshot(snapshot);
@@ -296,12 +211,7 @@ export function createNimi2DCarrierSurface(input: Nimi2DCarrierSurfaceInput): Ba
       if (audioAnnouncedRef.current) return;
       audioAnnouncedRef.current = true;
       props.onAudioConsumerReady?.(input.audioConsumer);
-      props.onLifecycleEvidence?.('audio_pipeline_ready', {
-        source: 'nimi2d-carrier-surface',
-        model_kind: 'nimi2d',
-        mode: 'tier1_amplitude_mouth_lane',
-      });
-    }, [props.onAudioConsumerReady, props.onLifecycleEvidence]);
+    }, [props.onAudioConsumerReady]);
 
     useEffect(() => {
       if (hitRegionAnnouncedRef.current) return;
@@ -329,28 +239,16 @@ export function createNimi2DCarrierSurface(input: Nimi2DCarrierSurfaceInput): Ba
       }).then((probe) => {
         if (cancelled) return;
         alphaProbeRef.current = probe;
-        props.onLifecycleEvidence?.('hit_region_alpha_probe_ready', {
-          source: 'nimi2d-carrier-surface',
-          model_kind: 'nimi2d',
-          mode: 'decoded_layer_alpha_probe',
-          layer_count: probe.layerCount,
-          default_outfit_layer_count: probe.defaultOutfitLayerCount,
-        });
       }).catch((error: unknown) => {
         if (cancelled) return;
         alphaProbeRef.current = null;
-        props.onLifecycleEvidence?.('hit_region_degraded', {
-          source: 'nimi2d-carrier-surface',
-          model_kind: 'nimi2d',
-          reason_code: 'alpha_probe_unavailable',
-          error: error instanceof Error ? error.message : String(error),
-        });
+        console.warn(`[avatar:nimi2d] alpha hit-region probe unavailable: ${describeError(error)}`);
       });
       return () => {
         cancelled = true;
         alphaProbeRef.current = null;
       };
-    }, [props.onLifecycleEvidence]);
+    }, []);
 
     useEffect(() => {
       let cancelled = false;

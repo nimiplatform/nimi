@@ -8,7 +8,6 @@
 //   - the avatar store's model.loadState / model.modelId (source of
 //     model_load + model_switch triggers)
 //   - the Tauri set_size invoker (`tauri-commands.ts.setWindowSize`)
-//   - the avatar evidence projection (`avatar.shell.window-bounds-changed`)
 //
 // IMPORTANT - feedback-loop avoidance:
 // We deliberately do NOT measure DOM bounding rects of embodiment-stage or
@@ -18,7 +17,6 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useAvatarStore } from './app-store.js';
 import { setIgnoreCursorEvents, setWindowSize } from './tauri-commands.js';
 import { isTauriRuntime } from './tauri-lifecycle.js';
-import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import {
   WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE,
   createWindowBoundsRecomputer,
@@ -56,24 +54,7 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
         await setWindowSize(size.width, size.height);
         await setIgnoreCursorEvents(false);
       },
-      onRecomputed: ({ trigger, width, height, clamped, embodimentBounds, avatarScale }) => {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.shell.window-bounds-changed',
-          detail: {
-            trigger,
-            width,
-            height,
-            clamped,
-            embodiment_bounds: {
-              x: 0,
-              y: 0,
-              width: Math.round(embodimentBounds.width),
-              height: Math.round(embodimentBounds.height),
-            },
-            scale: avatarScale,
-            changed_at: new Date().toISOString(),
-          },
-        });
+      onRecomputed: ({ width, height }) => {
         useAvatarStore.getState().setWindowSize({ width, height });
       },
     });

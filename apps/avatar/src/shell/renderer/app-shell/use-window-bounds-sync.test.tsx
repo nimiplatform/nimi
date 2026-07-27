@@ -16,7 +16,6 @@ import { useCallback } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWindowBoundsSync } from './use-window-bounds-sync.js';
 import { useAvatarStore } from './app-store.js';
-import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import { WINDOW_BOUNDS_PADDING_PX } from './window-bounds.js';
 import type { BackendNominalBounds } from '../carrier/backend-branch.js';
 
@@ -36,10 +35,6 @@ vi.mock('./tauri-commands.js', () => ({
 vi.mock('./tauri-lifecycle.js', () => ({
   isTauriRuntime: () => tauriRuntime,
   onLaunchContextUpdated: vi.fn(() => () => {}),
-}));
-
-vi.mock('./avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: vi.fn(),
 }));
 
 function Harness({
@@ -83,7 +78,6 @@ beforeEach(() => {
   setWindowSizeMock.mockResolvedValue();
   setIgnoreCursorEventsMock.mockReset();
   setIgnoreCursorEventsMock.mockResolvedValue();
-  vi.mocked(recordAvatarEvidenceEventually).mockReset();
   tauriRuntime = true;
   resetModelState();
 });
@@ -152,12 +146,6 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
       400 * 1.25 + 2 * WINDOW_BOUNDS_PADDING_PX,
       600 * 1.25 + 2 * WINDOW_BOUNDS_PADDING_PX,
     );
-    expect(recordAvatarEvidenceEventually).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.window-bounds-changed',
-        detail: expect.objectContaining({ scale: 1.25 }),
-      }),
-    );
   });
 
   it('recomputes with avatar_scale_change when avatarScale changes without replaying model_load', async () => {
@@ -173,7 +161,6 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
       useAvatarStore.getState().setModelLoaded('scaled-live2d-model');
     });
     setWindowSizeMock.mockClear();
-    vi.mocked(recordAvatarEvidenceEventually).mockClear();
 
     rerender(<Harness nominalBounds={bounds} avatarScale={1.3} />);
 
@@ -185,21 +172,6 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     expect(setWindowSizeMock).toHaveBeenCalledWith(
       400 * 1.3 + 2 * WINDOW_BOUNDS_PADDING_PX,
       600 * 1.3 + 2 * WINDOW_BOUNDS_PADDING_PX,
-    );
-    expect(recordAvatarEvidenceEventually).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.window-bounds-changed',
-        detail: expect.objectContaining({
-          trigger: 'avatar_scale_change',
-          scale: 1.3,
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventually).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.window-bounds-changed',
-        detail: expect.objectContaining({ trigger: 'model_load' }),
-      }),
     );
   });
 
@@ -267,7 +239,7 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     expect(setWindowSizeMock).not.toHaveBeenCalled();
   });
 
-  it('does not record bounds evidence or store size when set_window_size IPC fails', async () => {
+  it('does not store the new size when set_window_size IPC fails', async () => {
     setWindowSizeMock.mockRejectedValue(new Error('native resize failed'));
     renderWithBackend({
       width: 360,
@@ -282,7 +254,6 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     });
 
     expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
-    expect(recordAvatarEvidenceEventually).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().shell.windowSize).toEqual({ width: 400, height: 600 });
   });
 });

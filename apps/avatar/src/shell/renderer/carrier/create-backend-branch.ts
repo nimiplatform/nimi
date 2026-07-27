@@ -19,7 +19,7 @@ import { createVrmBackendBranch } from '../vrm/vrm-backend.js';
 export type BackendBranchHandle = {
   branch: BackendBranch;
   audioConsumer: BackendAudioConsumer;
-  recordBootstrapVisualProof?: () => Promise<void>;
+  verifyBootstrapVisualOutput?: () => Promise<void>;
   shutdown(): void;
 };
 
@@ -32,7 +32,7 @@ export async function createBackendBranch(
       return {
         branch: handle.branch,
         audioConsumer: handle.audioConsumer,
-        recordBootstrapVisualProof: handle.recordBootstrapVisualProof,
+        verifyBootstrapVisualOutput: handle.verifyBootstrapVisualOutput,
         shutdown: handle.shutdown,
       };
     }

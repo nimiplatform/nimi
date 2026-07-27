@@ -22,11 +22,6 @@ import {
 } from '../app-shell/tauri-commands.js';
 import { isTauriRuntime } from '../app-shell/tauri-lifecycle.js';
 import { hasAvatarHostRuntime } from '../app-shell/avatar-host-bridge.js';
-import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
-import {
-  recordAvatarEvidenceEventually,
-  type AvatarEvidenceKind,
-} from '../app-shell/avatar-evidence.js';
 import { isInteractiveTarget } from '../avatar-shell-utils.js';
 import type { AppOriginEvent } from '../driver/types.js';
 import type {
@@ -46,10 +41,6 @@ export type EmbodimentStageProps = {
   backend: BackendBranch | null;
   windowSize: { width: number; height: number };
   embodied: boolean;
-  // composition state (K-NAV-SHELL-COMPOSITION-001) at the time the surface is
-  // mounted. Required so the surface-mounted/unmounted evidence carries the
-  // correct posture annotation (`ready` vs `fixture_active`).
-  compositionState: string;
   emit?: (event: AppOriginEvent) => void;
   setBodyHovered?: (value: boolean) => void;
   setBodyPointerContact?: (value: boolean) => void;
@@ -63,21 +54,6 @@ export type EmbodimentStageProps = {
 };
 
 const CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS = 50;
-const ADMITTED_BACKEND_LIFECYCLE_EVIDENCE = new Set([
-  'context_lost',
-  'context_restored',
-  'failed_closed',
-  'load_failed',
-  'audio_pipeline_ready',
-  'audio_pipeline_failed',
-  'renderer_pipeline_ready',
-  'renderer_pipeline_failed',
-  'hit_region_alpha_probe_ready',
-  'mounted_visual_frame_ready',
-  'mounted_visual_frame_failed',
-  'hit_region_degraded',
-]);
-
 type ManualDragState = {
   mode: 'armed' | 'manual';
   startScreenX: number;
@@ -101,7 +77,6 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     backend,
     windowSize,
     embodied,
-    compositionState,
     emit,
     setBodyHovered,
     setBodyPointerContact,
@@ -110,12 +85,10 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     onFocusVisibleChange,
   } = props;
 
-  useSurfaceMountEvidence('embodiment-stage', compositionState);
-
   // ── BackendSurface lifecycle wiring ──
   // The active BackendBranch exposes a Component that publishes three
-  // lifecycle channels: audio-consumer, hit-region, evidence. Each one
-  // bridges into an existing app-shell concern:
+  // lifecycle channels: audio-consumer and hit-region. Each one bridges into
+  // an existing app-shell concern:
   //   * onAudioConsumerReady → register sink with the shared audio
   //     pipeline (lipsync), unregister on backend swap / unmount.
   //   * onHitRegionChange    → store the latest region (throttled via
@@ -123,8 +96,6 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   //     ≤ 1 per 100ms per the app-shell contract). Pointer hit
   //     testing (alpha-mask + bbox fallback) drives the 60Hz-capped
   //     `setIgnoreCursorEvents` throttle below.
-  //   * onLifecycleEvidence  → record into the avatar evidence stream so
-  //     mounted/unmounted/load-error transitions surface in telemetry.
   const sinkRegistrationRef = useRef<(() => void) | null>(null);
   const currentHitRegionRef = useRef<BackendHitRegion | null>(null);
   const alphaProbeFailureReportedRef = useRef(false);
@@ -178,134 +149,6 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       hitRegionEmitThrottleRef.emit(region);
     },
     [hitRegionEmitThrottleRef],
-  );
-
-  const handleLifecycleEvidence = useCallback(
-    (kind: string, detail: Record<string, unknown>) => {
-      if (!ADMITTED_BACKEND_LIFECYCLE_EVIDENCE.has(kind)) {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.carrier.lifecycle.failed_closed',
-          detail: {
-            source: 'embodiment-stage',
-            model_kind: backend?.kind ?? 'unknown',
-            reason_code: 'unadmitted_lifecycle_evidence_kind',
-            lifecycle: kind,
-            closed_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      if (kind === 'audio_pipeline_ready') {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.audio.pipeline.ready',
-          detail: {
-            source: 'embodiment-stage',
-            ...detail,
-            ready_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      if (kind === 'audio_pipeline_failed') {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.audio.pipeline.failed',
-          detail: {
-            source: 'embodiment-stage',
-            ...detail,
-            failed_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      if (kind === 'renderer_pipeline_ready') {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.carrier.visual',
-          detail: {
-            status: 'ready',
-            source: 'embodiment-stage',
-            ...detail,
-            ready_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      if (kind === 'renderer_pipeline_failed') {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.carrier.visual',
-          detail: {
-            status: 'error',
-            source: 'embodiment-stage',
-            ...detail,
-            failed_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      if (kind === 'hit_region_alpha_probe_ready') {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.carrier.visual',
-          detail: {
-            status: 'ready',
-            source: 'embodiment-stage',
-            ...detail,
-            ready_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      if (kind === 'mounted_visual_frame_ready') {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.carrier.visual',
-          detail: {
-            status: 'ready',
-            source: 'embodiment-stage',
-            ...detail,
-            ready_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      if (kind === 'mounted_visual_frame_failed') {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.carrier.visual',
-          detail: {
-            status: 'error',
-            source: 'embodiment-stage',
-            ...detail,
-            failed_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      if (kind === 'hit_region_degraded') {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.hit_region.degraded',
-          detail: {
-            source: 'embodiment-stage',
-            model_kind: backend?.kind ?? 'unknown',
-            ...detail,
-            recorded_at: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-      const evidenceKind: AvatarEvidenceKind = kind === 'context_lost'
-        ? 'avatar.carrier.lifecycle.context_lost'
-        : kind === 'context_restored'
-          ? 'avatar.carrier.lifecycle.context_restored'
-          : 'avatar.carrier.lifecycle.failed_closed';
-      recordAvatarEvidenceEventually({
-        kind: evidenceKind,
-        detail: {
-          source: 'embodiment-stage',
-          model_kind: backend?.kind ?? 'unknown',
-          lifecycle: kind,
-          composition_state: compositionState,
-          ...detail,
-        },
-      });
-    },
-    [backend?.kind, compositionState],
   );
 
   // Sink unregistration + throttle disposal on unmount / backend swap.
@@ -432,16 +275,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         } catch (error: unknown) {
           if (!alphaProbeFailureReportedRef.current) {
             alphaProbeFailureReportedRef.current = true;
-            recordAvatarEvidenceEventually({
-              kind: 'avatar.hit_region.degraded',
-              detail: {
-                source: 'embodiment-stage',
-                model_kind: backend?.kind ?? 'unknown',
-                reason_code: 'alpha_probe_threw',
-                error: error instanceof Error ? error.message : String(error || 'alpha probe failed'),
-                recorded_at: new Date().toISOString(),
-              },
-            });
+            console.warn('[avatar:embodiment] alpha hit-region probe failed; using bbox fallback', error);
           }
         }
       }
@@ -645,15 +479,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
               })
               .catch((error: unknown) => {
                 drag.originFailed = true;
-                recordAvatarEvidenceEventually({
-                  kind: 'avatar.carrier.lifecycle.failed_closed',
-                  detail: {
-                    source: 'embodiment-stage',
-                    lifecycle: 'failed_closed',
-                    reason_code: 'manual_drag_origin_failed',
-                    error: error instanceof Error ? error.message : String(error || 'manual drag origin failed'),
-                  },
-                });
+                console.warn('[avatar:embodiment] manual drag origin failed', error);
                 if (dragRef.current === drag) {
                   dragRef.current = null;
                 }
@@ -756,7 +582,6 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           embodied={embodied}
           onAudioConsumerReady={handleAudioConsumerReady}
           onHitRegionChange={handleHitRegionChange}
-          onLifecycleEvidence={handleLifecycleEvidence}
         />
       ) : null}
       <div className="avatar-embodiment-stage__body" data-testid="avatar-body-hit-region" ref={bodyRef} />

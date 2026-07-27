@@ -1,9 +1,7 @@
 // Authority: docs/authority/avatar-embodiment-rationale.md.
 //
-// Pure (non-React) VRM lifecycle state machine. The carrier surface
-// subscribes to state transitions and forwards lifecycle evidence via the
-// BackendSurfaceProps onLifecycleEvidence callback. Owning the state
-// machine here (instead of inside the React component) keeps the
+// Pure (non-React) VRM lifecycle state machine. Owning the state machine
+// here (instead of inside the React component) keeps the
 // context-lost retry timing testable without R3F / WebGL and keeps the
 // 1500ms single-retry contract enforceable as a unit test
 // (vrm-backend-contract.md §2.3).
@@ -25,10 +23,6 @@
 //     context_lost  ──notifyContextLost() (second loss)──▶ failed_closed
 //                                                          (context_lost_twice)
 //
-// Evidence kind strings match the contract callback surface; the
-// `avatar.carrier.lifecycle.` prefix is added at the embodiment-stage
-// layer when forwarding to recordAvatarEvidenceEventually.
-
 import type { VRM } from '@pixiv/three-vrm';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import { loadVrmFromManifest } from './vrm-loader.js';
@@ -49,14 +43,8 @@ export type VrmLifecycleState =
     }
   | { kind: 'failed_closed'; reason: string; manifest?: VrmAvatarModelManifest };
 
-export type VrmLifecycleEvidenceCallback = (
-  kind: string,
-  detail: Record<string, unknown>,
-) => void;
-
 export type VrmRuntimeOptions = {
   manifest: VrmAvatarModelManifest;
-  onEvidence?: VrmLifecycleEvidenceCallback;
   /** Test seam: override the loader (default: real loadVrmFromManifest). */
   loaderOverride?: (manifest: VrmAvatarModelManifest) => Promise<VRM>;
   /** Test seam: override timer (default: globalThis.setTimeout). */
@@ -83,7 +71,6 @@ export type VrmRuntime = {
 };
 
 export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
-  const onEvidence = opts.onEvidence ?? (() => {});
   const loader = opts.loaderOverride ?? loadVrmFromManifest;
   const setTimeoutImpl: (handler: () => void, ms: number) => unknown =
     opts.setTimeoutFn ??
@@ -123,8 +110,7 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     } catch (err) {
       if (shutdownRequested) return;
       const reason = err instanceof Error ? err.message : String(err);
-      onEvidence('load_failed', { reason });
-      onEvidence('failed_closed', { reason: 'load_failed', cause: reason });
+      console.warn(`[avatar:vrm] model load failed: ${reason}`);
       setState({ kind: 'failed_closed', reason: 'load_failed', manifest: opts.manifest });
     }
   }
@@ -133,13 +119,11 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     try {
       const vrm = await loader(prior.manifest);
       if (shutdownRequested) return;
-      const restoreDurationMs = now() - prior.lostAt;
-      onEvidence('context_restored', { restoreDurationMs });
       setState({ kind: 'ready', manifest: prior.manifest, vrm });
     } catch (err) {
       if (shutdownRequested) return;
       const reason = err instanceof Error ? err.message : String(err);
-      onEvidence('failed_closed', { reason: 'context_lost_recovery_failed', cause: reason });
+      console.warn(`[avatar:vrm] context-loss recovery failed: ${reason}`);
       setState({
         kind: 'failed_closed',
         reason: 'context_lost_recovery_failed',
@@ -164,7 +148,6 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     notifyContextLost(): void {
       if (state.kind === 'ready') {
         const lostAt = now();
-        onEvidence('context_lost', { lostAt });
         setState({
           kind: 'context_lost',
           manifest: state.manifest,
@@ -187,7 +170,6 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
       if (state.kind === 'context_lost') {
         // Second loss before/around the retry — fail-close immediately.
         clearRetry();
-        onEvidence('failed_closed', { reason: 'context_lost_twice' });
         setState({
           kind: 'failed_closed',
           reason: 'context_lost_twice',
@@ -200,10 +182,8 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
       // late-bound listener should not reset the machine).
     },
     notifyContextRestored(): void {
-      // Contract authority requires context_restored evidence only after the
-      // 1500ms single retry reloads the VRM scene/textures/animations. A
-      // browser-level restored event can arrive earlier, but it is not
-      // sufficient recovery proof and therefore cannot change lifecycle state.
+      // A browser-level restored event can arrive before the runtime reloads
+      // scene/textures/animations, so it cannot change lifecycle state.
       return;
     },
     subscribe(listener: (s: VrmLifecycleState) => void): () => void {

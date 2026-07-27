@@ -271,8 +271,6 @@ describe('runNimi2DLiveActionBench', () => {
 
     expect(result.verdict).toBe('pass_minimal_tier1');
     expect(result.scope).toBe('pixi_renderer_foundation');
-    expect(result.closesGenerationBench).toBe(false);
-    expect(result.closesMountedVisualProof).toBe(false);
     expect(result.metrics).toMatchObject({
       stateLegibilityScore: 1,
       blendStabilityScore: 1,

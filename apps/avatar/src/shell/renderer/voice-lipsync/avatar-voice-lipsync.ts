@@ -44,7 +44,6 @@ import {
   type AudioPlaybackState,
   type VoiceLipsyncStateBus,
 } from '@nimiplatform/kit/features/avatar/headless';
-import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 
 type RuntimeTimelineDetail = NimiRuntimeAgentTimelineEnvelope;
 type VoicePlaybackInput = {
@@ -271,23 +270,10 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         if (disposed || canceled.has(identity)) return;
         stateBus.publish({ kind: 'activate', audioArtifactId: voiceInput.audioSourceId });
         publishPlaybackState('requested');
-        const playbackState = await playVoiceBytesAndWait({
+        await playVoiceBytesAndWait({
           audioSourceId: voiceInput.audioSourceId,
           audioMimeType: voiceInput.audioMimeType,
           bytes: voiceInput.bytes,
-        });
-        recordAvatarEvidenceEventually({
-          kind: playbackState === 'completed'
-            ? 'avatar.audio.native_stream_chunk_played'
-            : 'avatar.audio.native_stream_chunk_failed',
-          detail: {
-            voice_stream_id: voiceInput.voiceStreamId,
-            chunk_sequence: voiceInput.chunkSequence,
-            audio_source_id: voiceInput.audioSourceId,
-            audio_mime_type: voiceInput.audioMimeType,
-            byte_length: voiceInput.bytes.byteLength,
-            playback_state: playbackState,
-          },
         });
       })
       .finally(() => {
@@ -334,15 +320,9 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     if (!voiceStreamId) {
       return true;
     }
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.audio.native_stream_subscription_failed',
-      detail: {
-        voice_stream_id: voiceStreamId,
-        turn_id: readString(detail, 'turn_id') ?? readString(detail, 'turnId') ?? null,
-        stream_id: readString(detail, 'stream_id') ?? readString(detail, 'streamId') ?? null,
-        reason: readString(detail, 'reason') ?? 'native_audio_stream_failed',
-      },
-    });
+    console.warn(
+      `[avatar:voice] native audio stream ${voiceStreamId} failed: ${readString(detail, 'reason') ?? 'native_audio_stream_failed'}`,
+    );
     return true;
   }
 
@@ -434,17 +414,6 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     }
     if (!audioArtifactId || !audioMimeType) {
       if (voiceStreamId && chunkTransportRef) {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.audio.native_stream_projection_received',
-          detail: {
-            voice_stream_id: voiceStreamId,
-            chunk_transport_ref: chunkTransportRef,
-            chunk_sequence: Number(detail['chunk_sequence'] ?? detail['chunkSequence'] ?? 0),
-            turn_id: timeline.turnId,
-            stream_id: timeline.streamId,
-            playback_target: readPlaybackTarget(detail),
-          },
-        });
         streamingTimelines.add(timelineIdentity(timeline));
         publishPlaybackState('requested');
         emitDriverEvent(input.driver, 'avatar.speak.stream_chunk_available', timeline, {

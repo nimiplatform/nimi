@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
-import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import { useTranslation } from '../i18n/index.js';
 
 export type AvatarAppearanceOverlayDismissReason =
@@ -15,7 +14,6 @@ export type AvatarAppearanceSourceAuthority = 'runtime' | 'fixture' | 'unknown';
 export type AvatarAppearanceOverlayProps = {
   x: number;
   y: number;
-  compositionState: string;
   modelManifest: AvatarModelManifest;
   sourceAuthority: AvatarAppearanceSourceAuthority;
   scale: number;
@@ -51,7 +49,6 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
   const {
     x,
     y,
-    compositionState,
     modelManifest,
     sourceAuthority,
     scale,
@@ -59,8 +56,6 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
   } = props;
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
-
-  useSurfaceMountEvidence('appearance-overlay', compositionState);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();

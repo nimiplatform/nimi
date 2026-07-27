@@ -8,7 +8,6 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { cn } from '@nimiplatform/kit/ui';
-import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import { useTranslation } from '../i18n/index.js';
 
 export type AvatarActionRadialAction =
@@ -28,7 +27,6 @@ export type AvatarActionRadialDismissReason =
 export type AvatarActionRadialProps = {
   x: number;
   y: number;
-  compositionState: string;
   textInputEnabled: boolean;
   onAction(action: AvatarActionRadialAction): void;
   onDismiss(reason: AvatarActionRadialDismissReason): void;
@@ -64,15 +62,12 @@ export function AvatarActionRadial(props: AvatarActionRadialProps) {
   const {
     x,
     y,
-    compositionState,
     textInputEnabled,
     onAction,
     onDismiss,
   } = props;
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
-
-  useSurfaceMountEvidence('action-radial', compositionState);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();

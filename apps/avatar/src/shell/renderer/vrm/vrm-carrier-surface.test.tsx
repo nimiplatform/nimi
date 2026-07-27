@@ -132,8 +132,7 @@ function commonExtras(): {
     setProjectionAdapter: () => {},
     // Wave 4 chunk 4-C: stub render target keeps the surface test fast +
     // jsdom-friendly. Tier C (default in jsdom — no WebGL renderer string)
-    // means the alpha-mask probe is skipped, the hit region is bbox-only,
-    // and the surface emits a `hit_region_degraded` evidence call.
+    // means the alpha-mask probe is skipped and the hit region is bbox-only.
     renderTarget: createVrmRenderTarget({ stubMode: true }),
   };
 }
@@ -201,7 +200,6 @@ describe('createVrmCarrierSurface', () => {
 
   it('mounts the canvas and reaches `ready` after the loader resolves', async () => {
     const { createVrmCarrierSurface } = await import('./vrm-carrier-surface.js');
-    const evidence = vi.fn();
     const onAudio = vi.fn();
     const onRegion = vi.fn();
     const handle = createVrmCarrierSurface({
@@ -220,7 +218,6 @@ describe('createVrmCarrierSurface', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={evidence}
           onAudioConsumerReady={onAudio}
           onHitRegionChange={onRegion}
         />,
@@ -233,13 +230,6 @@ describe('createVrmCarrierSurface', () => {
     const root = result!.getByTestId('avatar-vrm-carrier');
     expect(root.getAttribute('data-avatar-vrm-state')).toBe('ready');
     expect(result!.getByTestId('r3f-canvas')).toBeTruthy();
-
-    // Initial load success is represented by the ready state. Tier-C
-    // hit-region degradation may emit evidence, but load/context/fail-close
-    // evidence must not be fabricated on the success path.
-    expect(evidence).not.toHaveBeenCalledWith('load_failed', expect.anything());
-    expect(evidence).not.toHaveBeenCalledWith('context_lost', expect.anything());
-    expect(evidence).not.toHaveBeenCalledWith('failed_closed', expect.anything());
 
     // Audio consumer announced exactly once.
     expect(onAudio).toHaveBeenCalledTimes(1);
@@ -266,8 +256,6 @@ describe('createVrmCarrierSurface', () => {
         clearTimeoutFn: () => {},
       },
     });
-    const evidence = vi.fn();
-
     let result: ReturnType<typeof render>;
     await act(async () => {
       result = render(
@@ -275,7 +263,6 @@ describe('createVrmCarrierSurface', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={evidence}
         />,
       );
       await Promise.resolve();
@@ -295,10 +282,6 @@ describe('createVrmCarrierSurface', () => {
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
     ).toBe('context_lost');
-    expect(evidence).toHaveBeenCalledWith(
-      'context_lost',
-      expect.objectContaining({ lostAt: expect.any(Number) }),
-    );
   });
 
   it('does not announce audio consumer twice across context_lost -> mandatory retry reload', async () => {
@@ -373,8 +356,6 @@ describe('createVrmCarrierSurface', () => {
         },
       },
     });
-    const evidence = vi.fn();
-
     let result: ReturnType<typeof render>;
     await act(async () => {
       result = render(
@@ -382,7 +363,6 @@ describe('createVrmCarrierSurface', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={evidence}
         />,
       );
       await Promise.resolve();
@@ -390,10 +370,6 @@ describe('createVrmCarrierSurface', () => {
     });
 
     expect(result!.container.firstChild).toBeNull();
-    expect(evidence).toHaveBeenCalledWith(
-      'failed_closed',
-      expect.objectContaining({ reason: 'load_failed' }),
-    );
   });
 
   it('shutdown() can be called from the handle without error', async () => {

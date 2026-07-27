@@ -181,9 +181,8 @@ describe('createBackendBranch Nimi2D admission boundary', () => {
       content_admission_ref: 'content:agent-skin',
       default_outfit_ref: 'n2d_default_outfit_agent',
       base_body_renderable: false,
-      generation_bench_status: 'not_closed_by_avatar_runtime',
     });
-    expect(handle.recordBootstrapVisualProof).toEqual(expect.any(Function));
+    expect(handle.verifyBootstrapVisualOutput).toEqual(expect.any(Function));
     expect(readTextFileMock).toHaveBeenCalledWith('/models/agent-skin/runtime/nimi2d/package.yaml');
     expect(readTextFileMock).toHaveBeenCalledWith('/models/agent-skin/runtime/nimi2d/avatar-capability.yaml');
   });

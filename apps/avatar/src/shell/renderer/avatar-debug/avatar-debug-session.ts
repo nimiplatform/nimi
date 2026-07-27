@@ -1,5 +1,4 @@
 import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
-import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 import type { BackendBranch } from '../carrier/backend-branch.js';
 import {
   isVrmGeneratedRouteId,
@@ -486,39 +485,4 @@ export function evidenceRefsForAvatarDebugSession(session: AvatarDebugSession): 
     ...session.evidence.refs.routeIds.map((routeId) => `avatar.debug.route/${routeId}`),
     ...session.evidence.refs.unsupportedRouteIds.map((routeId) => `avatar.debug.unsupported-route/${routeId}`),
   ].filter((value) => value.trim().length > 0);
-}
-
-export function recordAvatarDebugSessionEvidence(session: AvatarDebugSession): void {
-  const evidenceRefs = evidenceRefsForAvatarDebugSession(session);
-  recordAvatarEvidenceEventually({
-    kind: 'avatar.debug.session-evidence',
-    detail: {
-      debug_session_id: session.debugSessionId,
-      runtime_probe_id: session.runtimeProbeId,
-      agent_id: session.agentId,
-      avatar_instance_id: session.avatarInstanceId,
-      backend_kind: session.backendKind,
-      probe_kind: session.probeKind,
-      evidence_id: session.evidence.evidenceId,
-      evidence_kind: session.evidence.evidenceKind,
-      status: session.evidence.status,
-      source: session.evidence.source,
-      reason_code: session.evidence.reasonCode,
-      route_ids: session.evidence.refs.routeIds,
-      unsupported_route_ids: session.evidence.refs.unsupportedRouteIds,
-      carrier_visual_evidence_ref: session.evidence.refs.carrierVisualEvidenceRef,
-      carrier_preview_artifact_ref: session.evidence.refs.carrierPreviewArtifactRef,
-      live2d_expression_inventory_ref: session.evidence.refs.live2dExpressionInventoryRef,
-      live2d_backend_load_ref: session.evidence.refs.live2dBackendLoadRef,
-      live2d_capability_profile_ref: session.evidence.refs.live2dCapabilityProfileRef,
-      live2d_route_support_ref: session.evidence.refs.live2dRouteSupportRef,
-      live2d_lipsync_evidence_ref: session.evidence.refs.live2dLipsyncEvidenceRef,
-      live2d_hit_region_evidence_ref: session.evidence.refs.live2dHitRegionEvidenceRef,
-      live2d_parameter_lane_diagnostics_ref: session.evidence.refs.live2dParameterLaneDiagnosticsRef,
-      live2d_calibration_ref: session.evidence.refs.live2dCalibrationRef,
-      evidence_refs: evidenceRefs,
-      evidence_ref_count: evidenceRefs.length,
-      observed_at: session.observedAt,
-    },
-  });
 }

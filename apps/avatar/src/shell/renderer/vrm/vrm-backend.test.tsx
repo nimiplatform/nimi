@@ -83,7 +83,6 @@ describe('VRM backend branch (chunk 2-C)', () => {
     );
 
     const Component = handle.branch.surface.Component;
-    const evidence = vi.fn();
 
     let result: ReturnType<typeof render>;
     await act(async () => {
@@ -92,7 +91,6 @@ describe('VRM backend branch (chunk 2-C)', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={evidence}
         />,
       );
       await Promise.resolve();
@@ -103,9 +101,6 @@ describe('VRM backend branch (chunk 2-C)', () => {
     const carrier = result!.getByTestId('avatar-vrm-carrier');
     expect(carrier.getAttribute('data-avatar-vrm-state')).toBe('ready');
     expect(result!.getByTestId('r3f-canvas')).toBeTruthy();
-    expect(evidence).not.toHaveBeenCalledWith('load_failed', expect.anything());
-    expect(evidence).not.toHaveBeenCalledWith('context_lost', expect.anything());
-    expect(evidence).not.toHaveBeenCalledWith('failed_closed', expect.anything());
   });
 
   it('ignores VITE_AVATAR_DEV_VRM_PREVIEW and mounts the real backend surface', async () => {
@@ -119,7 +114,6 @@ describe('VRM backend branch (chunk 2-C)', () => {
       expect.objectContaining({ mode: 'real_render' }),
     );
     const Component = handle.branch.surface.Component;
-    const evidence = vi.fn();
     let result: ReturnType<typeof render>;
     await act(async () => {
       result = render(
@@ -127,7 +121,6 @@ describe('VRM backend branch (chunk 2-C)', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={evidence}
         />,
       );
       await Promise.resolve();
@@ -137,8 +130,5 @@ describe('VRM backend branch (chunk 2-C)', () => {
       'ready',
     );
     expect(result!.getByTestId('r3f-canvas')).toBeTruthy();
-    expect(evidence).not.toHaveBeenCalledWith('load_failed', expect.anything());
-    expect(evidence).not.toHaveBeenCalledWith('context_lost', expect.anything());
-    expect(evidence).not.toHaveBeenCalledWith('failed_closed', expect.anything());
   });
 });

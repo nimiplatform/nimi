@@ -8,7 +8,6 @@ import {
 import { Send, X } from 'lucide-react';
 import { IconButton, TextareaField } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../i18n/index.js';
-import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 
 export type AvatarTransientComposerDismissReason =
   | 'focus_switch'
@@ -21,7 +20,6 @@ export type AvatarTransientComposerSendState = 'idle' | 'sending' | 'error';
 export type AvatarTransientComposerProps = {
   x: number;
   y: number;
-  compositionState: string;
   draft: string;
   sendState: AvatarTransientComposerSendState;
   sendError: string | null;
@@ -54,7 +52,6 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
   const {
     x,
     y,
-    compositionState,
     draft,
     sendState,
     sendError,
@@ -65,8 +62,6 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLFormElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useSurfaceMountEvidence('transient-composer', compositionState);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();

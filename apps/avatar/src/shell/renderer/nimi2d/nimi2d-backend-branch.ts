@@ -71,7 +71,6 @@ export async function createNimi2DBackendBranch(
         hit_region_strategy: 'alpha_probe_plus_bbox',
         hit_region_evidence_status: 'decoded_layer_alpha_probe_foundation',
         visual_acceptance_status: 'deterministic_offscreen_layer_pixel_proof_only',
-        generation_bench_status: 'not_closed_by_avatar_runtime',
         live_action_lanes: {
           static_layer: 'supported',
           idle_life: capabilityProfile.renderer.bindings?.idle_life ? 'supported' : 'unsupported',
@@ -92,7 +91,7 @@ export async function createNimi2DBackendBranch(
   return {
     branch,
     audioConsumer,
-    recordBootstrapVisualProof: async () => {
+    verifyBootstrapVisualOutput: async () => {
       await probeNimi2DCarrierVisualFrame({ renderPlan: loadedPackage });
     },
     shutdown() {

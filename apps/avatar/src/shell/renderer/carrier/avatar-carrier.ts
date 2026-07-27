@@ -12,7 +12,6 @@ import {
 } from '../nas/handler-registry.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 import { wireAvatarVoiceLipsync } from '../voice-lipsync/avatar-voice-lipsync.js';
-import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 import { createInteractionPhysicsController } from '../live2d/interaction-physics.js';
 import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
 import { createSmoothedProjection, type ProjectionSmoothingHandle } from '@nimiplatform/kit/features/avatar/headless';
@@ -22,7 +21,6 @@ import type { BackendBranch } from './backend-branch.js';
 import {
   createAvatarDebugSession,
   evidenceRefsForAvatarDebugSession,
-  recordAvatarDebugSessionEvidence,
   type AvatarDebugResolverEvidence,
   type AvatarDebugSession,
   type RuntimeAvatarDebugProbeEnvelope,
@@ -74,7 +72,7 @@ function backendCapabilityProfileRef(metadata: Record<string, unknown>): string 
   return null;
 }
 
-function runtimeStatusForAvatarEvidence(status: AvatarDebugSession['evidence']['status']): AvatarDebugProbeStatus {
+function runtimeStatusForAvatarDebug(status: AvatarDebugSession['evidence']['status']): AvatarDebugProbeStatus {
   switch (status) {
     case 'passed':
       return AvatarDebugProbeStatus.PASSED;
@@ -123,40 +121,15 @@ async function submitRuntimeAvatarDebugResult(input: {
   try {
     probeKind = detailProbeKind(detail);
   } catch (error) {
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.debug.probe-submit-failed',
-      detail: {
-        reason: 'runtime_avatar_debug_probe_kind_invalid',
-        probe_id: probeId || null,
-        error: error instanceof Error ? error.message : String(error || 'invalid probe kind'),
-      },
-    });
+    console.warn('[avatar:debug] runtime probe request has an invalid probe kind', error);
     return;
   }
   if (!probeId || !agentId || !conversationAnchorId) {
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.debug.probe-submit-failed',
-      detail: {
-        reason: 'runtime_avatar_debug_probe_request_invalid',
-        probe_id: probeId || null,
-        agent_id: agentId || null,
-        conversation_anchor_id: conversationAnchorId || null,
-      },
-    });
+    console.warn('[avatar:debug] runtime probe request is missing its probe, agent, or conversation identity');
     return;
   }
   if (!isAvatarSubmittableDebugProbeKind(probeKind)) {
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.debug.probe-submit-skipped',
-      detail: {
-        reason: 'runtime_avatar_debug_probe_not_avatar_submittable',
-        probe_id: probeId,
-        agent_id: agentId,
-        conversation_anchor_id: conversationAnchorId,
-        probe_kind: probeKind,
-        skipped_at: observedAt,
-      },
-    });
+    console.warn(`[avatar:debug] runtime probe ${probeId} uses unsupported kind ${probeKind}`);
     return;
   }
   try {
@@ -178,13 +151,12 @@ async function submitRuntimeAvatarDebugResult(input: {
       },
       observedAt,
     });
-    recordAvatarDebugSessionEvidence(session);
     await submitDebugProbeResult({
       probeId,
       agentId,
       conversationAnchorId,
       probeKind: session.probeKind,
-      status: runtimeStatusForAvatarEvidence(session.evidence.status),
+      status: runtimeStatusForAvatarDebug(session.evidence.status),
       observedAt: timestampFromIso(session.observedAt),
       evidenceRefs: evidenceRefsForAvatarDebugSession(session),
       reasonCode: session.evidence.reasonCode || '',
@@ -192,16 +164,7 @@ async function submitRuntimeAvatarDebugResult(input: {
     }, detail.scopedBinding);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || 'unknown avatar debug session failure');
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.debug.probe-submit-failed',
-      detail: {
-        probe_id: probeId,
-        agent_id: agentId,
-        conversation_anchor_id: conversationAnchorId,
-        reason: 'avatar_debug_session_evaluation_failed',
-        error: message,
-      },
-    });
+    console.warn(`[avatar:debug] probe ${probeId} evaluation failed: ${message}`);
     await submitDebugProbeResult({
       probeId,
       agentId,
@@ -209,18 +172,11 @@ async function submitRuntimeAvatarDebugResult(input: {
       probeKind,
       status: AvatarDebugProbeStatus.FAILED,
       observedAt: timestampFromIso(observedAt),
-      evidenceRefs: [`avatar.debug.session-error/${probeId}`],
+      evidenceRefs: [],
       reasonCode: 'avatar_debug_session_evaluation_failed',
       resultId: `avatar-debug-result-${ulid()}`,
     }, detail.scopedBinding).catch((submitError: unknown) => {
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.debug.probe-submit-failed',
-        detail: {
-          probe_id: probeId,
-          reason: 'runtime_avatar_debug_result_submit_failed',
-          error: submitError instanceof Error ? submitError.message : String(submitError || 'unknown submit failure'),
-        },
-      });
+      console.warn(`[avatar:debug] failed to submit probe ${probeId} result`, submitError);
     });
   }
 }
@@ -237,7 +193,6 @@ export type AvatarRuntimeCarrier = {
     backendCapabilityProfileRef?: string | null;
     resolverEvidence?: AvatarDebugResolverEvidence | null;
     observedAt?: string | null;
-    recordEvidence?: boolean;
   }): AvatarDebugSession;
   submitDebugProbeResult?(result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown): Promise<void>;
   attachRuntimeDriver(driver: AgentDataDriver): Promise<void>;
@@ -406,19 +361,13 @@ export async function startAvatarVisualCarrier(input: {
     nas_handler_count: countHandlers(registry),
     loaded_at: new Date().toISOString(),
   };
-  recordAvatarEvidenceEventually({
-    kind: 'avatar.visual.model-loaded',
-    detail: modelLoadDetail,
-  });
-  recordAvatarEvidenceEventually({
-    kind: 'avatar.model.load',
-    detail: modelLoadDetail,
-  });
   const modelLoadEvent = {
     name: 'avatar.model.load',
     detail: modelLoadDetail,
   };
-  void backendHandle.recordBootstrapVisualProof?.();
+  void backendHandle.verifyBootstrapVisualOutput?.().catch((error: unknown) => {
+    console.warn('[avatar:carrier] bootstrap visual output probe failed', error);
+  });
 
   return {
     model,
@@ -437,9 +386,6 @@ export async function startAvatarVisualCarrier(input: {
         resolverEvidence: input.resolverEvidence,
         observedAt: input.observedAt,
       });
-      if (input.recordEvidence !== false) {
-        recordAvatarDebugSessionEvidence(session);
-      }
       return session;
     },
     async attachRuntimeDriver(driver) {

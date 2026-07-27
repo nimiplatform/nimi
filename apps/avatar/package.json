@@ -12,13 +12,11 @@
     "build:electron": "corepack pnpm --filter @nimiplatform/kit build && pnpm run build:electron:prepared",
     "check:bundle-runtime-imports": "node scripts/check-avatar-bundle-runtime-imports.mjs",
     "smoke:agent-center-live2d": "node scripts/smoke-agent-center-live2d.mjs",
-    "smoke:vrm-real-sample": "node scripts/run-vrm-real-sample-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run typecheck && pnpm run build:renderer && (cd src-tauri && cargo check --locked)",
     "lint": "pnpm run typecheck && eslint . --max-warnings 0 && (cd src-tauri && cargo check --locked)",
     "check:apps-avatar-isolation": "node ../../scripts/check-apps-avatar-isolation.mjs",
     "test": "node ../../scripts/with-workspace-surfaces.mjs -- vitest run",
-    "test:e2e:electron": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
     "test:watch": "vitest"
   },
   "devDependencies": {
@@ -36,7 +34,6 @@
     "eslint": "^10.4.0",
     "globals": "^17.6.0",
     "jsdom": "^28.1.0",
-    "playwright": "^1.61.0",
     "tailwindcss": "^4.3.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.4",

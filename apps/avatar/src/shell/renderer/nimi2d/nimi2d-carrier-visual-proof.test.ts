@@ -1,10 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Nimi2DRenderPlan } from '@nimiplatform/nimi2d/runtime';
 import {
-  captureNimi2DMountedVisualFrame,
   createNimi2DAlphaHitProbe,
   Nimi2DCarrierVisualProofError,
-  Nimi2DMountedVisualFrameError,
   probeNimi2DCarrierVisualFrame,
   type Nimi2DDecodedImage,
 } from './nimi2d-carrier-visual-proof.js';
@@ -125,26 +123,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function installScratchCanvas(data: Uint8ClampedArray, width: number, height: number): void {
-  const originalCreateElement = document.createElement.bind(document);
-  const context = {
-    clearRect: vi.fn(),
-    drawImage: vi.fn(),
-    getImageData: vi.fn(() => ({ data })),
-  };
-  const scratch = {
-    width,
-    height,
-    getContext: vi.fn(() => context),
-    toDataURL: vi.fn(() => 'data:image/png;base64,nimi2d'),
-  } as unknown as HTMLCanvasElement;
-  vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: ElementCreationOptions) => (
-    tagName === 'canvas'
-      ? scratch
-      : originalCreateElement(tagName, options)
-  ));
-}
-
 describe('probeNimi2DCarrierVisualFrame', () => {
   it('passes when the rendered composite includes visible default outfit pixels', async () => {
     const stats = await probeNimi2DCarrierVisualFrame({
@@ -248,38 +226,5 @@ describe('probeNimi2DCarrierVisualFrame', () => {
 
     expect(probe.defaultOutfitLayerCount).toBe(0);
     expect(probe.isOpaqueAtClientPoint(4, 4)).toBeNull();
-  });
-
-  it('captures mounted Pixi canvas pixels only when visible pixels exist', () => {
-    const source = {
-      width: 4,
-      height: 4,
-      clientWidth: 4,
-      clientHeight: 4,
-      getBoundingClientRect: () => ({ width: 4, height: 4 }),
-    } as HTMLCanvasElement;
-    installScratchCanvas(rgba(4, 4, [20, 120, 220, 255]), 4, 4);
-
-    const capture = captureNimi2DMountedVisualFrame({ canvas: source, gridSize: 2 });
-
-    expect(capture.artifactId).toContain('nimi2d-mounted-visible-frame-4x4');
-    expect(capture.dataUrl).toBe('data:image/png;base64,nimi2d');
-    expect(capture.stats.visiblePixels).toBe(4);
-    expect(capture.stats.sampledPixels).toBe(4);
-    expect(capture.stats.sampledPixelChecksum).toBeGreaterThan(0);
-  });
-
-  it('rejects mounted Pixi canvas capture when the frame has no visible pixels', () => {
-    const source = {
-      width: 4,
-      height: 4,
-      clientWidth: 4,
-      clientHeight: 4,
-      getBoundingClientRect: () => ({ width: 4, height: 4 }),
-    } as HTMLCanvasElement;
-    installScratchCanvas(rgba(4, 4, [0, 0, 0, 0]), 4, 4);
-
-    expect(() => captureNimi2DMountedVisualFrame({ canvas: source, gridSize: 2 }))
-      .toThrow(Nimi2DMountedVisualFrameError);
   });
 });

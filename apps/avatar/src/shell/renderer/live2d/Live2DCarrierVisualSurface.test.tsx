@@ -10,8 +10,6 @@ import type {
 import { LIVE2D_PARAMETER_LANE_ORDER } from './live2d-parameter-lane-scheduler.js';
 
 const createLive2DCarrierVisualHostMock = vi.fn();
-const recordAvatarEvidenceEventuallyMock = vi.fn();
-const writeAvatarEvidenceArtifactMock = vi.fn();
 
 vi.mock('./carrier-visual-host.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./carrier-visual-host.js')>();
@@ -21,13 +19,6 @@ vi.mock('./carrier-visual-host.js', async (importOriginal) => {
       createLive2DCarrierVisualHostMock(...args),
   };
 });
-
-vi.mock('../app-shell/avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) =>
-    recordAvatarEvidenceEventuallyMock(...args),
-  writeAvatarEvidenceArtifact: (...args: unknown[]) =>
-    writeAvatarEvidenceArtifactMock(...args),
-}));
 
 function createSession(): Live2DBackendSession {
   return {
@@ -160,13 +151,6 @@ describe('Live2DCarrierVisualSurface', () => {
   beforeEach(() => {
     rafCallbacks.length = 0;
     createLive2DCarrierVisualHostMock.mockReset();
-    recordAvatarEvidenceEventuallyMock.mockReset();
-    writeAvatarEvidenceArtifactMock.mockReset();
-    writeAvatarEvidenceArtifactMock.mockResolvedValue({
-      artifactPath: '/tmp/live2d.png',
-      artifactMimeType: 'image/png',
-      artifactByteLength: 42,
-    });
     vi.stubGlobal('requestAnimationFrame', vi.fn((callback: FrameRequestCallback) => {
       rafCallbacks.push(callback);
       return rafCallbacks.length;

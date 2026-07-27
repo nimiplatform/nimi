@@ -1,6 +1,5 @@
 import { getDaemonStatus, startDaemon } from '../bridge/index.js';
 import { AccountReasonCode, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
-import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import { useAvatarStore } from './app-store.js';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
@@ -253,30 +252,8 @@ export function setRuntimeBindingUnavailable(detail: FirstPartyBootstrapErrorDet
   });
 }
 
-export function recordDriverStartFailure(error: unknown, input: {
-  agentId: string;
-  avatarInstanceId: string | null;
-  launchSource: string | null;
-  runtimeAppId: string;
-}): void {
+export function recordDriverStartFailure(error: unknown): void {
   const unavailable = firstPartyUnavailableDetail(error);
   setRuntimeBindingUnavailable(unavailable);
   useAvatarStore.getState().setDriverStatus('error');
-  recordAvatarEvidenceEventually({
-    kind: 'avatar.runtime.bind-failed',
-    detail: {
-      agentId: input.agentId,
-      avatar_instance_id: input.avatarInstanceId,
-      launch_source: input.launchSource,
-      runtime_app_id: input.runtimeAppId,
-      reason: unavailable.reason,
-      error_stage: unavailable.stage,
-      error_reason_code: unavailable.reasonCode,
-      error_account_reason_code: unavailable.accountReasonCode,
-      error_action_hint: unavailable.actionHint,
-      error_source: unavailable.source,
-      error_retryable: unavailable.retryable,
-      error_message: unavailable.message,
-    },
-  });
 }

@@ -20,7 +20,6 @@ const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
 const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
-const recordAvatarEvidenceEventuallyMock = vi.fn();
 let tauriRuntime = false;
 type AvatarLaunchContextForTest = {
   agentId: string;
@@ -49,11 +48,6 @@ function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): Ava
 
 vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
-}));
-
-vi.mock('./app-shell/avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) =>
-    recordAvatarEvidenceEventuallyMock(...args),
 }));
 
 vi.mock('./app-shell/tauri-commands.js', () => ({
@@ -385,7 +379,6 @@ beforeEach(() => {
   bootstrapAvatarMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
   constrainWindowToVisibleAreaMock.mockReset();
-  recordAvatarEvidenceEventuallyMock.mockReset();
   setAlwaysOnTopMock.mockReset();
   setAlwaysOnTopMock.mockResolvedValue(undefined);
   hideAvatarWindowMock.mockReset();
@@ -459,7 +452,7 @@ describe('App action radial overlay', () => {
     expect(handle.requestCompanionParticipation).not.toHaveBeenCalled();
   });
 
-  it('opens action radial from stationary 1s press and records evidence', async () => {
+  it('opens action radial from stationary 1s press', async () => {
     const handle = createBootstrapHandle();
     bootstrapAvatarMock.mockResolvedValue(handle);
 
@@ -477,21 +470,6 @@ describe('App action radial overlay', () => {
           client_x: 160,
           client_y: 260,
         }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.action_radial.opened',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          source_event: 'avatar.user.long_press',
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({ surface: 'action-radial' }),
       }),
     );
   });
@@ -515,15 +493,6 @@ describe('App action radial overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-action-radial')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.action_radial.selected',
-        detail: expect.objectContaining({
-          action: 'happy',
-          resolved_activity_name: 'happy',
-        }),
-      }),
-    );
   });
 
   it('selects Look at me as local focused presentation without creating text or voice turns', async () => {
@@ -543,15 +512,6 @@ describe('App action radial overlay', () => {
     expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'focused', intensity: 0.55 });
     expect(handle.requestCompanionParticipation).not.toHaveBeenCalled();
     expect(handle.startVoiceCapture).not.toHaveBeenCalled();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.action_radial.selected',
-        detail: expect.objectContaining({
-          action: 'look_at_me',
-          resolved_activity_name: 'focused',
-        }),
-      }),
-    );
   });
 
   it('opens transient composer from action radial and keeps text authority in Runtime', async () => {
@@ -571,12 +531,6 @@ describe('App action radial overlay', () => {
       expect(screen.queryByTestId('avatar-action-radial')).toBeNull();
     });
     expect(await screen.findByTestId('avatar-transient-composer')).toBeTruthy();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.composer.opened',
-        detail: expect.objectContaining({ source: 'action_radial' }),
-      }),
-    );
   });
 
   it('does not open action radial after movement starts drag', async () => {
@@ -622,9 +576,6 @@ describe('App action radial overlay', () => {
     });
 
     expect(screen.queryByTestId('avatar-action-radial')).toBeNull();
-    expect(recordAvatarEvidenceEventuallyMock).not.toHaveBeenCalledWith(
-      expect.objectContaining({ kind: 'avatar.shell.action_radial.opened' }),
-    );
   });
 });
 
@@ -646,18 +597,6 @@ describe('App per-avatar scale', () => {
     });
 
     expect(readAvatarInstanceScale('avatar:avatar-instance-01')).toBe(1.05);
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.scale.changed',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          scale_storage_key: 'avatar:avatar-instance-01',
-          previous_scale: AVATAR_SCALE_DEFAULT,
-          next_scale: 1.05,
-          source: 'wheel',
-        }),
-      }),
-    );
   });
 
   it('resets per-avatar scale from the context menu', async () => {
@@ -692,26 +631,6 @@ describe('App per-avatar scale', () => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     });
     expect(readAvatarInstanceScale('avatar:avatar-instance-01')).toBe(AVATAR_SCALE_DEFAULT);
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.scale.reset',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          previous_scale: 1.05,
-          next_scale: AVATAR_SCALE_DEFAULT,
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.scale.changed',
-        detail: expect.objectContaining({
-          source: 'reset',
-          previous_scale: 1.05,
-          next_scale: AVATAR_SCALE_DEFAULT,
-        }),
-      }),
-    );
   });
 
   it('restores persisted scale for the launched avatar instance', async () => {
@@ -732,19 +651,16 @@ describe('App per-avatar scale', () => {
       seedReadyState();
     });
 
-    await screen.findByTestId('avatar-embodiment-stage');
-
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.scale.changed',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          source: 'restore',
-          previous_scale: AVATAR_SCALE_DEFAULT,
-          next_scale: 1.35,
-        }),
-      }),
-    );
+    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 52,
+      clientX: 140,
+      clientY: 180,
+    });
+    const resetScale = await screen.findByTestId('avatar-context-menu-item-reset_scale');
+    expect((resetScale as HTMLButtonElement).disabled).toBe(false);
   });
 });
 
@@ -767,7 +683,7 @@ describe('App transient composer overlay', () => {
     return screen.findByTestId('avatar-transient-composer');
   }
 
-  it('opens from context menu and records composer opened evidence', async () => {
+  it('opens from context menu', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -777,23 +693,6 @@ describe('App transient composer overlay', () => {
     });
 
     expect(await openComposer()).toBeTruthy();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.composer.opened',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          agent_id: 'local-agent:owner-product:agent-product-01',
-          conversation_anchor_id: 'anchor-01',
-          source: 'context_menu',
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({ surface: 'transient-composer' }),
-      }),
-    );
   });
 
   it('submits through Runtime participation and stays open for repeated turns', async () => {
@@ -822,13 +721,6 @@ describe('App transient composer overlay', () => {
     await waitFor(() => {
       expect(textarea.value).toBe('');
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.composer.submitted',
-        detail: expect.objectContaining({ text_length: 'first note'.length }),
-      }),
-    );
-
     fireEvent.change(textarea, { target: { value: 'second note' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
     await waitFor(() => {
@@ -837,7 +729,7 @@ describe('App transient composer overlay', () => {
     expect(screen.getByTestId('avatar-transient-composer')).toBeTruthy();
   });
 
-  it('keeps composer open, restores draft, and records send-failed when Runtime rejects', async () => {
+  it('keeps composer open and restores draft when Runtime rejects', async () => {
     const handle = createBootstrapHandle();
     (handle.requestCompanionParticipation as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ...createCompanionParticipationProjection(),
@@ -861,14 +753,6 @@ describe('App transient composer overlay', () => {
       expect(screen.getByRole('alert').textContent).toContain('runtime_policy_blocked');
     });
     expect(textarea.value).toBe('blocked note');
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.composer.send-failed',
-        detail: expect.objectContaining({
-          reason_code: 'runtime_companion_participation_rejected',
-        }),
-      }),
-    );
   });
 
   it('dismisses on Escape and focus switch', async () => {
@@ -886,12 +770,6 @@ describe('App transient composer overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-transient-composer')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.composer.dismissed',
-        detail: expect.objectContaining({ reason: 'escape' }),
-      }),
-    );
 
     await openComposer();
     const activeTextarea = screen.getByLabelText('Type a message to send to this anchor') as HTMLTextAreaElement;
@@ -902,11 +780,5 @@ describe('App transient composer overlay', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-transient-composer')).toBeNull();
     });
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.shell.composer.dismissed',
-        detail: expect.objectContaining({ reason: 'focus_switch' }),
-      }),
-    );
   });
 });

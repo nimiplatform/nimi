@@ -20,22 +20,6 @@ export type Nimi2DVisualProofStats = {
   sampledPixelChecksum: number;
 };
 
-export type Nimi2DMountedVisualFrameStats = {
-  modelKind: 'nimi2d';
-  canvasWidth: number;
-  canvasHeight: number;
-  gridSize: number;
-  sampledPixels: number;
-  visiblePixels: number;
-  sampledPixelChecksum: number;
-};
-
-export type Nimi2DMountedVisualFrameCapture = {
-  stats: Nimi2DMountedVisualFrameStats;
-  artifactId: string;
-  dataUrl: string;
-};
-
 export type Nimi2DAlphaHitProbe = {
   modelKind: 'nimi2d';
   layerCount: number;
@@ -57,16 +41,6 @@ export class Nimi2DCarrierVisualProofError extends Error {
   ) {
     super(message);
     this.name = 'Nimi2DCarrierVisualProofError';
-  }
-}
-
-export class Nimi2DMountedVisualFrameError extends Error {
-  public constructor(
-    message: string,
-    public readonly stats: Nimi2DMountedVisualFrameStats,
-  ) {
-    super(message);
-    this.name = 'Nimi2DMountedVisualFrameError';
   }
 }
 
@@ -191,92 +165,6 @@ async function decodeBrowserImage(input: { src: string; layerRef: string }): Pro
     width: canvas.width,
     height: canvas.height,
     rgba: context.getImageData(0, 0, canvas.width, canvas.height).data,
-  };
-}
-
-function canvasPixelSize(canvas: HTMLCanvasElement): { width: number; height: number } {
-  const rect = typeof canvas.getBoundingClientRect === 'function'
-    ? canvas.getBoundingClientRect()
-    : null;
-  return {
-    width: Math.max(1, Math.floor(canvas.width || canvas.clientWidth || rect?.width || 1)),
-    height: Math.max(1, Math.floor(canvas.height || canvas.clientHeight || rect?.height || 1)),
-  };
-}
-
-function mountedVisualArtifactId(stats: Nimi2DMountedVisualFrameStats): string {
-  return `nimi2d-mounted-visible-frame-${stats.canvasWidth}x${stats.canvasHeight}-${stats.sampledPixelChecksum}`;
-}
-
-export function captureNimi2DMountedVisualFrame(input: {
-  canvas: HTMLCanvasElement;
-  gridSize?: number;
-}): Nimi2DMountedVisualFrameCapture {
-  if (typeof document === 'undefined') {
-    throw new Error('Nimi2D mounted visual capture requires a browser document');
-  }
-  const gridSize = Math.max(1, Math.floor(input.gridSize ?? DEFAULT_GRID_SIZE));
-  const { width, height } = canvasPixelSize(input.canvas);
-  const scratch = document.createElement('canvas');
-  scratch.width = width;
-  scratch.height = height;
-  const context = scratch.getContext('2d', { willReadFrequently: true });
-  const emptyStats: Nimi2DMountedVisualFrameStats = {
-    modelKind: 'nimi2d',
-    canvasWidth: width,
-    canvasHeight: height,
-    gridSize,
-    sampledPixels: 0,
-    visiblePixels: 0,
-    sampledPixelChecksum: 0,
-  };
-  if (!context) {
-    throw new Nimi2DMountedVisualFrameError('Nimi2D mounted visual capture requires a readable 2D canvas context', emptyStats);
-  }
-  context.clearRect(0, 0, width, height);
-  context.drawImage(input.canvas, 0, 0, width, height);
-  const rgba = context.getImageData(0, 0, width, height).data;
-  let sampledPixels = 0;
-  let visiblePixels = 0;
-  let sampledPixelChecksum = 0;
-  for (let row = 0; row < gridSize; row += 1) {
-    for (let column = 0; column < gridSize; column += 1) {
-      const x = Math.max(0, Math.min(width - 1, Math.floor(((column + 0.5) / gridSize) * width)));
-      const y = Math.max(0, Math.min(height - 1, Math.floor(((row + 0.5) / gridSize) * height)));
-      const offset = ((y * width) + x) * 4;
-      const red = rgba[offset] ?? 0;
-      const green = rgba[offset + 1] ?? 0;
-      const blue = rgba[offset + 2] ?? 0;
-      const alpha = rgba[offset + 3] ?? 0;
-      sampledPixels += 1;
-      if (alpha > VISIBLE_ALPHA_THRESHOLD) {
-        visiblePixels += 1;
-      }
-      sampledPixelChecksum = (
-        sampledPixelChecksum
-        + ((red * 3) + (green * 5) + (blue * 7) + (alpha * 11)) * sampledPixels
-      ) >>> 0;
-    }
-  }
-  const stats: Nimi2DMountedVisualFrameStats = {
-    modelKind: 'nimi2d',
-    canvasWidth: width,
-    canvasHeight: height,
-    gridSize,
-    sampledPixels,
-    visiblePixels,
-    sampledPixelChecksum,
-  };
-  if (sampledPixels <= 0) {
-    throw new Nimi2DMountedVisualFrameError('Nimi2D mounted visual capture sampled no pixels', stats);
-  }
-  if (visiblePixels <= 0) {
-    throw new Nimi2DMountedVisualFrameError('Nimi2D mounted visual capture found no visible pixels', stats);
-  }
-  return {
-    stats,
-    artifactId: mountedVisualArtifactId(stats),
-    dataUrl: scratch.toDataURL('image/png'),
   };
 }
 

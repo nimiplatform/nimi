@@ -1,6 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod avatar_asset_commands;
-mod avatar_evidence_projection;
 mod avatar_instance_projection;
 mod avatar_instance_registry;
 mod avatar_launch_context;
@@ -9,9 +8,6 @@ mod avatar_visual_commands;
 mod avatar_window;
 mod avatar_window_commands;
 use avatar_asset_commands::nimi_avatar_resolve_agent_center_avatar_asset;
-use avatar_evidence_projection::{
-    AvatarEvidenceArtifactInput, AvatarEvidenceArtifactWriteResult, AvatarEvidenceRecordInput,
-};
 use avatar_instance_projection::{persist_projection, projection_record_from_registry_entry};
 use avatar_instance_registry::AvatarInstanceRegistry;
 use avatar_launch_context::{
@@ -33,7 +29,6 @@ use avatar_window_commands::*;
 use nimi_shell_tauri::capabilities::avatar::AgentCenterAvatarAssetResolvePayload;
 use nimi_shell_tauri::capabilities::data::StandardAppStorageRootSlot;
 use nimi_shell_tauri::capabilities::runtime as runtime_bridge;
-use serde_json::json;
 #[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
@@ -88,17 +83,6 @@ fn main() {
                 && is_avatar_window_label(webview.label())
             {
                 emit_avatar_shell_ready_for_webview(webview);
-                let registry = webview.app_handle().state::<AvatarInstanceRegistry>();
-                if let Ok(Some(context)) = registry.context_for_window(webview.label()) {
-                    record_avatar_backend_evidence(
-                        &context,
-                        "avatar.window.page-loaded",
-                        json!({
-                            "source": "avatar-backend",
-                            "window_label": webview.label()
-                        }),
-                    );
-                }
             }
         })
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
@@ -121,8 +105,6 @@ fn main() {
             // primitive).
             nimi_avatar_get_cursor_client_position,
             nimi_avatar_get_launch_context,
-            nimi_avatar_record_evidence,
-            nimi_avatar_write_evidence_artifact,
             nimi_avatar_resolve_model,
             nimi_avatar_resolve_agent_center_avatar_asset,
             nimi_avatar_scan_nas_handlers,

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCcw, SearchCheck, X } from 'lucide-react';
 import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { useTranslation } from '../i18n/index.js';
-import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 
 export type AvatarDebugOverlayDismissReason =
@@ -14,7 +13,6 @@ export type AvatarDebugOverlayDismissReason =
 export type AvatarDebugOverlayProps = {
   x: number;
   y: number;
-  compositionState: string;
   agentId: string;
   conversationAnchorId: string;
   avatarInstanceId: string | null;
@@ -125,7 +123,6 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
   const {
     x,
     y,
-    compositionState,
     agentId,
     conversationAnchorId,
     avatarInstanceId,
@@ -139,8 +136,6 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useSurfaceMountEvidence('debug-overlay', compositionState);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();

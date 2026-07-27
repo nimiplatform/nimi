@@ -6,7 +6,6 @@ import {
   type Live2DCarrierVisualFrameStats,
   type Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
-import { recordAvatarEvidenceEventually, writeAvatarEvidenceArtifact } from '../app-shell/avatar-evidence.js';
 import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
 import { createLive2DLipsyncDriver } from './live2d-lipsync-driver.js';
 
@@ -35,21 +34,6 @@ function timeoutAfter<T>(ms: number, message: string): Promise<T> {
   });
 }
 
-function visualArtifactId(stats: Live2DCarrierVisualFrameStats): string {
-  return `live2d-visible-frame-${stats.width}x${stats.height}-${stats.sampledPixelChecksum}`;
-}
-
-async function writeVisibleFrameArtifact(input: {
-  visualHost: Live2DCarrierVisualHost;
-  stats: Live2DCarrierVisualFrameStats;
-}) {
-  const dataUrl = input.visualHost.canvas.toDataURL('image/png');
-  return writeAvatarEvidenceArtifact({
-    artifactId: visualArtifactId(input.stats),
-    dataUrl,
-  });
-}
-
 export function Live2DCarrierVisualSurface({
   session,
   audioConsumer,
@@ -63,9 +47,6 @@ export function Live2DCarrierVisualSurface({
   const [proofStats, setProofStats] = useState<Live2DCarrierVisualFrameStats | null>(null);
   const statusRef = useRef<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const recordedVisualRef = useRef(false);
-  const recordedInteractionRef = useRef(false);
-  const artifactWritePendingRef = useRef(false);
-  const artifactFailureRecordedRef = useRef(false);
 
   const setSurfaceStatus = (nextStatus: 'idle' | 'loading' | 'ready' | 'error'): void => {
     if (statusRef.current === nextStatus) return;
@@ -77,9 +58,6 @@ export function Live2DCarrierVisualSurface({
     const host = hostRef.current;
     if (!host || !session?.execution.loaded) {
       recordedVisualRef.current = false;
-      recordedInteractionRef.current = false;
-      artifactWritePendingRef.current = false;
-      artifactFailureRecordedRef.current = false;
       lastFrameTimeRef.current = null;
       setSurfaceStatus('idle');
       setError(null);
@@ -97,14 +75,6 @@ export function Live2DCarrierVisualSurface({
     setSurfaceStatus('loading');
     setError(null);
     setProofStats(null);
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.carrier.visual',
-      detail: {
-        status: 'loading',
-        source: 'avatar-live2d-carrier-surface',
-        model_kind: 'live2d',
-      },
-    });
 
     const renderLoop = () => {
       if (cancelled || !visualHost) {
@@ -135,7 +105,6 @@ export function Live2DCarrierVisualSurface({
         };
         const shouldProbeVisualFrame =
           !recordedVisualRef.current &&
-          !artifactWritePendingRef.current &&
           visualProofAttempts < 90;
         if (shouldProbeVisualFrame) {
           visualProofAttempts += 1;
@@ -150,86 +119,8 @@ export function Live2DCarrierVisualSurface({
         if (nextStats && !recordedVisualRef.current) {
           setProofStats(nextStats);
         }
-        if (
-          nextStats &&
-          !recordedInteractionRef.current
-          && nextStats.visiblePixels > 0
-          && nextStats.activeMotionGroup
-          && nextStats.activeExpressionId
-          && nextStats.motionFrameApplied
-          && nextStats.expressionFrameApplied
-        ) {
-          recordedInteractionRef.current = true;
-          recordAvatarEvidenceEventually({
-            kind: 'avatar.carrier.interaction',
-            detail: {
-              status: 'ready',
-              source: 'live2d-carrier-surface',
-              model_kind: 'live2d',
-              active_motion_group: nextStats.activeMotionGroup,
-              active_expression_id: nextStats.activeExpressionId,
-              motion_frame_applied: nextStats.motionFrameApplied,
-              expression_frame_applied: nextStats.expressionFrameApplied,
-              visible_pixels: nextStats.visiblePixels,
-              visible_drawable_count: nextStats.visibleDrawableCount,
-              texture_binding_count: nextStats.textureBindingCount,
-              sampled_pixels: nextStats.sampledPixels,
-              sampled_pixel_checksum: nextStats.sampledPixelChecksum,
-              canvas_width: nextStats.width,
-              canvas_height: nextStats.height,
-            },
-          });
-        }
-        if (nextStats && !recordedVisualRef.current && !artifactWritePendingRef.current && nextStats.visiblePixels > 0) {
+        if (nextStats && !recordedVisualRef.current && nextStats.visiblePixels > 0) {
           recordedVisualRef.current = true;
-          artifactWritePendingRef.current = true;
-          void writeVisibleFrameArtifact({ visualHost, stats: nextStats })
-            .then((artifact) => {
-              if (cancelled) {
-                return;
-              }
-              artifactWritePendingRef.current = false;
-              recordAvatarEvidenceEventually({
-                kind: 'avatar.carrier.visual',
-                detail: {
-                  status: 'ready',
-                  source: 'live2d-carrier-surface',
-                  model_kind: 'live2d',
-                  visible_pixels: nextStats.visiblePixels,
-                  visible_drawable_count: nextStats.visibleDrawableCount,
-                  texture_binding_count: nextStats.textureBindingCount,
-                  sampled_pixels: nextStats.sampledPixels,
-                  sampled_pixel_checksum: nextStats.sampledPixelChecksum,
-                  canvas_width: nextStats.width,
-                  canvas_height: nextStats.height,
-                  human_visible_artifact_path: artifact.artifactPath,
-                  artifact_mime_type: artifact.artifactMimeType,
-                  artifact_byte_length: artifact.artifactByteLength,
-                },
-              });
-            })
-            .catch((artifactError: unknown) => {
-              if (cancelled) {
-                return;
-              }
-              artifactWritePendingRef.current = false;
-              if (!artifactFailureRecordedRef.current) {
-                artifactFailureRecordedRef.current = true;
-                recordAvatarEvidenceEventually({
-                  kind: 'avatar.carrier.visual',
-                  detail: {
-                    status: 'error',
-                    source: 'live2d-carrier-surface',
-                    model_kind: 'live2d',
-                    reason: 'human_visible_artifact_write_failed',
-                    error: describeError(artifactError),
-                    visible_pixels: nextStats.visiblePixels,
-                    canvas_width: nextStats.width,
-                    canvas_height: nextStats.height,
-                  },
-                });
-              }
-            });
         }
       } catch (renderError) {
         const message = describeError(renderError);
@@ -244,14 +135,7 @@ export function Live2DCarrierVisualSurface({
         }
         setSurfaceStatus('error');
         setError(message);
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.carrier.visual',
-          detail: {
-            status: 'error',
-            model_kind: 'live2d',
-            error: message,
-          },
-        });
+        console.warn(`[avatar:live2d] visual frame failed: ${message}`);
         return;
       }
       animationFrame = requestAnimationFrame(renderLoop);
@@ -296,14 +180,7 @@ export function Live2DCarrierVisualSurface({
         setSurfaceStatus('error');
         const message = describeError(loadError);
         setError(message);
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.carrier.visual',
-          detail: {
-            status: 'error',
-            model_kind: 'live2d',
-            error: message,
-          },
-        });
+        console.warn(`[avatar:live2d] visual host failed to load: ${message}`);
         host.replaceChildren();
       }
     })();

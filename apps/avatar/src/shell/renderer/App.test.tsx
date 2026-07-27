@@ -25,7 +25,6 @@ const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
 const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
-const recordAvatarEvidenceEventuallyMock = vi.fn();
 let tauriRuntime = false;
 type AvatarLaunchContextForTest = {
   agentId: string;
@@ -56,10 +55,6 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
 }));
 
-vi.mock('./app-shell/avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) =>
-    recordAvatarEvidenceEventuallyMock(...args),
-}));
 
 vi.mock('./app-shell/tauri-commands.js', () => ({
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
@@ -390,7 +385,6 @@ beforeEach(() => {
   bootstrapAvatarMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
   constrainWindowToVisibleAreaMock.mockReset();
-  recordAvatarEvidenceEventuallyMock.mockReset();
   setAlwaysOnTopMock.mockReset();
   setAlwaysOnTopMock.mockResolvedValue(undefined);
   hideAvatarWindowMock.mockReset();

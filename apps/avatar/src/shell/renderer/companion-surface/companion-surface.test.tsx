@@ -1,9 +1,9 @@
 // Companion Surface unit tests for the stage-first surface:
 // presence capsule by default, optional assistant cue, explicit composer tray,
-// voice gating, and composition mount evidence.
+// voice gating, and composition mounting.
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState, type RefObject } from 'react';
 import { CompanionSurface } from './companion-surface.js';
 import { initialCompanionState, type CompanionAnchorBinding } from '../companion-state.js';
@@ -11,16 +11,6 @@ import { initialVoiceCompanionState } from '../voice-companion-state.js';
 import { defaultAvatarShellSettings } from '../settings-state.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
-
-const recordAvatarEvidenceEventuallyMock = vi.fn();
-
-vi.mock('../app-shell/avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) => recordAvatarEvidenceEventuallyMock(...args),
-}));
-
-beforeEach(() => {
-  recordAvatarEvidenceEventuallyMock.mockReset();
-});
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -161,38 +151,6 @@ describe('CompanionSurface - stage-first render', () => {
     expect(surface.className).toContain('avatar-companion-surface--lipsync-active');
   });
 
-  it('emits lifecycle and privacy evidence for presence state projection', () => {
-    render(
-      <CompanionSurface
-        {...makeProps({
-          bootstrapHandle: createBootstrapHandle(),
-          voice: {
-            ...initialVoiceCompanionState,
-            status: 'listening',
-          },
-        })}
-      />,
-    );
-
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.audio.lifecycle.state_changed',
-        detail: expect.objectContaining({
-          to_state: 'foreground_listening',
-          voice_status: 'listening',
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.audio.privacy.indicator_changed',
-        detail: expect.objectContaining({
-          indicator: 'mic_active',
-          foreground_only: true,
-        }),
-      }),
-    );
-  });
 });
 
 describe('CompanionSurface - participation controls', () => {

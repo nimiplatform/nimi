@@ -1,6 +1,5 @@
 use super::*;
 use serde::Serialize;
-use serde_json::json;
 use std::hash::{Hash, Hasher};
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
@@ -88,16 +87,6 @@ pub(crate) fn attach_avatar_window_lifecycle(window: &WebviewWindow, app: &tauri
     window.on_window_event(move |event| {
         if matches!(event, tauri::WindowEvent::Destroyed) {
             let registry = app_handle.state::<AvatarInstanceRegistry>();
-            if let Ok(Some(context)) = registry.context_for_window(&window_label) {
-                record_avatar_backend_evidence(
-                    &context,
-                    "avatar.window.destroyed",
-                    json!({
-                        "source": "avatar-backend",
-                        "window_label": window_label,
-                    }),
-                );
-            }
             let _ = registry.remove_window(&window_label);
             sync_avatar_instance_projection(&registry);
         }
@@ -138,116 +127,6 @@ pub(crate) fn start_avatar_instance_projection_heartbeat(app: &tauri::AppHandle)
     });
 }
 
-fn now_evidence_timestamp() -> String {
-    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
-}
-
-pub(crate) fn record_avatar_backend_evidence(
-    context: &AvatarLaunchContext,
-    kind: &str,
-    detail: serde_json::Value,
-) {
-    if let Err(error) = avatar_evidence_projection::append_evidence_record(
-        context.clone(),
-        AvatarEvidenceRecordInput {
-            kind: kind.to_string(),
-            recorded_at: now_evidence_timestamp(),
-            detail,
-            consume: json!({ "mode": "sdk", "authority": "runtime" }),
-            model: json!({}),
-        },
-    ) {
-        eprintln!("[avatar-carrier-evidence] backend diagnostic failed: {error}");
-    }
-}
-
-fn avatar_renderer_initialization_script() -> &'static str {
-    r#"
-(() => {
-  const toErrorDetail = (error) => {
-    if (error && typeof error === 'object') {
-      return {
-        name: typeof error.name === 'string' ? error.name : 'Error',
-        message: typeof error.message === 'string' ? error.message : String(error),
-        stack: typeof error.stack === 'string' ? error.stack : null,
-      };
-    }
-    return { name: 'UnknownError', message: String(error), stack: null };
-  };
-  const record = (kind, detail) => {
-    try {
-      const invoke = window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke;
-      if (typeof invoke !== 'function') return;
-      void invoke('nimi_avatar_record_evidence', {
-        payload: {
-          kind,
-          recordedAt: new Date().toISOString(),
-          detail,
-          consume: {},
-          model: {},
-        },
-      }).catch(() => {});
-    } catch (_) {}
-  };
-  record('avatar.renderer.entry-loaded', {
-    source: 'avatar-renderer-init-script',
-    phase: 'document-start',
-  });
-  window.addEventListener('error', (event) => {
-    if (event && event.target && event.target !== window) {
-      const target = event.target;
-      record('avatar.renderer.failed', {
-        source: 'avatar-renderer-init-script',
-        phase: 'resource-error',
-        tag_name: typeof target.tagName === 'string' ? target.tagName : null,
-        source_url: typeof target.src === 'string' ? target.src : typeof target.href === 'string' ? target.href : null,
-        rel: typeof target.rel === 'string' ? target.rel : null,
-        type: typeof target.type === 'string' ? target.type : null,
-      });
-      return;
-    }
-    record('avatar.renderer.failed', {
-      source: 'avatar-renderer-init-script',
-      phase: 'window-error',
-      message: event.message,
-      filename: event.filename,
-      lineno: event.lineno,
-      colno: event.colno,
-      error: toErrorDetail(event.error),
-    });
-  });
-  window.addEventListener('unhandledrejection', (event) => {
-    record('avatar.renderer.failed', {
-      source: 'avatar-renderer-init-script',
-      phase: 'unhandled-rejection',
-      reason: toErrorDetail(event.reason),
-    });
-  });
-  window.setTimeout(() => {
-    if (window.__NIMI_AVATAR_RENDERER_MODULE_ENTRY__ === true) return;
-    const scripts = Array.from(document.scripts || []).map((script) => ({
-      src: script.src || null,
-      type: script.type || null,
-      async: script.async === true,
-      defer: script.defer === true,
-    }));
-    const root = document.getElementById('root');
-    record('avatar.renderer.failed', {
-      source: 'avatar-renderer-init-script',
-      phase: 'renderer-module-entry-missing',
-      location_href: String(window.location && window.location.href || ''),
-      document_ready_state: document.readyState,
-      scripts,
-      root_child_count: root ? root.childElementCount : null,
-      body_text_length: document.body && typeof document.body.innerText === 'string' ? document.body.innerText.length : null,
-      has_tauri_internals: !!(window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke),
-      has_tauri_ipc: typeof window.__TAURI_IPC__ !== 'undefined',
-    });
-  }, 1500);
-})();
-"#
-}
-
 pub(crate) fn build_avatar_window(
     app: &tauri::AppHandle,
     window_label: &str,
@@ -263,7 +142,6 @@ pub(crate) fn build_avatar_window(
     // with `start_dragging()` and click-through semantics. The Avatar window
     // stays in the dock; we accept that until tray icon plumbing lands.
     let window = WebviewWindowBuilder::new(app, window_label, WebviewUrl::App("/".into()))
-        .initialization_script(avatar_renderer_initialization_script())
         .title("Nimi Avatar")
         .inner_size(400.0, 600.0)
         .decorations(false)
@@ -308,15 +186,6 @@ pub(crate) fn route_avatar_launch_context(
                 emit_update_event_for_reused_window,
             );
             sync_avatar_instance_projection(registry);
-            record_avatar_backend_evidence(
-                &context,
-                "avatar.launch.context-bound",
-                json!({
-                    "source": "avatar-backend",
-                    "window_label": window.label(),
-                    "window_reused": true
-                }),
-            );
             return Ok(());
         }
     }
@@ -332,26 +201,8 @@ pub(crate) fn route_avatar_launch_context(
         }
     };
     attach_avatar_window_lifecycle(&window, app);
-    record_avatar_backend_evidence(
-        &context,
-        "avatar.window.created",
-        json!({
-            "source": "avatar-backend",
-            "window_label": window.label(),
-            "window_reused": false
-        }),
-    );
     sync_avatar_window_to_launch_context(&window, &context, false);
     sync_avatar_instance_projection(registry);
-    record_avatar_backend_evidence(
-        &context,
-        "avatar.launch.context-bound",
-        json!({
-            "source": "avatar-backend",
-            "window_label": window.label(),
-            "window_reused": false
-        }),
-    );
     Ok(())
 }
 

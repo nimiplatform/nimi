@@ -1,10 +1,7 @@
 // K-NAV-SHELL-COMPOSITION-001..002 per-surface unit tests for
 // embodiment-stage covering:
 //  * render presence under ready / fixture_active composition states
-//  * surface-mounted / surface-unmounted evidence emission
-//  * BackendBranch surface mount + the three lifecycle callbacks
-//    (audio-consumer registration, hit-region throttle, lifecycle
-//    evidence record)
+//  * BackendBranch surface mount + audio-consumer / hit-region callbacks
 //  * pointermove → setIgnoreCursorEvents alpha-mask + bbox fallback
 //    routing
 //  * global cursor poll recovery after click-through is enabled, preventing
@@ -23,7 +20,6 @@ import type {
   BackendSurfaceProps,
 } from '../carrier/backend-branch.js';
 
-const recordAvatarEvidenceEventuallyMock = vi.fn();
 const setIgnoreCursorEventsMock = vi.fn();
 const getCursorClientPositionMock = vi.fn();
 const registerLipsyncSinkMock = vi.fn();
@@ -32,11 +28,6 @@ const moveManualDragWindowMock = vi.fn();
 const constrainWindowToVisibleAreaMock = vi.fn();
 const runtimeFlags = vi.hoisted(() => ({
   tauriRuntime: false,
-}));
-
-vi.mock('../app-shell/avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) =>
-    recordAvatarEvidenceEventuallyMock(...args),
 }));
 
 vi.mock('../app-shell/tauri-commands.js', () => ({
@@ -103,11 +94,9 @@ function createMockBackend(input?: {
     useEffect(() => {
       props.onAudioConsumerReady?.(audioConsumer);
       props.onHitRegionChange?.(hitRegion);
-      props.onLifecycleEvidence?.('context_lost', { context_kind: 'webgl', test_marker: true });
     }, [
       props.onAudioConsumerReady,
       props.onHitRegionChange,
-      props.onLifecycleEvidence,
     ]);
     return null;
   };
@@ -128,44 +117,7 @@ function createMockBackend(input?: {
   };
 }
 
-function createMockNimi2DBackend(input: {
-  lifecycleEvents: Array<{ kind: string; detail: Record<string, unknown> }>;
-  hitRegion?: BackendHitRegion;
-}): BackendBranch & { kind: 'nimi2d' } {
-  const audioConsumer = createAudioConsumerStub();
-  const hitRegion = input.hitRegion ?? createHitRegionStub();
-  const Component: ComponentType<BackendSurfaceProps> = (props) => {
-    useEffect(() => {
-      props.onAudioConsumerReady?.(audioConsumer);
-      props.onHitRegionChange?.(hitRegion);
-      for (const event of input.lifecycleEvents) {
-        props.onLifecycleEvidence?.(event.kind, event.detail);
-      }
-    }, [
-      props.onAudioConsumerReady,
-      props.onHitRegionChange,
-      props.onLifecycleEvidence,
-    ]);
-    return null;
-  };
-  return {
-    kind: 'nimi2d',
-    nominalBounds: { width: 512, height: 512, bodyCenterX: 0.5, bodyCenterY: 0.5 },
-    projection: {
-      applyActivity() {},
-      applyEmotion() {},
-      applyMotion() {},
-      applyExpression() {},
-      reset() {},
-    },
-    surface: { Component },
-    metadata: () => ({}),
-    shutdown() {},
-  };
-}
-
 beforeEach(() => {
-  recordAvatarEvidenceEventuallyMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
   getCursorClientPositionMock.mockReset();
   beginManualDragWindowMock.mockReset();
@@ -194,7 +146,6 @@ const baseProps = {
   backend: null,
   windowSize: { width: 400, height: 600 },
   embodied: true,
-  compositionState: 'ready',
   interactionModality: 'pointer' as const,
 };
 
@@ -225,49 +176,6 @@ describe('EmbodimentStage — render', () => {
   });
 });
 
-describe('EmbodimentStage — composition evidence emit', () => {
-  it('emits avatar.composition.surface-mounted on mount with composition_state', () => {
-    render(<EmbodimentStage {...baseProps} compositionState="ready" />);
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({
-          surface: 'embodiment-stage',
-          composition_state: 'ready',
-        }),
-      }),
-    );
-  });
-
-  it('emits surface-mounted with fixture_active when in fixture mode', () => {
-    render(<EmbodimentStage {...baseProps} compositionState="fixture_active" />);
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({
-          surface: 'embodiment-stage',
-          composition_state: 'fixture_active',
-        }),
-      }),
-    );
-  });
-
-  it('emits avatar.composition.surface-unmounted on unmount', () => {
-    const { unmount } = render(<EmbodimentStage {...baseProps} compositionState="ready" />);
-    recordAvatarEvidenceEventuallyMock.mockClear();
-    unmount();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-unmounted',
-        detail: expect.objectContaining({
-          surface: 'embodiment-stage',
-          composition_state: 'ready',
-        }),
-      }),
-    );
-  });
-});
-
 describe('EmbodimentStage — BackendBranch surface mount', () => {
   it('mounts backend.surface.Component when backend is provided', () => {
     const consumer = createAudioConsumerStub();
@@ -290,130 +198,6 @@ describe('EmbodimentStage — BackendBranch surface mount', () => {
     // toggle; pointermove remains the normal driver.
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledTimes(1);
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
-  });
-
-  it('forwards admitted onLifecycleEvidence as carrier lifecycle evidence', () => {
-    const backend = createMockBackend();
-    render(<EmbodimentStage {...baseProps} backend={backend} />);
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.carrier.lifecycle.context_lost',
-        detail: expect.objectContaining({
-          source: 'embodiment-stage',
-          lifecycle: 'context_lost',
-          test_marker: true,
-        }),
-      }),
-    );
-  });
-
-  it('admits Nimi2D renderer and alpha-probe ready evidence as carrier visual evidence', () => {
-    const backend = createMockNimi2DBackend({
-      lifecycleEvents: [
-        {
-          kind: 'renderer_pipeline_ready',
-          detail: {
-            source: 'nimi2d-carrier-surface',
-            model_kind: 'nimi2d',
-            renderer: 'pixi.js',
-            mode: 'pixi_renderer_foundation',
-          },
-        },
-        {
-          kind: 'hit_region_alpha_probe_ready',
-          detail: {
-            source: 'nimi2d-carrier-surface',
-            model_kind: 'nimi2d',
-            mode: 'decoded_layer_alpha_probe',
-          },
-        },
-        {
-          kind: 'mounted_visual_frame_ready',
-          detail: {
-            source: 'nimi2d-carrier-surface',
-            model_kind: 'nimi2d',
-            mode: 'mounted_pixi_canvas_capture',
-            human_visible_artifact_path: '/evidence/nimi2d.png',
-            artifact_mime_type: 'image/png',
-            artifact_byte_length: 128,
-          },
-        },
-      ],
-    });
-    render(<EmbodimentStage {...baseProps} backend={backend} />);
-
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.carrier.visual',
-        detail: expect.objectContaining({
-          source: 'nimi2d-carrier-surface',
-          model_kind: 'nimi2d',
-          renderer: 'pixi.js',
-          mode: 'pixi_renderer_foundation',
-          status: 'ready',
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.carrier.visual',
-        detail: expect.objectContaining({
-          source: 'nimi2d-carrier-surface',
-          model_kind: 'nimi2d',
-          mode: 'decoded_layer_alpha_probe',
-          status: 'ready',
-        }),
-      }),
-    );
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.carrier.visual',
-        detail: expect.objectContaining({
-          source: 'nimi2d-carrier-surface',
-          model_kind: 'nimi2d',
-          mode: 'mounted_pixi_canvas_capture',
-          status: 'ready',
-          human_visible_artifact_path: '/evidence/nimi2d.png',
-        }),
-      }),
-    );
-    const failedClosedCalls = recordAvatarEvidenceEventuallyMock.mock.calls.filter(([payload]) => (
-      (payload as { kind?: string }).kind === 'avatar.carrier.lifecycle.failed_closed'
-    ));
-    expect(failedClosedCalls).toHaveLength(0);
-  });
-
-  it('admits Nimi2D mounted visual capture failure as carrier visual error evidence', () => {
-    const backend = createMockNimi2DBackend({
-      lifecycleEvents: [{
-        kind: 'mounted_visual_frame_failed',
-        detail: {
-          source: 'nimi2d-carrier-surface',
-          model_kind: 'nimi2d',
-          mode: 'mounted_pixi_canvas_capture',
-          reason_code: 'canvas_capture_failed',
-          error: 'no readable pixels',
-        },
-      }],
-    });
-    render(<EmbodimentStage {...baseProps} backend={backend} />);
-
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.carrier.visual',
-        detail: expect.objectContaining({
-          source: 'nimi2d-carrier-surface',
-          model_kind: 'nimi2d',
-          mode: 'mounted_pixi_canvas_capture',
-          status: 'error',
-          reason_code: 'canvas_capture_failed',
-        }),
-      }),
-    );
-    const failedClosedCalls = recordAvatarEvidenceEventuallyMock.mock.calls.filter(([payload]) => (
-      (payload as { kind?: string }).kind === 'avatar.carrier.lifecycle.failed_closed'
-    ));
-    expect(failedClosedCalls).toHaveLength(0);
   });
 
   it('unregisters the lipsync sink on unmount', () => {

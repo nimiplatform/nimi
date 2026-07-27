@@ -7,7 +7,6 @@ const createDriverMock = vi.fn();
 const loadSelectedMockScenarioFixtureMock = vi.fn();
 const driverStartMock = vi.fn();
 const driverStopMock = vi.fn();
-const recordAvatarEvidenceEventuallyMock = vi.fn();
 
 vi.mock('../driver/factory.js', () => ({
   resolveDriverKind: () => driverKind,
@@ -52,10 +51,6 @@ vi.mock('./tauri-commands.js', () => ({
   setAlwaysOnTop: vi.fn(),
 }));
 
-vi.mock('./avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) => recordAvatarEvidenceEventuallyMock(...args),
-}));
-
 function createMockDriver(): AgentDataDriver {
   let status: DriverStatus = 'idle';
   let statusHandler: ((next: DriverStatus) => void) | null = null;
@@ -95,7 +90,6 @@ describe('bootstrapAvatar', () => {
     loadSelectedMockScenarioFixtureMock.mockReset();
     driverStartMock.mockReset();
     driverStopMock.mockReset();
-    recordAvatarEvidenceEventuallyMock.mockReset();
     createDriverMock.mockImplementation(() => createMockDriver());
     loadSelectedMockScenarioFixtureMock.mockResolvedValue({
       scenarioId: 'default',
@@ -126,14 +120,6 @@ describe('bootstrapAvatar', () => {
       retryable: false,
     });
     expect(useAvatarStore.getState().driver.status).toBe('stopped');
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(expect.objectContaining({
-      kind: 'avatar.runtime.bind-failed',
-      detail: expect.objectContaining({
-        runtime_app_id: 'nimi.avatar',
-        reason: 'desktop_supervisor_bridge_unavailable',
-        error_reason_code: 'PROTECTED_ORIGIN_ROLE_MISMATCH',
-      }),
-    }));
   });
 
   it('keeps an admitted mock fixture usable without upgrading it to Runtime authority', async () => {

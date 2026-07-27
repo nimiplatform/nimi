@@ -49,7 +49,6 @@ export type BackendSurfaceProps = {
   embodied: boolean;
   onHitRegionChange?: (region: BackendHitRegion) => void;
   onAudioConsumerReady?: (consumer: BackendAudioConsumer) => void;
-  onLifecycleEvidence?: (kind: string, detail: Record<string, unknown>) => void;
 };
 
 export type BackendSurface = {

@@ -44,7 +44,6 @@ import {
   type VrmRenderTarget,
 } from './vrm-render-target.js';
 import type { VrmCapabilityProfile } from './vrm-capability-profile.js';
-import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 
 // Wave 2 chunk 2-E: nominalBounds is the BOOT placeholder used by
 // embodiment-stage for the very first window-resize tick (before VRM
@@ -180,13 +179,7 @@ export async function createVrmBackendBranch(
   const profileLoader = options.loadProfileOverride ?? loadLipsyncProfile;
   const profile = await profileLoader();
   if (profile === null) {
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.audio.pipeline.failed',
-      detail: {
-        reason_code: 'wlipsync_profile_missing',
-        failed_at: new Date().toISOString(),
-      },
-    });
+    console.warn('[avatar:vrm] wLipSync profile is unavailable; lipsync will remain silent');
   }
 
   const audioConsumer = createVrmAudioConsumer({ profile });

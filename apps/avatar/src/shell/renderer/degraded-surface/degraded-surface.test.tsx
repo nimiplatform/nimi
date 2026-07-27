@@ -1,20 +1,13 @@
 // Wave 1 K-NAV-SHELL-DEGRADED-001..005 — per-surface unit test for degraded-surface.
 // Covers all admitted state postures (loading / degraded:* / error / relaunch /
 // unknown), reason interpolation, reload-button affordance, and i18n coverage.
-// Surface-mounted/unmounted evidence is asserted via mocked
-// `recordAvatarEvidenceEventually`.
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DegradedSurface } from './degraded-surface.js';
 import type { CompositionDerivation, CompositionState } from '../app-shell/composition-state.js';
 
-const recordAvatarEvidenceEventuallyMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
-
-vi.mock('../app-shell/avatar-evidence.js', () => ({
-  recordAvatarEvidenceEventually: (...args: unknown[]) => recordAvatarEvidenceEventuallyMock(...args),
-}));
 
 vi.mock('../shell-reload.js', () => ({
   reloadAvatarShell: () => reloadAvatarShellMock(),
@@ -44,7 +37,6 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
 }
 
 beforeEach(() => {
-  recordAvatarEvidenceEventuallyMock.mockReset();
   reloadAvatarShellMock.mockReset();
 });
 
@@ -142,65 +134,5 @@ describe('DegradedSurface — reload affordance', () => {
     const button = screen.getByRole('button', { name: 'Reload shell' });
     fireEvent.click(button);
     expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('DegradedSurface — composition evidence emit', () => {
-  it('emits avatar.composition.surface-mounted on mount with composition_state', () => {
-    render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({
-          surface: 'degraded-surface',
-          composition_state: 'degraded_runtime_unavailable',
-        }),
-      }),
-    );
-  });
-
-  it('emits avatar.composition.surface-mounted when reused surface enters degraded state', () => {
-    const { rerender } = render(<DegradedSurface composition={makeComposition('loading')} />);
-    recordAvatarEvidenceEventuallyMock.mockClear();
-    rerender(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({
-          surface: 'degraded-surface',
-          composition_state: 'degraded_runtime_unavailable',
-        }),
-      }),
-    );
-  });
-
-  it('emits avatar.composition.surface-unmounted on unmount', () => {
-    const { unmount } = render(<DegradedSurface composition={makeComposition('loading')} />);
-    recordAvatarEvidenceEventuallyMock.mockClear();
-    unmount();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-unmounted',
-        detail: expect.objectContaining({
-          surface: 'degraded-surface',
-          composition_state: 'loading',
-        }),
-      }),
-    );
-  });
-
-  it('captures latest composition_state at unmount time when state evolved', () => {
-    const { rerender, unmount } = render(<DegradedSurface composition={makeComposition('loading')} />);
-    rerender(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
-    recordAvatarEvidenceEventuallyMock.mockClear();
-    unmount();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-unmounted',
-        detail: expect.objectContaining({
-          composition_state: 'degraded_runtime_unavailable',
-        }),
-      }),
-    );
   });
 });

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from '../i18n/index.js';
-import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { AvatarShellSettings } from '../settings-state.js';
 
 export type AvatarSettingsOverlayDismissReason =
@@ -15,7 +14,6 @@ export type AvatarSettingsOverlayChangeKey = 'always_on_top' | 'show_voice_capti
 export type AvatarSettingsOverlayProps = {
   x: number;
   y: number;
-  compositionState: string;
   settings: AvatarShellSettings;
   onSettingsChange(next: AvatarShellSettings, changedKey: AvatarSettingsOverlayChangeKey): void;
   onDismiss(reason: AvatarSettingsOverlayDismissReason): void;
@@ -45,15 +43,12 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
   const {
     x,
     y,
-    compositionState,
     settings,
     onSettingsChange,
     onDismiss,
   } = props;
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
-
-  useSurfaceMountEvidence('settings-overlay', compositionState);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();

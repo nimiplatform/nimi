@@ -2,13 +2,11 @@ import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } fr
 import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarAppState } from './app-shell/app-store.js';
-import type { CompositionState } from './app-shell/composition-state.js';
 import type { AvatarLaunchContext } from './bridge/launch-context.js';
 import type {
   CompanionActiveTurnCue,
   CompanionAnchorBinding,
 } from './companion-state.js';
-import { recordAvatarEvidenceEventually } from './app-shell/avatar-evidence.js';
 import { closeAvatarWindow, hideAvatarWindow } from './app-shell/tauri-commands.js';
 import { isTauriRuntime } from './app-shell/tauri-lifecycle.js';
 import { AVATAR_SCALE_DEFAULT } from './avatar-scale-state.js';
@@ -69,7 +67,6 @@ export function useAvatarShellOverlays(input: {
   setShellSettings: Dispatch<SetStateAction<AvatarShellSettings>>;
   avatarScale: number;
   updateAvatarScale(nextScaleInput: number, source: 'wheel' | 'reset'): void;
-  compositionState: CompositionState;
 }) {
   const {
     bootstrapHandle,
@@ -81,7 +78,6 @@ export function useAvatarShellOverlays(input: {
     setShellSettings,
     avatarScale,
     updateAvatarScale,
-    compositionState,
   } = input;
   const [contextMenu, setContextMenu] = useState<AvatarContextMenuState | null>(null);
   const [actionRadial, setActionRadial] = useState<AvatarActionRadialState | null>(null);
@@ -106,29 +102,14 @@ export function useAvatarShellOverlays(input: {
     launchContext?.avatarInstanceId,
   ]);
 
-  const composerIdentity = useCallback(() => {
-    return {
-      ...contextIdentity(),
-      conversation_anchor_id: companionBinding?.conversationAnchorId ?? 'unknown-conversation-anchor',
-    };
-  }, [companionBinding?.conversationAnchorId, contextIdentity]);
-
   const dismissContextMenu = useCallback(
-    (reason: AvatarContextMenuDismissReason): void => {
+    (_reason: AvatarContextMenuDismissReason): void => {
       setContextMenu((current) => {
         if (!current) return null;
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.shell.context_menu.dismissed',
-          detail: {
-            ...contextIdentity(),
-            reason,
-            dismissed_at: new Date().toISOString(),
-          },
-        });
         return null;
       });
     },
-    [contextIdentity],
+    [],
   );
 
   const openContextMenu = useCallback(
@@ -140,36 +121,18 @@ export function useAvatarShellOverlays(input: {
         y: Number.isFinite(y) ? y : 24,
       };
       setContextMenu(next);
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.context_menu.opened',
-        detail: {
-          ...contextIdentity(),
-          client_x: Math.round(next.x),
-          client_y: Math.round(next.y),
-          source_event: event.name,
-          opened_at: new Date().toISOString(),
-        },
-      });
     },
-    [contextIdentity],
+    [],
   );
 
   const dismissActionRadial = useCallback(
-    (reason: AvatarActionRadialDismissReason): void => {
+    (_reason: AvatarActionRadialDismissReason): void => {
       setActionRadial((current) => {
         if (!current) return null;
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.shell.action_radial.dismissed',
-          detail: {
-            ...contextIdentity(),
-            reason,
-            dismissed_at: new Date().toISOString(),
-          },
-        });
         return null;
       });
     },
-    [contextIdentity],
+    [],
   );
 
   const openActionRadial = useCallback(
@@ -182,18 +145,8 @@ export function useAvatarShellOverlays(input: {
       };
       setContextMenu(null);
       setActionRadial(next);
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.action_radial.opened',
-        detail: {
-          ...contextIdentity(),
-          client_x: Math.round(next.x),
-          client_y: Math.round(next.y),
-          source_event: event.name,
-          opened_at: new Date().toISOString(),
-        },
-      });
     },
-    [contextIdentity],
+    [],
   );
 
   const openTransientComposer = useCallback(
@@ -207,36 +160,18 @@ export function useAvatarShellOverlays(input: {
         sendState: current?.sendState === 'sending' ? 'sending' : 'idle',
         sendError: null,
       }));
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.composer.opened',
-        detail: {
-          ...composerIdentity(),
-          source: nextInput.source,
-          client_x: Math.round(x),
-          client_y: Math.round(y),
-          opened_at: new Date().toISOString(),
-        },
-      });
     },
-    [composerIdentity],
+    [],
   );
 
   const dismissTransientComposer = useCallback(
-    (reason: AvatarTransientComposerDismissReason): void => {
+    (_reason: AvatarTransientComposerDismissReason): void => {
       setTransientComposer((current) => {
         if (!current) return null;
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.shell.composer.dismissed',
-          detail: {
-            ...composerIdentity(),
-            reason,
-            dismissed_at: new Date().toISOString(),
-          },
-        });
         return null;
       });
     },
-    [composerIdentity],
+    [],
   );
 
   const dismissSettingsOverlay = useCallback(
@@ -266,19 +201,8 @@ export function useAvatarShellOverlays(input: {
       const x = Number.isFinite(nextInput.x) ? nextInput.x : 24;
       const y = Number.isFinite(nextInput.y) ? nextInput.y : 24;
       setAppearanceOverlay({ x, y });
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.appearance.opened',
-        detail: {
-          ...composerIdentity(),
-          model_id: modelManifest.modelId,
-          backend_kind: modelManifest.kind,
-          source_authority: appearanceSourceAuthority(consume.authority),
-          scale: avatarScale,
-          opened_at: new Date().toISOString(),
-        },
-      });
     },
-    [avatarScale, bootstrapHandle?.carrier?.model, composerIdentity, consume.authority],
+    [bootstrapHandle?.carrier?.model],
   );
 
   const dismissDebugOverlay = useCallback(
@@ -297,70 +221,34 @@ export function useAvatarShellOverlays(input: {
       const x = Number.isFinite(nextInput.x) ? nextInput.x : 24;
       const y = Number.isFinite(nextInput.y) ? nextInput.y : 24;
       setDebugOverlay({ x, y });
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.debug.opened',
-        detail: {
-          ...composerIdentity(),
-          client_x: Math.round(x),
-          client_y: Math.round(y),
-          opened_at: new Date().toISOString(),
-        },
-      });
     },
-    [bootstrapHandle?.avatarDebug, companionBinding, composerIdentity],
+    [bootstrapHandle?.avatarDebug, companionBinding],
   );
 
-  const recordDebugRequestFailed = useCallback(
+  const handleDebugRequestFailed = useCallback(
     (failure: { probeKind: AvatarDebugProbeKind; reasonCode: string; error: string }): void => {
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.debug.request-failed',
-        detail: {
-          ...composerIdentity(),
-          probe_kind: avatarDebugProbeKindId(failure.probeKind),
-          reason_code: failure.reasonCode,
-          error: failure.error,
-          failed_at: new Date().toISOString(),
-        },
-      });
+      console.warn(
+        `[avatar:debug] ${avatarDebugProbeKindId(failure.probeKind)} request failed (${failure.reasonCode}): ${failure.error}`,
+      );
     },
-    [composerIdentity],
+    [],
   );
 
   const requestInterruptActiveTurn = useCallback(
     (source: 'context_menu'): void => {
       if (!bootstrapHandle || !companionBinding || !activeTurnCue) return;
-      const requestedAt = new Date().toISOString();
-      const detail = {
-        ...composerIdentity(),
-        active_turn_id: activeTurnCue.turnId,
-        active_turn_phase: activeTurnCue.phase,
-        source,
-        reason: 'user_cancel',
-        requested_at: requestedAt,
-      };
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.interrupt.requested',
-        detail,
-      });
       void bootstrapHandle.interruptActiveTurn({
         agentId: companionBinding.agentId,
         conversationAnchorId: companionBinding.conversationAnchorId,
         turnId: activeTurnCue.turnId,
         reason: 'user_cancel',
       }).catch((error: unknown) => {
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.shell.interrupt.failed',
-          detail: {
-            ...composerIdentity(),
-            active_turn_id: activeTurnCue.turnId,
-            reason_code: 'runtime_turn_interrupt_rejected',
-            error: toErrorMessage(error),
-            failed_at: new Date().toISOString(),
-          },
-        });
+        console.warn(
+          `[avatar:shell] interrupt request from ${source} failed for turn ${activeTurnCue.turnId}: ${toErrorMessage(error)}`,
+        );
       });
     },
-    [activeTurnCue, bootstrapHandle, companionBinding, composerIdentity],
+    [activeTurnCue, bootstrapHandle, companionBinding],
   );
 
   const submitTransientComposer = useCallback(
@@ -368,7 +256,6 @@ export function useAvatarShellOverlays(input: {
       if (!bootstrapHandle || !companionBinding) return;
       const text = normalizeText(transientComposer?.draft);
       if (!text || transientComposer?.sendState === 'sending') return;
-      const submittedAt = new Date().toISOString();
       setTransientComposer((current) =>
         current
           ? {
@@ -379,14 +266,6 @@ export function useAvatarShellOverlays(input: {
           }
           : current,
       );
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.composer.submitted',
-        detail: {
-          ...composerIdentity(),
-          text_length: text.length,
-          submitted_at: submittedAt,
-        },
-      });
       void bootstrapHandle
         .requestCompanionParticipation({
           agentId: companionBinding.agentId,
@@ -417,37 +296,15 @@ export function useAvatarShellOverlays(input: {
               }
               : current,
           );
-          recordAvatarEvidenceEventually({
-            kind: 'avatar.shell.composer.send-failed',
-            detail: {
-              ...composerIdentity(),
-              reason_code: 'runtime_companion_participation_rejected',
-              error: message,
-              failed_at: new Date().toISOString(),
-            },
-          });
         });
     },
-    [bootstrapHandle, companionBinding, composerIdentity, transientComposer?.draft, transientComposer?.sendState],
+    [bootstrapHandle, companionBinding, transientComposer?.draft, transientComposer?.sendState],
   );
 
   const persistShellSettings = useCallback(
-    (next: AvatarShellSettings, changedKey?: 'always_on_top' | 'show_voice_captions'): void => {
+    (next: AvatarShellSettings, _changedKey?: 'always_on_top' | 'show_voice_captions'): void => {
       setShellSettings(next);
       writeAvatarShellSettings(next);
-      if (changedKey) {
-        const value = changedKey === 'always_on_top'
-          ? next.alwaysOnTop
-          : next.showVoiceCaptions;
-        recordAvatarEvidenceEventually({
-          kind: 'avatar.shell.settings.changed',
-          detail: {
-            key: changedKey,
-            value,
-            changed_at: new Date().toISOString(),
-          },
-        });
-      }
     },
     [setShellSettings],
   );
@@ -464,10 +321,6 @@ export function useAvatarShellOverlays(input: {
         detail,
       };
       bootstrapHandle?.driver?.emit(event);
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.foreground_priority.requested',
-        detail,
-      });
       applyLocalPresentation(bootstrapHandle, {
         resolvedActivityName: 'focused',
         intensity: 0.45,
@@ -478,23 +331,12 @@ export function useAvatarShellOverlays(input: {
 
   const requestShellLifecycle = useCallback(
     (action: 'hide' | 'close'): void => {
-      const detail = {
-        ...contextIdentity(),
-        source: 'context_menu',
-        requested_at: new Date().toISOString(),
-      };
-      recordAvatarEvidenceEventually({
-        kind: action === 'hide'
-          ? 'avatar.shell.hide-requested'
-          : 'avatar.shell.close-requested',
-        detail,
-      });
       const command = action === 'hide' ? hideAvatarWindow : closeAvatarWindow;
       void command().catch((error: unknown) => {
         console.warn(`[avatar:shell] ${action} window request failed: ${toErrorMessage(error)}`);
       });
     },
-    [contextIdentity],
+    [],
   );
 
   const handleContextMenuAction = useCallback(
@@ -576,15 +418,6 @@ export function useAvatarShellOverlays(input: {
   const handleActionRadialAction = useCallback(
     (action: AvatarActionRadialAction): void => {
       const presentation = radialActionActivity(action);
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.shell.action_radial.selected',
-        detail: {
-          ...contextIdentity(),
-          action,
-          resolved_activity_name: presentation?.resolvedActivityName ?? null,
-          selected_at: new Date().toISOString(),
-        },
-      });
       if (action === 'open_text_input') {
         openTransientComposer({
           x: actionRadial?.x ?? 24,
@@ -601,7 +434,6 @@ export function useAvatarShellOverlays(input: {
       actionRadial?.x,
       actionRadial?.y,
       bootstrapHandle,
-      contextIdentity,
       dismissActionRadial,
       openTransientComposer,
     ],
@@ -658,7 +490,6 @@ export function useAvatarShellOverlays(input: {
           <AvatarContextMenu
             x={contextMenu.x}
             y={contextMenu.y}
-            compositionState={compositionState}
             alwaysOnTop={shellSettings.alwaysOnTop}
             textInputEnabled={Boolean(bootstrapHandle && companionBinding)}
             foregroundPriorityEnabled={Boolean(bootstrapHandle && companionBinding)}
@@ -676,7 +507,6 @@ export function useAvatarShellOverlays(input: {
           <AvatarSettingsOverlay
             x={settingsOverlay.x}
             y={settingsOverlay.y}
-            compositionState={compositionState}
             settings={shellSettings}
             onSettingsChange={persistShellSettings}
             onDismiss={dismissSettingsOverlay}
@@ -686,7 +516,6 @@ export function useAvatarShellOverlays(input: {
           <AvatarAppearanceOverlay
             x={appearanceOverlay.x}
             y={appearanceOverlay.y}
-            compositionState={compositionState}
             modelManifest={bootstrapHandle.carrier.model}
             sourceAuthority={appearanceSourceAuthority(consume.authority)}
             scale={avatarScale}
@@ -697,7 +526,6 @@ export function useAvatarShellOverlays(input: {
           <AvatarDebugOverlay
             x={debugOverlay.x}
             y={debugOverlay.y}
-            compositionState={compositionState}
             agentId={companionBinding.agentId}
             conversationAnchorId={companionBinding.conversationAnchorId}
             avatarInstanceId={
@@ -706,7 +534,7 @@ export function useAvatarShellOverlays(input: {
               ?? null
             }
             avatarDebug={bootstrapHandle.avatarDebug}
-            onRequestFailed={recordDebugRequestFailed}
+            onRequestFailed={handleDebugRequestFailed}
             onDismiss={dismissDebugOverlay}
           />
         ) : null}
@@ -714,7 +542,6 @@ export function useAvatarShellOverlays(input: {
           <AvatarActionRadial
             x={actionRadial.x}
             y={actionRadial.y}
-            compositionState={compositionState}
             textInputEnabled={Boolean(bootstrapHandle && companionBinding)}
             onAction={handleActionRadialAction}
             onDismiss={dismissActionRadial}
@@ -724,7 +551,6 @@ export function useAvatarShellOverlays(input: {
           <AvatarTransientComposer
             x={transientComposer.x}
             y={transientComposer.y}
-            compositionState={compositionState}
             draft={transientComposer.draft}
             sendState={transientComposer.sendState}
             sendError={transientComposer.sendError}
@@ -753,7 +579,6 @@ export function useAvatarShellOverlays(input: {
       avatarScale,
       bootstrapHandle,
       companionBinding,
-      compositionState,
       consume.authority,
       consume.avatarInstanceId,
       contextMenu,
@@ -768,7 +593,7 @@ export function useAvatarShellOverlays(input: {
       handleContextMenuAction,
       launchContext?.avatarInstanceId,
       persistShellSettings,
-      recordDebugRequestFailed,
+      handleDebugRequestFailed,
       settingsOverlay,
       shellSettings,
       submitTransientComposer,

@@ -8,15 +8,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
-import { recordAvatarEvidenceEventually } from './app-shell/avatar-evidence.js';
 import { setAlwaysOnTop } from './app-shell/tauri-commands.js';
 import { useWindowBoundsSync } from './app-shell/use-window-bounds-sync.js';
 import { isTauriRuntime, onLaunchContextUpdated } from './app-shell/tauri-lifecycle.js';
 import { deriveCompositionState, type CompositionDerivation } from './app-shell/composition-state.js';
-import {
-  emitCompositionRelaunchPending,
-  emitCompositionTransition,
-} from './app-shell/composition-events.js';
 import { EmbodimentStage } from './embodiment-stage/embodiment-stage.js';
 import { DegradedSurface } from './degraded-surface/degraded-surface.js';
 import {
@@ -53,7 +48,6 @@ import {
 } from './settings-state.js';
 import type { AvatarVoiceCaptureSession } from './voice-capture.js';
 import { normalizeText, toErrorMessage } from './avatar-shell-utils.js';
-import { installAvatarAcceptanceProbe } from './app-shell/avatar-acceptance-probe.js';
 import { useAvatarShellScale } from './use-avatar-shell-scale.js';
 import { useAvatarShellOverlays } from './use-avatar-shell-overlays.js';
 
@@ -74,8 +68,6 @@ export function App() {
 
   const voiceCaptureSessionRef = useRef<AvatarVoiceCaptureSession | null>(null);
   const voiceSubmitAbortRef = useRef<AbortController | null>(null);
-  const companionRef = useRef(companion);
-  const voiceRef = useRef(voice);
 
   const bundle = useAvatarStore((s) => s.bundle);
   const shell = useAvatarStore((s) => s.shell);
@@ -84,36 +76,6 @@ export function App() {
   const driver = useAvatarStore((s) => s.driver);
   const runtimeBinding = useAvatarStore((s) => s.runtime.binding);
   const launchContext = useAvatarStore((s) => s.launch.context);
-
-  useEffect(() => {
-    companionRef.current = companion;
-  }, [companion]);
-
-  useEffect(() => {
-    voiceRef.current = voice;
-  }, [voice]);
-
-  useEffect(
-    () => installAvatarAcceptanceProbe({
-      getCompanion: () => companionRef.current,
-      getVoice: () => voiceRef.current,
-      setCompanion,
-      setVoice,
-    }),
-    [],
-  );
-
-  // ── Bootstrap lifecycle ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isTauriRuntime()) return;
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.renderer.boot',
-      detail: {
-        source: 'avatar-renderer',
-        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-      },
-    });
-  }, []);
 
   useEffect(() => {
     let handle: BootstrapHandle | null = null;
@@ -231,11 +193,6 @@ export function App() {
       if (!active) return;
       useAvatarStore.getState().setLaunchContext(payload);
       setRelaunchPending(true);
-      emitCompositionRelaunchPending({
-        agentId: payload.agentId,
-        avatarInstanceId: payload.avatarInstanceId ?? null,
-        launchSource: payload.launchSource ?? null,
-      });
       voiceCaptureSessionRef.current?.cancel();
       voiceCaptureSessionRef.current = null;
       voiceSubmitAbortRef.current?.abort();
@@ -470,27 +427,7 @@ export function App() {
     setShellSettings,
     avatarScale,
     updateAvatarScale,
-    compositionState: composition.state,
   });
-
-  // ── Composition transition evidence (K-NAV-SHELL-COMPOSITION-004) ──────────────
-  // Observes composition derivation changes and emits
-  // `avatar.composition.transition` whenever the state field actually flips.
-  // The first observation establishes the baseline (no `from`) so we can
-  // record the initial mount as a transition from `null`. Variant / reason
-  // toggles within the same state are ignored to avoid spam.
-  const previousCompositionRef = useRef<CompositionDerivation | null>(null);
-  useEffect(() => {
-    const previous = previousCompositionRef.current;
-    if (!previous || previous.state !== composition.state) {
-      emitCompositionTransition(previous, composition);
-      previousCompositionRef.current = composition;
-    } else {
-      // Update the cached snapshot so future comparisons see the latest reason
-      // values without re-emitting transition.
-      previousCompositionRef.current = composition;
-    }
-  }, [composition]);
 
   // Defensive hover/contact reset when no longer ready.
   useEffect(() => {
@@ -534,7 +471,6 @@ export function App() {
         backend={bootstrapHandle?.carrier?.backend ?? null}
         windowSize={shell.windowSize ?? { width: 400, height: 600 }}
         embodied={composition.ready}
-        compositionState={composition.state}
         emit={handleAvatarOriginEvent}
         setBodyHovered={setBodyHovered}
         setBodyPointerContact={setBodyPointerContact}

@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../i18n/index.js';
-import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 
 export type AvatarContextMenuDismissReason =
   | 'action'
@@ -37,7 +36,6 @@ export type AvatarContextMenuAction =
 export type AvatarContextMenuProps = {
   x: number;
   y: number;
-  compositionState: string;
   alwaysOnTop: boolean;
   textInputEnabled: boolean;
   foregroundPriorityEnabled: boolean;
@@ -83,7 +81,6 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
   const {
     x,
     y,
-    compositionState,
     alwaysOnTop,
     textInputEnabled,
     foregroundPriorityEnabled,
@@ -98,8 +95,6 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
   } = props;
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
-
-  useSurfaceMountEvidence('context-menu', compositionState);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();

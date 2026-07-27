@@ -11,11 +11,7 @@
 //   * `onHitRegionChange` — wires the alpha-mask probe
 //     via `createLive2DHitRegion` (canvas-bound construction — needs the
 //     mounted cubism canvas to read pixels from). On tier C, fires the
-//     bbox-only fallback exactly once and `onLifecycleEvidence` carries
-//     the degradation reason upstream.
-//   * `onLifecycleEvidence` — surfaces mount / unmount / load-error /
-//     hit_region_degraded evidence so the embodiment-stage can record
-//     events without scraping DOM data attributes.
+//     bbox-only fallback exactly once.
 //
 // Spec: backend-branch-contract.md §"BackendSurface lifecycle";
 //       app-shell-contract.md §2.3.1; live2d-render-contract.md
@@ -82,15 +78,11 @@ export function createLive2DCarrierSurface(
         },
         deviceTier: getCachedDeviceTier()?.tier ?? 'C',
         onDegraded: (detail) => {
-          props.onLifecycleEvidence?.('hit_region_degraded', {
-            source: 'live2d-carrier-surface',
-            reason_code: detail.reason_code,
-            recorded_at: detail.recordedAt,
-          });
+          console.warn(`[avatar:live2d] hit-region degraded: ${detail.reason_code}`);
         },
       });
       props.onHitRegionChange?.(hitRegion);
-    }, [props.onHitRegionChange, props.onLifecycleEvidence]);
+    }, [props.onHitRegionChange]);
 
     return (
       <div ref={hostRef} style={{ width: '100%', height: '100%' }}>

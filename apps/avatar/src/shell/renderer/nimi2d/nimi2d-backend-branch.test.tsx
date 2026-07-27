@@ -219,7 +219,6 @@ describe('createNimi2DBackendBranch', () => {
     }));
     const onAudioConsumerReady = vi.fn();
     const onHitRegionChange = vi.fn();
-    const onLifecycleEvidence = vi.fn();
     const Surface = handle.branch.surface.Component;
 
     render(
@@ -229,7 +228,6 @@ describe('createNimi2DBackendBranch', () => {
         embodied
         onAudioConsumerReady={onAudioConsumerReady}
         onHitRegionChange={onHitRegionChange}
-        onLifecycleEvidence={onLifecycleEvidence}
       />,
     );
     await flushPixiSurface();
@@ -259,16 +257,6 @@ describe('createNimi2DBackendBranch', () => {
       bottom: 490 / 512,
     });
     expect(onHitRegionChange.mock.calls[0]?.[0].isOpaqueAtClientPoint(64, 64)).toBeNull();
-    expect(onLifecycleEvidence).toHaveBeenCalledWith('audio_pipeline_ready', expect.objectContaining({
-      model_kind: 'nimi2d',
-      mode: 'tier1_amplitude_mouth_lane',
-    }));
-    expect(onLifecycleEvidence).toHaveBeenCalledWith('renderer_pipeline_ready', expect.objectContaining({
-      model_kind: 'nimi2d',
-      renderer: 'pixi.js',
-      mode: 'pixi_renderer_foundation',
-      layer_count: 3,
-    }));
   });
 
   it('updates surface state through the backend projection composer', async () => {

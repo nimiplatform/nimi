@@ -44,19 +44,6 @@ function assertNoNodeRuntimeTransport(filePath, source) {
   }
 }
 
-function assertEvidenceMarkers(files) {
-  const combined = files.map((item) => item.source).join('\n');
-  const requiredMarkers = [
-    'avatar.renderer.entry-loaded',
-    'nimi_avatar_record_evidence',
-  ];
-  for (const marker of requiredMarkers) {
-    if (!combined.includes(marker)) {
-      throw new Error(`Avatar bundle is missing evidence marker: ${marker}`);
-    }
-  }
-}
-
 await assertDistExists();
 const filePaths = await listJsFiles(assetsDir);
 const files = await Promise.all(filePaths.map(async (filePath) => ({
@@ -67,5 +54,4 @@ for (const file of files) {
   assertNoBareSchedulerImport(file.filePath, file.source);
   assertNoNodeRuntimeTransport(file.filePath, file.source);
 }
-assertEvidenceMarkers(files);
 console.log(`[check-avatar-bundle-runtime-imports] checked ${files.length} bundle file(s)`);

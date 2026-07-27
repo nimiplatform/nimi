@@ -103,7 +103,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
   it('initial load reaches ready, announces audio consumer, and exposes backend metadata with model_kind=vrm', async () => {
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
     const manifest = manifestFromScenario();
-    const evidence: Array<{ kind: string; detail: Record<string, unknown> }> = [];
 
     const handle = await createVrmBackendBranch(manifest, {
       runtimeOptions: { loaderOverride: async () => stubVrm() },
@@ -126,7 +125,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={(kind, detail) => evidence.push({ kind, detail })}
           onAudioConsumerReady={onAudio}
         />,
       );
@@ -138,23 +136,12 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     expect(root.getAttribute('data-avatar-vrm-state')).toBe('ready');
     expect(onAudio).toHaveBeenCalledTimes(1);
 
-    expect(evidence).toEqual([
-      expect.objectContaining({
-        kind: 'hit_region_degraded',
-        detail: expect.objectContaining({
-          reason_code: 'device_tier_c',
-          source: 'vrm-carrier-surface',
-        }),
-      }),
-    ]);
-
     handle.shutdown();
   });
 
-  it('initial load failure transitions to failed_closed and emits load_failed evidence', async () => {
+  it('initial load failure transitions to failed_closed', async () => {
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
     const manifest = manifestFromScenario();
-    const evidence: Array<{ kind: string; detail: Record<string, unknown> }> = [];
 
     const handle = await createVrmBackendBranch(manifest, {
       runtimeOptions: {
@@ -173,7 +160,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={(kind, detail) => evidence.push({ kind, detail })}
         />,
       );
       await Promise.resolve();
@@ -181,11 +167,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     });
 
     expect(result!.container.firstChild).toBeNull();
-    const loadFailed = evidence.find((e) => e.kind === 'load_failed');
-    expect(loadFailed).toBeDefined();
-    expect(loadFailed?.detail.reason).toBe('asset_missing');
-    const failedClosed = evidence.find((e) => e.kind === 'failed_closed');
-    expect(failedClosed?.detail.reason).toBe('load_failed');
 
     handle.shutdown();
   });
@@ -195,7 +176,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     const manifestA = manifestFromScenario();
     const manifestB = alternateManifest();
     const loaderCalls: string[] = [];
-    const evidence: Array<{ kind: string; detail: Record<string, unknown> }> = [];
 
     const loaderOverride = async (m: VrmAvatarModelManifest): Promise<VRM> => {
       loaderCalls.push(m.modelId);
@@ -213,7 +193,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={(kind, detail) => evidence.push({ kind, detail })}
         />,
       );
       await Promise.resolve();
@@ -236,7 +215,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={(kind, detail) => evidence.push({ kind, detail })}
         />,
       );
       await Promise.resolve();
@@ -250,30 +228,12 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     // hit because each manifest has a distinct vrmFile).
     expect(loaderCalls).toEqual([manifestA.modelId, manifestB.modelId]);
 
-    expect(evidence).toEqual([
-      expect.objectContaining({
-        kind: 'hit_region_degraded',
-        detail: expect.objectContaining({
-          reason_code: 'device_tier_c',
-          source: 'vrm-carrier-surface',
-        }),
-      }),
-      expect.objectContaining({
-        kind: 'hit_region_degraded',
-        detail: expect.objectContaining({
-          reason_code: 'device_tier_c',
-          source: 'vrm-carrier-surface',
-        }),
-      }),
-    ]);
-
     handleB.shutdown();
   });
 
-  it('webglcontextlost recovers within 1500ms and emits context_restored with restoreDurationMs near 1500', async () => {
+  it('webglcontextlost recovers after the 1500ms retry', async () => {
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
     const manifest = manifestFromScenario();
-    const evidence: Array<{ kind: string; detail: Record<string, unknown> }> = [];
 
     // Hand-rolled timer + clock so we can advance time deterministically
     // without using vi.useFakeTimers (which would also fake the
@@ -303,7 +263,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={(kind, detail) => evidence.push({ kind, detail })}
         />,
       );
       await Promise.resolve();
@@ -322,7 +281,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
     ).toBe('context_lost');
-    expect(evidence.find((e) => e.kind === 'context_lost')).toBeDefined();
 
     // Advance virtual clock by 1500ms and fire the captured retry.
     virtualNow += 1500;
@@ -337,9 +295,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
     ).toBe('ready');
-    const restored = evidence.find((e) => e.kind === 'context_restored');
-    expect(restored).toBeDefined();
-    expect(restored?.detail.restoreDurationMs).toBe(1500);
 
     handle.shutdown();
   });
@@ -347,7 +302,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
   it('second webglcontextlost before retry fires escalates to failed_closed (context_lost_twice)', async () => {
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
     const manifest = manifestFromScenario();
-    const evidence: Array<{ kind: string; detail: Record<string, unknown> }> = [];
 
     const handle = await createVrmBackendBranch(manifest, {
       runtimeOptions: {
@@ -366,7 +320,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
           width={400}
           height={720}
           embodied
-          onLifecycleEvidence={(kind, detail) => evidence.push({ kind, detail })}
         />,
       );
       await Promise.resolve();
@@ -393,10 +346,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
 
     // Surface renders null on failed_closed; no avatar-vrm-carrier element.
     expect(result!.container.firstChild).toBeNull();
-    const failed = evidence.find(
-      (e) => e.kind === 'failed_closed' && e.detail.reason === 'context_lost_twice',
-    );
-    expect(failed).toBeDefined();
 
     handle.shutdown();
   });
@@ -405,7 +354,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     const data = scenarioJson as unknown as ScenarioVrmLifecycle;
     expect(data.vrm_lifecycle.model_manifest.kind).toBe('vrm');
     expect(data.vrm_lifecycle.model_manifest.modelId).toBe('vrm1-constraint-twist');
-    expect(data.vrm_lifecycle.expected_evidence).toContain('context_restored');
   });
 });
 
