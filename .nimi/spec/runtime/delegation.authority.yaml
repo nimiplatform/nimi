@@ -610,9 +610,9 @@ units:
     kind: rule
     title: A2A is a future seam only
     modality: must
-    statement: A2A and MCP are isolated future delegated-provider seams only; neither has a current production adapter, Runtime registration, SDK surface, UI claim, readiness role, or implementation authority, and either requires separate product, security, and owner admission before production work.
-    condition: Whenever A2A or MCP support is proposed or referenced.
-    failure: Reject production A2A or MCP work without new admitted authority.
+    statement: A2A is an isolated future delegated-provider seam only; it has no current production adapter, Runtime registration, SDK surface, UI claim, readiness role, or implementation authority, and requires separate product, security, and owner admission before production work.
+    condition: Whenever A2A support is proposed or referenced.
+    failure: Reject production A2A work without new admitted authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.delegation.a2a-future-seam-plane
