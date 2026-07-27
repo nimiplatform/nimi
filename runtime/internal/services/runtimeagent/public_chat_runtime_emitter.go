@@ -60,8 +60,7 @@ func publicChatTerminalTurnEvent(messageType string) bool {
 }
 
 // emitTurnMessageCommitted emits runtime.agent.turn.message_committed with
-// the required `message_id` envelope extra (per
-// runtime-agent-event-projection.yaml `extra_fields_by_event`) plus the
+// the required `message_id` envelope extra plus the
 // committed message detail (`message_id`, `text`).
 func (r publicChatRuntime) emitTurnMessageCommitted(session publicChatAnchorState, turnID string, messageID string, text string) error {
 	trimmedTurnID := strings.TrimSpace(turnID)

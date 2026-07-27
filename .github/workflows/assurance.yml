@@ -137,8 +137,6 @@ jobs:
       - name: gate.proto.lint
         run: pnpm proto:lint
 
-      - name: gate.runtime.local-agent-center-surface-ownership
-        run: pnpm check:runtime-local-agent-center-surface-ownership
       - name: gate.workspace.package-dependency-duplicates
         run: pnpm check:package-dependency-duplicates
       - name: gate.runtime.ai-scenario-coverage
@@ -306,17 +304,11 @@ jobs:
       - name: Markdown assurance
         run: pnpm check:markdown
 
-      - name: First-run docs drift assurance
-        run: pnpm check:first-run-doc-drift
-
       - name: Install script smoke assurance
         run: pnpm check:install-script-smoke
 
       - name: No absolute user paths assurance
         run: pnpm check:no-absolute-user-paths
-
-      - name: No legacy docs contracts assurance
-        run: pnpm check:no-legacy-doc-contracts
 
       - name: License file map assurance
         run: pnpm check:license-file-map

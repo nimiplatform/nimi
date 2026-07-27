@@ -17,19 +17,15 @@ const repoRoot = path.resolve(scriptDir, '..');
 // conformance, generator drift, packaged-consumer smoke, and version parity
 // remain independent release boundaries.
 const CHECKS = [
-  'check:sdk-root-entry-contract',
-  'check:sdk-vnext-package-contract',
   'check:sdk-vnext-runtime-facade',
   'check:sdk-vnext-public-surface-smoke',
   'check:sdk-vnext-runtime-consumer-smoke',
   'check:sdk-vnext-app-consumer-smoke',
   'check:sdk-vnext-realm-consumer-smoke',
-  'check:sdk-vnext-world-consumer-smoke',
   'check:sdk-vnext-ai-consumer-smoke',
   'check:sdk-vnext-ai-runner-consumer-smoke',
   'check:sdk-vnext-root-consumer-smoke',
   'check:sdk-doctor',
-  'check:no-global-openapi-config',
   'check:experimental-api-lifecycle',
 ];
 

@@ -438,8 +438,7 @@ func (r publicChatRuntime) agentPresentationProfileForSession(session publicChat
 	return entry.Agent.GetPresentationProfile()
 }
 
-// emitTurnEvent composes the runtime.agent.turn.* envelope per
-// K-AGCORE-037 / runtime-agent-event-projection.yaml `turn_envelope`:
+// emitTurnEvent composes the runtime.agent.turn.* projection envelope:
 // payload top level carries the required envelope fields (`agent_id`,
 // `conversation_anchor_id`, `turn_id`, `stream_id`); event-specific
 // fields live under `detail` per the mounted `turn_events.detail`
@@ -447,7 +446,7 @@ func (r publicChatRuntime) agentPresentationProfileForSession(session publicChat
 // follow_up_depth, transcript metadata, etc.) is NOT carried on
 // `runtime.agent.turn.*` projection events; it is recovered exclusively
 // through the unary public chat session snapshot. Per
-// K-AGCORE-030 stream identity is distinct from turn identity and is
+// stream identity is distinct from turn identity and is
 // allocated at turn open onto `publicChatTurnState.StreamID`.
 //
 // Per yaml `extra_fields_by_event`, `runtime.agent.turn.message_committed`

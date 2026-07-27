@@ -16,8 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// K-AGCORE-041 / K-AGCORE-043 admitted hook trigger vocabulary.
-// This mirrors runtime-memory-hook-trigger.yaml:
+// Optional Runtime-owned follow-up trigger vocabulary:
 //   - SCHEDULED_TIME => time(delay), optionally bounded by not_before
 //   - USER_IDLE      => event(user_idle)
 //   - CHAT_ENDED     => event(chat_ended)
@@ -101,7 +100,7 @@ func resolveHookScheduledFor(intent *runtimev1.HookIntent, now time.Time) (time.
 	}
 }
 
-// validateHookIntent enforces the K-AGCORE-041 narrow-admission matrix.
+// validateHookIntent enforces the narrow follow-up admission matrix.
 func validateHookIntent(intent *runtimev1.HookIntent) error {
 	if intent == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)

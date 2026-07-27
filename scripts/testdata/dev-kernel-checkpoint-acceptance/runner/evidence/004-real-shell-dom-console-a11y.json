@@ -1,8 +1,0 @@
-{
-  "schemaVersion": "synthetic-real-shell-audit/v1",
-  "desktopDomObserved": true,
-  "narrowDomObserved": true,
-  "consoleErrors": [],
-  "accessibilityObserved": true,
-  "outcome": "passed"
-}

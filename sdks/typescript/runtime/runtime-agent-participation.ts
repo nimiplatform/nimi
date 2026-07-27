@@ -78,8 +78,6 @@ export interface NimiRuntimeAgentParticipationSurfaceOptions {
   readonly withScopes?: NimiRuntimeAgentScopeRunner;
 }
 
-// Method names mirror runtime.agentParticipation.* in
-// config/sdks-runtime-agent-participation-methods.yaml.
 export interface NimiRuntimeAgentParticipationSurface {
   describeProfiles(
     request?: DescribeParticipationProfilesRequest,

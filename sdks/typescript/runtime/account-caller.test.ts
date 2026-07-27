@@ -62,11 +62,11 @@ test('Runtime account caller projection builds an explicit binding-only Avatar i
   );
 });
 
-test('Runtime account caller projection fixes the Desktop-supervised Avatar identity', () => {
+test('Runtime account caller projection fixes the independent bundled Avatar identity', () => {
   assert.deepEqual(createNimiDesktopLaunchedAvatarRuntimeAccountCaller(), {
     appId: 'nimi.avatar',
-    appInstanceId: 'nimi.avatar.desktop-supervised',
-    deviceId: 'desktop-avatar-host',
+    appInstanceId: 'nimi.avatar',
+    deviceId: 'avatar-native-host',
     mode: AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
     scopes: [],
     launchHostId: '',

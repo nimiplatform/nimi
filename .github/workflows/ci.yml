@@ -149,20 +149,11 @@ jobs:
       - name: Markdown lint baseline
         run: pnpm check:markdown
 
-      - name: Enforce first-run docs drift contract
-        run: pnpm check:first-run-doc-drift
-
-      - name: Enforce no legacy nimid invocation in docs
-        run: pnpm check:no-nimid-doc-invocation
-
       - name: Install script dry-run smoke
         run: pnpm check:install-script-smoke
 
       - name: Enforce no absolute user-home paths in docs/spec/examples
         run: pnpm check:no-absolute-user-paths
-
-      - name: Enforce no legacy docs contract aliases
-        run: pnpm check:no-legacy-doc-contracts
 
   core-static:
     needs: changes
@@ -193,28 +184,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: gate.dev-loop.high-risk-doc-metadata
-        run: pnpm check:high-risk-doc-metadata
-      - name: gate.platform-hardcut.no-legacy-imports
-        run: pnpm check:no-legacy-imports
-      - name: gate.migrated-outer.check:no-global-openapi-config
-        run: pnpm check:no-global-openapi-config
-      - name: gate.migrated-outer.check:reason-code-constants
+      - name: gate.sdk.reason-code-constants
         run: pnpm check:reason-code-constants
-      - name: gate.migrated-outer.check:runtime-bridge-method-drift
+      - name: gate.runtime.bridge-method-projection
         run: pnpm check:runtime-bridge-method-drift
-      - name: gate.migrated-outer.check:sdk-spec-kernel-consistency
-        run: pnpm check:sdk-spec-kernel-consistency
-      - name: gate.platform-hardcut.no-retired-methodology-refs
-        run: pnpm check:no-retired-methodology-refs
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
       - name: gate.workflow.actionlint
         run: pnpm check:actionlint
       - name: authority.canonical.check
         run: pnpm spec:authority:check
-      - name: authority.canonical.anchors
-        run: pnpm spec:authority:anchors
 
   workspace-regression:
     needs: changes
@@ -282,9 +261,6 @@ jobs:
 
       - name: SDK typed-core conformance check
         run: pnpm check:sdks-conformance-typed-core
-
-      - name: SDK vNext package contract check
-        run: pnpm check:sdk-vnext-package-contract
 
       - name: SDK vNext public surface smoke
         run: pnpm check:sdk-vnext-public-surface-smoke

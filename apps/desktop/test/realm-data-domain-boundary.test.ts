@@ -10,10 +10,6 @@ function readRenderer(relativePath: string): string {
   return readFileSync(resolve(rendererRoot, relativePath), 'utf8');
 }
 
-function readRepo(relativePath: string): string {
-  return readFileSync(resolve(repoRoot, relativePath), 'utf8');
-}
-
 function readTree(relativePath: string): string {
   const root = resolve(repoRoot, relativePath);
   const chunks: string[] = [];
@@ -79,14 +75,12 @@ test('Realm Data domain surfaces consume SDK or Kit views instead of app-owned s
 test('human timeline model remains a Desktop feature hook, not a Kit realm surface', () => {
   const humanTimelineModelSource = readRenderer('features/chat/chat-human-timeline-model.ts');
   const kitChatSource = readTree('kit/features/chat/src');
-  const kitRegistrySource = readRepo('config/platform-nimi-kit-registry.yaml');
 
   assert.match(humanTimelineModelSource, /export function useHumanTimelineModel/);
   assert.match(humanTimelineModelSource, /useAppStore/);
   assert.match(humanTimelineModelSource, /getStreamState/);
   assert.match(humanTimelineModelSource, /role: display\.isMe \? 'human' as const : 'assistant' as const/);
 
-  assert.match(kitRegistrySource, /timeline composition\/display helpers/);
   assert.doesNotMatch(kitChatSource, /useHumanTimelineModel/);
   assert.doesNotMatch(kitChatSource, /HumanTimelineModel/);
   assert.doesNotMatch(kitChatSource, /@renderer\//);

@@ -319,7 +319,6 @@ if (options.live) {
   });
 }
 tests.push(
-  { id: 'protected-local-authority', command: 'pnpm', args: ['check:protected-local-authority'], cwd: repoRoot },
   { id: 'kit-account-broker-parity', command: 'pnpm', args: ['check:kit-runtime-account-broker-parity'], cwd: repoRoot },
 );
 

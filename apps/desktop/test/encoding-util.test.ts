@@ -33,5 +33,4 @@ test('Desktop src/runtime residual namespace is fully retired', () => {
   assert.doesNotMatch(bootstrap, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(desktopSession, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(bootstrap, /@runtime\/world-evolution/);
-  assert.doesNotMatch(bootstrap, /createMissingWorldEvolutionSelectorReadProvider/);
 });

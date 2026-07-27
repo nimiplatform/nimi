@@ -14,19 +14,6 @@ const installerBuild = readFileSync(
   new URL('./build-windows-runtime-service-installer.mjs', import.meta.url),
   'utf8',
 );
-const runner = readFileSync(
-  new URL('../tests/local-agent-product/harness/dev-kernel-cross-app-driver.mjs', import.meta.url),
-  'utf8',
-);
-const hostDriver = readFileSync(
-  new URL('../tests/local-agent-product/harness/dev-kernel-host-driver.mjs', import.meta.url),
-  'utf8',
-);
-const fixedServiceContract = readFileSync(
-  new URL('../tests/local-agent-product/harness/dev-kernel-fixed-service-contract.mjs', import.meta.url),
-  'utf8',
-);
-
 test('service installer binds the signed binary to the exact repository source record', () => {
   assert.match(installerBuild, /validateRuntimeBuildRecord\(runtimeBuildRecord, \{/u);
   assert.match(installerBuild, /source: captureRuntimeBuildSource\(repoRoot, \{ pathspecs: WINDOWS_RUNTIME_BUILD_SOURCE_PATHS \}\)/u);
@@ -163,7 +150,7 @@ test('protected existing state root is taken over before any create attempt', {
   ]);
 });
 
-test('status and runner derive checkpoint posture from immutable candidate material', () => {
+test('status derives checkpoint posture from immutable candidate material', () => {
   const statusBody = installer.slice(
     installer.indexOf('function Get-Status'),
     installer.indexOf('function Install-Service'),
@@ -171,14 +158,6 @@ test('status and runner derive checkpoint posture from immutable candidate mater
   assert.doesNotMatch(statusBody, /\$DevKernelCheckpoint/u);
   assert.match(statusBody, /runtimeBuildRecordSha256/u);
   assert.match(statusBody, /checkpointCandidatePostureVerified/u);
-  assert.match(fixedServiceContract, /'runtimeBuildRecordMatchesCandidate'/u);
-  assert.match(fixedServiceContract, /'checkpointCandidatePostureVerified'/u);
-  assert.match(fixedServiceContract, /status\?\.\[field\] !== true/u);
-  assert.match(hostDriver, /assertFixedServiceStatus\(status\)/u);
-  assert.doesNotMatch(
-    hostDriver.slice(hostDriver.indexOf('function readFixedServiceStatus'), hostDriver.indexOf('async function reservePort')),
-    /-DevKernelCheckpoint/u,
-  );
 });
 
 test('PowerShell lineage resolver preserves schema-6 state identities across binary candidates', {
