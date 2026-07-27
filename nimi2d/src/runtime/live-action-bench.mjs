@@ -105,8 +105,6 @@ async function runNimi2DReferenceActionBench(input) {
   return {
     verdict: failures.length === 0 ? 'pass_minimal_tier1' : 'fail',
     scope: NIMI2D_RUNTIME_SCOPE,
-    closesGenerationBench: false,
-    closesMountedVisualProof: false,
     metrics: {
       maxProjectionLatencyMs,
       stateLegibilityScore,

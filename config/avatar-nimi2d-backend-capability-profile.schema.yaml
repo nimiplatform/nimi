@@ -157,18 +157,11 @@ fields:
       - source
       - observed_at
       - validator
-      - generation_bench_status
     source_enum:
       - nimi2d_package_manifest
       - runtime_probe
       - static_asset_inspection
       - human_review
-    generation_bench_status:
-      enum:
-        - go
-        - conditional_go
-        - no_go
-        - not_applicable_hand_authored
 
 invariants:
   - "Profiles consume proven_tier, never requested_tier, for lane support."
@@ -176,10 +169,8 @@ invariants:
   - "Default outfit is required before any ready visual state."
   - "Tier-1 speech mouth is jaw/amplitude only; true viseme starts at tier-2."
   - "Renderer canvas and layer bindings are Avatar-owned runtime bindings, not Nimi2D package truth."
-  - "A Nimi2D runtime capability profile cannot close Generation Bench."
   - "Unsupported non-idle lanes fail closed and cannot count idle fallback as success."
 
 refs:
   contract: ".nimi/spec/avatar/embodiment-surface.authority.yaml"
   nimi2d_package_manifest: ".nimi/spec/nimi2d/asset-package.authority.yaml"
-  nimi2d_generation_bench: ".nimi/spec/nimi2d/generation-supply.authority.yaml"

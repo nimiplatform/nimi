@@ -1,5 +1,4 @@
 import { ATLAS_SPEC_KIND } from '../image-input/atlas-spec.mjs';
-import { evaluateSharedAvatarRegistration } from './layer-workflow-registration.mjs';
 
 const key = [0, 255, 0, 255];
 const defaultColumns = 3;
@@ -147,114 +146,6 @@ function localBounds(bounds, cell) {
   };
 }
 
-function boundsCenter(bounds) {
-  if (!bounds) return null;
-  return {
-    x: bounds.x + (bounds.width / 2),
-    y: bounds.y + (bounds.height / 2),
-  };
-}
-
-function pointInsideBounds(point, bounds, pad = 0) {
-  if (!point || !bounds) return false;
-  return point.x >= bounds.x - pad
-    && point.x <= bounds.x + bounds.width + pad
-    && point.y >= bounds.y - pad
-    && point.y <= bounds.y + bounds.height + pad;
-}
-
-function overlapsOnX(left, right) {
-  if (!left || !right) return false;
-  return Math.max(left.x, right.x) <= Math.min(left.x + left.width, right.x + right.width);
-}
-
-function skinLikePixel(rgba, offset) {
-  const red = rgba[offset];
-  const green = rgba[offset + 1];
-  const blue = rgba[offset + 2];
-  return red >= 165 && red <= 255
-    && green >= 105 && green <= 230
-    && blue >= 75 && blue <= 210
-    && red >= green
-    && green >= blue - 18;
-}
-
-function meanSkinColor(image, cell) {
-  const sum = [0, 0, 0];
-  let count = 0;
-  for (let y = cell.y; y < cell.y + cell.height; y += 1) {
-    for (let x = cell.x; x < cell.x + cell.width; x += 1) {
-      const offset = pixelOffset(image.width, x, y);
-      if (isGreenScreenCandidate(image.rgba, offset) || isLightDividerCandidate(image.rgba, offset) || !skinLikePixel(image.rgba, offset)) {
-        continue;
-      }
-      sum[0] += image.rgba[offset];
-      sum[1] += image.rgba[offset + 1];
-      sum[2] += image.rgba[offset + 2];
-      count += 1;
-    }
-  }
-  return {
-    pixelCount: count,
-    meanRgb: count === 0 ? null : sum.map((channel) => Math.round(channel / count)),
-  };
-}
-
-function colorDistance(left, right) {
-  if (!left || !right) return null;
-  return Math.max(
-    Math.abs(left[0] - right[0]),
-    Math.abs(left[1] - right[1]),
-    Math.abs(left[2] - right[2]),
-  );
-}
-
-function rawCellMeasurement(image, cell) {
-  const foregroundBounds = {
-    minX: cell.x + cell.width,
-    minY: cell.y + cell.height,
-    maxX: -1,
-    maxY: -1,
-  };
-  let exactKeyPixels = 0;
-  let greenBackgroundPixels = 0;
-  let lightDividerPixels = 0;
-  let foregroundPixels = 0;
-  for (let y = cell.y; y < cell.y + cell.height; y += 1) {
-    for (let x = cell.x; x < cell.x + cell.width; x += 1) {
-      const offset = pixelOffset(image.width, x, y);
-      if (isExactKey(image.rgba, offset)) exactKeyPixels += 1;
-      const background = isGreenScreenCandidate(image.rgba, offset);
-      const divider = isLightDividerCandidate(image.rgba, offset);
-      if (background) greenBackgroundPixels += 1;
-      if (divider) lightDividerPixels += 1;
-      if (background || divider) {
-        continue;
-      }
-      foregroundPixels += 1;
-      if (x < foregroundBounds.minX) foregroundBounds.minX = x;
-      if (y < foregroundBounds.minY) foregroundBounds.minY = y;
-      if (x > foregroundBounds.maxX) foregroundBounds.maxX = x;
-      if (y > foregroundBounds.maxY) foregroundBounds.maxY = y;
-    }
-  }
-  const total = cell.width * cell.height;
-  const bounds = foregroundPixels === 0 ? null : {
-    x: foregroundBounds.minX,
-    y: foregroundBounds.minY,
-    width: foregroundBounds.maxX - foregroundBounds.minX + 1,
-    height: foregroundBounds.maxY - foregroundBounds.minY + 1,
-  };
-  return {
-    exactKeyPct: Number(((exactKeyPixels / total) * 100).toFixed(2)),
-    greenBackgroundPct: Number(((greenBackgroundPixels / total) * 100).toFixed(2)),
-    lightDividerPct: Number(((lightDividerPixels / total) * 100).toFixed(2)),
-    foregroundPct: Number(((foregroundPixels / total) * 100).toFixed(2)),
-    foregroundBounds: bounds,
-    localForegroundBounds: localBounds(bounds, cell),
-  };
-}
-
 function detectLightDividerLines(image) {
   const horizontal = [];
   const vertical = [];
@@ -313,195 +204,6 @@ function cleanDetectedDividerLines(rgba, width, height) {
   return { cleanedPixels, lines };
 }
 
-function gate(status, detail, metrics = {}) {
-  return { status, detail, metrics };
-}
-
-function upstreamDecision(gates) {
-  const statuses = Object.values(gates).map((item) => item.status);
-  if (statuses.includes('fail')) {
-    return { verdict: 'fail', reason: 'One or more upstream Image2 atlas quality gates failed.' };
-  }
-  if (statuses.includes('warn')) {
-    return { verdict: 'warn', reason: 'Upstream Image2 atlas is usable but leaves measurable quality headroom.' };
-  }
-  return { verdict: 'pass', reason: 'Upstream Image2 atlas quality gates passed.' };
-}
-
-function normalizedDecision(gates) {
-  const statuses = Object.values(gates).map((item) => item.status);
-  if (statuses.includes('fail')) {
-    return { verdict: 'fail', reason: 'Normalized atlas is not safe for machine cutting.' };
-  }
-  if (statuses.includes('warn')) {
-    return { verdict: 'warn', reason: 'Normalized atlas is usable but should be reviewed.' };
-  }
-  return { verdict: 'pass', reason: 'Normalized atlas is safe for machine cutting.' };
-}
-
-function analyzeAtlasUpstreamQuality(image, columns, rows) {
-  if (image.width % columns !== 0 || image.height % rows !== 0) {
-    return {
-      kind: 'nimi2d.codex_image2.upstream_atlas_quality.v1',
-      decision: { verdict: 'fail', reason: 'Atlas dimensions are not divisible by the expected grid.' },
-      gates: {
-        dimensions_divisible: gate('fail', 'Image dimensions must be divisible by atlas grid.', { width: image.width, height: image.height, columns, rows }),
-      },
-    };
-  }
-  const cellWidth = image.width / columns;
-  const cellHeight = image.height / rows;
-  const cells = {
-    body: cellFor(0, 0, cellWidth, cellHeight),
-    head: cellFor(1, 0, cellWidth, cellHeight),
-    hair: cellFor(2, 0, cellWidth, cellHeight),
-    eye: cellFor(0, 1, cellWidth, cellHeight),
-    mouth: cellFor(1, 1, cellWidth, cellHeight),
-    outfit: cellFor(2, 1, cellWidth, cellHeight),
-  };
-  const measurements = Object.fromEntries(Object.entries(cells).map(([name, cell]) => [name, rawCellMeasurement(image, cell)]));
-  let exactKeyPixels = 0;
-  let greenBackgroundPixels = 0;
-  for (let offset = 0; offset < image.rgba.length; offset += 4) {
-    if (isExactKey(image.rgba, offset)) exactKeyPixels += 1;
-    if (isGreenScreenCandidate(image.rgba, offset)) greenBackgroundPixels += 1;
-  }
-  const totalPixels = image.width * image.height;
-  const exactKeyPct = Number(((exactKeyPixels / totalPixels) * 100).toFixed(2));
-  const greenBackgroundPct = Number(((greenBackgroundPixels / totalPixels) * 100).toFixed(2));
-  const dividerLines = detectLightDividerLines(image);
-
-  const headBounds = measurements.head.localForegroundBounds;
-  const hairBounds = measurements.hair.localForegroundBounds;
-  const eyeCenter = boundsCenter(measurements.eye.localForegroundBounds);
-  const mouthCenter = boundsCenter(measurements.mouth.localForegroundBounds);
-  const bodyCenter = boundsCenter(measurements.body.localForegroundBounds);
-  const outfitCenter = boundsCenter(measurements.outfit.localForegroundBounds);
-  const centerDelta = bodyCenter && outfitCenter ? Math.abs(bodyCenter.x - outfitCenter.x) : null;
-  const heightRatio = measurements.body.localForegroundBounds && measurements.outfit.localForegroundBounds
-    ? Number((measurements.outfit.localForegroundBounds.height / measurements.body.localForegroundBounds.height).toFixed(3))
-    : null;
-  const skin = {
-    head: meanSkinColor(image, cells.head),
-    outfitVisible: meanSkinColor(image, cells.outfit),
-  };
-  const skinDelta = colorDistance(skin.head.meanRgb, skin.outfitVisible.meanRgb);
-
-  const foregroundPresent = Object.entries(measurements).every(([name, item]) => {
-    const minimum = name === 'mouth' ? 0.05 : name === 'eye' ? 0.5 : 1;
-    return item.foregroundPct >= minimum;
-  });
-  const alignmentPass = pointInsideBounds(eyeCenter, headBounds, cellWidth * 0.08)
-    && pointInsideBounds(mouthCenter, headBounds, cellWidth * 0.08)
-    && overlapsOnX(hairBounds, headBounds);
-  const silhouetteStatus = centerDelta === null || heightRatio === null
-    ? 'fail'
-    : centerDelta <= cellWidth * 0.18 && heightRatio >= 0.65 && heightRatio <= 1.45
-      ? 'pass'
-      : 'warn';
-  const gates = {
-    dimensions_divisible: gate('pass', 'Image dimensions match the expected 3x2 atlas grid.', { width: image.width, height: image.height, cellWidth, cellHeight }),
-    pure_chroma_key_background: gate(
-      exactKeyPct >= 90 ? 'pass' : exactKeyPct >= 75 ? 'warn' : 'fail',
-      'Raw Image2 atlas should use exact #00ff00 for empty areas before normalization.',
-      { exactKeyPct, greenBackgroundPct },
-    ),
-    no_visible_grid_lines: gate(
-      dividerLines.horizontal.length === 0 && dividerLines.vertical.length === 0 ? 'pass' : 'fail',
-      'Generated atlas should not draw visible row/column separator lines.',
-      { horizontalLines: dividerLines.horizontal, verticalLines: dividerLines.vertical },
-    ),
-    cell_foreground_present: gate(
-      foregroundPresent ? 'pass' : 'fail',
-      'Each semantic cell must contain measurable foreground pixels.',
-      Object.fromEntries(Object.entries(measurements).map(([name, item]) => [name, item.foregroundPct])),
-    ),
-    facial_feature_registration: gate(
-      alignmentPass ? 'pass' : 'fail',
-      'Eyes, mouth, and hair must register against the head cell in the same local canvas.',
-      { headBounds, hairBounds, eyeCenter, mouthCenter },
-    ),
-    silhouette_outfit_registration: gate(
-      silhouetteStatus,
-      'Registration silhouette and default outfit should occupy compatible avatar geometry.',
-      { bodyBounds: measurements.body.localForegroundBounds, outfitBounds: measurements.outfit.localForegroundBounds, centerDeltaPx: centerDelta, heightRatio },
-    ),
-    visible_skin_palette: gate(
-      skin.head.pixelCount >= 64 ? (skinDelta === null || skinDelta <= 55 ? 'pass' : 'warn') : 'fail',
-      'Visible skin palette is measured inside the atlas; source-image color preservation requires a source reference.',
-      { headSkin: skin.head, outfitVisibleSkin: skin.outfitVisible, skinDelta },
-    ),
-  };
-
-  return {
-    kind: 'nimi2d.codex_image2.upstream_atlas_quality.v1',
-    decision: upstreamDecision(gates),
-    raw_image: {
-      width_px: image.width,
-      height_px: image.height,
-      cell_width_px: cellWidth,
-      cell_height_px: cellHeight,
-    },
-    gates,
-    measurements,
-  };
-}
-
-function analyzeNormalizedAtlasQuality(normalized) {
-  const image = {
-    width: normalized.width,
-    height: normalized.height,
-    rgba: normalized.rgba,
-  };
-  const dividerLines = detectLightDividerLines(image);
-  const foregroundPcts = normalized.quality.cellStats.map((item) => item.foregroundPct);
-  const hasForegroundInEveryCell = foregroundPcts.every((value) => value > 0.05);
-  const totalPixels = normalized.width * normalized.height;
-  const foregroundPixels = normalized.quality.cellStats.reduce((sum, item) => sum + item.foregroundPixels, 0);
-  const unclassifiedPixels = Math.max(0, totalPixels - normalized.quality.exactKeyPixels - foregroundPixels);
-  const unclassifiedPct = Number(((unclassifiedPixels / totalPixels) * 100).toFixed(2));
-  const gates = {
-    pure_chroma_key_background: gate(
-      unclassifiedPct <= 0.25 ? 'pass' : unclassifiedPct <= 1 ? 'warn' : 'fail',
-      'Normalized atlas should contain exact #00ff00 background pixels for deterministic cutting.',
-      {
-        exactKeyPct: normalized.quality.exactKeyPct,
-        exactKeyPixels: normalized.quality.exactKeyPixels,
-        foregroundPixels,
-        unclassifiedPixels,
-        unclassifiedPct,
-      },
-    ),
-    no_visible_grid_lines: gate(
-      dividerLines.horizontal.length === 0 && dividerLines.vertical.length === 0 ? 'pass' : 'fail',
-      'Normalized atlas should not retain visible row/column separator lines.',
-      { horizontalLines: dividerLines.horizontal, verticalLines: dividerLines.vertical },
-    ),
-    cell_foreground_retained: gate(
-      hasForegroundInEveryCell ? 'pass' : 'fail',
-      'Normalization must preserve foreground content in every semantic cell.',
-      Object.fromEntries(normalized.quality.cellStats.map((item) => [item.cell, item.foregroundPct])),
-    ),
-    shared_avatar_registration: evaluateSharedAvatarRegistration(
-      normalized.quality.cellStats,
-      normalized.cellWidth,
-      normalized.cellHeight,
-    ),
-  };
-  return {
-    kind: 'nimi2d.codex_image2.normalized_atlas_quality.v1',
-    decision: normalizedDecision(gates),
-    normalized_image: {
-      width_px: normalized.width,
-      height_px: normalized.height,
-      cell_width_px: normalized.cellWidth,
-      cell_height_px: normalized.cellHeight,
-    },
-    gates,
-    cell_stats: normalized.quality.cellStats,
-  };
-}
-
 function makeTransparentAtlas(normalized) {
   const rgba = new Uint8ClampedArray(normalized.rgba);
   let transparentPixels = 0;
@@ -518,21 +220,8 @@ function makeTransparentAtlas(normalized) {
     width: normalized.width,
     height: normalized.height,
     rgba,
-    report: {
-      kind: 'nimi2d.codex_image2.transparent_atlas_report.v1',
-      decision: {
-        verdict: transparentPixels > 0 ? 'pass' : 'fail',
-        reason: transparentPixels > 0
-          ? 'Exact #00ff00 normalized atlas pixels were converted to alpha.'
-          : 'No exact #00ff00 pixels were available for alpha conversion.',
-      },
-      transparent_background: {
-        source_key_rgb: [0, 255, 0],
-        tolerance: 0,
-        transparent_pixels: transparentPixels,
-        transparent_pct: Number(((transparentPixels / totalPixels) * 100).toFixed(2)),
-      },
-    },
+    transparentPixels,
+    transparentPct: Number(((transparentPixels / totalPixels) * 100).toFixed(2)),
   };
 }
 
@@ -576,23 +265,14 @@ function normalizeAtlasBackground(image, columns, rows) {
       });
     }
   }
-  let exactKeyPixels = 0;
-  for (let offset = 0; offset < outputRgba.length; offset += 4) {
-    if (isExactKey(outputRgba, offset)) exactKeyPixels += 1;
-  }
   return {
     width: image.width,
     height: image.height,
     cellWidth,
     cellHeight,
     rgba: outputRgba,
-    quality: {
-      exactKeyPixels,
-      exactKeyPct: Number(((exactKeyPixels / (image.width * image.height)) * 100).toFixed(2)),
-      gridLineCleanedPixels: dividerCleanup.cleanedPixels,
-      cleanedDividerLines: dividerCleanup.lines,
-      cellStats,
-    },
+    cleanedDividerPixelCount: dividerCleanup.cleanedPixels,
+    cellStats,
   };
 }
 
@@ -745,8 +425,6 @@ function buildAtlasSpec(input) {
 }
 
 export {
-  analyzeAtlasUpstreamQuality,
-  analyzeNormalizedAtlasQuality,
   buildAtlasSpec,
   defaultColumns,
   defaultRows,

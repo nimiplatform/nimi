@@ -7,9 +7,7 @@ import { test } from 'node:test';
 import YAML from 'yaml';
 
 import {
-  runGenerationBench,
   solvePackageFromLayerInput,
-  validateBenchResult,
   validateLayerInput,
   validatePackageManifest,
   writeSolvedPackage,
@@ -289,64 +287,4 @@ test('rejects tier-1 true viseme overclaim in package manifest', async () => {
   const result = await validatePackageManifest(packageFile);
   assert.equal(result.status, 'reject');
   assert.ok(result.codes.includes('NIMI2D_PACKAGE_TIER1_TRUE_VISEME_FORBIDDEN'));
-});
-
-test('bench result rejects missing selected case coverage', async () => {
-  const dir = await fixtureDir();
-  const resultFile = await writeYaml(dir, 'bench-result.yaml', {
-    run_id: 'n2d_generation_bench_run_test',
-    started_at: '2026-06-17T00:00:00Z',
-    corpus: { corpus_id: 'n2d_generation_corpus_test', corpus_version: '0.0.0', corpus_digest_sha256: sha256(Buffer.from('corpus')) },
-    generator: { generator_id: 'test', generator_version: '0.0.0', config_digest_sha256: sha256(Buffer.from('config')) },
-    validator: { validator_id: 'test', validator_version: '0.0.0' },
-    deterministic_replay: { seed: 1, environment_digest_sha256: sha256(Buffer.from('env')), command_ref: 'test' },
-    selected_cases: ['n2d_case_a', 'n2d_case_b'],
-    case_results: [{ case_id: 'n2d_case_a', split: 'certified_good_tier1', status: 'admitted', target_tier: 'tier-1_agent_basic', proven_tier: 'tier-1_agent_basic', package_manifest_ref: 'pkg', reject_codes: [], metrics: {}, failure_attribution: 'none' }],
-    hard_gate_results: {},
-    quality_gate_results: {},
-    tracking_metrics: {},
-    failure_attribution: {},
-    decision: { verdict: 'no_go', reason: 'coverage test' },
-  });
-  const result = await validateBenchResult(resultFile);
-  assert.equal(result.status, 'reject');
-  assert.ok(result.codes.includes('NIMI2D_BENCH_RESULT_CASE_COVERAGE_INVALID'));
-});
-
-test('generation bench reports go when solver proves tier-1 channels from conformant layer input', async () => {
-  const dir = await fixtureDir();
-  await writeYaml(dir, 'layer-input.yaml', baseLayerInput());
-  const corpusFile = await writeYaml(dir, 'corpus.yaml', {
-    corpus_id: 'n2d_generation_corpus_test',
-    corpus_version: '0.0.0',
-    corpus_digest_sha256: sha256(Buffer.from('corpus')),
-    frozen: true,
-    created_at: '2026-06-17T00:00:00Z',
-    case_splits: {
-      certified_good_tier1: ['n2d_case_valid'],
-      invalid_contract: [],
-    },
-    cases: [
-      {
-        case_id: 'n2d_case_valid',
-        split: 'certified_good_tier1',
-        layer_input_manifest_ref: 'layer-input.yaml',
-        content_hash_sha256: sha256(Buffer.from('case')),
-        expected_outcome: 'admit',
-        target_tier: 'tier-1_agent_basic',
-        source_evidence: {
-          layer_generation_ref: 'upstream_layer_generation_test',
-          identity_preservation_ref: 'upstream_identity_test',
-          content_admission_ref: 'upstream_content_test',
-        },
-      },
-    ],
-  });
-
-  const result = await runGenerationBench(corpusFile);
-  assert.equal(result.status, 'ok');
-  assert.equal(result.decision.verdict, 'go');
-  assert.equal(result.result.quality_gate_results.expression_usability_rate.status, 'pass');
-  assert.equal(result.result.quality_gate_results.jaw_amplitude_speech_mouth_usability_rate.status, 'pass');
-  assert.equal(result.result.quality_gate_results.motion_primitive_binding_success_rate.status, 'pass');
 });

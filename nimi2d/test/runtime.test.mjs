@@ -286,7 +286,5 @@ test('reference action bench is generic and does not require host app types', as
 
   assert.equal(result.verdict, 'pass_minimal_tier1');
   assert.equal(result.scope, 'pixi_renderer_foundation');
-  assert.equal(result.closesGenerationBench, false);
-  assert.equal(result.closesMountedVisualProof, false);
   assert.equal(result.metrics.gazeBehavior, 'unsupported_v1');
 });

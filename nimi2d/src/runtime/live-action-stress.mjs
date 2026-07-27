@@ -181,8 +181,6 @@ async function runNimi2DReferenceActionStress(input = {}) {
   return {
     verdict: failures.length === 0 ? 'pass_stream_stress_tier1' : 'fail',
     scope: NIMI2D_RUNTIME_SCOPE,
-    closesGenerationBench: false,
-    closesMountedVisualProof: false,
     metrics: {
       eventCount: counters.eventCount,
       rejectedInvalidEventCount: counters.rejectedInvalidEventCount,

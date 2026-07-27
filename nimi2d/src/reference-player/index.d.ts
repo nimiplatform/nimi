@@ -55,8 +55,6 @@ export type Nimi2DReferenceActionBenchInput = {
 export type Nimi2DReferenceActionBenchResult = {
   verdict: 'pass_minimal_tier1' | 'fail';
   scope: 'pixi_renderer_foundation';
-  closesGenerationBench: false;
-  closesMountedVisualProof: false;
   metrics: Record<string, unknown>;
   observations: Nimi2DReferenceActionBenchFrame[];
   failures: string[];
@@ -73,8 +71,6 @@ export type Nimi2DReferenceActionStressInput = {
 export type Nimi2DReferenceActionStressResult = {
   verdict: 'pass_stream_stress_tier1' | 'fail';
   scope: 'pixi_renderer_foundation';
-  closesGenerationBench: false;
-  closesMountedVisualProof: false;
   metrics: Record<string, unknown>;
   observations: Array<Nimi2DReferenceActionBenchFrame & Record<string, unknown>>;
   failures: string[];

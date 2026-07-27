@@ -9,8 +9,7 @@ authority: avatar.kernel.nimi2d_backend
 description: >
   Avatar-local live-action route families for the Nimi2D backend. These routes
   are downstream of typed runtime projection and Nimi2D package capability
-  evidence. They are not public APML syntax and they do not close Nimi2D
-  Generation Bench.
+  evidence. They are not public APML syntax.
 
 source_authority:
   runtime_projection: .nimi/spec/runtime/agent-participation.authority.yaml
@@ -74,6 +73,5 @@ invariants:
   - "Route success depends on package proven_tier and capability profile evidence."
   - "LLM-streamed numeric frame control is forbidden."
   - "Tier-1 true viseme is forbidden success."
-  - "Live Action route success cannot replace Nimi2D Generation Bench go/no-go."
 
 entries: *avatar_nimi2d_live_action_route_entries

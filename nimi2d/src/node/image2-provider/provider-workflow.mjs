@@ -224,8 +224,8 @@ function buildRequest(input) {
       artifact_manifest_ref: 'codex-image2.artifact.yaml',
     },
     authority_boundary: {
-      provider_output: 'upstream_image_resource_evidence',
-      formal_nimi2d_admission: 'layer_input_or_package_gates_only',
+      provider_output: 'generated_image_resource',
+      package_input: 'layer_input_or_validated_package_only',
       raw_image_direct_package_input: 'forbidden',
     },
   };

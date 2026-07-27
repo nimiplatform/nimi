@@ -4,15 +4,14 @@ import path from 'node:path';
 import YAML from 'yaml';
 
 import { sha256 } from '../common-utils.mjs';
-import { runImageInputWorkflowBench } from '../image-input/workflow-bench.mjs';
-import { runAtlasQualityGate } from '../image-input/atlas-quality.mjs';
-import { inspectLayerInput } from '../layer-input-inspector.mjs';
+import { cutLayerAtlas } from '../image-input/atlas-cutter.mjs';
+import { validateLayerInput } from '../layer-input.mjs';
+import { validatePackageManifest, writeSolvedPackage } from '../package-manifest.mjs';
 import { decodePngRgba } from '../png-rgba.mjs';
 import { encodePngRgba } from '../png-rgba-encode.mjs';
+import { createNimi2DRenderPlan } from '../../runtime/index.mjs';
 import { CODEX_IMAGE2_ARTIFACT_KIND } from './artifact.mjs';
 import {
-  analyzeAtlasUpstreamQuality,
-  analyzeNormalizedAtlasQuality,
   buildAtlasSpec,
   defaultColumns,
   defaultRows,
@@ -22,7 +21,6 @@ import {
 
 const producerManifestKind = CODEX_IMAGE2_ARTIFACT_KIND;
 const consumableProducerVerdicts = new Set(['admit', 'recorded_only']);
-const formalProducerVerdicts = new Set(['admit']);
 const workflowRunMarker = '.nimi2d-image2-layer-workflow-run';
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const repoRoot = path.resolve(packageRoot, '..');
@@ -32,11 +30,10 @@ function usage() {
     'Usage:',
     '  nimi2d image2-layer-workflow \\',
     '    (--image <codex-image2-atlas.png> | --producer-manifest <codex-image2.artifact.yaml>) \\',
-    '    --out-dir <artifact-dir> \\',
-    '    [--prompt-file <prompt.md>] [--surface <codex_app|codex_cli|codex_sdk|manual_handoff>] [--grid-size <n>]',
+    '    --out-dir <artifact-dir>',
     '',
     'This command normalizes a Codex Image2 atlas into machine-cut chroma-key,',
-    'writes an atlas spec, cuts layer PNGs, and runs the image-input workflow bench.',
+    'writes an atlas spec, cuts layer PNGs, and validates the layer/package output.',
   ].join('\n');
 }
 
@@ -49,16 +46,6 @@ function getFlag(args, name, fallback = null) {
 function requireFlag(args, name) {
   const value = getFlag(args, name);
   if (!value) throw new Error(`Missing required flag: ${name}`);
-  return value;
-}
-
-function integerFlag(args, name, fallback) {
-  const raw = getFlag(args, name);
-  if (raw === null) return fallback;
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`Expected positive integer for ${name}: ${raw}`);
-  }
   return value;
 }
 
@@ -173,18 +160,6 @@ async function readProducerManifest(manifestPath) {
   };
 }
 
-function resolvePromptFile(explicitPromptFile, producerRecord) {
-  if (explicitPromptFile) return explicitPromptFile;
-  const promptPath = producerRecord?.manifest?.producer?.prompt?.path;
-  return typeof promptPath === 'string' && promptPath.length > 0 ? promptPath : null;
-}
-
-function resolveSurface(explicitSurface, producerRecord) {
-  if (explicitSurface) return explicitSurface;
-  const surface = producerRecord?.manifest?.producer?.surface;
-  return typeof surface === 'string' && surface.length > 0 ? surface : 'manual_handoff';
-}
-
 function assertProducerArtifactMatchesImage(producerRecord, sourceBytes, decoded) {
   if (!producerRecord) return;
   const artifact = producerRecord.manifest.artifact;
@@ -212,40 +187,6 @@ async function copyProducerManifest(producerRecord, sourceDir) {
   return outPath;
 }
 
-function producerSummary(producerRecord, copiedManifestPath) {
-  if (!producerRecord) {
-    return {
-      verdict: 'not_recorded',
-      reason: 'No Codex Image2 artifact manifest was supplied.',
-    };
-  }
-  const { manifest } = producerRecord;
-  return {
-    manifest_kind: manifest.manifest_kind,
-    schema_version: manifest.schema_version,
-    verdict: manifest.verdict,
-    manifest_path: copiedManifestPath,
-    manifest_sha256: producerRecord.fileSha256,
-    family: manifest.producer?.family ?? null,
-    model: manifest.producer?.model ?? null,
-    surface: manifest.producer?.surface ?? null,
-    artifact: {
-      path: manifest.artifact.path,
-      format: manifest.artifact.format,
-      width_px: manifest.artifact.width_px,
-      height_px: manifest.artifact.height_px,
-      byte_size: manifest.artifact.byte_size ?? null,
-      file_sha256: manifest.artifact.file_sha256,
-      decoded_pixel_sha256: manifest.artifact.decoded_pixel_sha256 ?? null,
-    },
-    evidence: {
-      image_path: manifest.evidence?.image?.path ?? null,
-      pixel_identity_status: manifest.evidence?.pixel_identity?.status ?? null,
-    },
-    authority_boundary: 'Provider evidence admits provenance, not raw-only package input. Nimi2D source-to-layer admission requires admitted producer evidence plus deterministic repaired layer gates.',
-  };
-}
-
 async function runCodexImage2LayerWorkflow(args) {
   const producerManifestPath = getFlag(args, '--producer-manifest');
   const producerRecord = producerManifestPath ? await readProducerManifest(producerManifestPath) : null;
@@ -255,18 +196,13 @@ async function runCodexImage2LayerWorkflow(args) {
   }
   const imagePath = path.resolve(imageFlag ?? producerRecord.manifest.artifact.path);
   const outDir = path.resolve(requireFlag(args, '--out-dir'));
-  const promptFile = resolvePromptFile(getFlag(args, '--prompt-file'), producerRecord);
-  const surface = resolveSurface(getFlag(args, '--surface'), producerRecord);
-  const gridSize = integerFlag(args, '--grid-size', 4);
 
   await prepareWorkflowOutDir(outDir);
   const sourceDir = path.join(outDir, 'source');
   const atlasDir = path.join(outDir, 'atlas');
-  const qualityDir = path.join(outDir, 'quality');
   const outputDir = path.join(outDir, 'output');
   await mkdir(sourceDir, { recursive: true });
   await mkdir(atlasDir, { recursive: true });
-  await mkdir(qualityDir, { recursive: true });
 
   const sourceBytes = await readFile(imagePath);
   const imageHash = sha256(sourceBytes);
@@ -276,14 +212,7 @@ async function runCodexImage2LayerWorkflow(args) {
   const decoded = await decodePngRgba(imagePath);
   assertProducerArtifactMatchesImage(producerRecord, sourceBytes, decoded);
   const copiedProducerManifestPath = await copyProducerManifest(producerRecord, sourceDir);
-  const upstreamProducer = producerSummary(producerRecord, copiedProducerManifestPath);
-  const upstreamQuality = analyzeAtlasUpstreamQuality(decoded, defaultColumns, defaultRows);
-  const upstreamQualityPath = path.join(qualityDir, 'upstream-quality.yaml');
-  await writeYaml(upstreamQualityPath, upstreamQuality);
   const normalized = normalizeAtlasBackground(decoded, defaultColumns, defaultRows);
-  const normalizedQuality = analyzeNormalizedAtlasQuality(normalized);
-  const normalizedQualityPath = path.join(qualityDir, 'normalized-quality.yaml');
-  await writeYaml(normalizedQualityPath, normalizedQuality);
   const atlasPng = encodePngRgba({
     width: normalized.width,
     height: normalized.height,
@@ -298,156 +227,57 @@ async function runCodexImage2LayerWorkflow(args) {
     rgba: transparentAtlas.rgba,
   });
   const transparentAtlasPath = path.join(atlasDir, 'atlas-transparent.png');
-  const transparentAtlasReportPath = path.join(qualityDir, 'transparent-atlas.yaml');
   await writeFile(transparentAtlasPath, transparentAtlasPng);
-  await writeYaml(transparentAtlasReportPath, transparentAtlas.report);
 
   const spec = buildAtlasSpec({
     imageHash,
     cellWidth: normalized.cellWidth,
     cellHeight: normalized.cellHeight,
-    cellStats: normalized.quality.cellStats,
+    cellStats: normalized.cellStats,
   });
   const atlasSpecPath = path.join(atlasDir, 'atlas-spec.yaml');
   await writeYaml(atlasSpecPath, spec);
 
-  const atlasQualityPath = path.join(qualityDir, 'atlas-quality.yaml');
-  const atlasQuality = await runAtlasQualityGate(atlasSpecPath, { outPath: atlasQualityPath });
-  const bench = await runImageInputWorkflowBench(atlasSpecPath, outputDir, { gridSize });
-  const layerInputManifestPath = path.join(outputDir, 'layer-input', 'layer-input.yaml');
-  const layerInputFullChain = await inspectLayerInput(layerInputManifestPath, {
-    outputDir: path.join(outputDir, 'full-chain'),
-    gridSize,
+  const layerInputDir = path.join(outputDir, 'layer-input');
+  const cut = await cutLayerAtlas(atlasSpecPath, layerInputDir, { clean: true });
+  if (cut.status !== 'ok') {
+    return { ...cut, stage: 'atlas_cut' };
+  }
+  const layerInputManifestPath = cut.layerInputManifestPath;
+  const layerValidation = await validateLayerInput(layerInputManifestPath);
+  if (layerValidation.status !== 'ok') {
+    return { ...layerValidation, stage: 'layer_input_validation' };
+  }
+  const packageManifestPath = path.join(layerInputDir, 'package.yaml');
+  const solved = await writeSolvedPackage(layerInputManifestPath, packageManifestPath);
+  if (solved.status !== 'ok') {
+    return { ...solved, stage: 'package_solve' };
+  }
+  const packageValidation = await validatePackageManifest(packageManifestPath);
+  if (packageValidation.status !== 'ok') {
+    return { ...packageValidation, stage: 'package_validation' };
+  }
+  const renderPlan = createNimi2DRenderPlan({
+    packageManifestRaw: YAML.stringify(packageValidation.value),
+    packageManifestRef: packageManifestPath,
   });
-  const repairedWorkflowVerdict = bench.decision?.verdict === 'pass'
-    && normalizedQuality.decision?.verdict === 'pass'
-    && transparentAtlas.report.decision?.verdict === 'pass'
-    && atlasQuality.decision?.verdict === 'pass'
-    ? 'pass'
-    : 'fail';
-  const rawProviderAtlasAdmissionVerdict = formalProducerVerdicts.has(upstreamProducer.verdict)
-    && upstreamQuality.decision?.verdict === 'pass'
-    ? 'pass'
-    : 'fail';
-  const sourceToLayerPipelineVerdict = formalProducerVerdicts.has(upstreamProducer.verdict)
-    && repairedWorkflowVerdict === 'pass'
-    ? 'pass'
-    : 'fail';
-  const formalAdmissionVerdict = sourceToLayerPipelineVerdict;
-  const qualitySummary = {
-    upstream_producer: upstreamProducer.verdict,
-    upstream_image2_atlas: upstreamQuality.decision.verdict,
-    raw_provider_atlas_admission: rawProviderAtlasAdmissionVerdict,
-    normalized_atlas: normalizedQuality.decision.verdict,
-    transparent_atlas: transparentAtlas.report.decision.verdict,
-    atlas_quality: atlasQuality.decision?.verdict ?? 'fail',
-    repaired_workflow: repairedWorkflowVerdict,
-    layer_input_full_chain: layerInputFullChain.decision?.verdict ?? 'fail',
-    source_to_layer_pipeline: sourceToLayerPipelineVerdict,
-    formal_admission_model: 'raw_plus_repaired_evidence',
-    formal_nimi2d_admission: formalAdmissionVerdict,
-  };
-  const manifest = {
-    manifest_kind: 'nimi.nimi2d.codex-image2.layer-workflow-run',
-    schema_version: 1,
-    verdict: formalAdmissionVerdict,
-    quality_summary: qualitySummary,
-    admission_model: {
-      kind: 'raw_plus_repaired_evidence',
-      producer_evidence_requirement: 'decoded_pixel_identity_admitted',
-      raw_atlas_quality_role: 'diagnostic_not_blocking_when_repaired_pipeline_passes',
-      repair_pipeline_requirement: 'deterministic_normalization_transparency_atlas_quality_and_workflow_bench',
-      pass_condition: 'admitted_producer_evidence_and_source_to_layer_pipeline_pass',
-    },
-    source: {
-      image_path: sourceCopyPath,
-      file_sha256: imageHash,
-      surface,
-      prompt_file: promptFile ? path.resolve(promptFile) : null,
-      producer_manifest_path: copiedProducerManifestPath,
-      producer_manifest_sha256: producerRecord?.fileSha256 ?? null,
-    },
-    upstream_producer: upstreamProducer,
-    normalized_atlas: {
-      path: normalizedAtlasPath,
-      file_sha256: sha256(atlasPng),
-      width_px: normalized.width,
-      height_px: normalized.height,
-      cell_width_px: normalized.cellWidth,
-      cell_height_px: normalized.cellHeight,
-      background_key_rgb: [0, 255, 0],
-      quality: normalized.quality,
-    },
-    transparent_atlas: {
-      path: transparentAtlasPath,
-      file_sha256: sha256(transparentAtlasPng),
-      report_path: transparentAtlasReportPath,
-      decision: transparentAtlas.report.decision,
-      transparent_background: transparentAtlas.report.transparent_background,
-    },
-    atlas_spec_path: atlasSpecPath,
-    upstream_quality: {
-      report_path: upstreamQualityPath,
-      decision: upstreamQuality.decision,
-      gates: upstreamQuality.gates,
-    },
-    normalized_quality: {
-      report_path: normalizedQualityPath,
-      decision: normalizedQuality.decision,
-      gates: normalizedQuality.gates,
-    },
-    atlas_quality: {
-      report_path: atlasQualityPath,
-      status: atlasQuality.status,
-      decision: atlasQuality.decision ?? null,
-      failure_attribution: atlasQuality.result?.failure_attribution ?? {},
-    },
-    workflow_bench: {
-      status: bench.status,
-      report_path: bench.reportPath ?? null,
-      decision: bench.decision ?? null,
-    },
-    layer_input_full_chain: {
-      status: layerInputFullChain.status,
-      report_path: layerInputFullChain.outPath,
-      decision: layerInputFullChain.decision,
-      boundary: layerInputFullChain.report.boundary,
-    },
-    outputs: {
-      layer_input_manifest_path: layerInputManifestPath,
-      layer_dir: path.join(outputDir, 'layer-input', 'layers'),
-      corpus_path: path.join(outputDir, 'corpus.yaml'),
-      layer_input_full_chain_report_path: layerInputFullChain.outPath,
-    },
-  };
-  const manifestPath = path.join(outDir, 'codex-image2-layer-workflow.yaml');
-  await writeYaml(manifestPath, manifest);
   return {
     status: 'ok',
     kind: 'codex_image2_layer_workflow',
-    verdict: manifest.verdict,
-    manifestPath,
+    outDir,
+    sourceImagePath: sourceCopyPath,
+    sourceImageSha256: imageHash,
     atlasSpecPath,
     normalizedAtlasPath,
     transparentAtlasPath,
-    workflowReportPath: bench.reportPath ?? null,
-    layerInputFullChainReportPath: layerInputFullChain.outPath,
-    layerInputFullChainVerdict: layerInputFullChain.decision?.verdict ?? 'fail',
-    atlasQualityReportPath: atlasQualityPath,
-    atlasQualityVerdict: atlasQuality.decision?.verdict ?? 'fail',
-    upstreamQualityReportPath: upstreamQualityPath,
-    upstreamQualityVerdict: upstreamQuality.decision.verdict,
-    normalizedQualityReportPath: normalizedQualityPath,
-    normalizedQualityVerdict: normalizedQuality.decision.verdict,
-    transparentAtlasReportPath,
-    transparentAtlasVerdict: transparentAtlas.report.decision.verdict,
+    transparentPixelCount: transparentAtlas.transparentPixels,
+    layerInputManifestPath,
+    layerDir: path.join(layerInputDir, 'layers'),
+    layerAssetCount: cut.layerAssetCount,
+    packageManifestPath,
+    renderLayerCount: renderPlan.renderLayers.length,
     producerManifestPath: copiedProducerManifestPath,
-    producerVerdict: upstreamProducer.verdict,
-    repairedWorkflowVerdict,
-    sourceToLayerPipelineVerdict,
-    rawProviderAtlasAdmissionVerdict,
-    formalAdmissionVerdict: qualitySummary.formal_nimi2d_admission,
-    qualitySummary,
+    producerVerdict: producerRecord?.manifest.verdict ?? 'not_recorded',
   };
 }
 
@@ -458,15 +288,13 @@ async function runCodexImage2LayerWorkflowCli(args = process.argv.slice(2)) {
   }
   const result = await runCodexImage2LayerWorkflow(args);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  if (result.verdict !== 'pass') {
+  if (result.status !== 'ok') {
     process.exitCode = 1;
   }
 }
 
 export {
-  analyzeAtlasUpstreamQuality,
   normalizeAtlasBackground,
-  analyzeNormalizedAtlasQuality,
   makeTransparentAtlas,
   buildAtlasSpec,
   readProducerManifest,

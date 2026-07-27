@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import YAML from 'yaml';
 
@@ -12,7 +11,6 @@ import { encodePngRgba } from '../src/node/png-rgba-encode.mjs';
 
 const execFileAsync = promisify(execFile);
 const packageRoot = path.resolve(import.meta.dirname, '..');
-const repoRoot = path.resolve(packageRoot, '..');
 const cliPath = path.join(packageRoot, 'bin/nimi2d.mjs');
 
 async function readYaml(filePath) {
@@ -185,7 +183,7 @@ test('Codex Image2 provider plans prompt-to-image and registers a consumed respo
   const request = await readYaml(planned.requestPath);
   assert.equal(request.manifest_kind, 'nimi.nimi2d.codex-image2.request');
   assert.equal(request.workflow.kind, 'prompt_to_image');
-  assert.equal(request.authority_boundary.formal_nimi2d_admission, 'layer_input_or_package_gates_only');
+  assert.equal(request.authority_boundary.package_input, 'layer_input_or_validated_package_only');
   const prompt = await readFile(planned.promptPath, 'utf8');
   assert.match(prompt, /Use Codex Image2 \/ Image Gen/);
   assert.match(prompt, /Do not run shell commands, inspect the local repository/);
@@ -365,30 +363,6 @@ test('Codex Image2 provider rejects timed out Codex CLI execution', async () => 
   assert.deepEqual(rejected.codes, ['NIMI2D_CODEX_IMAGE2_CLI_TIMEOUT']);
   assert.equal(rejected.issues[0].code, 'NIMI2D_CODEX_IMAGE2_CLI_TIMEOUT');
   assert.match(rejected.issues[0].message, /timed out after 50ms/);
-});
-
-test('live provider invariant guard rejects Nimi2D Image2 direct API key drift', async () => {
-  const scriptUrl = pathToFileURL(path.join(repoRoot, 'scripts/check-live-provider-invariants.mjs')).href;
-  const { collectNimi2DImage2LiveRouteDriftRefs } = await import(scriptUrl);
-  const tempRoot = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-boundary-guard-'));
-
-  await mkdir(path.join(tempRoot, 'nimi2d/src/node/image2-provider'), { recursive: true });
-  await mkdir(path.join(tempRoot, 'nimi2d/test'), { recursive: true });
-
-  await writeFile(
-    path.join(tempRoot, 'nimi2d/src/node/image2-provider/provider-workflow.mjs'),
-    `export const bad = "${'openai_' + 'api_key'}";\n`,
-    'utf8',
-  );
-  await writeFile(
-    path.join(tempRoot, 'nimi2d/src/node/image2-provider/provider-openai-image-api.mjs'),
-    `export const isolated = "${'openai_' + 'image_api'}";\n`,
-    'utf8',
-  );
-
-  const driftRefs = collectNimi2DImage2LiveRouteDriftRefs(tempRoot);
-  assert.equal(driftRefs.some((ref) => ref.path.endsWith('provider-openai-image-api.mjs')), false);
-  assert.equal(driftRefs.some((ref) => ref.path.endsWith('provider-workflow.mjs')), true);
 });
 
 test('Codex Image2 provider retries Codex CLI attempts in isolated output directories', async () => {

@@ -305,8 +305,6 @@ export type Nimi2DReferenceActionBenchInput = Nimi2DLiveActionBenchInput;
 export type Nimi2DLiveActionBenchResult = {
   verdict: 'pass_minimal_tier1' | 'fail';
   scope: 'pixi_renderer_foundation';
-  closesGenerationBench: false;
-  closesMountedVisualProof: false;
   metrics: {
     maxProjectionLatencyMs: number;
     stateLegibilityScore: number;
@@ -345,8 +343,6 @@ export type Nimi2DReferenceActionStressFrame = Nimi2DLiveActionStressFrame;
 export type Nimi2DLiveActionStressResult = {
   verdict: 'pass_stream_stress_tier1' | 'fail';
   scope: 'pixi_renderer_foundation';
-  closesGenerationBench: false;
-  closesMountedVisualProof: false;
   metrics: {
     eventCount: number;
     rejectedInvalidEventCount: number;
