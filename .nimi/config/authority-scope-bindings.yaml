@@ -6,8 +6,6 @@ scopes:
         value: "apps/desktop/src-tauri/src/**/*.rs"
       - kind: path_glob
         value: "kit/shell/tauri/src/**/*.rs"
-      - kind: command
-        value: "check:desktop-tauri-command-execution"
   - scope: desktop.bridge-ipc
     bindings:
       - kind: path_glob
@@ -112,8 +110,6 @@ scopes:
     bindings:
       - kind: path_glob
         value: "nimi2d/src/node/image2-provider/**"
-      - kind: path_glob
-        value: "nimi2d/src/node/generation-bench*.mjs"
   - scope: zhiyu.local-partner-surface
     bindings:
       - kind: path_glob

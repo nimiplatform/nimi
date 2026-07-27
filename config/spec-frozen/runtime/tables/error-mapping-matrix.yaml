@@ -202,10 +202,6 @@ rows:
 fragments:
   mappings:
     - error-mapping-matrix/10-core-protocol-auth.yaml
-    # realm merge (P4): the realm-broker fragment is now the active consumer
-    # contract at config/runtime-error-mapping-realm-broker.yaml; this ref is
-    # a reader coordinate and follows the move (identity strings inside
-    # fragment data are unchanged).
     - ../../../runtime-error-mapping-realm-broker.yaml
     - error-mapping-matrix/20-ai-route-provider.yaml
     - error-mapping-matrix/30-ai-media-voice.yaml

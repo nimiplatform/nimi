@@ -12,7 +12,6 @@ path_binding:
     dot_nimi: direct_non_symlink_non_junction_non_reparse_directory
     nimi_json: direct_regular_non_symlink_non_reparse_file
   runtime_protected_state: derived_security_and_verification_only
-  non_release_dev_kernel_checkpoint: same_fixed_product_control_path
   caller_or_environment_override: forbidden
   dual_read_or_migration_fallback: forbidden
 data_root_path:
@@ -94,8 +93,6 @@ invariants:
     requirement: pointers.appRegistry and pointers.appPackages are forbidden; product control cannot point at, recreate, migrate, or treat user-local app registry/package projections as discovery, identity, package, grant, inventory, or readiness truth.
   - id: repair-fail-closed
     requirement: repair.required or invalid product-control shape routes to repair_required or blocked, never ordinary ready.
-  - id: non-release-checkpoint-round-partition
-    requirement: The first signed-installer dev_kernel_checkpoint installation creates only a durable protected development state lineage from exact trial id, first-install developmentStateCandidateId, and a cryptographically random acceptanceRoundId. Ordinary signed Runtime candidate updates preserve that exact protected lineage while leaving ~/.nimi/nimi.json independent and reusing its canonical dataRoot.path. Candidate rotation never creates a fresh installId, resets grants, abandons selected payloads, or supplies a separate data-root proposal or binding. A new protected lineage requires an explicit destructive repair/reset operation. Existing or damaged records and every production profile retain normal repair/fail-closed semantics; HOME, TEMP, renderer state, endpoint, environment, argv, request fields, installers, and test harnesses cannot select dataRoot.path or enable reset.
 ready_admission:
   source_rule: P-COLD-016
   logical_operation: AdmitProductReadyForUse

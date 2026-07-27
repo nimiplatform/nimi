@@ -11,7 +11,6 @@
 - Desktop/Web must not import `runtime/internal/**`; SDK must not cross Realm/Runtime private boundaries; Runtime must not import `sdks/**` or `apps/**`.
 - The external AI host owns workflow state. Use only guarded package scripts in `package.json`; Nimi-coding must not own or mutate host task lifecycle.
 - For Image2/provider work under `nimi2d/**`, read `nimi2d/AGENTS.md`.
-- For Gate 0, P4, or first-party product-harness work, read `tests/local-agent-product/AGENTS.md`.
 ## Execution Priority
 - Treat explicit user direction and completed phase decisions as fixed unless the real path or direct authority contradicts them.
 - For an authorized implementation or product-gate task, attempt the real affected build, launch, or journey first. `not_observed` is not invalid; stop on the first actual failure, repair its smallest causal mechanism, and rerun the same target.

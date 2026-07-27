@@ -75,57 +75,37 @@ intents:
       - K-RPC-004
       - P-COLD-001
       - P-COLD-002
-    gate_refs:
-      - gate.desktop.windows-product-control-native
   local_runtime_inventory:
     owner_postcondition_refs:
       - K-RPC-004
       - K-LOCAL-009
       - K-AUDIT-024
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   local_runtime_route_readiness:
     owner_postcondition_refs:
       - K-RPC-004
       - K-AIEXEC-007
       - K-SCHED-001
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   direct_nimi_turn:
     owner_postcondition_refs:
       - K-AIEXEC-001
       - K-STREAM-003
       - K-STREAM-004
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   realm_source_materialization:
     owner_postcondition_refs:
       - K-AGCORE-139
       - K-AGCORE-151
       - K-AGCORE-152
       - K-AGCORE-153
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.local-agent-product-core-stability
   local_agent_inventory:
     owner_postcondition_refs:
       - K-AGCORE-006
       - K-AGCORE-139
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.local-agent-product-core-stability
   partner_conversation_open:
     owner_postcondition_refs:
       - K-AGCORE-032
       - K-AGCORE-033
       - K-AGCORE-034
       - K-AGCORE-035
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.local-agent-product-core-stability
   partner_turn:
     owner_postcondition_refs:
       - K-APP-002
@@ -133,126 +113,77 @@ intents:
       - K-AGCORE-032
       - K-AGCORE-052
       - K-AGCORE-053
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.local-agent-product-core-stability
   agent_ai_config:
     owner_postcondition_refs:
       - K-AGCORE-144
       - K-AGCORE-145
       - K-AGCORE-146
       - K-AGCORE-149
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.local-agent-product-core-stability
   agent_memory_binding:
     owner_postcondition_refs:
       - K-AGCORE-004
-    gate_refs:
-      - gate.desktop.local-agent-product-core-stability
   agent_presentation:
     owner_postcondition_refs:
       - K-AGCORE-023a
       - K-AGCORE-138
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.avatar-electron-acceptance
   partner_artifact:
     owner_postcondition_refs:
       - K-AGCORE-053
       - K-VOICE-021
-    gate_refs:
-      - gate.desktop.local-agent-product-core-stability
   runtime_config_local_asset_control:
     owner_postcondition_refs:
       - K-RPC-004
       - K-LOCAL-005
       - K-LOCAL-006
       - K-LOCAL-028
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   local_catalog_management:
     owner_postcondition_refs:
       - K-LOCAL-005
       - K-LOCAL-009
       - K-LOCAL-026
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   local_transfer_control:
     owner_postcondition_refs:
       - K-LOCAL-005
       - K-LOCAL-006
       - K-STREAM-003
       - K-STREAM-004
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   local_profile_control:
     owner_postcondition_refs:
       - K-LOCAL-005
       - K-LOCAL-006
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   connector_catalog_management:
     owner_postcondition_refs:
       - K-CONN-001
       - K-CONN-002
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   runtime_observability_stream:
     owner_postcondition_refs:
       - K-AUDIT-024
       - K-STREAM-003
       - K-STREAM-004
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   external_agent_reserved_control:
     owner_postcondition_refs:
       - K-RPC-026
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   account_app_inventory:
     owner_postcondition_refs:
       - K-APP-002
       - K-APP-003
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.local-agent-product-core-stability
   account_connector_control:
     owner_postcondition_refs:
       - K-CONN-001
       - K-CONN-002
-    gate_refs:
-      - gate.desktop.first-party-direct-nimi-core
-      - gate.desktop.local-agent-product-core-stability
   account_agent_state_control:
     owner_postcondition_refs:
       - K-AGCORE-006
       - K-AGCORE-007
       - K-AGCORE-009
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.local-agent-product-core-stability
   delegated_control_surface:
     owner_postcondition_refs:
       - K-AGCORE-006
       - K-DELEG-095
       - K-DELEG-097
-    gate_refs:
-      - gate.desktop.first-party-partner-core
-      - gate.desktop.local-agent-product-core-stability
   bundled_avatar_runtime:
     owner_postcondition_refs:
       - K-PLOCAL-010
-    gate_refs:
-      - gate.desktop.avatar-electron-acceptance
-      - gate.desktop.local-agent-product-core-stability
 external_profiles:
   desktop_account_broker:
     profile_id: desktop_account_broker_v1
@@ -953,48 +884,3 @@ profiles:
       - renderer_selected_app_id
       - renderer_selected_endpoint
       - generic_protected_proxy
-migration_parity_views:
-  status: compiler_input_only_not_runtime_profile_authority
-  product_control_v1:
-    derive_from_profile_id: desktop_machine_product_v1
-    require_intent_ref: product_control
-    expected_method_count: 21
-    expected_unary_count: 21
-    expected_server_stream_count: 0
-    expected_fingerprint_sha256: 7fbaf4a067eab9d111bd4fc074c855db0cc7c56de37c5c84df0f3f389c329e14
-  ordinary_desktop_runtime_consumer_v1:
-    status: frozen_pre_redesign_behavior
-    expected_method_count: 11
-    expected_unary_count: 11
-    expected_server_stream_count: 0
-    expected_fingerprint_sha256: b86770bcf80f89693a63a1b46e726d1ff3c8e1b251ffb05a9da5ac594e0efffb
-    methods:
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAssets
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectors
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeAiService/PeekScheduling
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario
-        kind: unary
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
-        kind: unary
-  bundled_avatar_v1:
-    derive_from_profile_id: bundled_avatar_v1
-    expected_method_count: 31
-    expected_unary_count: 26
-    expected_server_stream_count: 5
-    expected_fingerprint_sha256: 4bc4aa263abe992c343766af7d0943d8a1ef3131fb5447893917852af57b417e
-    expected_capability_fingerprint_sha256: 39a009f27f1c9f7c8c54ee96b3404c64e554ae0a1fa93ed1a2f8d2a6322cc4ab

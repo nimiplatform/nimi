@@ -60,6 +60,3 @@ entries:
   - id: features-toolkits
     owner: sdks/typescript/features/toolkits
     semantics: Approval, external execution, artifact, file, and MCP tool helpers.
-  - id: migration-proofs
-    owner: sdks/typescript/migration-proofs
-    semantics: External app migration proofs for adapter/model replacement and MingSim-shaped flows.

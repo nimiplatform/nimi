@@ -1,17 +1,13 @@
-version: 13
+version: 14
 table_family: product_catalog
 owner: platform
 catalog_id: platform_protected_local_executable_trust_sets
 entries:
   - nimi-desktop-production-v1
-  - nimi-desktop-e2e-fixture-v1
   - nimi-runtime-production-v1
   - nimi-local-development-host-macos-production-v1
-  - nimi-local-development-host-macos-e2e-fixture-v1
   - nimi-desktop-control-carrier-production-v1
-  - nimi-desktop-control-carrier-e2e-fixture-v1
   - nimi-production-release-signing-policy
-  - external-non-product-e2e-signing-policy
   - nimi-runtime-macos-local-development-v1
   - nimi-desktop-macos-local-development-v1
   - nimi-local-development-host-macos-local-development-v1
@@ -208,7 +204,6 @@ platform_verification_profile_schema:
     - client_executable_verification
     - server_executable_verification
     - production_signer_constraint
-    - non_product_test_signer_constraint
     - service_or_launch_authority
     - pathname_only_verification
     - verified_transport_profile_ref
@@ -220,7 +215,6 @@ platform_verification_profiles:
     client_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy
     server_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy_and_service_sid
     production_signer_constraint: exact_authenticode_publisher_leaf_certificate_and_executable_role
-    non_product_test_signer_constraint: exact_non_product_fixture_certificate_and_executable_role
     service_or_launch_authority: signed_installer_fixed_service_definition_or_signed_desktop_launch_registration
     pathname_only_verification: forbidden
     verified_transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#same-os
@@ -231,7 +225,6 @@ platform_verification_profiles:
     client_executable_verification: opened_proc_pid_exe_fd_device_inode_platform_package_signing_identity
     server_executable_verification: opened_proc_pid_exe_fd_device_inode_platform_package_signing_identity
     production_signer_constraint: exact_signed_package_repository_identity_and_executable_role
-    non_product_test_signer_constraint: exact_non_product_fixture_release_digest_and_executable_role
     service_or_launch_authority: signed_system_package_service_definition_or_signed_desktop_carrier_launch
     pathname_only_verification: forbidden
     verified_transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#same-os
@@ -242,7 +235,6 @@ platform_verification_profiles:
     client_executable_verification: running_process_audit_token_dynamic_SecCode_exact_role_requirement_team_id_identifier_cdhash_from_signed_role_record_hardened_runtime_same_open_vnode_digest_and_liveness
     server_executable_verification: running_runtime_audit_token_dynamic_SecCode_exact_Runtime_requirement_team_id_identifier_cdhash_from_signed_role_record_hardened_runtime_installed_same_open_vnode_digest_stable_launchd_job_and_boot_epoch
     production_signer_constraint: Developer_ID_Application_exact_designated_requirement_team_id_identifier_release_record_cdhash_notarization_hardened_runtime_and_executable_role
-    non_product_test_signer_constraint: explicit_external_non_product_certificate_exact_designated_requirement_identifier_leaf_SPKI_cdhash_hardened_runtime_Team_ID_absent_and_executable_role_never_product_ready
     service_or_launch_authority: signed_notarized_SMAppService_registered_launchd_system_daemon_or_signed_Desktop_supervised_posix_spawn_child
     pathname_only_verification: forbidden
     verified_transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#same-os
@@ -259,17 +251,6 @@ signer_policies:
     notarization_posture: required_on_macos
     runtime_build_allowance: production_only
     source_rule: P-NAPP-034
-  - signer_policy_id: external-non-product-e2e-signing-policy
-    environment: non_product_test
-    identity_authority: external_ephemeral_e2e_fixture_identity
-    platform_verification_profile_ref: platform_verification_profiles#same-os
-    key_material_boundary: external_test_secret_store_only
-    identity_class: external_test_fixture
-    release_record_signature_algorithm: ed25519
-    team_id_posture: platform_fixture_specific
-    notarization_posture: never_product_ready
-    runtime_build_allowance: test_only
-    source_rule: P-NAPP-034
   - signer_policy_id: nimi-macos-local-development-signing-policy
     environment: local_development
     identity_authority: machine_local_non_product_CA_with_distinct_P256_role_leaves
@@ -282,12 +263,8 @@ signer_policies:
     runtime_build_allowance: compile_time_macos_local_development_only
     source_rule: P-NAPP-037
 trust_profile_transitions: []
-production_runtime_accepts_test_trust_set: false
 production_runtime_accepts_local_development_trust_set: false
 local_development_runtime_accepts_production_trust_set: false
-local_development_runtime_accepts_external_e2e_fixture_trust_set: false
-test_runtime_accepts_production_realm_endpoints: false
-test_runtime_accepts_production_account_custody: false
 local_development_runtime_accepts_production_realm_endpoints: false
 local_development_runtime_accepts_production_account_custody: false
 production_runtime_trusts_user_selected_executable: false
@@ -301,11 +278,6 @@ selection_override_sources_forbidden:
   - renderer_metadata
   - app_owned_host_metadata
   - request_field
-fixture_private_key_locations_forbidden:
-  - repository
-  - product_bundle
-  - app_starter
-  - evidence_artifact
 trust_sets:
   - trust_set_id: nimi-desktop-production-v1
     executable_role: nimi_desktop
@@ -317,18 +289,6 @@ trust_sets:
     configuration_authority: signed_release_descriptor_no_environment_argv_or_renderer_url_override
     runtime_build_allowance: production_only
     product_readiness_claim_allowed: true
-    runtime_configuration_mutable: false
-    source_rule: P-NAPP-034
-  - trust_set_id: nimi-desktop-e2e-fixture-v1
-    executable_role: nimi_desktop
-    environment: non_product_test
-    allowed_os_profiles: [windows, macos]
-    platform_code_signing_policy_ref: external-non-product-e2e-signing-policy
-    installer_release_authority: isolated_non_product_fixture_installer
-    launch_authority: non_product_harness_only
-    configuration_authority: non_product_harness_config_only
-    runtime_build_allowance: test_only
-    product_readiness_claim_allowed: false
     runtime_configuration_mutable: false
     source_rule: P-NAPP-034
   - trust_set_id: nimi-runtime-production-v1
@@ -355,18 +315,6 @@ trust_sets:
     product_readiness_claim_allowed: true
     runtime_configuration_mutable: false
     source_rule: P-NAPP-037
-  - trust_set_id: nimi-local-development-host-macos-e2e-fixture-v1
-    executable_role: nimi_local_app_host
-    environment: non_product_test
-    allowed_os_profiles: [macos]
-    platform_code_signing_policy_ref: external-non-product-e2e-signing-policy
-    installer_release_authority: isolated_non_product_fixture_bundle_only
-    launch_authority: non_product_harness_verified_Desktop_supervisor_only
-    configuration_authority: isolated_non_product_acceptance_inputs_only
-    runtime_build_allowance: test_only
-    product_readiness_claim_allowed: false
-    runtime_configuration_mutable: false
-    source_rule: P-NAPP-037
   - trust_set_id: nimi-desktop-control-carrier-production-v1
     executable_role: nimi_desktop_control_carrier
     environment: production
@@ -377,18 +325,6 @@ trust_sets:
     configuration_authority: signed_static_carrier_no_runtime_configuration_inputs
     runtime_build_allowance: production_only
     product_readiness_claim_allowed: true
-    runtime_configuration_mutable: false
-    source_rule: P-NAPP-034
-  - trust_set_id: nimi-desktop-control-carrier-e2e-fixture-v1
-    executable_role: nimi_desktop_control_carrier
-    environment: non_product_test
-    allowed_os_profiles: [linux]
-    platform_code_signing_policy_ref: external-non-product-e2e-signing-policy
-    installer_release_authority: isolated_non_product_desktop_fixture_carrier
-    launch_authority: non_product_desktop_harness_explicit_handle_only
-    configuration_authority: synthetic_non_product_carrier_config_only
-    runtime_build_allowance: test_only
-    product_readiness_claim_allowed: false
     runtime_configuration_mutable: false
     source_rule: P-NAPP-034
   - trust_set_id: nimi-runtime-macos-local-development-v1

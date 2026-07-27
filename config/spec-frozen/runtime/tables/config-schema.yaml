@@ -138,54 +138,6 @@ production_authority:
   product_control_mismatch: repair_or_fail_closed_without_protected_override
   retired_import: forbidden_pre_release_hardcut
   read_projection: typed_redacted_no_physical_path_no_secret
-  non_product_fixture: separately_signed_synthetic_only_no_product_evidence
-  non_release_checkpoint_profile:
-    profile: dev_kernel_checkpoint
-    activation_source: signed_runtime_candidate_projection_only
-    schema_version: 6
-    product_control_root: fixed_~/.nimi/nimi.json_outside_protected_lineage
-    partition_identity: exact_trial_id_plus_preserved_development_state_candidate_id_plus_preserved_acceptance_round_id
-    binary_candidate_binding:
-      field: runtimeCandidateId
-      source: exact_current_build_record_verified_runtime_candidate_id
-      state_identity_effect: none
-    development_state_lineage_binding:
-      fields: [developmentStateCandidateId, acceptanceRoundId]
-      first_install_source: current_build_record_verified_runtime_candidate_id_plus_cryptographically_random_acceptance_round_id
-      signed_update_source: exact_preceding_protected_profile_lineage
-      update_semantics: preserve_runtime_identity_local_app_kernel_grants_model_registry_audit_and_service_owned_config_without_relocating_or_recreating_product_control
-      forbidden_reset_sources: [runtime_candidate_change, boot_epoch_change, desktop_restart, renderer_state, environment_variable, argv, home, temp, endpoint, request_field]
-      reset_semantics: explicit_destructive_repair_operation_only
-    acceptance_round_binding:
-      field: acceptanceRoundId
-      source: cryptographically_random_value_generated_by_first_signed_install_then_exactly_preserved_by_signed_updates
-      restart_semantics: same_protected_profile_preserves_same_round_and_completed_first_run_state
-      next_round_semantics: ordinary_signed_runtime_update_preserves_round
-      shared_payload_effect: none
-      forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]
-    canonical_data_root_binding:
-      field: dataRoot.path
-      source: exact_fixed_~/.nimi/nimi.json_through_shared_product_control_resolver
-      validation: existing_absolute_non_volume_root_non_reparse_directory_owned_by_interactive_user_and_accessible_to_fixed_service
-      runtime_effect: derived_dataRootRef_managed_roots_and_verification_evidence_only
-      update_semantics: reuse_and_revalidate_canonical_selection_without_operator_or_installer_override
-      forbidden_overrides: [signed_installer_input, protected_profile, environment_variable, argv, home_derived_guess, userprofile_derived_guess, temp, renderer_metadata, endpoint, request_field, test_harness]
-      invalid_or_mismatched_state: explicit_repair_or_fail_closed_without_alternate_prompt_or_candidate_fallback
-    cross_candidate_state_inheritance: exact_same_signed_development_state_lineage_only
-    cross_candidate_payload_reuse: independently_verify_current_candidate_catalog_hash_manifest_compatibility_and_activation_without_redownload_when_payload_is_unchanged
-    fresh_round_condition: first_install_or_explicit_destructive_repair_reset_only
-    fresh_round_effect: new_isolated_control_partition_with_new_install_id_and_no_shared_payload_mutation
-    forbidden_activation_sources: [environment_variable, argv, home, temp, renderer_metadata, endpoint, request_field]
-    existing_or_partially_damaged_record: normal_repair_fail_closed_within_same_round
-    account_realm_authority: installer_owned_candidate_bound_real_realm_development_deployment
-    account_web_login_origin: candidate_bound_expected_oauth_redirect_only
-    account_realm_runtime_env_override: forbidden
-    account_oauth_flow: real_system_browser_pkce_loopback_callback_runtime_token_custody
-    fixture_account_realm_authority: none
-    fixture_provider_scope: exact_loopback_non_release_provider_seed_only
-    forbidden_account_fixture_behaviors: [fixture_authorize_redirect, fixture_token_exchange, fixture_jwks, fixture_revocation, fixture_issuer, shared_realm_provider_endpoint]
-    release_posture: non_release
-    product_close_promotion: non_promotable_to_product_close
 # Production service-owned Runtime state schema; no user-writable config file is an input.
 # Source rule: K-CFG-017, K-DAEMON-009
 fields:

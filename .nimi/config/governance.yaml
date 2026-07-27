@@ -47,8 +47,6 @@ ai_governance:
         max_lines: 60
       - rel: nimi2d/AGENTS.md
         max_lines: 60
-      - rel: tests/local-agent-product/AGENTS.md
-        max_lines: 60
     required_sections:
       - "## Scope"
       - "## Hard Boundaries"
@@ -187,7 +185,6 @@ ai_governance:
         - sdks/typescript/runtime/wire-types/index.ts
         - kit/design-projection.json
       temporary_large_production:
-        - apps/desktop/scripts/run-e2e.mjs
         - apps/desktop/src-tauri/src/desktop_open_intent.rs
         - apps/desktop/src-tauri/src/desktop_product_control/operations.rs
         - apps/desktop/src/shell/renderer/first-run/product-control-workflow.tsx
@@ -203,7 +200,6 @@ ai_governance:
         - sdks/typescript/runtime/runtime-agent-consume.test.ts
         - sdks/typescript/runtime/runtime-agent-helpers.test.ts
         - sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts
-        - tests/local-agent-product/harness/first-party-product-journey-driver.mjs
       temporary_large_config_inventory:
         - config/zhiyu-test-inventory.yaml
         - config/platform-standard-shell-capabilities.yaml

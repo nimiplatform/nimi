@@ -234,8 +234,6 @@ pnpm build
 ```bash
 pnpm --filter @nimiplatform/sdk lint
 pnpm --filter @nimiplatform/sdk test
-pnpm check:sdk-release-contracts
-pnpm check:sdk-consumer-smoke
 ```
 
 代码生成与协议：

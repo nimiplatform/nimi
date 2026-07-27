@@ -9,7 +9,7 @@ package decides where they belong.
 
 | Family | Owner package |
 |---|---|
-| `runtime/tables/**`, `platform/tables/**` (protected-local family) | dev-kernel disentangle package |
+| `runtime/tables/**`, `platform/tables/**` (protected-local family) | protected-local Runtime configuration consumers |
 | Realm broker tables | closed by the realm merge (`3c6aa9707`); the three activated tables now live in `config/` as consumer contracts |
 
 ## The freeze invariant
