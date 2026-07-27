@@ -86,12 +86,21 @@ function createSimulatorProductBuildFixture() {
 }
 
 function testerDescriptorValue(fixture) {
-  const authorityRefs = [{ owner: 'tester', rule_id: 'T-SIM-008' }];
+  const sourceAuthorityRefs = [
+    { owner: 'platform', rule_id: 'P-SIM-004' },
+    { owner: 'platform', rule_id: 'P-SIM-006' },
+  ];
+  const appProductionAuthorityRefs = [{ owner: 'platform', rule_id: 'P-SIM-004' }];
+  const hostInvocationAuthorityRefs = [{ owner: 'platform', rule_id: 'P-SIM-005' }];
+  const hostInventoryAuthorityRefs = [
+    { owner: 'platform', rule_id: 'P-SIM-005' },
+    { owner: 'platform', rule_id: 'P-SIM-006' },
+  ];
   const appProduction = {
     source_id: 'app',
     entries: ['src/main.tsx'],
     inventory_digest: '',
-    inventory_authority_refs: authorityRefs,
+    inventory_authority_refs: appProductionAuthorityRefs,
   };
   appProduction.inventory_digest = appProductionInventoryDigest(appProduction);
   const hostInvocations = {
@@ -99,10 +108,10 @@ function testerDescriptorValue(fixture) {
       id: 'tester-renderer',
       source_id: 'app',
       entry: 'src/main.tsx',
-      authority_refs: authorityRefs,
+      authority_refs: hostInvocationAuthorityRefs,
     }],
     inventory_digest: '',
-    inventory_authority_refs: authorityRefs,
+    inventory_authority_refs: hostInventoryAuthorityRefs,
   };
   hostInvocations.inventory_digest = hostInvocationInventoryDigest(hostInvocations);
   return {
@@ -117,8 +126,8 @@ function testerDescriptorValue(fixture) {
       object_id: fixture.objectId,
       root: 'app',
       expected_digest: fixture.expectedDigest,
-      authority_refs: authorityRefs,
-      authority_index_digest: stableJsonDigest('nimi-simulator-tester-authority-v1', authorityRefs),
+      authority_refs: sourceAuthorityRefs,
+      authority_index_digest: stableJsonDigest('nimi-simulator-tester-authority-v1', sourceAuthorityRefs),
     }],
     app_production: appProduction,
     host_invocations: hostInvocations,

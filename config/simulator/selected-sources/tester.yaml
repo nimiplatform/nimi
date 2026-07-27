@@ -6,33 +6,37 @@ sources:
     kind: workspace
     repository_key: nimi
     object_format: git-sha1
-    object_id: 73f94a29c76fa3b8aec39192083771c7a6499f5e
+    object_id: 5e307b2b54fb94070a3fa65db3636604d6112a0e
     root: apps/tester
-    expected_digest: sha256:7f51b40d35088c8766df7e790fa15783a4b3d49887e7c6192cd184ed44c8d589
+    expected_digest: sha256:74e54353ca6f1856df6698d8435dc43bee3b072d2eb6e4179fd181caa1007d45
     authority_refs:
-      - owner: tester
-        rule_id: T-SIM-008
-    authority_index_digest: sha256:3bf3a8c6c66c1dbbd4dc013ce175d9d120bdd09445cb83b47ff9fb02311cc468
+      - owner: platform
+        rule_id: P-SIM-004
+      - owner: platform
+        rule_id: P-SIM-006
+    authority_index_digest: sha256:225a6e24904885002bb43ebd740d1e8010a6ef915b13411a78a700788544d9a3
 app_production:
   source_id: app
   entries:
     - src/main.tsx
   inventory_digest: sha256:00a3e79d8171886e516b3b9ab2aebae973a7069766f4a6dee7303f69510e9704
   inventory_authority_refs:
-    - owner: tester
-      rule_id: T-SIM-008
+    - owner: platform
+      rule_id: P-SIM-004
 host_invocations:
   entries:
     - id: tester-renderer
       source_id: app
       entry: src/main.tsx
       authority_refs:
-        - owner: tester
-          rule_id: T-SIM-008
-  inventory_digest: sha256:48f1ae189af822845224abd7a96ff82a3b6435c3f73c13b3919546eb584201ea
+        - owner: platform
+          rule_id: P-SIM-005
+  inventory_digest: sha256:b734267d379f298e31a74f08d2113fa0e701457be1123261c98ffae38bb0344e
   inventory_authority_refs:
-    - owner: tester
-      rule_id: T-SIM-008
+    - owner: platform
+      rule_id: P-SIM-005
+    - owner: platform
+      rule_id: P-SIM-006
 manifest:
   source_id: app
   path: nimi.simulator.yaml
