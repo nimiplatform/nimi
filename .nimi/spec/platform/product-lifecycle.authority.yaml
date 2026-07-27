@@ -9,11 +9,11 @@ units:
   - id: definition.nimi.platform.product-lifecycle.product-control-record
     kind: definition
     title: Canonical product-control record
-    meaning: The installed product shell product-control record is the small local ordinary-readiness and product-discovery record at the fixed non-configurable path ~/.nimi/nimi.json, is the sole authority that records dataRoot.path, and contains schemaVersion, installId, productVersion, state, dataRoot, firstRun, pointers, and repair; its closed states are not_logged_in, config_missing, data_root_missing, data_root_selected, ai_environment_unconfigured, local_ai_profile_selected_assets_missing, local_ai_profile_selected_environment_not_ready, local_ai_assets_downloaded_environment_not_ready, local_ai_ready, repair_required, blocked, and ready_for_use.
+    meaning: The installed product shell product-control record is the small local ordinary-readiness and product-discovery record, is the sole authority that records the selected data root, and contains schemaVersion, installId, productVersion, state, dataRoot, firstRun, pointers, and repair; its closed states are not_logged_in, config_missing, data_root_missing, data_root_selected, ai_environment_unconfigured, local_ai_profile_selected_assets_missing, local_ai_profile_selected_environment_not_ready, local_ai_assets_downloaded_environment_not_ready, local_ai_ready, repair_required, blocked, and ready_for_use.
   - id: definition.nimi.platform.product-lifecycle.nimi-data-root
     kind: definition
     title: User-selected nimi_data root
-    meaning: The nimi_data root is the one absolute ordinary non-volume-root user-selected writable large-data-plane directory recorded as dataRoot.path in ~/.nimi/nimi.json; Windows drive roots, UNC share roots, extended-path volume roots, the POSIX filesystem root, and equivalent volume roots are forbidden, while ordinary absolute subdirectories remain admissible, and its required roots are models, dependencies, environments, apps, accounts, logs, and audit with app and account content principal-scoped or account-scoped and cache, generated, and temporary content below its admitted owning root.
+    meaning: The nimi_data root is the one user-selected writable large-data-plane directory recorded by the canonical product-control record; it cannot be a filesystem or volume root, and its managed content remains partitioned by the applicable Runtime, account, and local-app-principal owners.
   - id: definition.nimi.platform.product-lifecycle.first-run-lifecycle
     kind: definition
     title: First-run product lifecycle
@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.runtime-service-configuration
     kind: definition
     title: Runtime service configuration boundary
-    meaning: Production Runtime configuration is protected state owned by the isolated Runtime operating-system service principal and contains private service identity, custody, grants, sessions, security evidence, and data-root verification derived from the canonical product-control record, while product control communicates only through exact typed protected operations and never owns physical Runtime configuration paths.
+    meaning: Production Runtime configuration is protected state owned by the isolated Runtime service and contains private service identity, custody, grants, sessions, security evidence, and data-root verification derived from the canonical product-control record, while product control communicates only through the protected Home Host Contract and never owns physical Runtime configuration paths.
   - id: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
     kind: definition
     title: Signed development checkpoint lineage
@@ -29,7 +29,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.governed-local-config-family
     kind: definition
     title: Governed local configuration family
-    meaning: The governed local configuration family contains ~/.nimi/nimi.json owned by the product-control schema authority, ~/.nimi/runtime/default.json owned by the Runtime default-seed schema authority, and ~/.nimi/profiles/factory-index.json owned by the factory-AI-profile-index schema authority; Runtime service configuration, derived data-root verification, and protected local-app state remain outside this interactive-user family and cannot become a second product-control record.
+    meaning: The governed local configuration family keeps the product-control record, Runtime default seed, and factory AI profile index under their separate schema owners; Runtime service configuration, derived data-root verification, and protected local-app state remain outside this interactive-user family and cannot become a second product-control record.
   - id: definition.nimi.platform.product-lifecycle.current-schema-repair
     kind: definition
     title: Current-schema repair outcome
@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.home-surface
     kind: definition
     title: Nimi Home surface
-    meaning: Nimi Home is the core product entry and control contract for account state, permissions, Runtime health and repair, AI route and model configuration, current local-development Apps, Realm World and Character browsing, PersonaCharacter creation, LocalAgent materialization and lifecycle, Avatar and Voice entry, and Support; Desktop is the current replaceable host implementation and owns none of the underlying Realm, Runtime, LocalAgent, App, permission, or credential truth.
+    meaning: Nimi Home is the core product entry and control contract for account state, permissions, Runtime health and repair, AI route and model configuration, current local-development Apps, Realm World and Character browsing, Avatar and Voice entry, and Support; for LocalAgent creation Home first consumes the Realm-owned public PersonaCharacter creation seam and resulting Character Source, then requests Runtime-owned materialization as a separate step; Desktop is the current replaceable host implementation and owns none of the underlying Realm, Runtime, LocalAgent, App, permission, or credential truth.
   - id: definition.nimi.platform.product-lifecycle.home-placement
     kind: definition
     title: Nimi Home placement set
@@ -150,9 +150,9 @@ units:
     kind: rule
     title: P-COLD-009 fixed product-control locator and authority
     modality: must
-    statement: The product-control record resides only at the fixed non-configurable path <OS-verified-interactive-user-profile>/.nimi/nimi.json, is the sole product-discovery authority for dataRoot.path, requires .nimi to be a direct non-symlink non-junction non-reparse directory below that verified profile and nimi.json to be a direct regular non-symlink non-reparse file, and Desktop, Runtime entry, CLI, P4, unit tests, E2E, development tools, and smoke tools resolve it through one shared resolver without a ProgramData record, request, environment, argv, renderer, repository, Runtime-config, Desktop-cache, test-only, or app-local alternate authority or fallback.
-    condition: Whenever installed-product readiness or the selected nimi_data root is located, read, written, or reused.
-    failure: Reject an ambient-profile locator, redirected .nimi boundary, indirect control file, substitute locator, or substitute record, route missing or invalid canonical state to config_missing or repair, and route disagreement with protected derived state to explicit repair or fail-closed without allowing protected state to override dataRoot.path.
+    statement: The canonical product-control record is the sole product-discovery authority for the selected data root; trusted product and verification surfaces use one shared resolver, the owning host and Runtime verify the current OS account scope, and no request, environment, renderer, cache, test, repository, or app-local source becomes an alternate authority; physical path and filesystem verification mechanisms remain owner implementation.
+    condition: Whenever installed-product readiness or the selected data root is located, read, written, or reused.
+    failure: Reject an unverified account scope, substitute locator, or substitute record, route missing or invalid canonical state to config_missing or repair, and route disagreement with protected derived state to explicit repair or fail-closed without allowing protected state to override the selected data root.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
@@ -182,9 +182,9 @@ units:
     kind: rule
     title: P-COLD-010 no silent data-root default
     modality: must_not
-    statement: First run, restart, update, CLI, P4, unit test, E2E, development tool, or smoke tool silently defaults or guesses nimi_data from ~/Nimi, ~/.nimi/data, a repository path, ProgramData, Runtime config, Desktop cache, NIMI_DATA_ROOT, NIMI_APP_DATA_ROOT, NIMI_FIRST_PARTY_PRODUCT_ROOT, --product-root, another environment variable or argv field, or asks for another root while a valid canonical dataRoot.path exists.
+    statement: A product, development, or verification surface silently defaults, guesses, or accepts an alternate data root while the canonical product-control record has a valid selection.
     condition: When any trusted product or verification surface proposes, selects, restores, or resolves a data root.
-    failure: Reuse the valid canonical dataRoot.path, or if it is absent require the one normal Product Control UI selection and remain non-ready without establishing another path authority.
+    failure: Reuse the valid canonical selection, or if it is absent require the normal Product Control UI selection and remain non-ready without establishing another path authority.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
@@ -256,7 +256,7 @@ units:
     kind: rule
     title: P-COLD-013 service-owned Runtime configuration
     modality: must
-    statement: Production Runtime private configuration remains at the isolated Runtime service principal protected location, the exact typed Product Control operation carries only the canonical ~/.nimi/nimi.json dataRoot.path selection, Runtime independently validates path ownership, access, ACL, reparse-point posture, and the fixed service SID, and protected state stores only derived dataRootRef, managed roots, verification evidence, and audit without exposing its physical paths or becoming a second Product Control record.
+    statement: Production Runtime private configuration remains in service-owned protected state, the protected Home Host Contract carries only the canonical product-control data-root selection, Runtime independently validates account scope, ownership, and access, and protected state stores only derived references, managed roots, verification evidence, and audit without exposing physical paths or becoming a second product-control record; platform-specific protection mechanisms remain owner implementation.
     condition: When product control configures the Runtime data root.
     failure: Reject the update unless the canonical selection, protected operation, independent verification, and private-state boundary hold; on protected-state disagreement enter repair or fail closed without selecting or overriding dataRoot.path.
     relations:
@@ -280,9 +280,9 @@ units:
     kind: rule
     title: P-COLD-013 no alternate Runtime configuration truth
     modality: must_not
-    statement: Renderer ACL mutation, broad service or user grants, a test-only principal, ~/.nimi/config.json, retired ~/.nimi/runtime/config.json, Desktop cache, environment, argv, renderer metadata, imported pre-hardcut Runtime configuration or credentials, or canonical Product Control fields beyond the exact dataRoot.path selection becomes Runtime private security or configuration truth, and protected Runtime state or evidence independently selects or overrides dataRoot.path.
+    statement: A renderer, broad service or user grant, test-only principal, retired record, cache, environment, request, imported configuration, credential, protected Runtime state, or evidence becomes Runtime private configuration truth or independently selects or overrides the canonical data root.
     condition: When production Runtime configuration or selected-root access is established or repaired.
-    failure: Reject the source, grant, selection, or override; preserve ~/.nimi/nimi.json as the selection authority and enter explicit repair or fail closed on disagreement.
+    failure: Reject the source, grant, selection, or override; preserve the canonical product-control record as the selection authority and enter explicit repair or fail closed on disagreement.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
@@ -494,28 +494,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.current-schema-repair
-  - id: rule.nimi.platform.product-lifecycle.p-mig-003d
-    kind: rule
-    title: P-MIG-003 retired Runtime config excluded
-    modality: must_not
-    statement: The framework, development updater, installer, Runtime, Desktop, CLI, test, E2E, development tool, or smoke tool registers, inspects, repairs, migrates, recreates, imports, or consumes any field from retired ~/.nimi/runtime/config.json.
-    condition: When interactive-user configuration is discovered, validated, repaired, or migrated.
-    failure: Reject the retired file as a family member, data-root source, or Runtime source and use only ~/.nimi/nimi.json through the shared Product Control resolver.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.governed-local-config-family
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.runtime-service-configuration
-  - id: rule.nimi.platform.product-lifecycle.p-mig-003e
-    kind: rule
-    title: P-MIG-003 retired app and grant stores excluded
-    modality: must_not
-    statement: The framework registers, repairs, recreates, dual-reads, or dual-writes retired interactive-user app registry, package, inventory, or permission-grant files instead of resolving protected local-app owner state from Runtime-owned stores under the verified operating-system-user partition.
-    condition: When local-app owner state is discovered or repaired.
-    failure: Reject the retired store and require Runtime-owned protected state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.governed-local-config-family
   - id: rule.nimi.platform.product-lifecycle.p-mig-003f
     kind: rule
     title: P-MIG-003 no parallel schema upgrader
@@ -648,7 +626,7 @@ units:
     kind: rule
     title: P-HOME-001 product-entry ownership split
     modality: must
-    statement: Nimi Home owns the product entry and control contract while Desktop is its current replaceable host implementation; protected installer, service control, and OS integration use a Home Host Contract, and ordinary product capability continues through public SDK and Kit surfaces.
+    statement: Nimi Home owns the product entry and control contract while Desktop is its current replaceable host implementation; when a user creates a LocalAgent, Home first invokes the Realm-owned public PersonaCharacter creation path and uses the resulting Realm-issued Character Source to invoke Runtime-owned LocalAgent materialization; protected installer, service control, and OS integration use a Home Host Contract, and ordinary product capability continues through public SDK and Kit surfaces.
     condition: Whenever Nimi Home scope or ownership is defined.
     failure: Reject Desktop-only product ontology, host ownership of Realm or Runtime truth, or ordinary capability exposed only through a private Desktop API.
     relations:
@@ -1482,16 +1460,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
-  - id: rule.nimi.platform.product-lifecycle.p-mig-registry-closure
-    kind: rule
-    title: P-MIG-001 and P-MIG-003 local-config-file-registry closure
-    modality: must
-    statement: Only explicitly registered governed-family members participate in shared current-schema validation or ordinary readiness, and each member declares its schema owner and framework authority before admission.
-    condition: Whenever a local configuration file is discovered, registered, validated, or used for readiness.
-    failure: Exclude an unregistered or ownerless file and deny ordinary readiness use.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.governed-local-config-family
   - id: rule.nimi.platform.product-lifecycle.p-mig-006-directory-declarations
     kind: rule
     title: P-MIG-006 nimi-data-directory-ownership declaration closure

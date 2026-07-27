@@ -70,12 +70,14 @@ units:
     kind: rule
     title: Independent LocalAgents have independent operational state
     modality: must
-    statement: Multiple LocalAgents materialized from the same Character Source have separate Runtime identities, configurations, Memory, Knowledge, Conversation continuity, and lifecycles unless a separate owner-approved sharing relation explicitly applies.
+    statement: Multiple LocalAgents materialized from the same Character Source always have separate operational Memory and Knowledge with no implicit shared mutable state.
     condition: Whenever more than one LocalAgent uses the same Character Source.
     failure: Reject implicit global merging or shared mutable operational truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.memory-world.canonical-memory-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.knowledge-plane
   - id: rule.nimi.runtime.memory-world.r006
     kind: rule
     title: Apps are Memory and Knowledge consumers

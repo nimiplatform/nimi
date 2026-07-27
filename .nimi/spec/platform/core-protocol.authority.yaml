@@ -33,11 +33,11 @@ units:
   - id: definition.nimi.platform.core-protocol.action-plane
     kind: definition
     title: Isolated external action capability plane
-    meaning: The existing ExternalAgent-named gateway is an isolated optional action capability and legacy service namespace, not a Nimi Agent product entity, Runtime core prerequisite, or LocalAgent owner; if admitted, consumers reach it only through typed Runtime and SDK projection.
+    meaning: The action plane is an isolated optional capability, not a Runtime core prerequisite or LocalAgent owner; when separately admitted, consumers reach it only through typed Runtime and SDK projection.
   - id: definition.nimi.platform.core-protocol.execution-principal
     kind: definition
     title: AI execution principal
-    meaning: An AI execution principal is one of Human, NimiAgent, ExternalAgent, Device, or Service.
+    meaning: An AI execution principal is an admitted security context for an authenticated human or account, a Runtime LocalAgent, a device, a service, or a separately admitted external action caller; principal classification does not change product identity or owner boundaries.
   - id: definition.nimi.platform.core-protocol.action-descriptor
     kind: definition
     title: Action descriptor
@@ -338,7 +338,7 @@ units:
     modality: must
     statement: The current AI last mile provides LocalAgent Conversation, Memory, Knowledge, and Local AI Runtime capability; any existing external action capability remains separately admitted and non-blocking.
     condition: Whenever the AI last mile is delivered.
-    failure: Treat the last mile as unavailable when either part is absent.
+    failure: Treat the core last mile as unavailable when required LocalAgent Conversation, Memory, Knowledge, or Local AI Runtime capability is absent; report an unavailable external action capability separately without blocking the core last mile.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.action-plane
@@ -346,7 +346,7 @@ units:
     kind: rule
     title: P-ALMI-002 Runtime action plane boundary
     modality: must
-    statement: When separately admitted, external action execution uses Runtime-owned descriptors, permission checks, execution state, completion results, and audit while Desktop, Web, Kit, and Apps consume only typed SDK projections; the legacy ExternalAgent namespace creates no Agent ontology.
+    statement: When separately admitted, external action execution uses Runtime-owned descriptors, permission checks, execution state, completion results, and audit while Desktop, Web, Kit, and Apps consume only typed SDK projections.
     condition: Whenever an external action capability is discovered, executed, completed, or audited.
     failure: Reject renderer-local, host-only, app-local, or Tauri-local action, token, success, handler-state, or audit authority.
     relations:
@@ -364,10 +364,10 @@ units:
         target: definition.nimi.platform.core-protocol.execution-principal
   - id: rule.nimi.platform.core-protocol.p-almi-004
     kind: rule
-    title: P-ALMI-004 ExternalAgent admission
+    title: P-ALMI-004 external action caller admission
     modality: must
-    statement: A third-party agent uses the ExternalAgent principal, presents an explicitly issued time-limited credential and principalId, issuer, and signature, verifies Friendship in delegated mode, and uses an independent account in autonomous mode.
-    condition: Whenever an ExternalAgent calls the action plane.
+    statement: A third-party external action caller uses the separately admitted action plane, presents an explicitly issued time-limited credential with principalId, issuer, and signature, verifies Friendship in delegated mode, and uses an independent account in autonomous mode.
+    condition: Whenever an external action caller invokes the optional action plane.
     failure: Reject the call when identity, credential, signature, mode, or Friendship requirements fail.
     relations:
       - type: applies_to
@@ -724,9 +724,9 @@ units:
     kind: rule
     title: participant-profiles P-ALMI-003 participant projections do not create product ontology
     modality: must
-    statement: A protocol participant projection may represent a human, a Runtime LocalAgent, an external participant, an App, a device, or a service only as context for an already admitted execution principal, and participant labels never introduce an Agent product entity, transfer LocalAgent ownership, or create a new authorization principal.
+    statement: A protocol participant projection may represent a human, a Runtime LocalAgent, an external participant, an App, a device, or a service only as context for an already admitted execution principal, and participant labels never transfer LocalAgent ownership or create a new authorization principal.
     condition: Whenever a participant is declared or mapped to an execution principal.
-    failure: Reject a projection that creates an unauthorized principal, a parallel Agent ontology, or ownership inferred from a participant label.
+    failure: Reject a projection that creates an unauthorized principal or ownership inferred from a participant label.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.execution-principal
@@ -752,16 +752,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.protocol-audit-event
-  - id: rule.nimi.platform.core-protocol.p-proto-030-035-presets
-    kind: rule
-    title: app-authorization-presets P-PROTO-030 P-PROTO-035 deny-all tombstone
-    modality: must_not
-    statement: A retired public grant preset, including readOnly, full, or delegate, is consumed in production, issues authority, participates in validation, or enables a compatibility path.
-    condition: Whenever app authorization presets are resolved or interpreted.
-    failure: Deny authorization and treat the preset inventory only as a removal tombstone.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
   - id: rule.nimi.platform.core-protocol.p-proto-error-map-001
     kind: rule
     title: error-code-mapping P-PROTO cross-layer semantic consistency
@@ -850,7 +840,7 @@ units:
     kind: rule
     title: compliance-test-matrix L3_almi P-ALMI-002 P-ALMI-003 P-ALMI-004 P-ALMI-010 P-ALMI-011 P-ALMI-020 P-ALMI-030 compatibility
     modality: must
-    statement: Action-plane compatibility preserves Runtime-owned action registration and dispatch, least-privilege principals, ExternalAgent credential lifecycle, descriptor-registry consistency, execution state transitions, admitted latency and availability boundaries, and explicit local-or-cloud AI routing across typed consumers.
+    statement: Action-plane compatibility preserves Runtime-owned action registration and dispatch, least-privilege principals, external action caller credential lifecycle, descriptor-registry consistency, execution state transitions, admitted latency and availability boundaries, and explicit local-or-cloud AI routing across typed consumers.
     condition: Whenever the action plane or a typed action-plane consumer changes.
     failure: Reject the change when ownership, privilege, credential lifecycle, descriptors, execution transitions, service boundaries, or route meaning diverges across layers.
     relations:
@@ -1340,7 +1330,7 @@ units:
     kind: rule
     title: P-ARCH-003 Realm responsibility allocation
     modality: must
-    statement: Platform architecture references the Realm canonical surface as shared persistent-world truth owner for auth, social, chat, economy, world, agent, and cloud audit, keeps six-primitive execution in the separate Platform primitive layer, and leaves semantic persistence and read paths with Realm-owned Truth, World State, World History, Chat, and adjacent formal domains.
+    statement: Platform architecture references the Realm canonical surface as shared persistent-world truth owner for auth, social, chat, economy, world, PersonaCharacter, WorldCharacter, Character Source, and cloud audit, keeps six-primitive execution in the separate Platform primitive layer, and leaves semantic persistence and read paths with Realm-owned Truth, World State, World History, Chat, and adjacent formal domains.
     condition: Whenever Realm responsibilities or primitive ownership are allocated by Platform text.
     failure: Reject an allocation that moves Realm-owned domains, aliases the primitive layer to Realm internals, or authors Realm internal semantics.
     relations:

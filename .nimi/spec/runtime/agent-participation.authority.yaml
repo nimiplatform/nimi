@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.presentation-profile-plane
     kind: definition
     title: Runtime LocalAgent presentation configuration plane
-    meaning: Runtime owns the durable LocalAgent presentation inputs needed by authorized first-party projections, while Avatar owns visual rendering and backend-local state and no presentation profile creates an independent Agent or Avatar owner.
+    meaning: Runtime owns the durable LocalAgent presentation inputs needed by authorized first-party projections, while Avatar owns visual rendering and backend-local state and no presentation profile becomes a LocalAgent or Avatar owner.
   - id: definition.nimi.runtime.agent-participation.presentation-stream-plane
     kind: definition
     title: Runtime LocalAgent presentation stream plane
@@ -148,7 +148,7 @@ units:
     kind: rule
     title: Projection access is session-derived
     modality: must
-    statement: Runtime admits a consumer projection using the current account, current App identity, current authorization, explicit localAgentId, and requested operation from the active session; an App-declared scope, proof, selector object, AgentProjectionRef, or LocalAgentBinding never grants access.
+    statement: Runtime admits a consumer projection using the current account, current App identity, current authorization, explicit localAgentId, and requested operation from the active session; an App-declared scope, proof, selector object, or reusable relationship reference never grants access.
     condition: Whenever a consumer subscribes to or reads LocalAgent projections.
     failure: Reject missing or caller-controlled authorization and return no projection data.
     relations:
@@ -156,11 +156,11 @@ units:
         target: definition.nimi.runtime.agent-participation.presentation-stream-plane
   - id: rule.nimi.runtime.agent-participation.r039
     kind: rule
-    title: Projection namespaces do not create an Agent ontology
+    title: Projection namespaces preserve their owner boundary
     modality: must
-    statement: Existing Runtime Agent Service method or event namespaces are service and projection names only, never an Agent entity, public event bus, consumer execution surface, or authority for Apps to emit Runtime truth.
+    statement: Runtime Agent Service method and event namespaces identify Runtime-owned service and projection surfaces only; they are not a public event bus, consumer execution surface, or authority for Apps to emit Runtime truth.
     condition: Whenever a Runtime Agent Service namespace is emitted, consumed, or documented.
-    failure: Reject ontology inference, broad wildcard ownership, or App-authored Runtime events.
+    failure: Reject broad wildcard ownership, consumer execution, or App-authored Runtime events.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.presentation-stream-plane

@@ -166,16 +166,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.runtime-client-plane
-  - id: rule.nimi.sdks.client-core.r015
-    kind: rule
-    title: SDK projections create no binding ontology
-    modality: must_not
-    statement: SDK defines or requires AgentProjectionRef, LocalAgentBinding, caller-maintained Runtime proof, or another product entity to authorize a LocalAgent operation.
-    condition: Whenever LocalAgent access or a consumer projection is modeled.
-    failure: Use current session-derived account, App authorization, explicit localAgentId, and operation instead.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.client-core.runtime-client-plane
   - id: rule.nimi.sdks.client-core.r016
     kind: rule
     title: Materialization consumes Realm-issued sources

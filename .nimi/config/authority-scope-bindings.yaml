@@ -1,9 +1,5 @@
 format: nimicoding.scope-bindings/v1
 scopes:
-  - scope: nimi.spec-admission
-    bindings:
-      - kind: path_glob
-        value: ".nimi/spec/**/*.authority.yaml"
   - scope: desktop.command-execution
     bindings:
       - kind: path_glob
@@ -122,10 +118,6 @@ scopes:
     bindings:
       - kind: path_glob
         value: "apps/zhiyu/**"
-  - scope: cognition.standalone-services
-    bindings:
-      - kind: path_glob
-        value: "runtime/internal/services/cognition/**"
   - scope: cognition.runtime-bridge
     bindings:
       - kind: path_glob
@@ -376,12 +368,6 @@ scopes:
         value: "runtime/gen/realm/v1/**/*.go"
       - kind: path_glob
         value: "sdks/generators/lib/realm-openapi.mjs"
-  - scope: platform.testing-discipline
-    bindings:
-      - kind: path_glob
-        value: "tests/**/*.mjs"
-      - kind: command
-        value: "test"
   - scope: platform.core-protocol
     bindings:
       - kind: path_glob
@@ -478,18 +464,6 @@ scopes:
         value: "runtime/internal/materializationreadiness/*.go"
       - kind: path_glob
         value: "runtime/internal/engine/*materializer*.go"
-  - scope: platform.authority-admission
-    bindings:
-      - kind: path_glob
-        value: "apps/*/spec/*"
-      - kind: path_glob
-        value: "apps/*/spec/**/*"
-      - kind: path_glob
-        value: ".nimi/config/*"
-      - kind: path_glob
-        value: ".nimi/contracts/*"
-      - kind: path_glob
-        value: ".nimi/methodology/*"
   - scope: platform.governance-release
     bindings:
       - kind: path_glob

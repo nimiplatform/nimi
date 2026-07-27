@@ -178,9 +178,9 @@ units:
     kind: rule
     title: Character and LocalAgent owners remain separated
     modality: must
-    statement: Nimi Home consumes Realm PersonaCharacter and WorldCharacter data and sends Character or World Source materialization intent to Runtime, while Realm keeps source truth and Runtime keeps LocalAgent identity and lifecycle.
+    statement: Nimi Home consumes Realm PersonaCharacter and WorldCharacter data, sends PersonaCharacter creation intent through the Realm-owned public typed seam when the user creates a character, and only after Realm returns the Character Source sends a separate materialization intent to Runtime; Realm keeps Character and Source truth while Runtime keeps LocalAgent identity and lifecycle.
     condition: Whenever Nimi Home browses Character data or materializes a LocalAgent.
-    failure: Reject Desktop source acquisition, source-free materialization, or merged Realm and Runtime ownership.
+    failure: Reject Desktop-owned creation or source truth, source-free or World-only identity materialization, or merged Realm and Runtime ownership.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.state-plane

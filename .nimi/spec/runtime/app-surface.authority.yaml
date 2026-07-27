@@ -316,7 +316,7 @@ units:
     kind: rule
     title: Multi-app projection remains non-owning
     modality: must
-    statement: Multi-app interaction uses explicit Runtime-owned messages and LocalAgent projections without creating an Agent entity, platform event broker, or App-owned Conversation truth; Runtime preserves LocalAgent and Conversation continuity, each App owns only its presentation semantics, Avatar consumes its independent projection, and no third-party App gains a direct Avatar driver or embedded renderer.
+    statement: Multi-app interaction uses explicit Runtime-owned messages and LocalAgent projections without creating a platform event broker or App-owned Conversation truth; Runtime preserves LocalAgent and Conversation continuity, each App owns only its presentation semantics, Avatar consumes its independent projection, and no third-party App gains a direct Avatar driver or embedded renderer.
     condition: Whenever companion multi-app interaction is designed or transported.
     failure: Fail closed on malformed or unauthorized traffic and reject any App-owned LocalAgent, Conversation, or Avatar-control truth.
     relations:
@@ -426,7 +426,7 @@ units:
     kind: rule
     title: No alternate storage authority exists
     modality: must
-    statement: Third-party apps, renderers, and SDK clients never read ~/.nimi/nimi.json, receive raw dataRoot.path, read protected Runtime configuration, or concatenate <nimi_data>/apps/<app-id> as an alternate storage authority; trusted Desktop, Runtime, CLI, test, E2E, development, and smoke entry points may resolve Product Control only through the shared resolver, while app storage remains available only through Runtime typed APIs and principal-scoped roots, and missing canonical dataRoot.path, invalid derived dataRootRef, invalid principal or path shape, symlink or non-directory corruption, or unsupported storage policy fails closed with a typed storage state and reason.
+    statement: Third-party apps, renderers, and SDK clients never receive the canonical product-control record, raw data-root selection, protected Runtime configuration, or an alternate storage locator; trusted product and verification owners resolve Product Control only through the shared resolver, app storage remains available only through Runtime typed APIs and principal-scoped roots, and invalid canonical or derived storage state fails closed with a typed state and reason; physical path validation remains Runtime implementation.
     condition: Whenever storage authority is resolved or storage prerequisites fail.
     failure: Fail closed with typed storage state and reason, reject alternate authorities and raw-root disclosure, and route canonical-to-derived root disagreement to repair.
     relations:
@@ -516,9 +516,9 @@ units:
     kind: rule
     title: The OS-user anchor derives from one source
     modality: must
-    statement: Every principal and record is partitioned by a Runtime-derived local_os_user_anchor whose sole source is the same-OS local_os_user_anchor_derivation in the protected-local OS profiles table, the anchor is never accepted from a request, environment variable, project, package, Desktop, SDK, or app, the admitted Windows row remains the verified interactive-user SID established by K-PLOCAL-003, and unadmitted platform rows are requirements only.
+    statement: Every principal and record is partitioned by one Runtime-derived local_os_user_anchor obtained from the verified current OS account scope; the anchor is never accepted from a request, environment variable, project, package, Desktop, SDK, or app, and platform-specific derivation mechanisms remain protected-local implementation rather than cross-layer product semantics.
     condition: Whenever the local OS-user anchor is derived.
-    failure: Reject caller-supplied anchors and unadmitted platform rows.
+    failure: Reject caller-supplied, unverifiable, stale, or cross-account anchors.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
@@ -526,7 +526,7 @@ units:
     kind: rule
     title: One active anchor partitions one data root
     modality: must
-    statement: The first Runtime data root admits exactly one active anchor, a different SID under the Windows row or a different same-OS principal or login-session anchor under any future admitted row fails closed before principal, record, private storage, permission, autostart, launch, session, or audit state can be read or mutated, Fast User Switching cannot reuse the prior anchor, and this is a single-PC partition that creates no device enrollment, cross-PC recovery, or cloud truth.
+    statement: One Runtime data root admits exactly one active local OS account scope; a different account scope fails closed before principal, record, private storage, permission, autostart, launch, session, or audit state can be read or mutated, an account switch invalidates prior access, and this single-PC partition creates no device enrollment, cross-PC recovery, or cloud truth.
     condition: Whenever anchor identity is checked against the Runtime data root.
     failure: Fail closed before any partitioned state is read or mutated.
     relations:

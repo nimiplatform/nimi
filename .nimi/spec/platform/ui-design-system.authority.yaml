@@ -762,11 +762,11 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-041c
     kind: rule
-    title: P-KIT-041C standard shell capability contract
+    title: P-KIT-041C demand-driven standard shell capability
     modality: must
-    statement: Shell capabilities are the single standard contract for identifiers, operations, commands, negative states, and shared error envelopes across Tauri and Electron; represent typed service lifecycle, non-security defaults, browser callbacks, shell UI, diagnostics, data, storage, configuration, local assets, LocalAgent, AI Profile, AI Config, Avatar, LocalAgent Center, platform projection, file dialog, reveal, export, artifacts, and floating windows; carry authentication only through Runtime account transport; exclude renderer session control and lifecycle stop; reject protected methods and lifecycle selectors from generic transport; make host gaps typed failures; keep renderer probing diagnostic; and limit LocalAgent Center host operations to local asset custody, validation, preview resolution, and scoped removal without LocalAgent configuration, authorization, readiness, path, or launch truth.
-    condition: Whenever a standard shell operation is defined or implemented.
-    failure: Reject parallel truth, a missing standard family, pseudo-success, forbidden session or protected behavior, selector payload, path leakage, or promoted asset custody.
+    statement: A standard shell capability is added or refactored only for a concrete current consumer and real journey, uses one typed contract across its supported hosts, returns typed unavailable or failure for unsupported host behavior, and owns neither protected authority nor a generic proxy over SDK, Runtime, Realm, LocalAgent, Avatar, or App truth.
+    condition: Whenever a reusable shell capability is proposed, defined, or implemented.
+    failure: Reject a speculative capability family, parallel owner truth, pseudo-success, untyped host gap, protected behavior in ordinary transport, or a generic cross-domain proxy.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
@@ -928,9 +928,9 @@ units:
     kind: rule
     title: P-KIT-070 headless UI and domain seams
     modality: must
-    statement: Every feature exposes headless state, filtering, submission, and interaction contracts plus a default opinionated UI covering baseline styling and behavior; stable modules deliver explicit headless and UI surfaces; UI composes shared primitives without bypassing headless semantics; Runtime-aware and Realm-aware integration surfaces bind only their corresponding public SDK domain without app stores or bridges; and Runtime and Realm remain distinct seams.
+    statement: A reusable feature exposes a headless surface, a default UI surface, or both according to the concrete consumer and journey that justified the feature; when both exist, UI composes shared primitives without bypassing headless semantics; Runtime-aware and Realm-aware integration surfaces bind only their corresponding public SDK domain without app stores or bridges; and Runtime and Realm remain distinct seams.
     condition: Whenever a feature publishes or binds its reusable contract.
-    failure: Reject a missing surface, duplicated consumer shell, bypassed headless contract, private integration, or mislabeled domain seam.
+    failure: Reject a surface without a concrete consumer, a required consumer seam left unavailable, a duplicated consumer shell, a bypassed headless contract when one exists, private integration, or a mislabeled domain seam.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-public-surface

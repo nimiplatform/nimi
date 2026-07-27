@@ -84,7 +84,7 @@ units:
     kind: rule
     title: Product control remains a Runtime state machine
     modality: must
-    statement: RuntimeLocalService owns the typed validation, reconciliation, data-root layout materialization, install validation, device-scan completion, and readiness-admission operations of the Product Control state machine, those operations consume and mutate only the canonical ~/.nimi/nimi.json record located through the shared resolver and store only derived private verification state under the protected service root, while Desktop may provide only the canonical record bridge, bounded OS helpers, and explicit backend-verified accountDefaultProfileRef and builtInAiConfigRefs evidence.
+    statement: RuntimeLocalService owns validation, reconciliation, data-root materialization, install validation, device-scan completion, and readiness admission for the Product Control state machine; those protected operations consume and mutate only the canonical record located through the shared resolver and store only derived private verification state, while the Home host may provide only the canonical record bridge, bounded OS helpers, and backend-verified setup evidence.
     condition: Whenever ordinary first-run setup reads, reconciles, or mutates product control.
     failure: Reject a Desktop, SDK, app, or host write that bypasses the Runtime Product Control state machine, every alternate record, and every protected-state selection or override of dataRoot.path.
     relations:
@@ -94,9 +94,9 @@ units:
     kind: rule
     title: First-run reconciliation derives state on protected transport
     modality: must
-    statement: The fixed production Runtime exposes no ordinary public TCP or HTTP listener; Runtime authenticates submitted host evidence, re-resolves baseline and execution readiness, writes intermediate failures, and atomically commits ready_for_use; ReconcileProductControlFirstRunSetupState accepts an empty request and derives non-ready state, repair posture, and reason, and the exact admitted product-control methods run only on the current mutually verified desktop_control session with all unlisted RuntimeLocalService method ids and bytes rejected before handlers.
+    statement: Production first-run reconciliation runs only through the protected Home Host Contract; Runtime authenticates the current host context, re-resolves baseline and execution readiness, records intermediate failures, and atomically commits ready_for_use only from Runtime-derived state, while every unsupported or unauthorized protected operation fails closed; platform transport, wire membership, and encoding remain owner implementation.
     condition: Whenever production first-run or product-control reconciliation is invoked.
-    failure: Fail closed on consumer-supplied state or reason, missing verified Desktop origin, absent current boot session, public TCP, portable credentials, renderer metadata, or an unlisted method.
+    failure: Fail closed on consumer-supplied state or reason, an unverified host context, an invalid current session, portable credentials, renderer-supplied authority, or an unsupported protected operation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.local-service-plane
@@ -144,7 +144,7 @@ units:
     kind: rule
     title: Local state storage roles are disjoint
     modality: must
-    statement: localStatePath is the sole active Runtime local AI private state for assets, transfers, dependency assets, setup jobs, cutover evidence, and health projection; dataRootRef is derived only from canonical ~/.nimi/nimi.json dataRoot.path; models, dependencies, environments, apps, accounts, logs, and audit roots are derived only beneath that exact dataRootRef; Runtime config records validation evidence but cannot reconcile to a different root; and the Nimi data directory is storage rather than private Runtime state truth.
+    statement: Runtime keeps one protected local AI state for assets, transfers, dependency assets, setup jobs, cutover evidence, and health projection; its data-root reference and managed roots derive only from the canonical product-control selection, Runtime configuration records validation evidence but cannot reconcile to a different root, and the Nimi data directory is storage rather than private Runtime state truth.
     condition: Whenever Runtime or a host resolves local AI storage.
     failure: Reject a second Product Control or state file, a non-derived root, a retired-state fallback, a silent dual read or write, payload existence treated as state truth, and canonical-to-protected disagreement without explicit repair.
     relations:
@@ -154,8 +154,8 @@ units:
     kind: rule
     title: Data-root changes require an explicit reconciliation plan
     modality: must
-    statement: A user-requested Nimi data-directory change through the normal Product Control UI and exact typed operation produces or submits a Runtime reconciliation plan containing effective localStatePath, canonical dataRoot.path, derived dataRootRef, managed roots, dependency install root, detected retired inputs, asset counts, conflicts, and whether user confirmation is required before local AI state is assumed usable, while a disagreement caused only by damaged or stale protected derived state enters repair and never changes the canonical selection.
-    condition: Whenever an admitted Product Control operation changes the Nimi data directory or Runtime derived storage state disagrees with ~/.nimi/nimi.json.
+    statement: A user-requested Nimi data-directory change through the normal Product Control UI and protected owner operation produces a Runtime reconciliation plan covering effective protected state, the canonical selection, derived references and managed roots, detected retired inputs, affected assets, conflicts, and required user confirmation before local AI state is assumed usable; disagreement caused only by damaged or stale protected derived state enters repair and never changes the canonical selection.
+    condition: Whenever an admitted Product Control operation changes the Nimi data directory or Runtime derived storage state disagrees with the canonical product-control record.
     failure: Keep materialization unavailable until the complete plan or repair succeeds, preserve canonical dataRoot.path as the only selection authority, and reject protected-state override, fallback, or another path prompt.
     relations:
       - type: applies_to
@@ -738,7 +738,7 @@ units:
     kind: rule
     title: Restart preserves durable stores but invalidates ephemeral authority
     modality: must
-    statement: A normal fixed-service restart preserves service-owned local-app principal, local record, permission, audit, and RuntimeAgent or Cognition conversation stores, advances the boot epoch, and invalidates all launch leases, process bindings, sessions, challenges, and presence proofs before a protected listener becomes ready; durable permission records authorize nothing until a new session and fresh per-operation resolution.
+    statement: A normal fixed-service restart preserves service-owned local-app principal, local record, permission, audit, and admitted Runtime-owned LocalAgent conversation and record stores, advances the boot epoch, and invalidates all launch leases, process bindings, sessions, challenges, and presence proofs before a protected listener becomes ready; durable permission records authorize nothing until a new session and fresh per-operation resolution.
     condition: Whenever production Runtime restarts.
     failure: Deny reuse of every pre-restart process carrier while preserving admitted durable conversation and record continuity.
     relations:

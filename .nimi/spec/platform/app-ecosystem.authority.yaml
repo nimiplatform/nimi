@@ -2,15 +2,15 @@ format: nimicoding.authority/v2
 owner: team.platform
 scope: platform.app-ecosystem
 units:
-  - id: definition.nimi.platform.app-ecosystem.agent-identity
+  - id: definition.nimi.platform.app-ecosystem.local-agent-identity
     kind: definition
     title: Runtime LocalAgent identity
     meaning: A LocalAgent is an independent Runtime-owned local identity materialized from one Realm-issued Character Source, with optional World Source context, and repeated materialization from the same source creates distinct identities, configuration, Memory, Knowledge, and lifecycle.
-  - id: definition.nimi.platform.app-ecosystem.agent-projection
+  - id: definition.nimi.platform.app-ecosystem.local-agent-projection
     kind: definition
     title: LocalAgent consumer projection
     meaning: Nimi Home, Zhiyu, Avatar, and authorized Third-party Local Apps consume Runtime LocalAgent messages, state, activity, emotion, voice, and errors as product projections that neither create a separate identity nor own LocalAgent execution truth.
-  - id: definition.nimi.platform.app-ecosystem.agent-family-model
+  - id: definition.nimi.platform.app-ecosystem.character-local-agent-model
     kind: definition
     title: Realm Character and Runtime LocalAgent model
     meaning: Realm Character consists of PersonaCharacter and WorldCharacter, each LocalAgent identity comes from a Realm Character Source, and one Character Source may materialize multiple independent Runtime LocalAgents.
@@ -39,7 +39,7 @@ units:
     failure: Reject source-free identity, World-only identity, or implicit reuse of another materialization.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-identity
+        target: definition.nimi.platform.app-ecosystem.local-agent-identity
   - id: rule.nimi.platform.app-ecosystem.p-agid-001b
     kind: rule
     title: P-AGID-001 no app-owned LocalAgent identity
@@ -49,7 +49,7 @@ units:
     failure: Reject the local substitute and resolve the Runtime-owned LocalAgent.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-identity
+        target: definition.nimi.platform.app-ecosystem.local-agent-identity
   - id: rule.nimi.platform.app-ecosystem.p-agid-002a
     kind: rule
     title: P-AGID-002 projection consumer semantics
@@ -59,9 +59,9 @@ units:
     failure: Reject a projection that creates another LocalAgent identity, executes a turn independently, or becomes Conversation, Memory, Knowledge, activity, emotion, or voice truth.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-family-model
+        target: definition.nimi.platform.app-ecosystem.character-local-agent-model
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-projection
+        target: definition.nimi.platform.app-ecosystem.local-agent-projection
   - id: rule.nimi.platform.app-ecosystem.p-agid-002b
     kind: rule
     title: P-AGID-002 no cross-app authorization reuse
@@ -71,7 +71,7 @@ units:
     failure: Reject shared authorization and derive access independently from each current Runtime App session.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-projection
+        target: definition.nimi.platform.app-ecosystem.local-agent-projection
   - id: rule.nimi.platform.app-ecosystem.p-agid-003a
     kind: rule
     title: P-AGID-003 session-derived LocalAgent access
@@ -81,7 +81,7 @@ units:
     failure: Fail closed when the account, App session, authorization, LocalAgent access, operation, or lifecycle check is missing, stale, denied, or revoked.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-projection
+        target: definition.nimi.platform.app-ecosystem.local-agent-projection
   - id: rule.nimi.platform.app-ecosystem.p-agid-003b
     kind: rule
     title: P-AGID-003 no caller-declared authorization truth
@@ -91,7 +91,7 @@ units:
     failure: Reject caller-declared authorization and derive the account, App, and authorization state from the current Runtime session.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-projection
+        target: definition.nimi.platform.app-ecosystem.local-agent-projection
   - id: rule.nimi.platform.app-ecosystem.p-agid-004a
     kind: rule
     title: P-AGID-004 Runtime conversation continuity
@@ -114,14 +114,14 @@ units:
         target: definition.nimi.platform.app-ecosystem.conversation-anchor
   - id: rule.nimi.platform.app-ecosystem.p-agid-005
     kind: rule
-    title: P-AGID-005 no retired Agent ontology
+    title: P-AGID-005 no parallel identity ontology
     modality: must_not
-    statement: A product, App, Runtime surface, SDK, Kit, or host creates or requires Agent, AgentFamily, AgentPersona, AgentFamilyId, AgentPersonaId, AgentProjectionRef, or LocalAgentBinding as a product entity.
+    statement: A product, App, Runtime surface, SDK, Kit, or host introduces a generic Agent layer, family, persona, projection-reference, or binding entity alongside Realm Character and Runtime LocalAgent.
     condition: Whenever Character, LocalAgent identity, projection, or LocalAgent access is modeled.
-    failure: Reject the retired ontology and use Realm Character, Runtime LocalAgent, consumer projection, and session-derived authorization semantics.
+    failure: Reject the parallel ontology and use Realm Character, Runtime LocalAgent, consumer projection, and session-derived authorization semantics.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-identity
+        target: definition.nimi.platform.app-ecosystem.local-agent-identity
   - id: rule.nimi.platform.app-ecosystem.p-agid-006a
     kind: rule
     title: P-AGID-006 conversation view owner boundary
@@ -1664,16 +1664,16 @@ units:
     kind: rule
     title: P-ECO-010 cross-cutting owner invariants
     modality: must
-    statement: Ecosystem expansion preserves fail-closed permission decisions, provider-neutral and model-neutral selection, Apps non-ownership, the single ordinary-user truth after hard cut, the agent-identity floor, and every existing Platform, Runtime, Realm, Cognition, and SDK owner boundary.
+    statement: Ecosystem expansion preserves fail-closed permission decisions, provider-neutral and model-neutral selection, Apps non-ownership, the single ordinary-user truth after hard cut, the Character-sourced LocalAgent identity floor, and every existing Platform, Runtime, Realm, Cognition, and SDK owner boundary.
     condition: Whenever ecosystem capability expands.
     failure: Deny expansion that bypasses or weakens any referenced invariant.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.agent-identity
-      - type: applies_to
         target: definition.nimi.platform.app-ecosystem.app-permission
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.local-agent-identity
   - id: rule.nimi.platform.app-ecosystem.p-prop-001a
     kind: rule
     title: P-PROP-001 durable intake and non-execution

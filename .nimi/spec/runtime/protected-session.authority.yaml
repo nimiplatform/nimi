@@ -158,16 +158,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.account-session-plane
-  - id: rule.nimi.runtime.protected-session.r015
-    kind: rule
-    title: Protected access creates no LocalAgent binding entity
-    modality: must_not
-    statement: Protected access creates or requires AgentProjectionRef, LocalAgentBinding, caller-maintained proof, or an App-readable relationship capability as a LocalAgent product entity.
-    condition: Whenever LocalAgent access is authorized.
-    failure: Use current session-derived account, App authorization, explicit localAgentId, and operation instead.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.protected-session.account-session-plane
   - id: rule.nimi.runtime.protected-session.r016
     kind: rule
     title: Stale access is revoked

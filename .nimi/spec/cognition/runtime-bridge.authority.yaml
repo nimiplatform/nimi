@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.cognition.runtime-bridge.domain
     kind: definition
     title: Cognition-to-Runtime adapter boundary
-    meaning: Cognition remains an independent authority and may provide an internal typed adapter to Runtime without acquiring Runtime LocalAgent, Conversation, Memory, Knowledge, account, authorization, lifecycle, or execution truth.
+    meaning: Cognition remains an independent authority and may expose an explicit typed public Bridge for Runtime consumption without acquiring Runtime LocalAgent, Conversation, Memory, Knowledge, account, authorization, lifecycle, or execution truth.
   - id: definition.nimi.cognition.runtime-bridge.upgrade-floor
     kind: definition
     title: Cognition overlap boundary
-    meaning: Overlapping standalone Cognition capabilities may be used only when they preserve or strengthen Runtime-required failure, isolation, privacy, and lifecycle outcomes without replacing the Runtime product owner.
+    meaning: Future overlapping standalone Cognition capabilities may be used only when they preserve or strengthen Runtime-required failure, isolation, privacy, and lifecycle outcomes without replacing the Runtime product owner.
   - id: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
     kind: definition
     title: Cognition Knowledge adapter scope
@@ -21,12 +21,12 @@ units:
   - id: definition.nimi.cognition.runtime-bridge.embedding-resolution
     kind: definition
     title: Cognition execution adapter
-    meaning: Cognition may consume Runtime-resolved execution intent and readiness while standalone non-Runtime Cognition configuration remains separate Cognition truth.
+    meaning: Through the public Bridge, Cognition may consume Runtime-resolved execution intent and readiness while any future standalone non-Runtime Cognition configuration remains separate Cognition truth.
   - id: rule.nimi.cognition.runtime-bridge.r001
     kind: rule
     title: Cognition and Runtime owners remain independent
     modality: must
-    statement: Cognition owns its standalone kernels, working state, and standalone capabilities, while Runtime owns product LocalAgent operational Memory, Knowledge, Conversation, account mediation, authorization, lifecycle, and execution continuity.
+    statement: Cognition remains the independent owner of any future standalone product state and capabilities, while Runtime owns current product LocalAgent operational Memory, Knowledge, Conversation, account mediation, authorization, lifecycle, and execution continuity.
     condition: Whenever an overlapping Runtime and Cognition capability is interpreted.
     failure: Reject silent ownership transfer in either direction.
     relations:
@@ -36,7 +36,7 @@ units:
     kind: rule
     title: Runtime consumption is adapter only
     modality: must
-    statement: Runtime may call a typed Cognition adapter for admitted internal work, but every public result remains a Runtime projection with Runtime authorization, lifecycle, retention, failure, and audit semantics.
+    statement: Runtime may call the typed public Cognition Bridge for admitted work, but every Runtime product result remains a Runtime projection with Runtime authorization, lifecycle, retention, failure, and audit semantics.
     condition: Whenever Runtime consumes a Cognition capability.
     failure: Fail closed when the adapter is unavailable or cannot preserve Runtime semantics.
     relations:
@@ -56,9 +56,9 @@ units:
     kind: rule
     title: Runtime does not absorb standalone Cognition
     modality: must_not
-    statement: Runtime claims ownership of standalone Cognition product state, kernels, configuration, or non-Runtime data merely because an internal adapter exists.
+    statement: Runtime claims ownership of future standalone Cognition product state, configuration, or non-Runtime data merely because the public Bridge exists.
     condition: Whenever Runtime integrates Cognition.
-    failure: Keep standalone Cognition truth independent.
+    failure: Keep future standalone Cognition truth independent.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.upgrade-floor
@@ -96,9 +96,9 @@ units:
     kind: rule
     title: Standalone configuration stays separate
     modality: must_not
-    statement: Standalone Cognition configuration, cache, provider choice, embedding state, or local model defaults are imported as Runtime LocalAgent Memory, Knowledge, or execution truth.
-    condition: Whenever standalone and Runtime adapter paths coexist.
-    failure: Keep the configuration domains separate.
+    statement: Future standalone Cognition configuration or execution defaults are imported as Runtime LocalAgent Memory, Knowledge, Conversation, or execution truth.
+    condition: Whenever a future standalone Cognition path and the Runtime Bridge coexist.
+    failure: Keep future standalone and current Runtime truth separate.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.embedding-resolution

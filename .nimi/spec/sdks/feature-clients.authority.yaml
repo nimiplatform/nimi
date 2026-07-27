@@ -38,7 +38,7 @@ units:
     kind: definition
     title: SDK delegated capability boundary
     meaning: The SDK may expose bounded typed projection for a separately admitted Runtime delegated capability without owning provider, session, approval, credential, firewall, execution, or audit truth; MCP and A2A clients are not current SDK capabilities and registry or type presence never claims availability.
-  - id: definition.nimi.sdks.feature-clients.avatar-control-plane
+  - id: definition.nimi.sdks.feature-clients.avatar-projection-plane
     kind: definition
     title: SDK Avatar projection plane
     meaning: The SDK Avatar projection plane provides only typed first-party Nimi Home and Avatar integration for Runtime-owned LocalAgent presentation state and Avatar-owned rendering diagnostics, with no Third-party App driver, embedded renderer, raw motion, raw expression, or LocalAgent truth surface.
@@ -765,7 +765,7 @@ units:
     failure: Reject SDK-owned presentation or rendering truth, Third-party direct control, embedded renderer, or raw backend command surface.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.avatar-control-plane
+        target: definition.nimi.sdks.feature-clients.avatar-projection-plane
   - id: rule.nimi.sdks.feature-clients.r077
     kind: rule
     title: Presentation selection follows Runtime truth
@@ -775,7 +775,7 @@ units:
     failure: Reject Desktop or App-owned presentation truth, stale overwrite, bypass of Runtime authorization, or direct backend control.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.avatar-control-plane
+        target: definition.nimi.sdks.feature-clients.avatar-projection-plane
   - id: rule.nimi.sdks.feature-clients.r078
     kind: rule
     title: Avatar diagnostics stay first-party projections
@@ -785,7 +785,7 @@ units:
     failure: Reject raw payload exposure and evidence reinterpretation.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.avatar-control-plane
+        target: definition.nimi.sdks.feature-clients.avatar-projection-plane
   - id: rule.nimi.sdks.feature-clients.r080
     kind: rule
     title: Avatar projection types admit no escapes
@@ -795,7 +795,7 @@ units:
     failure: Reject untyped escapes and raw payload types.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.avatar-control-plane
+        target: definition.nimi.sdks.feature-clients.avatar-projection-plane
   - id: rule.nimi.sdks.feature-clients.r081
     kind: rule
     title: Avatar consumers cannot bypass owners
@@ -805,7 +805,7 @@ units:
     failure: Reject bypass helpers.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.avatar-control-plane
+        target: definition.nimi.sdks.feature-clients.avatar-projection-plane
   - id: rule.nimi.sdks.feature-clients.r082
     kind: rule
     title: The Avatar package client stays retired
@@ -815,7 +815,7 @@ units:
     failure: Fail closed on retired surfaces and reject revival without new admission.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.avatar-control-plane
+        target: definition.nimi.sdks.feature-clients.avatar-projection-plane
   - id: rule.nimi.sdks.feature-clients.r083
     kind: rule
     title: Live Avatar association remains owner mediated
@@ -825,7 +825,7 @@ units:
     failure: Reject inferred continuity, App-owned binding truth, or Third-party binding control.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.avatar-control-plane
+        target: definition.nimi.sdks.feature-clients.avatar-projection-plane
   - id: rule.nimi.sdks.feature-clients.r096
     kind: rule
     title: The sdks family boundary admits no shims

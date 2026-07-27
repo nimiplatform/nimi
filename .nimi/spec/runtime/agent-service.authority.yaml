@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.runtime.agent-service.agent-service-plane
     kind: definition
     title: Runtime LocalAgent service plane
-    meaning: Runtime Agent Service is the service name for the Runtime-owned LocalAgent execution plane, including LocalAgent lifecycle, Conversation, operational Memory and Knowledge, state, voice, events, AI route consumption, and resource policy; it does not introduce a separate Agent product entity.
+    meaning: Runtime Agent Service is the service name for the Runtime-owned LocalAgent execution plane, including LocalAgent lifecycle, Conversation, operational Memory and Knowledge, state, voice, events, AI route consumption, and resource policy; the service name does not create another product identity layer.
   - id: definition.nimi.runtime.agent-service.local-agent-materialization-plane
     kind: definition
     title: Runtime LocalAgent materialization plane
@@ -78,9 +78,9 @@ units:
     kind: rule
     title: Runtime Agent Service owns LocalAgents
     modality: must
-    statement: Runtime Agent Service owns and executes LocalAgent entities; Agent, AgentFamily, AgentPersona, AgentFamilyId, and AgentPersonaId are not Nimi product entities, and the service name creates no additional ontology.
+    statement: Runtime Agent Service owns and executes LocalAgent identities, lifecycle, state, and turns, and its service name does not introduce another product identity layer.
     condition: Whenever Runtime identity, lifecycle, execution, or API semantics are modeled.
-    failure: Reject a parallel Agent ontology or any owner other than Runtime for LocalAgent execution truth.
+    failure: Reject any owner other than Runtime for LocalAgent execution truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane
@@ -118,7 +118,7 @@ units:
     kind: rule
     title: Local App access is session-derived and bounded
     modality: must
-    statement: A Desktop-hosted Local App accesses an explicit localAgentId only when Runtime derives the current account, current App identity, current authorization, requested operation, and LocalAgent ownership or access from the active session; the App receives no Realm JWT, Provider Credential, account-wide LocalAgent inventory authority, caller-maintained Runtime proof, AgentProjectionRef, or LocalAgentBinding.
+    statement: A Desktop-hosted Local App accesses an explicit localAgentId only when Runtime derives the current account, current App identity, current authorization, requested operation, and LocalAgent ownership or access from the active session; the App receives no Realm JWT, Provider Credential, account-wide LocalAgent inventory authority, caller-maintained Runtime proof, or reusable relationship authority.
     condition: Whenever a scaffolded Third-party Local App invokes a LocalAgent operation.
     failure: Reject missing or caller-declared authorization and expose no broader LocalAgent state.
     relations:
@@ -178,7 +178,7 @@ units:
     kind: rule
     title: Character Source kinds follow Realm Character ontology
     modality: must
-    statement: A LocalAgent identity source resolves to a Realm PersonaCharacter or WorldCharacter through Realm-owned Character Source semantics, and Runtime does not invent another Character or Agent family.
+    statement: A LocalAgent identity source resolves to a Realm PersonaCharacter or WorldCharacter through Realm-owned Character Source semantics, and Runtime does not invent another Character or LocalAgent source taxonomy.
     condition: Whenever Runtime interprets a LocalAgent identity source.
     failure: Reject an unrecognized source kind or a Runtime-owned Character classification.
     relations:
