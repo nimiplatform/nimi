@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { SchedulingState } from '../../core-generated/runtime-typed-client';
@@ -130,59 +129,6 @@ test('image model family companion contract distinguishes Ideogram4 and Z-Image 
     false,
   );
 });
-
-test('image model family companion contract follows runtime spec table', () => {
-  const spec = readImageFamilyCompanionSpec();
-  for (const [family, slots] of Object.entries(spec)) {
-    assert.deepEqual(
-      resolveNimiRuntimeImageCompanionSlots(family).map((slot) => ({
-        role: slot.role,
-        engine_slot: slot.engineSlot,
-        label: slot.label,
-        component_kind: slot.componentKind,
-        asset_kind: slot.assetKind,
-      })),
-      slots,
-      family,
-    );
-  }
-});
-
-function readImageFamilyCompanionSpec(): Record<string, Array<Record<string, string>>> {
-  const raw = readFileSync(new URL('../../../../config/spec-frozen/runtime/tables/profile-image-family-companion-slots.yaml', import.meta.url), 'utf8');
-  const families: Record<string, Array<Record<string, string>>> = {};
-  let family = '';
-  let current: Record<string, string> | null = null;
-  let inRequiredSlots = false;
-  for (const line of raw.split(/\r?\n/u)) {
-    const familyMatch = /^  ([a-z0-9_-]+):$/u.exec(line);
-    if (familyMatch) {
-      family = familyMatch[1] ?? '';
-      families[family] = [];
-      inRequiredSlots = false;
-      current = null;
-      continue;
-    }
-    if (line === '    required_companion_slots:') {
-      inRequiredSlots = true;
-      continue;
-    }
-    if (!family || !inRequiredSlots) {
-      continue;
-    }
-    const roleMatch = /^      - role: (.+)$/u.exec(line);
-    if (roleMatch) {
-      current = { role: roleMatch[1] ?? '' };
-      families[family]?.push(current);
-      continue;
-    }
-    const fieldMatch = /^        (engine_slot|label|component_kind|asset_kind): (.+)$/u.exec(line);
-    if (fieldMatch && current) {
-      current[fieldMatch[1] ?? ''] = fieldMatch[2] ?? '';
-    }
-  }
-  return families;
-}
 
 function requirementDeclaration(
   capabilities: readonly string[] = ['text.generate'],

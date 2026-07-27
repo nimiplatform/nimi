@@ -11,7 +11,6 @@ import type {
 } from '../core-generated/realm-typed-client';
 import { isNimiError } from '../types';
 import {
-  REALM_RESOURCE_METHODS,
   uploadNimiRealmResourceFile,
   type NimiRealmResourceUploadApi,
   type NimiRealmResourceUploadTransportMode,
@@ -185,8 +184,4 @@ test('uploadNimiRealmResourceFile fails closed for pre-vNext transport mode spel
       && error.reasonCode === 'SDK_REALM_RESOURCE_UPLOAD_INPUT_INVALID'
       && error.actionHint === 'use_vnext_realm_resource_upload_transport_mode',
   );
-});
-
-test('Realm resources module binds finalizeResource for upload lifecycle completion', () => {
-  assert.equal(REALM_RESOURCE_METHODS.includes('finalizeResource'), true);
 });

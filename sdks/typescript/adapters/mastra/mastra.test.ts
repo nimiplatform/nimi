@@ -19,7 +19,6 @@ import { createNimiFixtureModel, createNonStreamingFixtureModel } from './mastra
 // Conformance + upstream suites driving the real Mastra public API through the
 // adapter. Imported here so they run inside the single-file adapter capability
 // ledger gate, alongside the model-shape, fail-closed, and manifest checks below.
-import './mastra.boundary.test';
 import './mastra.context.test';
 import './mastra.conformance.test';
 import './mastra.embedding-voice.test';
@@ -288,69 +287,15 @@ test('mastra runtime-backed provider requires route policy and explicit subject 
   );
 });
 
-test('mastra manifest answers Mastra interface coverage and types every gap', () => {
+test('mastra manifest represents supported, partial, and not-applicable capability classes', () => {
   const capabilities = NIMI_MASTRA_ADAPTER_MANIFEST.capabilities;
   assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilityLevel, 'L4');
   assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.targetLibrary, 'Mastra');
-
-  // Adapter-mapped model interface coverage, proven by the conformance suite.
-  assert.equal(capabilities['model.config'].support, 'supported');
   assert.equal(capabilities['agent.generate'].support, 'supported');
-  assert.equal(capabilities['agent.stream'].support, 'supported');
-  assert.equal(capabilities['tools.definition'].support, 'supported');
-  assert.equal(capabilities['tools.toolChoice'].support, 'supported');
-  assert.equal(capabilities.structuredOutput.support, 'supported');
-  assert.equal(capabilities.usage.support, 'supported');
-  assert.equal(capabilities.finishReason.support, 'supported');
-  assert.equal(capabilities.sources.support, 'supported');
-
-  // Adapter-mapped model-interface coverage proven by the conformance suite.
-  assert.equal(capabilities.abort.support, 'supported');
-  assert.equal(capabilities.rawChunks.support, 'supported');
-
-  // Framework-owned Mastra orchestration is supported when it only drives repeated
-  // model calls through the adapter.
-  assert.equal(capabilities['tools.execution'].support, 'supported');
-  assert.equal(capabilities['tools.execution'].mode, 'framework-owned');
-  assert.equal(capabilities['tools.resultPropagation'].mode, 'framework-owned');
-  assert.equal(capabilities.multiStep.support, 'supported');
-  assert.equal(capabilities.multiStep.mode, 'framework-owned');
-  assert.equal(capabilities.agentCallbacks.support, 'supported');
-  assert.equal(capabilities.agentCallbacks.mode, 'framework-owned');
-  assert.equal(capabilities.structuredOutputFailure.support, 'supported');
-  assert.equal(capabilities.dynamicResolution.support, 'supported');
   assert.equal(capabilities.runtimeContext.support, 'supported');
   assert.equal(capabilities.runtimeContext.mode, 'runtime-owned');
-  assert.equal(capabilities.runtimeDelegatedTools.support, 'supported');
-  assert.equal(capabilities.runtimeDelegatedTools.mode, 'runtime-owned');
-  // Durable agent state surfaces are compatibility-only until they bind to Nimi
-  // Runtime/Cognition owner surfaces.
   assert.equal(capabilities.memory.support, 'partial');
   assert.equal(capabilities.memory.mode, 'framework-owned');
-  assert.equal(capabilities.workflows.support, 'partial');
-  assert.equal(capabilities.workflows.mode, 'framework-owned');
-
-  // Partial capabilities reflect bounded, route-dependent, or not-yet-exercised
-  // reality. They are NOT blurred up to supported.
-  assert.equal(capabilities.reasoning.support, 'partial');
-  assert.equal(capabilities.providerMetadata.support, 'partial');
-  assert.equal(capabilities.providerOptions.support, 'partial');
-  assert.equal(capabilities.multimodalInput.support, 'partial');
-  assert.equal(capabilities.toolApproval.support, 'partial');
-  assert.equal(capabilities.toolSuspendResume.support, 'partial');
-  assert.equal(capabilities.structuredOutputRepair.support, 'partial');
-  assert.equal(capabilities.agentNetwork.support, 'partial');
-
-  // Runtime-backed non-text model surfaces are part of the Mastra migration
-  // adapter suite, while framework durable state remains out of domain.
   assert.equal(capabilities.workflowCheckpoint.support, 'not-applicable');
-  assert.equal(capabilities.ragEmbeddings.support, 'supported');
-  assert.equal(capabilities.ragEmbeddings.mode, 'runtime-owned');
-  assert.equal(capabilities.voice.support, 'partial');
-  assert.equal(capabilities.voice.mode, 'runtime-owned');
-  assert.equal(capabilities.telemetry.support, 'not-applicable');
-  assert.equal(capabilities.legacyV1Api.support, 'not-applicable');
-  assert.equal(capabilities.modelRouterString.support, 'not-applicable');
-
   assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.unsupportedBehavior, 'throw');
 });

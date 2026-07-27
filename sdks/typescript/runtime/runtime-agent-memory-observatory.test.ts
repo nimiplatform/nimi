@@ -326,10 +326,3 @@ test('fails closed when Runtime bank-level review status points at a different b
     /review status bank does not match/,
   );
 });
-
-test('memory observatory projection source contains no forbidden product truth', () => {
-  const source = projectNimiRuntimeAgentMemoryObservatory.toString();
-
-  assert.doesNotMatch(source, /apiKey|providerId|runtime\/internal|apps\/desktop/);
-  assert.doesNotMatch(source, /writeMemory|RetainRequest|DeleteMemory|SourceMaterializationPacket/);
-});

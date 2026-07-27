@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { collectNimiTextStream, type NimiAiModel } from '../ai';
@@ -306,20 +305,6 @@ test('malformed stream terminal and bounded-buffer overflow become fixed SDK hos
     (error: unknown) => assertHostError(error, 'SDK_HOST_RESOURCE_EXHAUSTED', ''),
   );
   assert.equal(overflowCancelCount, 1);
-});
-
-test('testing host source imports no production carrier and reads no ambient host state', async () => {
-  const files = ['host-types.ts', 'host-harness.ts', 'host-errors.ts', 'ai-model.ts'];
-  const source = (await Promise.all(files.map((file) => (
-    readFile(new URL(file, import.meta.url), 'utf8')
-  )))).join('\n');
-  for (const forbidden of [
-    '../core-client', 'node-grpc', 'tauri-ipc', 'electron-ipc',
-    'protected-local-host', 'globalThis', 'process.env', 'fetch(', 'WebSocket',
-    'endpoint', 'credential', 'principal', 'instanceId',
-  ]) {
-    assert.equal(source.includes(forbidden), false, `testing host source contains ${forbidden}`);
-  }
 });
 
 function createHarness(

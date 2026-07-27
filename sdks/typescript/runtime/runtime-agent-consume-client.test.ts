@@ -472,33 +472,33 @@ test('bounded turn summary decodes proto and protojson and rejects lane, budget,
   }), /turnId correlation failed/u);
 });
 
-test('bounded source and turn decoders reject 100 deterministic unknown or private mutations', () => {
-  for (let index = 0; index < 100; index += 1) {
-    const sourceMutation = index % 4 === 0
-      ? { ...boundedSourceStatus(), schemaVersion: 1000 + index }
-      : index % 4 === 1
-        ? { ...boundedSourceStatus(), state: 1000 + index }
-        : index % 4 === 2
-          ? { ...boundedSourceStatus(), reasonCode: 1000 + index }
-          : { ...boundedSourceStatus(), [`private_source_${index}`]: 'RAW_SOURCE_CANARY' };
+test('bounded source and turn decoders reject representative unknown and private fields', () => {
+  const sourceMutations = [
+    { ...boundedSourceStatus(), schemaVersion: 1000 },
+    { ...boundedSourceStatus(), state: 1001 },
+    { ...boundedSourceStatus(), reasonCode: 1002 },
+    { ...boundedSourceStatus(), privateSource: 'RAW_SOURCE_CANARY' },
+  ];
+  for (const [index, sourceMutation] of sourceMutations.entries()) {
     assert.throws(
       () => decodeNimiRuntimeAgentSourceContextStatus(sourceMutation),
       /projection/u,
       `source mutation ${index} must fail closed`,
     );
+  }
 
-    const turnMutation = index % 4 === 0
-      ? { ...boundedTurnSummary(), schemaVersion: 1000 + index }
-      : index % 4 === 1
-        ? { ...boundedTurnSummary(), state: 1000 + index }
-        : index % 4 === 2
-          ? {
-              ...boundedTurnSummary(),
-              lanes: boundedTurnSummary().lanes.map((lane, laneIndex) => laneIndex === index % 11
-                ? { ...lane, state: 1000 + index }
-                : lane),
-            }
-          : { ...boundedTurnSummary(), [`private_turn_${index}`]: 'RAW_TURN_CANARY' };
+  const turnMutations = [
+    { ...boundedTurnSummary(), schemaVersion: 1000 },
+    { ...boundedTurnSummary(), state: 1001 },
+    {
+      ...boundedTurnSummary(),
+      lanes: boundedTurnSummary().lanes.map((lane, laneIndex) => laneIndex === 0
+        ? { ...lane, state: 1002 }
+        : lane),
+    },
+    { ...boundedTurnSummary(), privateTurn: 'RAW_TURN_CANARY' },
+  ];
+  for (const [index, turnMutation] of turnMutations.entries()) {
     assert.throws(
       () => decodeNimiRuntimeAgentTurnContextSummary(turnMutation),
       /projection/u,

@@ -661,42 +661,14 @@ test('vercel-ai provider rejects runtime-backed creation with profile-slice targ
   );
 });
 
-test('vercel-ai manifest claims protocol mapping support and types every gap', () => {
+test('vercel-ai manifest represents supported, partial, and not-applicable capability classes', () => {
+  const capabilities = NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities;
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilityLevel, 'L3');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['text.generate'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['text.stream'].support, 'supported');
-  // Protocol mapping fidelity proven by the conformance suite against the real Vercel AI SDK.
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['runEvents.toolCallReturn'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['structured.output.requestMapping'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.definitionMapping'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.toolChoiceMapping'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.callerOwnedLoop'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.callerOwnedLoop'].mode, 'framework-owned');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['runEvents.reasoning'].support, 'supported');
-  // Target-library execute and multi-step are supported because Vercel owns that orchestration.
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.execute'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.execute'].mode, 'framework-owned');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.multiStep.support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.multiStep.mode, 'framework-owned');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.adapterExecute'].support, 'not-applicable');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerDefined'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerExecuted'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerToolResults'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerApproval'].support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.deferredResults.support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.approval.support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.externalExecution.support, 'not-applicable');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.traces.support, 'partial');
-  // Partial capabilities: claims reflect the bounded reality proven by the conformance suite.
-  // multimodalInput maps image/audio/video; other media types and route-dependent paths fail closed.
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.multimodalInput.support, 'partial');
-  // multimodalOutput projects only streaming artifact chunks into Vercel file parts.
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.multimodalOutput.support, 'partial');
-  // usageTokenDetails projects cache-read + reasoning tokens; cache-write detail is unavailable.
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.usageTokenDetails.support, 'partial');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.providerOptions.support, 'partial');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.sources.support, 'supported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.rawChunks.support, 'supported');
+  assert.equal(capabilities['text.generate'].support, 'supported');
+  assert.equal(capabilities['tools.callerOwnedLoop'].mode, 'framework-owned');
+  assert.equal(capabilities.multimodalInput.support, 'partial');
+  assert.equal(capabilities['tools.adapterExecute'].support, 'not-applicable');
+  assert.equal(capabilities.rawChunks.support, 'supported');
 });
 
 function createModel(

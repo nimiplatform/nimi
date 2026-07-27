@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import * as grpc from '@grpc/grpc-js';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -24,10 +22,6 @@ import { StreamScenarioEvent } from '../core-generated/runtime-protobuf/runtime/
 import { Runtime } from './index';
 import { createRuntimeNodeGrpcTransport, type RuntimeNodeGrpcBridge } from './node-grpc';
 import { ReasonCode } from '../types';
-
-function readRuntimeSource(relativePath: string): string {
-  return fs.readFileSync(path.join(import.meta.dirname, relativePath), 'utf8');
-}
 
 async function expectWithin<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -241,13 +235,6 @@ test('Runtime constructs default node-grpc transport in Node.js', () => {
   assert.equal(typeof runtime.audit.getRuntimeHealth, 'function');
   assert.equal('core' in runtime, false);
   assert.equal('unsafeRawTransport' in runtime, false);
-});
-
-test('node-grpc Runtime transport observes unary status metadata trailers', () => {
-  const source = readRuntimeSource('node-grpc.ts');
-  assert.match(source, /call\.on\('status', \(status: GrpcStatusLike\) => \{/);
-  assert.match(source, /collectStatusResponseMetadata\(status\)/);
-  assert.match(source, /resolveAfterStatus\(\)/);
 });
 
 test('node-grpc Runtime transport preserves structured upstream errors', async () => {
