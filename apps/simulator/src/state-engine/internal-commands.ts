@@ -171,7 +171,7 @@ export function registerInternalCommands(context: EngineContext): void {
         state: { kind: 'stringEnum', values: ['usable', 'cancelled', 'failed'] },
         reason: {
           kind: 'stringEnum',
-          values: ['qualified', 'dispose', 'reset', 'stale-epoch', 'state-change', 'instance-failure', 'module-failure', 'session-failure', 'semantic-mismatch', 'paint-barrier-failed'],
+          values: ['qualified', 'dispose', 'reset', 'stale-epoch', 'state-change', 'instance-failure', 'module-failure', 'session-failure', 'semantic-mismatch', 'render-barrier-failed'],
         },
         markedAtLogicalTime: { kind: 'union', variants: [{ kind: 'null' }, INTEGER_SCHEMA] },
       },

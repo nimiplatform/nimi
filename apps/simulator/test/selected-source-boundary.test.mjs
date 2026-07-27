@@ -7,29 +7,24 @@ import test from 'node:test';
 
 import {
   buildSimulatorSourceInventory,
-  stableJsonDigest,
   validateSimulatorAppSource,
 } from '@nimiplatform/app-tools/simulator-conformance';
 import {
-  appProductionInventoryDigest,
-  hostInvocationInventoryDigest,
   validateSelectedSourceDescriptor,
 } from '../build/config.mjs';
 import { qualifySelectedModules } from '../build/registry.mjs';
 import { REPO_ROOT, SIMULATOR_ROOT } from '../build/paths.mjs';
-import { scenarioForQualifiedReports } from './scenario-fixture.mjs';
+import { scenarioForValidatedSources } from './scenario-fixture.mjs';
 
 const APP_FIXTURE = path.join(REPO_ROOT, 'app-tools', 'test', 'fixtures', 'simulator-valid');
 const DIRECTORY_LINK_TYPE = process.platform === 'win32' ? 'junction' : 'dir';
-const AUTHORITY_REFS = [{ owner: 'platform', rule_id: 'P-SIM-021' }];
-const AUTHORITY_DIGEST = stableJsonDigest('nimi-simulator-hardening-authority-v1', AUTHORITY_REFS);
 
 function git(repository, ...args) {
   return execFileSync('git', args, { cwd: repository, encoding: 'utf8' }).trim();
 }
 
 function createFixture() {
-  const root = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-qualification-hardening-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-selected-source-boundary-'));
   const appRoot = path.join(root, 'app');
   cpSync(APP_FIXTURE, appRoot, { recursive: true });
   const packagePath = path.join(appRoot, 'package.json');
@@ -66,25 +61,17 @@ function descriptor(fixture) {
   const appProduction = {
     source_id: 'app',
     entries: ['src/main.ts'],
-    inventory_digest: '',
-    inventory_authority_refs: AUTHORITY_REFS,
   };
-  appProduction.inventory_digest = appProductionInventoryDigest(appProduction);
   const hostInvocations = {
     entries: [{
       id: 'hardening-host',
       source_id: 'app',
       entry: 'src/main.ts',
-      authority_refs: AUTHORITY_REFS,
     }],
-    inventory_digest: '',
-    inventory_authority_refs: AUTHORITY_REFS,
   };
-  hostInvocations.inventory_digest = hostInvocationInventoryDigest(hostInvocations);
   return validateSelectedSourceDescriptor({
     schema: 'nimi.simulator.selected-source/v1',
     module_id: 'sample-app',
-    source_app_id_ref: null,
     sources: [{
       id: 'app',
       kind: 'workspace',
@@ -93,8 +80,6 @@ function descriptor(fixture) {
       object_id: fixture.objectId,
       root: 'app',
       expected_digest: fixture.digest,
-      authority_refs: AUTHORITY_REFS,
-      authority_index_digest: AUTHORITY_DIGEST,
     }],
     app_production: appProduction,
     host_invocations: hostInvocations,
@@ -102,23 +87,22 @@ function descriptor(fixture) {
   });
 }
 
-test('qualification rejects App-owned conditional package exports', () => {
+test('selected source rejects App-owned conditional package exports', () => {
   const fixture = createFixture();
   try {
     assert.throws(
       () => qualifySelectedModules({
         descriptors: [descriptor(fixture)],
         repositoryCatalog: { repositories: [] },
-        scenario: scenarioForQualifiedReports([{
+        scenario: scenarioForValidatedSources([{
           moduleId: 'sample-app',
-          report: validateSimulatorAppSource(fixture.appRoot).report,
+          validation: validateSimulatorAppSource(fixture.appRoot),
         }]),
         repoRoot: REPO_ROOT,
         simulatorRoot: fixture.simulatorRoot,
         generatedRoot: path.join(fixture.simulatorRoot, '.generated'),
         workspaceRoot: fixture.root,
         workspaceRepositoryKey: 'hardening-fixture',
-        release: true,
       }),
       (error) => error?.code === 'SIM_APP_OWNED_EXPORT_CONDITION',
     );

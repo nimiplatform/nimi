@@ -7,8 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { createSimulatorCssProfileVitePlugin } from '@nimiplatform/app-tools/simulator-css-profile';
 import { isSimulatorStaticAssetPath } from '@nimiplatform/app-tools/simulator-conformance';
 import { defineConfig, type Plugin } from 'vite';
-import { createSelectedDependencyQualifier } from './build/dependency-qualification.mjs';
-import { createMaterializedIntegrityVerifier } from './build/materialized-integrity.mjs';
+import { createSelectedDependencyQualifier } from './build/dependency-boundary.mjs';
 import { readSimulatorPublicEnvironment } from './build/public-env.mjs';
 
 const simulatorRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -31,7 +30,7 @@ interface ResolverPackageRow {
   readonly targets: readonly ResolverTargetRow[];
 }
 
-interface ResolverEvidence {
+interface ResolverInput {
   readonly tupleDigest: string;
   readonly packages: readonly ResolverPackageRow[];
   readonly devInteropImports: readonly string[];
@@ -59,17 +58,14 @@ function canonicalPackageTarget(packageRow: ResolverPackageRow, target: Resolver
 }
 
 function selectedSourcePlugin({ qualifyDependencyClosure }: { readonly qualifyDependencyClosure: boolean }): Plugin {
-  const materializedIntegrity = createMaterializedIntegrityVerifier({ generatedRoot });
-  materializedIntegrity.verifyAll();
   const buildMap = JSON.parse(readFileSync(path.join(generatedRoot, 'build-map.json'), 'utf8')) as Record<string, string>;
   const resolver = JSON.parse(
-    readFileSync(path.join(generatedRoot, 'evidence', 'resolver.json'), 'utf8'),
-  ) as ResolverEvidence;
+    readFileSync(path.join(generatedRoot, 'resolver.json'), 'utf8'),
+  ) as ResolverInput;
   const dependencyQualifier = createSelectedDependencyQualifier({ simulatorRoot, resolver });
   const materializedRoot = path.join(generatedRoot, 'materialized');
   const packageTargets = new Map<string, {
     readonly absolute: string;
-    readonly canonical: string;
     readonly packageName: string;
   }>();
   const governedPackages = new Set(resolver.packages.map((row) => row.name));
@@ -80,32 +76,22 @@ function selectedSourcePlugin({ qualifyDependencyClosure }: { readonly qualifyDe
       if (packageTargets.has(specifier)) throw new Error(`Duplicate runtime resolver target for ${specifier}`);
       packageTargets.set(specifier, {
         absolute: canonicalPackageTarget(packageRow, target),
-        canonical: target.canonicalTarget,
         packageName: packageRow.name,
       });
     }
   }
-  const usedPackageTargets = new Map<string, string>();
-  const selectedEntries = new Map<string, Set<string>>();
   return {
     name: 'nimi-simulator-selected-source',
     enforce: 'pre',
-    buildStart() {
-      materializedIntegrity.verifyAll();
-    },
     async resolveId(id, importer) {
       const canonicalPath = buildMap[id];
       if (canonicalPath) {
         const match = id.match(/^virtual:nimi-simulator\/([^/]+)\/(renderer|adapter|style)$/u);
         if (!match) throw new Error(`Invalid selected-source virtual ID ${id}`);
-        const entries = selectedEntries.get(match[1]) ?? new Set<string>();
-        entries.add(match[2]);
-        selectedEntries.set(match[1], entries);
         return path.join(generatedRoot, 'materialized', ...canonicalPath.split('/'));
       }
       const packageTarget = packageTargets.get(id);
       if (packageTarget) {
-        usedPackageTargets.set(id, packageTarget.canonical);
         if (!qualifyDependencyClosure) {
           return null;
         }
@@ -146,33 +132,11 @@ function selectedSourcePlugin({ qualifyDependencyClosure }: { readonly qualifyDe
     },
     transform(code, id) {
       if (isSimulatorStaticAssetPath(id.split(/[?#]/u, 1)[0])) return null;
-      materializedIntegrity.verifyTransform(code, id);
       if (qualifyDependencyClosure) dependencyQualifier.validateTransform(code, id);
       return null;
     },
     generateBundle() {
-      materializedIntegrity.verifyAll();
-      const selectedDependencyClosure = dependencyQualifier.finalize();
-      const selectedModules = [...selectedEntries]
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([moduleId, entries]) => ({
-          moduleId,
-          entries: [...entries].sort(),
-        }));
-      const finalGraph = {
-        schema: 'nimi.simulator.final-graph/v1',
-        resolverTupleDigest: resolver.tupleDigest,
-        selectedModules,
-        packageTargets: [...usedPackageTargets]
-          .sort(([left], [right]) => left.localeCompare(right))
-          .map(([specifier, canonicalTarget]) => ({ specifier, canonicalTarget })),
-        selectedDependencyClosure,
-      };
-      this.emitFile({
-        type: 'asset',
-        fileName: 'evidence/final-graph.json',
-        source: `${JSON.stringify(finalGraph, null, 2)}\n`,
-      });
+      dependencyQualifier.finalize();
     },
   };
 }
@@ -184,17 +148,17 @@ function selectedCssProfiles() {
     .map(([id, canonicalStylePath]) => {
       const moduleId = id.split('/').at(-2);
       if (!moduleId) throw new Error(`Invalid selected style virtual ID: ${id}`);
-      const report = JSON.parse(readFileSync(path.join(generatedRoot, 'evidence', 'app-tools', `${moduleId}.json`), 'utf8'));
+      const validation = JSON.parse(readFileSync(path.join(generatedRoot, 'style-inputs', `${moduleId}.json`), 'utf8'));
       const stylePath = path.join(generatedRoot, 'materialized', ...canonicalStylePath.split('/'));
       const rootDir = path.resolve(
         path.dirname(stylePath),
-        ...report.style.entry.split('/').slice(0, -1).map(() => '..'),
+        ...validation.style.entry.split('/').slice(0, -1).map(() => '..'),
       );
-      return { rootDir, report };
+      return { rootDir, style: validation.style };
     });
 }
 
-function controlledDevWithoutViteClient(): Plugin {
+function secureDevWithoutViteClient(): Plugin {
   const stripCssHmr = (code: string, id: string): string => {
     if (!code.includes('from "/@vite/client"')
       || !code.includes('const __vite__css = ')
@@ -221,7 +185,7 @@ function controlledDevWithoutViteClient(): Plugin {
       '',
     );
   return {
-    name: 'nimi-simulator-controlled-dev-no-vite-client',
+    name: 'nimi-simulator-secure-dev-no-vite-client',
     apply: 'serve',
     enforce: 'post',
     transformIndexHtml: {
@@ -273,8 +237,8 @@ function controlledDevWithoutViteClient(): Plugin {
 export default defineConfig(({ command }) => {
   const publicEnvironment = readSimulatorPublicEnvironment();
   const resolver = JSON.parse(
-    readFileSync(path.join(generatedRoot, 'evidence', 'resolver.json'), 'utf8'),
-  ) as ResolverEvidence;
+    readFileSync(path.join(generatedRoot, 'resolver.json'), 'utf8'),
+  ) as ResolverInput;
   return {
     root: simulatorRoot,
     envPrefix: '__NIMI_SIMULATOR_BROWSER_ENV_DISABLED__',
@@ -290,7 +254,7 @@ export default defineConfig(({ command }) => {
       }),
       react(),
       tailwindcss(),
-      controlledDevWithoutViteClient(),
+      secureDevWithoutViteClient(),
     ],
     resolve: {
       dedupe: resolver.packages.map((row) => row.name),

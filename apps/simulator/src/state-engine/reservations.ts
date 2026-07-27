@@ -81,7 +81,7 @@ export interface SimulatorAsyncReservationPump {
     instanceId: string,
     reason: SimulatorAsyncReservationCancelReason,
   ): readonly SimulatorAsyncReservationRecord[];
-  /** Allocation-ordered allocation/terminal ledger for replay and reset evidence. */
+  /** Allocation-ordered terminal state used by replay and reset. */
   ledger(): readonly SimulatorAsyncReservationRecord[];
   hasImmediatelyReleasable(): boolean;
 }

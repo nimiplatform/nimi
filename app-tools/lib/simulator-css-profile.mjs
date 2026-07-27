@@ -13,7 +13,6 @@ export const SIMULATOR_CSS_PROFILE_PROTOCOL = 'nimi.simulator.css-profile/v1';
 export const SIMULATOR_CSS_PROFILE_REVISION = 'tailwind-v4-canonical-closure-1';
 export const SIMULATOR_CSS_COMPILER_VERSION = '4.3.0';
 export const SIMULATOR_CSS_THEME_DIGEST = 'sha256:ce91efc0ca2e741e56fe263662e5282dc0a16f19a8647f0c38b60fcc4e2119b1';
-export const SIMULATOR_CSS_BUILD_EVIDENCE_SCHEMA = 'nimi.simulator.css-build-evidence/v1';
 export const SIMULATOR_KIT_FOUNDATION_CSS_EXPORTS = Object.freeze([
   '@nimiplatform/kit/ui/styles.css',
   '@nimiplatform/kit/ui/themes/light.css',
@@ -201,11 +200,6 @@ function resolveInstalledPackage(require, packageName) {
   return {
     packageRoot,
     packageJson,
-    identity: Object.freeze({
-      package: packageName,
-      version: packageJson.version,
-      package_json_digest: sha256Digest(bytes),
-    }),
   };
 }
 
@@ -318,7 +312,7 @@ export function assertSimulatorFoundationEntry(code, filePath) {
   }
 }
 
-export function resolveSimulatorCssCompiler(compilerRoot) {
+function resolveSimulatorCssCompiler(compilerRoot) {
   const require = createRequire(path.join(path.resolve(compilerRoot), 'package.json'));
   const tailwind = resolveInstalledPackage(require, 'tailwindcss');
   const packageRoot = tailwind.packageRoot;
@@ -332,10 +326,6 @@ export function resolveSimulatorCssCompiler(compilerRoot) {
     fail('SIM_CSS_COMPILER_THEME', 'Tailwind theme stylesheet differs from the protocol-owned profile');
   }
   return Object.freeze({
-    packageRoot,
-    version: packageJson.version,
-    packageJsonDigest: tailwind.identity.package_json_digest,
-    themeStylesheetDigest: sha256Digest(themeBytes),
     themeReference: themeBytes.toString('utf8').replace('@theme default {', '@theme reference {'),
   });
 }
@@ -358,66 +348,6 @@ export function buildKitFoundationScannerInventory(kitRoot) {
     owner: '@nimiplatform/kit',
     inputs,
     digest: stableJsonDigest('nimi-simulator-kit-foundation-scanner-v1', inputs),
-  });
-}
-
-export function buildSimulatorEffectiveCssIdentity(compilerRoot, report) {
-  const rootRequire = createRequire(path.join(path.resolve(compilerRoot), 'package.json'));
-  const compiler = resolveSimulatorCssCompiler(compilerRoot);
-  const tailwindVite = resolveInstalledPackage(rootRequire, '@tailwindcss/vite');
-  const vite = resolveInstalledPackage(rootRequire, 'vite');
-  const compilerRequire = createRequire(path.join(tailwindVite.packageRoot, 'package.json'));
-  const oxide = resolveInstalledPackage(compilerRequire, '@tailwindcss/oxide');
-  const lightning = resolveInstalledPackage(compilerRequire, 'lightningcss');
-  const kit = resolveInstalledPackage(rootRequire, '@nimiplatform/kit');
-  const foundation = buildKitFoundationScannerInventory(kit.packageRoot);
-  const cssExports = cssExportTargets(kit.packageRoot, kit.packageJson);
-  const resolvedCssExports = cssExports.map((entry) => `@nimiplatform/kit/${entry.specifier.slice(2)}`);
-  if (stableJson(resolvedCssExports) !== stableJson([...SIMULATOR_KIT_FOUNDATION_CSS_EXPORTS].sort())) {
-    fail('SIM_CSS_KIT_EXPORT_CATALOG', 'installed Kit CSS export catalog differs from the canonical foundation profile');
-  }
-  const profile = report.style.profile;
-  if (
-    profile.protocol !== SIMULATOR_CSS_PROFILE_PROTOCOL
-    || profile.revision !== SIMULATOR_CSS_PROFILE_REVISION
-    || profile.compiler.version !== compiler.version
-    || profile.compiler.theme_stylesheet_digest !== compiler.themeStylesheetDigest
-  ) {
-    fail('SIM_CSS_PROFILE_IDENTITY', 'App conformance report does not match the installed canonical CSS profile');
-  }
-  const identity = {
-    protocol: SIMULATOR_CSS_PROFILE_PROTOCOL,
-    revision: SIMULATOR_CSS_PROFILE_REVISION,
-    app: {
-      style_digest: report.style.digest,
-      profile_digest: stableJsonDigest('nimi-simulator-css-source-profile-v1', profile),
-      composition_digest: profile.composition.digest,
-      scanner_digest: profile.scanner.digest,
-    },
-    compiler: {
-      tailwindcss: {
-        package: 'tailwindcss',
-        version: compiler.version,
-        package_json_digest: compiler.packageJsonDigest,
-        theme_stylesheet_digest: compiler.themeStylesheetDigest,
-      },
-      vite_plugin: tailwindVite.identity,
-      scanner_engine: oxide.identity,
-      optimizer: lightning.identity,
-      bundler: vite.identity,
-    },
-    foundation: {
-      package: kit.identity,
-      scanner_digest: foundation.digest,
-      css_exports: cssExports,
-      utility_emission: profile.foundation.utility_emission,
-    },
-    utility: profile.utility,
-    dependency_css: profile.dependency_css,
-  };
-  return Object.freeze({
-    ...identity,
-    digest: stableJsonDigest('nimi-simulator-effective-css-identity-v1', identity),
   });
 }
 
@@ -449,9 +379,9 @@ function cssAssetSource(asset) {
   return Buffer.from(asset.source).toString('utf8');
 }
 
-function moduleSelectorRows(root, report) {
-  const rootClass = report.style.root_class;
-  const globalPrefix = report.style.global_prefix;
+function moduleSelectorRows(root, style) {
+  const rootClass = style.rootClass;
+  const globalPrefix = style.globalPrefix;
   const rootScope = `(.${rootClass})`;
   const rows = [];
   root.walkRules((rule) => {
@@ -492,8 +422,8 @@ function postprocessSimulatorCssBundle(bundle, profileEntries) {
     cssAssets.push({ output, root: postcss.parse(cssAssetSource(output), { from: output.fileName }) });
   }
   const assigned = new Map();
-  for (const { report } of profileEntries) {
-    const layer = report.style.profile.utility.layer;
+  for (const { style } of profileEntries) {
+    const layer = style.profile.utility.layer;
     const matches = cssAssets.filter(({ root }) => {
       let found = false;
       root.walkAtRules('layer', (rule) => {
@@ -504,7 +434,7 @@ function postprocessSimulatorCssBundle(bundle, profileEntries) {
     if (matches.length !== 1) {
       fail('SIM_CSS_MODULE_ASSET', `CSS profile ${JSON.stringify(layer)} must resolve to exactly one lazy asset`);
     }
-    assigned.set(report.style.profile.utility.owner, matches[0]);
+    assigned.set(style.profile.utility.owner, matches[0]);
   }
   const moduleAssets = new Set(assigned.values());
   if (moduleAssets.size !== assigned.size) {
@@ -518,9 +448,8 @@ function postprocessSimulatorCssBundle(bundle, profileEntries) {
       if (name.startsWith('--tw-')) foundationProperties.add(name);
     });
   }
-  const evidence = new Map();
-  for (const { report } of profileEntries) {
-    const moduleId = report.style.profile.utility.owner;
+  for (const { style } of profileEntries) {
+    const moduleId = style.profile.utility.owner;
     const asset = assigned.get(moduleId);
     const properties = new Set();
     asset.root.walkAtRules('property', (rule) => {
@@ -540,9 +469,8 @@ function postprocessSimulatorCssBundle(bundle, profileEntries) {
     asset.root.walkAtRules('property', (rule) => {
       if (rule.params.trim().startsWith('--tw-')) rule.remove();
     });
-    const layer = report.style.profile.utility.layer;
-    const rootScope = `(.${report.style.root_class})`;
-    const utilitySelectors = [];
+    const layer = style.profile.utility.layer;
+    const rootScope = `(.${style.rootClass})`;
     asset.root.walkAtRules('layer', (layerRule) => {
       if (layerRule.params.trim() !== layer) return;
       layerRule.walkRules((rule) => {
@@ -553,34 +481,20 @@ function postprocessSimulatorCssBundle(bundle, profileEntries) {
           parent = parent.parent;
         }
         if (!scoped) fail('SIM_CSS_UTILITY_SCOPE', `generated utility selector ${JSON.stringify(rule.selector)} is outside ${rootScope}`);
-        utilitySelectors.push(rule.selector);
       });
     });
     const output = asset.root.toString();
     asset.output.source = output;
-    const selectors = [...new Set(utilitySelectors)].sort();
-    const canonicalSelectors = moduleSelectorRows(asset.root, report);
     const selectorsOutsideCanonicalAsset = cssAssets
       .filter((candidate) => candidate !== asset)
-      .flatMap((candidate) => moduleSelectorRows(candidate.root, report));
+      .flatMap((candidate) => moduleSelectorRows(candidate.root, style));
     if (selectorsOutsideCanonicalAsset.length > 0) {
       fail(
         'SIM_CSS_MODULE_SELECTOR_SPLIT',
         `module ${JSON.stringify(moduleId)} selectors escaped the canonical CSS asset`,
       );
     }
-    evidence.set(moduleId, Object.freeze({
-      utility_selector_count: selectors.length,
-      utility_selector_digest: stableJsonDigest('nimi-simulator-css-utility-selectors-v1', selectors),
-      canonical_selector_count: canonicalSelectors.length,
-      canonical_selector_digest: stableJsonDigest('nimi-simulator-css-canonical-selectors-v1', canonicalSelectors),
-      outside_canonical_asset_selector_count: selectorsOutsideCanonicalAsset.length,
-      foundation_property_count: foundationProperties.size,
-      reused_foundation_properties: [...properties].sort(),
-      transformed_css_digest: sha256Digest(Buffer.from(output, 'utf8')),
-    }));
   }
-  return evidence;
 }
 
 export function createSimulatorCssProfileVitePlugin(options) {
@@ -604,25 +518,22 @@ export function createSimulatorCssProfileVitePlugin(options) {
   const appStyleInputs = new Map();
   for (const entry of options.apps) {
     const rootDir = realpathSync(entry.rootDir);
-    const report = entry.report;
-    const stylePath = realpathSync(path.join(rootDir, ...report.style.entry.split('/')));
-    profiles.set(stylePath, { rootDir, report });
-    for (const input of report.style.inputs) {
+    const style = entry.style;
+    const stylePath = realpathSync(path.join(rootDir, ...style.entry.split('/')));
+    profiles.set(stylePath, { rootDir, style });
+    for (const input of style.inputs) {
       const absolute = realpathSync(path.join(rootDir, ...input.path.split('/')));
       if (absolute !== rootDir && !absolute.startsWith(`${rootDir}${path.sep}`)) {
         fail('SIM_CSS_APP_INPUT_ESCAPE', 'App CSS input escapes the qualified source root', input.path);
       }
       const previous = appStyleInputs.get(absolute);
       if (previous && (previous.digest !== input.digest || previous.bytes !== input.bytes)) {
-        fail('SIM_CSS_APP_INPUT_COLLISION', 'App CSS reports bind conflicting identities for one input', input.path);
+        fail('SIM_CSS_APP_INPUT_COLLISION', 'App CSS profiles bind conflicting identities for one input', input.path);
       }
       appStyleInputs.set(absolute, input);
     }
   }
-  const profileEntries = [...profiles.values()].map(({ report }) => ({
-    report,
-    effective: buildSimulatorEffectiveCssIdentity(options.compilerRoot, report),
-  }));
+  const profileEntries = [...profiles.values()].map(({ style }) => ({ style }));
   return {
     name: 'nimi-simulator-css-profile',
     enforce: 'pre',
@@ -663,19 +574,19 @@ export function createSimulatorCssProfileVitePlugin(options) {
       if (styleInput) assertFreshInput(real, styleInput, code, 'SIM_CSS_APP_INPUT_STALE');
       const profile = profiles.get(real);
       if (!profile) return null;
-      const { report, rootDir } = profile;
-      for (const scannerInput of report.style.profile.scanner.inputs) {
+      const { style, rootDir } = profile;
+      for (const scannerInput of style.profile.scanner.inputs) {
         const bytes = readFileSync(path.join(rootDir, ...scannerInput.path.split('/')));
-        if (sha256Digest(bytes) !== scannerInput.digest) fail('SIM_CSS_SCANNER_STALE', 'canonical scanner input changed after conformance', scannerInput.path);
+        if (sha256Digest(bytes) !== scannerInput.digest) fail('SIM_CSS_SCANNER_STALE', 'canonical scanner input changed after validation', scannerInput.path);
       }
-      const directives = report.style.profile.scanner.inputs.map((input) => sourceDirective(
+      const directives = style.profile.scanner.inputs.map((input) => sourceDirective(
         real,
         path.join(rootDir, ...input.path.split('/')),
       ));
-      const layer = report.style.profile.utility.layer;
-      const rootClass = report.style.root_class;
+      const layer = style.profile.utility.layer;
+      const rootClass = style.rootClass;
       const generated = [
-        `/* ${SIMULATOR_CSS_PROFILE_PROTOCOL} ${report.style.digest} */`,
+        `/* ${SIMULATOR_CSS_PROFILE_PROTOCOL} ${style.digest} */`,
         compiler.themeReference,
         ...directives,
         `@layer ${layer} {`,
@@ -689,21 +600,7 @@ export function createSimulatorCssProfileVitePlugin(options) {
     generateBundle(_outputOptions, bundle) {
       for (const [absolute, input] of kitCssInputs) assertFreshInput(absolute, input, undefined, 'SIM_CSS_KIT_CLOSURE_STALE');
       for (const [absolute, input] of appStyleInputs) assertFreshInput(absolute, input, undefined, 'SIM_CSS_APP_INPUT_STALE');
-      const transformed = postprocessSimulatorCssBundle(bundle, profileEntries);
-      for (const { report, effective } of profileEntries) {
-        const moduleId = report.style.profile.utility.owner;
-        this.emitFile({
-          type: 'asset',
-          fileName: `evidence/css-profile/${moduleId}.json`,
-          source: `${JSON.stringify({
-            schema: SIMULATOR_CSS_BUILD_EVIDENCE_SCHEMA,
-            module_id: moduleId,
-            canonical_style_input_digest: effective.digest,
-            identity: effective,
-            transformed: transformed.get(moduleId),
-          }, null, 2)}\n`,
-        });
-      }
+      postprocessSimulatorCssBundle(bundle, profileEntries);
     },
   };
 }

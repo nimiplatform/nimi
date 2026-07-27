@@ -236,7 +236,7 @@ assert.equal(first?.ok, true);
 if (!first?.ok) throw new Error('First Tester browser instance did not open.');
 const firstReadiness = session.readinessFor(first.value.instanceId, 'main');
 assert.equal(firstReadiness.ok, true);
-if (!firstReadiness.ok) throw new Error('First Tester readiness evidence is missing.');
+if (!firstReadiness.ok) throw new Error('First Tester readiness observation is missing.');
 const firstCompletion = await firstReadiness.value.completion;
 assert.equal(firstCompletion.state, 'usable', JSON.stringify({ firstCompletion, instances: session.instances(), diagnostics: session.diagnostics.list() }));
 
@@ -247,7 +247,7 @@ assert.equal(second?.ok, true);
 if (!second?.ok) throw new Error('Second Tester browser instance did not open.');
 const secondReadiness = session.readinessFor(second.value.instanceId, 'main');
 assert.equal(secondReadiness.ok, true);
-if (!secondReadiness.ok) throw new Error('Second Tester readiness evidence is missing.');
+if (!secondReadiness.ok) throw new Error('Second Tester readiness observation is missing.');
 const secondCompletion = await secondReadiness.value.completion;
 assert.equal(secondCompletion.state, 'usable', JSON.stringify({ secondCompletion, instances: session.instances(), diagnostics: session.diagnostics.list() }));
 

@@ -37,9 +37,6 @@ function browserPort(overrides = {}) {
     currentCommitToken: () => 1,
     awaitCommit: async ({ sinceToken }) => sinceToken + 1,
     nextAnimationFrame: async () => { frame += 1; return frame; },
-    beginPaintComposite: async () => 'fixture-paint-window',
-    markPaintCompositeFrame: async () => true,
-    observePaintComposite: async () => true,
     checkSemanticMarkers: async () => ({ ok: true }),
     ...overrides,
   };
@@ -79,7 +76,7 @@ function createBarrier(engine, overrides = {}) {
   });
 }
 
-test('full barrier: candidate, quiescence, commit, two frames, paint evidence, usable', async () => {
+test('full barrier: candidate, quiescence, commit, two frames, semantic markers, usable', async () => {
   const engine = await createEngine();
   const order = [];
   const barrier = createBarrier(engine, {
@@ -88,22 +85,10 @@ test('full barrier: candidate, quiescence, commit, two frames, paint evidence, u
         order.push('commit');
         return sinceToken + 1;
       },
-      beginPaintComposite: async () => {
-        order.push('paint-begin');
-        return 'fixture-paint-window';
-      },
-      markPaintCompositeFrame: async ({ ordinal, frame }) => {
-        order.push(`mark:${ordinal}:${frame}`);
-        return true;
-      },
       nextAnimationFrame: async () => {
         const id = order.filter((entry) => entry.startsWith('frame')).length + 1;
         order.push(`frame:${id}`);
         return id;
-      },
-      observePaintComposite: async ({ firstFrame, secondFrame }) => {
-        order.push(`paint:${firstFrame}:${secondFrame}`);
-        return true;
       },
       checkSemanticMarkers: async () => {
         order.push('markers');
@@ -126,12 +111,8 @@ test('full barrier: candidate, quiescence, commit, two frames, paint evidence, u
   });
   assert.deepEqual(order, [
     'commit',
-    'paint-begin',
     'frame:1',
-    'mark:first:1',
     'frame:2',
-    'mark:second:2',
-    'paint:1:2',
     'projection',
     'blocking',
     'disclosure',
@@ -240,7 +221,7 @@ test('close cancels exactly once and never becomes ready from late callbacks', a
   const terminal = await barrier.completion;
   assert.deepEqual(terminal, { state: 'cancelled', reason: 'dispose', markedAtLogicalTime: null });
   barrier.cancel('dispose');
-  // Late evidence callbacks cannot revive the barrier.
+  // Late browser callbacks cannot revive the barrier.
   commitResolve(1);
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(barrier.state, 'cancelled');
@@ -336,21 +317,21 @@ test('projection predicate failure is a semantic mismatch', async () => {
   assert.deepEqual(await barrier.completion, { state: 'failed', reason: 'semantic-mismatch', markedAtLogicalTime: null });
 });
 
-test('paint barrier failure terminal', async () => {
+test('render barrier failure is terminal', async () => {
   const engine = await createEngine();
   const barrier = createBarrier(engine, {
-    browser: { observePaintComposite: async () => false },
+    browser: { nextAnimationFrame: async () => { throw new Error('render unavailable'); } },
   });
   barrier.signalCandidate({ contractId: DECLARATION.contractId });
-  assert.deepEqual(await barrier.completion, { state: 'failed', reason: 'paint-barrier-failed', markedAtLogicalTime: null });
+  assert.deepEqual(await barrier.completion, { state: 'failed', reason: 'render-barrier-failed', markedAtLogicalTime: null });
   const shell = engine.getCommitted().partitions.shell;
-  assert.equal(shell.readiness['1:ready:1'].reason, 'paint-barrier-failed');
+  assert.equal(shell.readiness['1:ready:1'].reason, 'render-barrier-failed');
 });
 
-test('evidence rejection and non-successive frame tokens fail closed without hanging', async () => {
+test('browser observation rejection and non-successive frame tokens fail closed without hanging', async () => {
   const engine = await createEngine();
   const rejected = createBarrier(engine, {
-    browser: { checkSemanticMarkers: async () => { throw new Error('browser evidence unavailable'); } },
+    browser: { checkSemanticMarkers: async () => { throw new Error('browser observation unavailable'); } },
   });
   rejected.signalCandidate({ contractId: DECLARATION.contractId });
   assert.deepEqual(await rejected.completion, {
@@ -363,7 +344,7 @@ test('evidence rejection and non-successive frame tokens fail closed without han
   });
   duplicateFrames.signalCandidate({ contractId: DECLARATION.contractId });
   assert.deepEqual(await duplicateFrames.completion, {
-    state: 'failed', reason: 'paint-barrier-failed', markedAtLogicalTime: null,
+    state: 'failed', reason: 'render-barrier-failed', markedAtLogicalTime: null,
   });
 });
 

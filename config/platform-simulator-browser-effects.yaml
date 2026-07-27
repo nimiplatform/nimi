@@ -9,7 +9,7 @@ protocol_id: platform_simulator_browser_effects
 surfaces:
   - effect_classification
   - owner_and_phase_admission
-  - enforcement_and_proof
+  - enforcement
 
 classification:
   pure_read:
@@ -225,24 +225,5 @@ entries:
     classification: pure_read
     governed_owners: [simulator_bootstrap, simulator_shell]
     phases: [bootstrap, instance_lifecycle, test_only]
-    permitted_purposes: [integrity_watchdog, performance_evidence]
+    permitted_purposes: [integrity_watchdog, performance_measurement]
     state_authority: forbidden
-  - id: qualification_trace
-    browser_surface: globalThis.__NIMI_SIMULATOR_QUALIFICATION_BEGIN_V1__|globalThis.__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__|globalThis.__NIMI_SIMULATOR_QUALIFICATION_END_V1__
-    classification: port_only
-    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
-    permitted_owner: simulator_shell
-    phases: [instance_lifecycle, test_only]
-    permitted_purposes: [paint_composite_trace_evidence]
-    cleanup: end_or_cancel_before_readiness_terminal
-    state_authority: forbidden
-
-enforcement:
-  manifest_declared_exemption: forbidden
-  runtime_monkey_patch_as_release_proof: forbidden
-  required_proofs:
-    - static_reachability_scan
-    - app_tools_conformance
-    - browser_effect_probe
-    - lifecycle_cleanup_probe
-  violation_result: SIMULATOR_EFFECT_FORBIDDEN

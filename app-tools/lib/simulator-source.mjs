@@ -122,6 +122,10 @@ function gitTrackedFiles(rootDir) {
   }
   const list = runGit(rootDir, ['ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', '.']);
   const stage = runGit(rootDir, ['ls-files', '--stage', '-z', '--', '.']);
+  const deleted = new Set(
+    runGit(rootDir, ['ls-files', '--deleted', '-z', '--', '.'])
+      .stdout.toString('utf8').split('\0').filter(Boolean),
+  );
   const stageModes = new Map();
   for (const record of stage.stdout.toString('utf8').split('\0')) {
     if (!record) continue;
@@ -132,6 +136,7 @@ function gitTrackedFiles(rootDir) {
     .toString('utf8')
     .split('\0')
     .filter(Boolean)
+    .filter((relativePath) => !deleted.has(relativePath))
     .map((relativePath) => ({ relativePath, indexMode: stageModes.get(relativePath) || null }));
   return files.length > 0 ? files : null;
 }
@@ -226,12 +231,6 @@ export function buildSimulatorSourceInventory(rootDir) {
   return {
     digest: computeSourceDigestV1(files),
     files,
-    evidence: files.map((entry) => ({
-      path: entry.path,
-      mode: entry.mode,
-      bytes: entry.bytes.length,
-      digest: sha256Digest(entry.bytes),
-    })),
   };
 }
 

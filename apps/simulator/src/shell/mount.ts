@@ -14,7 +14,6 @@ import {
   simulatorResolvedModuleCatalogs,
   simulatorResolvedModules,
   simulatorResolvedReadinessDeclarations,
-  simulatorResolvedRegistryDigest,
   simulatorResolvedScenario,
 } from '../registry.ts';
 import type { SimulatorGuardHandle } from '../effects/guards.ts';
@@ -73,14 +72,6 @@ function privilegedFunction<T extends (...args: never[]) => unknown>(
   return value as T;
 }
 
-function optionalPrivilegedFunction<T extends (...args: never[]) => unknown>(
-  guard: SimulatorGuardHandle,
-  targetPath: string,
-): T | null {
-  const value = guard.privileged[targetPath];
-  return typeof value === 'function' ? value as T : null;
-}
-
 function ShellRoot({
   session,
   disclosureRoot,
@@ -94,7 +85,7 @@ function ShellRoot({
 }) {
   const version = useSyncExternalStore(
     (listener) => session.subscribe(listener),
-    () => `${session.epoch}:${session.phase}:${session.engine.getCommitted().revision}:${session.replayDigest() ?? ''}:${session.instances().map((entry) => `${entry.instanceId}:${entry.status}:${entry.readiness}`).join(',')}:${session.diagnostics.list().length}:${session.route().kind}`,
+    () => `${session.epoch}:${session.phase}:${session.engine.getCommitted().revision}:${session.instances().map((entry) => `${entry.instanceId}:${entry.status}:${entry.readiness}`).join(',')}:${session.diagnostics.list().length}:${session.route().kind}`,
   );
   void version;
   // Identity-stable chrome ports: the flow runner's timer effect keys off
@@ -129,9 +120,6 @@ function ShellRoot({
   const props: SimulatorShellViewProps = {
     epoch: session.epoch,
     phase: session.phase,
-    registryDigest: simulatorResolvedRegistryDigest,
-    replayDigest: session.replayDigest(),
-    stateRevision: session.engine.getCommitted().revision,
     moduleCount: simulatorResolvedModules.length,
     route: session.route(),
     instances: session.instances(),
@@ -187,23 +175,6 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
   const privilegedSetTimeout = privilegedFunction<typeof setTimeout>(guard, 'globalThis.setTimeout');
   const privilegedRaf = privilegedFunction<typeof requestAnimationFrame>(guard, 'globalThis.requestAnimationFrame');
   const privilegedCancelRaf = privilegedFunction<typeof cancelAnimationFrame>(guard, 'globalThis.cancelAnimationFrame');
-  const qualificationBegin = optionalPrivilegedFunction<(
-    input: { readonly instanceId: string; readonly surfaceId: string },
-  ) => Promise<unknown>>(guard, 'globalThis.__NIMI_SIMULATOR_QUALIFICATION_BEGIN_V1__');
-  const qualificationEnd = optionalPrivilegedFunction<(
-    input: {
-      readonly observationToken: string;
-      readonly firstFrame: number | null;
-      readonly secondFrame: number | null;
-    },
-  ) => Promise<unknown>>(guard, 'globalThis.__NIMI_SIMULATOR_QUALIFICATION_END_V1__');
-  const qualificationMark = optionalPrivilegedFunction<(
-    input: {
-      readonly observationToken: string;
-      readonly ordinal: 'first' | 'second';
-      readonly frame: number;
-    },
-  ) => Promise<unknown>>(guard, 'globalThis.__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__');
   const commits = createReactCommitTracker();
   const assignedRoots = createAssignedRootRegistry();
   rootElement.tabIndex = -1;
@@ -227,20 +198,6 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
     requestAnimationFrame: (callback) => privilegedRaf.call(globalThis, callback),
     cancelAnimationFrame: (handle) => privilegedCancelRaf.call(globalThis, handle),
     computedStyle: (element) => window.getComputedStyle(element),
-    paintCompositeEvidence: qualificationBegin && qualificationMark && qualificationEnd
-      ? {
-          async begin(input) {
-            const token = await qualificationBegin.call(globalThis, input);
-            return typeof token === 'string' && token.length >= 1 && token.length <= 256 ? token : null;
-          },
-          async mark(input) {
-            return await qualificationMark.call(globalThis, input) === true;
-          },
-          async end(input) {
-            return await qualificationEnd.call(globalThis, input) === true;
-          },
-        }
-      : null,
   });
   const sessionRef: { current: SimulatorSession | null } = { current: null };
   const surfaces = createSimulatorBrowserSurfaceManager({

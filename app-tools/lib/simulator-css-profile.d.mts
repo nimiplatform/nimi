@@ -1,28 +1,24 @@
 import type { Plugin } from 'vite';
 
-export interface SimulatorCssProfileReport {
-  readonly style: {
-    readonly entry: string;
-    readonly digest: string;
-    readonly root_class: string;
-    readonly global_prefix: string;
-    readonly inputs: readonly { readonly path: string; readonly digest: string; readonly bytes: number }[];
-    readonly production?: {
-      readonly app_selector_count_outside_canonical: number;
-      readonly host_foundation_inputs: readonly {
-        readonly path: string;
-        readonly digest: string;
-        readonly bytes: number;
-        readonly selectors: readonly string[];
-      }[];
+export interface SimulatorCssValidation {
+  readonly entry: string;
+  readonly digest: string;
+  readonly rootClass: string;
+  readonly globalPrefix: string;
+  readonly inputs: readonly { readonly path: string; readonly digest: string; readonly bytes: number }[];
+  readonly production: {
+    readonly hostFoundationInputs: readonly {
+      readonly path: string;
       readonly digest: string;
+      readonly bytes: number;
+      readonly selectors: readonly string[];
+    }[];
+  };
+  readonly profile: {
+    readonly scanner: {
+      readonly inputs: readonly { readonly path: string; readonly digest: string; readonly bytes: number }[];
     };
-    readonly profile: {
-      readonly scanner: {
-        readonly inputs: readonly { readonly path: string; readonly digest: string; readonly bytes: number }[];
-      };
-      readonly utility: { readonly owner: string; readonly layer: string };
-    };
+    readonly utility: { readonly owner: string; readonly layer: string };
   };
 }
 
@@ -30,20 +26,14 @@ export declare const SIMULATOR_CSS_PROFILE_PROTOCOL: 'nimi.simulator.css-profile
 export declare const SIMULATOR_CSS_PROFILE_REVISION: string;
 export declare const SIMULATOR_CSS_COMPILER_VERSION: string;
 export declare const SIMULATOR_CSS_THEME_DIGEST: string;
-export declare const SIMULATOR_CSS_BUILD_EVIDENCE_SCHEMA: 'nimi.simulator.css-build-evidence/v1';
 export declare const SIMULATOR_KIT_FOUNDATION_CSS_EXPORTS: readonly string[];
 
 export declare function assertSimulatorFoundationEntry(code: string, filePath: string): void;
 
-export declare function buildSimulatorEffectiveCssIdentity(
-  compilerRoot: string,
-  report: SimulatorCssProfileReport,
-): Readonly<Record<string, unknown>> & { readonly digest: string };
-
 export declare function createSimulatorCssProfileVitePlugin(options: {
   readonly compilerRoot: string;
   readonly foundationEntry: string;
-  readonly apps: readonly { readonly rootDir: string; readonly report: SimulatorCssProfileReport }[];
+  readonly apps: readonly { readonly rootDir: string; readonly style: SimulatorCssValidation }[];
 }): Plugin;
 
 export declare function buildKitFoundationScannerInventory(kitRoot: string): {

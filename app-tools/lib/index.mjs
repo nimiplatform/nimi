@@ -4,10 +4,7 @@ import path from 'node:path';
 import { createAppScaffold } from './app-scaffold.mjs';
 import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
-export {
-  renderSimulatorConformanceFailure,
-  validateSimulatorAppSource,
-} from './simulator-conformance.mjs';
+export { validateSimulatorAppSource } from './simulator-conformance.mjs';
 
 const SDK_VERSION = '^0.6.0';
 const NIMICODING_VERSION = '0.2.5';
@@ -35,7 +32,6 @@ const AI_SDK_VERSION = '^6.0.85';
 const APP_TOOLS_VERSION = '^0.2.0';
 const ELECTRON_VERSION = '^42.5.0';
 const ESBUILD_VERSION = '^0.28.0';
-const PLAYWRIGHT_VERSION = '^1.61.0';
 const PACKAGE_MANAGER = 'pnpm@10.32.1';
 
 function ensureDirEmptyOrMissing(targetDir) {
@@ -92,7 +88,6 @@ export function appScaffoldVersions() {
     nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
     electronVersion: ELECTRON_VERSION,
     esbuildVersion: ESBUILD_VERSION,
-    playwrightVersion: PLAYWRIGHT_VERSION,
     packageManager: PACKAGE_MANAGER,
   };
 }

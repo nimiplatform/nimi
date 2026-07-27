@@ -1,20 +1,20 @@
 import { validateSimulatorScenario } from '../build/config.mjs';
 
-export function scenarioForQualifiedReports(rows, { launch = [] } = {}) {
+export function scenarioForValidatedSources(rows, { launch = [] } = {}) {
   return validateSimulatorScenario({
     schema: 'nimi.simulator.scenario/v1',
-    scenario_id: 'qualification-fixture',
+    scenario_id: 'module-test-fixture',
     scenario_revision: 'test',
     seed: 'a5'.repeat(32),
     initial_logical_time: 0,
     state: { scenario: {}, ecosystem: {}, shell: { readiness: {} } },
-    module_data: rows.map(({ moduleId, report }) => ({
+    module_data: rows.map(({ moduleId, validation }) => ({
       module_id: moduleId,
-      data: report.fixture.catalog.moduleData,
+      data: validation.fixture.catalog.moduleData,
     })),
     enabled_capabilities: [],
     launch,
-    readiness: rows.flatMap(({ moduleId, report }) => report.fixture.readiness.map((declaration) => ({
+    readiness: rows.flatMap(({ moduleId, validation }) => validation.fixture.readiness.map((declaration) => ({
       module_id: moduleId,
       surface_id: declaration.surfaceId,
       contract_id: declaration.contractId,

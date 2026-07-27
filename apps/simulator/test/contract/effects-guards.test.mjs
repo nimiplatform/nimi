@@ -83,11 +83,7 @@ function catalogRow(targetPath) {
   return row;
 }
 
-test('catalog is generated from implementation policy tables with digest binding', () => {
-  assert.equal(catalog.schema, 'nimi.simulator.effect-catalog/v1');
-  assert.match(catalog.digest, /^sha256:[0-9a-f]{64}$/);
-  assert.match(catalog.policyDigests.browserEffects, /^sha256:[0-9a-f]{64}$/);
-  assert.match(catalog.policyDigests.listenerFamilies, /^sha256:[0-9a-f]{64}$/);
+test('catalog is generated from the implementation policy tables', () => {
   assert.ok(catalog.effects.length > 40);
   assert.deepEqual(
     catalog.listenerFamilies.map((family) => family.id),
@@ -95,21 +91,20 @@ test('catalog is generated from implementation policy tables with digest binding
   );
 });
 
-test('forbidden effects deny governed owners and record evidence', () => {
+test('forbidden effects deny governed owners without invoking the underlying surface', () => {
   const { target, calls } = fabricateTarget();
-  const denied = [];
-  const handle = installSimulatorEffectGuards({ catalog, target, onDeniedAttempt: (record) => denied.push(record) });
-  assert.ok(handle.report.installedGuards.includes('globalThis.fetch'));
+  const handle = installSimulatorEffectGuards({ catalog, target });
 
   handle.withScope({ owner: 'canonical-renderer', phase: 'render' }, () => {
-    assert.throws(() => target.fetch('https://runtime.example'), (error) => error instanceof SimulatorEffectForbiddenError);
+    assert.throws(
+      () => target.fetch('https://runtime.example'),
+      (error) => error instanceof SimulatorEffectForbiddenError
+        && error.effectId === 'network_fetch'
+        && error.owner === 'canonical-renderer'
+        && error.phase === 'render',
+    );
   });
   assert.equal(calls.fetch, 0);
-  assert.equal(denied.length, 1);
-  assert.equal(denied[0].effectId, 'network_fetch');
-  assert.equal(denied[0].owner, 'canonical-renderer');
-  assert.equal(denied[0].phase, 'render');
-  assert.equal(handle.report.deniedAttempts.length, 1);
 });
 
 test('storage accessors deny governed owners on get and set', () => {
@@ -174,7 +169,6 @@ test('inherited browser descriptors are intercepted at their defining prototype'
   const target = { navigator: Object.create(navigatorPrototype) };
   const inheritedCatalog = catalogWithEffects([catalogRow('navigator.sendBeacon')]);
   const handle = installSimulatorEffectGuards({ catalog: inheritedCatalog, target });
-  assert.ok(handle.report.installedGuards.includes('navigator.sendBeacon'));
   assert.notEqual(navigatorPrototype.sendBeacon, handle.privileged['navigator.sendBeacon']);
   handle.withScope({ owner: 'canonical-renderer', phase: 'callback' }, () => {
     assert.throws(() => target.navigator.sendBeacon('/'), SimulatorEffectForbiddenError);
@@ -182,7 +176,7 @@ test('inherited browser descriptors are intercepted at their defining prototype'
   assert.equal(calls, 0);
 });
 
-test('unavailable and browser-unforgeable surfaces are explicit static/CSP-only evidence', () => {
+test('unavailable and browser-unforgeable surfaces are left to static and CSP enforcement', () => {
   const originalFetch = () => 'native';
   const target = {};
   Object.defineProperty(target, 'fetch', {
@@ -195,12 +189,9 @@ test('unavailable and browser-unforgeable surfaces are explicit static/CSP-only 
     catalogRow('globalThis.showOpenFilePicker'),
   ]);
   const handle = installSimulatorEffectGuards({ catalog: staticCatalog, target });
-  assert.deepEqual(handle.report.staticOnlySurfaces, [
-    { targetPath: 'globalThis.fetch', reason: 'non-configurable' },
-    { targetPath: 'globalThis.showOpenFilePicker', reason: 'unavailable' },
-  ]);
   assert.equal(target.fetch, originalFetch);
-  assert.equal(handle.report.installedGuards.length, 0);
+  assert.equal(Object.hasOwn(handle.privileged, 'globalThis.fetch'), false);
+  assert.equal(Object.hasOwn(handle.privileged, 'globalThis.showOpenFilePicker'), false);
 });
 
 test('installation failure rolls back every previously patched descriptor', () => {
@@ -251,32 +242,14 @@ test('runtime wrappers enforce permitted-owner phases and unknown scoped owners'
   assert.equal(calls.fetch, 0);
 });
 
-test('runtime scope is synchronous supplemental evidence, not ambient async attribution', async () => {
+test('runtime scope is synchronous and does not become ambient async attribution', async () => {
   const { target, calls } = fabricateTarget();
   const handle = installSimulatorEffectGuards({ catalog, target });
-  assert.deepEqual(handle.report.runtimeScope, {
-    coverage: 'synchronous-known-callbacks-only',
-    unscopedBehavior: 'framework-passthrough',
-    asyncAndModuleEvaluationPolicy: 'policy-derived-static-qualification',
-  });
   await handle.withScope({ owner: 'canonical-renderer', phase: 'callback' }, async () => {
     await Promise.resolve();
     target.fetch('/statically-forbidden-source');
   });
   assert.equal(calls.fetch, 1);
-  assert.equal(handle.report.deniedAttempts.length, 0);
-});
-
-test('guard report binds catalog identity, descriptor shape evidence, and installation order', () => {
-  const { target } = fabricateTarget();
-  const handle = installSimulatorEffectGuards({ catalog, target });
-  assert.equal(handle.report.catalogDigest, catalog.digest);
-  assert.ok(Object.keys(handle.report.descriptorShapes).length > 0);
-  for (const hash of Object.values(handle.report.descriptorShapes)) {
-    assert.match(hash, /^fnv1a:[0-9a-f]{8}$/);
-  }
-  const fetchIndex = handle.report.installedGuards.indexOf('globalThis.fetch');
-  assert.ok(fetchIndex >= 0);
 });
 
 test('CSP floor holds and remaining sources follow emitted asset classes', () => {

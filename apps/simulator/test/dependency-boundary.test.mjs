@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { sha256Digest } from '@nimiplatform/app-tools/simulator-conformance';
-import { createSelectedDependencyQualifier } from '../build/dependency-qualification.mjs';
+import { createSelectedDependencyQualifier } from '../build/dependency-boundary.mjs';
 
 function withPackage(run) {
   const root = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-dependency-'));
@@ -45,18 +45,8 @@ function scanClosure(fixture) {
   return qualifier;
 }
 
-test('selected dependency evidence binds every reached runtime file', () => withPackage((fixture) => {
-  const evidence = scanClosure(fixture).finalize();
-  assert.equal(evidence.schema, 'nimi.simulator.selected-dependency-closure/v1');
-  assert.equal(evidence.packages.length, 1);
-  assert.deepEqual(
-    evidence.packages[0].files.map((entry) => entry.path),
-    [
-      'package/selected-safe@1.2.3/index.js',
-      'package/selected-safe@1.2.3/internal.js',
-    ],
-  );
-  assert.match(evidence.digest, /^sha256:[0-9a-f]{64}$/u);
+test('selected dependency scan accepts the exact reached runtime closure', () => withPackage((fixture) => {
+  assert.doesNotThrow(() => scanClosure(fixture).finalize());
 }));
 
 test('selected dependency scan rejects governed effects in a transitive file', () => withPackage((fixture) => {

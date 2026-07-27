@@ -18,7 +18,7 @@ const MODULES = [
 ];
 const SCENARIO = {
   scenarioId: 'nimi-ecosystem',
-  scenarioRevision: 'cp6',
+  scenarioRevision: 'current',
   seed: 'e5'.repeat(32),
   initialLogicalTime: 0,
   scenarioState: { disclosure: 'simulated' },

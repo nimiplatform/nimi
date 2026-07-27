@@ -8,5 +8,4 @@ selects no App; fixtures live only in test roots and never become product rows.
 
 Source URLs, revisions, trust, publication, admission, and permissions must not
 come from an App Manifest. A selected descriptor binds a full commit object,
-source root/digest, structured authority references, independent App-production
-inventory, and separate Nimi host-invocation inventory.
+source root/digest, App production entries, and Nimi host invocation entries.

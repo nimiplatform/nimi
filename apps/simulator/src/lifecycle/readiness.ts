@@ -1,7 +1,7 @@
 /**
  * Surface readiness barrier: one typed App candidate through State Engine
- * quiescence, React commit, two animation frames, and Paint/Composite
- * evidence to a visible checkpoint.
+ * quiescence, React commit, two browser animation frames, and exact semantic
+ * markers on the assigned visible roots.
  *
  * Authority: P-SIM-014;
  * tables/simulator-state-engine-policy.yaml `readiness`.
@@ -23,7 +23,7 @@ export type SimulatorReadinessState =
   | 'signaled'
   | 'waiting-quiescence'
   | 'waiting-commit'
-  | 'waiting-paint'
+  | 'waiting-render'
   | 'usable'
   | 'cancelled'
   | 'failed';
@@ -38,7 +38,7 @@ export type SimulatorReadinessTerminalReason =
   | 'module-failure'
   | 'session-failure'
   | 'semantic-mismatch'
-  | 'paint-barrier-failed';
+  | 'render-barrier-failed';
 
 export interface SimulatorReadinessTerminal {
   readonly state: 'usable' | 'cancelled' | 'failed';
@@ -70,9 +70,9 @@ export interface SimulatorReadinessExpectation {
 }
 
 /**
- * Browser evidence port. Every method is injected: the browser shell wires
- * real React commit tracking, rAF, and Paint/Composite observation; tests
- * wire deterministic fixtures.
+ * Browser observation port. The browser shell wires real React commit
+ * tracking, rAF, and assigned-root semantic checks; tests wire deterministic
+ * fixtures.
  */
 export interface SimulatorReadinessBrowserPort {
   /** Returns the current React commit token for one assigned App surface. */
@@ -86,28 +86,6 @@ export interface SimulatorReadinessBrowserPort {
   }): Promise<number>;
   /** One animation frame; resolves with the frame's sequence number. */
   nextAnimationFrame(signal: AbortSignal): Promise<number>;
-  /** Begins runner-owned trace capture before the first readiness frame. */
-  beginPaintComposite(input: {
-    readonly instanceId: string;
-    readonly surfaceId: string;
-    readonly signal: AbortSignal;
-  }): Promise<string | null>;
-  /** Records a runner clock-sync marker after one readiness frame callback. */
-  markPaintCompositeFrame(input: {
-    readonly observationToken: string;
-    readonly ordinal: 'first' | 'second';
-    readonly frame: number;
-    readonly signal: AbortSignal;
-  }): Promise<boolean>;
-  /** Verifies a Paint/Composite trace event between the two frame tokens. */
-  observePaintComposite(input: {
-    readonly instanceId: string;
-    readonly surfaceId: string;
-    readonly firstFrame: number;
-    readonly secondFrame: number;
-    readonly observationToken: string;
-    readonly signal: AbortSignal;
-  }): Promise<boolean>;
   /**
    * Semantic marker check scoped to the assigned renderer/overlay roots:
    * exact root-content semantic ID, primary-control semantic ID/ARIA
@@ -149,7 +127,7 @@ export interface SimulatorReadinessBarrier {
 }
 
 const CANCELLED = Symbol('simulator-readiness-cancelled');
-const EVIDENCE_FAILED = Symbol('simulator-readiness-evidence-failed');
+const OBSERVATION_FAILED = Symbol('simulator-readiness-observation-failed');
 
 interface ReadinessPublication {
   readonly terminalState: 'usable' | 'failed';
@@ -171,7 +149,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
   let publication: ReadinessPublication | null = null;
   let unsubscribeState: (() => void) | null = null;
   const cancelListeners = new Set<() => void>();
-  const evidenceAbort = new AbortController();
+  const readinessAbort = new AbortController();
   let resolveCompletion: (terminal: SimulatorReadinessTerminal) => void = () => undefined;
   let completionSettled = false;
   const completion = new Promise<SimulatorReadinessTerminal>((resolve) => {
@@ -183,9 +161,9 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
     unsubscribeState = null;
   }
 
-  function stopEvidence(): void {
+  function stopObservations(): void {
     stopStateWatch();
-    evidenceAbort.abort();
+    readinessAbort.abort();
     for (const listener of cancelListeners) listener();
     cancelListeners.clear();
   }
@@ -193,7 +171,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
   function settleCompletion(terminalState: 'usable' | 'cancelled' | 'failed', reason: SimulatorReadinessTerminalReason, markedAtLogicalTime: number | null): void {
     if (completionSettled) return;
     completionSettled = true;
-    stopEvidence();
+    stopObservations();
     resolveCompletion(Object.freeze({ state: terminalState, reason, markedAtLogicalTime }));
   }
 
@@ -294,7 +272,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
     const activeReservation = reservation;
     reservation = null;
     activeReservation?.cancel('reset');
-    stopEvidence();
+    stopObservations();
     let settled = false;
     return Object.freeze({
       settle() {
@@ -305,8 +283,8 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
     });
   }
 
-  /** Race one asynchronous evidence step against cancellation. */
-  function raceCancel<T>(step: Promise<T>): Promise<T | typeof CANCELLED | typeof EVIDENCE_FAILED> {
+  /** Race one asynchronous browser observation against cancellation. */
+  function raceCancel<T>(step: Promise<T>): Promise<T | typeof CANCELLED | typeof OBSERVATION_FAILED> {
     return new Promise((resolve) => {
       const listener = (): void => resolve(CANCELLED);
       cancelListeners.add(listener);
@@ -317,7 +295,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
         },
         () => {
           cancelListeners.delete(listener);
-          resolve(EVIDENCE_FAILED);
+          resolve(OBSERVATION_FAILED);
         },
       );
     });
@@ -377,76 +355,31 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
       instanceId: options.instanceId,
       surfaceId: options.surfaceId,
       sinceToken: commitFloor,
-      signal: evidenceAbort.signal,
+      signal: readinessAbort.signal,
     }));
     if (commit === CANCELLED || state !== 'waiting-commit') return;
-    if (commit === EVIDENCE_FAILED || commit <= commitFloor) {
-      publishTerminal('failed', 'paint-barrier-failed');
+    if (commit === OBSERVATION_FAILED || commit <= commitFloor) {
+      publishTerminal('failed', 'render-barrier-failed');
       return;
     }
 
-    // 3. Begin immutable trace capture, then observe two successive frames.
-    state = 'waiting-paint';
+    // 3. Give the committed DOM two successive browser rendering opportunities.
+    state = 'waiting-render';
     options.onStateChange?.(state);
-    const observationToken = await raceCancel(options.browser.beginPaintComposite({
-      instanceId: options.instanceId,
-      surfaceId: options.surfaceId,
-      signal: evidenceAbort.signal,
-    }));
-    if (observationToken === CANCELLED || state !== 'waiting-paint') return;
-    if (observationToken === EVIDENCE_FAILED || observationToken === null) {
-      publishTerminal('failed', 'paint-barrier-failed');
+    const firstFrame = await raceCancel(options.browser.nextAnimationFrame(readinessAbort.signal));
+    if (firstFrame === CANCELLED || state !== 'waiting-render') return;
+    if (firstFrame === OBSERVATION_FAILED) {
+      publishTerminal('failed', 'render-barrier-failed');
       return;
     }
-    const firstFrame = await raceCancel(options.browser.nextAnimationFrame(evidenceAbort.signal));
-    if (firstFrame === CANCELLED || state !== 'waiting-paint') return;
-    if (firstFrame === EVIDENCE_FAILED) {
-      publishTerminal('failed', 'paint-barrier-failed');
-      return;
-    }
-    const firstMarked = await raceCancel(options.browser.markPaintCompositeFrame({
-      observationToken,
-      ordinal: 'first',
-      frame: firstFrame,
-      signal: evidenceAbort.signal,
-    }));
-    if (firstMarked === CANCELLED || state !== 'waiting-paint') return;
-    if (firstMarked === EVIDENCE_FAILED || !firstMarked) {
-      publishTerminal('failed', 'paint-barrier-failed');
-      return;
-    }
-    const secondFrame = await raceCancel(options.browser.nextAnimationFrame(evidenceAbort.signal));
-    if (secondFrame === CANCELLED || state !== 'waiting-paint') return;
-    if (secondFrame === EVIDENCE_FAILED || secondFrame <= firstFrame) {
-      publishTerminal('failed', 'paint-barrier-failed');
-      return;
-    }
-    const secondMarked = await raceCancel(options.browser.markPaintCompositeFrame({
-      observationToken,
-      ordinal: 'second',
-      frame: secondFrame,
-      signal: evidenceAbort.signal,
-    }));
-    if (secondMarked === CANCELLED || state !== 'waiting-paint') return;
-    if (secondMarked === EVIDENCE_FAILED || !secondMarked) {
-      publishTerminal('failed', 'paint-barrier-failed');
-      return;
-    }
-    const painted = await raceCancel(options.browser.observePaintComposite({
-      instanceId: options.instanceId,
-      surfaceId: options.surfaceId,
-      firstFrame,
-      secondFrame,
-      observationToken,
-      signal: evidenceAbort.signal,
-    }));
-    if (painted === CANCELLED || state !== 'waiting-paint') return;
-    if (painted === EVIDENCE_FAILED || !painted) {
-      publishTerminal('failed', 'paint-barrier-failed');
+    const secondFrame = await raceCancel(options.browser.nextAnimationFrame(readinessAbort.signal));
+    if (secondFrame === CANCELLED || state !== 'waiting-render') return;
+    if (secondFrame === OBSERVATION_FAILED || secondFrame <= firstFrame) {
+      publishTerminal('failed', 'render-barrier-failed');
       return;
     }
 
-    // 4. Semantic qualification is observed only after the paint checkpoint.
+    // 4. Check exact product semantics on the assigned roots.
     if (!options.projectionPredicate(options.projection()) || options.blockingPredicate() || !options.simulationDisclosureVisible()) {
       publishTerminal('failed', 'semantic-mismatch');
       return;
@@ -455,10 +388,10 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
       instanceId: options.instanceId,
       surfaceId: options.surfaceId,
       expectation: options.expectation,
-      signal: evidenceAbort.signal,
+      signal: readinessAbort.signal,
     }));
-    if (markers === CANCELLED || state !== 'waiting-paint') return;
-    if (markers === EVIDENCE_FAILED || !markers.ok) {
+    if (markers === CANCELLED || state !== 'waiting-render') return;
+    if (markers === OBSERVATION_FAILED || !markers.ok) {
       publishTerminal('failed', 'semantic-mismatch');
       return;
     }

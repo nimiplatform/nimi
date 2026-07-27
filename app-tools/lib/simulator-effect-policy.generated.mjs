@@ -6,7 +6,6 @@ function deepFreeze(value) {
 }
 
 export const SIMULATOR_EFFECT_POLICY = deepFreeze({
-  source: {"path":"config/platform-simulator-browser-effects.yaml","digest":"sha256:5730ea479801b83f4bf53a5c7080dffffed09536ea98b7c1dc55c04318133a69","protocolId":"platform_simulator_browser_effects"},
   entries: [
     {"id":"network_fetch","classification":"forbidden","surfaces":["globalThis.fetch"],"governedOwners":["app_adapter","canonical_renderer","selected_dependency"],"permittedOwners":[],"phases":["module_evaluation","instance_lifecycle","render","callback"]},
     {"id":"network_xhr","classification":"forbidden","surfaces":["XMLHttpRequest"],"governedOwners":["app_adapter","canonical_renderer","selected_dependency"],"permittedOwners":[],"phases":["module_evaluation","instance_lifecycle","render","callback"]},
@@ -34,7 +33,6 @@ export const SIMULATOR_EFFECT_POLICY = deepFreeze({
     {"id":"overlay_portal","classification":"port_only","surfaces":["portal_into_assigned_overlay_root"],"governedOwners":["app_adapter","canonical_renderer","selected_dependency"],"permittedOwners":["simulator_shell","kit_coordinator","kit_primitive"],"phases":["render","callback"]},
     {"id":"layout_read","classification":"pure_read","surfaces":["getBoundingClientRect","getComputedStyle","matchMedia"],"governedOwners":["canonical_renderer","selected_dependency","kit_primitive"],"permittedOwners":[],"phases":["render","callback"]},
     {"id":"layout_observer","classification":"port_only","surfaces":["ResizeObserver","IntersectionObserver","MutationObserver"],"governedOwners":["app_adapter","canonical_renderer","selected_dependency"],"permittedOwners":["simulator_shell","kit_coordinator","kit_primitive"],"phases":["instance_lifecycle","callback"]},
-    {"id":"integrity_timing","classification":"pure_read","surfaces":["performance.now"],"governedOwners":["simulator_bootstrap","simulator_shell"],"permittedOwners":[],"phases":["bootstrap","instance_lifecycle","test_only"]},
-    {"id":"qualification_trace","classification":"port_only","surfaces":["globalThis.__NIMI_SIMULATOR_QUALIFICATION_BEGIN_V1__","globalThis.__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__","globalThis.__NIMI_SIMULATOR_QUALIFICATION_END_V1__"],"governedOwners":["app_adapter","canonical_renderer","selected_dependency"],"permittedOwners":["simulator_shell"],"phases":["instance_lifecycle","test_only"]}
+    {"id":"integrity_timing","classification":"pure_read","surfaces":["performance.now"],"governedOwners":["simulator_bootstrap","simulator_shell"],"permittedOwners":[],"phases":["bootstrap","instance_lifecycle","test_only"]}
   ],
 });

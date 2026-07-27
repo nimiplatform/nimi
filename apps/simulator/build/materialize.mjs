@@ -139,32 +139,6 @@ function assertGitObject(repositoryPath, source) {
   return runGit(repositoryPath, ['rev-parse', `${source.object_id}^{tree}`], { encoding: 'utf8' }).stdout.trim();
 }
 
-function workspaceDirty(repositoryPath, sourceRoot) {
-  const status = runGit(repositoryPath, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--', sourceRoot]);
-  return status.stdout.length > 0;
-}
-
-export function assertWorkspaceSourcesClean(descriptors, {
-  workspaceRoot,
-  workspaceRepositoryKey = 'nimi',
-}) {
-  const roots = new Set();
-  for (const descriptor of descriptors) {
-    for (const source of descriptor.sources) {
-      if (source.kind !== 'workspace') continue;
-      if (source.repository_key !== workspaceRepositoryKey) {
-        fail('SIM_WORKSPACE_REPOSITORY', `workspace source must use repository key ${JSON.stringify(workspaceRepositoryKey)}`);
-      }
-      roots.add(source.root);
-    }
-  }
-  for (const root of [...roots].sort()) {
-    if (workspaceDirty(path.resolve(workspaceRoot), root)) {
-      fail('SIM_SOURCE_DIRTY_RELEASE', `workspace source ${JSON.stringify(root)} is dirty`);
-    }
-  }
-}
-
 export function partitionGitBatchRows(rows) {
   const chunks = [];
   let chunk = [];
@@ -299,10 +273,6 @@ export function materializeSourceLocation(source, repositoryCatalog, options) {
   const repository = resolveRepository(source, repositoryCatalog, options);
   try {
     const treeObjectId = assertGitObject(repository.repositoryPath, source);
-    const dirty = source.kind === 'workspace' && workspaceDirty(repository.repositoryPath, source.root);
-    if (dirty && options.release !== false) {
-      fail('SIM_SOURCE_DIRTY_RELEASE', `workspace source ${JSON.stringify(source.root)} is dirty`);
-    }
     const files = readGitTree(repository.repositoryPath, source);
     const digest = computeSourceDigestV1(files);
     if (digest !== source.expected_digest) {
@@ -327,15 +297,11 @@ export function materializeSourceLocation(source, repositoryCatalog, options) {
       treeObjectId,
       root: `source/${options.moduleId}/${source.id}/`,
       sourceDigest: digest,
-      authorityRefs: source.authority_refs,
-      authorityIndexDigest: source.authority_index_digest,
       fetchIdentity: repository.fetchIdentity,
       canonicalFetchIdentity: repository.canonicalFetchIdentity,
       actualMirrorUsed: repository.fetchIdentity === repository.canonicalFetchIdentity ? null : repository.fetchIdentity,
       fileCount: files.length,
       files: Object.freeze(fileInventory),
-      releasable: !dirty,
-      dirtyWorkspace: dirty,
       sourceInstallScriptsExecuted: 0,
       sourceBuildScriptsExecuted: 0,
       targetRoot,

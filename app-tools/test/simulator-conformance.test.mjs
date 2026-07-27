@@ -68,25 +68,15 @@ function expectManifestFailure(name, mutate, code) {
   });
 }
 
-test('valid Simulator App fixture produces a source-bound report', () => {
+test('valid Simulator App source exposes the validated inputs needed by the build', () => {
   const result = validateSimulatorAppSource(FIXTURE_ROOT);
-  assert.equal(result.report.schema, 'nimi.simulator.app-tools-report/v1');
-  assert.equal(result.report.result, 'pass');
-  assert.equal(result.report.source.module_id, 'sample-app');
-  assert.match(result.report.source.app_source_digest, /^sha256:[0-9a-f]{64}$/);
-  assert.match(result.report.manifest.digest, /^sha256:[0-9a-f]{64}$/);
-  assert.match(result.report.style.digest, /^sha256:[0-9a-f]{64}$/);
-  assert.equal(result.report.style.profile.protocol, 'nimi.simulator.css-profile/v1');
-  assert.equal(result.report.style.profile.scanner.mode, 'exact-canonical-composition-files');
-  assert.match(result.report.style.profile.scanner.digest, /^sha256:[0-9a-f]{64}$/);
-  assert.equal(result.report.style.profile.utility.root_class, 'nimi-ui-module--sample-app');
-  assert.equal(result.report.style.profile.utility.layer, 'simulator.module.sample-app');
-  assert.match(result.report.report_digest, /^sha256:[0-9a-f]{64}$/);
-  assert.equal(result.report.composition.host_invocation_inventory.provided, false);
-  assert.deepEqual(result.report.composition.host_invocation_inventory.entries, []);
-  assert.equal(result.report.checks.canonical_instance_factory.result, 'pass');
-  assert.equal(result.report.style.production.app_selector_count_outside_canonical, 0);
-  assert.deepEqual(result.report.style.production.host_foundation_inputs, []);
+  assert.equal(result.manifest.module_id, 'sample-app');
+  assert.equal(result.style.profile.protocol, 'nimi.simulator.css-profile/v1');
+  assert.equal(result.style.profile.scanner.mode, 'exact-canonical-composition-files');
+  assert.equal(result.style.profile.utility.root_class, 'nimi-ui-module--sample-app');
+  assert.equal(result.style.profile.utility.layer, 'simulator.module.sample-app');
+  assert.deepEqual(result.style.production.hostFoundationInputs, []);
+  assert.ok(result.source.files.some((entry) => entry.path === 'src/renderer/factory.ts'));
 });
 
 test('Manifest admits owner-canonical camelCase SDK method IDs', () => {
@@ -109,8 +99,10 @@ export type HiddenType = typeof value;
   writeFileSync(factoryPath, `${readFileSync(factoryPath, 'utf8')}\nexport type { PublicType } from './type-only';\n`);
 
   const result = validateSimulatorAppSource(root);
-  assert.equal(result.report.result, 'pass');
-  assert.equal(result.report.checks.imports.evidence.includes('src/simulator/type-only-effect.ts'), false);
+  assert.equal(
+    [...result.graph.nodes.keys()].some((entry) => entry.endsWith(path.join('src', 'simulator', 'type-only-effect.ts'))),
+    false,
+  );
 }));
 
 test('canonical closure admits source-bound PNG imports without parsing binary bytes as code', () => withFixture((root) => {
@@ -125,9 +117,8 @@ test('canonical closure admits source-bound PNG imports without parsing binary b
     `import logo from './logo.png';\n${readFileSync(factoryPath, 'utf8')}\nexport const logoAsset = logo;\n`,
   );
   const result = validateSimulatorAppSource(root);
-  assert.equal(result.report.result, 'pass');
-  assert.equal(result.report.checks.imports.evidence.includes('src/renderer/logo.png'), true);
-  assert.equal(result.source.evidence.some((entry) => entry.path === 'src/renderer/logo.png'), true);
+  assert.equal(result.source.files.some((entry) => entry.path === 'src/renderer/logo.png'), true);
+  assert.equal([...result.graph.nodes.keys()].includes(assetPath), true);
 }));
 
 test('canonical closure admits valid source-bound JSON data and rejects malformed JSON', () => withFixture((root) => {
@@ -139,8 +130,7 @@ test('canonical closure admits valid source-bound JSON data and rejects malforme
     `import messages from './messages.json';\n${readFileSync(factoryPath, 'utf8')}\nexport const title = messages.title;\n`,
   );
   const result = validateSimulatorAppSource(root);
-  assert.equal(result.report.result, 'pass');
-  assert.equal(result.report.checks.imports.evidence.includes('src/renderer/messages.json'), true);
+  assert.equal(result.source.files.some((entry) => entry.path === 'src/renderer/messages.json'), true);
 
   writeFileSync(messagesPath, '{"title":');
   assert.throws(
@@ -167,13 +157,13 @@ test('root-scoped local classes and exact CSS @scope are admitted', () => withFi
 }
 `);
   const result = validateSimulatorAppSource(root);
-  assert.equal(result.report.result, 'pass');
+  assert.equal(result.manifest.module_id, 'sample-app');
 }));
 
 test('domain-local discriminator words do not impersonate host-binding reads', () => withFixture((root) => {
   const factoryPath = path.join(root, 'src', 'renderer', 'factory.ts');
   writeFileSync(factoryPath, `${readFileSync(factoryPath, 'utf8')}\nexport const sampleEnvironmentLabel = 'studio';\n`);
-  assert.equal(validateSimulatorAppSource(root).report.result, 'pass');
+  assert.equal(validateSimulatorAppSource(root).manifest.module_id, 'sample-app');
 }));
 
 test('canonical closure rejects the Kit shell-mode host discriminator', () => withFixture((root) => {
@@ -203,42 +193,21 @@ test('canonical closure rejects a host discriminator property read', () => withF
   );
 }));
 
-test('CLI emits the exact JSON conformance report and fails closed', () => {
-  const output = execFileSync(process.execPath, [CLI_PATH, 'doctor', '--dir', FIXTURE_ROOT, '--conformance', 'simulator', '--json'], {
+test('CLI validates Simulator source with ordinary logs and fails closed', () => {
+  const output = execFileSync(process.execPath, [CLI_PATH, 'doctor', '--dir', FIXTURE_ROOT, '--conformance', 'simulator'], {
     encoding: 'utf8',
   });
-  const payload = JSON.parse(output);
-  assert.equal(payload.result, 'pass');
-  assert.equal(payload.source.module_id, 'sample-app');
+  assert.match(output, /Simulator source validation passed/u);
 
-  const failure = spawnSync(process.execPath, [CLI_PATH, 'doctor', '--dir', path.join(FIXTURE_ROOT, 'missing'), '--conformance', 'simulator', '--json'], {
+  const failure = spawnSync(process.execPath, [CLI_PATH, 'doctor', '--dir', path.join(FIXTURE_ROOT, 'missing'), '--conformance', 'simulator'], {
     encoding: 'utf8',
   });
   assert.equal(failure.status, 1);
-  const failurePayload = JSON.parse(failure.stdout);
-  assert.equal(failurePayload.result, 'fail');
-  assert.equal(failurePayload.diagnostics.length, 1);
+  assert.match(failure.stderr, /failed: .*missing/u);
 });
 
-test('source and style mutations invalidate all bound report digests', () => withFixture((root) => {
-  const first = validateSimulatorAppSource(root).report;
-  const stylePath = path.join(root, 'src', 'renderer', 'styles.css');
-  writeFileSync(stylePath, `${readFileSync(stylePath, 'utf8')}\n.nimi-ui-module-sample-app-extra { color: red; }\n`);
-  const second = validateSimulatorAppSource(root).report;
-  assert.notEqual(first.source.app_source_digest, second.source.app_source_digest);
-  assert.notEqual(first.style.digest, second.style.digest);
-  assert.notEqual(first.report_digest, second.report_digest);
-  const factoryPath = path.join(root, 'src', 'renderer', 'factory.ts');
-  writeFileSync(factoryPath, `${readFileSync(factoryPath, 'utf8')}\nexport const scannerMutation = 'gap-7';\n`);
-  const third = validateSimulatorAppSource(root).report;
-  assert.notEqual(second.style.profile.scanner.digest, third.style.profile.scanner.digest);
-  assert.notEqual(second.style.digest, third.style.digest);
-}));
-
 test('canonical CSS profile stays root-independent after temp materialization', () => withFixture((root) => {
-  const canonical = validateSimulatorAppSource(FIXTURE_ROOT).report;
-  const materialized = validateSimulatorAppSource(root).report;
-  assert.equal(materialized.style.digest, canonical.style.digest);
+  const materialized = validateSimulatorAppSource(root);
   for (const input of materialized.style.profile.scanner.inputs) {
     assert.match(input.path, /^src\//u);
     assert.equal(input.path.includes('..'), false);
@@ -569,14 +538,13 @@ test('per-instance mutable resources remain admitted', () => withFixture((root) 
     factoryPath,
     `${readFileSync(factoryPath, 'utf8')}\nexport function createLocalCache() { return new Map<string, string>(); }\n`,
   );
-  assert.equal(validateSimulatorAppSource(root).report.result, 'pass');
+  assert.equal(validateSimulatorAppSource(root).manifest.module_id, 'sample-app');
 }));
 
 test('production-only bootstrap effects are outside the canonical Simulator closure', () => withFixture((root) => {
   const mainPath = path.join(root, 'src', 'main.ts');
   writeFileSync(mainPath, `${readFileSync(mainPath, 'utf8')}\nexport const productionOnlyRequest = () => fetch('/production-only');\n`);
-  const report = validateSimulatorAppSource(root).report;
-  assert.equal(report.result, 'pass');
+  assert.equal(validateSimulatorAppSource(root).manifest.module_id, 'sample-app');
 }));
 
 test('production host CSS cannot carry a second App UI truth', () => withFixture((root) => {

@@ -46,7 +46,6 @@ test('route history install and removal cross the real guard only in the exact S
   assert.equal(installed, 1);
   unsubscribe();
   assert.equal(released, 1);
-  assert.deepEqual(guard.report.deniedAttempts, []);
 });
 
 test('missing route-history admission fails bootstrap instead of passing unscoped', () => {

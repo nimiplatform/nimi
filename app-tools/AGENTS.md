@@ -5,9 +5,9 @@
 - `@nimiplatform/app-tools` is a public app-authoring scaffold CLI. It is not a Desktop product slice, installed-app registry owner, release admission owner, or permission grant owner.
 
 ## Hard Boundaries
-- `apps/tester` is the single hand-authored proof/reference Nimi App. It demonstrates Runtime AI consume, SDK, Kit, and shell integration, but it is not the default generic scaffold output.
-- Default scaffold profiles generate a generic app starter and must not inherit tester-only product code, proof UI, tester settings fixtures, tester storage, world-tour surfaces, or monorepo-only Kit source aliases.
-- The explicit `tester-reference` profile may carry the full proof app when the caller intentionally asks for that profile and the active scaffolding contract admits it.
+- `apps/tester` is the single hand-authored reference Nimi App. It demonstrates Runtime AI consume, SDK, Kit, and shell integration, but it is not the default generic scaffold output.
+- Default scaffold profiles generate a generic app starter and must not inherit tester-only product code, tester UI, settings fixtures, tester storage, world-tour surfaces, or monorepo-only Kit source aliases.
+- The explicit `tester-reference` profile may carry the full reference app when the caller intentionally asks for that profile and the active scaffolding contract admits it.
 - `templates/default-starter/**` and `templates/default-starter.manifest.json` are committed, hand-authored generic starter sources for default scaffold profiles. They must stay free of tester product semantics.
 - `templates/app-source/**` and `templates/app-source.manifest.json` are derived build artifacts (gitignored, like `dist/`) for packaged tester-reference scaffold sources. They are never committed and never hand-edited. In a monorepo checkout, generator-owned code may read `apps/tester` live only for the explicit `tester-reference` path.
 - Generated app projects must consume platform surfaces through `@nimiplatform/sdk`, `@nimiplatform/kit`, and `nimi-shell-tauri` contracts. They must not create local registry/admission truth.

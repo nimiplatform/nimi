@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// apps/tester is the hand-authored proof/reference Nimi App. This module bakes
+// apps/tester is the hand-authored reference Nimi App. This module bakes
 // its source snapshot into templates/app-source/** so the published
 // @nimiplatform/app-tools tarball can materialize the explicit tester-reference
 // profile and reuse reviewed shell/auth glue for default starter profiles.
@@ -166,7 +166,7 @@ function applySnapshot() {
 }
 
 // Source resolver used by the generator. In the monorepo it reads apps/tester
-// live so scaffold checks exercise the second consumer proof directly.
+// live so scaffold checks exercise the second consumer directly.
 // Published tarballs fall back to the baked snapshot because apps/tester is not
 // present.
 function resolveAppSource() {

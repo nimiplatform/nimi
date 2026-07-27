@@ -44,14 +44,6 @@
       "class": "scaffold-managed glue"
     },
     {
-      "path": "scripts/local-audit.mjs",
-      "class": "scaffold-managed glue"
-    },
-    {
-      "path": "scripts/pack.mjs",
-      "class": "scaffold-managed glue"
-    },
-    {
       "path": "scripts/validate.mjs",
       "class": "scaffold-managed glue"
     },

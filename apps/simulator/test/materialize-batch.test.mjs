@@ -1,26 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
 
 import {
   parseGitBatchResponse,
   partitionGitBatchRows,
 } from '../build/materialize.mjs';
-import {
-  buildGeneratedControlInventory,
-  QUALIFICATION_CACHE_SCHEMA,
-} from '../build/qualification-cache.mjs';
-
-function withTemporaryRoot(run) {
-  const root = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-dev-cache-'));
-  try {
-    return run(root);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-}
 
 test('Git blob batches are bounded by object count instead of spawning once per file', () => {
   const rows = Array.from({ length: 1_025 }, (_, index) => ({
@@ -61,18 +45,3 @@ test('Git batch response parser preserves binary bytes and rejects protocol drif
     (error) => error?.code === 'SIM_SOURCE_BATCH_TRAILING',
   );
 });
-
-test('qualification control inventory excludes materialized bytes and its own derived cache record', () => withTemporaryRoot((root) => {
-  mkdirSync(path.join(root, 'evidence'), { recursive: true });
-  mkdirSync(path.join(root, 'materialized', 'source', 'sample', 'app'), { recursive: true });
-  writeFileSync(path.join(root, 'registry.json'), '{"digest":"registry"}\n');
-  writeFileSync(path.join(root, 'evidence', 'resolver.json'), '{"tupleDigest":"resolver"}\n');
-  writeFileSync(path.join(root, 'evidence', 'qualification-cache.json'), `${JSON.stringify({ schema: QUALIFICATION_CACHE_SCHEMA })}\n`);
-  writeFileSync(path.join(root, 'materialized', 'source', 'sample', 'app', 'main.ts'), 'export {};\n');
-
-  const inventory = buildGeneratedControlInventory(root);
-  assert.deepEqual(inventory.map((row) => row.path), [
-    'evidence/resolver.json',
-    'registry.json',
-  ]);
-}));

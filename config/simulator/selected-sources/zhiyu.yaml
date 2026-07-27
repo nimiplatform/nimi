@@ -1,6 +1,5 @@
 schema: nimi.simulator.selected-source/v1
 module_id: zhiyu
-source_app_id_ref: nimi.zhiyu
 sources:
   - id: app
     kind: workspace
@@ -9,36 +8,15 @@ sources:
     object_id: 73f94a29c76fa3b8aec39192083771c7a6499f5e
     root: apps/zhiyu
     expected_digest: sha256:f8140c49594de3d5f9772961611d2d4b993447f8902a40986d31be0700f486c1
-    authority_refs:
-      - owner: zhiyu
-        rule_id: Z-PROD-004
-      - owner: zhiyu
-        rule_id: Z-GATE-007
-    authority_index_digest: sha256:e86a179e7c4bc8afc52bfa5696faa546c1b0c1f02249c994fb6fa786f13f5b0e
 app_production:
   source_id: app
   entries:
     - src/main.tsx
-  inventory_digest: sha256:00a3e79d8171886e516b3b9ab2aebae973a7069766f4a6dee7303f69510e9704
-  inventory_authority_refs:
-    - owner: zhiyu
-      rule_id: Z-PROD-004
-    - owner: zhiyu
-      rule_id: Z-AUTH-005
 host_invocations:
   entries:
     - id: zhiyu-renderer
       source_id: app
       entry: src/main.tsx
-      authority_refs:
-        - owner: zhiyu
-          rule_id: Z-AUTH-005
-  inventory_digest: sha256:fec87489f4b8fa3b21b044b11f9bffb3602f6d15913b230d51569d15dbf9a595
-  inventory_authority_refs:
-    - owner: zhiyu
-      rule_id: Z-AUTH-005
-    - owner: platform
-      rule_id: P-SIM-006
 manifest:
   source_id: app
   path: nimi.simulator.yaml

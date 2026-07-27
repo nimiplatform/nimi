@@ -36,7 +36,6 @@ const versions = {
   nimiShellTauriVersion: '0.1.0',
   electronVersion: '42.0.0-electron',
   esbuildVersion: '0.28.0-esbuild',
-  playwrightVersion: '1.61.0-playwright',
   typescriptVersion: '5.0.0',
   yamlVersion: '2.0.0-yaml',
   packageManager: 'pnpm@10.32.1',
@@ -303,13 +302,12 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
       }
     }
 
-    // Default profiles are generic starters. Tester proof code is opt-in only.
+    // Default profiles are generic starters. Tester product code is opt-in only.
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /NimiStarterSurface/);
     assert.doesNotMatch(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench|WorldTourViewerRoute|tester/i);
     assert.match(generated.read('src/main.tsx'), /entry:acme-widget-app/);
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('vite.config.ts'), /cacheDir: '\.vite'/);
-    assert.doesNotMatch(generated.read('src/main.tsx'), /installTesterElectronSdkAcceptanceProbe/);
     assert.doesNotMatch(generated.read('src-tauri/src/main.rs'), /tester_storage|world_tour|tester_/);
     assertGeneratedPathMissing(generated, 'src/tester');
     assertGeneratedPathMissing(generated, 'src/shell/ai');
@@ -320,11 +318,6 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assertGeneratedPathExists(generated, 'src-electron/preload.cts');
     assertGeneratedPathMissing(generated, 'dist-electron');
     assertGeneratedPathMissing(generated, 'test/tester-contract.test.mjs');
-    assertGeneratedPathMissing(generated, 'test/electron-acceptance.mjs');
-    assertGeneratedPathMissing(generated, 'test/shell-parity-gate.test.mjs');
-    assertGeneratedPathMissing(generated, 'scripts/check-shell-parity.mjs');
-    assertGeneratedPathMissing(generated, 'scripts/check-kit-first-style.mjs');
-    assertGeneratedPathMissing(generated, 'scripts/run-electron-dev.mjs');
 
     // Taxonomy: only the generated starter route is app-owned in default profiles.
     const lock = generated.lock();
@@ -337,7 +330,6 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.match(generated.read('src-electron/main.ts'), /onProtectedSessionFailure: \(\) => app\.quit\(\)/);
     assert.doesNotMatch(generated.read('src-electron/main.ts'), /runtimeEndpoint|sessionProof|launchTicket/);
     assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
-    assert.equal(appOwned.some((file) => file.startsWith('test/tester-') || file === 'test/electron-acceptance.mjs'), false);
     assert.equal(lock.managedFileHashes['src/shell/auth/auth-gate.tsx'].class, 'scaffold-managed glue');
     assert.equal(lock.managedFileHashes['package.json'].class, 'scaffold-managed glue');
     assert.equal(lock.managedFileHashes['.github/workflows/ci.yml'].class, 'scaffold-managed glue');
@@ -350,26 +342,19 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.match(runtimePlatform, /!status\.sessionBound/);
     assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
     assert.doesNotMatch(runtimePlatform, /createNimiClient|developerRegistration|developer-registered-local-app/);
-    assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
-    assert.match(generated.read('.nimi/admission/submission.yaml'), /submission_role: developer-submitted-input/);
-    assert.match(generated.read('.nimi/admission/build-profile.yaml'), /lockfile_policy: author-install-generates-lockfile/);
-    const ci = generated.read('.github/workflows/ci.yml');
-    assert.match(ci, /pnpm install --no-frozen-lockfile/);
-    assert.match(ci, /pnpm run init/);
-    assert.doesNotMatch(ci, /cache: pnpm/);
   } finally {
     generated.cleanup();
   }
 });
 
-test('tester-reference scaffold keeps the full proof app explicit', () => {
+test('tester-reference scaffold keeps the full reference app explicit', () => {
   const generated = scaffold('tester-reference');
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.devDependencies.electron, versions.electronVersion);
     assert.equal(packageJson.devDependencies.esbuild, versions.esbuildVersion);
-    assert.equal(packageJson.devDependencies.playwright, versions.playwrightVersion);
+    assert.equal(packageJson.devDependencies.playwright, undefined);
     assert.match(generated.read('nimi.app.yaml'), /profile: tester-reference/);
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
     assert.match(generated.read('src/tester/tester-runtime.ts'), /session posture, public permission posture\/request, and app-private JSON storage/);
@@ -390,24 +375,6 @@ test('tester-reference scaffold keeps the full proof app explicit', () => {
     assert.match(generated.read('src-electron/main.ts'), /APP_ID = 'acme\.widget'/);
     assertGeneratedPathExists(generated, 'src/tester/tester-standard-storage.ts');
     assertGeneratedPathExists(generated, 'src/shell/local-app-runtime-platform.ts');
-    assertGeneratedPathExists(generated, 'test/electron-acceptance.mjs');
-    assertGeneratedPathMissing(generated, 'scripts/run-electron-dev.mjs');
-    const agents = generated.read('AGENTS.md');
-    for (const marker of [
-      'app-scaffold intent and lock',
-      '@nimiplatform/nimi-coding',
-      'scaffold-managed files',
-      'app-owned area',
-      'pre-submission self-checks only',
-      'src/shell/routes/product-area.tsx',
-      'src/tester/**',
-      'src-tauri/src/world_tour.rs',
-      'src-electron/**',
-    ]) {
-      assert.match(agents, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    }
-    assert.doesNotMatch(agents, /app-tools\/templates\/default-starter\/AGENTS\.md/);
-    assert.doesNotMatch(agents, /tester_storage/);
     assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
     const lock = generated.lock();
     assert.ok(lock.managedFileTaxonomy.appOwnedProductCode.includes('src/tester/tester-workbench.tsx'));
@@ -498,133 +465,6 @@ test('generated package.json scripts reference only commands and existing local 
     }
   } finally {
     generated.cleanup();
-  }
-});
-
-test('generated pack writes developer-submitted artifact evidence only', () => {
-  const generated = scaffold('standalone');
-  try {
-    mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
-    writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>Nimi generated app</main>\n');
-
-    const result = runGeneratedNodeScript(generated, 'scripts/pack.mjs');
-    assert.equal(result.status, 0, result.stderr);
-
-    const submission = JSON.parse(generated.read('dist/nimi-app-submission.json'));
-    const evidence = JSON.parse(generated.read('dist/nimi-app-artifact-evidence.json'));
-
-    assert.equal(submission.packetRole, 'developer-submitted-input');
-    assert.equal(submission.artifactEvidencePath, 'dist/nimi-app-artifact-evidence.json');
-    assert.equal(submission.publicAdmissionTruth, 'not-generated');
-    assert.equal(submission.releaseDescriptorTruth, 'not-generated');
-    assert.equal(submission.ordinaryVisibilityTruth, 'not-generated');
-    assert.equal(submission.permissionGrantTruth, 'not-generated');
-    assert.equal(submission.productReadinessClaimAllowed, false);
-
-    assert.equal(evidence.evidenceRole, 'developer-submitted-input');
-    assert.equal(evidence.entryRef, 'dist/index.html');
-    assert.equal(evidence.manifestPath, 'nimi.app.yaml');
-    assert.equal(evidence.admissionRequestPath, '.nimi/admission/submission.yaml');
-    assert.equal(evidence.buildProfileRef, '.nimi/admission/build-profile.yaml');
-    assert.equal(evidence.artifact.sha256.length, 64);
-    assert.equal(typeof evidence.artifact.sizeBytes, 'number');
-    assert.equal(evidence.artifact.sizeBytes, Buffer.byteLength('<main>Nimi generated app</main>\n'));
-    assert.equal(evidence.publicAdmissionTruth, 'not-generated');
-    assert.equal(evidence.releaseDescriptorTruth, 'not-generated');
-    assert.equal(evidence.ordinaryVisibilityTruth, 'not-generated');
-    assert.equal(evidence.permissionGrantTruth, 'not-generated');
-    assert.equal(evidence.signingTruth, 'not-generated');
-    assert.equal(evidence.notarizationTruth, 'not-generated');
-    assert.equal(evidence.mirrorLicenseClearanceTruth, 'not-generated');
-    assert.equal(evidence.productReadinessClaimAllowed, false);
-  } finally {
-    generated.cleanup();
-  }
-});
-
-test('generated pack fails closed on missing inputs and fake product truth', () => {
-  const cases = [
-    {
-      mutate(generated) {
-        rmSync(path.join(generated.target, 'dist'), { recursive: true, force: true });
-      },
-      pattern: /renderer build output missing/,
-    },
-    {
-      mutate(generated) {
-        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
-        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
-        writeFileSync(
-          path.join(generated.target, 'nimi.app.yaml'),
-          generated.read('nimi.app.yaml').replace('manifest_role: submitted-input', 'manifest_role: release-descriptor'),
-        );
-      },
-      pattern: /submitted manifest role marker missing/,
-    },
-    {
-      mutate(generated) {
-        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
-        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
-        rmSync(path.join(generated.target, '.nimi', 'admission', 'submission.yaml'), { force: true });
-      },
-      pattern: /developer submission input missing/,
-    },
-    {
-      mutate(generated) {
-        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
-        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
-        writeFileSync(
-          path.join(generated.target, '.nimi', 'admission', 'submission.yaml'),
-          `${generated.read('.nimi/admission/submission.yaml')}productReadinessClaimAllowed: true\n`,
-        );
-      },
-      pattern: /product readiness claim/,
-    },
-    {
-      mutate(generated) {
-        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
-        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
-        writeFileSync(
-          path.join(generated.target, '.nimi', 'admission', 'submission.yaml'),
-          `${generated.read('.nimi/admission/submission.yaml')}productReadinessClaimAllowed: "true"\n`,
-        );
-      },
-      pattern: /product readiness claim/,
-    },
-    {
-      mutate(generated) {
-        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
-        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
-        writeFileSync(
-          path.join(generated.target, '.nimi', 'admission', 'submission.yaml'),
-          `${generated.read('.nimi/admission/submission.yaml')}publicAdmissionTruth: not-generated-extra\n`,
-        );
-      },
-      pattern: /public admission truth claim/,
-    },
-    {
-      mutate(generated) {
-        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
-        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
-        writeFileSync(
-          path.join(generated.target, 'dist', 'nimi-app-artifact-evidence.json'),
-          '{"evidenceRole":"developer-submitted-input","productReadinessClaimAllowed":true}\n',
-        );
-      },
-      pattern: /existing artifact evidence/,
-    },
-  ];
-
-  for (const testCase of cases) {
-    const generated = scaffold('standalone');
-    try {
-      testCase.mutate(generated);
-      const result = runGeneratedNodeScript(generated, 'scripts/pack.mjs');
-      assert.notEqual(result.status, 0);
-      assert.match(result.stderr, testCase.pattern);
-    } finally {
-      generated.cleanup();
-    }
   }
 });
 
@@ -776,28 +616,24 @@ test('create rejects invalid npm package metadata', () => {
   }
 });
 
-test('retired app scaffold profiles are not accepted', () => {
-  const retiredProfiles = ['basic', ['vercel', 'ai'].join('-')];
-  for (const profile of retiredProfiles) {
-    assert.throws(
-      () => createAppScaffold({
-        cwd: os.tmpdir(),
-        options: { dir: `reject-${profile}`, profile },
-        versions,
-        createFileTree,
-        ensureDirEmptyOrMissing: () => {},
-        mkdirSync,
-      }),
-      /Unsupported app scaffold profile/,
-    );
-  }
+test('unsupported app scaffold profiles are rejected', () => {
+  assert.throws(
+    () => createAppScaffold({
+      cwd: os.tmpdir(),
+      options: { dir: 'reject-unsupported', profile: 'unsupported-profile' },
+      versions,
+      createFileTree,
+      ensureDirEmptyOrMissing: () => {},
+      mkdirSync,
+    }),
+    /Unsupported app scaffold profile/,
+  );
 });
 
-test('retired create flag is rejected instead of acting as a profile alias', () => {
+test('unknown create flags are rejected', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-cli-test-'));
   try {
-    const retiredFlag = `--${Buffer.from('dGVtcGxhdGU=', 'base64').toString('utf8')}`;
-    const result = runNimiApp(['create', '--dir', path.join(tempRoot, 'app'), retiredFlag, 'standalone'], tempRoot);
+    const result = runNimiApp(['create', '--dir', path.join(tempRoot, 'app'), '--unsupported', 'standalone'], tempRoot);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Unknown option/);
   } finally {
@@ -958,7 +794,7 @@ test('doctor audits an existing submitted app without converting it into a manag
   }
 });
 
-test('scaffold omissions are explicit tester-reference input and do not shrink the proof template', () => {
+test('scaffold omissions are explicit tester-reference input and do not shrink the reference template', () => {
   const generated = cliScaffold('tester-reference');
   try {
     assert.match(generated.read('src/shell/routes/settings-route.tsx'), /Settings/);
@@ -1005,7 +841,7 @@ test('scaffold omissions are explicit tester-reference input and do not shrink t
   }
 });
 
-test('doctor fails closed on missing lock and retired package names', () => {
+test('doctor fails closed on a missing scaffold lock', () => {
   const missingLock = cliScaffold('standalone');
   try {
     rmSync(path.join(missingLock.target, '.nimi/app-scaffold/lock.json'), { force: true });
@@ -1016,18 +852,6 @@ test('doctor fails closed on missing lock and retired package names', () => {
     missingLock.cleanup();
   }
 
-  const stalePackages = cliScaffold('standalone');
-  try {
-    writeFileSync(
-      path.join(stalePackages.target, 'src/shell/routes/product-area.tsx'),
-      "import { Surface } from '@nimiplatform/nimi-kit/ui';\nexport const stale = Surface;\n",
-    );
-    const result = runNimiApp(['doctor', '--dir', stalePackages.target], stalePackages.tempRoot, { env: stalePackages.env });
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /retired kit package name/);
-  } finally {
-    stalePackages.cleanup();
-  }
 });
 
 test('doctor fails closed on provider/model hardcoding in product code but not in tests', () => {
@@ -1081,17 +905,8 @@ test('doctor fails closed on app-owned Realm permission grant shortcuts', () => 
   }
 });
 
-test('doctor fails closed on scaffold pseudo-success and installed-app custody bypasses', () => {
+test('doctor fails closed on installed-app custody bypasses', () => {
   const cases = [
-    { source: "export const truth = 'admission_status: admitted';\n", pattern: /admission truth claim/ },
-    { source: "export const truth = 'ordinary_visibility: ordinary-visible';\n", pattern: /ordinary-visible claim/ },
-    { source: 'export const truth = { productReadinessClaimAllowed: true };\n', pattern: /product readiness claim/ },
-    { source: 'export const truth = { productReadinessClaimAllowed: "true" };\n', pattern: /product readiness claim/ },
-    { source: "export const truth = { publicAdmissionTruth: 'not-generated-extra' };\n", pattern: /public admission truth claim/ },
-    { source: "export const truth = { installedAppUpdateTruth: 'not-generated-extra' };\n", pattern: /installed-app update claim/ },
-    { source: "export const truth = 'signing_status: passed';\n", pattern: /signing truth claim/ },
-    { source: "export const truth = 'notarization_status: passed';\n", pattern: /notarization truth claim/ },
-    { source: "export const truth = 'mirror_license_clearance: cleared';\n", pattern: /mirror\/license clearance truth claim/ },
     { source: "export const mode = 'ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL';\n", pattern: /external principal installed-app posture/ },
     { source: "export const binding = { launchNonce: 'renderer-owned' };\n", pattern: /renderer launch binding custody/ },
     { source: "export const binding = { releaseDescriptorRef: 'renderer-owned' };\n", pattern: /renderer launch binding custody/ },
@@ -1220,15 +1035,6 @@ test('update fails closed on unsupported locks and classification conflicts', ()
   }
 });
 
-test('doctor and update hard cut scaffold locks to the current generator version', () => {
-  const source = readFileSync(path.join(testDir, '..', 'lib', 'app-doctor-update.mjs'), 'utf8');
-  const legacyListIdentifier = ['SUPPORTED', 'LOCK', 'SCAFFOLD', 'VERSIONS'].join('_');
-  assert.doesNotMatch(source, new RegExp(`\\b${legacyListIdentifier}\\b`));
-  assert.doesNotMatch(source, /\bnew\s+Set\s*\(\s*\[\s*SCAFFOLD_VERSION/s);
-  assert.doesNotMatch(source, /\.has\s*\(\s*lock\?\.scaffoldVersion\s*\)/);
-  assert.match(source, /lock\?\.scaffoldVersion !== SCAFFOLD_VERSION/);
-});
-
 test('nimicoding sync runner uses a Windows shell-compatible pnpm invocation', () => {
   const source = readFileSync(path.join(testDir, '..', 'lib', 'index.mjs'), 'utf8');
   assert.match(source, /process\.platform === 'win32'/);
@@ -1286,28 +1092,6 @@ test('published README makes tester-reference explicit instead of app-id trigger
   assert.match(readme, /--profile standalone\|workspace-app\|tester-reference/);
   assert.match(readme, /--profile tester-reference/);
   assert.doesNotMatch(readme, /--app-id nimi\.tester/);
-});
-
-test('generated app smoke gate is a real package script', () => {
-  const packageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
-  assert.equal(packageJson.scripts['check:generated-app-smoke'], 'node scripts/check-generated-app-smoke.mjs');
-  const smokePath = path.join(testDir, '..', 'scripts', 'check-generated-app-smoke.mjs');
-  assert.ok(existsSync(smokePath));
-  const source = readFileSync(smokePath, 'utf8');
-  assert.match(source, /standalone/);
-  assert.match(source, /workspace-app/);
-  assert.match(source, /tester-reference/);
-  assert.match(source, /pnpm\s+install\s+--no-frozen-lockfile/);
-  assert.match(source, /pnpm\s+run\s+init/);
-  assert.match(source, /pnpm\s+run\s+check/);
-  assert.match(source, /pnpm\s+run\s+test/);
-  assert.match(source, /pnpm\s+run\s+build/);
-  assert.match(source, /pnpm\s+run\s+pack/);
-  assert.match(source, /cargo\s+check/);
-  assert.match(source, /runGeneratedNodeTests\(target\)/);
-  assert.match(source, /runGeneratedPack\(target\)/);
-  assert.match(source, /runGeneratedCargoCheck\(target\)/);
-  assert.match(source, /assertGeneratedEvidenceBoundary\(target\)/);
 });
 
 test('default starter profile code has no dead tester snapshot omission seam', () => {
@@ -1370,21 +1154,6 @@ test('default profiles generate local-app carrier boundaries without tester or f
       assert.match(runtimePlatform, /!status\.sessionBound/, `${profile} must require a bound local-app session without conflating permissions`);
       assert.doesNotMatch(runtimePlatform, /createNimiClient|RuntimeOptions|runtime\.account|runtime\.ai|bootstrapArtifact/i, `${profile} must keep non-carrier operations absent`);
 
-      for (const forbidden of [
-        'launchNonce',
-        'releaseDescriptorRef',
-        'launchBinding',
-        'community.nimi.fixture.platform-proof',
-        'apps/nimi-app-platform-fixture',
-        'NIMI_TESTER',
-        'nimi.tester',
-      ]) {
-        assert.equal(joined.includes(forbidden), false, `${forbidden} must not appear in ${profile} generated shell`);
-      }
-
-      assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
-      assert.match(generated.read('.nimi/admission/submission.yaml'), /submission_role: developer-submitted-input/);
-      assert.doesNotMatch(generated.read('nimi.app.yaml'), /admission_status|ordinary_visibility|release_descriptor_ref/);
     } finally {
       generated.cleanup();
     }

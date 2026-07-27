@@ -307,7 +307,7 @@ export interface SimulatorStateEngine {
     readonly issuer: SimulatorIssuer;
     readonly causationId: string | null;
     readonly commandType: string;
-    /** Evidence identity of the captured command-payload schema. */
+    /** Identity of the captured command-payload schema. */
     readonly outcomeSchemaId: string;
     readonly onCommandSettlement?: ((result: SimulatorResult<JsonValue>) => void) | null;
   }): SimulatorResult<SimulatorAsyncReservationHandle>;

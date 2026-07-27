@@ -25,7 +25,6 @@
     "sync:app-source": "node scripts/sync-app-source.mjs --apply",
     "prepack": "node scripts/generate-simulator-effect-policy.mjs --check && node scripts/sync-app-source.mjs --apply",
     "prepublishOnly": "node scripts/generate-simulator-effect-policy.mjs --check && node scripts/sync-app-source.mjs --apply",
-    "check:generated-app-smoke": "node scripts/check-generated-app-smoke.mjs",
     "check:simulator-effect-policy": "node scripts/generate-simulator-effect-policy.mjs --check",
     "test": "node scripts/generate-simulator-effect-policy.mjs --check && node ../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs"
   },

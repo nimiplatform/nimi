@@ -6,10 +6,8 @@ import {
   buildAppScaffoldSnapshotFromIntent,
   hashScaffoldContent,
   isScaffoldOmittedPath,
-  SCAFFOLD_BUILD_PROFILE_PATH,
   SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_PATH,
-  SCAFFOLD_SUBMISSION_PATH,
   SCAFFOLD_VERSION,
   SUPPORTED_APP_SCAFFOLD_PROFILES,
 } from './app-scaffold.mjs';
@@ -278,26 +276,9 @@ function buildProviderModelHardcodingPattern() {
   return new RegExp(`(?:${keyedLiteral}|${slashQualifiedLiteral}|${bareProviderOrModelLiteral})`, 'i');
 }
 
-function buildNonGeneratedTruthClaimPattern(field) {
-  return new RegExp(
-    String.raw`"?${escapeRegExp(field)}"?\s*:\s*['"]?(?!not-generated(?:['"]|[\s,}\]]|$))[^"',}\]\s]+`,
-    'i',
-  );
-}
-
-function buildBooleanTrueClaimPattern(field) {
-  return new RegExp(String.raw`"?${escapeRegExp(field)}"?\s*:\s*['"]?true`, 'i');
-}
-
 function buildForbiddenPatterns() {
   const runtimeBridgeName = ['runtime', 'bridge', 'plugin'].join('_');
-  const retiredFlag = ['--', 'template'].join('');
   const modelTestImport = ['kit', 'features', 'model-test'].join('/');
-  const retiredProfiles = ['basic', ['vercel', 'ai'].join('-')];
-  const retiredBuilders = [
-    ['build', 'Basic', 'App', 'Template'].join(''),
-    ['build', 'VercelAI', 'App', 'Template'].join(''),
-  ].join('|');
   return [
     ['generic platform auth helper in scaffold', /createPlatformClient\s*\(/],
     ['first-party helper in third-party scaffold', /createLocalFirstPartyRuntimePlatformClient/],
@@ -320,27 +301,7 @@ function buildForbiddenPatterns() {
     ['raw bearer token custody wording', /raw JWT/i],
     ['model-test import', new RegExp(modelTestImport.replace('/', '\\/'))],
     ['stale Runtime shell API', new RegExp(runtimeBridgeName)],
-    ['retired template flag', new RegExp(retiredFlag.replace('-', '\\-'))],
-    ['retired template builder', new RegExp(retiredBuilders)],
-    ['retired kit package name', /@nimiplatform\/nimi-kit/],
-    ['retired developer tools package name', /@nimiplatform\/dev-tools/],
-    ['retired profile switch branch', new RegExp(`case\\s+['"](?:${retiredProfiles.join('|')})['"]`)],
-    ['retired submitted profile', new RegExp(`(?:profile|template):\\s*(?:${retiredProfiles.join('|')})\\b`)],
-    ['retired vercel profile remnant', new RegExp(retiredProfiles[1])],
     ['provider/model hardcoding', buildProviderModelHardcodingPattern()],
-    ['local audit wording promoted to admission', /local[\s-]+audit[\s-]+as[\s-]+admission/i],
-    ['manifest wording promoted to grant', /manifest[\s-]+as[\s-]+grant/i],
-    ['installed-app update claim', new RegExp(String.raw`(?:installed[\s-]+app[\s-]+update[\s-]+truth:\s*(?!not-generated(?:[\s,}\]]|$))|${buildNonGeneratedTruthClaimPattern('installedAppUpdateTruth').source})`, 'i')],
-    ['admission truth claim', /\badmission_status\s*:\s*admitted\b/i],
-    ['ordinary-visible claim', /\bordinary_visibility\s*:\s*ordinary-visible\b/i],
-    ['product readiness claim', buildBooleanTrueClaimPattern('productReadinessClaimAllowed')],
-    ['public admission truth claim', buildNonGeneratedTruthClaimPattern('publicAdmissionTruth')],
-    ['release descriptor truth claim', buildNonGeneratedTruthClaimPattern('releaseDescriptorTruth')],
-    ['ordinary visibility truth claim', buildNonGeneratedTruthClaimPattern('ordinaryVisibilityTruth')],
-    ['permission grant truth claim', buildNonGeneratedTruthClaimPattern('permissionGrantTruth')],
-    ['signing truth claim', new RegExp(String.raw`(?:\bsigning_status\s*:\s*(?:passed|cleared|approved)\b|${buildNonGeneratedTruthClaimPattern('signingTruth').source})`, 'i')],
-    ['notarization truth claim', new RegExp(String.raw`(?:\bnotarization_status\s*:\s*(?:passed|cleared|approved)\b|${buildNonGeneratedTruthClaimPattern('notarizationTruth').source})`, 'i')],
-    ['mirror/license clearance truth claim', new RegExp(String.raw`(?:\bmirror_license_clearance\s*:\s*(?:passed|cleared|approved)\b|${buildNonGeneratedTruthClaimPattern('mirrorLicenseClearanceTruth').source})`, 'i')],
     ['external principal installed-app posture', /\bACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL\b/],
     ['renderer launch binding custody', /\b(?:launchNonce|releaseDescriptorRef|launchBinding)\b/],
     ['installed-app developer registration bypass', /(?:developerRegistration\s*:\s*true[\s\S]{0,160}third-party-nimi-app|third-party-nimi-app[\s\S]{0,160}developerRegistration\s*:\s*true)/],
@@ -402,11 +363,6 @@ function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
   return findings;
 }
 
-function readYamlScalar(text, key) {
-  const match = text.match(new RegExp(`^${key}:\\s*(.+?)\\s*$`, 'm'));
-  return match ? match[1].trim() : '';
-}
-
 function assertRequiredSupportFiles(targetDir, snapshot) {
   const missing = [];
   for (const file of snapshot.files) {
@@ -442,87 +398,11 @@ function assertRequiredSupportFiles(targetDir, snapshot) {
   }
 }
 
-function assertSemanticMarkers(targetDir) {
+function assertProjectConfiguration(targetDir) {
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
   const manifest = readFileSync(manifestPath, 'utf8');
-  if (!manifest.includes('manifest_role: submitted-input')) {
-    throw new Error('Submitted manifest marker missing');
-  }
   assertManifestPermissionRequirements(manifest, manifestPath);
-  if (/admitted|descriptor_role:\s*release|grant(ed)?_permissions/i.test(manifest)) {
-    throw new Error('Submitted manifest contains admission or grant wording');
-  }
-
-  const submission = readFileSync(path.join(targetDir, SCAFFOLD_SUBMISSION_PATH), 'utf8');
-  for (const marker of [
-    'submission_role: developer-submitted-input',
-    'init_command: pnpm run init',
-    'dev_command: pnpm dev',
-    'admission_truth: platform-owned-after-review',
-  ]) {
-    if (!submission.includes(marker)) {
-      throw new Error(`Admission submission marker missing: ${marker}`);
-    }
-  }
-  if (/admitted|descriptor_role:\s*release|grant(ed)?_permissions/i.test(submission)) {
-    throw new Error('Admission submission contains admission or grant wording');
-  }
-
-  const buildProfile = readFileSync(path.join(targetDir, SCAFFOLD_BUILD_PROFILE_PATH), 'utf8');
-  for (const marker of [
-    'build_profile_ref:',
-    'toolchain_version:',
-    'install_command:',
-    'init_command:',
-    'build_command:',
-    'output_path:',
-    'lockfile_path:',
-    'lockfile_policy:',
-    'ci_install_command:',
-    'profile_role: developer-workflow-input',
-  ]) {
-    if (!buildProfile.includes(marker)) {
-      throw new Error(`Build profile marker missing: ${marker}`);
-    }
-  }
-  if (/checksum-pinned|ordinary-user install|direct npm install|direct npx|direct clone/i.test(buildProfile)) {
-    throw new Error('Build profile contains stale install or admission wording');
-  }
-  const ciWorkflow = readFileSync(path.join(targetDir, '.github/workflows/ci.yml'), 'utf8');
-  const lockfilePath = readYamlScalar(buildProfile, 'lockfile_path');
-  const lockfilePolicy = readYamlScalar(buildProfile, 'lockfile_policy');
-  const ciInstallCommand = readYamlScalar(buildProfile, 'ci_install_command');
-  if (lockfilePath !== 'pnpm-lock.yaml') {
-    throw new Error(`Build profile lockfile path must be pnpm-lock.yaml: ${lockfilePath}`);
-  }
-  if (lockfilePolicy !== 'author-install-generates-lockfile') {
-    throw new Error(`Build profile lockfile policy mismatch: ${lockfilePolicy}`);
-  }
-  if (!ciWorkflow.includes(`- run: ${ciInstallCommand}`)) {
-    throw new Error('CI install command does not match build profile');
-  }
-  const lockfileExists = existsSync(path.join(targetDir, lockfilePath));
-  if (!lockfileExists && /--frozen-lockfile/.test(ciWorkflow)) {
-    throw new Error(`CI uses frozen lockfile install but lockfile is missing: ${lockfilePath}`);
-  }
-  if (!lockfileExists && /^\s*cache:\s*pnpm\s*$/m.test(ciWorkflow)) {
-    throw new Error(`CI enables pnpm cache before lockfile exists: ${lockfilePath}`);
-  }
-
   assertOfficialDevelopmentEntrypoints(targetDir);
-
-  const agents = readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
-  for (const marker of [
-    'app-scaffold intent and lock',
-    '@nimiplatform/nimi-coding',
-    'scaffold-managed files',
-    'app-owned area',
-    'pre-submission self-checks only',
-  ]) {
-    if (!agents.includes(marker)) {
-      throw new Error(`AGENTS.md boundary text missing: ${marker}`);
-    }
-  }
 }
 
 function assertOfficialDevelopmentEntrypoints(targetDir) {
@@ -591,7 +471,7 @@ function validateDoctorState(targetDir, versions, runners = {}) {
   const snapshot = expectedSnapshotFromLock(lock, versions);
   ensureLockMatchesCurrentGenerator(lock, snapshot);
   assertRequiredSupportFiles(targetDir, snapshot);
-  assertSemanticMarkers(targetDir);
+  assertProjectConfiguration(targetDir);
   assertManagedFilesCurrent(targetDir, lock);
   assertNimicodingProjectionCurrent(targetDir, runners);
   const forbiddenFindings = scanForbiddenPatterns(targetDir, lock.profile);
@@ -676,13 +556,12 @@ export function doctorApp(cwd, options = {}, versions, runners = {}) {
     if (options.conformance !== 'simulator') {
       throw new Error(`Unsupported conformance target: ${options.conformance}`);
     }
-    const result = validateSimulatorAppSource(targetDir);
     if (options.json) {
-      process.stdout.write(`${JSON.stringify(result.report, null, 2)}\n`);
-    } else {
-      process.stdout.write(`[nimi-app] Simulator conformance passed for ${targetDir}\n`);
+      throw new Error('--json is not supported for Simulator source validation');
     }
-    return result.report;
+    const result = validateSimulatorAppSource(targetDir);
+    process.stdout.write(`[nimi-app] Simulator source validation passed for ${targetDir}\n`);
+    return result;
   }
   const result = validateDoctorState(targetDir, versions, runners);
   const payload = {

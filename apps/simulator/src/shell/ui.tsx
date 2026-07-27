@@ -42,9 +42,6 @@ export const SIMULATOR_STATUS_TEXT = 'Nimi Ecosystem Simulator — simulated dat
 export interface SimulatorShellViewProps {
   readonly epoch: number;
   readonly phase: 'open' | 'resetting' | 'terminal';
-  readonly registryDigest: string;
-  readonly replayDigest: string | null;
-  readonly stateRevision: number;
   readonly moduleCount: number;
   readonly route: SimulatorShellRoute;
   readonly instances: readonly SimulatorSessionInstanceView[];
@@ -202,9 +199,6 @@ function useChromeKeyboard(): void {
 function ShellChrome(props: SimulatorShellViewProps): ReactElement {
   const ui = useUi();
   useChromeKeyboard();
-  const usableActiveInstanceCount = props.instances.filter((instance) => (
-    instance.status === 'active' && instance.readiness === 'usable'
-  )).length;
   const liveInstances = props.instances.filter((instance) => instance.status !== 'disposed');
 
   const onContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -220,10 +214,6 @@ function ShellChrome(props: SimulatorShellViewProps): ReactElement {
     return (
       <div
         className="simulator-shell simulator-shell--full-window"
-        data-registry-digest={props.registryDigest}
-        data-replay-digest={props.replayDigest ?? undefined}
-        data-state-revision={props.stateRevision}
-        data-usable-active-instance-count={usableActiveInstanceCount}
       >
         <FullWindowView {...props} />
         <WindowManager />
@@ -234,10 +224,6 @@ function ShellChrome(props: SimulatorShellViewProps): ReactElement {
   return (
     <div
       className="simulator-shell"
-      data-registry-digest={props.registryDigest}
-      data-replay-digest={props.replayDigest ?? undefined}
-      data-state-revision={props.stateRevision}
-      data-usable-active-instance-count={usableActiveInstanceCount}
     >
       <Field phase={ui.effectivePhase}>
         {props.route.kind === 'home' ? (

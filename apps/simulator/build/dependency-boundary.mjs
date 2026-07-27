@@ -3,7 +3,6 @@ import path from 'node:path';
 
 import {
   sha256Digest,
-  stableJsonDigest,
   validateSimulatorSelectedDependencyModule,
   SimulatorConformanceError,
 } from '@nimiplatform/app-tools/simulator-conformance';
@@ -46,7 +45,7 @@ function assertPackageIdentity(owner) {
   if (value.name !== owner.name || value.version !== owner.version) {
     fail(
       'SIM_DEPENDENCY_PACKAGE_IDENTITY',
-      `selected dependency package identity differs from resolver evidence for ${JSON.stringify(owner.name)}`,
+      `selected dependency package identity differs from resolver input for ${JSON.stringify(owner.name)}`,
     );
   }
   if (sha256Digest(bytes) !== owner.packageJsonDigest) {
@@ -68,7 +67,6 @@ export function createSelectedDependencyQualifier({ simulatorRoot, resolver }) {
     name: row.name,
     version: row.version,
     role: row.role,
-    lockIdentity: row.lockIdentity,
     packageJsonDigest: row.packageJsonDigest,
     canonicalRoot: `package/${row.name}@${row.version}/`,
     root: packageRoot(simulatorRoot, row.name),
@@ -105,14 +103,14 @@ export function createSelectedDependencyQualifier({ simulatorRoot, resolver }) {
         canonicalFilePath(owner, absolute),
       );
     }
-    const evidence = Object.freeze({
+    const scanned = Object.freeze({
       owner,
       path: canonicalFilePath(owner, absolute),
       bytes: diskBytes.length,
       digest: sha256Digest(diskBytes),
     });
-    scannedFiles.set(absolute, evidence);
-    return evidence;
+    scannedFiles.set(absolute, scanned);
+    return scanned;
   };
 
   const markFile = (absolutePath, expectedOwner = null) => {
@@ -170,33 +168,11 @@ export function createSelectedDependencyQualifier({ simulatorRoot, resolver }) {
         fail('SIM_DEPENDENCY_FILE_DRIFT', 'selected dependency file changed during final build', transformed.path);
       }
     }
-    const packages = [...requiredPackages].sort().map((name) => {
-      const owner = ownersByName.get(name);
-      const files = [...scannedFiles.values()]
-        .filter((entry) => entry.owner.name === name)
-        .map(({ path: filePath, bytes, digest }) => ({ path: filePath, bytes, digest }))
-        .sort((left, right) => left.path.localeCompare(right.path));
-      if (files.length === 0) fail('SIM_DEPENDENCY_EMPTY_CLOSURE', `selected dependency ${JSON.stringify(name)} has no runtime closure`);
-      const identity = {
-        name,
-        version: owner.version,
-        lockIdentity: owner.lockIdentity,
-        packageJsonDigest: owner.packageJsonDigest,
-        files,
-      };
-      return Object.freeze({
-        ...identity,
-        closureDigest: stableJsonDigest('nimi-simulator-selected-dependency-package-v1', identity),
-      });
-    });
-    const evidence = {
-      schema: 'nimi.simulator.selected-dependency-closure/v1',
-      packages,
-    };
-    return Object.freeze({
-      ...evidence,
-      digest: stableJsonDigest('nimi-simulator-selected-dependency-closure-v1', evidence),
-    });
+    for (const name of requiredPackages) {
+      if (![...scannedFiles.values()].some((entry) => entry.owner.name === name)) {
+        fail('SIM_DEPENDENCY_EMPTY_CLOSURE', `selected dependency ${JSON.stringify(name)} has no runtime closure`);
+      }
+    }
   };
 
   return Object.freeze({

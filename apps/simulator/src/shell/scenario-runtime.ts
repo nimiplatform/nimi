@@ -112,9 +112,7 @@ export async function launchScenarioInstances(
     const readiness = session.readinessFor(opened.value.instanceId, intent.surfaceId);
     if (!readiness.ok) throw new Error(`${readiness.error.code}:${intent.launchId}`);
     // Serial Scenario launch prevents the next instance's authoritative state
-    // commits from invalidating this instance's in-flight visible checkpoint.
-    // A missing browser qualification port produces an explicit failed
-    // readiness terminal but does not fabricate product failure or hide UI.
+    // commits from invalidating this instance's in-flight readiness barrier.
     await readiness.value.completion;
   }
   return Object.freeze(instances);

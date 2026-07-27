@@ -13,9 +13,6 @@ function renderShell(overrides = {}) {
   return renderToStaticMarkup(h(SimulatorShellView, {
     epoch: 1,
     phase: 'open',
-    registryDigest: 'sha256:43fcca22e15ccc6241d82ab0fda6f963cdaa2af965d0ffdde960aec786cc0279',
-    replayDigest: 'sha256:af4d66a2f62a13a96d99c8602e6f4cc36a7dc12fa63353489338739c70622bb1',
-    stateRevision: 0,
     moduleCount: 0,
     route: { kind: 'home' },
     instances: [],
@@ -35,7 +32,6 @@ test('empty shell renders the persistent simulated-status surface', () => {
   const markup = renderShell();
   assert.ok(markup.includes(SIMULATOR_STATUS_TEXT));
   assert.ok(markup.includes('role="status"'));
-  assert.ok(markup.includes('data-registry-digest="sha256:43fcca22e15ccc6241d82ab0fda6f963cdaa2af965d0ffdde960aec786cc0279"'));
   assert.ok(markup.includes('0 selected modules'));
   assert.ok(markup.includes('No App instances are open.'));
 });
@@ -89,7 +85,6 @@ test('open instances render in creation order with status', () => {
   assert.ok(markup.includes('fixture-module — inactive'));
   assert.ok(markup.indexOf('fixture-module — active') < markup.indexOf('fixture-module — inactive'));
   assert.ok(markup.includes('1 selected module'));
-  assert.ok(markup.includes('data-usable-active-instance-count="1"'));
 });
 
 test('full-window route retains disclosure and exposes a deterministic exit control', () => {
@@ -102,7 +97,6 @@ test('full-window route retains disclosure and exposes a deterministic exit cont
   assert.ok(markup.includes(SIMULATOR_STATUS_TEXT));
   assert.ok(markup.includes('simulator-shell--full-window'));
   assert.ok(markup.includes('data-full-window-instance="1:instance:1"'));
-  assert.ok(markup.includes('data-usable-active-instance-count="1"'));
   assert.ok(markup.includes('Exit full window'));
   assert.ok(markup.includes('desktop full window'));
 });

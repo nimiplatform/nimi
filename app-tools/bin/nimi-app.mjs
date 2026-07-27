@@ -5,7 +5,6 @@ import {
   createApp,
   doctorAppScaffold,
   initAppScaffold,
-  renderSimulatorConformanceFailure,
   runDevShell,
   updateAppScaffold,
 } from '../lib/index.mjs';
@@ -91,7 +90,8 @@ function printUsage() {
       'Usage:',
       '  nimi-app create [--dir path] [--profile standalone|workspace-app|tester-reference] [--app-id id] [--title title] [--package-name name] [--author author]',
       '  nimi-app init [--dir path] [--json]',
-      '  nimi-app doctor [--dir path] [--conformance simulator] [--json]',
+      '  nimi-app doctor [--dir path] [--json]',
+      '  nimi-app doctor [--dir path] --conformance simulator',
       '  nimi-app update [--dir path] [--json]',
       '  nimi-app dev [--dir path] [--shell electron|tauri]',
       '',
@@ -148,10 +148,6 @@ try {
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error || 'unknown error');
-  if (parsedArgs?.json && parsedArgs?.command === 'doctor' && parsedArgs?.conformance === 'simulator') {
-    const payload = renderSimulatorConformanceFailure(error, parsedArgs.dir || process.cwd());
-    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
-  }
   process.stderr.write(`[nimi-app] failed: ${message}\n`);
   process.exit(1);
 }

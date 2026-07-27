@@ -252,9 +252,7 @@ function buildPackageJson(profile, versions, identity) {
       'build:shell': 'tauri build',
       test: 'node --test test/*.test.mjs',
       check: 'pnpm run doctor && pnpm run test && pnpm run validate',
-      pack: 'pnpm run build && node scripts/pack.mjs',
       validate: 'node scripts/validate.mjs',
-      'local-audit': 'node scripts/local-audit.mjs',
       doctor: 'nimi-app doctor',
       update: 'nimi-app update',
     },
@@ -286,10 +284,6 @@ function buildPackageJson(profile, versions, identity) {
       yaml: versions.yamlVersion,
     },
   };
-  if (isTesterReferenceProfile(profile)) {
-    packageJson.scripts['test:e2e:electron'] = 'pnpm run build && pnpm run build:electron && node --test test/electron-acceptance.mjs';
-    packageJson.devDependencies.playwright = versions.playwrightVersion;
-  }
   if (identity.author) {
     packageJson.author = identity.author;
   }
@@ -490,12 +484,10 @@ function buildScaffoldSubmissionFile(identity) {
       '  init_command: pnpm run init',
       '  dev_command: pnpm dev',
       '  build_command: pnpm run build',
-      '  pack_command: pnpm run pack',
       'review_inputs:',
       '  manifest: nimi.app.yaml',
       `  build_profile: ${SCAFFOLD_BUILD_PROFILE_PATH}`,
       `  scaffold_lock: ${SCAFFOLD_LOCK_PATH}`,
-      '  local_audit: pnpm run local-audit',
       'admission_truth: platform-owned-after-review',
       '',
     ].join('\n'),
@@ -653,12 +645,6 @@ function buildScaffoldLock(identity, versions, files) {
       nimicodingApplyCommand: 'pnpm exec nimicoding sync --apply --json',
       nimicodingCheckCommand: 'pnpm exec nimicoding sync --check --json',
       doctorAndUpdateRole: 'developer-scaffold-check-only',
-      publicAdmissionTruth: 'not-generated',
-      releaseDescriptorTruth: 'not-generated',
-      ordinaryVisibilityTruth: 'not-generated',
-      installedAppUpdateTruth: 'not-generated',
-      permissionGrantTruth: 'not-generated',
-      productReadinessClaimAllowed: false,
       lockfilePolicy: LOCKFILE_POLICY,
       ignoredVerificationArtifacts: ['dist/'],
     },

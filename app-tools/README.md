@@ -38,15 +38,14 @@ session material never enter the project, terminal, or renderer. The current
 local-development surface admits only typed Runtime artifact reads requested in
 `nimi.app.yaml`; other protected surfaces remain fail-closed. Local-development
 authorization is not listing admission, a production release, installed-app
-truth, signing evidence, or a permission grant. macOS intent submission does
-not make the carrier positive: signed Runtime/Desktop/host and native live
-admission still fail closed until their conjunctive gate passes.
+truth, signing status, or a permission grant. Paths not run in the current
+development environment remain `NOT-VERIFIED`.
 
 When `--profile tester-reference` is used, the generator emits the explicit
 non-first-party developer reference tester product surface: Runtime-authenticated
 shell, Nimi Kit glass workbench, typed AI capability lanes, app-owned history
-storage, standalone world-tour viewer commands, and local acceptance tests. This
-proof app is opt-in only; app id values never switch the scaffold profile.
+storage, and standalone world-tour viewer commands. This reference app is
+opt-in only; app id values never switch the scaffold profile.
 
 `nimi-app doctor` verifies scaffold init/lock state, managed glue, package-owned
 projections, dependency alignment, and forbidden shortcut patterns in a source
@@ -71,17 +70,16 @@ nimi-app create [--dir path] [--profile standalone|workspace-app|tester-referenc
 nimi-app dev [--dir path] [--shell electron|tauri]
 nimi-app init [--dir path] [--json]
 nimi-app doctor [--dir path] [--json]
-nimi-app doctor [--dir path] --conformance simulator --json
+nimi-app doctor [--dir path] --conformance simulator
 nimi-app update [--dir path] [--json]
 ```
 
-`doctor --conformance simulator --json` validates the current closed
+`doctor --conformance simulator` validates the current closed
 `nimi.simulator.module/v1` input, canonical renderer-factory reachability,
 Simulator renderer/Adapter/fixture source, canonical style namespace, forbidden
-closure imports/effects, and deterministic source/Manifest/style digests. The
-JSON result is App-source conformance evidence only. It neither selects the App
-nor certifies the Simulator's final resolver, combined graph, artifact, release,
-or Nimi App admission.
+closure imports/effects, and source/CSS build inputs. It emits an ordinary log
+and exit code. It neither selects the App nor certifies the Simulator's final
+resolver, combined graph, artifact, release, or Nimi App admission.
 
 Inside this monorepo, use the repo-local binary:
 

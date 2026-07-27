@@ -116,7 +116,7 @@ type ChromeAction =
 
 /* — Spawn layout: a pure function of the viewport —
  * Every slot derives from (vw, vh); at the qualified 1440×1000 viewport each
- * formula evaluates to the exact pixel geometry the qualification pins
+ * formula evaluates to the exact pixel geometry required by the layout contract
  * (desktop 24/500×64 460×600, tester/zhiyu 224×288 at y 688, pane column
  * x 1002 w 414, pane slots agent/identity/modules/instances/grants/worlds).
  * Structure: a right pane column (paneW = round(vw × 0.2875), right margin

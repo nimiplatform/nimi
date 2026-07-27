@@ -136,8 +136,6 @@ export interface SimulatorSession {
     type: (typeof SIMULATOR_PRODUCT_COMMANDS)[keyof typeof SIMULATOR_PRODUCT_COMMANDS],
     payload: JsonValue,
   ): Promise<SimulatorResult<JsonValue>>;
-  /** Last digest published at a completed visible-checkpoint boundary. */
-  replayDigest(): string | null;
   subscribe(listener: () => void): () => void;
   readonly phase: 'open' | 'resetting' | 'terminal';
   readonly epoch: number;
@@ -151,7 +149,6 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
   const hostRef: { current: SimulatorInstanceHost | null } = { current: null };
   let currentRoute: SimulatorShellRoute = { kind: 'home' };
   let pendingDeepLink: Extract<SimulatorShellRoute, { readonly kind: 'instance' }> | null = null;
-  let publishedReplayDigest: string | null = null;
 
   const engine = createSimulatorStateEngine({
     scenario: options.scenario,
@@ -347,7 +344,6 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
           currentRoute = { kind: 'home' };
           options.onRouteChange?.(currentRoute);
           options.writeRoute?.(serializeShellRoute(currentRoute), true);
-          publishedReplayDigest = null;
         }
         notify();
       });
@@ -473,15 +469,9 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
       });
       readinessBarriers.set(barrierKey, barrier);
       void barrier.completion.then(() => {
-        if (engine.phase === 'open' && engine.isQuiescent()) {
-          publishedReplayDigest = engine.replayRecordDigest();
-        }
         notify();
       });
       return simulatorOk(barrier);
-    },
-    replayDigest() {
-      return publishedReplayDigest;
     },
     subscribe(listener) {
       listeners.add(listener);

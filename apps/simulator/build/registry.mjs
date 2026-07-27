@@ -2,14 +2,10 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 import {
-  stableJson,
-  stableJsonDigest,
-  sha256Digest,
   validateSimulatorAppSource,
   assertSimulatorSourcePath,
   SimulatorConformanceError,
 } from '@nimiplatform/app-tools/simulator-conformance';
-import { buildSimulatorEffectiveCssIdentity } from '@nimiplatform/app-tools/simulator-css-profile';
 import { materializeDescriptor } from './materialize.mjs';
 import { resolveMandatorySingletons } from './resolver.mjs';
 import { generateEffectCatalog } from './generate-effect-catalog.mjs';
@@ -31,44 +27,6 @@ function ensureGeneratedRoot(simulatorRoot, generatedRoot) {
   if (generated !== canonical && !staged) fail('SIM_GENERATED_ROOT', 'generated output must be canonical or a controlled sibling staging root');
   rmSync(generated, { recursive: true, force: true });
   mkdirSync(generated, { recursive: true });
-}
-
-function readPolicyIdentity(repoRoot, relativePath) {
-  const bytes = readFileSync(path.join(repoRoot, relativePath));
-  const firstLines = bytes.toString('utf8').split('\n').slice(0, 12).join('\n');
-  const owner = firstLines.match(/^owner:\s*([^\s#]+)\s*$/m)?.[1] || 'platform';
-  const version = firstLines.match(/^version:\s*([^\s#]+)\s*$/m)?.[1] || '1';
-  return { owner, version: String(version), digest: sha256Digest(bytes) };
-}
-
-function policyCatalogs(repoRoot, mandatorySingleton) {
-  return {
-    mandatorySingleton,
-    browserEffect: readPolicyIdentity(repoRoot, 'config/platform-simulator-browser-effects.yaml'),
-    hostBindings: [
-      readPolicyIdentity(repoRoot, 'config/platform-simulator-module-contract.yaml'),
-    ],
-    listenerFamilies: readPolicyIdentity(repoRoot, 'config/platform-simulator-listener-families.yaml'),
-  };
-}
-
-function reportWithoutDigest(report) {
-  const { report_digest: ignored, ...rest } = report || {};
-  return rest;
-}
-
-export function assertFreshAppToolsReport(supplied, fresh) {
-  if (!supplied || typeof supplied !== 'object') fail('SIM_APP_TOOLS_REPORT_MISSING', 'App-tools conformance report is required');
-  const calculated = stableJsonDigest('nimi-simulator-app-tools-report-v1', reportWithoutDigest(supplied));
-  if (calculated !== supplied.report_digest) {
-    fail('SIM_APP_TOOLS_REPORT_FORGED', 'App-tools report digest is invalid');
-  }
-  if (supplied.source?.app_source_digest !== fresh.source.app_source_digest) {
-    fail('SIM_APP_TOOLS_REPORT_STALE', 'App-tools report source digest does not match materialized source');
-  }
-  if (stableJson(supplied) !== stableJson(fresh)) {
-    fail('SIM_APP_TOOLS_REPORT_REVALIDATION', 'App-tools report differs from independent Simulator revalidation');
-  }
 }
 
 function assertAppSourceResolverNeutral(source) {
@@ -362,69 +320,120 @@ function sourceBuildPath(moduleId, sourceId, relativePath = '') {
   return `source/${moduleId}/${sourceId}/${relativePath}`;
 }
 
-function buildResolvedRow(descriptor, materialized, report, resolver, catalogs, cssIdentity, orderingKey) {
+const SOURCE_RESOLUTION_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.d.ts', '.js', '.jsx', '.mjs', '.cjs', '.css', '.json', '.png'];
+
+function importedRelativeSpecifiers(source, filePath) {
+  const scriptKind = filePath.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const parsed = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true, scriptKind);
+  const specifiers = [];
+  const visit = (node) => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node))
+      && node.moduleSpecifier
+      && ts.isStringLiteral(node.moduleSpecifier)
+      && node.moduleSpecifier.text.startsWith('.')) {
+      specifiers.push(node.moduleSpecifier.text);
+    } else if (ts.isCallExpression(node)
+      && node.expression.kind === ts.SyntaxKind.ImportKeyword
+      && node.arguments.length === 1
+      && (ts.isStringLiteral(node.arguments[0]) || ts.isNoSubstitutionTemplateLiteral(node.arguments[0]))
+      && node.arguments[0].text.startsWith('.')) {
+      specifiers.push(node.arguments[0].text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(parsed);
+  return specifiers;
+}
+
+function resolveSelectedRelativeImport(sourceFiles, importerPath, specifier) {
+  const candidate = path.posix.normalize(path.posix.join(path.posix.dirname(importerPath), specifier));
+  if (candidate.startsWith('../') || path.posix.isAbsolute(candidate)) return null;
+  const extension = path.posix.extname(candidate);
+  const attempts = [candidate];
+  if (!extension) {
+    attempts.push(...SOURCE_RESOLUTION_EXTENSIONS.map((suffix) => `${candidate}${suffix}`));
+    attempts.push(...SOURCE_RESOLUTION_EXTENSIONS.map((suffix) => `${candidate}/index${suffix}`));
+  } else if (extension === '.js' || extension === '.jsx') {
+    const stem = candidate.slice(0, -extension.length);
+    attempts.push(`${stem}.ts`, `${stem}.tsx`);
+  } else if (extension === '.mjs') {
+    attempts.push(`${candidate.slice(0, -extension.length)}.mts`);
+  } else if (extension === '.cjs') {
+    attempts.push(`${candidate.slice(0, -extension.length)}.cts`);
+  }
+  return attempts.find((attempt) => sourceFiles.has(attempt)) ?? null;
+}
+
+function addRelativeImportClosure(retainedPaths, conformance) {
+  const sourceFiles = new Map(conformance.source.files.map((file) => [file.path, file]));
+  const queue = [...retainedPaths];
+  const visited = new Set();
+  while (queue.length > 0) {
+    const filePath = queue.shift();
+    if (visited.has(filePath)) continue;
+    visited.add(filePath);
+    const file = sourceFiles.get(filePath);
+    if (!file || !/\.[cm]?[jt]sx?$/u.test(filePath)) continue;
+    for (const specifier of importedRelativeSpecifiers(file.bytes.toString('utf8'), filePath)) {
+      const resolved = resolveSelectedRelativeImport(sourceFiles, filePath, specifier);
+      if (!resolved) {
+        fail('SIM_RUNTIME_SOURCE_IMPORT', `cannot retain relative import ${JSON.stringify(specifier)}`, filePath);
+      }
+      if (!retainedPaths.has(resolved)) {
+        retainedPaths.add(resolved);
+        queue.push(resolved);
+      }
+    }
+  }
+}
+
+function retainRuntimeSourceClosure(materialized, conformance) {
   const appLocation = materialized.sourceLocations.find((entry) => entry.sourceId === 'app');
   if (!appLocation) fail('SIM_APP_SOURCE_MISSING', 'materialized descriptor has no app source');
-  if (report.source.app_source_digest !== appLocation.sourceDigest) {
-    fail('SIM_APP_SOURCE_DIGEST', 'App-tools source digest differs from selected source digest');
+  const appRoot = path.resolve(appLocation.targetRoot);
+  const retainedPaths = new Set(
+    [...conformance.graph.nodes.keys()].map((absolutePath) => (
+      path.relative(appRoot, absolutePath).split(path.sep).join('/')
+    )),
+  );
+  const addStyleInputs = (rows) => {
+    for (const row of rows ?? []) retainedPaths.add(row.path);
+  };
+  addStyleInputs(conformance.style.inputs);
+  addStyleInputs(conformance.style.profile?.composition?.inputs);
+  addStyleInputs(conformance.style.profile?.style?.inputs);
+  addStyleInputs(conformance.style.production?.hostFoundationInputs);
+  addRelativeImportClosure(retainedPaths, conformance);
+
+  const selectedFiles = new Map(appLocation.files.map((file) => [file.path, file]));
+  for (const retainedPath of retainedPaths) {
+    if (!selectedFiles.has(retainedPath)) {
+      fail('SIM_RUNTIME_SOURCE_CLOSURE', 'validated runtime source is absent from selected materialization', retainedPath);
+    }
   }
-  if (stableJson(report.composition.app_production_inventory.entries) !== stableJson(descriptor.app_production.entries)) {
-    fail('SIM_APP_PRODUCTION_INVENTORY_MISMATCH', 'Manifest and Simulator App production inventories differ');
+  for (const location of materialized.sourceLocations) {
+    if (location.sourceId !== 'app') {
+      rmSync(location.targetRoot, { recursive: true, force: true });
+      continue;
+    }
+    for (const file of location.files) {
+      if (retainedPaths.has(file.path)) continue;
+      const absolute = path.resolve(appRoot, ...file.path.split('/'));
+      if (!absolute.startsWith(`${appRoot}${path.sep}`)) {
+        fail('SIM_RUNTIME_SOURCE_CLOSURE', 'selected source path escapes its materialized root', file.path);
+      }
+      rmSync(absolute, { force: true });
+    }
   }
-  if (report.composition.app_production_inventory.digest !== descriptor.app_production.inventory_digest) {
-    fail('SIM_APP_PRODUCTION_INVENTORY_DIGEST', 'App-tools and Simulator App production inventory digests differ');
-  }
-  if (
-    !report.composition.host_invocation_inventory.provided
-    || report.composition.host_invocation_inventory.digest !== descriptor.host_invocations.inventory_digest
-    || stableJson(report.composition.host_invocation_inventory.entries) !== stableJson(descriptor.host_invocations.entries)
-  ) {
-    fail('SIM_HOST_INVENTORY_MISMATCH', 'App-tools report does not bind the complete Simulator host-invocation inventory');
-  }
-  const manifest = report.__manifest;
-  if (!manifest) fail('SIM_INTERNAL_MANIFEST_PROJECTION', 'internal validated Manifest projection is missing');
-  const zStart = 1000 + orderingKey * 100;
-  const row = {
-    protocol: report.manifest.module_protocol,
+}
+
+function buildResolvedRow(descriptor, validation, orderingKey) {
+  const { manifest } = validation;
+  return Object.freeze({
     moduleId: descriptor.module_id,
-    sourceAppIdRef: descriptor.source_app_id_ref,
-    sourceLocations: materialized.sourceLocations.map((entry) => ({
-      id: entry.sourceId,
-      kind: entry.kind,
-      repositoryKey: entry.repositoryKey,
-      objectFormat: entry.objectFormat,
-      objectId: entry.objectId,
-      root: entry.root,
-      sourceDigest: entry.sourceDigest,
-      authorityRefs: entry.authorityRefs,
-      authorityIndexDigest: entry.authorityIndexDigest,
-    })),
-    appProductionEntries: descriptor.app_production.entries.map((entry) => ({ sourceId: 'app', path: sourceBuildPath(descriptor.module_id, 'app', entry) })),
-    appProductionInventoryAuthorityRefs: descriptor.app_production.inventory_authority_refs,
-    appProductionInventoryDigest: descriptor.app_production.inventory_digest,
-    hostInvocations: descriptor.host_invocations.entries.map((entry) => ({
-      id: entry.id,
-      sourceId: entry.source_id,
-      path: sourceBuildPath(descriptor.module_id, entry.source_id, entry.entry),
-      authorityRefs: entry.authority_refs,
-    })),
-    hostInvocationInventoryAuthorityRefs: descriptor.host_invocations.inventory_authority_refs,
-    hostInvocationInventoryDigest: descriptor.host_invocations.inventory_digest,
-    canonicalFactoryGraphProofDigest: stableJsonDigest('nimi-simulator-canonical-factory-graph-proof-v1', {
-      appProductionInventoryDigest: descriptor.app_production.inventory_digest,
-      hostInvocationInventoryDigest: descriptor.host_invocations.inventory_digest,
-      appGraphDigest: report.composition.graph_digest,
-      factory: [report.composition.factory_entry, report.composition.factory_export],
-      canonicalStyleInputDigest: cssIdentity.digest,
-      resolverTupleDigest: resolver.tupleDigest,
-    }),
-    factoryPath: sourceBuildPath(descriptor.module_id, 'app', report.composition.factory_entry),
-    factoryExport: report.composition.factory_export,
-    rendererPath: sourceBuildPath(descriptor.module_id, 'app', report.composition.renderer_entry),
-    rendererExport: report.composition.renderer_export,
-    adapterPath: sourceBuildPath(descriptor.module_id, 'app', report.composition.adapter_entry),
-    adapterExport: report.composition.adapter_export,
-    stylePath: sourceBuildPath(descriptor.module_id, 'app', report.style.entry),
+    orderingKey,
+    rendererExport: manifest.renderer.export,
+    adapterExport: manifest.renderer.adapter_export,
     surfaces: manifest.renderer.surfaces.map((surface) => ({
       id: surface.id,
       factorySurface: surface.factory_surface,
@@ -439,24 +448,7 @@ function buildResolvedRow(descriptor, materialized, report, resolver, catalogs, 
       commands: [...manifest.requires.simulator_commands],
       events: [...manifest.requires.simulator_events],
     },
-    resolvedPackages: resolver.packages,
-    cssNamespace: report.style.global_prefix,
-    canonicalStyleInputDigest: cssIdentity.digest,
-    zIndexRange: { start: zStart, end: zStart + 99 },
-    orderingKey,
-    policyCatalogs: catalogs,
-    appToolsReportDigest: report.report_digest,
-  };
-  return Object.freeze(row);
-}
-
-function attachInternalManifest(report, manifest) {
-  return Object.freeze({ ...report, __manifest: manifest });
-}
-
-function publicReport(report) {
-  const { __manifest: ignored, ...rest } = report;
-  return rest;
+  });
 }
 
 function assertRootIndependent(value, repoRoot) {
@@ -466,32 +458,12 @@ function assertRootIndependent(value, repoRoot) {
   }
 }
 
-function serializeMaterializationLocation(entry) {
-  const {
-    targetRoot: ignoredTargetRoot,
-    fetchIdentity,
-    canonicalFetchIdentity,
-    actualMirrorUsed,
-    ...facts
-  } = entry;
-  void ignoredTargetRoot;
-  return {
-    ...facts,
-    fetchSelection: actualMirrorUsed ? 'mirror' : 'canonical',
-    fetchIdentityDigest: stableJsonDigest('nimi-simulator-fetch-identity-v1', fetchIdentity),
-    canonicalFetchIdentityDigest: stableJsonDigest('nimi-simulator-fetch-identity-v1', canonicalFetchIdentity),
-    actualMirrorIdentityDigest: actualMirrorUsed
-      ? stableJsonDigest('nimi-simulator-fetch-identity-v1', actualMirrorUsed)
-      : null,
-  };
-}
-
-function buildStaticModuleCatalog(report, orderingKey) {
+function buildStaticModuleCatalog(validation, orderingKey) {
   return Object.freeze({
-    moduleId: report.source.module_id,
+    moduleId: validation.manifest.module_id,
     orderingKey,
-    commandSchemas: report.fixture.catalog.commandSchemas,
-    eventSchemas: report.fixture.catalog.eventSchemas,
+    commandSchemas: validation.fixture.catalog.commandSchemas,
+    eventSchemas: validation.fixture.catalog.eventSchemas,
     queries: {},
     selectSharedProjection: null,
   });
@@ -499,8 +471,8 @@ function buildStaticModuleCatalog(report, orderingKey) {
 
 function buildReadinessDeclarations(qualified) {
   const declarations = {};
-  for (const { descriptor, report } of qualified) {
-    for (const declaration of report.fixture.readiness) {
+  for (const { descriptor, validation } of qualified) {
+    for (const declaration of validation.fixture.readiness) {
       const key = `${descriptor.module_id}/${declaration.surfaceId}`;
       if (Object.hasOwn(declarations, key)) {
         fail('SIM_READINESS_DECLARATION_DUPLICATE', `duplicate readiness declaration ${JSON.stringify(key)}`);
@@ -516,70 +488,43 @@ export function generateRegistryFiles({
   rows,
   buildMap,
   resolver,
-  materializationEvidence,
-  appToolsReports,
-  cssProfiles,
+  styleInputs,
   moduleCatalogs,
   readinessDeclarations,
   scenario,
 }) {
-  const moduleCatalogDigest = stableJsonDigest('nimi-simulator-module-catalogs-v1', moduleCatalogs);
-  const readinessDeclarationDigest = stableJsonDigest(
-    'nimi-simulator-readiness-declarations-v1',
-    readinessDeclarations,
-  );
-  const scenarioDigest = scenario.digest;
   const registry = {
-    schema: 'nimi.simulator.resolved-registry/v1',
     modules: rows,
     moduleCount: rows.length,
-    resolverTupleDigest: resolver.tupleDigest,
-    moduleCatalogDigest,
-    readinessDeclarationDigest,
-    scenarioDigest,
-    digest: stableJsonDigest('nimi-simulator-resolved-registry-v1', {
-      modules: rows,
-      moduleCatalogDigest,
-      readinessDeclarationDigest,
-      scenarioDigest,
-    }),
   };
   assertRootIndependent(registry, repoRoot);
   assertRootIndependent(buildMap, repoRoot);
   assertRootIndependent(resolver, repoRoot);
-  assertRootIndependent(materializationEvidence, repoRoot);
-  assertRootIndependent(cssProfiles, repoRoot);
+  assertRootIndependent(styleInputs, repoRoot);
   assertRootIndependent(moduleCatalogs, repoRoot);
   assertRootIndependent(readinessDeclarations, repoRoot);
   assertRootIndependent(scenarioWire(scenario), repoRoot);
-  mkdirSync(path.join(generatedRoot, 'evidence', 'app-tools'), { recursive: true });
-  mkdirSync(path.join(generatedRoot, 'evidence', 'css-profile'), { recursive: true });
-  writeFileSync(path.join(generatedRoot, 'registry.json'), `${JSON.stringify(registry, null, 2)}\n`);
+  mkdirSync(path.join(generatedRoot, 'style-inputs'), { recursive: true });
   writeFileSync(path.join(generatedRoot, 'build-map.json'), `${JSON.stringify(buildMap, null, 2)}\n`);
-  writeFileSync(path.join(generatedRoot, 'evidence', 'resolver.json'), `${JSON.stringify(resolver, null, 2)}\n`);
-  writeFileSync(path.join(generatedRoot, 'evidence', 'materialization.json'), `${JSON.stringify(materializationEvidence, null, 2)}\n`);
-  writeFileSync(path.join(generatedRoot, 'evidence', 'scenario.json'), `${JSON.stringify({
-    schema: 'nimi.simulator.resolved-scenario/v1',
-    digest: scenario.digest,
-    scenario: scenarioWire(scenario),
-  }, null, 2)}\n`);
-  for (const [moduleId, report] of Object.entries(appToolsReports)) {
-    writeFileSync(path.join(generatedRoot, 'evidence', 'app-tools', `${moduleId}.json`), `${JSON.stringify(report, null, 2)}\n`);
-  }
-  for (const [moduleId, evidence] of Object.entries(cssProfiles)) {
-    writeFileSync(path.join(generatedRoot, 'evidence', 'css-profile', `${moduleId}.json`), `${JSON.stringify(evidence, null, 2)}\n`);
+  writeFileSync(path.join(generatedRoot, 'resolver.json'), `${JSON.stringify(resolver, null, 2)}\n`);
+  for (const [moduleId, input] of Object.entries(styleInputs)) {
+    writeFileSync(path.join(generatedRoot, 'style-inputs', `${moduleId}.json`), `${JSON.stringify(input, null, 2)}\n`);
   }
   const generatedRows = rows.map((row) => {
-    const literal = JSON.stringify(row);
+    const metadata = JSON.stringify({
+      moduleId: row.moduleId,
+      orderingKey: row.orderingKey,
+      surfaces: row.surfaces,
+      requirements: row.requirements,
+    });
     const rendererId = JSON.stringify(`virtual:nimi-simulator/${row.moduleId}/renderer`);
     const adapterId = JSON.stringify(`virtual:nimi-simulator/${row.moduleId}/adapter`);
     const rendererExport = JSON.stringify(row.rendererExport);
     const adapterExport = JSON.stringify(row.adapterExport);
-    return `  { metadata: ${literal}, loadRenderer: () => import(${rendererId}).then((module) => (module as unknown as Record<string, unknown>)[${rendererExport}]), loadAdapter: () => import(${adapterId}).then((module) => (module as unknown as Record<string, unknown>)[${adapterExport}]), loadStyle: () => import(${JSON.stringify(`virtual:nimi-simulator/${row.moduleId}/style`)}) },`;
+    return `  { metadata: ${metadata}, loadRenderer: () => import(${rendererId}).then((module) => (module as unknown as Record<string, unknown>)[${rendererExport}]), loadAdapter: () => import(${adapterId}).then((module) => (module as unknown as Record<string, unknown>)[${adapterExport}]), loadStyle: () => import(${JSON.stringify(`virtual:nimi-simulator/${row.moduleId}/style`)}) },`;
   });
   const typescript = [
     '// Generated by apps/simulator/build/registry.mjs. Do not edit.',
-    `export const simulatorResolvedRegistryDigest = ${JSON.stringify(registry.digest)} as const;`,
     'export const simulatorResolvedModules = [',
     ...generatedRows,
     '] as const;',
@@ -588,7 +533,6 @@ export function generateRegistryFiles({
   writeFileSync(path.join(generatedRoot, 'registry.ts'), typescript);
   const runtimeCatalogs = [
     '// Generated by apps/simulator/build/registry.mjs. Do not edit.',
-    '// Static data only: this file never imports or evaluates an App fixture or Adapter graph.',
     `export const simulatorResolvedModuleCatalogs = ${JSON.stringify(moduleCatalogs)} as const;`,
     `export const simulatorResolvedReadinessDeclarations = ${JSON.stringify(readinessDeclarations)} as const;`,
     '',
@@ -597,7 +541,6 @@ export function generateRegistryFiles({
   const scenarioProjection = runtimeScenarioProjection(scenario);
   const scenarioTypescript = [
     '// Generated by apps/simulator/build/registry.mjs. Do not edit.',
-    `export const simulatorResolvedScenarioDigest = ${JSON.stringify(scenario.digest)} as const;`,
     `export const simulatorResolvedScenario = ${JSON.stringify(scenarioProjection)} as const;`,
     '',
   ].join('\n');
@@ -612,84 +555,63 @@ export function qualifySelectedModules({
   repoRoot,
   simulatorRoot,
   generatedRoot,
-  release = true,
   workspaceRoot = repoRoot,
   workspaceRepositoryKey = 'nimi',
-  reportProvider = null,
   supportedScenarioCapabilities = new Set(),
 }) {
   ensureGeneratedRoot(simulatorRoot, generatedRoot);
   const qualified = [];
   const buildMap = {};
-  const materializationEvidence = [];
-  const appToolsReports = {};
-  const cssProfiles = {};
+  const styleInputs = {};
   const sorted = [...descriptors].sort((left, right) => left.module_id.localeCompare(right.module_id));
   for (const [orderingKey, descriptor] of sorted.entries()) {
     const materialized = materializeDescriptor(descriptor, repositoryCatalog, {
       workspaceRoot,
       workspaceRepositoryKey,
       stagingRoot: path.join(generatedRoot, 'materialized'),
-      release,
     });
     assertHostInventoryMaterialized(descriptor, materialized);
-    const conformance = validateSimulatorAppSource(materialized.appRoot, {
+    const validation = validateSimulatorAppSource(materialized.appRoot, {
       expectedModuleId: descriptor.module_id,
       appProductionEntries: descriptor.app_production.entries,
       hostInvocations: descriptor.host_invocations.entries,
     });
-    assertHostInventoryMaterialized(descriptor, materialized, conformance.manifest);
-    assertAppSourceResolverNeutral(conformance.source);
-    const freshReport = attachInternalManifest(conformance.report, conformance.manifest);
-    const supplied = reportProvider ? reportProvider(descriptor, publicReport(freshReport)) : publicReport(freshReport);
-    assertFreshAppToolsReport(supplied, publicReport(freshReport));
-    const report = attachInternalManifest(supplied, conformance.manifest);
-    qualified.push({ descriptor, materialized, conformance, report, orderingKey });
+    assertHostInventoryMaterialized(descriptor, materialized, validation.manifest);
+    assertAppSourceResolverNeutral(validation.source);
+    retainRuntimeSourceClosure(materialized, validation);
+    qualified.push({ descriptor, materialized, validation, orderingKey });
     const appLocation = materialized.sourceLocations.find((entry) => entry.sourceId === 'app');
     buildMap[`virtual:nimi-simulator/${descriptor.module_id}/renderer`] = sourceBuildPath(
       descriptor.module_id,
       'app',
-      conformance.manifest.renderer.entry,
+      validation.manifest.renderer.entry,
     );
     buildMap[`virtual:nimi-simulator/${descriptor.module_id}/adapter`] = sourceBuildPath(
       descriptor.module_id,
       'app',
-      conformance.manifest.renderer.adapter_entry,
+      validation.manifest.renderer.adapter_entry,
     );
     buildMap[`virtual:nimi-simulator/${descriptor.module_id}/style`] = sourceBuildPath(
       descriptor.module_id,
       'app',
-      conformance.manifest.composition.style_entry,
+      validation.manifest.composition.style_entry,
     );
-    materializationEvidence.push({
-      moduleId: descriptor.module_id,
-      sourceLocations: materialized.sourceLocations.map(serializeMaterializationLocation),
-    });
-    appToolsReports[descriptor.module_id] = supplied;
+    styleInputs[descriptor.module_id] = { style: validation.style };
   }
   const resolver = resolveMandatorySingletons({
     repoRoot,
     simulatorRoot,
-    moduleRequirements: qualified.map(({ descriptor, report }) => ({
+    moduleRequirements: qualified.map(({ descriptor, validation }) => ({
       moduleId: descriptor.module_id,
       appSourceKind: descriptor.sources.find((source) => source.id === 'app')?.kind,
-      imports: report.dependencies.imports,
-      requirements: report.dependencies.requirements,
+      imports: validation.dependencies.imports,
+      requirements: validation.dependencies.requirements,
     })),
   });
-  const catalogs = policyCatalogs(repoRoot, resolver.catalog);
-  const rows = qualified.map(({ descriptor, materialized, report, orderingKey }) => {
-    const cssIdentity = buildSimulatorEffectiveCssIdentity(simulatorRoot, report);
-    cssProfiles[descriptor.module_id] = {
-      schema: 'nimi.simulator.css-qualification-evidence/v1',
-      module_id: descriptor.module_id,
-      canonical_style_input_digest: cssIdentity.digest,
-      identity: cssIdentity,
-      resolver_tuple_digest: resolver.tupleDigest,
-    };
-    return buildResolvedRow(descriptor, materialized, report, resolver, catalogs, cssIdentity, orderingKey);
-  });
-  const moduleCatalogs = qualified.map(({ report, orderingKey }) => buildStaticModuleCatalog(report, orderingKey));
+  const rows = qualified.map(({ descriptor, validation, orderingKey }) => (
+    buildResolvedRow(descriptor, validation, orderingKey)
+  ));
+  const moduleCatalogs = qualified.map(({ validation, orderingKey }) => buildStaticModuleCatalog(validation, orderingKey));
   const readinessDeclarations = buildReadinessDeclarations(qualified);
   assertScenarioMatchesQualified(scenario, rows, readinessDeclarations, supportedScenarioCapabilities);
   // The effect catalog shares the generated workspace lifecycle: every
@@ -701,9 +623,7 @@ export function qualifySelectedModules({
     rows,
     buildMap,
     resolver,
-    materializationEvidence,
-    appToolsReports,
-    cssProfiles,
+    styleInputs,
     moduleCatalogs,
     readinessDeclarations,
     scenario,

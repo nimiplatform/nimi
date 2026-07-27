@@ -4,7 +4,6 @@ import { isAlias, isMap, isScalar, isSeq, parseDocument } from 'yaml';
 import {
   assertSimulatorSourcePath,
   SimulatorConformanceError,
-  stableJsonDigest,
 } from '@nimiplatform/app-tools/simulator-conformance';
 
 export const SELECTED_SOURCE_SCHEMA = 'nimi.simulator.selected-source/v1';
@@ -293,25 +292,12 @@ export function validateSimulatorScenario(value, label = 'config/simulator/scena
   };
   return Object.freeze({
     ...wire,
-    digest: stableJsonDigest('nimi-simulator-scenario-v1', wire),
     descriptor_label: label,
   });
 }
 
 export function parseSimulatorScenario(text, label = 'config/simulator/scenario.yaml') {
   return validateSimulatorScenario(parseStrictConfigYaml(text, label), label);
-}
-
-function assertAuthorityRefs(value, fieldPath) {
-  if (!Array.isArray(value) || value.length === 0) fail('SIM_DESCRIPTOR_AUTHORITY_REFS', 'must be a non-empty sequence', fieldPath);
-  return value.map((entry, index) => {
-    const itemPath = `${fieldPath}[${index}]`;
-    assertExact(entry, ['owner', 'rule_id'], itemPath);
-    return {
-      owner: assertString(entry.owner, `${itemPath}.owner`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 }),
-      rule_id: assertString(entry.rule_id, `${itemPath}.rule_id`, { pattern: /^[A-Z][A-Z0-9-]*-\d+$/, min: 3, max: 128 }),
-    };
-  });
 }
 
 function assertSourceLocation(value, index) {
@@ -324,8 +310,6 @@ function assertSourceLocation(value, index) {
     'object_id',
     'root',
     'expected_digest',
-    'authority_refs',
-    'authority_index_digest',
   ], fieldPath);
   const id = assertString(value.id, `${fieldPath}.id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
   if (!['workspace', 'external-repository'].includes(value.kind)) {
@@ -347,8 +331,6 @@ function assertSourceLocation(value, index) {
   });
   assertSimulatorSourcePath(value.root, `${fieldPath}.root`);
   assertDigest(value.expected_digest, `${fieldPath}.expected_digest`);
-  const authorityRefs = assertAuthorityRefs(value.authority_refs, `${fieldPath}.authority_refs`);
-  assertDigest(value.authority_index_digest, `${fieldPath}.authority_index_digest`);
   return {
     id,
     kind: value.kind,
@@ -357,27 +339,14 @@ function assertSourceLocation(value, index) {
     object_id: value.object_id,
     root: value.root,
     expected_digest: value.expected_digest,
-    authority_refs: authorityRefs,
-    authority_index_digest: value.authority_index_digest,
   };
-}
-
-export function appProductionInventoryDigest(appProduction) {
-  return stableJsonDigest('nimi-simulator-app-production-inventory-v1', appProduction.entries);
-}
-
-export function hostInvocationInventoryDigest(hostInvocations) {
-  return stableJsonDigest('nimi-simulator-host-invocation-inventory-v1', hostInvocations.entries);
 }
 
 export function validateSelectedSourceDescriptor(value, label = 'selected-source') {
   const required = ['schema', 'module_id', 'sources', 'app_production', 'host_invocations', 'manifest'];
-  const allowed = Object.hasOwn(value || {}, 'source_app_id_ref') ? [...required, 'source_app_id_ref'] : required;
-  assertExact(value, allowed, '');
+  assertExact(value, required, '');
   if (value.schema !== SELECTED_SOURCE_SCHEMA) fail('SIM_DESCRIPTOR_SCHEMA', `must equal ${SELECTED_SOURCE_SCHEMA}`, 'schema');
   const moduleId = assertString(value.module_id, 'module_id', { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
-  const sourceAppIdRef = Object.hasOwn(value, 'source_app_id_ref') ? value.source_app_id_ref : null;
-  if (sourceAppIdRef !== null) assertString(sourceAppIdRef, 'source_app_id_ref', { min: 2, max: 128 });
   if (!Array.isArray(value.sources) || value.sources.length === 0) fail('SIM_DESCRIPTOR_SOURCES', 'must be a non-empty sequence', 'sources');
   const sources = value.sources.map(assertSourceLocation);
   const sourceIds = new Set();
@@ -387,7 +356,7 @@ export function validateSelectedSourceDescriptor(value, label = 'selected-source
   }
   if (!sourceIds.has('app')) fail('SIM_DESCRIPTOR_APP_SOURCE', 'exactly one source must have id app', 'sources');
 
-  assertExact(value.app_production, ['source_id', 'entries', 'inventory_digest', 'inventory_authority_refs'], 'app_production');
+  assertExact(value.app_production, ['source_id', 'entries'], 'app_production');
   if (value.app_production.source_id !== 'app') fail('SIM_DESCRIPTOR_APP_SOURCE', 'source_id must equal app', 'app_production.source_id');
   if (!Array.isArray(value.app_production.entries) || value.app_production.entries.length === 0) {
     fail('SIM_DESCRIPTOR_APP_ENTRIES', 'must be a non-empty sequence', 'app_production.entries');
@@ -397,42 +366,28 @@ export function validateSelectedSourceDescriptor(value, label = 'selected-source
     return entry;
   });
   if (new Set(appEntries).size !== appEntries.length) fail('SIM_DESCRIPTOR_DUPLICATE_ENTRY', 'App production entries must be unique', 'app_production.entries');
-  assertDigest(value.app_production.inventory_digest, 'app_production.inventory_digest');
-  const appAuthorityRefs = assertAuthorityRefs(value.app_production.inventory_authority_refs, 'app_production.inventory_authority_refs');
   const appProduction = {
     source_id: 'app',
     entries: appEntries,
-    inventory_digest: value.app_production.inventory_digest,
-    inventory_authority_refs: appAuthorityRefs,
   };
-  if (appProductionInventoryDigest(appProduction) !== appProduction.inventory_digest) {
-    fail('SIM_DESCRIPTOR_APP_INVENTORY_DIGEST', 'App production inventory digest mismatch', 'app_production.inventory_digest');
-  }
 
-  assertExact(value.host_invocations, ['entries', 'inventory_digest', 'inventory_authority_refs'], 'host_invocations');
+  assertExact(value.host_invocations, ['entries'], 'host_invocations');
   if (!Array.isArray(value.host_invocations.entries)) fail('SIM_DESCRIPTOR_HOST_ENTRIES', 'must be a sequence', 'host_invocations.entries');
   const hostIds = new Set();
   const hostEntries = value.host_invocations.entries.map((entry, index) => {
     const fieldPath = `host_invocations.entries[${index}]`;
-    assertExact(entry, ['id', 'source_id', 'entry', 'authority_refs'], fieldPath);
+    assertExact(entry, ['id', 'source_id', 'entry'], fieldPath);
     const id = assertString(entry.id, `${fieldPath}.id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
     if (hostIds.has(id)) fail('SIM_DESCRIPTOR_DUPLICATE_HOST', `duplicate host invocation ID ${JSON.stringify(id)}`, `${fieldPath}.id`);
     hostIds.add(id);
     const sourceId = assertString(entry.source_id, `${fieldPath}.source_id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
     if (!sourceIds.has(sourceId)) fail('SIM_DESCRIPTOR_HOST_SOURCE', `unknown source ID ${JSON.stringify(sourceId)}`, `${fieldPath}.source_id`);
     assertSimulatorSourcePath(entry.entry, `${fieldPath}.entry`);
-    return { id, source_id: sourceId, entry: entry.entry, authority_refs: assertAuthorityRefs(entry.authority_refs, `${fieldPath}.authority_refs`) };
+    return { id, source_id: sourceId, entry: entry.entry };
   });
-  assertDigest(value.host_invocations.inventory_digest, 'host_invocations.inventory_digest');
-  const hostAuthorityRefs = assertAuthorityRefs(value.host_invocations.inventory_authority_refs, 'host_invocations.inventory_authority_refs');
   const hostInvocations = {
     entries: hostEntries,
-    inventory_digest: value.host_invocations.inventory_digest,
-    inventory_authority_refs: hostAuthorityRefs,
   };
-  if (hostInvocationInventoryDigest(hostInvocations) !== hostInvocations.inventory_digest) {
-    fail('SIM_DESCRIPTOR_HOST_INVENTORY_DIGEST', 'host invocation inventory digest mismatch', 'host_invocations.inventory_digest');
-  }
 
   assertExact(value.manifest, ['source_id', 'path'], 'manifest');
   if (value.manifest.source_id !== 'app' || value.manifest.path !== 'nimi.simulator.yaml') {
@@ -441,7 +396,6 @@ export function validateSelectedSourceDescriptor(value, label = 'selected-source
   return Object.freeze({
     schema: SELECTED_SOURCE_SCHEMA,
     module_id: moduleId,
-    source_app_id_ref: sourceAppIdRef,
     sources,
     app_production: appProduction,
     host_invocations: hostInvocations,

@@ -6,11 +6,11 @@
  * Authority: P-SIM-018; tables/simulator-browser-effects.yaml.
  *
  * Guards are semantic containment, not a hostile-code sandbox: reviewed
- * source, static qualification, CSP, and these guards jointly own the
+ * source checks, CSP, and these guards jointly own the
  * no-real-effects boundary. The runtime scope is intentionally synchronous:
  * framework code (React/scheduler) runs unscoped and passes through, while
- * module evaluation, Promise continuations, and React callbacks are qualified
- * by the authority-derived static source closure rather than a false ambient
+ * module evaluation, Promise continuations, and React callbacks are checked
+ * through the authority-derived static source closure rather than a false ambient
  * async context.
  */
 
@@ -42,12 +42,9 @@ export interface SimulatorEffectCatalogRow {
   readonly governedOwners: readonly string[];
   readonly permittedOwners: readonly string[];
   readonly phases: readonly string[];
-  readonly stateAuthority: string;
-  readonly evidenceId: string;
 }
 
 export interface SimulatorEffectCatalog {
-  readonly schema: 'nimi.simulator.effect-catalog/v1';
   readonly effects: readonly SimulatorEffectCatalogRow[];
   readonly listenerFamilies: readonly {
     readonly id: string;
@@ -56,21 +53,7 @@ export interface SimulatorEffectCatalog {
     readonly capture: boolean;
     readonly passive: boolean;
     readonly owner: 'simulator-bootstrap' | 'simulator-shell' | 'kit-coordinator';
-    readonly evidenceId: string;
   }[];
-  readonly policyDigests: {
-    readonly browserEffects: string;
-    readonly listenerFamilies: string;
-  };
-  readonly digest: string;
-}
-
-export interface SimulatorDeniedEffectRecord {
-  readonly effectId: string;
-  readonly familyId: string;
-  readonly owner: string;
-  readonly phase: string;
-  readonly operation: string;
 }
 
 export class SimulatorEffectForbiddenError extends Error {
@@ -100,30 +83,8 @@ export interface SimulatorEffectScope {
   readonly phase: SimulatorEffectPhase | null;
 }
 
-export interface SimulatorGuardReport {
-  readonly catalogDigest: string;
-  readonly policyDigests: {
-    readonly browserEffects: string;
-    readonly listenerFamilies: string;
-  };
-  readonly installedGuards: readonly string[];
-  /** Shape evidence only; browser identity is release-runner evidence. */
-  readonly descriptorShapes: Readonly<Record<string, string>>;
-  readonly staticOnlySurfaces: readonly {
-    readonly targetPath: string;
-    readonly reason: 'unavailable' | 'non-configurable';
-  }[];
-  readonly runtimeScope: {
-    readonly coverage: 'synchronous-known-callbacks-only';
-    readonly unscopedBehavior: 'framework-passthrough';
-    readonly asyncAndModuleEvaluationPolicy: 'policy-derived-static-qualification';
-  };
-  readonly deniedAttempts: readonly SimulatorDeniedEffectRecord[];
-}
-
 export interface SimulatorGuardHandle {
   readonly catalog: SimulatorEffectCatalog;
-  readonly report: SimulatorGuardReport;
   /** Captured unguarded originals for Simulator-owned port implementations. */
   readonly privileged: Readonly<Record<string, unknown>>;
   withScope<T>(scope: SimulatorEffectScope, run: () => T): T;
@@ -163,27 +124,9 @@ function resolveTarget(root: Record<string, unknown>, targetPath: string): Resol
   return null;
 }
 
-function descriptorShape(descriptor: PropertyDescriptor): string {
-  const shape = [
-    'value' in descriptor ? typeof descriptor.value : 'accessor',
-    String(Boolean(descriptor.writable)),
-    String(Boolean(descriptor.enumerable)),
-    String(Boolean(descriptor.configurable)),
-    typeof descriptor.get,
-    typeof descriptor.set,
-  ].join('|');
-  let hash = 2166136261;
-  for (let index = 0; index < shape.length; index += 1) {
-    hash ^= shape.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `fnv1a:${(hash >>> 0).toString(16).padStart(8, '0')}`;
-}
-
 export interface SimulatorGuardInstallOptions {
   readonly catalog: SimulatorEffectCatalog;
   readonly target: Record<string, unknown>;
-  readonly onDeniedAttempt?: (record: SimulatorDeniedEffectRecord) => void;
 }
 
 const KNOWN_EFFECT_OWNERS = new Set<string>([
@@ -315,19 +258,12 @@ function guardedDescriptor(
 /**
  * Resolves and validates the complete catalog before mutating any browser
  * descriptor. Only interceptable surfaces are patched. Missing APIs and
- * browser-unforgeable descriptors remain explicit static/CSP-only evidence;
+ * browser-unforgeable descriptors remain governed by static checks and CSP;
  * an installation failure rolls back every prior mutation before returning.
  */
 export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptions): SimulatorGuardHandle {
   const { catalog, target } = options;
   const scopeStack: SimulatorEffectScope[] = [];
-  const deniedAttempts: SimulatorDeniedEffectRecord[] = [];
-  const installedGuards: string[] = [];
-  const descriptorShapes: Record<string, string> = {};
-  const staticOnlySurfaces: {
-    targetPath: string;
-    reason: 'unavailable' | 'non-configurable';
-  }[] = [];
   const privileged: Record<string, unknown> = {};
 
   function currentScope(): SimulatorEffectScope {
@@ -336,23 +272,19 @@ export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptio
 
   function deny(row: SimulatorEffectCatalogRow, operation: string): never {
     const scope = currentScope();
-    const record: SimulatorDeniedEffectRecord = {
-      effectId: row.id,
-      familyId: row.familyId,
-      owner: scope.owner ?? 'ungoverned',
-      phase: scope.phase ?? 'none',
-      operation,
-    };
-    deniedAttempts.push(record);
-    options.onDeniedAttempt?.(record);
-    throw new SimulatorEffectForbiddenError(row.id, record.owner, record.phase);
+    void operation;
+    throw new SimulatorEffectForbiddenError(
+      row.id,
+      scope.owner ?? 'ungoverned',
+      scope.phase ?? 'none',
+    );
   }
 
   function decision(row: SimulatorEffectCatalogRow): 'allow' | 'deny' | 'passthrough' {
     const scope = currentScope();
     // React/scheduler and other reviewed framework code intentionally execute
-    // outside the synchronous selected-owner scope. This is supplemental
-    // runtime evidence, not an ambient async security boundary.
+    // outside the synchronous selected-owner scope. This guard is not an
+    // ambient async security boundary.
     if (scope.owner === null) return 'passthrough';
     if (scope.phase === null) return 'deny';
     return resolveEffectAdmission(catalog, row.familyId, scope.owner, scope.phase);
@@ -363,13 +295,10 @@ export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptio
     if (row.targetKind === 'abstract' || row.classification === 'pure-read') continue;
     const resolved = resolveTarget(target, row.targetPath);
     if (!resolved) {
-      staticOnlySurfaces.push({ targetPath: row.targetPath, reason: 'unavailable' });
       continue;
     }
     const { descriptor } = resolved;
-    descriptorShapes[row.targetPath] = descriptorShape(descriptor);
     if (descriptor.configurable === false) {
-      staticOnlySurfaces.push({ targetPath: row.targetPath, reason: 'non-configurable' });
       continue;
     }
     const replacement = guardedDescriptor(
@@ -391,7 +320,6 @@ export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptio
     for (const plan of plans) {
       Object.defineProperty(plan.resolved.holder, plan.resolved.key, plan.replacement);
       installedPlans.push(plan);
-      installedGuards.push(plan.row.targetPath);
       privileged[plan.row.targetPath] = plan.privilegedValue;
     }
   } catch (error) {
@@ -412,29 +340,12 @@ export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptio
     );
   }
 
-  const report: SimulatorGuardReport = {
-    catalogDigest: catalog.digest,
-    policyDigests: catalog.policyDigests,
-    installedGuards: Object.freeze(installedGuards.slice()),
-    descriptorShapes: Object.freeze({ ...descriptorShapes }),
-    staticOnlySurfaces: Object.freeze(staticOnlySurfaces.map((entry) => Object.freeze({ ...entry }))),
-    runtimeScope: Object.freeze({
-      coverage: 'synchronous-known-callbacks-only' as const,
-      unscopedBehavior: 'framework-passthrough' as const,
-      asyncAndModuleEvaluationPolicy: 'policy-derived-static-qualification' as const,
-    }),
-    get deniedAttempts() {
-      return deniedAttempts.slice();
-    },
-  };
-
   return {
     catalog,
-    report,
     privileged: Object.freeze(privileged),
     withScope(scope, run) {
       // Deliberately do not retain scope across a returned Promise. Browser JS
-      // has no trustworthy ambient async owner context; static qualification
+      // has no trustworthy ambient async owner context; static source checks
       // owns those continuations and module evaluation.
       scopeStack.push(scope);
       try {

@@ -1,20 +1,14 @@
 import { readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import postcss from 'postcss';
 import {
   parseSimulatorManifest,
   SIMULATOR_MANIFEST_PATH,
-  SIMULATOR_MODULE_PROTOCOL,
-  SIMULATOR_OPERATION_PROTOCOL,
-  SIMULATOR_INTERACTION_PROTOCOL,
-  SIMULATOR_RENDERER_HOST_PROTOCOL,
   SimulatorConformanceError,
 } from './simulator-manifest.mjs';
 import {
   buildSimulatorSourceInventory,
   sha256Digest,
-  stableJsonDigest,
 } from './simulator-source.mjs';
 import {
   assertAdapterMetadata,
@@ -43,13 +37,7 @@ import {
 } from './simulator-conformance-graph.mjs';
 
 export { isSimulatorStaticAssetPath } from './simulator-conformance-graph.mjs';
-import { SIMULATOR_EFFECT_POLICY } from './simulator-effect-policy.generated.mjs';
 import { assertInvocationUsesCanonicalFactory } from './simulator-factory-use.mjs';
-
-export const SIMULATOR_APP_TOOLS_REPORT_SCHEMA = 'nimi.simulator.app-tools-report/v1';
-
-const APP_TOOLS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const APP_TOOLS_PACKAGE = JSON.parse(readFileSync(path.join(APP_TOOLS_ROOT, 'package.json'), 'utf8'));
 
 function fail(code, message, fieldPath = '') {
   throw new SimulatorConformanceError(code, message, fieldPath);
@@ -96,7 +84,6 @@ function assertEntryReachability(rootDir, graph, manifest) {
     fail('SIM_RENDERER_FACTORY_REACHABILITY', 'renderer entry does not reach the canonical factory module', manifest.renderer.entry);
   }
   assertRendererMetadata(graph.nodes.get(rendererPath).source, manifest);
-  const productionFactoryUses = [];
   for (const [index, entry] of manifest.composition.app_production_entries.entries()) {
     const entryPath = assertContainedFile(rootDir, entry, `composition.app_production_entries[${index}]`);
     if (!reachable(graph, entryPath, factoryPath)) {
@@ -105,7 +92,7 @@ function assertEntryReachability(rootDir, graph, manifest) {
     if (!reachable(graph, entryPath, stylePath)) {
       fail('SIM_PRODUCTION_STYLE_REACHABILITY', 'production entry does not reach the canonical style entry', entry);
     }
-    productionFactoryUses.push(...assertInvocationUsesCanonicalFactory({
+    assertInvocationUsesCanonicalFactory({
       rootDir,
       graph,
       entryPath,
@@ -113,7 +100,7 @@ function assertEntryReachability(rootDir, graph, manifest) {
       factoryExport: manifest.composition.factory_export,
       code: 'SIM_PRODUCTION_FACTORY_USE',
       fieldPath: entry,
-    }));
+    });
     const visited = [entryPath];
     const seen = new Set();
     while (visited.length > 0) {
@@ -127,7 +114,7 @@ function assertEntryReachability(rootDir, graph, manifest) {
       visited.push(...(graph.nodes.get(current)?.imports || []));
     }
   }
-  return { factoryPath, stylePath, rendererPath, productionFactoryUses };
+  return { factoryPath, stylePath, rendererPath };
 }
 
 function validateAdapterAndFixture(rootDir, graph, manifest) {
@@ -266,15 +253,7 @@ function validateProductionCssOwnership(rootDir, graph, manifest, styleClosure) 
       selectors,
     });
   });
-  const evidence = {
-    owner: 'app-production-host',
-    host_foundation_inputs: inputs,
-    app_selector_count_outside_canonical: 0,
-  };
-  return Object.freeze({
-    ...evidence,
-    digest: stableJsonDigest('nimi-simulator-production-css-ownership-v1', evidence),
-  });
+  return Object.freeze({ hostFoundationInputs: Object.freeze(inputs) });
 }
 
 function compareStringSets(actual, expected, code, label) {
@@ -283,10 +262,6 @@ function compareStringSets(actual, expected, code, label) {
   if (JSON.stringify(left) !== JSON.stringify(right)) {
     fail(code, `${label} mismatch: expected ${JSON.stringify(right)}, got ${JSON.stringify(left)}`);
   }
-}
-
-function makeCheck(evidence) {
-  return Object.freeze({ result: 'pass', evidence: Object.freeze([...evidence]) });
 }
 
 function assertSourceInventoryCovers(rootDir, source, absolutePaths) {
@@ -392,125 +367,17 @@ export function validateSimulatorAppSource(rootDir, options = {}) {
     packageImports: styleClosure.packageImports,
     packageRequirements,
   });
-  const hostEvidence = hostInvocations.map((entry) => ({
-    id: entry.id,
-    source_id: entry.source_id,
-    entry: entry.entry,
-    authority_refs: entry.authority_refs,
-  }));
-  const authorityRefs = Object.freeze([
-    { owner: 'platform', rule_id: 'P-SIM-004' },
-    { owner: 'platform', rule_id: 'P-SIM-006' },
-    { owner: 'platform', rule_id: 'P-SIM-007' },
-    { owner: 'platform', rule_id: 'P-SIM-020' },
-  ]);
-  const report = {
-    schema: SIMULATOR_APP_TOOLS_REPORT_SCHEMA,
-    tool: {
-      package: APP_TOOLS_PACKAGE.name,
-      version: APP_TOOLS_PACKAGE.version,
-    },
-    source: {
-      module_id: manifest.module_id,
-      app_source_digest: source.digest,
-      app_authority_index_digest: stableJsonDigest('nimi-simulator-app-conformance-authority-v1', authorityRefs),
-      authority_refs: authorityRefs,
-      file_count: source.files.length,
-    },
-    manifest: {
-      path: SIMULATOR_MANIFEST_PATH,
-      digest: sha256Digest(manifestBytes),
-      module_protocol: SIMULATOR_MODULE_PROTOCOL,
-      operation_protocol: SIMULATOR_OPERATION_PROTOCOL,
-      interaction_protocol: SIMULATOR_INTERACTION_PROTOCOL,
-      renderer_host_protocol: SIMULATOR_RENDERER_HOST_PROTOCOL,
-    },
-    composition: {
-      factory_entry: manifest.composition.factory_entry,
-      factory_export: manifest.composition.factory_export,
-      renderer_entry: manifest.renderer.entry,
-      renderer_export: manifest.renderer.export,
-      adapter_entry: manifest.renderer.adapter_entry,
-      adapter_export: manifest.renderer.adapter_export,
-      app_production_inventory: {
-        entries: [...manifest.composition.app_production_entries],
-        digest: stableJsonDigest('nimi-simulator-app-production-inventory-v1', manifest.composition.app_production_entries),
-      },
-      host_invocation_inventory: {
-        owner: 'simulator',
-        provided: Boolean(options.hostInvocations),
-        entries: hostEvidence,
-        digest: options.hostInvocations
-          ? stableJsonDigest('nimi-simulator-host-invocation-inventory-v1', hostEvidence)
-          : null,
-      },
-      graph_digest: stableJsonDigest('nimi-simulator-app-graph-v1', [...graph.nodes.keys()].map((entry) => canonicalRelative(absoluteRoot, entry)).sort()),
-    },
-    style: {
-      entry: style.entry,
-      digest: style.digest,
-      root_class: style.rootClass,
-      global_prefix: style.globalPrefix,
-      inputs: style.inputs,
-      package_imports: style.packageImports,
-      profile: style.profile,
-      production: productionStyle,
-    },
-    dependencies: {
-      imports: finalPackageImports,
-      requirements: packageRequirements,
-    },
-    fixture: simulatorParts.declaration,
-    checks: {
-      app_production_entry_set: makeCheck(manifest.composition.app_production_entries),
-      host_neutral_factory_contract: makeCheck([canonicalRelative(absoluteRoot, identity.factoryPath)]),
-      canonical_instance_factory: makeCheck([manifest.composition.factory_export]),
-      app_production_factory_use: makeCheck(identity.productionFactoryUses.map((entry) => entry.path)),
-      canonical_bindings: makeCheck([SIMULATOR_RENDERER_HOST_PROTOCOL]),
-      main_surface: makeCheck(['main']),
-      adapter: makeCheck([canonicalRelative(absoluteRoot, simulatorParts.adapterPath)]),
-      dependencies: makeCheck(finalPackageImports),
-      imports: makeCheck([...graph.nodes.keys()].map((entry) => canonicalRelative(absoluteRoot, entry)).sort()),
-      canonical_style_inputs: makeCheck(style.inputs.map((entry) => entry.path)),
-      canonical_style_scanner: makeCheck(style.profile.scanner.inputs.map((entry) => entry.path)),
-      production_css_ownership: makeCheck(productionStyle.host_foundation_inputs.map((entry) => entry.path)),
-      css: makeCheck([style.rootClass, style.globalPrefix]),
-      globals_and_effects: makeCheck([
-        SIMULATOR_EFFECT_POLICY.source.path,
-        SIMULATOR_EFFECT_POLICY.source.digest,
-      ]),
-      dom_identity_scope: makeCheck([style.rootClass]),
-      lifecycle_fixture: makeCheck([canonicalRelative(absoluteRoot, simulatorParts.fixturePath)]),
-      readiness_fixture: makeCheck(manifest.renderer.surfaces.map((surface) => surface.readiness_contract)),
-    },
-    result: 'pass',
-  };
   return Object.freeze({
     manifest,
     source,
     graph,
-    report: Object.freeze({
-      ...report,
-      report_digest: stableJsonDigest('nimi-simulator-app-tools-report-v1', report),
+    style: Object.freeze({ ...style, production: productionStyle }),
+    dependencies: Object.freeze({
+      imports: Object.freeze(finalPackageImports),
+      requirements: Object.freeze(packageRequirements),
     }),
+    fixture: simulatorParts.declaration,
   });
-}
-
-export function renderSimulatorConformanceFailure(error, rootDir) {
-  const normalized = error instanceof SimulatorConformanceError
-    ? error
-    : new SimulatorConformanceError('SIM_CONFORMANCE_INTERNAL', error instanceof Error ? error.message : String(error));
-  return {
-    schema: SIMULATOR_APP_TOOLS_REPORT_SCHEMA,
-    tool: { package: APP_TOOLS_PACKAGE.name, version: APP_TOOLS_PACKAGE.version },
-    source: { root: path.basename(path.resolve(rootDir || '.')) },
-    result: 'fail',
-    diagnostics: [{
-      code: normalized.code,
-      path: normalized.fieldPath || null,
-      message: normalized.message,
-    }],
-  };
 }
 
 export {

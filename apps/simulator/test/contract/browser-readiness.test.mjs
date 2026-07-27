@@ -55,7 +55,7 @@ const EXPECTATION = {
   blockingStatePredicateId: 'blocking',
 };
 
-function browserHarness({ paintCompositeEvidence = null } = {}) {
+function browserHarness() {
   const commits = createReactCommitTracker();
   const roots = createAssignedRootRegistry();
   let frame = 0;
@@ -69,7 +69,6 @@ function browserHarness({ paintCompositeEvidence = null } = {}) {
     },
     cancelAnimationFrame() {},
     computedStyle: () => ({ display: 'block', visibility: 'visible' }),
-    paintCompositeEvidence,
   });
   return { commits, roots, port };
 }
@@ -135,7 +134,7 @@ test('assigned root registry rejects duplicate/colliding ownership and releases 
   assert.equal(registry.get('1:instance:1', 'main'), null);
 });
 
-test('semantic evidence searches only assigned roots and requires one exact actionable control', async () => {
+test('semantic markers search only assigned roots and require one exact actionable control', async () => {
   const content = new FakeElement('section', { 'data-nimi-semantic-id': 'content' });
   const control = new FakeElement('button', { 'data-nimi-semantic-id': 'primary' }, [], 'Run fixture');
   const renderer = new FakeElement('div', {}, [content, control]);
@@ -155,76 +154,9 @@ test('semantic evidence searches only assigned roots and requires one exact acti
   }), { ok: false });
 });
 
-test('Paint/Composite evidence is fail-closed unless the pinned-browser source proves the interval', async () => {
-  const withoutEvidence = browserHarness();
+test('browser readiness uses successive animation frames directly', async () => {
+  const harness = browserHarness();
   const signal = new AbortController().signal;
-  assert.equal(await withoutEvidence.port.beginPaintComposite({
-    instanceId: '1:instance:1', surfaceId: 'main', signal,
-  }), null);
-  assert.equal(await withoutEvidence.port.observePaintComposite({
-    instanceId: '1:instance:1', surfaceId: 'main', firstFrame: 1, secondFrame: 2,
-    observationToken: 'missing', signal,
-  }), false);
-
-  const markerFilters = [];
-  const withEvidence = browserHarness({
-    paintCompositeEvidence: {
-      begin: () => 'trace:1',
-      mark: () => { markerFilters.push(renderer.style.getPropertyValue('filter')); return true; },
-      end: ({ firstFrame, secondFrame }) => firstFrame === 1 && secondFrame === 2,
-    },
-  });
-  const renderer = new FakeElement('div');
-  renderer.style.setProperty('filter', 'blur(1px)', 'important');
-  renderer.style.setProperty('opacity', '0');
-  withEvidence.roots.assign('1:instance:1', 'main', {
-    renderer,
-    overlay: new FakeElement('div'),
-  });
-  const observationToken = await withEvidence.port.beginPaintComposite({
-    instanceId: '1:instance:1', surfaceId: 'main', signal,
-  });
-  assert.equal(observationToken, 'trace:1');
-  assert.equal(await withEvidence.port.markPaintCompositeFrame({
-    observationToken, ordinal: 'first', frame: 1, signal,
-  }), true);
-  assert.equal(renderer.style.getPropertyValue('filter'), 'opacity(0.999999)');
-  assert.equal(renderer.style.getPropertyPriority('filter'), 'important');
-  assert.equal(renderer.style.getPropertyValue('opacity'), '0');
-  assert.deepEqual(markerFilters, ['opacity(0.999999)']);
-  assert.equal(await withEvidence.port.markPaintCompositeFrame({
-    observationToken, ordinal: 'second', frame: 2, signal,
-  }), true);
-  assert.deepEqual(markerFilters, ['opacity(0.999999)', 'opacity(0.999999)']);
-  assert.equal(await withEvidence.port.observePaintComposite({
-    instanceId: '1:instance:1', surfaceId: 'main', firstFrame: 1, secondFrame: 2,
-    observationToken, signal,
-  }), true);
-  assert.equal(renderer.style.getPropertyValue('filter'), 'blur(1px)');
-  assert.equal(renderer.style.getPropertyPriority('filter'), 'important');
-  assert.equal(renderer.style.getPropertyValue('opacity'), '0');
-});
-
-test('Paint/Composite probe restores assigned-root styling on cancellation', async () => {
-  const ended = [];
-  const harness = browserHarness({
-    paintCompositeEvidence: {
-      begin: () => 'trace:cancel',
-      mark: () => true,
-      end: (input) => { ended.push(input); return false; },
-    },
-  });
-  const renderer = new FakeElement('div');
-  harness.roots.assign('1:instance:1', 'main', { renderer, overlay: new FakeElement('div') });
-  const abort = new AbortController();
-  const observationToken = await harness.port.beginPaintComposite({
-    instanceId: '1:instance:1', surfaceId: 'main', signal: abort.signal,
-  });
-  assert.equal(await harness.port.markPaintCompositeFrame({
-    observationToken, ordinal: 'first', frame: 1, signal: abort.signal,
-  }), true);
-  assert.equal(renderer.style.getPropertyValue('filter'), 'opacity(0.999999)');
-  abort.abort();
-  assert.equal(renderer.style.getPropertyValue('filter'), '');
-  assert.deepEqual(ended, [{ observationToken: 'trace:cancel', firstFrame: null, secondFrame: null }]);
+  assert.equal(await harness.port.nextAnimationFrame(signal), 1);
+  assert.equal(await harness.port.nextAnimationFrame(signal), 2);
 });

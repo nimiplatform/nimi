@@ -124,7 +124,7 @@ function callOwnerRoot(call) {
  * Proves that an invocation closure does not merely reach the canonical factory
  * module: one exact runtime import binding must call its createInstance method.
  * Indirection and shadowing are intentionally rejected because they make the
- * selected-source proof dependent on control-flow interpretation.
+ * selected-source validation dependent on control-flow interpretation.
  */
 export function assertInvocationUsesCanonicalFactory({
   rootDir,

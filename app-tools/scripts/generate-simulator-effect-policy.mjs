@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,12 +12,7 @@ const POLICY_PATH = path.resolve(
   '../config/platform-simulator-browser-effects.yaml',
 );
 const OUTPUT_PATH = path.resolve(APP_TOOLS_ROOT, 'lib/simulator-effect-policy.generated.mjs');
-const POLICY_LABEL = 'config/platform-simulator-browser-effects.yaml';
 const CLASSIFICATIONS = new Set(['forbidden', 'port_only', 'pure_read']);
-
-function sha256(bytes) {
-  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
-}
 
 function stringArray(value, field) {
   if (!Array.isArray(value) || value.length === 0
@@ -72,11 +66,6 @@ function projectPolicy(bytes) {
     };
   });
   return {
-    source: {
-      path: POLICY_LABEL,
-      digest: sha256(bytes),
-      protocolId: policy.protocol_id,
-    },
     entries,
   };
 }
@@ -92,7 +81,6 @@ function renderProjection(projection) {
     + `  return Object.freeze(value);\n`
     + `}\n\n`
     + `export const SIMULATOR_EFFECT_POLICY = deepFreeze({\n`
-    + `  source: ${JSON.stringify(projection.source)},\n`
     + `  entries: [\n${entryLines}\n  ],\n`
     + `});\n`;
 }

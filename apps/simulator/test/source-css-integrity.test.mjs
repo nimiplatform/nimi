@@ -15,7 +15,6 @@ import test from 'node:test';
 
 import {
   buildSimulatorSourceInventory,
-  computeSourceDigestV1,
   sha256Digest,
   validateSimulatorAppSource,
 } from '@nimiplatform/app-tools/simulator-conformance';
@@ -23,7 +22,6 @@ import {
   buildKitCssExportInventory,
   createSimulatorCssProfileVitePlugin,
 } from '@nimiplatform/app-tools/simulator-css-profile';
-import { createMaterializedIntegrityVerifier } from '../build/materialized-integrity.mjs';
 import { materializeSourceLocation } from '../build/materialize.mjs';
 import { REPO_ROOT, SIMULATOR_ROOT } from '../build/paths.mjs';
 
@@ -42,7 +40,7 @@ function withTemporaryRoot(prefix, run) {
   }
 }
 
-test('materialization evidence binds every selected file path, mode, byte length, and digest', () => withTemporaryRoot(
+test('materialization reads the selected Git tree bytes and modes without running source scripts', () => withTemporaryRoot(
   'nimi-simulator-materialize-integrity-',
   (root) => {
     const appRoot = path.join(root, 'app');
@@ -65,15 +63,12 @@ test('materialization evidence binds every selected file path, mode, byte length
       object_id: objectId,
       root: 'app',
       expected_digest: expectedDigest,
-      authority_refs: [{ owner: 'test', rule_id: 'T-SIM' }],
-      authority_index_digest: sha256Digest('authority'),
     }, { repositories: [] }, {
       workspaceRoot: root,
       workspaceRepositoryKey: 'fixture',
       stagingRoot,
       targetRoot: path.join(stagingRoot, 'source', 'sample-app', 'app'),
       moduleId: 'sample-app',
-      release: true,
     });
 
     assert.deepEqual(result.files.map(({ path: filePath, mode, bytes, digest }) => ({ filePath, mode, bytes, digest })), [
@@ -90,56 +85,6 @@ test('materialization evidence binds every selected file path, mode, byte length
         digest: sha256Digest('#!/bin/sh\nexit 0\n'),
       },
     ]);
-  },
-));
-
-test('materialized integrity rejects transform drift and any whole-tree mutation', () => withTemporaryRoot(
-  'nimi-simulator-materialized-verifier-',
-  (root) => {
-    const generatedRoot = path.join(root, '.generated');
-    const sourceRoot = path.join(generatedRoot, 'materialized', 'source', 'sample-app', 'app');
-    const evidenceRoot = path.join(generatedRoot, 'evidence');
-    const source = 'export const value = 1;\n';
-    const sourcePath = path.join(sourceRoot, 'src', 'main.ts');
-    mkdirSync(path.dirname(sourcePath), { recursive: true });
-    mkdirSync(evidenceRoot, { recursive: true });
-    writeFileSync(sourcePath, source);
-    const file = {
-      path: 'src/main.ts',
-      mode: '100644',
-      bytes: Buffer.byteLength(source),
-      digest: sha256Digest(source),
-    };
-    const sourceDigest = computeSourceDigestV1([{ path: file.path, mode: file.mode, bytes: Buffer.from(source) }]);
-    writeFileSync(path.join(evidenceRoot, 'materialization.json'), `${JSON.stringify([{
-      moduleId: 'sample-app',
-      sourceLocations: [{
-        sourceId: 'app',
-        root: 'source/sample-app/app/',
-        sourceDigest,
-        fileCount: 1,
-        files: [file],
-      }],
-    }], null, 2)}\n`);
-
-    const verifier = createMaterializedIntegrityVerifier({ generatedRoot });
-    verifier.verifyAll();
-    assert.equal(verifier.verifyTransform(source, sourcePath), true);
-    assert.throws(
-      () => verifier.verifyTransform(`${source}// injected\n`, sourcePath),
-      (error) => error?.code === 'SIM_MATERIALIZED_TRANSFORM_DRIFT',
-    );
-    writeFileSync(sourcePath, `${source}// drift\n`);
-    assert.throws(
-      () => verifier.verifyAll(),
-      (error) => error?.code === 'SIM_MATERIALIZED_FILE_DRIFT',
-    );
-    writeFileSync(sourcePath, source);
-    writeFileSync(path.join(sourceRoot, 'unqualified.ts'), 'export {};\n');
-    assert.throws(
-      () => verifier.verifyAll(),
-      (error) => error?.code === 'SIM_MATERIALIZED_INVENTORY_DRIFT',
-    );
   },
 ));
 
@@ -170,11 +115,11 @@ test('CSS build plugin revalidates App style inputs and exact transitive Kit tra
   'nimi-simulator-css-plugin-',
   (root) => {
     cpSync(VALID_APP, root, { recursive: true });
-    const report = validateSimulatorAppSource(root).report;
+    const validation = validateSimulatorAppSource(root);
     const plugin = createSimulatorCssProfileVitePlugin({
       compilerRoot: SIMULATOR_ROOT,
       foundationEntry: path.join(SIMULATOR_ROOT, 'src', 'styles.css'),
-      apps: [{ rootDir: root, report }],
+      apps: [{ rootDir: root, style: validation.style }],
     });
     plugin.buildStart.call({});
 

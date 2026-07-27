@@ -1,4 +1,4 @@
-/** Strict deterministic replay and byte-exact component evidence. */
+/** Strict deterministic replay of committed component state. */
 
 import { canonicalizeJson, type JsonValue } from './json-value.ts';
 import { sha256HexOfText } from './sha256.ts';

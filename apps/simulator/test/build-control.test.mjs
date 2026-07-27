@@ -16,38 +16,26 @@ import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 import {
   buildSimulatorSourceInventory,
-  stableJsonDigest,
   validateSimulatorAppSource,
 } from '@nimiplatform/app-tools/simulator-conformance';
 import {
-  appProductionInventoryDigest,
-  hostInvocationInventoryDigest,
-  loadSimulatorConfig,
   parseSelectedSourceDescriptor,
   validateSimulatorScenario,
   validateExternalRepositoryCatalog,
   validateSelectedSourceDescriptor,
 } from '../build/config.mjs';
 import { materializeSourceLocation } from '../build/materialize.mjs';
-import {
-  assertFreshAppToolsReport,
-  qualifySelectedModules,
-} from '../build/registry.mjs';
+import { qualifySelectedModules } from '../build/registry.mjs';
 import { resolveMandatorySingletons } from '../build/resolver.mjs';
 import { readSimulatorPublicEnvironment } from '../build/public-env.mjs';
 import {
-  CONFIG_ROOT,
   REPO_ROOT,
   SIMULATOR_ROOT,
 } from '../build/paths.mjs';
-import { scenarioForQualifiedReports } from './scenario-fixture.mjs';
+import { scenarioForValidatedSources } from './scenario-fixture.mjs';
 
 const APP_FIXTURE = path.join(REPO_ROOT, 'app-tools', 'test', 'fixtures', 'simulator-valid');
 const DIRECTORY_LINK_TYPE = process.platform === 'win32' ? 'junction' : 'dir';
-const AUTHORITY_DIGEST = stableJsonDigest('fixture-authority-index-v1', [
-  { owner: 'platform', rule_id: 'P-SIM-003' },
-]);
-const AUTHORITY_REFS = [{ owner: 'platform', rule_id: 'P-SIM-003' }];
 
 function git(repository, ...args) {
   return execFileSync('git', args, { cwd: repository, encoding: 'utf8' }).trim();
@@ -103,25 +91,17 @@ function descriptorValue(fixture, { kind = 'workspace', repositoryKey = 'fixture
   const appProduction = {
     source_id: 'app',
     entries: ['src/main.ts'],
-    inventory_digest: '',
-    inventory_authority_refs: AUTHORITY_REFS,
   };
-  appProduction.inventory_digest = appProductionInventoryDigest(appProduction);
   const hostInvocations = {
     entries: [{
       id: 'fixture-host',
       source_id: 'app',
       entry: 'src/main.ts',
-      authority_refs: AUTHORITY_REFS,
     }],
-    inventory_digest: '',
-    inventory_authority_refs: AUTHORITY_REFS,
   };
-  hostInvocations.inventory_digest = hostInvocationInventoryDigest(hostInvocations);
   return {
     schema: 'nimi.simulator.selected-source/v1',
     module_id: 'sample-app',
-    source_app_id_ref: null,
     sources: [{
       id: 'app',
       kind,
@@ -130,8 +110,6 @@ function descriptorValue(fixture, { kind = 'workspace', repositoryKey = 'fixture
       object_id: fixture.objectId,
       root: 'app',
       expected_digest: fixture.expectedDigest,
-      authority_refs: AUTHORITY_REFS,
-      authority_index_digest: AUTHORITY_DIGEST,
     }],
     app_production: appProduction,
     host_invocations: hostInvocations,
@@ -150,15 +128,6 @@ function externalCatalog(repositoryRoot) {
     }],
   }, { allowFileUri: true });
 }
-
-test('tracked Simulator configuration selects immutable Desktop, Tester, and Zhiyu with one digest-bound Scenario', () => {
-  const config = loadSimulatorConfig(CONFIG_ROOT);
-  assert.deepEqual(config.descriptors.map((entry) => entry.module_id), ['desktop', 'tester', 'zhiyu']);
-  assert.deepEqual(config.repositoryCatalog.repositories, []);
-  assert.equal(config.scenario.schema, 'nimi.simulator.scenario/v1');
-  assert.deepEqual(config.scenario.module_data.map((entry) => entry.module_id), ['desktop', 'tester', 'zhiyu']);
-  assert.match(config.scenario.digest, /^sha256:[0-9a-f]{64}$/u);
-});
 
 function scenarioValue() {
   return {
@@ -206,19 +175,18 @@ test('Simulator Scenario schema fails closed before registry qualification', () 
   );
 });
 
-test('selected-source descriptor keeps App and host inventories independent', () => {
+test('selected-source descriptor keeps App and host entries independent', () => {
   const fixture = createGitFixture();
   try {
     const descriptor = validateSelectedSourceDescriptor(descriptorValue(fixture));
     assert.deepEqual(descriptor.app_production.entries, ['src/main.ts']);
     assert.equal(descriptor.host_invocations.entries[0].id, 'fixture-host');
-    assert.notEqual(descriptor.app_production.inventory_digest, descriptor.host_invocations.inventory_digest);
 
     const forged = structuredClone(descriptorValue(fixture));
-    forged.host_invocations.entries[0].entry = 'src/other.ts';
+    forged.host_invocations.entries[0].source_id = 'missing-source';
     assert.throws(
       () => validateSelectedSourceDescriptor(forged),
-      (error) => error?.code === 'SIM_DESCRIPTOR_HOST_INVENTORY_DIGEST',
+      (error) => error?.code === 'SIM_DESCRIPTOR_HOST_SOURCE',
     );
   } finally {
     fixture.cleanup();
@@ -236,10 +204,6 @@ test('selected-source and repository config schemas fail closed', () => {
     assert.throws(
       () => validateSelectedSourceDescriptor({ ...base, sources: [{ ...base.sources[0], object_id: fixture.objectId.slice(0, 12) }] }),
       (error) => error?.code === 'SIM_DESCRIPTOR_STRING',
-    );
-    assert.throws(
-      () => validateSelectedSourceDescriptor({ ...base, sources: [{ ...base.sources[0], authority_refs: [] }] }),
-      (error) => error?.code === 'SIM_DESCRIPTOR_AUTHORITY_REFS',
     );
     assert.throws(
       () => parseSelectedSourceDescriptor('schema: &schema nimi.simulator.selected-source/v1\nmodule_id: *schema\n', 'fixture'),
@@ -289,14 +253,12 @@ test('workspace and external-repository sources materialize to identical bytes w
       stagingRoot: staging,
       targetRoot: path.join(staging, 'workspace'),
       moduleId: 'sample-app',
-      release: true,
     });
     const external = materializeSourceLocation(externalDescriptor.sources[0], externalCatalog(fixture.root), {
       workspaceRoot: fixture.root,
       stagingRoot: staging,
       targetRoot: path.join(staging, 'external'),
       moduleId: 'sample-app',
-      release: true,
     });
     assert.equal(workspace.sourceDigest, external.sourceDigest);
     assert.equal(workspace.fileCount, external.fileCount);
@@ -313,7 +275,7 @@ test('workspace and external-repository sources materialize to identical bytes w
   }
 });
 
-test('materialization rejects digest mismatch and dirty release source', () => {
+test('materialization rejects a selected-source digest mismatch', () => {
   const fixture = createGitFixture();
   const staging = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-materialized-negative-'));
   try {
@@ -328,36 +290,9 @@ test('materialization rejects digest mismatch and dirty release source', () => {
         stagingRoot: staging,
         targetRoot: path.join(staging, 'bad-digest'),
         moduleId: 'sample-app',
-        release: true,
       }),
       (error) => error?.code === 'SIM_SOURCE_DIGEST_MISMATCH',
     );
-
-    writeFileSync(path.join(fixture.appRoot, 'dirty.ts'), 'export const dirty = true;\n');
-    const descriptor = validateSelectedSourceDescriptor(descriptorValue(fixture));
-    assert.throws(
-      () => materializeSourceLocation(descriptor.sources[0], { repositories: [] }, {
-        workspaceRoot: fixture.root,
-        workspaceRepositoryKey: 'fixture',
-        stagingRoot: staging,
-        targetRoot: path.join(staging, 'dirty-release'),
-        moduleId: 'sample-app',
-        release: true,
-      }),
-      (error) => error?.code === 'SIM_SOURCE_DIRTY_RELEASE',
-    );
-
-    const development = materializeSourceLocation(descriptor.sources[0], { repositories: [] }, {
-      workspaceRoot: fixture.root,
-      workspaceRepositoryKey: 'fixture',
-      stagingRoot: staging,
-      targetRoot: path.join(staging, 'dirty-development'),
-      moduleId: 'sample-app',
-      release: false,
-    });
-    assert.equal(development.dirtyWorkspace, true);
-    assert.equal(development.releasable, false);
-    assert.equal(existsSync(path.join(development.targetRoot, 'dirty.ts')), false);
   } finally {
     fixture.cleanup();
     rmSync(staging, { recursive: true, force: true });
@@ -380,7 +315,6 @@ test('materialization rejects non-commit objects, symlinks, LFS pointers, and un
           stagingRoot: staging,
           targetRoot: path.join(staging, 'tree'),
           moduleId: 'sample-app',
-          release: true,
         }),
         (error) => error?.code === 'SIM_SOURCE_OBJECT_KIND',
       );
@@ -413,7 +347,6 @@ test('materialization rejects non-commit objects, symlinks, LFS pointers, and un
           stagingRoot: staging,
           targetRoot: path.join(staging, 'symlink'),
           moduleId: 'sample-app',
-          release: true,
         }),
         (error) => error?.code === 'SIM_SOURCE_SYMLINK',
       );
@@ -445,7 +378,6 @@ test('materialization rejects non-commit objects, symlinks, LFS pointers, and un
           stagingRoot: staging,
           targetRoot: path.join(staging, 'lfs'),
           moduleId: 'sample-app',
-          release: true,
         }),
         (error) => error?.code === 'SIM_SOURCE_LFS_POINTER',
       );
@@ -469,7 +401,6 @@ test('materialization rejects non-commit objects, symlinks, LFS pointers, and un
           stagingRoot: staging,
           targetRoot: path.join(staging, 'unknown'),
           moduleId: 'sample-app',
-          release: true,
         }),
         (error) => error?.code === 'SIM_REPOSITORY_UNKNOWN',
       );
@@ -480,7 +411,7 @@ test('materialization rejects non-commit objects, symlinks, LFS pointers, and un
   });
 });
 
-test('source inventory rejects symbolic links before report generation', () => {
+test('source inventory rejects symbolic links before validation', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-symlink-'));
   try {
     const target = path.join(root, 'target');
@@ -494,26 +425,6 @@ test('source inventory rejects symbolic links before report generation', () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-});
-
-test('Simulator rejects forged and stale app-tools reports', () => {
-  const fresh = validateSimulatorAppSource(APP_FIXTURE).report;
-  const forged = structuredClone(fresh);
-  forged.style.digest = `sha256:${'0'.repeat(64)}`;
-  assert.throws(
-    () => assertFreshAppToolsReport(forged, fresh),
-    (error) => error?.code === 'SIM_APP_TOOLS_REPORT_FORGED',
-  );
-
-  const stale = structuredClone(fresh);
-  stale.source.app_source_digest = `sha256:${'1'.repeat(64)}`;
-  const { report_digest: ignored, ...body } = stale;
-  void ignored;
-  stale.report_digest = stableJsonDigest('nimi-simulator-app-tools-report-v1', body);
-  assert.throws(
-    () => assertFreshAppToolsReport(stale, fresh),
-    (error) => error?.code === 'SIM_APP_TOOLS_REPORT_STALE',
-  );
 });
 
 test('final resolver proves every canonical singleton tuple without absolute paths', () => {
@@ -690,26 +601,24 @@ test('generated registry has resolved facts only and no hand-authored App row', 
       kind: 'external-repository',
       repositoryKey: 'fixture-external',
     }));
-    const report = validateSimulatorAppSource(fixture.appRoot).report;
+    const validation = validateSimulatorAppSource(fixture.appRoot);
     const registry = qualifySelectedModules({
       descriptors: [descriptor],
       repositoryCatalog: externalCatalog(fixture.root),
-      scenario: scenarioForQualifiedReports([{ moduleId: 'sample-app', report }]),
+      scenario: scenarioForValidatedSources([{ moduleId: 'sample-app', validation }]),
       repoRoot: REPO_ROOT,
       simulatorRoot: simulator.root,
       generatedRoot: simulator.generatedRoot,
       workspaceRoot: fixture.root,
       workspaceRepositoryKey: 'fixture',
-      release: true,
     });
     assert.equal(registry.moduleCount, 1);
     assert.equal(registry.modules[0].moduleId, 'sample-app');
-    assert.equal(registry.modules[0].factoryPath, 'source/sample-app/app/src/renderer/factory.ts');
     assert.equal(registry.modules[0].rendererExport, 'sampleSimulatorRenderer');
     assert.equal(registry.modules[0].adapterExport, 'sampleSimulatorAdapterFactory');
-    assert.match(registry.modules[0].canonicalStyleInputDigest, /^sha256:[0-9a-f]{64}$/u);
-    assert.equal(registry.modules[0].hostInvocations[0].path, 'source/sample-app/app/src/main.ts');
-    const zod = registry.modules[0].resolvedPackages.find((row) => row.name === 'zod');
+    assert.equal(registry.modules[0].surfaces[0].id, 'main');
+    const resolver = JSON.parse(readFileSync(path.join(simulator.generatedRoot, 'resolver.json'), 'utf8'));
+    const zod = resolver.packages.find((row) => row.name === 'zod');
     assert.ok(zod);
     assert.equal(zod.role, 'app-specific');
     assert.deepEqual(zod.targets.map((target) => target.exportSubpath), ['.', '.']);
@@ -719,19 +628,21 @@ test('generated registry has resolved facts only and no hand-authored App row', 
     assert.match(generatedSource, /virtual:nimi-simulator\/sample-app\/adapter/);
     assert.match(generatedSource, /loadAdapter/);
     assert.equal(generatedSource.includes(fixture.root), false);
-    const materializationEvidence = readFileSync(
-      path.join(simulator.generatedRoot, 'evidence', 'materialization.json'),
-      'utf8',
+    const runtimeSourceRoot = path.join(
+      simulator.generatedRoot,
+      'materialized',
+      'source',
+      'sample-app',
+      'app',
     );
-    assert.equal(materializationEvidence.includes(fixture.root), false);
-    assert.equal(materializationEvidence.includes('file:'), false);
-    assert.match(materializationEvidence, /"fetchIdentityDigest": "sha256:[0-9a-f]{64}"/);
-    const cssEvidence = JSON.parse(readFileSync(
-      path.join(simulator.generatedRoot, 'evidence', 'css-profile', 'sample-app.json'),
+    assert.equal(existsSync(path.join(runtimeSourceRoot, 'src', 'renderer', 'factory.ts')), true);
+    assert.equal(existsSync(path.join(runtimeSourceRoot, 'package.json')), false);
+    const styleInput = JSON.parse(readFileSync(
+      path.join(simulator.generatedRoot, 'style-inputs', 'sample-app.json'),
       'utf8',
     ));
-    assert.equal(cssEvidence.canonical_style_input_digest, registry.modules[0].canonicalStyleInputDigest);
-    assert.equal(cssEvidence.resolver_tuple_digest, registry.resolverTupleDigest);
+    assert.equal(styleInput.style.entry, validation.style.entry);
+    assert.equal(styleInput.style.profile.utility.owner, 'sample-app');
   } finally {
     simulator.cleanup();
     fixture.cleanup();
@@ -766,31 +677,32 @@ test('a host invocation in its own selected source reaches the exact App package
       object_id: objectId,
       root: 'host',
       expected_digest: hostDigest,
-      authority_refs: AUTHORITY_REFS,
-      authority_index_digest: AUTHORITY_DIGEST,
     });
     value.host_invocations.entries = [{
       id: 'fixture-host',
       source_id: 'web-host',
       entry: 'src/main.ts',
-      authority_refs: AUTHORITY_REFS,
     }];
-    value.host_invocations.inventory_digest = hostInvocationInventoryDigest(value.host_invocations);
     const descriptor = validateSelectedSourceDescriptor(value);
-    const report = validateSimulatorAppSource(fixture.appRoot).report;
+    const validation = validateSimulatorAppSource(fixture.appRoot);
     const registry = qualifySelectedModules({
       descriptors: [descriptor],
       repositoryCatalog: { repositories: [] },
-      scenario: scenarioForQualifiedReports([{ moduleId: 'sample-app', report }]),
+      scenario: scenarioForValidatedSources([{ moduleId: 'sample-app', validation }]),
       repoRoot: REPO_ROOT,
       simulatorRoot: simulator.root,
       generatedRoot: simulator.generatedRoot,
       workspaceRoot: fixture.root,
       workspaceRepositoryKey: 'fixture',
-      release: true,
     });
-    assert.equal(registry.modules[0].sourceLocations.length, 2);
-    assert.equal(registry.modules[0].hostInvocations[0].path, 'source/sample-app/web-host/src/main.ts');
+    assert.equal(registry.moduleCount, 1);
+    assert.equal(existsSync(path.join(
+      simulator.generatedRoot,
+      'materialized',
+      'source',
+      'sample-app',
+      'web-host',
+    )), false);
   } finally {
     simulator.cleanup();
     fixture.cleanup();

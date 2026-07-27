@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { chmodSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { validateSimulatorAppSource } from '../lib/simulator-conformance.mjs';
+import {
+  buildSimulatorSourceInventory,
+  validateSimulatorAppSource,
+} from '../lib/simulator-conformance.mjs';
 
 const TEST_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE_ROOT = path.join(TEST_ROOT, 'fixtures', 'simulator-valid');
@@ -133,6 +136,14 @@ test('source digest mode binds the Git index mode when an index exists', () => w
   chmodSync(factory, 0o644);
   const result = validateSimulatorAppSource(root);
   assert.equal(result.source.files.find((entry) => entry.path === 'src/renderer/factory.ts')?.mode, '100755');
+}));
+
+test('source inventory reflects tracked deletions in the current worktree', () => withFixture((root) => {
+  writeFileSync(path.join(root, 'tracked-delete.txt'), 'delete me\n');
+  initializeGit(root);
+  unlinkSync(path.join(root, 'tracked-delete.txt'));
+  const source = buildSimulatorSourceInventory(root);
+  assert.equal(source.files.some((entry) => entry.path === 'tracked-delete.txt'), false);
 }));
 
 test('production invocation must call the canonical factory instead of merely importing it', () => withFixture((root) => {
