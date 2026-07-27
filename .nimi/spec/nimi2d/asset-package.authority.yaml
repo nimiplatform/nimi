@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.nimi2d.asset-package.external-boundaries
     kind: definition
     title: N2D-AUTH-003 N2D-AUTH-004 N2D-AUTH-005 sibling-owner boundaries
-    meaning: Avatar owns projection mapping, scheduling, carrier and backend execution, Runtime owns presentation and stream truth, Desktop owns stream UI lifecycle, Platform owns package-authority admission, Realm product surfaces remain non-owners, and upstream systems own pixel-derived generation and classification decisions.
+    meaning: Avatar owns projection mapping, scheduling, carrier and backend execution, Runtime owns presentation and stream truth, Desktop owns stream UI lifecycle, canonical product authority remains under .nimi/spec, Realm product surfaces remain non-owners, and upstream systems own pixel-derived generation and classification decisions.
   - id: definition.nimi.nimi2d.asset-package.generation-supply-gap
     kind: definition
     title: N2D-AUTH-001 deferred generation-supply boundary
@@ -80,11 +80,11 @@ units:
         target: definition.nimi.nimi2d.asset-package.external-boundaries
   - id: rule.nimi.nimi2d.asset-package.r004
     kind: rule
-    title: N2D-AUTH-006 package authority and P-PKG admission
+    title: N2D-AUTH-006 package location does not establish authority
     modality: must_not
-    statement: Package membership, implementation location, reference-player exports, runtime helper exports, or Realm Persona Studio establishes Nimi2D semantic authority or bypasses the canonical Platform authority-admission owner for any future package-local authority root.
+    statement: Package membership, implementation location, reference-player exports, runtime helper exports, Realm Persona Studio, or a package-local specification establishes Nimi2D semantic authority outside the canonical product truth under .nimi/spec.
     condition: Whenever package code, exports, a product surface, or a future package-local specification is used as an authority claim.
-    failure: Reject the inferred authority, retain canonical product truth under .nimi/spec, and require Platform-owned authority admission before any package-local authority exists.
+    failure: Reject the inferred authority and retain canonical product truth under .nimi/spec.
     relations:
       - type: applies_to
         target: definition.nimi.nimi2d.asset-package.domain

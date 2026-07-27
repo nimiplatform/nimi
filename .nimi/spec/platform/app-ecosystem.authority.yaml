@@ -862,16 +862,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.local-app-principal
-  - id: rule.nimi.platform.app-ecosystem.p-napp-010
-    kind: rule
-    title: P-NAPP-010 orthogonal app-slice admission
-    modality: must
-    statement: App-slice audit and subordinate-authority admission remains orthogonal to public catalog admission, a first-party app may hold both rows, and neither substitutes for the other.
-    condition: Whenever both admission surfaces are evaluated.
-    failure: Reject substitution or merger of either authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.catalog-admission
   - id: rule.nimi.platform.app-ecosystem.p-napp-011
     kind: rule
     title: P-NAPP-011 bundled seed and mutable-build isolation
@@ -1418,11 +1408,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-002b
     kind: rule
-    title: P-SCAF-002 host-neutral client and workspace admission boundary
+    title: P-SCAF-002 host-neutral client boundary
     modality: must
-    statement: Generated third-party apps consume one host-neutral SDK client through an injected local_app_host carrier without selecting caller mode, trust class, endpoint, principal, grant, lease, or session, and only explicit workspace app scaffolding may write app-slice admission under its existing owner while standalone scaffolding writes no admitted truth.
-    condition: Whenever scaffolding composes SDK access or app-slice inputs.
-    failure: Reject caller-selected protected facts or scaffold-authored admission outside the explicit workspace boundary.
+    statement: Generated third-party apps consume one host-neutral SDK client through an injected local_app_host carrier without selecting caller mode, trust class, endpoint, principal, grant, lease, or session, and scaffolding writes no authority or admitted product truth.
+    condition: Whenever scaffolding composes SDK access.
+    failure: Reject caller-selected protected facts or scaffold-authored authority and admitted product truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
@@ -1494,7 +1484,7 @@ units:
     kind: rule
     title: P-SCAF-010 package projection custody
     modality: must
-    statement: Package-owned .nimi config, contract, and methodology projections remain externally package-owned, generated repositories consume them through admitted sync, host-local truth stays inside the generated repository's .nimi boundary, and local evidence, lifecycle reports, or package projections do not become semantic truth without an admitted projection flow.
+    statement: Package-owned .nimi config, contract, and methodology projections remain externally package-owned, generated repositories consume them through the package's declared synchronization surface, host-local truth stays inside the generated repository's .nimi boundary, and local evidence, lifecycle reports, or package projections do not become semantic truth or override canonical product authority under .nimi/spec.
     condition: Whenever generated repository projections or host-local truth are synchronized or interpreted.
     failure: Reject copied, re-owned, out-of-boundary, or falsely promoted projection content.
     relations:
@@ -1502,11 +1492,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-012
     kind: rule
-    title: P-SCAF-012 separate scaffold and admission surfaces
+    title: P-SCAF-012 separate scaffold and public admission surfaces
     modality: must
-    statement: Public app admission, app-slice admission, and developer-repository scaffold shape remain separate owner surfaces; standalone scaffolding writes no admitted truth, explicit workspace scaffolding may write only owner-admitted app-slice input, and neither admission surface substitutes for the other or creates registry, descriptor, mirror, review, visibility, install, or kill-switch truth.
+    statement: Public app admission and developer-repository scaffold shape remain separate owner surfaces; scaffolding writes no admitted truth and cannot create registry, descriptor, mirror, review, visibility, install, or kill-switch truth.
     condition: Whenever scaffolding creates or projects admission-related content.
-    failure: Reject cross-surface substitution or scaffold-created public truth.
+    failure: Reject scaffold-created public truth or substitution for the public admission owner.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
