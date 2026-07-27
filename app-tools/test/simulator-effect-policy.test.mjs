@@ -23,7 +23,10 @@ test('generated effect policy binds its canonical authority identity', () => {
     SIMULATOR_EFFECT_POLICY.authority.path,
     'config/platform-simulator-browser-effects.yaml',
   );
-  assert.equal(SIMULATOR_EFFECT_POLICY.authority.sourceRule, 'P-SIM-018');
+  assert.equal(
+    SIMULATOR_EFFECT_POLICY.authority.sourceRule,
+    'rule.nimi.platform.simulator.p-sim-002',
+  );
   assert.match(SIMULATOR_EFFECT_POLICY.authority.digest, /^sha256:[0-9a-f]{64}$/u);
   assert.ok(SIMULATOR_EFFECT_POLICY.entries.length > 0);
 });

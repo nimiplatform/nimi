@@ -4,7 +4,7 @@
 - Active modules plus admitted implementation-pending native boundary: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/protected-local`, `kit/shell/tauri`, `kit/shell/renderer`, `kit/shell/electron`, and `kit/features`.
 ## Hard Boundaries
 - Kit UI is a reusable projection of `.nimi/spec/platform/ui-design-system.authority.yaml`; do not create app-local design truth in `kit/auth` or `kit/features`.
-- Before adding UI or interaction logic, inspect `kit/README.md`, the target module README, and `config/platform-nimi-kit-registry.yaml`.
+- Before adding UI or interaction logic, inspect `kit/README.md`, the target module README, and the nearest owner contract.
 - `kit/core` must stay pure logic: no React, CSS, app code, or presentation imports.
 - `kit/telemetry` must stay renderer-safe: no Node.js, Electron, or Tauri bridge imports.
 - `kit/shell/tauri` is shared Rust host glue; do not import JS/TS runtime code or app-local Rust.
@@ -24,6 +24,6 @@
 - Every breaking 0.x minor needs a migration note in `kit/CHANGELOG.md`; experimental exports still need documented changes.
 - `@nimiplatform/kit` tracks `@nimiplatform/sdk` compatibility during 0.x, but kit 1.0.0 requires an explicit readiness decision.
 ## Cross-Feature And SDK Edges
-- Cross-feature imports must be declared as `kit.features.*` dependencies in `config/platform-nimi-kit-registry.yaml`; `pnpm check:kit-feature-edge-boundary` enforces that actual feature imports stay inside the registry graph.
+- Cross-feature imports require a concrete shared owner contract; keep feature composition app-local unless the reusable boundary is already established.
 - Static `@nimiplatform/sdk*` imports in kit non-test code route through `kit/core/src/sdk-contract.ts`; exception: `kit/shell/electron/**` host glue may import SDK Runtime wire surfaces or dynamic `@grpc/grpc-js` for IPC-to-gRPC.
 - The admitted dynamic SDK boundary is the chat app-AI runtime adapter importing `@nimiplatform/kit/core/sdk-contract`; new SDK consumption adds a re-export to `kit/core/src/sdk-contract.ts`.

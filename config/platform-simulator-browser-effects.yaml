@@ -5,7 +5,7 @@ version: 1
 table_family: protocol_surface
 owner: platform
 protocol_id: platform_simulator_browser_effects
-source_rule: P-SIM-018
+source_rule: rule.nimi.platform.simulator.p-sim-002
 
 surfaces:
   - effect_classification

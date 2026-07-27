@@ -43,8 +43,8 @@ under "Semver Discipline".
 
 Before building app-local UI, shell glue, auth flows, telemetry, model
 configuration, chat, avatar, generation, commerce, or runtime-bound
-adapter code, check this README, the target module README, and
-`config/platform-nimi-kit-registry.yaml`. Reuse an
+adapter code, check this README, the target module README, and the nearest
+owner contract. Reuse an
 existing `@nimiplatform/kit` export when it covers the baseline behavior;
 extend the kit surface first when the missing behavior is cross-app.
 
@@ -108,8 +108,7 @@ The current package publishes 70 public subpath exports through
   `./features/generation`, and `./features/commerce`
 
 The complete npm subpath inventory is the `exports` object in
-`kit/package.json`. Platform registry guidance remains in
-`config/platform-nimi-kit-registry.yaml`.
+`kit/package.json`.
 
 ## Import Patterns by Sub-module
 

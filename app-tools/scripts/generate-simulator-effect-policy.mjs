@@ -38,7 +38,7 @@ function projectAuthority(bytes) {
   }
   const authority = document.toJS({ maxAliasCount: 0 });
   if (authority?.protocol_id !== 'platform_simulator_browser_effects'
-    || authority?.source_rule !== 'P-SIM-018'
+    || authority?.source_rule !== 'rule.nimi.platform.simulator.p-sim-002'
     || !Array.isArray(authority.entries)) {
     throw new Error('unexpected Simulator browser-effect authority identity or entries');
   }

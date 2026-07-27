@@ -5,7 +5,7 @@ version: 1
 table_family: product_catalog
 owner: platform
 catalog_id: platform_simulator_mandatory_singletons
-source_rule: P-SIM-008
+source_rule: rule.nimi.platform.simulator.p-sim-006
 entries:
   - react
   - react-dom

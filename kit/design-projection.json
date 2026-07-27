@@ -17,8 +17,7 @@
     "config/platform-nimi-ui-themes.yaml",
     "config/platform-nimi-ui-primitives.yaml",
     "config/platform-nimi-ui-primitives/*.yaml",
-    "config/platform-nimi-ui-compositions.yaml",
-    "config/platform-nimi-kit-registry.yaml"
+    "config/platform-nimi-ui-compositions.yaml"
   ],
   "colors": {
     "danger": "#dc2626",
@@ -3888,21 +3887,6 @@
         }
       }
     ],
-    "kitUi": {
-      "description": "Cross-app design system built on Radix UI + CVA + Tailwind, with nimi semantic tokens",
-      "sourceRule": "P-KIT-010",
-      "exports": [
-        "./ui",
-        "./ui/glass",
-        "./ui/motion",
-        "./ui/a11y",
-        "./ui/styles.css",
-        "./ui/themes/light.css",
-        "./ui/themes/dark.css",
-        "./ui/themes/nimi-accent.css",
-        "./ui/themes/nimi-density-compact.css"
-      ]
-    },
     "compositions": [],
     "densityModes": [
       {

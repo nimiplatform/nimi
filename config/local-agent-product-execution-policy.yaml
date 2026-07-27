@@ -4,10 +4,6 @@ owner: local-agent-product-harness
 execution_defaults:
   repeats: 1
   repeats_option: --repeats
-evidence_retention:
-  posture: diagnostic_only
-  runs_per_gate: 3
-  cleanup_timing: gate_start
 gates:
   first_party_p4:
     command: pnpm test:e2e:first-party-product:p4
@@ -15,12 +11,5 @@ gates:
       - first-party-installed-first-run
       - first-party-direct-nimi
       - first-party-partner-core
-  core:
-    command: pnpm test:e2e:local-agent-product:core
-    journeys: [dev-kernel-core]
-  core_stability:
-    command: pnpm test:e2e:local-agent-product:core-stability
-    journeys: [dev-kernel-core]
 active_runners:
-  - tests/local-agent-product/harness/run-gate.mjs
   - tests/local-agent-product/harness/run-first-party-signed-candidate-journey.mjs

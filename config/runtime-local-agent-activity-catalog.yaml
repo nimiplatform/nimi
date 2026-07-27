@@ -1,10 +1,9 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/runtime/agent-participation.authority.yaml
-# Rationale: docs/authority/runtime-agent-participation-rationale.md
 version: 1
 table_family: product_catalog
 owner: runtime
-catalog_id: runtime_agent_activity_ontology
+catalog_id: runtime_local_agent_activity_catalog
 entries:
   - emotion
   - interaction
@@ -25,7 +24,7 @@ entries:
     upstream projection source and does not replace category authority.
   - apps/avatar may map admitted ids to backend-specific motion groups, but must
     not change the activity category or intensity truth.
-source_rule: K-AGCORE-049
+source_rule: rule.nimi.runtime.agent-participation.r031
 
 categories:
   emotion:

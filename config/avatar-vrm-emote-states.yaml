@@ -7,7 +7,7 @@ owner: avatar
 enum_id: vrm_emote_states
 description: >
   Emotion to VRM expression weight bundle. Emote names are anchored to the
-  platform agent-activity-ontology (K-AGCORE-049) emotion ids
+  Runtime LocalAgent activity catalog emotion ids
   (happy/sad/shy/angry/surprised/confused/excited/worried/embarrassed/neutral),
   plus `relaxed` as a VRM-only fallback expression preset (NOT an ontology
   id; activity-mapping.yaml does not reference it as an emote name directly,
@@ -29,7 +29,7 @@ description: >
   suppressed by the emote state machine — the lipsync driver owns viseme
   preset writes during active speech.
 
-source_authority: /config/runtime-agent-activity-ontology.yaml
+source_authority: /config/runtime-local-agent-activity-catalog.yaml
 
 emotes: &vrm_emote_state_values
   neutral:

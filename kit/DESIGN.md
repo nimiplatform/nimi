@@ -17,7 +17,6 @@ sources:
   - config/platform-nimi-ui-primitives.yaml
   - config/platform-nimi-ui-primitives/*.yaml
   - config/platform-nimi-ui-compositions.yaml
-  - config/platform-nimi-kit-registry.yaml
 colors:
   on-primary: "#111827"
   primary: "#45B8D6"

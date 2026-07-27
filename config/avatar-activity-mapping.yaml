@@ -6,8 +6,8 @@ table_family: protocol_surface
 owner: avatar
 protocol_id: avatar_activity_backend_projection
 description: >
-  Activity (ontology id) → backend-specific projection routing for Nimi
-  Avatar. Each ontology-admitted activity declares BOTH `live2d` AND `vrm`
+  Runtime LocalAgent activity id → backend-specific projection routing for Nimi
+  Avatar. Each catalogued activity declares BOTH `live2d` AND `vrm`
   routes (drift check: partial entries fail validator).
 
   This schema replaces the retired Live2D-only motion-group naming convention
@@ -23,9 +23,9 @@ description: >
   evidence and is not a runtime support gate.
 
   This mapping remains Avatar backend routing evidence only and must not be
-  read as public APML motion syntax or runtime activity ontology ownership.
+  read as public APML motion syntax or Runtime activity ownership.
 
-source_authority: /config/runtime-agent-activity-ontology.yaml
+source_authority: /config/runtime-local-agent-activity-catalog.yaml
 
 naming_rule:
   description: >

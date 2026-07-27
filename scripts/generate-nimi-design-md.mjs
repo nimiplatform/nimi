@@ -21,7 +21,6 @@ const SPEC_SOURCE_RELS = [
   'config/platform-nimi-ui-primitives.yaml',
   'config/platform-nimi-ui-primitives/*.yaml',
   'config/platform-nimi-ui-compositions.yaml',
-  'config/platform-nimi-kit-registry.yaml',
 ];
 
 function repoRel(absPath) {
@@ -425,7 +424,6 @@ function renderFrontMatter({
   tokensDoc,
   themesDoc,
   primitivesDoc,
-  kitRegistry,
   compositionsDoc,
   primitives,
 }) {
@@ -438,8 +436,6 @@ function renderFrontMatter({
   const spacing = buildScale(tokens, packs, 'spacing');
   const groupKeyByTokenId = buildGroupKeyIndex(tokens, colors, typography, rounded, spacing);
   const components = buildOfficialComponents(primitives, tokenIndex, groupKeyByTokenId);
-  const kitUiModule = normalizeArray(kitRegistry?.modules).find((module) => String(module?.id) === 'kit.ui') ?? {};
-
   return {
     name: 'Nimi Kit Design System',
     version: 'alpha',
@@ -469,11 +465,6 @@ function renderFrontMatter({
     },
     componentStandards: {
       primitives: buildPrimitiveStandards(primitives),
-      kitUi: {
-        description: String(kitUiModule.description || ''),
-        sourceRule: String(kitUiModule.source_rule || ''),
-        exports: normalizeArray(kitUiModule.exports).map(String),
-      },
       compositions: normalizeArray(compositionsDoc?.components),
       densityModes: normalizeArray(compositionsDoc?.density_modes),
     },
@@ -836,14 +827,12 @@ async function loadProjectionInputs() {
   const themesDoc = await readYamlRel('config/platform-nimi-ui-themes.yaml');
   const primitivesDoc = await readYamlRel('config/platform-nimi-ui-primitives.yaml');
   const compositionsDoc = await readYamlOptionalRel('config/platform-nimi-ui-compositions.yaml', { components: [] });
-  const kitRegistry = await readYamlRel('config/platform-nimi-kit-registry.yaml');
   const primitives = await loadPrimitiveRows(primitivesDoc);
   return {
     tokensDoc,
     themesDoc,
     primitivesDoc,
     compositionsDoc,
-    kitRegistry,
     primitives,
   };
 }

@@ -124,33 +124,6 @@ platform_admission:
     - renderer_ipc
     - portable_bearer
     - raw_executable_self_auth
-g5_supervisor_profile_consistency:
-  structure_status: reserved_without_current_assertion_behavior_change
-  profile_key: os
-  profile_components:
-    - custody_profile_ref
-    - service_principal_profile_ref
-    - transport_profile_ref
-    - executable_trust_profile_ref
-    - launch_session_profile_ref
-  current_assertion:
-    os: windows
-    command: pnpm check:local-development-supervisor-parity
-    implementation_bindings: [desktop_electron_supervisor, desktop_tauri_supervisor]
-    behavior: unchanged_exact_dual_supervisor_cross_assertion
-  per_platform:
-    - os: windows
-      admission: current_assertion_active
-      implementation_bindings: [desktop_electron_supervisor, desktop_tauri_supervisor]
-      assertion_activation: current
-    - os: linux
-      admission: requirements_only_fail_closed_pending_native_admission
-      implementation_bindings: []
-      assertion_activation: pending_complete_native_profile_and_implementation_admission
-    - os: macos
-      admission: requirements_only_fail_closed_pending_native_admission
-      implementation_bindings: []
-      assertion_activation: pending_complete_native_profile_and_implementation_admission
   consistency_rules:
     every_implementation_resolves_one_same_os_profile_bundle: required
     single_sided_implementation: reject

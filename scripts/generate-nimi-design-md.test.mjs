@@ -40,15 +40,6 @@ function run(root, args = []) {
 function buildFixture({ declareFragments = true } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-design-md-'));
   write(root, 'kit/README.md', '# @nimiplatform/kit\n');
-  write(root, 'config/platform-nimi-kit-registry.yaml', `version: 1
-modules:
-  - id: kit.ui
-    description: Cross-app design system built on Radix UI + CVA + Tailwind, with nimi semantic tokens
-    exports:
-      - ./ui
-      - ./ui/styles.css
-    source_rule: P-KIT-010
-`);
   write(root, 'config/platform-nimi-ui-tokens.yaml', `version: 2
 tokens:
   - id: surface.card

@@ -78,6 +78,6 @@ apps/avatar/
 - [Avatar embodiment surface](../../.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [Runtime participation and presentation](../../.nimi/spec/runtime/agent-participation.authority.yaml)
 - [SDK client surface](../../.nimi/spec/sdks/client-core.authority.yaml)
-- [Runtime activity ontology table](../../config/runtime-agent-activity-ontology.yaml)
+- [Runtime LocalAgent activity catalog](../../config/runtime-local-agent-activity-catalog.yaml)
 
 The carrier consumes Runtime-owned conversation, activity, audio, timing, playback, and interruption projections. Avatar owns local rendering, playback, backend lipsync, visible geometry, hit regions, and bounded window behavior.

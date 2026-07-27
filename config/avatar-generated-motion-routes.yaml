@@ -9,11 +9,11 @@ admission_id: avatar-apml-auto-adapter
 description: >
   Avatar backend route ids for generated motion provider support. These route
   ids are downstream of typed runtime.agent.* projection and are not public APML
-  tags or runtime activity ontology ids.
+  tags or Runtime LocalAgent activity ids.
 
 source_authority:
   runtime_projection: .nimi/spec/runtime/agent-participation.authority.yaml
-  runtime_activity_ontology: config/runtime-agent-activity-ontology.yaml
+  runtime_activity_catalog: config/runtime-local-agent-activity-catalog.yaml
   public_apml_wire: .nimi/spec/runtime/agent-participation.authority.yaml
 
 public_apml_syntax:
