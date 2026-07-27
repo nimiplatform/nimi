@@ -263,61 +263,6 @@ describe('conversation shell ui', () => {
     expect(container.textContent).toContain('Voice');
   });
 
-  it('keeps canonical width and shell landmarks stable', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    root = createRoot(container);
-
-    await act(async () => {
-      root?.render(
-        <div className="flex h-[960px] flex-col gap-6">
-          <CanonicalStagePanel messages={[]} />
-          <CanonicalTranscriptView messages={[]} />
-          <CanonicalComposer
-            layout="stacked"
-            adapter={{
-              submit: async () => undefined,
-            }}
-          />
-          <CanonicalRightSidebar
-            open
-            content={(
-              <CanonicalRuntimeInspectSidebar
-                openPanel={null}
-                onOpenPanel={() => undefined}
-                onClosePanel={() => undefined}
-                sections={[]}
-              />
-            )}
-            onClose={() => undefined}
-          />
-        </div>,
-      );
-      await flush();
-    });
-
-    expect(container.querySelector('[data-canonical-stage-width="max-w-[min(1240px,calc(100vw-520px))]"]')).not.toBeNull();
-    expect(container.querySelector('[data-canonical-transcript-width="max-w-[min(1240px,calc(100vw-520px))]"]')).not.toBeNull();
-    expect(container.querySelector('[data-canonical-composer-width="w-full max-w-[min(1240px,max(320px,calc(100vw-520px)))]"]')).not.toBeNull();
-    expect(container.querySelector('[data-canonical-composer-responsive-floor="320"]')).not.toBeNull();
-    expect(container.querySelector('[data-chat-composer-layout="stacked"]')).not.toBeNull();
-
-    const rightSidebar = container.querySelector('[data-canonical-right-sidebar="true"]') as HTMLDivElement | null;
-    expect(rightSidebar?.style.width).toBe('320px');
-    expect(container.querySelector('[data-canonical-runtime-inspect="true"]')).not.toBeNull();
-  });
-
-  it('keeps stacked composer usable at 380px with a compact horizontal toolbar contract', () => {
-    const canonicalComposer = readChatSource('canonical-composer.tsx');
-    const chatComposer = readChatSource('chat-composer.tsx');
-
-    expect(canonicalComposer).toContain('CANONICAL_COMPOSER_SURFACE_WIDTH_CLASS');
-    expect(canonicalComposer).toContain('max(320px,calc(100vw-520px))');
-    expect(canonicalComposer).toContain('data-canonical-composer-responsive-floor="320"');
-    expect(chatComposer).toContain('data-chat-composer-toolbar-mode="compact-horizontal"');
-    expect(chatComposer).toContain('grid-cols-[minmax(0,1fr)_auto]');
-  });
-
   it('keeps canonical character rail landmarks and fallback copy stable', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

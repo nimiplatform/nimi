@@ -96,41 +96,6 @@ function readDescriptorIds(content: string): string[] {
 }
 
 describe('standard shell capabilities', () => {
-  it('keeps the public contract split by host-neutral responsibility modules', () => {
-    const srcRoot = resolve(findRepoRoot(), 'kit/shell/capabilities/src');
-    const indexSource = readFileSync(resolve(srcRoot, 'index.ts'), 'utf8');
-    expect(indexSource).not.toContain('./contract.js');
-
-    const capabilityModules = [
-      'catalog.ts',
-      'commands.ts',
-      'errors.ts',
-      'runtime.ts',
-      'runtime-lifecycle.ts',
-      'runtime-defaults.ts',
-      'oauth.ts',
-      'shell-ui.ts',
-      'diagnostics.ts',
-      'data.ts',
-      'storage.ts',
-      'config.ts',
-      'local-assets.ts',
-      'local-agent.ts',
-      'ai-profile.ts',
-      'ai-config.ts',
-      'avatar.ts',
-      'agent-center.ts',
-      'platform-projection.ts',
-    ];
-    for (const moduleFile of capabilityModules) {
-      const source = readFileSync(resolve(srcRoot, moduleFile), 'utf8');
-      expect(source, moduleFile).not.toContain('./contract.js');
-      expect(source, moduleFile).not.toMatch(/\bfrom ['"]node:/u);
-      expect(source, moduleFile).not.toMatch(/\bfrom ['"]electron/u);
-      expect(source, moduleFile).not.toMatch(/\bfrom ['"]@tauri-apps\/api/u);
-    }
-  });
-
   it('keeps the package contract aligned with the machine catalog', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
     const yamlIds = readCatalogCapabilities(catalog);

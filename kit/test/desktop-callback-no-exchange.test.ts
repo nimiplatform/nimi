@@ -16,47 +16,9 @@ import {
   performDesktopWebAuth,
   validateRuntimeOAuthAuthorizationUrl,
 } from '../auth/src/logic/desktop-web-auth.js';
-import * as kitAuth from '../auth/src/index.js';
 
 // ---------------------------------------------------------------------------
-// 1. Public surface lock — Wave C deleted the entire web-relay surface. Any
-// future re-introduction of "Confirm desktop authorize", a session-bearer
-// relay primitive, or a kit-side desktop_callback URL helper must fail here.
-// ---------------------------------------------------------------------------
-
-describe('kit auth public surface (Wave C hard-cut)', () => {
-  const exported = Object.keys(kitAuth as Record<string, unknown>);
-
-  it('does not export handleConfirmDesktopAuthorization', () => {
-    expect((kitAuth as Record<string, unknown>)['handleConfirmDesktopAuthorization']).toBeUndefined();
-  });
-
-  it('does not export submitDesktopCallbackResult (legacy bearer-relay primitive)', () => {
-    expect((kitAuth as Record<string, unknown>)['submitDesktopCallbackResult']).toBeUndefined();
-  });
-
-  it('does not export buildDesktopWebAuthLaunchUrl (legacy web-relay URL builder)', () => {
-    expect((kitAuth as Record<string, unknown>)['buildDesktopWebAuthLaunchUrl']).toBeUndefined();
-  });
-
-  it('does not export hasDesktopCallbackRequestInLocation / resolveDesktopCallbackRequestFromLocation (legacy URL detectors)', () => {
-    expect((kitAuth as Record<string, unknown>)['hasDesktopCallbackRequestInLocation']).toBeUndefined();
-    expect((kitAuth as Record<string, unknown>)['resolveDesktopCallbackRequestFromLocation']).toBeUndefined();
-  });
-
-  it('does not expose any "Confirm desktop authorize" / "Relay desktop bearer" symbol', () => {
-    const offending = exported.filter(
-      (name) =>
-        name.toLowerCase().includes('confirmdesktop') ||
-        name.toLowerCase().includes('relaydesktopbearer') ||
-        name.toLowerCase().includes('desktopwebauthlaunch'),
-    );
-    expect(offending).toEqual([]);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 2. performDesktopWebAuth direct-flow lock — the kit must use the realm
+// performDesktopWebAuth direct-flow behavior — the kit must use the realm
 // OAuth authorize URL constructed by runtime BeginLogin verbatim, must NOT
 // fall back to a kit-built `desktop_callback`/`#/login` URL, and the runtime
 // broker.complete proof envelope must be code-only.

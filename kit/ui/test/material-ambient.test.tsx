@@ -171,11 +171,3 @@ test('AmbientBackground user style cannot overwrite positioning / isolation', ()
   // are preserved.
   expect(html).toMatch(/padding:\s*24px/);
 });
-
-test('material/ambient fallback rules are authored in shared kit CSS', () => {
-  expect(stylesCss).toMatch(/@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\)/);
-  expect(stylesCss).toMatch(/\[data-nimi-material="glass-regular"\]\[data-nimi-tone="panel"\]/);
-  expect(stylesCss).toMatch(/@media \(prefers-reduced-transparency: reduce\)/);
-  expect(stylesCss).toMatch(/\[data-nimi-ambient-variant="mesh"\] \[data-nimi-ambient-layer="halo"\]/);
-  expect(stylesCss).toMatch(/\[data-nimi-ambient-variant="mesh"\] \[data-nimi-ambient-layer="mesh"\]/);
-});

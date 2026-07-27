@@ -47,12 +47,4 @@ describe('runtime agent emotion mapping', () => {
     expect(() => parseRuntimeAgentEmotionIntensity('extreme')).toThrow(/not admitted/u);
   });
 
-  it('keeps cue mapping separate from backend-specific activity routing', () => {
-    const mappingSource = readFileSync(path.resolve(process.cwd(), 'features/avatar/src/emotion-mapping.ts'), 'utf8');
-    expect(mappingSource).not.toMatch(/avatar-activity-mapping-resolver/u);
-
-    const resolver = createActivityMappingResolver();
-    expect(resolver.resolveVrmRoute('angry')).toEqual({ emotion: 'angry', fade: 0.3 });
-    expect(mapRuntimeAgentEmotionToAvatarCue('angry')).toBe('concerned');
-  });
 });

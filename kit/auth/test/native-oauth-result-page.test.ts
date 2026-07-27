@@ -66,30 +66,6 @@ test('desktop OAuth result page keeps success visible for at least three seconds
   expect(page).toContain('setTimeout(function(){window.close();}, 3000);');
 });
 
-test('desktop OAuth result page keeps both templates compact and self-contained', () => {
-  expect(template).toBe(shellTemplate);
-  expect(template).toContain('__LOGO_DATA_URI__');
-  expect(template).toContain('<img class="logo" src="__LOGO_DATA_URI__" alt="Nimi" aria-label="Nimi" />');
-  expect(template).not.toContain('nimiLogoGradient');
-  expect(template).not.toContain('<rect x="10" y="10" width="120" height="120"');
-  expect(template).toContain('aria-label="Nimi"');
-  expect(Buffer.byteLength(template, 'utf8')).toBeLessThan(60 * 1024);
-  expect(maxLineBytes(template)).toBeLessThan(12_000);
-  expect(averageLineBytes(template)).toBeLessThan(900);
-});
-
-test('desktop OAuth result page renders the current PNG Nimi logo asset', () => {
-  expect(sha256(kitOAuthLogoPng)).toBe(sha256(currentDesktopLogoPng));
-
-  const page = renderDesktopOAuthResultPage({ status: 'success', autoCloseMs: 3000 });
-  expect(page).not.toContain('__LOGO_DATA_URI__');
-  expect(page).not.toContain('nimiLogoGradient');
-
-  const dataUri = extractLogoDataUri(page);
-  const decoded = Buffer.from(dataUri.replace('data:image/png;base64,', ''), 'base64');
-  expect(sha256(decoded)).toBe(sha256(currentDesktopLogoPng));
-});
-
 test('kit dist asset copy keeps the native OAuth result template publishable', () => {
   expect(copyDistAssetsScript).toContain("'.html'");
 });

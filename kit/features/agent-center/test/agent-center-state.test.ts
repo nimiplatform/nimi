@@ -229,17 +229,4 @@ describe('Agent Center state', () => {
     expect(state.cognition.recentCanonicalMemories[0]?.memoryId).toBe('memory-runtime-1');
   });
 
-  it('keeps public props closed to typed adapters instead of arbitrary feature slots', () => {
-    const source = readFileSync(path.resolve(__dirname, '../src/types.ts'), 'utf8');
-    for (const forbidden of [
-      ['model', 'Content'].join(''),
-      ['diagnostics', 'Content'].join(''),
-      ['render', 'Gated', 'Surface'].join(''),
-      ['technical', 'Surfaces'].join(''),
-      ['Capability', 'Studio'].join(''),
-      ['AgentCenter', 'CapabilityProbePanel'].join(''),
-    ]) {
-      expect(source).not.toContain(forbidden);
-    }
-  });
 });

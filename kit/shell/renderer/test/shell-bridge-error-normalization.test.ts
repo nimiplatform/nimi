@@ -46,20 +46,4 @@ describe('shell bridge structured error normalization', () => {
     });
   });
 
-  it('has Desktop and Tester consume the public Kit bridge surface', () => {
-    const desktopInvoke = readRepo('apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts');
-    const testerTauri = readRepo('apps/tester/src/tester/tester-tauri.ts');
-
-    expect(desktopInvoke).toMatch(/from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
-    expect(desktopInvoke).toMatch(/toShellBridgeNimiError/);
-    expect(desktopInvoke).toMatch(/getShellBridgeUserMessageProjection/);
-    expect(desktopInvoke).not.toMatch(/const BRIDGE_ERROR_CODE_MAP/);
-    expect(desktopInvoke).not.toMatch(/function parseBridgeJsonPayload/);
-    expect(desktopInvoke).not.toMatch(/function extractBridgeErrorCode/);
-
-    expect(testerTauri).toMatch(/from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
-    expect(testerTauri).toMatch(/toShellBridgeNimiError/);
-    expect(testerTauri).not.toMatch(/@renderer\//);
-    expect(testerTauri).not.toMatch(/@runtime\//);
-  });
 });

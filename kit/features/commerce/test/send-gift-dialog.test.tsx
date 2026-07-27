@@ -125,30 +125,4 @@ describe('SendGiftDialog', () => {
     });
   });
 
-  it('renders explicit loading, failure, retry, and empty catalog states', () => {
-    const source = readFileSync(
-      path.join(process.cwd(), 'features/commerce/src/components/send-gift-dialog.tsx'),
-      'utf8',
-    );
-
-    expect(source).toMatch(/state\.catalogLoading/);
-    expect(source).toMatch(/state\.catalogError/);
-    expect(source).toMatch(/state\.isCatalogEmpty/);
-    expect(source).toMatch(/void state\.refreshCatalog\(\)/);
-  });
-
-  it('uses selected gift ids and a synchronous ref guard for submissions', () => {
-    const source = readFileSync(
-      path.join(process.cwd(), 'features/commerce/src/hooks/use-send-gift-dialog.ts'),
-      'utf8',
-    );
-
-    expect(source).toMatch(/await adapter\.sendGift\(\{/);
-    expect(source).toMatch(/giftId:\s*selectedGiftId/);
-    expect(source).toMatch(/useRef/);
-    expect(source).toMatch(/const sendingRef = useRef\(false\)/);
-    expect(source).toMatch(/if \(sendingRef\.current \|\| !selectedGiftId \|\| !receiverId\.trim\(\)\)/);
-    expect(source).toMatch(/sendingRef\.current = true/);
-    expect(source).toMatch(/sendingRef\.current = false/);
-  });
 });

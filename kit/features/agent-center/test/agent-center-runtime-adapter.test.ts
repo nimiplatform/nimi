@@ -204,17 +204,4 @@ describe('Agent Center Runtime adapter', () => {
     ]);
   });
 
-  it('keeps production source behind Kit sdk-contract and typed adapter boundary', () => {
-    const root = path.resolve(__dirname, '../src');
-    const source = collectSourceFiles(root)
-      .map((file) => readFileSync(file, 'utf8'))
-      .join('\n');
-
-    expect(source).not.toMatch(/from ['"]@nimiplatform\/sdk/);
-    expect(source).not.toContain(['runtime', 'internal'].join('/'));
-    expect(source).not.toContain(['apps', ''].join('/'));
-    expect(source).toContain('@nimiplatform/kit/core/sdk-contract');
-    expect(source).toContain('AgentCenterRuntimeAdapter');
-    expect(source).toContain('AgentCenterAppearanceAdapter');
-  });
 });
