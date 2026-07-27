@@ -1,9 +1,4 @@
-/**
- * Pure TypeScript synchronous SHA-256. Deterministic and host-neutral so
- * replay digests are identical in the browser artifact and in Node tests.
- *
- * Authority: P-SIM-012 replay digest (SHA-256 over RFC 8785 JSON).
- */
+/** Pure TypeScript synchronous SHA-256 for opaque browser scope names. */
 
 const K: readonly number[] = [
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,

@@ -75,7 +75,6 @@ const [
   { testerSimulatorAdapterFactory },
   { simulatorConformanceFixture },
   { testerSimulatorRenderer },
-  { createAssignedRootRegistry, createBrowserReadinessPort, createReactCommitTracker, isSimulationDisclosureVisible },
   { createGlobalListenerCoordinator },
   { createSimulatorBrowserSurfaceManager },
   { createSimulatorSession },
@@ -86,21 +85,12 @@ const [
   import('../../../../tester/src/simulator/adapter.ts'),
   import('../../../../tester/src/simulator/fixture.ts'),
   import('../../../../tester/src/simulator/renderer.ts'),
-  import('../../../src/lifecycle/browser-readiness.ts'),
   import('../../../src/shell/global-coordinator.ts'),
   import('../../../src/shell/browser-surface-host.tsx'),
   import('../../../src/shell/session.ts'),
   import('../fixtures.mjs'),
 ]);
 
-const readinessDeclaration = simulatorConformanceFixture.readiness[0];
-const readinessExpectation = {
-  contractId: readinessDeclaration.contractId,
-  rootContentSemanticId: readinessDeclaration.rootContentSemanticId,
-  primaryControl: readinessDeclaration.primaryControl,
-  projectionPredicateId: 'tester-projection-ready',
-  blockingStatePredicateId: 'tester-no-blocking-lease',
-} as const;
 const moduleCatalog = {
   moduleId: 'tester',
   orderingKey: 0,
@@ -118,7 +108,6 @@ const registryRow = {
       id: 'main',
       label: 'Nimi Lab',
       initialRoute: '/',
-      readinessContractId: readinessDeclaration.contractId,
     }],
     requirements: {
       kitCapabilities: [],
@@ -143,20 +132,6 @@ const listeners = createGlobalListenerCoordinator(listenerFamilies, {
 }, {
   run: (_owner, _phase, callback) => callback(),
 });
-const assignedRoots = createAssignedRootRegistry();
-const commits = createReactCommitTracker();
-const readinessBrowser = createBrowserReadinessPort({
-  commits,
-  roots: assignedRoots,
-  requestAnimationFrame: browser.requestAnimationFrame.bind(browser),
-  cancelAnimationFrame: browser.cancelAnimationFrame.bind(browser),
-  computedStyle: (element) => browser.getComputedStyle(element),
-  paintCompositeEvidence: {
-    begin: async () => 'fixture-paint-window',
-    mark: async () => true,
-    end: async () => true,
-  },
-});
 const simulatorRoot = browser.document.getElementById('simulator-test-root');
 const shellRoot = browser.document.getElementById('simulator-shell-root');
 assert.ok(simulatorRoot instanceof browser.HTMLElement);
@@ -173,8 +148,6 @@ const surfaces = createSimulatorBrowserSurfaceManager({
   document: browser.document,
   simulatorRoot,
   shellRoot,
-  assignedRoots,
-  commits,
   listeners,
   supportedKitCapabilities: new Set(),
   invokeKitOperation: async () => ({ ok: false, error: { disposition: 'unsupported' } }),
@@ -182,7 +155,7 @@ const surfaces = createSimulatorBrowserSurfaceManager({
     const readiness = session?.readinessFor(input.instanceId, input.surfaceId);
     assert.equal(readiness?.ok, true);
     if (!readiness?.ok) throw new Error('Tester readiness barrier is missing.');
-    const signaled = readiness.value.signalCandidate({ contractId: input.contractId });
+    const signaled = readiness.value.signalCandidate();
     assert.equal(signaled.ok, true);
   },
 });
@@ -209,22 +182,6 @@ session = createSimulatorSession({
   },
   effectScope: { run: (_owner, _phase, callback) => callback() },
   prepareSurface: (input) => surfaces.prepare(input),
-  readinessBrowser,
-  readinessDeclarations: { 'tester/main': readinessDeclaration },
-  readinessExpectations: { 'tester/main': readinessExpectation },
-  readinessProjectionPredicates: {
-    'tester-projection-ready': (value) => (
-      typeof value === 'object'
-      && value !== null
-      && !Array.isArray(value)
-      && value.protocolRevision === 1
-    ),
-  },
-  readinessBlockingPredicates: { 'tester-no-blocking-lease': () => false },
-  simulationDisclosureVisible: () => isSimulationDisclosureVisible(
-    browser.document.querySelector('[data-testid="simulator-status"]'),
-    (element) => browser.getComputedStyle(element),
-  ),
 });
 
 let first: Awaited<ReturnType<typeof session.openInstance>> | null = null;
@@ -253,10 +210,18 @@ assert.equal(secondCompletion.state, 'usable', JSON.stringify({ secondCompletion
 
 assert.notEqual(first.value.instanceId, second.value.instanceId);
 
-const firstRoots = assignedRoots.get(first.value.instanceId, 'main');
-const secondRoots = assignedRoots.get(second.value.instanceId, 'main');
-assert.ok(firstRoots);
-assert.ok(secondRoots);
+function rootsFor(instanceId: string) {
+  const stage = surfaces.stageElement(instanceId);
+  assert.ok(stage);
+  const renderer = stage.querySelector('.simulator-surface__renderer');
+  const overlay = stage.querySelector('.simulator-surface__overlays');
+  assert.ok(renderer instanceof browser.HTMLElement);
+  assert.ok(overlay instanceof browser.HTMLElement);
+  return { renderer, overlay };
+}
+
+const firstRoots = rootsFor(first.value.instanceId);
+const secondRoots = rootsFor(second.value.instanceId);
 assert.notEqual(firstRoots.renderer, secondRoots.renderer);
 assert.notEqual(firstRoots.overlay, secondRoots.overlay);
 assert.equal(firstRoots.renderer.classList.contains('nimi-ui-module--tester'), true);
@@ -264,14 +229,6 @@ assert.equal(firstRoots.overlay.classList.contains('nimi-ui-module--tester'), tr
 assert.equal(secondRoots.renderer.classList.contains('nimi-ui-module--tester'), true);
 assert.equal(secondRoots.overlay.classList.contains('nimi-ui-module--tester'), true);
 assert.notEqual(firstRoots.renderer.closest('.simulator-surface'), secondRoots.renderer.closest('.simulator-surface'));
-assert.equal(
-  firstRoots.renderer.querySelectorAll('[data-nimi-semantic-id="tester-main-root"]').length,
-  1,
-  JSON.stringify({ html: firstRoots.renderer.innerHTML, instances: session.instances(), diagnostics: session.diagnostics.list() }),
-);
-assert.equal(secondRoots.renderer.querySelectorAll('[data-nimi-semantic-id="tester-main-root"]').length, 1);
-assert.equal(firstRoots.renderer.querySelectorAll('[data-nimi-semantic-id="tester-primary-action"]').length, 1);
-assert.equal(secondRoots.renderer.querySelectorAll('[data-nimi-semantic-id="tester-primary-action"]').length, 1);
 await waitForCondition(
   () => firstRoots.renderer.textContent?.includes('Local app · Unavailable') === true
     && firstRoots.renderer.textContent?.includes('Runtime · Simulated') === true,
@@ -357,22 +314,19 @@ assert.equal((await session.deactivateInstance(first.value.instanceId)).ok, true
 const listenerBaseline = listeners.totalInstalledListeners();
 assert.equal(listenerBaseline, 6);
 assert.equal(surfaces.liveSurfaceCount, 2);
-assert.equal(surfaces.activeOverlayLeaseCount, 0);
 
 await act(async () => {
   assert.equal((await session?.closeInstance(first.value.instanceId))?.ok, true);
 });
-assert.equal(assignedRoots.get(first.value.instanceId, 'main'), null);
-assert.ok(assignedRoots.get(second.value.instanceId, 'main')?.renderer.isConnected);
+assert.equal(surfaces.stageElement(first.value.instanceId), null);
+assert.ok(surfaces.stageElement(second.value.instanceId)?.isConnected);
 assert.equal(surfaces.liveSurfaceCount, 1);
-assert.equal(surfaces.activeOverlayLeaseCount, 0);
 
 await act(async () => {
   assert.equal((await session?.resetScenario())?.ok, true);
 });
-assert.equal(assignedRoots.get(second.value.instanceId, 'main'), null);
+assert.equal(surfaces.stageElement(second.value.instanceId), null);
 assert.equal(surfaces.liveSurfaceCount, 0);
-assert.equal(surfaces.activeOverlayLeaseCount, 0);
 assert.equal(listeners.totalInstalledListeners(), listenerBaseline);
 assert.equal(session.instances().length, 0);
 const resetTesterState = session.engine.getCommitted().partitions.modules.tester;
@@ -387,13 +341,12 @@ await act(async () => {
 });
 assert.equal(reopened?.ok, true);
 if (!reopened?.ok) throw new Error('Tester browser instance did not reopen.');
-assert.ok(assignedRoots.get(reopened.value.instanceId, 'main')?.renderer.isConnected);
+assert.ok(surfaces.stageElement(reopened.value.instanceId)?.isConnected);
 assert.equal(surfaces.liveSurfaceCount, 1);
 await act(async () => {
   assert.equal((await session?.closeInstance(reopened.value.instanceId))?.ok, true);
 });
 assert.equal(surfaces.liveSurfaceCount, 0);
-assert.equal(surfaces.activeOverlayLeaseCount, 0);
 assert.equal(listeners.totalInstalledListeners(), listenerBaseline);
 assert.deepEqual(session.instances().map((instance) => instance.status), ['disposed']);
 

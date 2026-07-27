@@ -45,19 +45,6 @@ function fakeTimers() {
   };
 }
 
-function readinessBrowser() {
-  let frame = 0;
-  return {
-    currentCommitToken: () => 1,
-    awaitCommit: async ({ sinceToken }) => sinceToken + 1,
-    nextAnimationFrame: async () => { frame += 1; return frame; },
-    beginPaintComposite: async () => 'fixture-paint-window',
-    markPaintCompositeFrame: async () => true,
-    observePaintComposite: async () => true,
-    checkSemanticMarkers: async () => ({ ok: true }),
-  };
-}
-
 function registryRow(moduleId, moduleSource) {
   return {
     metadata: {
@@ -67,7 +54,6 @@ function registryRow(moduleId, moduleSource) {
         id: 'main',
         label: 'Main',
         initialRoute: '/',
-        readinessContractId: 'fixture-readiness-v1',
       }],
       requirements: {
         kitCapabilities: [],
@@ -112,26 +98,9 @@ function moduleSourceFor(moduleId, behavior = {}) {
   };
 }
 
-const READINESS_DECLARATION = {
-  contractId: 'fixture-readiness-v1',
-  surfaceId: 'main',
-  rootContentSemanticId: 'fixture-root',
-  primaryControl: { semanticId: 'fixture-primary', ariaRole: 'button', accessibleName: 'Run fixture' },
-};
-
-const READINESS_EXPECTATION = {
-  contractId: 'fixture-readiness-v1',
-  rootContentSemanticId: 'fixture-root',
-  primaryControl: READINESS_DECLARATION.primaryControl,
-  projectionPredicateId: 'fixture-projection',
-  blockingStatePredicateId: 'fixture-not-blocked',
-};
-
 function createSession({
   modules = [],
   registryRows = [],
-  readiness = true,
-  readinessBrowserPort = readinessBrowser(),
   onRouteChange,
   writeRoute,
 } = {}) {
@@ -147,14 +116,8 @@ function createSession({
       mount: () => {},
       unmount: () => {},
     }),
-    readinessBrowser: readinessBrowserPort,
-    simulationDisclosureVisible: () => true,
     onRouteChange,
     writeRoute,
-    readinessDeclarations: readiness ? { 'fixture-module/main': READINESS_DECLARATION } : {},
-    readinessExpectations: readiness ? { 'fixture-module/main': READINESS_EXPECTATION } : {},
-    readinessProjectionPredicates: readiness ? { 'fixture-projection': () => true } : {},
-    readinessBlockingPredicates: readiness ? { 'fixture-not-blocked': () => false } : {},
   });
   return { session, clock };
 }
@@ -328,26 +291,9 @@ test('readiness barriers are session-owned and cancel on close', async () => {
   const barrierResult = session.readinessFor(opened.value.instanceId, 'main');
   assert.equal(barrierResult.ok, true);
   const barrier = barrierResult.value;
-  const signaled = barrier.signalCandidate({ contractId: 'fixture-readiness-v1' });
-  assert.equal(signaled.ok, true);
   await session.closeInstance(opened.value.instanceId);
   const terminal = await barrier.completion;
   assert.equal(terminal.state, 'cancelled');
-});
-
-test('missing readiness authority fails the session closed instead of synthesizing a contract', async () => {
-  const moduleId = 'fixture-module';
-  const row = registryRow(moduleId, moduleSourceFor(moduleId));
-  const { session } = createSession({
-    modules: [fixtureModule()],
-    registryRows: [row],
-    readiness: false,
-  });
-  const opened = await session.openInstance(moduleId);
-  const result = session.readinessFor(opened.value.instanceId, 'main');
-  assert.equal(result.ok, false);
-  assert.equal(result.error.code, 'SIMULATOR_INTEGRITY_FAILURE');
-  assert.equal(session.phase, 'terminal');
 });
 
 test('scenario reset disposes instances and returns the shell home', async () => {
@@ -378,14 +324,9 @@ test('scenario reset result is observable before readiness reset completion', as
   const { session } = createSession({
     modules: [fixtureModule()],
     registryRows: [row],
-    readinessBrowserPort: {
-      ...readinessBrowser(),
-      awaitCommit: () => new Promise(() => {}),
-    },
   });
   const opened = await session.openInstance(moduleId);
   const barrier = session.readinessFor(opened.value.instanceId, 'main').value;
-  barrier.signalCandidate({ contractId: 'fixture-readiness-v1' });
 
   const order = [];
   const readiness = barrier.completion.then((terminal) => {
@@ -409,14 +350,9 @@ test('failed reset still settles invalidated readiness after the reset result', 
   const { session } = createSession({
     modules: [fixtureModule()],
     registryRows: [row],
-    readinessBrowserPort: {
-      ...readinessBrowser(),
-      awaitCommit: () => new Promise(() => {}),
-    },
   });
   const opened = await session.openInstance(moduleId);
   const barrier = session.readinessFor(opened.value.instanceId, 'main').value;
-  barrier.signalCandidate({ contractId: 'fixture-readiness-v1' });
 
   const order = [];
   const readiness = barrier.completion.then((terminal) => {
@@ -514,24 +450,4 @@ test('engine and session share one committed truth for instance presentation', a
   const fromEngine = session.engine.getCommitted().instance(opened.value.instanceId);
   assert.equal(fromEngine.moduleId, moduleId);
   assert.equal(fromEngine.status, 'inactive');
-});
-
-test('state engine replay digest remains stable with the shell session attached', async () => {
-  const moduleId = 'fixture-module';
-  const row = registryRow(moduleId, moduleSourceFor(moduleId));
-  const { session } = createSession({
-    modules: [fixtureModule()],
-    registryRows: [row],
-  });
-  await session.openInstance(moduleId);
-  await session.engine.acceptCommand('increment', { by: 1 }, { kind: 'shell', moduleId: null, instanceId: null });
-  const record = session.engine.buildReplayRecord();
-  const digest = session.engine.replayRecordDigest(record);
-  const { replaySimulatorSession } = await import('../../src/state-engine/replay.ts');
-  const outcome = await replaySimulatorSession(record, {
-    scenario: fixtureScenario(),
-    modules: [fixtureModule()],
-  });
-  assert.equal(outcome.matches, true);
-  assert.equal(session.engine.replayRecordDigest(), digest);
 });

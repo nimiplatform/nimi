@@ -29,7 +29,7 @@ const HORIZON = 0.45;
 const TEX_WIDTH = 1024;
 const TEX_HEIGHT = 512;
 
-/** Deterministic PRNG so the generated terrain is replay-stable. */
+/** Deterministic PRNG so the generated terrain is stable across renders. */
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {

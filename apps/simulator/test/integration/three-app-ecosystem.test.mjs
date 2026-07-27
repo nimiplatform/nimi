@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createSimulatorStateEngine } from '../../src/state-engine/engine.ts';
-import { replaySimulatorSession } from '../../src/state-engine/replay.ts';
 import { simulatorReferenceInteractionCatalog } from '../../src/interactions/reference-ecosystem.ts';
 import { desktopSimulatorBehavior } from '../../../desktop/src/simulator/behavior.ts';
 import { simulatorConformanceFixture as desktopFixture } from '../../../desktop/src/simulator/fixture.ts';
@@ -26,17 +25,6 @@ const SCENARIO = {
   shellState: { readiness: {} },
 };
 const SHELL = { kind: 'shell', moduleId: null, instanceId: null };
-const MODULE_DEFINITIONS = MODULES.map((module) => ({
-  moduleId: module.moduleId,
-  orderingKey: module.orderingKey,
-  commandSchemas: module.fixture.catalog.commandSchemas,
-  eventSchemas: module.fixture.catalog.eventSchemas,
-  queries: {},
-  selectSharedProjection: null,
-  moduleData: module.fixture.catalog.moduleData,
-  behavior: module.behavior,
-}));
-
 async function transition(engine, instanceId, name) {
   const result = await engine.acceptCommand('simulator.instance.transition', { instanceId, transition: name }, SHELL);
   assert.equal(result.ok, true, `${instanceId} ${name}`);
@@ -85,8 +73,8 @@ function referenceEnvelope(instanceId, overrides = {}) {
     interactionId: `${instanceId}:ecosystem:1`,
     source: { moduleId: 'desktop', instanceId },
     targets: ['zhiyu', 'tester'],
-    type: 'ecosystem.reference.checkpoint',
-    payload: { checkpointId: 'desktop-auth-primary', label: 'Desktop login action committed' },
+    type: 'ecosystem.reference.publish',
+    payload: {},
     ...overrides,
   };
 }
@@ -108,25 +96,15 @@ async function runReferenceInteraction() {
   assert.equal(tester.ok, true);
   assert.equal(zhiyu.value.ecosystemReference.ecosystemRevision, result.value.ecosystemRevision);
   assert.equal(tester.value.ecosystemReference.ecosystemRevision, result.value.ecosystemRevision);
-  const replay = engine.buildReplayRecord();
-  assert.deepEqual(
-    replay.expected.revision,
-    beforeRevision + 3,
-  );
   return {
     result: result.value,
-    replay,
-    replayDigest: engine.replayRecordDigest(replay),
-    eventDigest: replay.expected.eventDigest,
-    stateDigest: replay.expected.stateDigest,
+    revision: engine.getCommitted().revision,
   };
 }
 
 test('Desktop interaction commits its ecosystem transaction before ordered Zhiyu and Tester stages', async () => {
   const first = await runReferenceInteraction();
-  assert.equal(first.replay.expected.revision, first.result.ecosystemRevision + 2);
-  assert.equal(first.replay.inputs.at(-1).operation.type, 'simulator.interaction.emit');
-  assert.equal(first.replay.operationSettlements.at(-1).result.ok, true);
+  assert.equal(first.revision, first.result.ecosystemRevision + 2);
   assert.deepEqual(Object.keys(first.result).sort(), ['ecosystemRevision', 'eventId', 'interactionId']);
 });
 
@@ -142,7 +120,7 @@ test('an unrelated same-type Zhiyu event cannot advance the interaction continua
     inserted = true;
     void engine.acceptCommand('zhiyu.ecosystem.project', {
       ...reference,
-      label: 'Unrelated same-type event',
+      interactionId: 'unrelated-interaction',
     }, SHELL);
   });
   const result = await engine.acceptCommand(
@@ -155,27 +133,12 @@ test('an unrelated same-type Zhiyu event cannot advance the interaction continua
   assert.equal(inserted, true);
   const tester = engine.projectInstance(instanceIds.tester);
   assert.equal(tester.ok, true);
-  assert.equal(tester.value.ecosystemReference.label, 'Desktop login action committed');
-});
-
-test('reference interaction revision, event, state, and replay digests reproduce byte-identically', async () => {
-  const expected = await runReferenceInteraction();
-  for (let index = 0; index < 100; index += 1) {
-    const replayed = await replaySimulatorSession(expected.replay, {
-      scenario: SCENARIO,
-      modules: MODULE_DEFINITIONS,
-      interactions: simulatorReferenceInteractionCatalog,
-    });
-    assert.equal(replayed.matches, true);
-    assert.equal(replayed.recomputed.eventDigest, expected.eventDigest);
-    assert.equal(replayed.recomputed.stateDigest, expected.stateDigest);
-    assert.equal(replayed.engine.replayRecordDigest(), expected.replayDigest);
-  }
+  assert.equal(tester.value.ecosystemReference.interactionId, result.value.interactionId);
 });
 
 test('missing or closed targets fail deterministically without state or event changes', async () => {
   const missing = await createIntegratedEngine({ omitModule: 'zhiyu' });
-  const before = missing.engine.buildReplayRecord().expected;
+  const before = missing.engine.getCommitted();
   const result = await missing.engine.acceptCommand(
     'simulator.interaction.emit',
     referenceEnvelope(missing.instanceIds.desktop),
@@ -183,10 +146,9 @@ test('missing or closed targets fail deterministically without state or event ch
   );
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'SIMULATOR_INSTANCE_DISPOSED');
-  const after = missing.engine.buildReplayRecord().expected;
+  const after = missing.engine.getCommitted();
   assert.equal(after.revision, before.revision);
-  assert.equal(after.stateDigest, before.stateDigest);
-  assert.equal(after.eventDigest, before.eventDigest);
+  assert.deepEqual(after.partitions, before.partitions);
 
   const closed = await createIntegratedEngine();
   await transition(closed.engine, closed.instanceIds.zhiyu, 'dispose');
@@ -211,7 +173,6 @@ test('unsupported interaction and malformed targets are typed failures with no p
   const { engine, instanceIds } = await createIntegratedEngine();
   const revision = engine.getCommitted().revision;
   const issuer = { kind: 'instance', moduleId: 'desktop', instanceId: instanceIds.desktop };
-  const replayBefore = engine.buildReplayRecord();
   const unsupported = await engine.acceptCommand(
     'simulator.interaction.emit',
     referenceEnvelope(instanceIds.desktop, { type: 'ecosystem.reference.unknown' }),
@@ -227,9 +188,6 @@ test('unsupported interaction and malformed targets are typed failures with no p
   assert.equal(malformed.ok, false);
   assert.equal(malformed.error.code, 'SIMULATOR_INVALID_PAYLOAD');
   assert.equal(engine.getCommitted().revision, revision);
-  const replayAfter = engine.buildReplayRecord();
-  assert.deepEqual(replayAfter.inputs, replayBefore.inputs);
-  assert.deepEqual(replayAfter.operationSettlements, replayBefore.operationSettlements);
 });
 
 for (const [name, emittedEvents] of [

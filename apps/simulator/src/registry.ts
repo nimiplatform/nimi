@@ -1,8 +1,5 @@
 import { simulatorResolvedModules } from '../.generated/registry';
-import {
-  simulatorResolvedModuleCatalogs,
-  simulatorResolvedReadinessDeclarations,
-} from '../.generated/runtime-catalogs';
+import { simulatorResolvedModuleCatalogs } from '../.generated/runtime-catalogs';
 import {
   simulatorResolvedScenario,
 } from '../.generated/scenario';
@@ -10,6 +7,5 @@ import {
 export {
   simulatorResolvedModuleCatalogs,
   simulatorResolvedModules,
-  simulatorResolvedReadinessDeclarations,
   simulatorResolvedScenario,
 };

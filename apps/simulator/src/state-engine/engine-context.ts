@@ -8,12 +8,10 @@
 
 import {
   assertJsonValue,
-  canonicalizeJson,
   cloneJsonValue,
   freezeJsonValue,
   type JsonValue,
 } from './json-value.ts';
-import { sha256HexOfText } from './sha256.ts';
 import {
   decodeSimulatorSeed,
   simulatorRandomToSnapshot,
@@ -51,8 +49,6 @@ import {
   type EventSubscriber,
   type QueuedOperation,
   type SettlementRecord,
-  type SimulatorReplayLedgerEntry,
-  type SimulatorReplayOperationSettlement,
   type SimulatorResetTerminalSettlement,
   type SimulatorStateEngineHooks,
   type SimulatorStateEngineOptions,
@@ -89,14 +85,6 @@ export interface EngineContext {
   prepareWindows: Map<string, { closed: boolean; subscriptionCount: number }>;
   stateSubscriberSequence: number;
   eventLog: SimulatorEventRecord[];
-  replayInputs: SimulatorReplayLedgerEntry[];
-  replayReservationHandles: Map<string, import('./reservations.ts').SimulatorAsyncReservationHandle>;
-  replayExternalOperations: Map<number, {
-    readonly operationId: string;
-    readonly acceptanceOrder: number;
-  }>;
-  replayAcceptanceOrder: number;
-  replayOperationSettlements: SimulatorReplayOperationSettlement[];
   reservationResultSinks: Map<string, (result: SimulatorResult<JsonValue>) => void>;
   committed: CommittedState;
   clock: SimulatorLogicalClock;
@@ -133,7 +121,7 @@ export interface EngineContextWiring {
 
 /**
  * Materializes one committed value as the immutable source shared by reducers,
- * selectors, lifecycle projections, replay, and the public snapshot surface.
+ * selectors, lifecycle projections, and the public snapshot surface.
  * State transitions replace this value; no committed container is mutated.
  */
 export function freezeCommittedState(committed: CommittedState): CommittedState {
@@ -175,11 +163,6 @@ export function createEngineContext(
     prepareWindows: new Map(),
     stateSubscriberSequence: 0,
     eventLog: [],
-    replayInputs: [],
-    replayReservationHandles: new Map(),
-    replayExternalOperations: new Map(),
-    replayAcceptanceOrder: 0,
-    replayOperationSettlements: [],
     reservationResultSinks: new Map(),
     committed: freezeCommittedState({
       snapshot: {
@@ -214,16 +197,6 @@ export function recordSettlement(
   settle: (result: SimulatorResult<JsonValue>) => void,
   result: SimulatorResult<JsonValue>,
 ): void {
-  const replay = context.replayExternalOperations.get(sequence);
-  if (replay) {
-    context.replayExternalOperations.delete(sequence);
-    context.replayOperationSettlements.push(Object.freeze({
-      acceptanceOrder: replay.acceptanceOrder,
-      acceptanceSequence: sequence,
-      operationId: replay.operationId,
-      result: freezeJsonValue(cloneJsonValue(assertJsonValue(result as unknown as JsonValue))) as unknown as SimulatorResult<JsonValue>,
-    }));
-  }
   context.settlements.push({ sequence, settle, result });
 }
 
@@ -250,29 +223,6 @@ export function sharedProjectionFor(context: EngineContext, moduleId: string): J
     return freezeJsonValue(assertJsonValue(declaration.selectSharedProjection(partitionsView(context))));
   }
   return context.committed.snapshot.ecosystem;
-}
-
-export function digestCommitted(context: EngineContext): string {
-  return `sha256:${sha256HexOfText(canonicalizeJson({
-    snapshot: {
-      scenario: context.committed.snapshot.scenario,
-      ecosystem: context.committed.snapshot.ecosystem,
-      shell: context.committed.snapshot.shell,
-      instances: context.committed.snapshot.instances as unknown as JsonValue,
-      modules: context.committed.snapshot.modules as unknown as JsonValue,
-    },
-    revision: context.committed.revision,
-    logicalTime: context.committed.logicalTime,
-    random: {
-      generator: context.committed.random.generator,
-      state: [...context.committed.random.state],
-      drawCount: context.committed.random.drawCount,
-    },
-  }))}`;
-}
-
-export function digestEvents(context: EngineContext): string {
-  return `sha256:${sha256HexOfText(canonicalizeJson(context.eventLog as unknown as JsonValue))}`;
 }
 
 export function instancesInCreationOrder(committed: CommittedState) {

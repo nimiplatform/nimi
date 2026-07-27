@@ -36,7 +36,6 @@ import {
   freezeInstancePresentation,
   isThenable,
   type QueuedOperation,
-  type SimulatorReplayRecord,
   type SimulatorStateEngine,
   type SimulatorStateEngineOptions,
   type SimulatorStreamHandle,
@@ -66,18 +65,12 @@ import {
   subscribePreparedEvent,
   validateLiveIssuer,
 } from './caller-admission.ts';
-import {
-  applyEngineReplayReservationTerminal,
-  buildEngineReplayRecord,
-  engineReplayRecordDigest,
-} from './engine-replay.ts';
 import { registerStreamMethod } from './stream-methods.ts';
 import { createInteractionRuntime } from './interactions.ts';
 import { isSimulatorRouteState } from './route-state.ts';
 
 export {
   SIMULATOR_MAX_OPERATIONS_PER_DRAIN,
-  type SimulatorReplayRecord,
   type SimulatorStateEngine,
   type SimulatorStateEngineOptions,
 };
@@ -137,17 +130,6 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
     onStreamTerminal(streamId, terminal) {
       const handle = context.streamHandles.get(streamId);
       const record = context.streams.get(streamId);
-      if (record) {
-        context.replayInputs.push({
-          kind: 'stream-terminal',
-          stream: {
-            streamId,
-            epoch: record.epoch,
-            allocationSequence: record.allocationSequence,
-            terminal,
-          },
-        });
-      }
       if (handle) {
         context.streamHandles.delete(streamId);
         if (context.resetTerminalCapture) {
@@ -273,17 +255,6 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
       settle: settleFn,
     };
     context.queue.push(operation);
-    if (!operation.derived) {
-      context.replayAcceptanceOrder += 1;
-      context.replayInputs.push({
-        kind: 'operation',
-        operation: { kind, type, payload: validation.value, issuer, causationId },
-      });
-      context.replayExternalOperations.set(sequence, {
-        operationId,
-        acceptanceOrder: context.replayAcceptanceOrder,
-      });
-    }
     if (!context.draining) drain();
     return { operationId, settlement: promise };
   }
@@ -372,19 +343,7 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
       if (stream.status !== 'terminal') context.streams.fail(stream.streamId);
     }
     context.clock.cancelAll();
-    for (const reservation of context.pump.cancelAll('dispose')) {
-      context.replayInputs.push({
-        kind: 'reservation-terminal',
-        reservation: {
-          reservationId: reservation.reservationId,
-          epoch: reservation.epoch,
-          allocationSequence: reservation.allocationSequence,
-          resolution: 'cancelled',
-          outcome: null,
-          cancelReason: 'dispose',
-        },
-      });
-    }
+    context.pump.cancelAll('dispose');
     context.reservationResultSinks.clear();
     try {
       context.hooks.invalidateEpoch?.(context.epoch, context.epoch);
@@ -586,23 +545,9 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
         outcomeSchemaId: input.outcomeSchemaId,
         outcomeSchema,
       });
-      // Replay uses raw handles so recorded terminals never double-log.
-      context.replayReservationHandles.set(reservationId, handle);
       if (input.onCommandSettlement) {
         context.reservationResultSinks.set(reservationId, input.onCommandSettlement);
       }
-      context.replayInputs.push({
-        kind: 'reservation-allocate',
-        allocation: {
-          reservationId,
-          epoch: context.epoch,
-          allocationSequence: reservationSequence,
-          issuer: input.issuer,
-          causationId: input.causationId,
-          commandType: input.commandType,
-          outcomeSchemaId: input.outcomeSchemaId,
-        },
-      });
       return simulatorOk(Object.freeze({
         reservationId,
         settle(outcome: JsonValue) {
@@ -611,21 +556,7 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
           if (context.epoch !== reservationEpoch || context.phase !== 'open') {
             return simulatorOk({ accepted: false });
           }
-          const result = handle.settle(outcome);
-          if (result.ok && result.value.accepted) {
-            context.replayInputs.push({
-              kind: 'reservation-terminal',
-              reservation: {
-                reservationId,
-                epoch: reservationEpoch,
-                allocationSequence: reservationSequence,
-                resolution: 'settled',
-                outcome,
-                cancelReason: null,
-              },
-            });
-          }
-          return result;
+          return handle.settle(outcome);
         },
         cancel(reason: 'caller' | 'dispose' | 'reset') {
           if (context.epoch !== reservationEpoch || context.phase !== 'open') {
@@ -634,17 +565,6 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
           const result = handle.cancel(reason);
           if (result.ok && result.value.cancelled) {
             context.reservationResultSinks.delete(reservationId);
-            context.replayInputs.push({
-              kind: 'reservation-terminal',
-              reservation: {
-                reservationId,
-                epoch: reservationEpoch,
-                allocationSequence: reservationSequence,
-                resolution: 'cancelled',
-                outcome: null,
-                cancelReason: reason,
-              },
-            });
           }
           return result;
         },
@@ -654,17 +574,6 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
       const cancelled = context.pump.cancelAllForInstance(instanceId, 'dispose');
       for (const record of cancelled) {
         context.reservationResultSinks.delete(record.reservationId);
-        context.replayInputs.push({
-          kind: 'reservation-terminal',
-          reservation: {
-            reservationId: record.reservationId,
-            epoch: record.epoch,
-            allocationSequence: record.allocationSequence,
-            resolution: 'cancelled',
-            outcome: null,
-            cancelReason: 'dispose',
-          },
-        });
       }
     },
     cancelStreamsForInstance(instanceId) {
@@ -686,13 +595,6 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
     },
     attachStream(streamId) {
       const result = context.streams.attach(streamId);
-      const record = context.streams.get(streamId);
-      if (result.attached && record) {
-        context.replayInputs.push({
-          kind: 'stream-attach',
-          stream: { streamId, epoch: record.epoch, allocationSequence: record.allocationSequence },
-        });
-      }
       return simulatorOk(result);
     },
     streamObserverFailure(streamId) {
@@ -710,10 +612,6 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
           const attached = context.streams.attach(streamId);
           if (attached.attached) {
             handle.observer = observer;
-            context.replayInputs.push({
-              kind: 'stream-attach',
-              stream: { streamId, epoch: record.epoch, allocationSequence: record.allocationSequence },
-            });
           }
           return simulatorOk(attached);
         },
@@ -755,15 +653,6 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
         && !interactions.hasPending()
       );
     },
-    buildReplayRecord() {
-      return buildEngineReplayRecord(context);
-    },
-    replayRecordDigest(record) {
-      return engineReplayRecordDigest(record ?? engine.buildReplayRecord());
-    },
-    applyReplayReservationTerminal(reservationId, resolution, outcome, cancelReason) {
-      applyEngineReplayReservationTerminal(context, reservationId, resolution, outcome, cancelReason);
-    },
     allocateReadinessId() {
       if (context.phase !== 'open') {
         return simulatorFail(simulatorError(context.phase === 'resetting' ? 'SIMULATOR_STALE_EPOCH' : 'SIMULATOR_INTEGRITY_FAILURE'));
@@ -785,8 +674,5 @@ export type {
   SimulatorStreamHandle,
   SimulatorStreamMethodDeclaration,
   SimulatorStateEngineHooks,
-  SimulatorReplayInputEntry,
-  SimulatorReplayLedgerEntry,
-  SimulatorReplayOperationSettlement,
 } from './engine-types.ts';
 export type { SimulatorStreamTerminal };

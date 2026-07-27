@@ -52,7 +52,7 @@ export interface SimulatorInteractionDeclaration {
     readonly targetPayload: JsonValue;
     /** Optional declared Shell-partition product effects, committed atomically. */
     readonly product?: SimulatorInteractionProductEffects;
-    /** A duplicate against committed State Engine truth settles without a commit or target replay. */
+    /** A duplicate against committed State Engine truth settles without a commit or target dispatch. */
     readonly idempotent?: boolean;
   };
 }

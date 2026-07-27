@@ -171,7 +171,7 @@ export function registerInternalCommands(context: EngineContext): void {
         state: { kind: 'stringEnum', values: ['usable', 'cancelled', 'failed'] },
         reason: {
           kind: 'stringEnum',
-          values: ['qualified', 'dispose', 'reset', 'stale-epoch', 'state-change', 'instance-failure', 'module-failure', 'session-failure', 'semantic-mismatch', 'render-barrier-failed'],
+          values: ['ready', 'dispose', 'reset', 'stale-epoch', 'state-change', 'instance-failure', 'module-failure', 'session-failure'],
         },
         markedAtLogicalTime: { kind: 'union', variants: [{ kind: 'null' }, INTEGER_SCHEMA] },
       },
@@ -356,17 +356,6 @@ export function processInternalCommand(context: EngineContext, operation: Queued
         resolveCompletion = resolve;
       });
       context.streamHandles.set(streamId, { observer: null, completion, resolveCompletion });
-      context.replayInputs.push({
-        kind: 'stream-allocate',
-        stream: {
-          streamId,
-          epoch: context.epoch,
-          allocationSequence: opened.allocationSequence,
-          methodId: method.methodId,
-          ownerModuleId: method.ownerModuleId,
-          ownerInstanceId,
-        },
-      });
       stateChanged(context, operation, { streamId, allocationSequence: opened.allocationSequence });
       return;
     }

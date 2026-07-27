@@ -6,7 +6,6 @@ import test from 'node:test';
 import { parse } from 'yaml';
 
 import { createSimulatorStateEngine } from '../../src/state-engine/engine.ts';
-import { replaySimulatorSession } from '../../src/state-engine/replay.ts';
 import { simulatorReferenceInteractionCatalog } from '../../src/interactions/reference-ecosystem.ts';
 import { validateSimulatorScenario } from '../../build/config.mjs';
 import { desktopSimulatorBehavior } from '../../../desktop/src/simulator/behavior.ts';
@@ -38,17 +37,6 @@ const SCENARIO = {
   ecosystemState: validated.state.ecosystem,
   shellState: validated.state.shell,
 };
-
-const MODULE_DEFINITIONS = MODULES.map((module) => ({
-  moduleId: module.moduleId,
-  orderingKey: module.orderingKey,
-  commandSchemas: module.fixture.catalog.commandSchemas,
-  eventSchemas: module.fixture.catalog.eventSchemas,
-  queries: {},
-  selectSharedProjection: null,
-  moduleData: module.fixture.catalog.moduleData,
-  behavior: module.behavior,
-}));
 
 async function transition(engine, instanceId, name) {
   const result = await engine.acceptCommand('simulator.instance.transition', { instanceId, transition: name }, SHELL);
@@ -263,7 +251,7 @@ test('agent.carry consent accept publishes the step-0 request-interaction direct
 
 test('product interactions fail typed with no state commit when a target is missing', async () => {
   const { engine, instanceIds } = await createIntegratedEngine({ omitModule: 'zhiyu' });
-  const before = engine.buildReplayRecord().expected;
+  const beforeRevision = engine.getCommitted().revision;
   const productBefore = shellProduct(engine);
   const result = await engine.acceptCommand(
     'simulator.interaction.emit',
@@ -276,43 +264,11 @@ test('product interactions fail typed with no state commit when a target is miss
   );
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'SIMULATOR_INSTANCE_DISPOSED');
-  const after = engine.buildReplayRecord().expected;
-  assert.equal(after.revision, before.revision);
-  assert.equal(after.stateDigest, before.stateDigest);
+  assert.equal(engine.getCommitted().revision, beforeRevision);
   assert.equal(shellProduct(engine), productBefore);
 });
 
-test('persona share and carry flows reproduce byte-identical replay digests', async () => {
-  const { engine, instanceIds } = await createIntegratedEngine();
-  await engine.acceptCommand(
-    'simulator.interaction.emit',
-    interactionEnvelope(instanceIds.desktop, 'session.persona.share', PERSONA, ['zhiyu', 'tester']),
-    { kind: 'instance', moduleId: 'desktop', instanceId: instanceIds.desktop },
-  );
-  await engine.acceptCommand(
-    'simulator.interaction.emit',
-    interactionEnvelope(instanceIds.desktop, 'agent.context.carry', {
-      carry: '回声谷解谜计划',
-      card: { title: '会话摘要', detail: '模拟摘要卡片' },
-    }, ['zhiyu']),
-    { kind: 'instance', moduleId: 'desktop', instanceId: instanceIds.desktop },
-  );
-  const replay = engine.buildReplayRecord();
-  const replayDigest = engine.replayRecordDigest(replay);
-  for (let index = 0; index < 10; index += 1) {
-    const replayed = await replaySimulatorSession(replay, {
-      scenario: SCENARIO,
-      modules: MODULE_DEFINITIONS,
-      interactions: simulatorReferenceInteractionCatalog,
-    });
-    assert.equal(replayed.matches, true);
-    assert.equal(replayed.recomputed.eventDigest, replay.expected.eventDigest);
-    assert.equal(replayed.recomputed.stateDigest, replay.expected.stateDigest);
-    assert.equal(replayed.engine.replayRecordDigest(), replayDigest);
-  }
-});
-
-/* — Shell product runner sequence proofs —
+/* — Shell product runner sequence behavior —
  * These mirror the Shell chrome provider's dispatch loop
  * (src/shell/chrome/product-presentation.tsx): `simulator.product.flow.begin`
  * → consent gating → fixed-step `simulator.product.flow.step` ticks, emitting

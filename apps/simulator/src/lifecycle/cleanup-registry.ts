@@ -114,7 +114,7 @@ export function createCleanupRegistry(options: SimulatorCleanupRegistryOptions):
 
 /**
  * The watchdog uses host monotonic time only as a fail-closed integrity
- * guard; its elapsed value never enters State Engine state or replay output.
+ * guard; its elapsed value never enters State Engine state.
  */
 export function runWithWatchdog(
   work: () => Promise<void> | void,

@@ -79,19 +79,7 @@ export async function runResetBarrier(context: EngineContext): Promise<void> {
     context.streams.cancelAllForReset();
     // 2. Jobs and async reservations by allocation sequence.
     for (const job of context.clock.pendingJobs()) context.clock.cancel(job.jobId);
-    for (const reservation of context.pump.cancelAll('reset')) {
-      context.replayInputs.push({
-        kind: 'reservation-terminal',
-        reservation: {
-          reservationId: reservation.reservationId,
-          epoch: reservation.epoch,
-          allocationSequence: reservation.allocationSequence,
-          resolution: 'cancelled',
-          outcome: null,
-          cancelReason: 'reset',
-        },
-      });
-    }
+    context.pump.cancelAll('reset');
     // 3. Instances disposed in reverse creation order by the host.
     const instances = Object.entries(context.committed.snapshot.instances)
       .map(([instanceId, instance]) => freezeInstancePresentation(instanceId, instance))
@@ -237,9 +225,6 @@ export function reconstructNewEpoch(context: EngineContext): void {
     logicalTime: scenario.initialLogicalTime,
   });
   // Clock, stream, and reservation registries are epoch-owned mutable state.
-  // Reusing their cancelled old-epoch ledgers would leak logical time and
-  // allocation order into the reconstructed scenario even though canonical
-  // IDs restart at one.
   context.clock = createLogicalClock(scenario.initialLogicalTime);
   context.streams = createStreamRegistry({
     onItem: context.wiring.onStreamItem,
@@ -252,7 +237,6 @@ export function reconstructNewEpoch(context: EngineContext): void {
   context.reservationResultSinks.clear();
   context.eventSubscribers = [];
   context.prepareWindows = new Map();
-  context.replayReservationHandles.clear();
 }
 
 export function flushTerminalSettlements(settlementsToFlush: readonly SimulatorResetTerminalSettlement[]): void {

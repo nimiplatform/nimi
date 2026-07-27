@@ -326,7 +326,7 @@ export function extractConformanceFixture(source, manifest) {
     fail('SIM_FIXTURE_EXPORT', 'fixture must export simulatorConformanceFixture as a static object', manifest.fixtures.conformance);
   }
   const fixture = literalJson(initializer, 'simulatorConformanceFixture');
-  assertFixtureRecord(fixture, 'simulatorConformanceFixture', ['protocol', 'moduleId', 'catalog', 'readiness', 'lifecycle']);
+  assertFixtureRecord(fixture, 'simulatorConformanceFixture', ['protocol', 'moduleId', 'catalog', 'lifecycle']);
   if (fixture.protocol !== SIMULATOR_MODULE_PROTOCOL || fixture.moduleId !== manifest.module_id) {
     fail('SIM_FIXTURE_IDENTITY', 'fixture protocol/moduleId must match the Manifest', manifest.fixtures.conformance);
   }
@@ -348,33 +348,6 @@ export function extractConformanceFixture(source, manifest) {
   }
   for (const [type, schema] of Object.entries(fixture.catalog.eventSchemas)) {
     assertSimulatorSchema(schema, `simulatorConformanceFixture.catalog.eventSchemas.${type}`);
-  }
-  if (!Array.isArray(fixture.readiness) || fixture.readiness.length !== manifest.renderer.surfaces.length) {
-    fail('SIM_FIXTURE_READINESS', 'readiness declarations must match every Manifest surface exactly once', 'simulatorConformanceFixture.readiness');
-  }
-  const bySurface = new Map();
-  for (const [index, declaration] of fixture.readiness.entries()) {
-    const fieldPath = `simulatorConformanceFixture.readiness[${index}]`;
-    assertFixtureRecord(declaration, fieldPath, ['contractId', 'surfaceId', 'rootContentSemanticId', 'primaryControl']);
-    assertFixtureRecord(declaration.primaryControl, `${fieldPath}.primaryControl`, ['semanticId', 'ariaRole', 'accessibleName']);
-    for (const [name, value] of Object.entries({
-      contractId: declaration.contractId,
-      surfaceId: declaration.surfaceId,
-      rootContentSemanticId: declaration.rootContentSemanticId,
-      semanticId: declaration.primaryControl.semanticId,
-      ariaRole: declaration.primaryControl.ariaRole,
-      accessibleName: declaration.primaryControl.accessibleName,
-    })) {
-      if (typeof value !== 'string' || !value.trim()) fail('SIM_FIXTURE_READINESS', `${name} must be non-empty`, fieldPath);
-    }
-    if (bySurface.has(declaration.surfaceId)) fail('SIM_FIXTURE_READINESS', 'duplicate surface declaration', fieldPath);
-    bySurface.set(declaration.surfaceId, declaration);
-  }
-  for (const surface of manifest.renderer.surfaces) {
-    const declaration = bySurface.get(surface.id);
-    if (!declaration || declaration.contractId !== surface.readiness_contract) {
-      fail('SIM_FIXTURE_READINESS', `readiness contract must match ${JSON.stringify(surface.readiness_contract)}`, manifest.fixtures.conformance);
-    }
   }
   if (JSON.stringify(fixture.lifecycle) !== JSON.stringify(['prepare', 'activate', 'deactivate', 'dispose'])) {
     fail('SIM_FIXTURE_LIFECYCLE', 'lifecycle must declare prepare, activate, deactivate, dispose in order', 'simulatorConformanceFixture.lifecycle');

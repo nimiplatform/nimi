@@ -226,15 +226,5 @@ export const simulatorConformanceFixture = {
       },
     },
   },
-  readiness: [{
-    contractId: 'desktop.main.usable',
-    surfaceId: 'main',
-    rootContentSemanticId: 'desktop-main-content',
-    primaryControl: {
-      semanticId: 'desktop-main-shell-primary',
-      ariaRole: 'button',
-      accessibleName: 'Home',
-    },
-  }],
   lifecycle: ['prepare', 'activate', 'deactivate', 'dispose'],
 } as const;

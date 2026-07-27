@@ -9,8 +9,6 @@ export const simulatorConformanceFixture = {
           protocolRevision: { kind: 'integer', minimum: 1, maximum: 1 },
           ecosystemRevision: { kind: 'integer', minimum: 1 },
           interactionId: { kind: 'string', minLength: 1, maxLength: 256 },
-          checkpointId: { kind: 'string', minLength: 1, maxLength: 128 },
-          label: { kind: 'string', minLength: 1, maxLength: 256 },
           committedAt: { kind: 'integer', minimum: 0 },
         },
       },
@@ -123,15 +121,5 @@ export const simulatorConformanceFixture = {
       },
     },
   },
-  readiness: [{
-    contractId: 'tester.main.usable',
-    surfaceId: 'main',
-    rootContentSemanticId: 'tester-main-root',
-    primaryControl: {
-      semanticId: 'tester-primary-action',
-      ariaRole: 'button',
-      accessibleName: 'Text Studio',
-    },
-  }],
   lifecycle: ['prepare', 'activate', 'deactivate', 'dispose'],
 } as const;

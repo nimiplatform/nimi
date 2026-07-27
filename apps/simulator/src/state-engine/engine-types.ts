@@ -157,108 +157,6 @@ export interface SimulatorStateEngineHooks {
   ): void;
 }
 
-export interface SimulatorReplayInputEntry {
-  readonly kind: 'operation';
-  readonly operation: {
-    readonly kind: 'command' | 'query';
-    readonly type: string;
-    readonly payload: JsonValue;
-    readonly issuer: SimulatorIssuer;
-    readonly causationId: string | null;
-  };
-}
-
-export interface SimulatorReplayReservationAllocationEntry {
-  readonly kind: 'reservation-allocate';
-  readonly allocation: {
-    readonly reservationId: string;
-    readonly epoch: number;
-    readonly allocationSequence: number;
-    readonly issuer: SimulatorIssuer;
-    readonly causationId: string | null;
-    readonly commandType: string;
-    readonly outcomeSchemaId: string;
-  };
-}
-
-export interface SimulatorReplayReservationTerminalEntry {
-  readonly kind: 'reservation-terminal';
-  readonly reservation: {
-    readonly reservationId: string;
-    readonly epoch: number;
-    readonly allocationSequence: number;
-    readonly resolution: 'settled' | 'cancelled';
-    readonly outcome: JsonValue | null;
-    readonly cancelReason: 'caller' | 'dispose' | 'reset' | null;
-  };
-}
-
-export interface SimulatorReplayStreamAllocationEntry {
-  readonly kind: 'stream-allocate';
-  readonly stream: {
-    readonly streamId: string;
-    readonly epoch: number;
-    readonly allocationSequence: number;
-    readonly methodId: string;
-    readonly ownerModuleId: string;
-    readonly ownerInstanceId: string | null;
-  };
-}
-
-export interface SimulatorReplayStreamTerminalEntry {
-  readonly kind: 'stream-terminal';
-  readonly stream: {
-    readonly streamId: string;
-    readonly epoch: number;
-    readonly allocationSequence: number;
-    readonly terminal: SimulatorStreamTerminal;
-  };
-}
-
-export interface SimulatorReplayStreamAttachEntry {
-  readonly kind: 'stream-attach';
-  readonly stream: {
-    readonly streamId: string;
-    readonly epoch: number;
-    readonly allocationSequence: number;
-  };
-}
-
-export type SimulatorReplayLedgerEntry =
-  | SimulatorReplayInputEntry
-  | SimulatorReplayReservationAllocationEntry
-  | SimulatorReplayReservationTerminalEntry
-  | SimulatorReplayStreamAllocationEntry
-  | SimulatorReplayStreamAttachEntry
-  | SimulatorReplayStreamTerminalEntry;
-
-export interface SimulatorReplayOperationSettlement {
-  readonly acceptanceOrder: number;
-  readonly acceptanceSequence: number;
-  readonly operationId: string;
-  readonly result: SimulatorResult<JsonValue>;
-}
-
-export interface SimulatorReplayRecord {
-  readonly protocolRevision: 1;
-  readonly scenarioId: string;
-  readonly scenarioRevision: string;
-  readonly seed: string;
-  readonly initialLogicalTime: number;
-  readonly moduleIds: readonly string[];
-  readonly streamMethods: readonly import('./replay-identity.ts').SimulatorReplayStreamMethodIdentity[];
-  readonly inputs: readonly SimulatorReplayLedgerEntry[];
-  readonly operationSettlements: readonly SimulatorReplayOperationSettlement[];
-  readonly expected: {
-    readonly epoch: number;
-    readonly revision: number;
-    readonly logicalTime: number;
-    readonly random: SimulatorRandomSnapshotV1;
-    readonly stateDigest: string;
-    readonly eventDigest: string;
-  };
-}
-
 export interface CommittedState {
   snapshot: {
     scenario: JsonValue;
@@ -336,17 +234,9 @@ export interface SimulatorStateEngine {
     readonly instancesInCreationOrder: () => readonly SimulatorInstancePresentation[];
   };
   isQuiescent(): boolean;
-  buildReplayRecord(): SimulatorReplayRecord;
-  replayRecordDigest(record?: SimulatorReplayRecord): string;
-  applyReplayReservationTerminal(
-    reservationId: string,
-    resolution: 'settled' | 'cancelled',
-    outcome: JsonValue | null,
-    cancelReason: 'caller' | 'dispose' | 'reset' | null,
-  ): void;
   /** Allocates one canonical readiness identifier in the current epoch. */
   allocateReadinessId(): SimulatorResult<{ readonly readinessId: string }>;
-  // Internal surface for the replay runner and tests.
+  // Internal stream registry surface used by the host and focused tests.
   readonly streamRegistry: SimulatorStreamRegistry;
 }
 

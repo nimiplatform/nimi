@@ -11,7 +11,7 @@ import { pathToFileURL } from 'node:url';
 
 import { loadSimulatorConfig } from './config.mjs';
 import { GENERATED_ROOT, CONFIG_ROOT, REPO_ROOT, SIMULATOR_ROOT } from './paths.mjs';
-import { qualifySelectedModules } from './registry.mjs';
+import { generateSelectedModuleRegistry } from './registry.mjs';
 
 function replaceGeneratedRoot(stagedRoot) {
   const backupRoot = `${GENERATED_ROOT}-backup-${process.pid}-${Date.now()}`;
@@ -37,9 +37,8 @@ export function generateSelectedModules() {
   const inputs = loadSimulatorConfig(CONFIG_ROOT);
   const stagedRoot = mkdtempSync(path.join(SIMULATOR_ROOT, '.generated-stage-'));
   try {
-    const generated = qualifySelectedModules({
+    const generated = generateSelectedModuleRegistry({
       descriptors: inputs.descriptors,
-      repositoryCatalog: inputs.repositoryCatalog,
       scenario: inputs.scenario,
       repoRoot: REPO_ROOT,
       simulatorRoot: SIMULATOR_ROOT,

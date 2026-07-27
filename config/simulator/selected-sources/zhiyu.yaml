@@ -1,22 +1,2 @@
-schema: nimi.simulator.selected-source/v1
 module_id: zhiyu
-sources:
-  - id: app
-    kind: workspace
-    repository_key: nimi
-    object_format: git-sha1
-    object_id: 73f94a29c76fa3b8aec39192083771c7a6499f5e
-    root: apps/zhiyu
-    expected_digest: sha256:f8140c49594de3d5f9772961611d2d4b993447f8902a40986d31be0700f486c1
-app_production:
-  source_id: app
-  entries:
-    - src/main.tsx
-host_invocations:
-  entries:
-    - id: zhiyu-renderer
-      source_id: app
-      entry: src/main.tsx
-manifest:
-  source_id: app
-  path: nimi.simulator.yaml
+root: apps/zhiyu

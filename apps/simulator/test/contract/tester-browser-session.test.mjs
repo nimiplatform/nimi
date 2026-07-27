@@ -11,7 +11,7 @@ const helper = path.join(
 );
 const tsxImport = import.meta.resolve('tsx');
 
-test('one React root tracks post-candidate DOM commits, isolates two Tester assignments, and returns resources to baseline', () => {
+test('one React root isolates two Tester instances and returns resources to baseline', () => {
   const output = execFileSync(process.execPath, ['--import', tsxImport, helper], {
     cwd: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..'),
     encoding: 'utf8',

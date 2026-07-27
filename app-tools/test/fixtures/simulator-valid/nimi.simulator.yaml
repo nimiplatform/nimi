@@ -4,8 +4,6 @@ composition:
   factory_entry: src/renderer/factory.ts
   factory_export: sampleCanonicalRendererFactory
   style_entry: src/renderer/styles.css
-  app_production_entries:
-    - src/main.ts
 renderer:
   entry: src/simulator/renderer.ts
   export: sampleSimulatorRenderer
@@ -16,7 +14,6 @@ renderer:
       factory_surface: main
       label: Sample
       initial_route: /
-      readiness_contract: sample-app.main.usable
 requires:
   kit_capabilities: []
   sdk_methods: []

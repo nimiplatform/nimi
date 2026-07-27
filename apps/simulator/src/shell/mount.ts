@@ -13,7 +13,6 @@ import { createRoot } from 'react-dom/client';
 import {
   simulatorResolvedModuleCatalogs,
   simulatorResolvedModules,
-  simulatorResolvedReadinessDeclarations,
   simulatorResolvedScenario,
 } from '../registry.ts';
 import type { SimulatorGuardHandle } from '../effects/guards.ts';
@@ -34,12 +33,6 @@ import {
 import { parseShellRoute } from './routes.ts';
 import { SIMULATOR_PRODUCT_COMMANDS } from '../state-engine/product-state.ts';
 import type { ProductEnginePorts } from './chrome/product-presentation.tsx';
-import {
-  createAssignedRootRegistry,
-  createBrowserReadinessPort,
-  createReactCommitTracker,
-  isSimulationDisclosureVisible,
-} from '../lifecycle/browser-readiness.ts';
 import '../styles.css';
 /* Field shell chrome (prototype2 Aurora port) — imported from JS because the
  * CSS profile protocol pins src/styles.css to the exact Kit import sequence.
@@ -53,11 +46,8 @@ import type { SimulatorModuleCatalogDeclaration } from '../state-engine/types.ts
 import { simulatorError } from '../state-engine/errors.ts';
 import {
   bindScenarioModuleData,
-  compileScenarioReadiness,
   launchScenarioInstances,
-  type SimulatorScenarioPredicateDefinition,
 } from './scenario-runtime.ts';
-import type { SimulatorReadinessExpectation } from '../lifecycle/readiness.ts';
 import { simulatorReferenceInteractionCatalog } from '../interactions/reference-ecosystem.ts';
 
 const RESOLVED_MODULE_CATALOGS: readonly Omit<SimulatorModuleCatalogDeclaration, 'moduleData'>[] =
@@ -173,10 +163,6 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
   }
 
   const privilegedSetTimeout = privilegedFunction<typeof setTimeout>(guard, 'globalThis.setTimeout');
-  const privilegedRaf = privilegedFunction<typeof requestAnimationFrame>(guard, 'globalThis.requestAnimationFrame');
-  const privilegedCancelRaf = privilegedFunction<typeof cancelAnimationFrame>(guard, 'globalThis.cancelAnimationFrame');
-  const commits = createReactCommitTracker();
-  const assignedRoots = createAssignedRootRegistry();
   rootElement.tabIndex = -1;
   const coordinator = createGlobalListenerCoordinator(
     guard.catalog.listenerFamilies.map((family) => ({
@@ -192,21 +178,12 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
       run: (owner, phase, callback) => guard.withScope({ owner, phase }, callback),
     },
   );
-  const readinessBrowser = createBrowserReadinessPort({
-    commits,
-    roots: assignedRoots,
-    requestAnimationFrame: (callback) => privilegedRaf.call(globalThis, callback),
-    cancelAnimationFrame: (handle) => privilegedCancelRaf.call(globalThis, handle),
-    computedStyle: (element) => window.getComputedStyle(element),
-  });
   const sessionRef: { current: SimulatorSession | null } = { current: null };
   const surfaces = createSimulatorBrowserSurfaceManager({
     guard,
     document,
     simulatorRoot: document.body,
     shellRoot: rootElement,
-    assignedRoots,
-    commits,
     listeners: coordinator,
     supportedKitCapabilities: new Set(),
     invokeKitOperation: async () => ({
@@ -216,14 +193,9 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
     reportReadyCandidate(input) {
       const readiness = sessionRef.current?.readinessFor(input.instanceId, input.surfaceId);
       if (!readiness?.ok) throw new Error('SIMULATOR_READINESS_BARRIER_MISSING');
-      const signaled = readiness.value.signalCandidate({ contractId: input.contractId });
+      const signaled = readiness.value.signalCandidate();
       if (!signaled.ok) throw new Error(signaled.error.code);
     },
-  });
-  const readiness = compileScenarioReadiness({
-    expectations: simulatorResolvedScenario.readiness as unknown as Readonly<Record<string, SimulatorReadinessExpectation>>,
-    predicates: simulatorResolvedScenario.predicates as unknown as Readonly<Record<string, SimulatorScenarioPredicateDefinition>>,
-    activeOverlayLeaseCount: () => surfaces.activeOverlayLeaseCount,
   });
   const session = createSimulatorSession({
     scenario: simulatorResolvedScenario.scenario,
@@ -242,24 +214,12 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
       run: (owner, phase, callback) => guard.withScope({ owner, phase }, callback),
     },
     prepareSurface: (input) => surfaces.prepare(input),
-    readinessBrowser,
-    readinessDeclarations: simulatorResolvedReadinessDeclarations,
-    readinessExpectations: readiness.expectations,
-    readinessProjectionPredicates: readiness.projectionPredicates,
-    readinessBlockingPredicates: readiness.blockingPredicates,
     onRouteChange: (route) => {
       surfaces.setFullWindow(route.kind === 'instance' ? route.instanceId : null);
     },
     writeRoute: (path, replace) => {
       if (replace) window.history.replaceState(null, '', path);
       else window.history.pushState(null, '', path);
-    },
-    simulationDisclosureVisible: () => {
-      const status = document.querySelector('[data-testid="simulator-status"]');
-      return isSimulationDisclosureVisible(
-        status instanceof HTMLElement ? status : null,
-        (element) => window.getComputedStyle(element),
-      );
     },
   });
   session.engine.setCapabilities(new Set(simulatorResolvedScenario.enabledCapabilities));
@@ -294,9 +254,8 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
     });
     if (route) session.navigate(route, { history: false });
   };
-  // Instance routes hide every non-target surface. Apply them only after the
-  // canonical Scenario has reached its visible readiness checkpoints so a
-  // fresh deep link cannot invalidate or falsely fail background readiness.
+  // Apply deep links after the initial surfaces have mounted so routing does
+  // not race the launch sequence.
   installSimulatorRouteHistoryListener({ coordinator, onHistory: applyBrowserRoute });
   applyBrowserRoute();
 }

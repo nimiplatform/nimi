@@ -25,7 +25,6 @@ import {
 } from '@nimiplatform/kit/shell/renderer/host';
 
 import type { SimulatorGuardHandle } from '../effects/guards.ts';
-import type { SimulatorAssignedRootRegistry, SimulatorReactCommitTracker } from '../lifecycle/browser-readiness.ts';
 import type { SimulatorCanonicalInstance } from '../lifecycle/renderer-contract.ts';
 import type { SimulatorPreparedSurfaceHost } from '../lifecycle/instance-host.ts';
 import { assertJsonValue, type JsonValue } from '../state-engine/json-value.ts';
@@ -44,8 +43,6 @@ export interface SimulatorBrowserSurfaceManagerOptions {
   readonly document: Document;
   readonly simulatorRoot: HTMLElement;
   readonly shellRoot: HTMLElement;
-  readonly assignedRoots: SimulatorAssignedRootRegistry;
-  readonly commits: SimulatorReactCommitTracker;
   readonly listeners: SimulatorGlobalCoordinator;
   readonly supportedKitCapabilities: ReadonlySet<string>;
   readonly invokeKitOperation: (input: {
@@ -57,7 +54,6 @@ export interface SimulatorBrowserSurfaceManagerOptions {
   readonly reportReadyCandidate: (input: {
     readonly instanceId: string;
     readonly surfaceId: string;
-    readonly contractId: string;
   }) => void;
 }
 
@@ -66,7 +62,6 @@ export interface SimulatorBrowserSurfacePrepareInput {
   readonly moduleId: string;
   readonly instanceId: string;
   readonly surfaceId: string;
-  readonly readinessContractId: string;
   readonly kitCapabilities: readonly string[];
   readonly failInstance: (instanceId: string, cause: string) => void;
 }
@@ -80,7 +75,6 @@ export interface SimulatorBrowserSurfaceManager {
    * window geometry and to host the window-chrome portal. */
   stageElement(instanceId: string): HTMLElement | null;
   readonly liveSurfaceCount: number;
-  readonly activeOverlayLeaseCount: number;
 }
 
 interface SurfaceRecord {
@@ -90,7 +84,6 @@ interface SurfaceRecord {
   readonly rendererRoot: HTMLElement;
   readonly overlayRoot: HTMLElement;
   readonly failInstance: (instanceId: string, cause: string) => void;
-  readonly commitObserver: MutationObserver;
   binding: NimiRendererHostBindingV1<NimiRendererHostMethodMap> | null;
   canonical: SimulatorCanonicalInstance | null;
   mounted: boolean;
@@ -240,32 +233,6 @@ export function createSimulatorBrowserSurfaceManager(
     chromeRoot.className = 'simulator-surface__chrome';
     stage.append(chromeRoot, rendererRoot, overlayRoot);
     surfaceContainer.append(stage);
-    options.assignedRoots.assign(input.instanceId, input.surfaceId, {
-      renderer: rendererRoot,
-      overlay: overlayRoot,
-    });
-    const commitScope = { instanceId: input.instanceId, surfaceId: input.surfaceId };
-    const commitObserver = options.guard.withScope(
-      { owner: 'simulator-shell', phase: 'instance-lifecycle' },
-      () => new MutationObserver(() => {
-        options.guard.withScope(
-          { owner: 'simulator-shell', phase: 'callback' },
-          () => { options.commits.recordCommit(commitScope); },
-        );
-      }),
-    );
-    commitObserver.observe(rendererRoot, {
-      attributes: true,
-      characterData: true,
-      childList: true,
-      subtree: true,
-    });
-    commitObserver.observe(overlayRoot, {
-      attributes: true,
-      characterData: true,
-      childList: true,
-      subtree: true,
-    });
     const record: SurfaceRecord = {
       instanceId: input.instanceId,
       surfaceId: input.surfaceId,
@@ -273,7 +240,6 @@ export function createSimulatorBrowserSurfaceManager(
       rendererRoot,
       overlayRoot,
       failInstance: input.failInstance,
-      commitObserver,
       binding: null,
       canonical: null,
       mounted: false,
@@ -299,10 +265,7 @@ export function createSimulatorBrowserSurfaceManager(
         overlayRoot: record.overlayRoot,
       });
       if (!overlayResult.ok) {
-        record.commitObserver.disconnect();
-        options.commits.release({ instanceId: input.instanceId, surfaceId: input.surfaceId });
         records.delete(input.instanceId);
-        options.assignedRoots.release(input.instanceId, input.surfaceId);
         record.stage.remove();
         throw new Error(overlayResult.error.code);
       }
@@ -325,10 +288,9 @@ export function createSimulatorBrowserSurfaceManager(
         },
         overlays: overlayHost.port,
         surfaceLifecycle: {
-          reportReadyCandidate: ({ contractId }) => options.reportReadyCandidate({
+          reportReadyCandidate: () => options.reportReadyCandidate({
             instanceId: input.instanceId,
             surfaceId: input.surfaceId,
-            contractId,
           }),
         },
       });
@@ -340,9 +302,7 @@ export function createSimulatorBrowserSurfaceManager(
           if (record.mounted || record.unmounted) throw new Error('SIMULATOR_SURFACE_MOUNT_INVALID');
           record.canonical = canonical;
           record.mounted = true;
-          // Schedule the portal after the host commits prepare_success. A
-          // synchronous render here would let the App's readiness candidate
-          // precede the authoritative lifecycle transition.
+          // Schedule the portal after the host commits prepare_success.
           publishPortals();
         },
         async unmount() {
@@ -351,17 +311,10 @@ export function createSimulatorBrowserSurfaceManager(
           const dismissed = await overlayHost.requestDismissAll(reason);
           let failure = dismissed.ok ? null : new Error(dismissed.error.code);
           record.unmounted = true;
-          record.commitObserver.disconnect();
-          options.commits.release({ instanceId: input.instanceId, surfaceId: input.surfaceId });
           flushSync(publishPortals);
           record.canonical = null;
           const released = await overlayHost.acknowledgeInstanceUnmounted(reason);
           if (!released.ok && !failure) failure = new Error(released.error.code);
-          try {
-            options.assignedRoots.release(input.instanceId, input.surfaceId);
-          } catch (error) {
-            if (!failure) failure = error instanceof Error ? error : new Error(String(error));
-          }
           records.delete(input.instanceId);
           record.stage.remove();
           record.binding = null;
@@ -386,9 +339,6 @@ export function createSimulatorBrowserSurfaceManager(
     },
     get liveSurfaceCount() {
       return records.size;
-    },
-    get activeOverlayLeaseCount() {
-      return overlays?.activeLeaseCount() ?? 0;
     },
   };
   return Object.freeze(manager);

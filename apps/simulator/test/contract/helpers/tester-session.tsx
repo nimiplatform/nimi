@@ -6,15 +6,6 @@ import { testerSimulatorRenderer } from '../../../../tester/src/simulator/render
 import { createSimulatorSession } from '../../../src/shell/session.ts';
 import { fixtureCanonicalBindings, fixtureScenario } from '../fixtures.mjs';
 
-const readinessDeclaration = simulatorConformanceFixture.readiness[0];
-const readinessExpectation = {
-  contractId: readinessDeclaration.contractId,
-  rootContentSemanticId: readinessDeclaration.rootContentSemanticId,
-  primaryControl: readinessDeclaration.primaryControl,
-  projectionPredicateId: 'tester-projection-ready',
-  blockingStatePredicateId: 'tester-no-blocking-lease',
-} as const;
-
 const moduleCatalog = {
   moduleId: 'tester',
   orderingKey: 0,
@@ -33,7 +24,6 @@ const registryRow = {
       id: 'main',
       label: 'Nimi Lab',
       initialRoute: '/',
-      readinessContractId: readinessDeclaration.contractId,
     }],
     requirements: {
       kitCapabilities: [],
@@ -47,7 +37,6 @@ const registryRow = {
   loadStyle: async () => undefined,
 } as const;
 
-let frame = 0;
 let surfaceSequence = 0;
 const mounted = new Map<string, ReturnType<typeof testerSimulatorRenderer.factory.createInstance>>();
 
@@ -76,30 +65,6 @@ const session = createSimulatorSession({
       unmount() {},
     };
   },
-  readinessBrowser: {
-    currentCommitToken: () => 0,
-    awaitCommit: async ({ sinceToken }) => sinceToken + 1,
-    nextAnimationFrame: async () => {
-      frame += 1;
-      return frame;
-    },
-    beginPaintComposite: async () => 'fixture-paint-window',
-    markPaintCompositeFrame: async () => true,
-    observePaintComposite: async () => true,
-    checkSemanticMarkers: async () => ({ ok: true }),
-  },
-  simulationDisclosureVisible: () => true,
-  readinessDeclarations: { 'tester/main': readinessDeclaration },
-  readinessExpectations: { 'tester/main': readinessExpectation },
-  readinessProjectionPredicates: {
-    'tester-projection-ready': (value) => (
-      typeof value === 'object'
-      && value !== null
-      && !Array.isArray(value)
-      && value.protocolRevision === 1
-    ),
-  },
-  readinessBlockingPredicates: { 'tester-no-blocking-lease': () => false },
 });
 
 const first = await session.openInstance('tester');
@@ -137,10 +102,10 @@ assert.equal(beforeReset.capabilityExecutions.length, 1);
 const readiness = session.readinessFor(second.value.instanceId, 'main');
 assert.equal(readiness.ok, true);
 if (!readiness.ok) throw new Error('Tester readiness barrier is missing.');
-assert.equal(readiness.value.signalCandidate({ contractId: 'tester.main.usable' }).ok, true);
+assert.equal(readiness.value.signalCandidate().ok, true);
 assert.deepEqual(await readiness.value.completion, {
   state: 'usable',
-  reason: 'qualified',
+  reason: 'ready',
   markedAtLogicalTime: 1_800_000_000_000,
 });
 

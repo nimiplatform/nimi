@@ -79,8 +79,6 @@ test('grant toggle flips status and appends a deterministic delegation ledger en
   assert.equal(entry.at, 'T+00:13');
   assert.deepEqual(entry.actors, ['模拟居民', 'Nimi (基座 agent)']);
   assert.equal(engine.getCommitted().revision, before + 1);
-  const eventTypes = engine.buildReplayRecord().expected.eventDigest;
-  assert.equal(typeof eventTypes, 'string');
 
   const back = await dispatch(engine, CMD.grantToggle, { grantId: 'g-context-carry' });
   assert.equal(back.ok, true);
@@ -262,8 +260,6 @@ test('persona commit and agent transition are declared commands with typed event
     location: 'desktop',
     carry: '回声谷解谜计划',
   });
-  const events = engine.buildReplayRecord();
-  assert.equal(events.expected.eventDigest.length, 'sha256:'.length + 64);
 });
 
 test('ledger append validates the closed kind/result unions', async () => {
@@ -325,10 +321,7 @@ test('product command sequences are deterministic across fresh engines', async (
       await dispatch(engine, CMD.flowStep, {});
     }
     await dispatch(engine, CMD.personaCommit, { name: '林澈', id: 'u_7f3a', role: '生态居民 · 早期体验者' });
-    return {
-      product: productOf(engine),
-      digest: engine.replayRecordDigest(),
-    };
+    return productOf(engine);
   };
   const first = await run();
   const second = await run();

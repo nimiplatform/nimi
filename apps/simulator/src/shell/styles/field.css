@@ -3,7 +3,7 @@
 
 /* Border-box is scoped to shell-owned chrome only: canonical App renderers
  * (`.simulator-surface__renderer` / `__overlays` subtrees) keep the default
- * content-box they were qualified with. */
+ * content-box used by their own styles. */
 .field,
 .field *,
 .simulator-shell,

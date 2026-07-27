@@ -160,7 +160,7 @@ export function validateSchema(
   validateInto(schema, json, '$', failures);
   if (failures.length > 0) return { ok: false, failures };
   // Validation is the admission boundary. Retaining the caller's object would
-  // let it mutate an accepted operation, event, route, or replay input after
+  // let it mutate an accepted operation, event, or route after
   // validation but before deterministic consumption.
   return { ok: true, value: freezeJsonValue(cloneJsonValue(json)) };
 }

@@ -257,23 +257,12 @@ export function validateSimulatorManifest(value) {
 
   assertExactKeys(
     value.composition,
-    ['factory_entry', 'factory_export', 'style_entry', 'app_production_entries'],
+    ['factory_entry', 'factory_export', 'style_entry'],
     'composition',
   );
   assertSimulatorSourcePath(value.composition.factory_entry, 'composition.factory_entry');
   validateExportName(value.composition.factory_export, 'composition.factory_export');
   assertSimulatorSourcePath(value.composition.style_entry, 'composition.style_entry');
-  const productionEntries = assertStringArray(
-    value.composition.app_production_entries,
-    'composition.app_production_entries',
-    { nonEmpty: true },
-  );
-  productionEntries.forEach((entry, index) => {
-    assertSimulatorSourcePath(entry, `composition.app_production_entries[${index}]`);
-    if (entry.startsWith('src/simulator/')) {
-      fail('SIM_MANIFEST_PRODUCTION_SIMULATOR_EDGE', 'production entries cannot be Simulator-only source', `composition.app_production_entries[${index}]`);
-    }
-  });
   if (value.composition.factory_entry.startsWith('src/simulator/')) {
     fail('SIM_MANIFEST_ALTERNATE_FACTORY', 'the canonical production factory cannot be Simulator-only source', 'composition.factory_entry');
   }
@@ -299,7 +288,7 @@ export function validateSimulatorManifest(value) {
   let mainCount = 0;
   for (const [index, surface] of value.renderer.surfaces.entries()) {
     const fieldPath = `renderer.surfaces[${index}]`;
-    assertExactKeys(surface, ['id', 'factory_surface', 'label', 'initial_route', 'readiness_contract'], fieldPath);
+    assertExactKeys(surface, ['id', 'factory_surface', 'label', 'initial_route'], fieldPath);
     assertString(surface.id, `${fieldPath}.id`, { minBytes: 2, maxBytes: 64, pattern: MODULE_ID_PATTERN });
     if (surfaceIds.has(surface.id)) {
       fail('SIM_MANIFEST_DUPLICATE_SURFACE', `duplicate surface ${JSON.stringify(surface.id)}`, `${fieldPath}.id`);
@@ -311,13 +300,6 @@ export function validateSimulatorManifest(value) {
     assertString(surface.factory_surface, `${fieldPath}.factory_surface`, { maxBytes: 128, pattern: MODULE_ID_PATTERN });
     assertString(surface.label, `${fieldPath}.label`, { maxBytes: 128 });
     validateRoute(surface.initial_route, `${fieldPath}.initial_route`);
-    assertString(surface.readiness_contract, `${fieldPath}.readiness_contract`, {
-      maxBytes: 128,
-      pattern: COMMAND_EVENT_PATTERN,
-    });
-    if (!surface.readiness_contract.startsWith(`${moduleId}.`)) {
-      fail('SIM_MANIFEST_READINESS_NAMESPACE', `must use the ${JSON.stringify(`${moduleId}.`)} namespace`, `${fieldPath}.readiness_contract`);
-    }
   }
   if (mainCount !== 1) {
     fail('SIM_MANIFEST_MAIN_SURFACE', 'exactly one surface must have id main', 'renderer.surfaces');

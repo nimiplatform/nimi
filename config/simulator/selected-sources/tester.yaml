@@ -1,22 +1,2 @@
-schema: nimi.simulator.selected-source/v1
 module_id: tester
-sources:
-  - id: app
-    kind: workspace
-    repository_key: nimi
-    object_format: git-sha1
-    object_id: 5e307b2b54fb94070a3fa65db3636604d6112a0e
-    root: apps/tester
-    expected_digest: sha256:74e54353ca6f1856df6698d8435dc43bee3b072d2eb6e4179fd181caa1007d45
-app_production:
-  source_id: app
-  entries:
-    - src/main.tsx
-host_invocations:
-  entries:
-    - id: tester-renderer
-      source_id: app
-      entry: src/main.tsx
-manifest:
-  source_id: app
-  path: nimi.simulator.yaml
+root: apps/tester

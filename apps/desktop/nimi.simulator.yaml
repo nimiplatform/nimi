@@ -4,8 +4,6 @@ composition:
   factory_entry: src/shell/renderer/renderer/factory.tsx
   factory_export: desktopCanonicalRendererFactory
   style_entry: src/shell/renderer/styles.css
-  app_production_entries:
-    - src/shell/renderer/main.tsx
 renderer:
   entry: src/simulator/renderer.ts
   export: desktopSimulatorRenderer
@@ -16,7 +14,6 @@ renderer:
       factory_surface: main
       label: Nimi Desktop
       initial_route: /
-      readiness_contract: desktop.main.usable
 requires:
   kit_capabilities: []
   sdk_methods:

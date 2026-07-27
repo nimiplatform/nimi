@@ -38,7 +38,6 @@ import type {
   OpenWorldTourWindowResponse,
   ResolvedWorldTourFixture,
   ResolveWorldTourFixtureInput,
-  WorldTourRenderAcceptance,
 } from '../tester/world-tour/world-tour-shared.js';
 import type {
   TesterSimulatorJsonValue,
@@ -438,9 +437,6 @@ function createCommandPort(context: TesterSimulatorPrepareContext) {
     async saveWorldTourViewerPreset(input: { readonly manifestPath: string; readonly presetJson: string }) {
       return unmodeledEffect(`World Tour preset save (${input.manifestPath})`);
     },
-    async saveWorldTourRenderAcceptance(input: WorldTourRenderAcceptance) {
-      return unmodeledEffect(`World Tour render acceptance (${input.manifestPath})`);
-    },
     async localAppSessionStatus() {
       const runtimePlatform = projection(context).scenario.runtimePlatform;
       if (runtimePlatform.status !== 'unavailable' || runtimePlatform.mode !== 'local-app') {
@@ -499,8 +495,6 @@ export function createTesterSimulatorBindings(
         observedEcosystemRevision = revision;
         const payload = Object.freeze({
           ecosystemRevision: revision,
-          checkpointId: reference.checkpointId,
-          label: reference.label,
         });
         for (const listener of ecosystemListeners) listener(payload);
       }
@@ -551,14 +545,11 @@ export function createTesterSimulatorBindings(
         },
         ecosystemReference() {
           const reference = projection(context).ecosystemReference;
-          if (!reference || !Number.isSafeInteger(reference.ecosystemRevision)
-            || typeof reference.checkpointId !== 'string' || typeof reference.label !== 'string') {
+          if (!reference || !Number.isSafeInteger(reference.ecosystemRevision)) {
             return null;
           }
           return Object.freeze({
             ecosystemRevision: reference.ecosystemRevision as number,
-            checkpointId: reference.checkpointId,
-            label: reference.label,
           });
         },
         personaReference() {

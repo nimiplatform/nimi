@@ -16,15 +16,5 @@ export const simulatorConformanceFixture = {
     },
     moduleData: {},
   },
-  readiness: [{
-    contractId: 'sample-app.main.usable',
-    surfaceId: 'main',
-    rootContentSemanticId: 'sample-app-main-root',
-    primaryControl: {
-      semanticId: 'sample-app-primary-action',
-      ariaRole: 'button',
-      accessibleName: 'Open sample',
-    },
-  }],
   lifecycle: ['prepare', 'activate', 'deactivate', 'dispose'],
 } as const;

@@ -1,14 +1,7 @@
-import type { JsonValue } from '../state-engine/json-value.ts';
 import type { SimulatorInteractionDeclaration } from '../state-engine/interactions.ts';
 import { simulatorProductInteractionCatalog } from './product-interactions.ts';
 
-const REFERENCE_TYPE = 'ecosystem.reference.checkpoint' as const;
-
-function record(value: JsonValue): Readonly<Record<string, JsonValue>> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Readonly<Record<string, JsonValue>>
-    : {};
-}
+const REFERENCE_TYPE = 'ecosystem.reference.publish' as const;
 
 const referenceInteraction: SimulatorInteractionDeclaration = {
   type: REFERENCE_TYPE,
@@ -23,23 +16,20 @@ const referenceInteraction: SimulatorInteractionDeclaration = {
   ]),
   payloadSchema: {
     kind: 'object',
-    properties: {
-      checkpointId: { kind: 'string', minLength: 1, maxLength: 128 },
-      label: { kind: 'string', minLength: 1, maxLength: 256 },
-    },
+    properties: {},
   },
   reduce(input) {
-    const payload = record(input.payload);
+    const ecosystem = input.ecosystem && typeof input.ecosystem === 'object' && !Array.isArray(input.ecosystem)
+      ? input.ecosystem
+      : {};
     const reference = Object.freeze({
       protocolRevision: 1,
       ecosystemRevision: input.ecosystemRevision,
       interactionId: input.interactionId,
-      checkpointId: payload.checkpointId as string,
-      label: payload.label as string,
       committedAt: input.logicalTime,
     });
     return Object.freeze({
-      ecosystem: Object.freeze({ ...record(input.ecosystem), reference }),
+      ecosystem: Object.freeze({ ...ecosystem, reference }),
       targetPayload: reference,
     });
   },

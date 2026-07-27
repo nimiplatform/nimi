@@ -23,15 +23,15 @@ pnpm --filter @nimiplatform/simulator test:integration
 
 ## Product boundaries
 
-- `src/state-engine/**` owns deterministic Simulator state, commands, events,
-  scheduling, reset, and replay.
-- `src/lifecycle/**` owns instance lifecycle and browser-observable readiness.
+- `src/state-engine/**` owns Simulator state, commands, events, scheduling, and
+  reset.
+- `src/lifecycle/**` owns instance lifecycle and the App ready/cancel boundary.
 - `src/effects/**` and `src/bootstrap/**` install effect guards before selected
   modules load and maintain the artifact CSP floor.
 - `src/shell/**` owns Simulator routes, global-listener coordination,
   presentation, and module instances.
-- `build/generate-modules.mjs` validates and materializes the configured source
-  modules into `.generated/` for direct Vite consumption.
+- `build/generate-modules.mjs` validates the selected current-workspace Apps
+  and writes their direct Vite import map into `.generated/`.
 - `build/finalize-build.mjs` checks the built artifact's CSP, credential
   boundary, and guard-first entry ordering.
 

@@ -124,14 +124,6 @@ export interface SimulatorModuleCatalogDeclaration {
   readonly moduleData: JsonValue;
 }
 
-/**
- * Complete deterministic definition used only by offline replay/test runners.
- * Product sessions register `catalog` eagerly and attach `behavior` lazily.
- */
-export interface SimulatorModuleDefinition extends SimulatorModuleCatalogDeclaration {
-  readonly behavior: SimulatorModuleBehavior;
-}
-
 export interface SimulatorModuleQueryDeclaration {
   readonly inputSchema: SimulatorSchema;
   readonly projectionSchema: SimulatorSchema;

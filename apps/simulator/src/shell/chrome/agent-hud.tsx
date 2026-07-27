@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useUi } from './ui-context.tsx';
 import { useProductPresentation } from './product-presentation.tsx';
 
-/* Inline SVG icons (lucide-react is intentionally NOT imported by simulator
- * sources: the resolver's mandatory-singleton catalog is pinned). */
+/* Inline SVG icons keep this shell chrome independent of App icon packages. */
 function SettingsIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>

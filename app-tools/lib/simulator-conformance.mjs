@@ -7,21 +7,15 @@ import {
   SimulatorConformanceError,
 } from './simulator-manifest.mjs';
 import {
-  buildSimulatorSourceInventory,
-  sha256Digest,
-} from './simulator-source.mjs';
-import {
   assertAdapterMetadata,
   assertCanonicalFactoryMetadata,
   extractConformanceFixture,
   assertRendererMetadata,
 } from './simulator-conformance-ast.mjs';
 import {
-  assertSimulatorFoundationEntry,
   buildSimulatorCssProfile,
 } from './simulator-css-profile.mjs';
 import {
-  validateSimulatorProductionFoundationCss,
   validateSimulatorCssGlobalSymbols,
   validateSimulatorCssSelectors,
 } from './simulator-conformance-css.mjs';
@@ -37,38 +31,9 @@ import {
 } from './simulator-conformance-graph.mjs';
 
 export { isSimulatorStaticAssetPath } from './simulator-conformance-graph.mjs';
-import { assertInvocationUsesCanonicalFactory } from './simulator-factory-use.mjs';
 
 function fail(code, message, fieldPath = '') {
   throw new SimulatorConformanceError(code, message, fieldPath);
-}
-
-function packageNameFromSpecifier(specifier) {
-  if (specifier.startsWith('@')) return specifier.split('/').slice(0, 2).join('/');
-  return specifier.split('/')[0];
-}
-
-function declaredPackageRequirements(rootDir, imports) {
-  if (imports.length === 0) return {};
-  const packagePath = path.join(rootDir, 'package.json');
-  let packageJson;
-  try {
-    packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
-  } catch {
-    fail('SIM_DEPENDENCY_MANIFEST', 'canonical Simulator closure imports packages but source root has no valid package.json');
-  }
-  const result = {};
-  for (const specifier of imports) {
-    const packageName = packageNameFromSpecifier(specifier);
-    const declared = packageJson.dependencies?.[packageName]
-      ?? packageJson.peerDependencies?.[packageName]
-      ?? packageJson.optionalDependencies?.[packageName];
-    if (typeof declared !== 'string' || !declared) {
-      fail('SIM_DEPENDENCY_UNDECLARED', `canonical closure import ${JSON.stringify(specifier)} has no package declaration`, packageName);
-    }
-    result[packageName] = declared;
-  }
-  return Object.fromEntries(Object.entries(result).sort(([left], [right]) => left.localeCompare(right)));
 }
 
 function assertEntryReachability(rootDir, graph, manifest) {
@@ -84,36 +49,6 @@ function assertEntryReachability(rootDir, graph, manifest) {
     fail('SIM_RENDERER_FACTORY_REACHABILITY', 'renderer entry does not reach the canonical factory module', manifest.renderer.entry);
   }
   assertRendererMetadata(graph.nodes.get(rendererPath).source, manifest);
-  for (const [index, entry] of manifest.composition.app_production_entries.entries()) {
-    const entryPath = assertContainedFile(rootDir, entry, `composition.app_production_entries[${index}]`);
-    if (!reachable(graph, entryPath, factoryPath)) {
-      fail('SIM_PRODUCTION_FACTORY_REACHABILITY', 'production entry does not reach the canonical factory module', entry);
-    }
-    if (!reachable(graph, entryPath, stylePath)) {
-      fail('SIM_PRODUCTION_STYLE_REACHABILITY', 'production entry does not reach the canonical style entry', entry);
-    }
-    assertInvocationUsesCanonicalFactory({
-      rootDir,
-      graph,
-      entryPath,
-      factoryPath,
-      factoryExport: manifest.composition.factory_export,
-      code: 'SIM_PRODUCTION_FACTORY_USE',
-      fieldPath: entry,
-    });
-    const visited = [entryPath];
-    const seen = new Set();
-    while (visited.length > 0) {
-      const current = visited.shift();
-      if (seen.has(current)) continue;
-      seen.add(current);
-      const relative = canonicalRelative(rootDir, current);
-      if (relative.startsWith('src/simulator/')) {
-        fail('SIM_PRODUCTION_SIMULATOR_EDGE', 'production graph reaches Simulator-only source', relative);
-      }
-      visited.push(...(graph.nodes.get(current)?.imports || []));
-    }
-  }
   return { factoryPath, stylePath, rendererPath };
 }
 
@@ -143,7 +78,6 @@ function buildStyleClosure(rootDir, styleEntry, moduleId) {
   const queue = [entry];
   const seen = new Set();
   const inputs = [];
-  const packageImports = new Set();
   const rootClass = `nimi-ui-module--${moduleId}`;
   const globalPrefix = `nimi-ui-module-${moduleId}-`;
   let rootClassSeen = false;
@@ -179,7 +113,7 @@ function buildStyleClosure(rootDir, styleEntry, moduleId) {
     css.walkAtRules('tailwind', () => {
       fail('SIM_CSS_FOUNDATION_DUPLICATE', 'canonical App CSS cannot emit Tailwind foundation or utilities directly', relative);
     });
-    inputs.push({ path: relative, digest: sha256Digest(bytes), bytes: bytes.length });
+    inputs.push({ path: relative });
   }
   if (!rootClassSeen) {
     fail('SIM_CSS_ROOT_CLASS', `canonical style closure must contain .${rootClass}`, styleEntry);
@@ -190,92 +124,7 @@ function buildStyleClosure(rootDir, styleEntry, moduleId) {
     rootClass,
     globalPrefix,
     inputs,
-    packageImports: [...packageImports].sort(),
   };
-}
-
-function productionGraphFiles(graph, entries) {
-  const queue = [...entries];
-  const seen = new Set();
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (seen.has(current)) continue;
-    seen.add(current);
-    queue.push(...(graph.nodes.get(current)?.imports || []));
-  }
-  return [...seen];
-}
-
-function validateProductionCssOwnership(rootDir, graph, manifest, styleClosure) {
-  const productionEntries = manifest.composition.app_production_entries.map((entry, index) =>
-    assertContainedFile(rootDir, entry, `composition.app_production_entries[${index}]`));
-  const productionFiles = productionGraphFiles(graph, productionEntries);
-  const canonicalStylePaths = new Set(styleClosure.inputs.map((input) =>
-    realpathSync(path.join(rootDir, ...input.path.split('/')))));
-  for (const filePath of productionFiles) {
-    const node = graph.nodes.get(filePath);
-    if (!node || node.type !== 'module') continue;
-    const packageCssImport = node.specifiers.find((specifier) =>
-      !specifier.startsWith('.') && /\.css(?:$|[?#])/u.test(specifier));
-    if (packageCssImport) {
-      fail(
-        'SIM_CSS_PRODUCTION_PACKAGE_IMPORT',
-        `production package CSS ${JSON.stringify(packageCssImport)} must be owned by the validated host foundation entry`,
-        canonicalRelative(rootDir, filePath),
-      );
-    }
-  }
-  const foundationPaths = productionFiles
-    .filter((filePath) => graph.nodes.get(filePath)?.type === 'css' && !canonicalStylePaths.has(filePath))
-    .sort((left, right) => canonicalRelative(rootDir, left).localeCompare(canonicalRelative(rootDir, right)));
-  if (foundationPaths.length > 1) {
-    fail(
-      'SIM_CSS_PRODUCTION_FOUNDATION_COUNT',
-      'production invocation graph must have at most one non-canonical host foundation stylesheet',
-    );
-  }
-  const inputs = foundationPaths.map((filePath) => {
-    const relativePath = canonicalRelative(rootDir, filePath);
-    const bytes = readFileSync(filePath);
-    const code = bytes.toString('utf8');
-    assertSimulatorFoundationEntry(code, relativePath);
-    let css;
-    try {
-      css = postcss.parse(code, { from: relativePath });
-    } catch (error) {
-      fail('SIM_CSS_PARSE', error instanceof Error ? error.message : String(error), relativePath);
-    }
-    const selectors = validateSimulatorProductionFoundationCss(css, relativePath);
-    return Object.freeze({
-      path: relativePath,
-      digest: sha256Digest(bytes),
-      bytes: bytes.length,
-      selectors,
-    });
-  });
-  return Object.freeze({ hostFoundationInputs: Object.freeze(inputs) });
-}
-
-function compareStringSets(actual, expected, code, label) {
-  const left = [...actual].sort();
-  const right = [...expected].sort();
-  if (JSON.stringify(left) !== JSON.stringify(right)) {
-    fail(code, `${label} mismatch: expected ${JSON.stringify(right)}, got ${JSON.stringify(left)}`);
-  }
-}
-
-function assertSourceInventoryCovers(rootDir, source, absolutePaths) {
-  const inventory = new Set(source.files.map((entry) => realpathSync(entry.absolutePath)));
-  for (const absolutePath of absolutePaths) {
-    const real = realpathSync(absolutePath);
-    if (!inventory.has(real)) {
-      fail(
-        'SIM_SOURCE_GRAPH_UNBOUND',
-        'every resolved graph and canonical style input must be bound by the source inventory digest',
-        canonicalRelative(rootDir, real),
-      );
-    }
-  }
 }
 
 export function validateSimulatorAppSource(rootDir, options = {}) {
@@ -286,74 +135,23 @@ export function validateSimulatorAppSource(rootDir, options = {}) {
   if (options.expectedModuleId && options.expectedModuleId !== manifest.module_id) {
     fail('SIM_MODULE_ID_MISMATCH', `expected module_id ${JSON.stringify(options.expectedModuleId)}`, 'module_id');
   }
-  if (options.appProductionEntries) {
-    compareStringSets(
-      manifest.composition.app_production_entries,
-      options.appProductionEntries,
-      'SIM_APP_PRODUCTION_INVENTORY_MISMATCH',
-      'App production-entry inventory',
-    );
-  }
-  const source = buildSimulatorSourceInventory(absoluteRoot);
-  const hostInvocations = Array.isArray(options.hostInvocations) ? options.hostInvocations : [];
-  const appSourceHostInvocations = hostInvocations.filter((entry) => !entry.source_id || entry.source_id === 'app');
   const graphEntries = [
-    ...manifest.composition.app_production_entries.map((entry, index) => ({
-      path: entry,
-      fieldPath: `composition.app_production_entries[${index}]`,
-    })),
     { path: manifest.composition.factory_entry, fieldPath: 'composition.factory_entry' },
     { path: manifest.composition.style_entry, fieldPath: 'composition.style_entry' },
     { path: manifest.renderer.entry, fieldPath: 'renderer.entry' },
     { path: manifest.renderer.adapter_entry, fieldPath: 'renderer.adapter_entry' },
     { path: manifest.fixtures.conformance, fieldPath: 'fixtures.conformance' },
-    ...appSourceHostInvocations.map((entry, index) => ({
-      path: entry.entry,
-      fieldPath: `host_invocations[${index}].entry`,
-    })),
   ];
   const graph = buildModuleGraph(absoluteRoot, graphEntries);
-  assertSourceInventoryCovers(absoluteRoot, source, graph.nodes.keys());
   const identity = assertEntryReachability(absoluteRoot, graph, manifest);
-  for (const [index, host] of appSourceHostInvocations.entries()) {
-    const hostPath = assertContainedFile(absoluteRoot, host.entry, `host_invocations[${index}].entry`);
-    if (!reachable(graph, hostPath, identity.factoryPath)) {
-      fail('SIM_HOST_FACTORY_REACHABILITY', 'host invocation does not reach the canonical factory module', host.entry);
-    }
-    if (!reachable(graph, hostPath, identity.stylePath)) {
-      fail('SIM_HOST_STYLE_REACHABILITY', 'host invocation does not reach the canonical style entry', host.entry);
-    }
-    assertInvocationUsesCanonicalFactory({
-      rootDir: absoluteRoot,
-      graph,
-      entryPath: hostPath,
-      factoryPath: identity.factoryPath,
-      factoryExport: manifest.composition.factory_export,
-      code: 'SIM_HOST_FACTORY_USE',
-      fieldPath: host.entry,
-    });
-  }
   const simulatorParts = validateAdapterAndFixture(absoluteRoot, graph, manifest);
-  const restrictedImports = assertRestrictedClosure(absoluteRoot, graph, [
+  assertRestrictedClosure(absoluteRoot, graph, [
     { path: identity.factoryPath, owner: 'canonical_renderer' },
     { path: identity.rendererPath, owner: 'canonical_renderer' },
     { path: simulatorParts.adapterPath, owner: 'app_adapter' },
     { path: simulatorParts.fixturePath, owner: 'conformance_fixture' },
   ]);
   const styleClosure = buildStyleClosure(absoluteRoot, manifest.composition.style_entry, manifest.module_id);
-  assertSourceInventoryCovers(
-    absoluteRoot,
-    source,
-    styleClosure.inputs.map((entry) => path.resolve(absoluteRoot, ...entry.path.split('/'))),
-  );
-  const productionStyle = validateProductionCssOwnership(
-    absoluteRoot,
-    graph,
-    manifest,
-    styleClosure,
-  );
-  const finalPackageImports = [...new Set([...restrictedImports, ...styleClosure.packageImports])].sort();
-  const packageRequirements = declaredPackageRequirements(absoluteRoot, finalPackageImports);
   const style = buildSimulatorCssProfile({
     rootDir: absoluteRoot,
     graph,
@@ -364,30 +162,14 @@ export function validateSimulatorAppSource(rootDir, options = {}) {
     styleInputs: styleClosure.inputs,
     rootClass: styleClosure.rootClass,
     globalPrefix: styleClosure.globalPrefix,
-    packageImports: styleClosure.packageImports,
-    packageRequirements,
   });
   return Object.freeze({
     manifest,
-    source,
-    graph,
-    style: Object.freeze({ ...style, production: productionStyle }),
-    dependencies: Object.freeze({
-      imports: Object.freeze(finalPackageImports),
-      requirements: Object.freeze(packageRequirements),
-    }),
+    style,
     fixture: simulatorParts.declaration,
   });
 }
 
-export {
-  computeSourceDigestV1,
-  collectSimulatorSourceFiles,
-  buildSimulatorSourceInventory,
-  sha256Digest,
-  stableJson,
-  stableJsonDigest,
-} from './simulator-source.mjs';
 export {
   parseSimulatorManifest,
   validateSimulatorManifest,

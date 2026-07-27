@@ -319,11 +319,8 @@ export function createDesktopSimulatorBindings(
             protocol: 'nimi.simulator.interaction/v1',
             interactionId: `${context.instanceId}:ecosystem:${interactionSequence}`,
             targets: ['zhiyu', 'tester'],
-            type: 'ecosystem.reference.checkpoint',
-            payload: {
-              checkpointId: 'desktop-auth-primary',
-              label: 'Desktop login action committed',
-            },
+            type: 'ecosystem.reference.publish',
+            payload: {},
           });
           if (!result.ok) {
             const disposition = result.error.code === 'SIMULATOR_INSTANCE_DISPOSED'

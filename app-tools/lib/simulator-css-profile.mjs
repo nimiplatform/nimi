@@ -7,12 +7,10 @@ import selectorParser from 'postcss-selector-parser';
 import ts from 'typescript';
 
 import { SimulatorConformanceError } from './simulator-manifest.mjs';
-import { sha256Digest, stableJson, stableJsonDigest } from './simulator-source.mjs';
 
 export const SIMULATOR_CSS_PROFILE_PROTOCOL = 'nimi.simulator.css-profile/v1';
 export const SIMULATOR_CSS_PROFILE_REVISION = 'tailwind-v4-canonical-closure-1';
 export const SIMULATOR_CSS_COMPILER_VERSION = '4.3.0';
-export const SIMULATOR_CSS_THEME_DIGEST = 'sha256:ce91efc0ca2e741e56fe263662e5282dc0a16f19a8647f0c38b60fcc4e2119b1';
 export const SIMULATOR_KIT_FOUNDATION_CSS_EXPORTS = Object.freeze([
   '@nimiplatform/kit/ui/styles.css',
   '@nimiplatform/kit/ui/themes/light.css',
@@ -74,8 +72,7 @@ function inputInventory(rootDir, graph, files) {
       const relative = relativePath(rootDir, filePath);
       if (!node || node.type !== 'module') fail('SIM_CSS_SCANNER_GRAPH', 'scanner input is absent from the canonical module graph', relative);
       assertNoDynamicUtilityInterpolation(node.source, relative);
-      const bytes = readFileSync(filePath);
-      return { path: relative, digest: sha256Digest(bytes), bytes: bytes.length };
+      return { path: relative };
     })
     .sort((left, right) => left.path.localeCompare(right.path));
 }
@@ -90,19 +87,9 @@ export function buildSimulatorCssProfile(input) {
     fail('SIM_CSS_SCANNER_EMPTY', 'canonical factory closure has no scanner inputs', input.factoryEntry);
   }
   const scanner = {
-    owner: '@nimiplatform/app-tools',
-    mode: 'exact-canonical-composition-files',
     inputs: compositionInputs,
-    digest: stableJsonDigest('nimi-simulator-css-scanner-inventory-v1', compositionInputs),
-  };
-  const composition = {
-    factory_entry: input.factoryEntry,
-    inputs: compositionInputs,
-    digest: stableJsonDigest('nimi-simulator-css-composition-closure-v1', compositionInputs),
   };
   const foundation = {
-    owner: '@nimiplatform/kit',
-    package_requirement: input.packageRequirements['@nimiplatform/kit'] ?? null,
     theme_layer: 'simulator.foundation.preflight',
     kit_layer: 'simulator.foundation.kit',
     utility_emission: 'shared-once',
@@ -113,27 +100,16 @@ export function buildSimulatorCssProfile(input) {
     root_class: input.rootClass,
     source: 'canonical-composition-closure',
   };
-  const dependencyCss = {
-    exports: input.packageImports.map((specifier) => ({
-      specifier,
-      package_requirement: input.packageRequirements[specifier.startsWith('@')
-        ? specifier.split('/').slice(0, 2).join('/')
-        : specifier.split('/')[0]] ?? null,
-    })),
-  };
   const profile = {
     protocol: SIMULATOR_CSS_PROFILE_PROTOCOL,
     revision: SIMULATOR_CSS_PROFILE_REVISION,
     compiler: {
       package: 'tailwindcss',
       version: SIMULATOR_CSS_COMPILER_VERSION,
-      theme_stylesheet_digest: SIMULATOR_CSS_THEME_DIGEST,
     },
-    composition,
     scanner,
     foundation,
     utility,
-    dependency_css: dependencyCss,
     style: {
       entry: input.styleEntry,
       inputs: input.styleInputs,
@@ -146,9 +122,7 @@ export function buildSimulatorCssProfile(input) {
     inputs: input.styleInputs,
     rootClass: input.rootClass,
     globalPrefix: input.globalPrefix,
-    packageImports: [...input.packageImports],
     profile: Object.freeze(profile),
-    digest: stableJsonDigest('nimi-simulator-style-inputs-v2', profile),
   });
 }
 
@@ -214,9 +188,7 @@ function cssExportTargets(packageRoot, packageJson) {
     targets.push({
       specifier,
       target: relative,
-      digest: sha256Digest(readFileSync(absolute)),
       closure,
-      closure_digest: stableJsonDigest('nimi-simulator-kit-css-closure-v1', closure),
     });
   }
   return targets.sort((left, right) => left.specifier.localeCompare(right.specifier));
@@ -259,9 +231,9 @@ function kitCssClosure(packageRoot, entryPath, exportSpecifier) {
     if (relative.startsWith('../') || path.isAbsolute(relative)) {
       fail('SIM_CSS_KIT_EXPORT_ESCAPE', 'Kit CSS closure escapes its package root', exportSpecifier);
     }
-    const bytes = readFileSync(current);
-    rows.push({ path: relative, digest: sha256Digest(bytes), bytes: bytes.length });
-    const css = postcss.parse(bytes.toString('utf8'), { from: current });
+    const code = readFileSync(current, 'utf8');
+    rows.push({ path: relative });
+    const css = postcss.parse(code, { from: current });
     css.walkAtRules('import', (rule) => {
       const imported = kitCssImportSpecifier(rule.params, `${exportSpecifier}:${relative}`);
       let target;
@@ -280,7 +252,7 @@ function kitCssClosure(packageRoot, entryPath, exportSpecifier) {
   return rows.sort((left, right) => left.path.localeCompare(right.path));
 }
 
-export function buildKitCssExportInventory(kitRoot) {
+function resolveKitCssExports(kitRoot) {
   const absoluteRoot = realpathSync(kitRoot);
   const packageJson = JSON.parse(readFileSync(path.join(absoluteRoot, 'package.json'), 'utf8'));
   return Object.freeze(cssExportTargets(absoluteRoot, packageJson));
@@ -322,32 +294,21 @@ function resolveSimulatorCssCompiler(compilerRoot) {
   if (packageJson.version !== SIMULATOR_CSS_COMPILER_VERSION) {
     fail('SIM_CSS_COMPILER_VERSION', `CSS profile requires tailwindcss@${SIMULATOR_CSS_COMPILER_VERSION}`);
   }
-  if (sha256Digest(themeBytes) !== SIMULATOR_CSS_THEME_DIGEST) {
-    fail('SIM_CSS_COMPILER_THEME', 'Tailwind theme stylesheet differs from the protocol-owned profile');
-  }
   return Object.freeze({
     themeReference: themeBytes.toString('utf8').replace('@theme default {', '@theme reference {'),
   });
 }
 
-export function buildKitFoundationScannerInventory(kitRoot) {
+function findKitFoundationScannerInputs(kitRoot) {
   const absoluteRoot = realpathSync(kitRoot);
   const distRoot = path.join(absoluteRoot, 'dist');
   if (!existsSync(distRoot) || !statSync(distRoot).isDirectory()) {
     fail('SIM_CSS_KIT_DIST', 'Kit dist is required before CSS profile construction');
   }
-  const inputs = walkFiles(distRoot, KIT_SCANNER_EXTENSIONS).map((filePath) => {
-    const bytes = readFileSync(filePath);
-    return {
-      path: relativePath(absoluteRoot, filePath),
-      digest: sha256Digest(bytes),
-      bytes: bytes.length,
-    };
-  });
+  const inputs = walkFiles(distRoot, KIT_SCANNER_EXTENSIONS)
+    .map((filePath) => ({ path: relativePath(absoluteRoot, filePath) }));
   return Object.freeze({
-    owner: '@nimiplatform/kit',
     inputs,
-    digest: stableJsonDigest('nimi-simulator-kit-foundation-scanner-v1', inputs),
   });
 }
 
@@ -359,19 +320,6 @@ function sourceDirective(fromFile, targetFile) {
 
 function stripQuery(id) {
   return id.split('?', 1)[0];
-}
-
-function assertFreshInput(absolutePath, expected, code, codeName) {
-  const bytes = readFileSync(absolutePath);
-  if (bytes.length !== expected.bytes || sha256Digest(bytes) !== expected.digest) {
-    fail(codeName, 'CSS input changed after its identity was constructed', expected.path);
-  }
-  if (code !== undefined) {
-    const transformBytes = Buffer.from(code, 'utf8');
-    if (transformBytes.length !== expected.bytes || sha256Digest(transformBytes) !== expected.digest) {
-      fail(codeName, 'CSS transform input differs from its identity-bound bytes', expected.path);
-    }
-  }
 }
 
 function cssAssetSource(asset) {
@@ -411,8 +359,8 @@ function moduleSelectorRows(root, style) {
       });
     }).processSync(rule.selector);
   });
-  const unique = new Map(rows.map((row) => [stableJson(row), row]));
-  return [...unique.values()].sort((left, right) => stableJson(left).localeCompare(stableJson(right)));
+  const unique = new Map(rows.map((row) => [JSON.stringify(row), row]));
+  return [...unique.values()].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
 }
 
 function postprocessSimulatorCssBundle(bundle, profileEntries) {
@@ -500,22 +448,17 @@ function postprocessSimulatorCssBundle(bundle, profileEntries) {
 export function createSimulatorCssProfileVitePlugin(options) {
   const compiler = resolveSimulatorCssCompiler(options.compilerRoot);
   const kitRoot = realpathSync(path.join(options.compilerRoot, 'node_modules', '@nimiplatform', 'kit'));
-  const foundation = buildKitFoundationScannerInventory(kitRoot);
+  const foundation = findKitFoundationScannerInputs(kitRoot);
   const foundationEntry = realpathSync(options.foundationEntry);
   const kitCssRoot = path.join(kitRoot, 'dist');
   const kitCssInputs = new Map();
-  for (const exported of buildKitCssExportInventory(kitRoot)) {
+  for (const exported of resolveKitCssExports(kitRoot)) {
     for (const input of exported.closure) {
       const absolute = realpathSync(path.join(kitRoot, ...input.path.split('/')));
-      const previous = kitCssInputs.get(absolute);
-      if (previous && (previous.digest !== input.digest || previous.bytes !== input.bytes)) {
-        fail('SIM_CSS_KIT_CLOSURE_COLLISION', 'Kit CSS exports bind conflicting identities for one closure input', input.path);
-      }
       kitCssInputs.set(absolute, input);
     }
   }
   const profiles = new Map();
-  const appStyleInputs = new Map();
   for (const entry of options.apps) {
     const rootDir = realpathSync(entry.rootDir);
     const style = entry.style;
@@ -524,23 +467,14 @@ export function createSimulatorCssProfileVitePlugin(options) {
     for (const input of style.inputs) {
       const absolute = realpathSync(path.join(rootDir, ...input.path.split('/')));
       if (absolute !== rootDir && !absolute.startsWith(`${rootDir}${path.sep}`)) {
-        fail('SIM_CSS_APP_INPUT_ESCAPE', 'App CSS input escapes the qualified source root', input.path);
+        fail('SIM_CSS_APP_INPUT_ESCAPE', 'App CSS input escapes its source root', input.path);
       }
-      const previous = appStyleInputs.get(absolute);
-      if (previous && (previous.digest !== input.digest || previous.bytes !== input.bytes)) {
-        fail('SIM_CSS_APP_INPUT_COLLISION', 'App CSS profiles bind conflicting identities for one input', input.path);
-      }
-      appStyleInputs.set(absolute, input);
     }
   }
   const profileEntries = [...profiles.values()].map(({ style }) => ({ style }));
   return {
     name: 'nimi-simulator-css-profile',
     enforce: 'pre',
-    buildStart() {
-      for (const [absolute, input] of kitCssInputs) assertFreshInput(absolute, input, undefined, 'SIM_CSS_KIT_CLOSURE_STALE');
-      for (const [absolute, input] of appStyleInputs) assertFreshInput(absolute, input, undefined, 'SIM_CSS_APP_INPUT_STALE');
-    },
     transform(code, id) {
       const filePath = stripQuery(id);
       let real;
@@ -554,7 +488,6 @@ export function createSimulatorCssProfileVitePlugin(options) {
         if (!input) {
           fail('SIM_CSS_KIT_INPUT_UNQUALIFIED', 'build reached Kit CSS outside the canonical export closure', relativePath(kitRoot, real));
         }
-        assertFreshInput(real, input, code, 'SIM_CSS_KIT_CLOSURE_STALE');
         const css = postcss.parse(code, { from: real });
         css.walkAtRules('source', (rule) => rule.remove());
         return { code: css.toString(), map: null };
@@ -566,19 +499,13 @@ export function createSimulatorCssProfileVitePlugin(options) {
           path.join(kitRoot, ...input.path.split('/')),
         ));
         return {
-          code: `${code}\n/* ${SIMULATOR_CSS_PROFILE_PROTOCOL} Kit foundation ${foundation.digest} */\n${directives.join('\n')}\n`,
+          code: `${code}\n/* ${SIMULATOR_CSS_PROFILE_PROTOCOL} Kit foundation */\n${directives.join('\n')}\n`,
           map: null,
         };
       }
-      const styleInput = appStyleInputs.get(real);
-      if (styleInput) assertFreshInput(real, styleInput, code, 'SIM_CSS_APP_INPUT_STALE');
       const profile = profiles.get(real);
       if (!profile) return null;
       const { style, rootDir } = profile;
-      for (const scannerInput of style.profile.scanner.inputs) {
-        const bytes = readFileSync(path.join(rootDir, ...scannerInput.path.split('/')));
-        if (sha256Digest(bytes) !== scannerInput.digest) fail('SIM_CSS_SCANNER_STALE', 'canonical scanner input changed after validation', scannerInput.path);
-      }
       const directives = style.profile.scanner.inputs.map((input) => sourceDirective(
         real,
         path.join(rootDir, ...input.path.split('/')),
@@ -586,7 +513,7 @@ export function createSimulatorCssProfileVitePlugin(options) {
       const layer = style.profile.utility.layer;
       const rootClass = style.rootClass;
       const generated = [
-        `/* ${SIMULATOR_CSS_PROFILE_PROTOCOL} ${style.digest} */`,
+        `/* ${SIMULATOR_CSS_PROFILE_PROTOCOL} */`,
         compiler.themeReference,
         ...directives,
         `@layer ${layer} {`,
@@ -598,8 +525,6 @@ export function createSimulatorCssProfileVitePlugin(options) {
       return { code: `${code}\n${generated}\n`, map: null };
     },
     generateBundle(_outputOptions, bundle) {
-      for (const [absolute, input] of kitCssInputs) assertFreshInput(absolute, input, undefined, 'SIM_CSS_KIT_CLOSURE_STALE');
-      for (const [absolute, input] of appStyleInputs) assertFreshInput(absolute, input, undefined, 'SIM_CSS_APP_INPUT_STALE');
       postprocessSimulatorCssBundle(bundle, profileEntries);
     },
   };

@@ -23,9 +23,6 @@ import type { SimulatorHostTimers } from '../lifecycle/cleanup-registry.ts';
 import {
   createReadinessBarrier,
   type SimulatorReadinessBarrier,
-  type SimulatorReadinessBrowserPort,
-  type SimulatorReadinessDeclaration,
-  type SimulatorReadinessExpectation,
 } from '../lifecycle/readiness.ts';
 import {
   createDiagnosticsStore,
@@ -58,7 +55,6 @@ export interface SimulatorRegistryModuleRow {
       readonly id: string;
       readonly label: string;
       readonly initialRoute: string;
-      readonly readinessContractId: string;
     }[];
     readonly requirements: {
       readonly kitCapabilities: readonly string[];
@@ -84,19 +80,11 @@ export interface SimulatorSessionOptions {
     readonly moduleId: string;
     readonly instanceId: string;
     readonly surfaceId: string;
-    readonly readinessContractId: string;
     readonly kitCapabilities: readonly string[];
     readonly failInstance: (instanceId: string, cause: string) => void;
   }) => SimulatorPreparedSurfaceHost;
-  readonly readinessBrowser: SimulatorReadinessBrowserPort;
-  readonly simulationDisclosureVisible: () => boolean;
   readonly onRouteChange?: (route: SimulatorShellRoute) => void;
   readonly writeRoute?: (path: string, replace: boolean) => void;
-  /** Keys are `<moduleId>/<surfaceId>` and must exist for every mounted surface. */
-  readonly readinessDeclarations?: Readonly<Record<string, SimulatorReadinessDeclaration>>;
-  readonly readinessExpectations?: Readonly<Record<string, SimulatorReadinessExpectation>>;
-  readonly readinessProjectionPredicates?: Readonly<Record<string, (projection: JsonValue) => boolean>>;
-  readonly readinessBlockingPredicates?: Readonly<Record<string, () => boolean>>;
 }
 
 export interface SimulatorSessionInstanceView {
@@ -207,7 +195,6 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
       return options.prepareSurface({
         engine,
         ...input,
-        readinessContractId: surface.readinessContractId,
         kitCapabilities: row.metadata.requirements.kitCapabilities,
         failInstance(instanceId, cause) {
           hostRef.current?.failInstance(instanceId, cause);
@@ -433,38 +420,11 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
       const barrierKey = `${instanceId}\u0000${surfaceId}`;
       const existing = readinessBarriers.get(barrierKey);
       if (existing) return simulatorOk(existing);
-      const contractKey = `${instance.moduleId}/${surfaceId}`;
-      const declaration = options.readinessDeclarations?.[contractKey];
-      const expectation = options.readinessExpectations?.[contractKey];
-      const projectionPredicate = expectation
-        ? options.readinessProjectionPredicates?.[expectation.projectionPredicateId]
-        : undefined;
-      const blockingPredicate = expectation
-        ? options.readinessBlockingPredicates?.[expectation.blockingStatePredicateId]
-        : undefined;
-      if (!declaration || !expectation || !projectionPredicate || !blockingPredicate) {
-        const error = simulatorError('SIMULATOR_INTEGRITY_FAILURE', {
-          moduleId: instance.moduleId,
-          instanceId,
-        });
-        engine.terminateIntegrity(error);
-        return simulatorFail(error);
-      }
       const barrier = createReadinessBarrier({
         engine,
         instanceId,
         surfaceId,
         epoch: engine.epoch,
-        declaration,
-        expectation,
-        browser: options.readinessBrowser,
-        projectionPredicate,
-        blockingPredicate,
-        projection: () => {
-          const projected = engine.projectInstance(instanceId);
-          return projected.ok ? projected.value : null;
-        },
-        simulationDisclosureVisible: options.simulationDisclosureVisible,
         onStateChange: notify,
       });
       readinessBarriers.set(barrierKey, barrier);

@@ -95,7 +95,7 @@ test('caller admission is closed over module, event, route, clock, overlay, stre
 
   const ownCommand = await engine.acceptCommand('increment', { by: 1 }, firstIssuer);
   assert.equal(ownCommand.ok, true);
-  const beforeDenied = engine.buildReplayRecord().operationSettlements.length;
+  const beforeDenied = engine.getCommitted().revision;
   const foreignCommand = await engine.acceptCommand('module-b.increment', { by: 1 }, firstIssuer);
   const instanceReset = await engine.acceptCommand('simulator.reset', {}, firstIssuer);
   const instanceOpen = await engine.acceptCommand('simulator.instance.open', {
@@ -106,7 +106,7 @@ test('caller admission is closed over module, event, route, clock, overlay, stre
   assert.equal(foreignCommand.error.code, 'SIMULATOR_CAPABILITY_DENIED');
   assert.equal(instanceReset.error.code, 'SIMULATOR_CAPABILITY_DENIED');
   assert.equal(instanceOpen.error.code, 'SIMULATOR_CAPABILITY_DENIED');
-  assert.equal(engine.buildReplayRecord().operationSettlements.length, beforeDenied);
+  assert.equal(engine.getCommitted().revision, beforeDenied);
 
   const foreignRoute = await engine.acceptCommand('simulator.instance.route', {
     instanceId: secondId,

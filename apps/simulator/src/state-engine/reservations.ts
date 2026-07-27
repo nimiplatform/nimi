@@ -81,8 +81,6 @@ export interface SimulatorAsyncReservationPump {
     instanceId: string,
     reason: SimulatorAsyncReservationCancelReason,
   ): readonly SimulatorAsyncReservationRecord[];
-  /** Allocation-ordered terminal state used by replay and reset. */
-  ledger(): readonly SimulatorAsyncReservationRecord[];
   hasImmediatelyReleasable(): boolean;
 }
 
@@ -205,9 +203,6 @@ export function createAsyncReservationPump(options: SimulatorAsyncReservationPum
       }
       pump();
       return cancelled;
-    },
-    ledger() {
-      return reservations.map(snapshotOf);
     },
     hasImmediatelyReleasable() {
       for (const record of reservations) {

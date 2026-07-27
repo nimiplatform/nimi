@@ -145,8 +145,6 @@ export const zhiyuSimulatorBehavior = Object.freeze({
       if (payload.protocolRevision !== 1
         || !Number.isSafeInteger(payload.ecosystemRevision)
         || typeof payload.interactionId !== 'string'
-        || typeof payload.checkpointId !== 'string'
-        || typeof payload.label !== 'string'
         || !Number.isSafeInteger(payload.committedAt)) {
         throw new Error('ZHIYU_SIMULATOR_ECOSYSTEM_REFERENCE_INVALID');
       }
@@ -154,8 +152,6 @@ export const zhiyuSimulatorBehavior = Object.freeze({
         protocolRevision: 1,
         ecosystemRevision: payload.ecosystemRevision,
         interactionId: payload.interactionId,
-        checkpointId: payload.checkpointId,
-        label: payload.label,
         committedAt: payload.committedAt,
       };
       return {

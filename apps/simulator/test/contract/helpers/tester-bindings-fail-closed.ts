@@ -126,12 +126,6 @@ for (const operation of [
   () => bindings.app.commands.openWorldTourWindow({ manifestPath: 'fixture.json' }),
   () => bindings.app.commands.claimWorldTourViewerLaunch({ manifestPath: 'fixture.json', launchToken: 'token' }),
   () => bindings.app.commands.saveWorldTourViewerPreset({ manifestPath: 'fixture.json', presetJson: '{}' }),
-  () => bindings.app.commands.saveWorldTourRenderAcceptance({
-    manifestPath: 'fixture.json',
-    renderer: 'spark-2.0',
-    status: 'passed',
-    acceptedAt: '2027-01-15T08:00:00.000Z',
-  }),
   () => bindings.app.commands.localAppStorageRoundTrip({ relativePath: 'x.json', value: { value: 1 } }),
 ]) {
   await assert.rejects(operation, { code: 'TESTER_SIMULATED_EFFECT_UNAVAILABLE' });

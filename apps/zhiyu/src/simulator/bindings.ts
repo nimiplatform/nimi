@@ -293,8 +293,7 @@ function simulatedAgentCenterAdapters(
 export function createZhiyuSimulatorBindings(
   context: ZhiyuSimulatorPrepareContext,
 ): ZhiyuCanonicalRendererBindings {
-  let publishedEvidence: ZhiyuEvidence | null = null;
-  let abortHandler: ((reason?: string) => void) | null = null;
+  let latestProjection: ZhiyuEvidence | null = null;
   const companionListeners = new Set<(companion: ZhiyuEvidence['companion']) => void>();
   let currentRoute = context.route.get();
   const routeListeners = new Set<() => void>();
@@ -303,9 +302,9 @@ export function createZhiyuSimulatorBindings(
     for (const listener of routeListeners) listener();
   });
   const eventSubscription = context.events.subscribe('zhiyu.conversation.updated', () => {
-    if (!publishedEvidence) return;
+    if (!latestProjection) return;
     const companion: ZhiyuEvidence['companion'] = {
-      ...publishedEvidence.companion,
+      ...latestProjection.companion,
       ready: true,
       state: 'projected',
       reasonCode: 'runtime-agent-state-event-projected',
@@ -327,7 +326,7 @@ export function createZhiyuSimulatorBindings(
     const revision = ecosystemRevisionOf(value) ?? 0;
     const personaName = personaDisplayNameOf(value);
     if (revision === 0 && !personaName) return null;
-    const baseline = publishedEvidence?.companion ?? simulatedHome(context, null).companion;
+    const baseline = latestProjection?.companion ?? simulatedHome(context, null).companion;
     observedEcosystemRevision = Math.max(observedEcosystemRevision, revision);
     return {
       ...baseline,
@@ -493,14 +492,8 @@ export function createZhiyuSimulatorBindings(
         },
       }),
       events: Object.freeze({
-        publishEvidence(evidence: ZhiyuEvidence) {
-          publishedEvidence = evidence;
-        },
-        bindAbortActiveTurn(handler: (reason?: string) => void) {
-          abortHandler = handler;
-          return () => {
-            if (abortHandler === handler) abortHandler = null;
-          };
+        onProjectionChanged(projection: ZhiyuEvidence) {
+          latestProjection = projection;
         },
         subscribeExecutionRoute({ onRoute }: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeExecutionRoute']>[0]) {
           return context.projection.subscribe(() => onRoute(simulatedRoute(context)));

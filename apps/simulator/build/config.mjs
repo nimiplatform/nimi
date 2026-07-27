@@ -6,13 +6,9 @@ import {
   SimulatorConformanceError,
 } from '@nimiplatform/app-tools/simulator-conformance';
 
-export const SELECTED_SOURCE_SCHEMA = 'nimi.simulator.selected-source/v1';
-export const EXTERNAL_REPOSITORY_CATALOG_SCHEMA = 'nimi.simulator.external-repository-catalog/v1';
 export const SIMULATOR_SCENARIO_SCHEMA = 'nimi.simulator.scenario/v1';
 
 const MODULE_ID_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-const REPOSITORY_KEY_PATTERN = /^[a-z][a-z0-9]*(?:[-/][a-z0-9]+)*$/;
-const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const CORE_TAGS = new Set([
   'tag:yaml.org,2002:map',
   'tag:yaml.org,2002:seq',
@@ -89,10 +85,6 @@ function assertString(value, fieldPath, { pattern = null, min = 1, max = 4096 } 
   return value;
 }
 
-function assertDigest(value, fieldPath) {
-  return assertString(value, fieldPath, { pattern: DIGEST_PATTERN, min: 71, max: 71 });
-}
-
 function assertBoolean(value, fieldPath) {
   if (typeof value !== 'boolean') fail('SIM_SCENARIO_TYPE', 'must be a boolean', fieldPath);
   return value;
@@ -142,27 +134,6 @@ function assertUniqueStrings(value, fieldPath) {
   return entries;
 }
 
-function assertPrimaryControl(value, fieldPath) {
-  assertExact(value, ['semantic_id', 'aria_role', 'accessible_name'], fieldPath);
-  return {
-    semantic_id: assertString(value.semantic_id, `${fieldPath}.semantic_id`, { min: 2, max: 256 }),
-    aria_role: assertString(value.aria_role, `${fieldPath}.aria_role`, {
-      pattern: /^[a-z][a-z0-9-]*$/,
-      min: 2,
-      max: 64,
-    }),
-    accessible_name: assertString(value.accessible_name, `${fieldPath}.accessible_name`, { min: 1, max: 512 }),
-  };
-}
-
-function assertJsonPointer(value, fieldPath) {
-  assertString(value, fieldPath, { min: 0, max: 2048 });
-  if (value !== '' && (!value.startsWith('/') || /~(?:[^01]|$)/u.test(value))) {
-    fail('SIM_SCENARIO_JSON_POINTER', 'must be an RFC 6901 JSON Pointer', fieldPath);
-  }
-  return value;
-}
-
 export function validateSimulatorScenario(value, label = 'config/simulator/scenario.yaml') {
   assertExact(value, [
     'schema',
@@ -174,7 +145,6 @@ export function validateSimulatorScenario(value, label = 'config/simulator/scena
     'module_data',
     'enabled_capabilities',
     'launch',
-    'readiness',
   ], '');
   if (value.schema !== SIMULATOR_SCENARIO_SCHEMA) {
     fail('SIM_SCENARIO_SCHEMA', `must equal ${SIMULATOR_SCENARIO_SCHEMA}`, 'schema');
@@ -237,47 +207,6 @@ export function validateSimulatorScenario(value, label = 'config/simulator/scena
     };
   });
 
-  if (!Array.isArray(value.readiness)) fail('SIM_SCENARIO_TYPE', 'must be a sequence', 'readiness');
-  const readinessKeys = new Set();
-  const readiness = value.readiness.map((entry, index) => {
-    const fieldPath = `readiness[${index}]`;
-    assertExact(entry, [
-      'module_id',
-      'surface_id',
-      'contract_id',
-      'root_content_semantic_id',
-      'primary_control',
-      'projection',
-      'blocking',
-    ], fieldPath);
-    const moduleId = assertString(entry.module_id, `${fieldPath}.module_id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
-    const surfaceId = assertString(entry.surface_id, `${fieldPath}.surface_id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
-    const key = `${moduleId}/${surfaceId}`;
-    if (readinessKeys.has(key)) fail('SIM_SCENARIO_DUPLICATE', `duplicate readiness row ${JSON.stringify(key)}`, fieldPath);
-    readinessKeys.add(key);
-    assertExact(entry.projection, ['kind', 'json_pointer', 'expected'], `${fieldPath}.projection`);
-    if (entry.projection.kind !== 'json_pointer_equals') {
-      fail('SIM_SCENARIO_PREDICATE', 'projection kind must equal json_pointer_equals', `${fieldPath}.projection.kind`);
-    }
-    assertExact(entry.blocking, ['kind'], `${fieldPath}.blocking`);
-    if (entry.blocking.kind !== 'no_active_overlay_lease') {
-      fail('SIM_SCENARIO_PREDICATE', 'blocking kind must equal no_active_overlay_lease', `${fieldPath}.blocking.kind`);
-    }
-    return {
-      module_id: moduleId,
-      surface_id: surfaceId,
-      contract_id: assertString(entry.contract_id, `${fieldPath}.contract_id`, { min: 2, max: 256 }),
-      root_content_semantic_id: assertString(entry.root_content_semantic_id, `${fieldPath}.root_content_semantic_id`, { min: 2, max: 256 }),
-      primary_control: assertPrimaryControl(entry.primary_control, `${fieldPath}.primary_control`),
-      projection: {
-        kind: 'json_pointer_equals',
-        json_pointer: assertJsonPointer(entry.projection.json_pointer, `${fieldPath}.projection.json_pointer`),
-        expected: assertJsonValue(entry.projection.expected, `${fieldPath}.projection.expected`),
-      },
-      blocking: { kind: 'no_active_overlay_lease' },
-    };
-  });
-
   const wire = {
     schema: SIMULATOR_SCENARIO_SCHEMA,
     scenario_id: scenarioId,
@@ -288,7 +217,6 @@ export function validateSimulatorScenario(value, label = 'config/simulator/scena
     module_data: moduleData,
     enabled_capabilities: assertUniqueStrings(value.enabled_capabilities, 'enabled_capabilities'),
     launch,
-    readiness,
   };
   return Object.freeze({
     ...wire,
@@ -300,156 +228,19 @@ export function parseSimulatorScenario(text, label = 'config/simulator/scenario.
   return validateSimulatorScenario(parseStrictConfigYaml(text, label), label);
 }
 
-function assertSourceLocation(value, index) {
-  const fieldPath = `sources[${index}]`;
-  assertExact(value, [
-    'id',
-    'kind',
-    'repository_key',
-    'object_format',
-    'object_id',
-    'root',
-    'expected_digest',
-  ], fieldPath);
-  const id = assertString(value.id, `${fieldPath}.id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
-  if (!['workspace', 'external-repository'].includes(value.kind)) {
-    fail('SIM_DESCRIPTOR_SOURCE_KIND', 'must be workspace or external-repository', `${fieldPath}.kind`);
-  }
-  const repositoryKey = assertString(value.repository_key, `${fieldPath}.repository_key`, {
-    pattern: REPOSITORY_KEY_PATTERN,
-    min: 2,
-    max: 128,
-  });
-  if (!['git-sha1', 'git-sha256'].includes(value.object_format)) {
-    fail('SIM_DESCRIPTOR_OBJECT_FORMAT', 'must be git-sha1 or git-sha256', `${fieldPath}.object_format`);
-  }
-  const objectLength = value.object_format === 'git-sha1' ? 40 : 64;
-  assertString(value.object_id, `${fieldPath}.object_id`, {
-    pattern: new RegExp(`^[0-9a-f]{${objectLength}}$`),
-    min: objectLength,
-    max: objectLength,
-  });
-  assertSimulatorSourcePath(value.root, `${fieldPath}.root`);
-  assertDigest(value.expected_digest, `${fieldPath}.expected_digest`);
-  return {
-    id,
-    kind: value.kind,
-    repository_key: repositoryKey,
-    object_format: value.object_format,
-    object_id: value.object_id,
-    root: value.root,
-    expected_digest: value.expected_digest,
-  };
-}
-
 export function validateSelectedSourceDescriptor(value, label = 'selected-source') {
-  const required = ['schema', 'module_id', 'sources', 'app_production', 'host_invocations', 'manifest'];
-  assertExact(value, required, '');
-  if (value.schema !== SELECTED_SOURCE_SCHEMA) fail('SIM_DESCRIPTOR_SCHEMA', `must equal ${SELECTED_SOURCE_SCHEMA}`, 'schema');
+  assertExact(value, ['module_id', 'root'], '');
   const moduleId = assertString(value.module_id, 'module_id', { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
-  if (!Array.isArray(value.sources) || value.sources.length === 0) fail('SIM_DESCRIPTOR_SOURCES', 'must be a non-empty sequence', 'sources');
-  const sources = value.sources.map(assertSourceLocation);
-  const sourceIds = new Set();
-  for (const source of sources) {
-    if (sourceIds.has(source.id)) fail('SIM_DESCRIPTOR_DUPLICATE_SOURCE', `duplicate source ID ${JSON.stringify(source.id)}`, 'sources');
-    sourceIds.add(source.id);
-  }
-  if (!sourceIds.has('app')) fail('SIM_DESCRIPTOR_APP_SOURCE', 'exactly one source must have id app', 'sources');
-
-  assertExact(value.app_production, ['source_id', 'entries'], 'app_production');
-  if (value.app_production.source_id !== 'app') fail('SIM_DESCRIPTOR_APP_SOURCE', 'source_id must equal app', 'app_production.source_id');
-  if (!Array.isArray(value.app_production.entries) || value.app_production.entries.length === 0) {
-    fail('SIM_DESCRIPTOR_APP_ENTRIES', 'must be a non-empty sequence', 'app_production.entries');
-  }
-  const appEntries = value.app_production.entries.map((entry, index) => {
-    assertSimulatorSourcePath(entry, `app_production.entries[${index}]`);
-    return entry;
-  });
-  if (new Set(appEntries).size !== appEntries.length) fail('SIM_DESCRIPTOR_DUPLICATE_ENTRY', 'App production entries must be unique', 'app_production.entries');
-  const appProduction = {
-    source_id: 'app',
-    entries: appEntries,
-  };
-
-  assertExact(value.host_invocations, ['entries'], 'host_invocations');
-  if (!Array.isArray(value.host_invocations.entries)) fail('SIM_DESCRIPTOR_HOST_ENTRIES', 'must be a sequence', 'host_invocations.entries');
-  const hostIds = new Set();
-  const hostEntries = value.host_invocations.entries.map((entry, index) => {
-    const fieldPath = `host_invocations.entries[${index}]`;
-    assertExact(entry, ['id', 'source_id', 'entry'], fieldPath);
-    const id = assertString(entry.id, `${fieldPath}.id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
-    if (hostIds.has(id)) fail('SIM_DESCRIPTOR_DUPLICATE_HOST', `duplicate host invocation ID ${JSON.stringify(id)}`, `${fieldPath}.id`);
-    hostIds.add(id);
-    const sourceId = assertString(entry.source_id, `${fieldPath}.source_id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
-    if (!sourceIds.has(sourceId)) fail('SIM_DESCRIPTOR_HOST_SOURCE', `unknown source ID ${JSON.stringify(sourceId)}`, `${fieldPath}.source_id`);
-    assertSimulatorSourcePath(entry.entry, `${fieldPath}.entry`);
-    return { id, source_id: sourceId, entry: entry.entry };
-  });
-  const hostInvocations = {
-    entries: hostEntries,
-  };
-
-  assertExact(value.manifest, ['source_id', 'path'], 'manifest');
-  if (value.manifest.source_id !== 'app' || value.manifest.path !== 'nimi.simulator.yaml') {
-    fail('SIM_DESCRIPTOR_MANIFEST', 'Manifest must be nimi.simulator.yaml in the app source', 'manifest');
-  }
+  assertSimulatorSourcePath(value.root, 'root');
   return Object.freeze({
-    schema: SELECTED_SOURCE_SCHEMA,
     module_id: moduleId,
-    sources,
-    app_production: appProduction,
-    host_invocations: hostInvocations,
-    manifest: { source_id: 'app', path: 'nimi.simulator.yaml' },
+    root: value.root,
     descriptor_label: label,
   });
 }
 
 export function parseSelectedSourceDescriptor(text, label) {
   return validateSelectedSourceDescriptor(parseStrictConfigYaml(text, label), label);
-}
-
-function assertCredentialFreeUri(value, fieldPath, { allowFileUri = false } = {}) {
-  assertString(value, fieldPath, { min: 8, max: 2048 });
-  let parsed;
-  try {
-    parsed = new URL(value);
-  } catch {
-    fail('SIM_REPOSITORY_URI', 'must be an absolute credential-free URI', fieldPath);
-  }
-  const acceptedProtocols = allowFileUri ? ['https:', 'file:'] : ['https:'];
-  if (!acceptedProtocols.includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) {
-    fail('SIM_REPOSITORY_URI', `only credential-free ${allowFileUri ? 'HTTPS or test-only file' : 'HTTPS'} URIs without query/fragment are allowed`, fieldPath);
-  }
-  return parsed.href;
-}
-
-export function validateExternalRepositoryCatalog(value, { allowFileUri = false } = {}) {
-  assertExact(value, ['schema', 'repositories'], '');
-  if (value.schema !== EXTERNAL_REPOSITORY_CATALOG_SCHEMA) {
-    fail('SIM_REPOSITORY_SCHEMA', `must equal ${EXTERNAL_REPOSITORY_CATALOG_SCHEMA}`, 'schema');
-  }
-  if (!Array.isArray(value.repositories)) fail('SIM_REPOSITORY_ENTRIES', 'must be a sequence', 'repositories');
-  const keys = new Set();
-  const repositories = value.repositories.map((entry, index) => {
-    const fieldPath = `repositories[${index}]`;
-    assertExact(entry, ['key', 'object_format', 'canonical_fetch_uri', 'allowed_mirrors'], fieldPath);
-    const key = assertString(entry.key, `${fieldPath}.key`, { pattern: REPOSITORY_KEY_PATTERN, min: 2, max: 128 });
-    if (keys.has(key)) fail('SIM_REPOSITORY_DUPLICATE', `duplicate repository key ${JSON.stringify(key)}`, `${fieldPath}.key`);
-    keys.add(key);
-    if (!['git-sha1', 'git-sha256'].includes(entry.object_format)) {
-      fail('SIM_REPOSITORY_OBJECT_FORMAT', 'must be git-sha1 or git-sha256', `${fieldPath}.object_format`);
-    }
-    if (!Array.isArray(entry.allowed_mirrors)) fail('SIM_REPOSITORY_MIRRORS', 'must be a sequence', `${fieldPath}.allowed_mirrors`);
-    const mirrors = entry.allowed_mirrors.map((uri, mirrorIndex) => assertCredentialFreeUri(uri, `${fieldPath}.allowed_mirrors[${mirrorIndex}]`, { allowFileUri }));
-    if (new Set(mirrors).size !== mirrors.length) fail('SIM_REPOSITORY_MIRRORS', 'mirrors must be unique', `${fieldPath}.allowed_mirrors`);
-    return {
-      key,
-      object_format: entry.object_format,
-      canonical_fetch_uri: assertCredentialFreeUri(entry.canonical_fetch_uri, `${fieldPath}.canonical_fetch_uri`, { allowFileUri }),
-      allowed_mirrors: mirrors,
-    };
-  });
-  return Object.freeze({ schema: EXTERNAL_REPOSITORY_CATALOG_SCHEMA, repositories });
 }
 
 export function loadSimulatorConfig(configRoot) {
@@ -466,14 +257,10 @@ export function loadSimulatorConfig(configRoot) {
     if (moduleIds.has(descriptor.module_id)) fail('SIM_DESCRIPTOR_DUPLICATE_MODULE', `duplicate selected module ${JSON.stringify(descriptor.module_id)}`);
     moduleIds.add(descriptor.module_id);
   }
-  const repositoryPath = path.join(configRoot, 'external-repositories.yaml');
-  const repositoryCatalog = validateExternalRepositoryCatalog(
-    parseStrictConfigYaml(readFileSync(repositoryPath, 'utf8'), 'config/simulator/external-repositories.yaml'),
-  );
   const scenarioPath = path.join(configRoot, 'scenario.yaml');
   const scenario = parseSimulatorScenario(
     readFileSync(scenarioPath, 'utf8'),
     'config/simulator/scenario.yaml',
   );
-  return { descriptors, repositoryCatalog, scenario };
+  return { descriptors, scenario };
 }

@@ -77,9 +77,9 @@ nimi-app update [--dir path] [--json]
 `doctor --conformance simulator` validates the current closed
 `nimi.simulator.module/v1` input, canonical renderer-factory reachability,
 Simulator renderer/Adapter/fixture source, canonical style namespace, forbidden
-closure imports/effects, and source/CSS build inputs. It emits an ordinary log
-and exit code. It neither selects the App nor certifies the Simulator's final
-resolver, combined graph, artifact, release, or Nimi App admission.
+closure imports/effects, and scoped CSS inputs. It emits an ordinary log and
+exit code. It neither selects the App nor certifies the product, artifact,
+release, or Nimi App admission.
 
 Inside this monorepo, use the repo-local binary:
 
