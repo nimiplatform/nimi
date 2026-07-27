@@ -6,7 +6,7 @@ function deepFreeze(value) {
 }
 
 export const SIMULATOR_EFFECT_POLICY = deepFreeze({
-  authority: {"path":"config/platform-simulator-browser-effects.yaml","digest":"sha256:c55b5410664afa928893f3721e02d08bc2dc4cf76b152a195c3e2e64eccf89d1","protocolId":"platform_simulator_browser_effects","sourceRule":"rule.nimi.platform.simulator.p-sim-002"},
+  source: {"path":"config/platform-simulator-browser-effects.yaml","digest":"sha256:5730ea479801b83f4bf53a5c7080dffffed09536ea98b7c1dc55c04318133a69","protocolId":"platform_simulator_browser_effects"},
   entries: [
     {"id":"network_fetch","classification":"forbidden","surfaces":["globalThis.fetch"],"governedOwners":["app_adapter","canonical_renderer","selected_dependency"],"permittedOwners":[],"phases":["module_evaluation","instance_lifecycle","render","callback"]},
     {"id":"network_xhr","classification":"forbidden","surfaces":["XMLHttpRequest"],"governedOwners":["app_adapter","canonical_renderer","selected_dependency"],"permittedOwners":[],"phases":["module_evaluation","instance_lifecycle","render","callback"]},

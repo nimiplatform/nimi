@@ -58,7 +58,7 @@ export interface SimulatorEffectCatalog {
     readonly owner: 'simulator-bootstrap' | 'simulator-shell' | 'kit-coordinator';
     readonly evidenceId: string;
   }[];
-  readonly authorityDigests: {
+  readonly policyDigests: {
     readonly browserEffects: string;
     readonly listenerFamilies: string;
   };
@@ -102,7 +102,7 @@ export interface SimulatorEffectScope {
 
 export interface SimulatorGuardReport {
   readonly catalogDigest: string;
-  readonly authorityDigests: {
+  readonly policyDigests: {
     readonly browserEffects: string;
     readonly listenerFamilies: string;
   };
@@ -116,7 +116,7 @@ export interface SimulatorGuardReport {
   readonly runtimeScope: {
     readonly coverage: 'synchronous-known-callbacks-only';
     readonly unscopedBehavior: 'framework-passthrough';
-    readonly asyncAndModuleEvaluationAuthority: 'authority-derived-static-qualification';
+    readonly asyncAndModuleEvaluationPolicy: 'policy-derived-static-qualification';
   };
   readonly deniedAttempts: readonly SimulatorDeniedEffectRecord[];
 }
@@ -414,14 +414,14 @@ export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptio
 
   const report: SimulatorGuardReport = {
     catalogDigest: catalog.digest,
-    authorityDigests: catalog.authorityDigests,
+    policyDigests: catalog.policyDigests,
     installedGuards: Object.freeze(installedGuards.slice()),
     descriptorShapes: Object.freeze({ ...descriptorShapes }),
     staticOnlySurfaces: Object.freeze(staticOnlySurfaces.map((entry) => Object.freeze({ ...entry }))),
     runtimeScope: Object.freeze({
       coverage: 'synchronous-known-callbacks-only' as const,
       unscopedBehavior: 'framework-passthrough' as const,
-      asyncAndModuleEvaluationAuthority: 'authority-derived-static-qualification' as const,
+      asyncAndModuleEvaluationPolicy: 'policy-derived-static-qualification' as const,
     }),
     get deniedAttempts() {
       return deniedAttempts.slice();

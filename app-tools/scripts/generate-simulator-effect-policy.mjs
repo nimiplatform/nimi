@@ -8,12 +8,12 @@ import YAML from 'yaml';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const APP_TOOLS_ROOT = path.resolve(SCRIPT_DIR, '..');
-const AUTHORITY_PATH = path.resolve(
+const POLICY_PATH = path.resolve(
   APP_TOOLS_ROOT,
   '../config/platform-simulator-browser-effects.yaml',
 );
 const OUTPUT_PATH = path.resolve(APP_TOOLS_ROOT, 'lib/simulator-effect-policy.generated.mjs');
-const AUTHORITY_LABEL = 'config/platform-simulator-browser-effects.yaml';
+const POLICY_LABEL = 'config/platform-simulator-browser-effects.yaml';
 const CLASSIFICATIONS = new Set(['forbidden', 'port_only', 'pure_read']);
 
 function sha256(bytes) {
@@ -28,7 +28,7 @@ function stringArray(value, field) {
   return [...value];
 }
 
-function projectAuthority(bytes) {
+function projectPolicy(bytes) {
   const document = YAML.parseDocument(bytes.toString('utf8'), {
     merge: false,
     uniqueKeys: true,
@@ -36,14 +36,13 @@ function projectAuthority(bytes) {
   if (document.errors.length > 0) {
     throw new Error(document.errors.map((entry) => entry.message).join('; '));
   }
-  const authority = document.toJS({ maxAliasCount: 0 });
-  if (authority?.protocol_id !== 'platform_simulator_browser_effects'
-    || authority?.source_rule !== 'rule.nimi.platform.simulator.p-sim-002'
-    || !Array.isArray(authority.entries)) {
-    throw new Error('unexpected Simulator browser-effect authority identity or entries');
+  const policy = document.toJS({ maxAliasCount: 0 });
+  if (policy?.protocol_id !== 'platform_simulator_browser_effects'
+    || !Array.isArray(policy.entries)) {
+    throw new Error('unexpected Simulator browser-effect policy identity or entries');
   }
   const ids = new Set();
-  const entries = authority.entries.map((entry, index) => {
+  const entries = policy.entries.map((entry, index) => {
     const field = `entries[${index}]`;
     if (!entry || typeof entry !== 'object'
       || typeof entry.id !== 'string' || !entry.id
@@ -73,11 +72,10 @@ function projectAuthority(bytes) {
     };
   });
   return {
-    authority: {
-      path: AUTHORITY_LABEL,
+    source: {
+      path: POLICY_LABEL,
       digest: sha256(bytes),
-      protocolId: authority.protocol_id,
-      sourceRule: authority.source_rule,
+      protocolId: policy.protocol_id,
     },
     entries,
   };
@@ -94,14 +92,14 @@ function renderProjection(projection) {
     + `  return Object.freeze(value);\n`
     + `}\n\n`
     + `export const SIMULATOR_EFFECT_POLICY = deepFreeze({\n`
-    + `  authority: ${JSON.stringify(projection.authority)},\n`
+    + `  source: ${JSON.stringify(projection.source)},\n`
     + `  entries: [\n${entryLines}\n  ],\n`
     + `});\n`;
 }
 
 export function expectedSimulatorEffectPolicyProjection() {
-  const bytes = readFileSync(AUTHORITY_PATH);
-  return renderProjection(projectAuthority(bytes));
+  const bytes = readFileSync(POLICY_PATH);
+  return renderProjection(projectPolicy(bytes));
 }
 
 function main(args) {

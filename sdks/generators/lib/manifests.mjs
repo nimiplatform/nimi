@@ -24,11 +24,7 @@ export function buildExportManifest(runtime, realm, errorCodes) {
       ...runtime.source_paths,
       ...realm.source_paths,
       ...errorCodes.source_paths,
-      '.nimi/spec/sdks/client-core.authority.yaml',
     ],
-    provenance: {
-      source_rule: 'rule.nimi.sdks.client-core.r063',
-    },
     languages,
     core_families: ['runtime', 'realm', 'types'],
     excluded_derivative_surfaces: [

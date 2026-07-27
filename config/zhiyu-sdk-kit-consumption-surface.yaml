@@ -48,12 +48,12 @@ rows:
     symbol: createAgentCenterShellAppearanceAdapter
     package: "@nimiplatform/kit/features/agent-center"
     allowed_use: agent_center_runtime_profile_plus_kit_shell_custody_adapter
-    source_rule: Z-CONFIG-005
+    source_rule: rule.nimi.zhiyu.local-partner-surface.r010
   - kind: required_surface
     symbol: createAgentCenterShellBridge
     package: "@nimiplatform/kit/shell/renderer/bridge"
     allowed_use: standard_agent_center_shell_bridge
-    source_rule: Z-CONFIG-005
+    source_rule: rule.nimi.zhiyu.local-partner-surface.r010
   - kind: forbidden_surface
     symbol: useAppAiChatSession
     reason: direct_text_generate_bypasses_runtime_agent
@@ -94,14 +94,6 @@ rows:
     symbol: raw_localagent_source_context_diagnostics
     reason: public_projection_is_bounded_typed_status_only
     source_rule: Z-AUTH-005
-  - kind: forbidden_surface
-    symbol: __nimiZhiyuAgentCenterLocalConfig
-    reason: private_agent_center_local_config_bridge_retired_by_kit_shell_hardcut
-    source_rule: Z-CONFIG-005
-  - kind: forbidden_surface
-    symbol: zhiyu:agent-center-local-config
-    reason: private_agent_center_local_config_ipc_retired_by_kit_shell_hardcut
-    source_rule: Z-CONFIG-005
   - kind: local_parity_module
     path: apps/zhiyu/src/shell/agent-chat/runtime-agent-binding.ts
     posture: bounded_zhiyu_local_parity_implementation

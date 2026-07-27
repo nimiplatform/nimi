@@ -476,8 +476,8 @@ export function validateSimulatorAppSource(rootDir, options = {}) {
       production_css_ownership: makeCheck(productionStyle.host_foundation_inputs.map((entry) => entry.path)),
       css: makeCheck([style.rootClass, style.globalPrefix]),
       globals_and_effects: makeCheck([
-        SIMULATOR_EFFECT_POLICY.authority.path,
-        SIMULATOR_EFFECT_POLICY.authority.digest,
+        SIMULATOR_EFFECT_POLICY.source.path,
+        SIMULATOR_EFFECT_POLICY.source.digest,
       ]),
       dom_identity_scope: makeCheck([style.rootClass]),
       lifecycle_fixture: makeCheck([canonicalRelative(absoluteRoot, simulatorParts.fixturePath)]),

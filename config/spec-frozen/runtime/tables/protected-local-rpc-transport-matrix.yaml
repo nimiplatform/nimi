@@ -124,11 +124,6 @@ platform_admission:
     - renderer_ipc
     - portable_bearer
     - raw_executable_self_auth
-  consistency_rules:
-    every_implementation_resolves_one_same_os_profile_bundle: required
-    single_sided_implementation: reject
-    cross_platform_profile_substitution: forbidden
-    missing_profile_component: reject
 non_product_local_development_supervisor_consistency:
   profile_id: macos_local_development_v1
   admission: local_development_candidate_fail_closed_pending_real_acceptance

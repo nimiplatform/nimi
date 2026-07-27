@@ -83,11 +83,11 @@ function catalogRow(targetPath) {
   return row;
 }
 
-test('catalog is generated from the authority tables with digest binding', () => {
+test('catalog is generated from implementation policy tables with digest binding', () => {
   assert.equal(catalog.schema, 'nimi.simulator.effect-catalog/v1');
   assert.match(catalog.digest, /^sha256:[0-9a-f]{64}$/);
-  assert.match(catalog.authorityDigests.browserEffects, /^sha256:[0-9a-f]{64}$/);
-  assert.match(catalog.authorityDigests.listenerFamilies, /^sha256:[0-9a-f]{64}$/);
+  assert.match(catalog.policyDigests.browserEffects, /^sha256:[0-9a-f]{64}$/);
+  assert.match(catalog.policyDigests.listenerFamilies, /^sha256:[0-9a-f]{64}$/);
   assert.ok(catalog.effects.length > 40);
   assert.deepEqual(
     catalog.listenerFamilies.map((family) => family.id),
@@ -257,7 +257,7 @@ test('runtime scope is synchronous supplemental evidence, not ambient async attr
   assert.deepEqual(handle.report.runtimeScope, {
     coverage: 'synchronous-known-callbacks-only',
     unscopedBehavior: 'framework-passthrough',
-    asyncAndModuleEvaluationAuthority: 'authority-derived-static-qualification',
+    asyncAndModuleEvaluationPolicy: 'policy-derived-static-qualification',
   });
   await handle.withScope({ owner: 'canonical-renderer', phase: 'callback' }, async () => {
     await Promise.resolve();

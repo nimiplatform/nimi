@@ -18,16 +18,16 @@ function probeFor(surface) {
   return `${surface};`;
 }
 
-test('generated effect policy binds its canonical authority identity', () => {
+test('generated effect policy binds its source policy identity', () => {
   assert.equal(
-    SIMULATOR_EFFECT_POLICY.authority.path,
+    SIMULATOR_EFFECT_POLICY.source.path,
     'config/platform-simulator-browser-effects.yaml',
   );
   assert.equal(
-    SIMULATOR_EFFECT_POLICY.authority.sourceRule,
-    'rule.nimi.platform.simulator.p-sim-002',
+    SIMULATOR_EFFECT_POLICY.source.protocolId,
+    'platform_simulator_browser_effects',
   );
-  assert.match(SIMULATOR_EFFECT_POLICY.authority.digest, /^sha256:[0-9a-f]{64}$/u);
+  assert.match(SIMULATOR_EFFECT_POLICY.source.digest, /^sha256:[0-9a-f]{64}$/u);
   assert.ok(SIMULATOR_EFFECT_POLICY.entries.length > 0);
 });
 

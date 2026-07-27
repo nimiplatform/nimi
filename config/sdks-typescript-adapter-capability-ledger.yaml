@@ -144,9 +144,6 @@ surfaces:
       - capability: migrationProof
         support: not-applicable
         mode: governance-only
-    verification_gates:
-      - check:sdk-vnext-adapter-capability-ledger
-
   - id: openai-compatible
     source_root: sdks/typescript/adapters/openai-compatible
     minimum_capability_level: L2
@@ -190,9 +187,6 @@ surfaces:
       - capability: runtimeRestBypass
         support: unsupported
         mode: owner-gated
-    verification_gates:
-      - check:sdk-vnext-adapter-capability-ledger
-
   - id: mcp
     source_root: sdks/typescript/adapters/mcp
     minimum_capability_level: L2
@@ -227,9 +221,6 @@ surfaces:
       - capability: workflowCheckpoint
         support: not-applicable
         mode: out-of-domain
-    verification_gates:
-      - check:sdk-vnext-adapter-capability-ledger
-
   - id: mastra
     source_root: sdks/typescript/adapters/mastra
     minimum_capability_level: L2
@@ -352,9 +343,6 @@ surfaces:
       - capability: modelRouterString
         support: not-applicable
         mode: out-of-domain
-    verification_gates:
-      - check:sdk-vnext-adapter-capability-ledger
-
   - id: langgraph
     source_root: sdks/typescript/adapters/langgraph
     minimum_capability_level: L1
@@ -380,9 +368,6 @@ surfaces:
       - capability: workflowCheckpoint
         support: unsupported
         mode: adapter-mapped
-    verification_gates:
-      - check:sdk-vnext-adapter-capability-ledger
-
   - id: llamaindex
     source_root: sdks/typescript/adapters/llamaindex
     minimum_capability_level: L1
@@ -408,9 +393,6 @@ surfaces:
       - capability: toolCalling
         support: unsupported
         mode: adapter-mapped
-    verification_gates:
-      - check:sdk-vnext-adapter-capability-ledger
-
   - id: react
     source_root: sdks/typescript/adapters/react
     minimum_capability_level: L1
@@ -436,9 +418,6 @@ surfaces:
       - capability: renderer
         support: unsupported
         mode: adapter-mapped
-    verification_gates:
-      - check:sdk-vnext-adapter-capability-ledger
-
   - id: next
     source_root: sdks/typescript/adapters/next
     minimum_capability_level: L1
@@ -464,5 +443,3 @@ surfaces:
       - capability: serverActions
         support: unsupported
         mode: adapter-mapped
-    verification_gates:
-      - check:sdk-vnext-adapter-capability-ledger

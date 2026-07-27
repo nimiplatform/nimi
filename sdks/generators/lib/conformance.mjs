@@ -113,13 +113,4 @@ export function writeConformanceFixtures(runtime, realm, errorCodes, exportsMani
       },
     },
   });
-  writeJson('sdks/conformance/manifests/phase1-languages.json', {
-    contract: 'nimi.sdks.phase1-languages.v1',
-    generated_by: generatedBy,
-    source_kind: 'sdk_spec_rule',
-    source_paths: ['.nimi/spec/sdks/client-core.authority.yaml'],
-    source_rule: 'rule.nimi.sdks.client-core.r063',
-    languages,
-    required_roots: languages.map((language) => `sdks/${language}`),
-  });
 }

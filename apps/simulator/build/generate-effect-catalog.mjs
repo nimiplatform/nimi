@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Generates the Simulator browser-effect runtime catalog from the canonical
- * P-SIM authority tables. The generated module is a deterministic projection:
- * authority lives in the YAML tables, never in hand-written runtime lists.
+ * Generates the Simulator browser-effect runtime catalog from implementation
+ * policy tables constrained by the P-SIM product authority. The generated
+ * module is a deterministic projection and is never hand-maintained.
  *
- * Authority: P-SIM-017/018; tables/simulator-browser-effects.yaml and
- * tables/simulator-listener-families.yaml.
+ * Product authority: .nimi/spec/platform/simulator.authority.yaml.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -130,7 +129,7 @@ function buildRuntimeCatalog(effectsTable, listenersTable, effectsDigest, listen
       listenerInstancesPerFamilyAndTarget: 1,
       subscriberOrder: 'overlay-order_then_instance-creation-sequence_then_subscription-sequence',
     },
-    authorityDigests: {
+    policyDigests: {
       browserEffects: effectsDigest,
       listenerFamilies: listenersDigest,
     },

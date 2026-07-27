@@ -1,11 +1,10 @@
 # Non-authoritative machine configuration.
-# Normative authority: .nimi/spec/platform/simulator.authority.yaml
+# Implementation policy constrained by .nimi/spec/platform/simulator.authority.yaml.
 # Rationale: docs/authority/platform-simulator-rationale.md
 version: 1
 table_family: protocol_surface
 owner: platform
 protocol_id: platform_simulator_module_contract
-source_rule: rule.nimi.platform.simulator.p-sim-004
 surfaces:
   - manifest
   - canonical_renderer_factory

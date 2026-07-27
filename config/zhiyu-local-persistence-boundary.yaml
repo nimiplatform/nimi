@@ -22,11 +22,6 @@ rows:
     constraints: [cache_only, owner_aware, not_raw_upstream_truth]
     source_rule: Z-PERSIST-001
   - kind: forbidden
-    key: agent_center_local_config_hardcut
-    owner: retired
-    constraints: [retired_by_agent_center_avatar_kit_shell_hardcut, no_app_local_agent_center_config_truth, use_runtime_agent_presentation_profile_for_selection_truth, use_kit_shell_agent_center_for_asset_custody]
-    source_rule: Z-CONFIG-005
-  - kind: forbidden
     key: canonical_transcript
   - kind: forbidden
     key: turn_truth
