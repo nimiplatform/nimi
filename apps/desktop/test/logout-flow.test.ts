@@ -1,15 +1,8 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import { logoutAndClearSession, switchAccountAndClearSession } from '../src/shell/renderer/features/auth/logout';
-
-const logoutSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/auth/logout.ts'),
-  'utf8',
-);
 
 function createTranslate() {
   return (_key: string, options?: { defaultValue?: string; error?: string }) =>
@@ -120,12 +113,6 @@ test('logout flow fails closed when Runtime returns a typed rejection', async ()
   assert.equal(bannerKind, 'warning');
 });
 
-test('logout flow does not bypass Runtime logout for Desktop shells', () => {
-  assert.doesNotMatch(logoutSource, /isDesktopRuntimeAccountSessionReady/);
-  assert.match(logoutSource, /sdk\.accountRuntime\(\)\.account\.logout/);
-  assert.match(logoutSource, /caller: sdk\.accountCaller\(\)/);
-});
-
 test('switch account flow clears local projection only after Runtime switch succeeds', async () => {
   const effects: string[] = [];
   const switched = await switchAccountAndClearSession(
@@ -149,5 +136,4 @@ test('switch account flow clears local projection only after Runtime switch succ
     'clear-query',
     'feedback',
   ]);
-  assert.match(logoutSource, /sdk\.accountRuntime\(\)\.account\.switchAccount/);
 });

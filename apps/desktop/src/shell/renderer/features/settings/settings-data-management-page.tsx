@@ -22,7 +22,11 @@ type StorageSnapshot = {
   estimatedQuotaBytes: number;
 };
 
-const DELETE_ACCOUNT_CONFIRMATION_TEXT = 'DELETE';
+export const DELETE_ACCOUNT_CONFIRMATION_TEXT = 'DELETE';
+
+export function isDeleteAccountConfirmationMatch(value: string): boolean {
+  return value.trim() === DELETE_ACCOUNT_CONFIRMATION_TEXT;
+}
 
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -109,7 +113,7 @@ export function DataManagementPage() {
   const usagePercent = storage.estimatedQuotaBytes > 0
     ? Math.min(100, Math.round((storage.estimatedUsageBytes / storage.estimatedQuotaBytes) * 100))
     : 0;
-  const deleteConfirmationMatches = deleteConfirmationText.trim() === DELETE_ACCOUNT_CONFIRMATION_TEXT;
+  const deleteConfirmationMatches = isDeleteAccountConfirmationMatch(deleteConfirmationText);
 
   const handleClearCache = () => {
     queryClient.clear();

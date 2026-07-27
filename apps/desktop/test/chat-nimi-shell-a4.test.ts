@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -33,10 +31,6 @@ import {
   resetRuntimeLocalModelWarmCacheForTests,
 } from './chat-agent-local-mode-test-utils.js';
 
-function readWorkspaceFile(relativePath: string): string {
-  return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
-}
-
 test('chat ai a4: active thread restore prefers explicit selection before last selected', () => {
   const threads = [{
     id: 'thread-a',
@@ -67,58 +61,6 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
     selectionThreadId: 'missing-thread',
     lastSelectedThreadId: 'missing-too',
   }), null);
-});
-
-test('chat ai a4: adapter does not persist text.generate route selections into AIConfig truth', () => {
-  const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
-  const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx');
-  assert.match(adapterSource, /selectedTargetRef:\s*textCapabilityProjection\?\.selectedTargetRef \|\| null/);
-  assert.match(adapterSource, /resolveRuntimeRequest:\s*\(\)\s*=>\s*resolveChatAiConversationRuntimeRequest/);
-  assert.match(presentationSource, /disableRpContent:\s*true/);
-  assert.doesNotMatch(adapterSource, /aiConfig\.capabilities\.selectedBindings\['text\.generate'\]/);
-  assert.doesNotMatch(adapterSource, /aiConfig\.capabilities\.targetRefs\['text\.generate'\]/);
-  assert.doesNotMatch(adapterSource, /surface\.aiConfig\.update\(/);
-  assert.equal(
-    /if\s*\(!projectionSupported\s*\|\|\s*!activeThreadId\)/.test(adapterSource),
-    false,
-    'ai provider must not require an existing activeThreadId before first submit',
-  );
-  // Adapter must NOT sync routeSnapshot → binding
-  assert.equal(
-    /setConversationCapabilityBinding\('text\.generate', desiredBinding\)/.test(adapterSource),
-    false,
-    'adapter must not write desiredBinding derived from routeSnapshot',
-  );
-  assert.equal(
-    /normalizeRuntimeRouteBindingSelectionKey/.test(adapterSource),
-    false,
-    'normalizeRuntimeRouteBindingSelectionKey must be removed from adapter',
-  );
-});
-
-test('chat ai a4: composer submit is fire-and-forget and host actions project the user message before route gating', () => {
-  const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx');
-  const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts');
-  const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
-
-  assert.match(presentationSource, /submit:\s*\(composerInput: ChatComposerSubmitInput<unknown>\)\s*=>\s*\{/);
-  assert.match(presentationSource, /void input\.handleSubmit\(composerInput\.text\)\.catch\(\(\) => undefined\);/);
-  assert.match(presentationSource, /return Promise\.resolve\(\);/);
-  assert.match(adapterSource, /const optimisticWaiting = submittingThreadId === activeThreadId/);
-  assert.match(adapterSource, /optimisticWaiting=\{optimisticWaiting\}/);
-  assert.match(adapterSource, /waitingLabel=\{t\('Chat\.nimiSending'/);
-  assert.match(adapterSource, /submittingThreadId === activeThreadId\s*&& \(!streamState \|\| streamState\.phase === 'idle'\)/);
-
-  const optimisticProjectionIndex = hostActionsSource.indexOf(
-    "messages: replaceMessage(replaceMessage(base.messages, userMessage), assistantPlaceholder),",
-  );
-  const routeGateIndex = hostActionsSource.indexOf('await ensureAiConversationSubmitRouteReady');
-  assert.notEqual(optimisticProjectionIndex, -1);
-  assert.notEqual(routeGateIndex, -1);
-  assert.ok(
-    optimisticProjectionIndex < routeGateIndex,
-    'AI host must project the optimistic user message before submit-time route gating',
-  );
 });
 
 test('chat ai a4: switching thread route truth updates selection-store projection and thinking support', async () => {
@@ -227,21 +169,6 @@ test('chat ai a4: switching thread route truth updates selection-store projectio
   assert.deepEqual(
     resolveAiThinkingSupportFromProjection(projectionB),
     { supported: false, reason: 'thinking_unsupported' },
-  );
-});
-
-test('chat ai a4: no stale local-model preference helper remains in runtime adapter', () => {
-  const runtimeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-runtime.ts');
-
-  assert.equal(
-    /resolvePreferredChatLocalModel/.test(runtimeSource),
-    false,
-    'chat-nimi-runtime.ts must not keep stale local model preference fallback helpers',
-  );
-  assert.equal(
-    /Fall back to runtime-config state when authoritative health is unavailable/.test(runtimeSource),
-    false,
-    'chat-nimi-runtime.ts must not retain runtime-config health fallback comments or logic',
   );
 });
 

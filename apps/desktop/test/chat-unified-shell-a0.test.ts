@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
@@ -17,11 +15,6 @@ import {
 } from '../src/shell/renderer/features/chat/chat-nimi-route-view';
 import type { ConversationCapabilityProjection } from '../src/shell/renderer/features/chat/conversation-capability';
 import type { NimiRuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/runtime';
-
-const chatNimiRouteViewSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-nimi-route-view.ts'),
-  'utf8',
-);
 
 function createUiSliceHarness(): { getState: () => AppStoreState } {
   let state = {
@@ -286,15 +279,6 @@ test('A0 AI route options derive from runtime.route.listOptions inventory', () =
       key: 'cloud-connector|v2|connector-openai|remote-catalog:connector-openai:gpt-4.1|gpt-4.1',
     },
   ]);
-});
-
-test('A0 AI route options consume SDK target inventory projections', () => {
-  assert.match(chatNimiRouteViewSource, /isNimiRuntimeTargetInventoryItemSelectable/);
-  assert.match(chatNimiRouteViewSource, /nimiRuntimeRouteTargetRefsMatch/);
-  assert.doesNotMatch(chatNimiRouteViewSource, /nimiRuntimeRouteLocalOptionToBinding/);
-  assert.doesNotMatch(chatNimiRouteViewSource, /nimiRuntimeRouteBindingsMatch/);
-  assert.match(chatNimiRouteViewSource, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.doesNotMatch(chatNimiRouteViewSource, /source:\s*'local',\s*connectorId:\s*''/);
 });
 
 test('A0 AI route summary prefers projection resolvedBinding over selectedTargetRef', () => {

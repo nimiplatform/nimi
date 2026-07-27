@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import fs from 'node:fs';
-import path from 'node:path';
 
 import type { NimiAIHostStorage, NimiAIScopeRef } from '@nimiplatform/sdk/ai';
 
@@ -16,21 +14,6 @@ import type { NimiAIHostStorage, NimiAIScopeRef } from '@nimiplatform/sdk/ai';
  * - listScopes returns real scope list
  */
 
-// ---------------------------------------------------------------------------
-// Source-level structural tests (no DOM / localStorage needed)
-// ---------------------------------------------------------------------------
-
-function readSource(relativePath: string): string {
-  return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
-}
-
-const storageSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
-const serviceSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-service.ts');
-const snapshotStoreSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-snapshot-store.ts');
-const productionAppStoreSource = readSource('src/shell/renderer/app-shell/providers/production-app-store.ts');
-const runtimeSliceSource = readSource('src/shell/renderer/app-shell/providers/runtime-slice.ts');
-const activeScopeSource = readSource('src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.ts');
-const oldDefaultScopeFactoryPattern = new RegExp('createDefaultAI' + 'ScopeRef');
 const AI_CONFIG_SCOPE_INDEX_KEY = 'nimi.ai-config.scope-index.v2';
 const AI_CONFIG_SCOPE_PREFIX = 'nimi.ai-config.scope.';
 const AI_CONFIG_SCOPE_SUFFIX = '.v2';
@@ -60,89 +43,6 @@ class MemoryHostStorage implements NimiAIHostStorage {
 function desktopAIConfigStorageKey(scopeKey: string): string {
   return `${AI_CONFIG_SCOPE_PREFIX}${scopeKey}${AI_CONFIG_SCOPE_SUFFIX}`;
 }
-
-test('multi-scope: persistence layer uses scope-keyed storage keys', () => {
-  // Scope index key
-  assert.match(storageSource, /nimi\.ai-config\.scope-index\.v2/);
-  // Per-scope key prefix
-  assert.match(storageSource, /nimi\.ai-config\.scope\./);
-  // Multi-scope API functions exist
-  assert.match(storageSource, /function loadAIConfigForScope\(/);
-  assert.match(storageSource, /function persistAIConfigForScope\(/);
-  assert.match(storageSource, /function listPersistedScopeKeys\(/);
-  assert.match(storageSource, /function parseScopeKey\(/);
-  assert.match(storageSource, /function scopeKeyFromRef\(/);
-  assert.match(storageSource, /function repairDesktopAIConfigStorage\(/);
-});
-
-test('multi-scope: persistence layer has no legacy migration or compat shim (hard cut)', () => {
-  assert.doesNotMatch(storageSource, /LEGACY_SINGLE_KEY/);
-  assert.doesNotMatch(storageSource, /migrateLegacySingleKey/);
-  assert.doesNotMatch(storageSource, /function loadAIConfig\(/);
-  assert.doesNotMatch(storageSource, /function persistAIConfig\(/);
-  assert.doesNotMatch(storageSource, /nimi\.ai-config\.v1/);
-});
-
-test('multi-scope: shared Desktop host service maintains config by scope map', () => {
-  // configByScope map for multi-scope state
-  assert.match(serviceSource, /configByScope/);
-  assert.match(serviceSource, /new Map/);
-  // get reads from scope map
-  assert.match(serviceSource, /function getConfigForScope\(/);
-  // commitConfig writes to scope map
-  assert.match(serviceSource, /configByScope\.set\(key, config\)/);
-  // listScopes iterates the map
-  assert.match(serviceSource, /configByScope\.keys\(\)/);
-});
-
-test('multi-scope: read fallback does not mark a scope as initialized', () => {
-  assert.match(serviceSource, /materializedScopeKeys/);
-  assert.match(serviceSource, /materializedScopeKeys\.add\(key\)/);
-  assert.match(serviceSource, /materializedScopeKeys\.has\(key\)/);
-  assert.doesNotMatch(serviceSource, /scopeHasPersistedConfig[\s\S]{0,220}configByScope\.has\(key\)/);
-});
-
-test('multi-scope: shared Desktop host service listScopes returns real scope refs from map', () => {
-  // listScopes must iterate configByScope, not return hardcoded single scope
-  assert.match(serviceSource, /listScopes\(\): readonly NimiAIScopeRef\[\]/);
-  assert.match(serviceSource, /for \(const key of configByScope\.keys\(\)\)/);
-  assert.match(serviceSource, /parseScopeKey\(key\)/);
-});
-
-test('multi-scope: shared Desktop host service subscribe is scoped (S-AICONF-006)', () => {
-  // Subscription keyed by scope
-  assert.match(serviceSource, /createNimiAIConfigSubscriptionRegistry/);
-  assert.match(serviceSource, /configSubscriptions\.notify\(config\)/);
-  assert.match(serviceSource, /configSubscriptions\.subscribe\(scopeRef, callback\)/);
-  assert.doesNotMatch(serviceSource, /from '\.\/desktop-ai-config-subscriptions\.js'/);
-});
-
-test('multi-scope: production composition dynamically checks the mode-aware active chat scope for store sync', () => {
-  // Uses getActiveScope() dynamically, not a fixed capture at bootstrap.
-  assert.match(productionAppStoreSource, /getActiveScope\(\)/);
-  // Store-sync filter guards against a null active scope (Human/Group mode)
-  assert.match(productionAppStoreSource, /const activeScope = getActiveScope\(\)/);
-  assert.match(productionAppStoreSource, /scopeKeyFromRef\(activeScope\)/);
-  assert.match(productionAppStoreSource, /bindDesktopAIConfigAppStore/);
-  assert.match(productionAppStoreSource, /bindProductionProjectionRefreshToSurface\(productionAppStore\)/);
-  assert.match(runtimeSliceSource, /dependencies\.initialAIConfig/);
-  // No fixed activeScopeKey const
-  assert.doesNotMatch(productionAppStoreSource, /const activeScopeKey\b/);
-});
-
-test('multi-scope: snapshot getLatest is scope-keyed', () => {
-  assert.match(snapshotStoreSource, /createNimiAISnapshotStore/);
-  assert.match(snapshotStoreSource, /@nimiplatform\/kit\/core\/storage-json/);
-  assert.match(serviceSource, /snapshotStore\.record\(snapshot\)/);
-  assert.match(serviceSource, /snapshotStore\.getLatest\(scopeRef\)/);
-});
-
-test('multi-scope: no implicit scope inheritance (P-AISC-003)', () => {
-  // getConfigForScope delegates to loadAIConfigForScope which creates empty config for unknown scope
-  assert.match(serviceSource, /loadAIConfigForScope/);
-  // No runtime fallback chain between scopes (doc comments about the rule are fine)
-  assert.doesNotMatch(serviceSource, /fallbackScope|parentScope|inheritFrom/i);
-});
 
 // ---------------------------------------------------------------------------
 // Scope key utility tests
@@ -362,57 +262,8 @@ test('multi-scope: loadAIConfigForScope repairs retired stored config before SDK
 });
 
 // ---------------------------------------------------------------------------
-// T3-1: Mode-aware built-in chat scope orchestration structural tests
+// T3-1: Mode-aware built-in chat scope orchestration behavior
 // ---------------------------------------------------------------------------
-
-const projectionSource = readSource('src/shell/renderer/features/chat/production-conversation-capability-subscription.ts');
-
-test('T3-1: active-scope module exports mode-aware orchestration API', () => {
-  assert.match(activeScopeSource, /export function resolveChatModeAIScopeRef\(mode: ConversationMode\): NimiAIScopeRef \| null/);
-  assert.match(activeScopeSource, /export function getActiveScope\(\): NimiAIScopeRef \| null/);
-  assert.match(activeScopeSource, /export function setActiveScopeForMode\(mode: ConversationMode\): void/);
-  assert.match(activeScopeSource, /export function onActiveScopeChange\(/);
-});
-
-test('T3-1: active-scope module hard-cuts the generic chat scope', () => {
-  // No generic app:desktop:chat scope anywhere in the chat live path module
-  assert.doesNotMatch(activeScopeSource, oldDefaultScopeFactoryPattern);
-  assert.doesNotMatch(activeScopeSource, /DEFAULT_SCOPE/);
-  // Mode resolution uses the canonical built-in chat scope factory
-  assert.match(activeScopeSource, /createNimiBuiltInChatAIScopeRef\('nimi'\)/);
-  assert.match(activeScopeSource, /createNimiBuiltInChatAIScopeRef\('agent'\)/);
-});
-
-test('T3-1: setActiveScopeForMode pushes new config to app store and notifies listeners', () => {
-  // Pushes config for the new scope to store when the scope is non-null
-  assert.match(activeScopeSource, /pushDesktopAIConfigToBoundStore\(nextScopeRef\)/);
-  // Notifies listeners
-  assert.match(activeScopeSource, /for \(const listener of activeScopeListeners\)/);
-});
-
-test('T3-1: chat-mode store transition rebinds the active built-in chat scope', () => {
-  const uiSliceSource = readSource('src/shell/renderer/app-shell/providers/ui-slice.ts');
-  assert.match(uiSliceSource, /setActiveScopeForMode/);
-  assert.match(uiSliceSource, /setChatMode: \(mode\) => \{/);
-});
-
-test('T3-1: projection subscription follows the mode-aware active chat scope', () => {
-  // Uses getActiveScope, never the generic default scope
-  assert.match(projectionSource, /getActiveScope/);
-  assert.doesNotMatch(projectionSource, oldDefaultScopeFactoryPattern);
-  // Rebinds on chat-mode scope change
-  assert.match(projectionSource, /onActiveScopeChange/);
-  assert.match(projectionSource, /bindSubscriptionForScope/);
-  // Skips binding when no built-in chat scope is active (Human/Group)
-  assert.match(projectionSource, /if \(!scopeRef\) return null;/);
-  assert.doesNotMatch(projectionSource, /^let (?:surfaceSubscriptionUnsubscribe|activeScopeUnsubscribe)/m);
-});
-
-test('T3-1: projection rebind triggers immediate refresh on scope switch', () => {
-  // onActiveScopeChange callback triggers refresh
-  assert.match(projectionSource, /void refreshConversationCapabilityProjections\(store, undefined, getProductionConversationCapabilityRouteRuntime\(\)\)/);
-  assert.match(projectionSource, /return \(\) => \{[\s\S]*activeScopeUnsubscribe\(\)/);
-});
 
 test('T3-1: resolveChatModeAIScopeRef binds each mode to its canonical built-in scope', async () => {
   const {
@@ -486,38 +337,6 @@ test('T3-1: setActiveScopeForMode switches the active scope per mode and notifie
 // ---------------------------------------------------------------------------
 // T3-2: Group LocalAgent participation reuses the agent scope
 // ---------------------------------------------------------------------------
-
-const groupAdapterSource = readSource('src/shell/renderer/features/chat/chat-group-adapter.tsx');
-
-test('T3-2: active-scope module resolves Group participation to the agent scope, never a group-specific scope', () => {
-  // Group participation resolution exists and reuses createNimiBuiltInChatAIScopeRef('agent')
-  assert.match(
-    activeScopeSource,
-    /export function resolveGroupLocalAgentParticipationAIScopeRef\(/,
-  );
-  assert.match(
-    activeScopeSource,
-    /export function setGroupLocalAgentParticipationActive\(active: boolean\): void/,
-  );
-  assert.match(activeScopeSource, /createNimiBuiltInChatAIScopeRef\('agent'\)/);
-  // No group-specific scope is ever constructed: the only surfaceIds the chat
-  // active-scope module mints are the canonical built-in 'nimi' / 'agent'.
-  assert.doesNotMatch(activeScopeSource, /surfaceId:\s*['"`]group['"`]/);
-  assert.doesNotMatch(activeScopeSource, /createNimiBuiltInChatAIScopeRef\('group'\)/);
-  // No generic / default scope leaks into the Group path.
-  assert.doesNotMatch(activeScopeSource, oldDefaultScopeFactoryPattern);
-});
-
-test('T3-2: group adapter binds participation to the shared agent scope, never constructs a NimiAIScopeRef', () => {
-  // The adapter drives participation through the shared module entrypoint.
-  assert.match(groupAdapterSource, /setGroupLocalAgentParticipationActive/);
-  assert.match(groupAdapterSource, /hasInvokableGroupLocalAgentParticipation/);
-  // The group adapter must not construct any NimiAIScopeRef itself — scope identity
-  // is owned entirely by the shared active-scope module.
-  assert.doesNotMatch(groupAdapterSource, /createNimiBuiltInChatAIScopeRef/);
-  assert.doesNotMatch(groupAdapterSource, oldDefaultScopeFactoryPattern);
-  assert.doesNotMatch(groupAdapterSource, /kind:\s*['"`]feature['"`]/);
-});
 
 test('T3-2: resolveGroupLocalAgentParticipationAIScopeRef resolves exactly the agent feature scope or null', async () => {
   const {

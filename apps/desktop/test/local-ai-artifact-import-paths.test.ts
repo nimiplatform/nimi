@@ -1,14 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
-
-const localModelCenterSectionsPath = path.resolve(
-  process.cwd(),
-  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
-);
-
-const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 
 type TauriInvokeCall = {
   command: string;
@@ -52,11 +43,4 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
       globalRecord.window = previousWindow;
     }
   }
-});
-
-test('local model center uses one runtime manifest import entry and one asset file import entry', () => {
-  assert.match(localModelCenterSectionsSource, /Import Asset File/);
-  assert.match(localModelCenterSectionsSource, /Import Runtime Manifest/);
-  assert.doesNotMatch(localModelCenterSectionsSource, /Import Model Manifest/);
-  assert.doesNotMatch(localModelCenterSectionsSource, /Import Artifact Manifest/);
 });

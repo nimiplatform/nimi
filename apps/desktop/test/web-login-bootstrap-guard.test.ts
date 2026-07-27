@@ -1,17 +1,32 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
-const productionBindingsSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/renderer/production-bindings.ts'),
-  'utf8',
-);
+import { connectRuntimeHealthCoordinator } from '../src/shell/renderer/features/runtime-config/runtime-health-coordinator';
 
-test('web login shell does not start runtime health coordinator before a platform client exists', () => {
-  assert.match(
-    productionBindingsSource,
-    /connectRuntimeHealthCoordinator\(\s*runtimeHealthCoordinator,\s*lifecycle,\s*getShellFeatureFlags\(\)\.mode === 'desktop',\s*\)/s,
-  );
-  assert.doesNotMatch(productionBindingsSource, /connectRuntimeHealthCoordinator\(lifecycle, true\)/);
+test('a disabled shell never connects or starts Runtime health coordination', () => {
+  let starts = 0;
+  let stops = 0;
+  let bootstrapReads = 0;
+  let subscriptions = 0;
+  const disconnect = connectRuntimeHealthCoordinator({
+    start: () => { starts += 1; },
+    stop: () => { stops += 1; },
+  } as never, {
+    bootstrap: () => {
+      bootstrapReads += 1;
+      return { bootstrapReady: true, bootstrapError: null };
+    },
+    subscribeBootstrap: () => {
+      subscriptions += 1;
+      return () => {};
+    },
+  }, false);
+
+  disconnect();
+  assert.deepEqual({ starts, stops, bootstrapReads, subscriptions }, {
+    starts: 0,
+    stops: 0,
+    bootstrapReads: 0,
+    subscriptions: 0,
+  });
 });

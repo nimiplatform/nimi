@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -19,13 +18,6 @@ type RendererPortProcess = {
 const desktopRoot = '/repo/apps/desktop';
 const rendererPort = 1420;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')) as {
-  scripts?: Record<string, string>;
-};
-const rendererRunnerSource = fs.readFileSync(
-  path.join(root, 'scripts/ensure-dev-renderer-port.mjs'),
-  'utf8',
-);
 
 function processFixture(overrides: Partial<RendererPortProcess> = {}): RendererPortProcess {
   return {
@@ -146,13 +138,6 @@ test('non-desktop process on the dev port fails closed', () => {
   assert.deepEqual(plan.pidsToStop, []);
 });
 
-test('dev:renderer delegates port ownership and Vite launch to one runner process', () => {
-  const script = packageJson.scripts?.['dev:renderer'] || '';
-
-  assert.match(script, /^node scripts\/ensure-dev-renderer-port\.mjs -- vite /);
-  assert.doesNotMatch(script, /&&\s*vite/);
-});
-
 test('dev renderer runner wraps delegated commands through cmd.exe on Windows', () => {
   const plan = planRendererCommand('vite', ['--host', '127.0.0.1', '--port', '1420'], {
     platform: 'win32',
@@ -172,20 +157,6 @@ test('dev renderer runner keeps delegated commands direct on POSIX', () => {
     command: 'vite',
     args: ['--host', '127.0.0.1', '--port', '1420'],
   });
-});
-
-test('dev renderer runner lets Ctrl-C reach the delegated renderer before forced cleanup', () => {
-  assert.match(rendererRunnerSource, /function requestRendererShutdown\(child, signal\)/);
-  assert.match(rendererRunnerSource, /const signalForceKillGraceMs = 1500/);
-  assert.match(rendererRunnerSource, /function forceKillRendererProcessTree\(child\)/);
-  assert.match(rendererRunnerSource, /taskkill\.exe/);
-  assert.match(rendererRunnerSource, /requestRendererShutdown\(activeRendererChild, signal\)/);
-  assert.match(rendererRunnerSource, /if \(signal !== 'SIGINT'\)/);
-});
-
-test('dev renderer runner does not let Windows child shells inherit stdin', () => {
-  assert.match(rendererRunnerSource, /const inheritedChildStdio = process\.platform === 'win32'[\s\S]*\['ignore', 'inherit', 'inherit'\][\s\S]*: 'inherit'/);
-  assert.match(rendererRunnerSource, /stdio: inheritedChildStdio/);
 });
 
 test('dev renderer runner treats SIGTERM as a successful Tauri handoff shutdown', {

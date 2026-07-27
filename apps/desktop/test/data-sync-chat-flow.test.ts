@@ -1,7 +1,5 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import {
   createOfflineNimiError as createOfflineError,
   ReasonCode,
@@ -23,48 +21,7 @@ function createTestOfflinePort() {
   );
 }
 
-const chatFlowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/chat/data/realm-human-chat-data.ts'),
-  'utf8',
-);
-const groupChatFlowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/chat/data/realm-group-chat-data.ts'),
-  'utf8',
-);
-
-describe('desktop human chat scaffold source scanning', () => {
-  test('sendChatMessage includes clientMessageId', () => {
-    const fnStart = chatFlowSource.indexOf('export async function sendChatMessage');
-    assert.ok(fnStart !== -1, 'sendChatMessage function not found in source');
-
-    const fnBody = chatFlowSource.slice(fnStart, fnStart + 800);
-    assert.ok(
-      fnBody.includes('clientMessageId'),
-      'sendChatMessage must include clientMessageId in its body',
-    );
-  });
-
-  test('chat client correlation ids use SDK client ID generation', () => {
-    assert.match(chatFlowSource, /createNimiClientId\('cm'\)/);
-    assert.match(groupChatFlowSource, /createNimiClientId\(prefix\)/);
-    assert.doesNotMatch(chatFlowSource, /Math\.random\(\)/);
-    assert.doesNotMatch(groupChatFlowSource, /Math\.random\(\)/);
-  });
-
-  test('chat outbox uses explicit JSON and DTO projection', () => {
-    assert.doesNotMatch(chatFlowSource, /body:\s*entry\.body\s+as\s+JsonObject/);
-    assert.doesNotMatch(chatFlowSource, /body:\s*entry\.body\s+as\s+RealmSendMessageInputDto/);
-    assert.match(chatFlowSource, /serializeRealmSendMessageInput/);
-    assert.match(chatFlowSource, /parsePersistentRealmSendMessageInput/);
-  });
-
-  test('instance human chat service is bound to the renderer Realm API caller', () => {
-    assert.match(chatFlowSource, /createDesktopRealmChatService/);
-    assert.match(chatFlowSource, /sdk\.socialData\.callApi/);
-    assert.match(chatFlowSource, /createRealmHumanChatData/);
-    assert.doesNotMatch(chatFlowSource, /desktopRealmChatService/);
-  });
-
+describe('desktop human chat behavior', () => {
   test('failed send queues to outbox with attempts tracking', async () => {
     const offline = createTestOfflinePort();
     const result = await sendChatMessage('chat-1', 'hello', {}, {
@@ -254,36 +211,7 @@ describe('desktop human chat pagination', () => {
 });
 
 describe('desktop human chat shared Kit identity ownership', () => {
-  test('human chat data no longer owns message identity matching behavior', () => {
-    assert.match(chatFlowSource, /@nimiplatform\/kit\/features\/chat\/realm/);
-    assert.doesNotMatch(chatFlowSource, /export function sameMessageIdentity/);
-    assert.doesNotMatch(chatFlowSource, /function sameMessageIdentity/);
-  });
-
-  test('human chat data delegates start-chat target payload construction to Kit', () => {
-    const fnStart = chatFlowSource.indexOf('export async function startChatWithTarget');
-    assert.ok(fnStart !== -1, 'startChatWithTarget function not found in source');
-    const fnBody = chatFlowSource.slice(fnStart, fnStart + 700);
-    assert.match(fnBody, /startRealmChatWithTarget/);
-    assert.doesNotMatch(fnBody, /buildRealmTextMessageInput/);
-    assert.doesNotMatch(fnBody, /RealmStartChatInputDto/);
-  });
-
-  test('human chat data delegates message page size normalization to Kit', () => {
-    assert.match(chatFlowSource, /normalizeRealmChatLimit/);
-    assert.doesNotMatch(chatFlowSource, /function normalizeRealmPageSize/);
-  });
 });
 
 describe('desktop human chat defaults', () => {
-  test('default chat page size is 20', () => {
-    const fnStart = chatFlowSource.indexOf('export async function loadChatList');
-    assert.ok(fnStart !== -1, 'loadChatList function not found in source');
-
-    const fnSignature = chatFlowSource.slice(fnStart, fnStart + 300);
-    assert.ok(
-      fnSignature.includes('limit = 20'),
-      'loadChatList must default its limit parameter to 20',
-    );
-  });
 });

@@ -1,7 +1,5 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import {
   createOfflineNimiError,
   ReasonCode,
@@ -17,15 +15,6 @@ import {
 import { createSocialSnapshotStore } from '../src/shell/renderer/features/social/data/social-snapshot.js';
 import type { RealmSocialOfflinePort } from '../src/shell/renderer/features/social/data/social-offline-port.js';
 
-const profileFlowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/social/data/profile-data.ts'),
-  'utf8',
-);
-
-const profileFlowSocialSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/social/data/social-snapshot.ts'),
-  'utf8',
-);
 const snapshotStore = createSocialSnapshotStore();
 const failClosedOffline: RealmSocialOfflinePort = Object.freeze({
   async syncProfileMetadata() {},
@@ -46,48 +35,7 @@ function resetCachedContacts() {
   });
 }
 
-describe('D-DSYNC-004: social flow source scanning', () => {
-  test('D-DSYNC-004: source includes requestOrAcceptFriend flow', () => {
-    assert.ok(
-      profileFlowSource.includes('export async function requestOrAcceptFriend'),
-      'requestOrAcceptFriend must be exported from profile-flow',
-    );
-  });
-
-  test('D-DSYNC-004: source includes blockUser flow', () => {
-    assert.ok(
-      profileFlowSource.includes('export async function blockUser'),
-      'blockUser must be exported from profile-flow',
-    );
-  });
-
-  test('D-DSYNC-004: source includes unblockUser flow', () => {
-    assert.ok(
-      profileFlowSource.includes('export async function unblockUser'),
-      'unblockUser must be exported from profile-flow',
-    );
-  });
-
-  test('D-DSYNC-004: source includes removeFriend flow', () => {
-    assert.ok(
-      profileFlowSource.includes('export async function removeFriend'),
-      'removeFriend must be exported from profile-flow',
-    );
-  });
-
-  test('D-DSYNC-004: social graph flow does not promote test or fallback contacts', () => {
-    assert.doesNotMatch(profileFlowSource, /startsWith\('test-'\)/);
-    assert.doesNotMatch(profileFlowSocialSource, /startsWith\('test-'\)/);
-    assert.doesNotMatch(profileFlowSource, /__localFallbackUntil/);
-    assert.doesNotMatch(profileFlowSocialSource, /__localFallbackUntil/);
-  });
-
-  test('D-DSYNC-004: reusable social snapshot DX lives in SDK Realm extension', () => {
-    assert.match(profileFlowSocialSource, /loadNimiRealmSocialSnapshot/);
-    assert.doesNotMatch(profileFlowSocialSource, /loadRealmSocialSnapshot/);
-    assert.doesNotMatch(profileFlowSocialSource, /realm\.services\.MeService\.listMyFriendsWithDetails/);
-  });
-
+describe('D-DSYNC-004: social flow behavior', () => {
   test('D-DSYNC-004: friendship mutations fail closed offline instead of entering generic social outbox', async () => {
     const offline = createOfflineNimiError({
       source: 'realm',

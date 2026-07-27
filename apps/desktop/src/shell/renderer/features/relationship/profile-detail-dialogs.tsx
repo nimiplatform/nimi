@@ -3,6 +3,20 @@ import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 
 import { E2E_IDS } from '../../testability/e2e-ids';
 
+export function projectRemoveFriendConfirmationState(pending: boolean): {
+  readonly actionsDisabled: boolean;
+  readonly canDismiss: boolean;
+  readonly confirmLabelKey: 'Profile.removing' | 'Profile.removeFriend';
+  readonly confirmLabelDefaultValue: 'Removing...' | 'Remove Friend';
+} {
+  return {
+    actionsDisabled: pending,
+    canDismiss: !pending,
+    confirmLabelKey: pending ? 'Profile.removing' : 'Profile.removeFriend',
+    confirmLabelDefaultValue: pending ? 'Removing...' : 'Remove Friend',
+  };
+}
+
 export function RemoveFriendConfirmDialog({
   contact,
   pending = false,
@@ -15,22 +29,23 @@ export function RemoveFriendConfirmDialog({
   onCancel: () => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
+  const confirmationState = projectRemoveFriendConfirmationState(pending);
   return (
     <OverlayShell
       open
       kind="dialog"
-      onClose={pending ? undefined : onCancel}
+      onClose={confirmationState.canDismiss ? onCancel : undefined}
       dataTestId={E2E_IDS.profileRemoveFriendConfirmDialog}
       title={<h3 className="text-lg font-semibold text-gray-900">{i18n.t('Profile.removeFriend', { defaultValue: 'Remove Friend' })}</h3>}
       footer={(
         <div className="flex justify-end gap-3">
-          <Button tone="ghost" onClick={onCancel} disabled={pending}>
+          <Button tone="ghost" onClick={onCancel} disabled={confirmationState.actionsDisabled}>
             {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
           </Button>
-          <Button tone="secondary" onClick={onConfirm} disabled={pending} className="bg-red-600 text-white hover:bg-red-700 hover:text-white">
-            {pending
-              ? i18n.t('Profile.removing', { defaultValue: 'Removing...' })
-              : i18n.t('Profile.removeFriend', { defaultValue: 'Remove Friend' })}
+          <Button tone="secondary" onClick={onConfirm} disabled={confirmationState.actionsDisabled} className="bg-red-600 text-white hover:bg-red-700 hover:text-white">
+            {i18n.t(confirmationState.confirmLabelKey, {
+              defaultValue: confirmationState.confirmLabelDefaultValue,
+            })}
           </Button>
         </div>
       )}

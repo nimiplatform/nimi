@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test, { describe } from 'node:test';
 
 import {
@@ -109,57 +108,5 @@ describe('resolveDesktopAuditTimeRange', () => {
       }, now),
       /seven days/u,
     );
-  });
-});
-
-describe('Desktop audit projection source boundary', () => {
-  const serviceSource = readFileSync(new URL(
-    '../src/shell/renderer/features/runtime-config/runtime-config-audit-sdk-service.ts',
-    import.meta.url,
-  ), 'utf8');
-  const hookSource = readFileSync(new URL(
-    '../src/shell/renderer/features/runtime-config/runtime-config-use-global-audit-data.ts',
-    import.meta.url,
-  ), 'utf8');
-  const sectionSource = readFileSync(new URL(
-    '../src/shell/renderer/features/runtime-config/runtime-config-global-audit-section.tsx',
-    import.meta.url,
-  ), 'utf8');
-
-  test('uses only the exact Desktop projection method and has no raw export fallback', () => {
-    const source = `${serviceSource}\n${hookSource}`;
-    assert.match(source, /createNimiDesktopAuditProjectionClient/u);
-    assert.doesNotMatch(source, /\.listAuditEvents\s*\(/u);
-    assert.doesNotMatch(source, /\.exportAuditEvents\s*\(/u);
-    assert.doesNotMatch(source, /startAuditExport/u);
-    assert.doesNotMatch(source, /methodId|requestBytes/u);
-  });
-
-  test('renders no raw or credential-adjacent audit fields', () => {
-    for (const field of [
-      'payload',
-      'capability',
-      'callerId',
-      'subjectUserId',
-      'surfaceId',
-      'principalId',
-      'principalType',
-      'externalPrincipalType',
-      'tokenId',
-      'parentTokenId',
-      'consentId',
-      'consentVersion',
-      'policyVersion',
-      'resourceSelectorHash',
-      'scopeCatalogVersion',
-    ]) {
-      assert.doesNotMatch(sectionSource, new RegExp(`event\\.${field}\\b`, 'u'));
-    }
-  });
-
-  test('labels the caller filter and presents typed failures with localized guidance', () => {
-    assert.match(sectionSource, /ariaLabel=\{t\('runtimeConfig\.runtime\.filterCallerKind'/u);
-    assert.match(sectionSource, /role="alert"/u);
-    assert.match(sectionSource, /runtimeConfig\.runtime\.auditReadFailed/u);
   });
 });

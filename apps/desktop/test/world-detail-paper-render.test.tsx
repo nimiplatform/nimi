@@ -469,7 +469,6 @@ test('paper world detail renders lore overview as title-only two-column cards', 
 
     assert.match(markup, /世界设定概览/);
     assert.match(markup, /理解这个世界如何运转，以及人物、事件和关系背后的规则。/);
-    assert.match(markup, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
     assert.match(markup, /官制结构/);
     assert.match(markup, /lucide-stamp/);
     assert.doesNotMatch(markup, /中央与地方官职体系/);

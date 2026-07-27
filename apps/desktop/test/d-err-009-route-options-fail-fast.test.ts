@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { productionAppStore } from '../src/shell/renderer/app-shell/providers/production-app-store.js';
@@ -16,7 +13,6 @@ import type {
   NimiRuntimeRouteTargetRef,
 } from '@nimiplatform/sdk/runtime';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const initialRuntimeFields = { ...productionAppStore.getState().runtimeFields };
 const initialAIConfig = productionAppStore.getState().aiConfig;
 const routeOptionsRuntimeStub: NimiRuntimeRouteOptionsHostRuntime = {
@@ -273,21 +269,6 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
 
   assert.equal(options.inventory.targets.length, 0);
   assert.deepEqual(options.selectedTargetRef, localTargetRefFor('desktop-local-1'));
-});
-
-test('runtime route options bootstrap does not own projection heuristics or endpoint fallback', () => {
-  const source = readFileSync(
-    resolve(__dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts'),
-    'utf8',
-  );
-
-  assert.doesNotMatch(source, /\bfallbackLocalEngine\b/);
-  assert.doesNotMatch(source, /\binferLocalEngine\b/);
-  assert.doesNotMatch(source, /\bproviderDefaultRank\b/);
-  assert.doesNotMatch(source, /\bsyncLookup\b/);
-  assert.doesNotMatch(source, /localRuntime\.health\(/);
-  assert.doesNotMatch(source, /runtimeFields\.localProviderEndpoint/);
-  assert.doesNotMatch(source, /runtimeFields\.localOpenAiEndpoint/);
 });
 
 test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async () => {

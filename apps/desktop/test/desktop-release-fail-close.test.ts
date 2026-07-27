@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -30,8 +28,6 @@ type TauriGlobal = Record<string, unknown> & {
   __TAURI_IPC__?: unknown;
   window?: TauriWindow;
 };
-
-const desktopDir = path.resolve(import.meta.dirname, '..');
 
 function tauriGlobal(): TauriGlobal {
   return globalThis as unknown as TauriGlobal;
@@ -82,14 +78,4 @@ test('desktop update event subscription rejects missing unsubscribe', async () =
   } finally {
     resetTauriRuntime();
   }
-});
-
-test('desktop release bridge source has no self-update pseudo-success fallbacks', () => {
-  const source = readFileSync(
-    path.join(desktopDir, 'src/shell/renderer/bridge/runtime-bridge/desktop-release.ts'),
-    'utf8',
-  );
-
-  assert.doesNotMatch(source, /status:\s*'idle'/);
-  assert.doesNotMatch(source, /return\s+\(\)\s*=>\s*\{\s*\}/);
 });

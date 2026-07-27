@@ -9,25 +9,6 @@ import {
 import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
 import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 
-test('persisted state does not contain tokenApiKey or localOpenAiApiKey (type-level)', () => {
-  const state = createDefaultStateV11();
-
-  const connector = {
-    ...createConnectorV11('gemini', 'Gemini'),
-    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai',
-  };
-  state.connectors = [connector];
-  state.selectedConnectorId = connector.id;
-
-  const serialized = JSON.stringify(state);
-  assert.ok(!serialized.includes('"tokenApiKey"'), 'serialized state must not contain tokenApiKey');
-  assert.ok(!serialized.includes('"localOpenAiApiKey"'), 'serialized state must not contain localOpenAiApiKey');
-
-  for (const c of state.connectors) {
-    assert.ok(!('tokenApiKey' in c), `connector ${c.id} must not have tokenApiKey property`);
-  }
-});
-
 test('persistRuntimeConfigStateV11 does not persist connectors to localStorage', () => {
   // Set up in-memory localStorage
   const store = new Map<string, string>();

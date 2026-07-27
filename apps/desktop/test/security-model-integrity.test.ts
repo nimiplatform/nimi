@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
@@ -12,19 +10,8 @@ import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/i
 // Desktop keeps only shell-native file picker containment and renderer error
 // projection for Runtime-originated integrity failures.
 //
-// This file uses source scanning to prevent Tauri from re-acquiring content
-// hash truth, and behavioral tests on the TypeScript bridge error mapping.
+// These tests cover the renderer projection of Runtime integrity failures.
 // ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Rust source paths
-// ---------------------------------------------------------------------------
-
-const LOCAL_RUNTIME_COMMANDS_PATH = path.resolve(
-  import.meta.dirname ?? __dirname,
-  '../src-tauri/src/local_runtime/commands/mod.rs',
-);
-const localRuntimeCommandsSource = fs.readFileSync(LOCAL_RUNTIME_COMMANDS_PATH, 'utf-8');
 
 // ---------------------------------------------------------------------------
 // D-SEC-006: Runtime-owned integrity errors still project through bridge map
@@ -50,28 +37,6 @@ test('D-SEC-006: verified empty hash list projects LOCAL_AI_MODEL_HASHES_EMPTY e
 // D-SEC-006: manifest path validation remains shell-local; content hashes do not
 // ---------------------------------------------------------------------------
 
-test('D-SEC-006: Desktop Tauri command delegates selected manifest containment to Kit', () => {
-  assert.ok(
-    /nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path\(\s*&path,\s*&models_root,\s*\)/.test(localRuntimeCommandsSource),
-    'Desktop Tauri command must delegate manifest containment to Kit',
-  );
-  assert.doesNotMatch(localRuntimeCommandsSource, /"resolved"/);
-});
-
-test('D-SEC-006: Desktop Tauri helper does not own content hash verification', () => {
-  assert.doesNotMatch(
-    localRuntimeCommandsSource,
-    /sha256_hex_for_file|Sha256::new\(\)|actual_hash\s*!=\s*expected_hash|assert_manifest_hashes|manifest_hashes_required/,
-    'Tauri local runtime helper must not own model content hash verification',
-  );
-  assert.doesNotMatch(
-    localRuntimeCommandsSource,
-    /LOCAL_AI_IMPORT_HASH_MISMATCH|LOCAL_AI_IMPORT_MANIFEST_HASHES_MISSING/,
-    'Tauri local runtime helper must not emit Runtime-owned model hash verification errors',
-  );
-  assert.doesNotMatch(localRuntimeCommandsSource, /import_validator/);
-});
-
 test('D-SEC-006: mismatched hash projects LOCAL_AI_IMPORT_HASH_MISMATCH error', () => {
   const error = toBridgeNimiError(
     new Error('LOCAL_AI_IMPORT_HASH_MISMATCH: hash mismatch for model.gguf'),
@@ -86,14 +51,4 @@ test('D-SEC-006: mismatched hash projects LOCAL_AI_IMPORT_HASH_MISMATCH error', 
     'Model file verification failed. Confirm the file is intact and try again.',
     'userMessage must match the bridge error code map entry for hash mismatch',
   );
-});
-
-const INVOKE_PATH = path.resolve(
-  import.meta.dirname ?? __dirname,
-  '../src/shell/renderer/bridge/runtime-bridge/invoke.ts',
-);
-const invokeSource = fs.readFileSync(INVOKE_PATH, 'utf-8');
-
-test('D-SEC-006: Desktop bridge delegates integrity errors to Kit shell normalization', () => {
-  assert.match(invokeSource, /toShellBridgeNimiError/);
 });

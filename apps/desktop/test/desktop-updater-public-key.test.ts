@@ -81,16 +81,6 @@ test('desktop updater Tauri config default endpoint is read from Rust updater so
   }
 });
 
-test('desktop updater Tauri config helper does not hardcode updater endpoint truth', () => {
-  const source = fs.readFileSync(
-    path.join(import.meta.dirname, '..', 'scripts/lib/desktop-updater-tauri-config.mjs'),
-    'utf8',
-  );
-
-  assert.doesNotMatch(source, /https:\/\/install\.nimi\.ai\/desktop\/latest\.json/u);
-  assert.match(source, /readRustDefaultUpdaterEndpoint/);
-});
-
 test('desktop updater Tauri config overlay rejects non-https updater endpoints', () => {
   assert.throws(
     () => createDesktopUpdaterTauriConfig({

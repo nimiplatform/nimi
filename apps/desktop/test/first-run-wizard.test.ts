@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import {
   ProductControlWorkflow,
@@ -265,92 +262,6 @@ test('step indicator highlights the phase matching the current state', () => {
 });
 
 // --- Folder picker → selectProductDataRoot --------------------------------
-
-test('the Storage phase wires the native folder picker to the selectProductDataRoot bridge call', () => {
-  const workflowSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
-    'utf8',
-  );
-  // The folder picker resolves a path; selectProductDataRoot records it.
-  assert.match(workflowSource, /firstRun\.pickDataRootDirectory/);
-  assert.match(workflowSource, /firstRun\.selectDataRoot/);
-  // The picked path is passed to selectProductDataRoot, not a raw text field.
-  const storageSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/first-run/phase-storage.tsx'),
-    'utf8',
-  );
-  assert.match(storageSource, /onChooseFolder/);
-  assert.match(storageSource, /onContinue/);
-  assert.doesNotMatch(storageSource, /<input/);
-
-  // The folder picker uses the standard Kit file dialog rather than an app-local Tauri command.
-  const bridgeSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
-    'utf8',
-  );
-  assert.match(bridgeSource, /openShellFileDialog/);
-  assert.match(bridgeSource, /kind:\s*'directory'/);
-  assert.doesNotMatch(bridgeSource, /invokeChecked\('product_control_pick_data_root_directory'/);
-});
-
-test('data-root selection consumes Runtime restart disposition through the typed lifecycle bridge', () => {
-  const bridgeSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
-    'utf8',
-  );
-  assert.match(bridgeSource, new RegExp(`selected\\.configMutation\\?\\.reasonCode === ReasonCode\\.${ReasonCode.CONFIG_RESTART_REQUIRED}`));
-  assert.match(bridgeSource, /await restartRuntimeBridge\(\)/);
-  assert.match(bridgeSource, /return getProductControlRecord\(\)/);
-  assert.doesNotMatch(bridgeSource, /Stop-Service|Start-Service|WriteFile|runtimeConfigPath/);
-});
-
-test('the Storage phase starts without a guessed path and only accepts a record or explicit folder pick', () => {
-  const workflowSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
-    'utf8',
-  );
-  const bridgeSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
-    'utf8',
-  );
-  const firstRunPortSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/renderer/first-run-port.ts'),
-    'utf8',
-  );
-  const tauriSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src-tauri/src/desktop_product_control.rs'),
-    'utf8',
-  );
-  const electronSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src-electron/main.ts'),
-    'utf8',
-  );
-  const bundledAvatarHostSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src-electron/bundled-avatar-host.ts'),
-    'utf8',
-  );
-
-  assert.match(workflowSource, /projection\?\.record\?\.dataRoot\?\.path \?\? null/);
-  assert.match(workflowSource, /firstRun\.pickDataRootDirectory/);
-  assert.match(workflowSource, /firstRun\.selectDataRoot/);
-  for (const source of [workflowSource, bridgeSource, firstRunPortSource, tauriSource, electronSource]) {
-    assert.doesNotMatch(
-      source,
-      /defaultDataRootDirectory|defaultProductDataRootDirectory|product_control_default_data_root_directory|runtimeDataRootProposal|resolveProjectedDataRootPick/,
-    );
-  }
-  assert.doesNotMatch(electronSource, /app\.getPath\('home'\), 'Nimi'/);
-  assert.doesNotMatch(
-    electronSource,
-    /NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT|standard-shell-data|app\.getPath\('userData'\)/,
-  );
-  assert.match(
-    electronSource,
-    /resolveAppPrivateDataRoot:[\s\S]*'apps',[\s\S]*'nimi\.avatar',[\s\S]*'data'/,
-  );
-  assert.match(bundledAvatarHostSource, /source: 'product-control-projection'/);
-  assert.doesNotMatch(bundledAvatarHostSource, /runtime-launch-projection|durableDataRoot/);
-});
 
 // --- Install-level cards --------------------------------------------------
 
@@ -820,25 +731,6 @@ test('the repair and blocked terminal screens render in the wizard chrome', () =
 });
 
 // --- No mark-ready shortcut ----------------------------------------------
-
-test('no wizard phase or screen exposes a mark-ready shortcut', () => {
-  const firstRunDir = path.join(import.meta.dirname, '../src/shell/renderer/first-run');
-  for (const file of fs.readdirSync(firstRunDir)) {
-    if (!file.endsWith('.ts') && !file.endsWith('.tsx')) continue;
-    const source = fs.readFileSync(path.join(firstRunDir, file), 'utf8');
-    assert.doesNotMatch(source, /markProductReadyForUse/, `${file} must not mark ready`);
-    assert.doesNotMatch(
-      source,
-      /product_control_record_mark_ready_for_use/,
-      `${file} must not call a mark-ready command`,
-    );
-  }
-  // Every state still renders — including ready_for_use, which is admitted by
-  // the backend and only confirmed (never minted) by the renderer.
-  const ready = render('ready_for_use');
-  assert.match(ready, /data-product-state="ready_for_use"/);
-  assert.doesNotMatch(ready, /markProductReadyForUse/);
-});
 
 test('factory rows used by the wizard remain local-only first-run baselines', () => {
   const rows: readonly NimiAppAIProfileFactoryRow[] = NIMI_APP_AI_PROFILE_FACTORY_ROWS.filter(

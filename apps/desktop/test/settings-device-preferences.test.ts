@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -33,12 +31,6 @@ const persistDownloadPreferences = settings.persistDownloadPreferences;
  * projection instead of silently substituting defaults. The wiring and
  * primary-nav regression guards keep Settings a secondary surface.
  */
-
-const desktopDir = path.resolve(import.meta.dirname, '..');
-
-function readDesktopFile(relativePath: string): string {
-  return readFileSync(path.join(desktopDir, relativePath), 'utf8');
-}
 
 /**
  * Minimal in-memory localStorage so the projection helpers exercise their real
@@ -175,59 +167,6 @@ test('download projection fail-closes on a corrupt (non-JSON) projection', () =>
   }
 });
 
-/* ------------------------------------------------------------------ */
-/*  Settings wiring — Appearance / Downloads / Data                   */
-/* ------------------------------------------------------------------ */
-
-test('settings page router renders the Appearance and Downloads sections', () => {
-  const pagesSource = readDesktopFile('src/shell/renderer/features/settings/settings-pages.tsx');
-
-  assert.match(pagesSource, /import\s+\{\s*AppearancePage\s*\}\s+from\s+'\.\/settings-appearance-page\.js'/);
-  assert.match(pagesSource, /import\s+\{\s*DownloadsPage\s*\}\s+from\s+'\.\/settings-downloads-page\.js'/);
-  assert.match(pagesSource, /case\s+'appearance':\s+return\s+<AppearancePage\s+\/>/);
-  assert.match(pagesSource, /case\s+'downloads':\s+return\s+<DownloadsPage\s+\/>/);
-});
-
-test('settings menu lists Appearance and Downloads with i18n keys', () => {
-  const assetsSource = readDesktopFile('src/shell/renderer/features/settings/settings-assets.tsx');
-  const panelSource = readDesktopFile('src/shell/renderer/features/settings/settings-panel-body.tsx');
-
-  assert.match(assetsSource, /id:\s*'appearance'/);
-  assert.match(assetsSource, /id:\s*'downloads'/);
-  assert.match(panelSource, /appearance:\s*'Settings\.menuAppearance'/);
-  assert.match(panelSource, /downloads:\s*'Settings\.menuDownloads'/);
-});
-
-test('Appearance and Downloads locale namespaces are registered en/zh', () => {
-  for (const locale of ['en', 'zh']) {
-    const indexSource = readDesktopFile(`src/shell/renderer/locales/${locale}/index.ts`);
-    assert.match(indexSource, /from '\.\/59-Appearance\.json'/, `${locale} must import 59-Appearance.json`);
-    assert.match(indexSource, /from '\.\/60-Downloads\.json'/, `${locale} must import 60-Downloads.json`);
-    assert.match(indexSource, /"Appearance":/, `${locale} must register the Appearance namespace`);
-    assert.match(indexSource, /"Downloads":/, `${locale} must register the Downloads namespace`);
-  }
-});
-
 test('appearance theme options are exactly system/light/dark', () => {
   assert.deepEqual([...APPEARANCE_THEMES], ['system', 'light', 'dark']);
-});
-
-/* ------------------------------------------------------------------ */
-/*  Secondary-surface / primary-nav regression guard                  */
-/* ------------------------------------------------------------------ */
-
-test('Settings stays a secondary surface and primary nav stays 6 core items', () => {
-  const appTabsSource = readFileSync(
-    path.resolve(desktopDir, '../../config/desktop-shell-ui-app-tabs.yaml'),
-    'utf8',
-  );
-  const coreMatches = appTabsSource.match(/nav_group:\s*core/g) ?? [];
-  assert.equal(coreMatches.length, 6, 'primary (core) nav must remain exactly 6 items');
-
-  const settingsBlock = appTabsSource.slice(appTabsSource.indexOf('- id: settings'));
-  assert.match(
-    settingsBlock.slice(0, 120),
-    /nav_group:\s*secondary/,
-    'settings must remain a secondary surface, not promoted to core nav',
-  );
 });

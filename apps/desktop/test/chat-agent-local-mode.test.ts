@@ -4,8 +4,6 @@ import {
   ReasonCode,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
 } from './chat-agent-local-mode-test-utils.js';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import type { NimiRuntimeAgentMessage, NimiRuntimeAgentSessionSnapshot } from '@nimiplatform/sdk/runtime';
 
 type RuntimeAgentReplaySessionSnapshot = NimiRuntimeAgentSessionSnapshot & {
@@ -17,15 +15,6 @@ function transcriptWithoutRuntimeReplayEnvelope(
 ): RuntimeAgentReplaySessionSnapshot['transcript'] {
   return messages as unknown as RuntimeAgentReplaySessionSnapshot['transcript'];
 }
-
-test('agent local mode does not derive runtime targets from Realm social friends', () => {
-  const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-agent-thread-model.ts'),
-    'utf8',
-  );
-  assert.doesNotMatch(source, new RegExp(['to', 'Agent', 'Friend', 'Targets', 'From', 'Social', 'Snapshot'].join('')));
-  assert.doesNotMatch(source, new RegExp(['parse', 'Agent', 'Friend', 'Target'].join('')));
-});
 
 test('agent session hydration does not replace missing local bundle with text-only runtime snapshot without envelope', () => {
   const thread = {

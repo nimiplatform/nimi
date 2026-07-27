@@ -1,19 +1,6 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 import { groupMessageToCanonical } from '../src/shell/renderer/features/chat/chat-group-thread-model';
-
-const desktopRoot = path.join(import.meta.dirname, '..');
-const workspaceRoot = path.join(import.meta.dirname, '..', '..', '..');
-
-function readWorkspaceFile(relativePath: string): string {
-  const desktopScopedPath = path.join(desktopRoot, relativePath);
-  if (fs.existsSync(desktopScopedPath)) {
-    return fs.readFileSync(desktopScopedPath, 'utf8');
-  }
-  return fs.readFileSync(path.join(workspaceRoot, relativePath), 'utf8');
-}
 
 test('groupMessageToCanonical maps current user, other human, and source into distinct canonical roles', () => {
   const currentUserMessage = groupMessageToCanonical({
@@ -71,16 +58,4 @@ test('groupMessageToCanonical maps current user, other human, and source into di
   } as never, 'user_self');
   assert.equal(sourceMessage.role, 'assistant');
   assert.equal(sourceMessage.senderKind, 'source');
-});
-
-test('group rendering wires avatar renderers and sender labels through transcript and stage surfaces', () => {
-  const groupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
-  const canonicalComponentsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-canonical-components.tsx');
-
-  assert.match(groupModeSource, /const transcriptProps = useGroupCanonicalTranscriptProps\(\);/);
-  assert.match(groupModeSource, /const stagePanelProps = useGroupCanonicalStagePanelProps\(\);/);
-  assert.match(groupModeSource, /transcriptPropsOverride=\{transcriptProps\}/);
-  assert.match(groupModeSource, /stagePanelPropsOverride=\{stagePanelProps\}/);
-  assert.match(canonicalComponentsSource, /EntityAvatar/);
-  assert.match(canonicalComponentsSource, /kind=\{senderKind\}/);
 });

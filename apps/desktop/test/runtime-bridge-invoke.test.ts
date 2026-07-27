@@ -1,15 +1,8 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
-
-const invokeSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/invoke.ts'),
-  'utf8',
-);
 
 test('toBridgeNimiError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
   const error = toBridgeNimiError(new Error('LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload'));
@@ -213,14 +206,17 @@ test('toBridgeNimiError maps Local Speech diagnostic aliases without Qwen user c
   );
 });
 
-test('bridge local speech error projection does not retain provider-specific display truth', () => {
-  assert.doesNotMatch(invokeSource, new RegExp(['LOCAL_AI', 'QWEN'].join('_')));
-  assert.doesNotMatch(invokeSource, new RegExp(['Qwen', 'TTS'].join(' ')));
-});
+test('toBridgeNimiError scrubs provider API keys from user-visible error fields', () => {
+  const error = toBridgeNimiError(JSON.stringify({
+    reasonCode: 'AI_PROVIDER_REQUEST_FAILED',
+    message: 'x-nimi-provider-api-key=header-secret',
+    details: {
+      rawMessage: 'provider_api_key:raw-secret',
+      userMessage: 'providerApiKey=user-secret',
+    },
+  }));
+  const serialized = JSON.stringify(error);
 
-test('bridge runtime reason messages consume Kit shell normalization before app translation', () => {
-  assert.match(invokeSource, /toShellBridgeNimiError/);
-  assert.match(invokeSource, /getShellBridgeUserMessageProjection/);
-  assert.doesNotMatch(invokeSource, /AI_PROVIDER_TIMEOUT:\s*\{/);
-  assert.doesNotMatch(invokeSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
+  assert.doesNotMatch(serialized, /header-secret|raw-secret|user-secret/);
+  assert.match(serialized, /\[REDACTED_PROVIDER_API_KEY\]/);
 });

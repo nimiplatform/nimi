@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   collapseRealmHumanChatsToTargets,
@@ -371,28 +370,4 @@ test('agent sidebar target metadata restores the local target snapshot for selec
     canonicalSessionId: 'human-1',
     title: 'Human',
   }), null);
-});
-
-test('human target selection starts a Realm chat when the friend has no existing chat', () => {
-  const source = readFileSync(
-    new URL('../src/shell/renderer/features/chat/chat-human-adapter.tsx', import.meta.url),
-    'utf8',
-  );
-
-  assert.match(source, /useRealmHumanChatData/);
-  assert.match(source, /const existingChatId = resolveCanonicalRealmHumanChatId\(allChats, normalizedTargetId\);/);
-  assert.match(source, /realmHumanChatData\.startChatWithTarget\(normalizedTargetId, null\)/);
-  assert.match(source, /setSelectedChatId\(chatId\);/);
-  assert.match(source, /queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
-});
-
-test('agent sidebar target selection writes the local target snapshot before entering agent mode', () => {
-  const source = readFileSync(
-    new URL('../src/shell/renderer/features/chat/chat-page.tsx', import.meta.url),
-    'utf8',
-  );
-
-  assert.match(source, /toAgentTargetSnapshotFromSummary/);
-  assert.match(source, /setAgentConversationTargetSnapshot\(agentSnapshot\)/);
-  assert.match(source, /setAgentConversationSelection\(\{\s*localAgentRef:\s*agentSnapshot\.localAgentRef,\s*targetId:\s*agentSnapshot\.localAgentRef,\s*\}\)/);
 });

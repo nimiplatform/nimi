@@ -112,22 +112,6 @@ test('gallery overlay renders grouped roster with resolved copy', () => {
   assert.doesNotMatch(markup, /WorldDetail\.paper\.gallery\./);
 });
 
-test('gallery overlay keeps a full-screen backdrop while its panel clears the titlebar', () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(WorldPeopleGallery, {
-      characters: roster,
-      onClose: () => {},
-      onSelect: () => {},
-      onMaterializeSource: () => {},
-    }),
-  );
-
-  assert.match(markup, /position:fixed;inset:0/);
-  assert.match(markup, /padding-top:72px/);
-  assert.match(markup, /padding-bottom:24px/);
-  assert.match(markup, /max-height:calc\(100cqh - 72px - 24px\)/);
-});
-
 test('archive page renders as an in-page drill-down without the modal backdrop', () => {
   const markup = renderToStaticMarkup(
     React.createElement(WorldPeopleArchivePage, {

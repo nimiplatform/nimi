@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
-import { readFileSync } from 'node:fs';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { getAppsBridgeProjection } from '../src/shell/renderer/bridge/runtime-bridge/apps-projection.js';
 
@@ -10,11 +9,6 @@ type ShellTestGlobal = typeof globalThis & {
     listen: (eventName: string, handler: (event: { payload: unknown }) => void) => () => void;
   };
 };
-
-const bridgeSource = readFileSync(
-  new URL('../src/shell/renderer/bridge/runtime-bridge/apps-projection.ts', import.meta.url),
-  'utf8',
-);
 
 afterEach(() => {
   delete (globalThis as ShellTestGlobal).__NIMI_ELECTRON_TEST__;
@@ -41,12 +35,6 @@ test('Desktop apps bridge projection uses standard platformProjection.get', asyn
   }]);
   assert.deepEqual(projection.registryRows.map((row) => row.appId), ['nimi.example-app']);
   assert.deepEqual(projection.releaseDescriptors.map((descriptor) => descriptor.appId), ['nimi.example-app']);
-});
-
-test('Desktop apps bridge projection no longer references app-local Tauri command', () => {
-  assert.match(bridgeSource, /getShellPlatformProjection/);
-  assert.match(bridgeSource, /projectionId: 'apps-bridge'/);
-  assert.doesNotMatch(bridgeSource, /apps_bridge_projection_get/);
 });
 
 function appsBridgeRecordFixture(): Record<string, unknown> {

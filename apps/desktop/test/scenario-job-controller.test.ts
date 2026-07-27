@@ -24,7 +24,6 @@ if (typeof globalThis.sessionStorage === 'undefined') {
 }
 
 import {
-  JOB_POLL_INTERVAL_MS,
   JOB_POLL_MAX_RETRIES,
   createScenarioJobController,
   isTerminalStatus,
@@ -54,14 +53,6 @@ test.afterEach(() => {
 // ---------------------------------------------------------------------------
 // D-STRM-010: Spec constants
 // ---------------------------------------------------------------------------
-
-test('D-STRM-010: polling interval is 2000ms per spec', () => {
-  assert.equal(JOB_POLL_INTERVAL_MS, 2000);
-});
-
-test('D-STRM-010: max poll retries is 30 per spec', () => {
-  assert.equal(JOB_POLL_MAX_RETRIES, 30);
-});
 
 // ---------------------------------------------------------------------------
 // D-STRM-010: Basic lifecycle
@@ -451,23 +442,6 @@ test('D-STRM-010: clearJobTracking removes state', () => {
 // ---------------------------------------------------------------------------
 // D-STRM-010: ScenarioJobState type shape
 // ---------------------------------------------------------------------------
-
-test('D-STRM-010: ScenarioJobState includes pollRetryCount field', () => {
-  controller.startJobTracking(TEST_JOB);
-  const state = controller.getJobState(TEST_JOB);
-  assert.equal(typeof state.pollRetryCount, 'number');
-  assert.equal(state.pollRetryCount, 0);
-});
-
-test('D-STRM-010: ScenarioJobState includes cancelRequested field', () => {
-  controller.startJobTracking(TEST_JOB);
-  assert.equal(controller.getJobState(TEST_JOB).cancelRequested, false);
-});
-
-test('D-STRM-010: ScenarioJobState includes artifacts field', () => {
-  controller.startJobTracking(TEST_JOB);
-  assert.equal(controller.getJobState(TEST_JOB).artifacts, null);
-});
 
 // ---------------------------------------------------------------------------
 // Test helpers

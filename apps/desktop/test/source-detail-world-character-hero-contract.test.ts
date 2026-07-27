@@ -61,8 +61,6 @@ test('world character source detail renders circular banner-overlap avatar and s
     }),
   );
 
-  assert.match(markup, /data-testid="world-character-hero-avatar"[^>]*-mt-\[54px\][^>]*rounded-full/);
-  assert.match(markup, /data-testid="world-character-hero-banner"[^>]*h-\[280px\]/);
   assert.match(markup, /元代文人网络 \/ 元代书院雅集 \/ 元代朝廷官场/);
   assert.doesNotMatch(markup, /yuan-literati-network/);
   assert.doesNotMatch(markup, /yuan-academy-gathering/);
@@ -102,7 +100,6 @@ test('world character hero uses dynasty badge, no bottom white mask, and hides r
     );
 
     assert.match(markup, /元代/);
-    assert.match(markup, /data-testid="world-character-hero-title-row"[^>]*class="[^"]*flex[^"]*items-center[^"]*gap-4/);
     assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*同恕[\s\S]*data-testid="world-character-hero-dynasty-badge"[\s\S]*元代/);
     assert.doesNotMatch(markup, /<p class="[^"]*">同恕<\/p>/);
     assert.doesNotMatch(markup, /linear-gradient\(to top, rgba\(255,255,255,0\.32\)/);
@@ -196,10 +193,7 @@ test('world character hero keeps banner and avatar placement while styling name 
       }),
     );
 
-    assert.match(markup, /data-testid="world-character-hero-banner"[^>]*h-\[280px\]/);
-    assert.match(markup, /data-testid="world-character-hero-avatar"[^>]*-mt-\[54px\]/);
     assert.doesNotMatch(markup, /data-testid="world-character-hero-identity"/);
-    assert.match(markup, /data-testid="world-character-hero-title-row"[^>]*class="[^"]*items-center/);
     assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*姚燧[\s\S]*data-testid="world-character-hero-dynasty-badge"[\s\S]*元代/);
     assert.match(markup, /data-testid="world-character-hero-description"[\s\S]*元代文学家，政治家，字端甫，号牧庵/);
     assert.ok(

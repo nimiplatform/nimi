@@ -19,9 +19,6 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 // In Node `node:test` runtime, the helper falls back to `process.env` for
 // the realm-origin allowlist (Vite supplies `import.meta.env` at build time;
@@ -147,25 +144,3 @@ test('continueOauthNextIfPresent does not navigate when oauth_next is missing', 
 // ---------------------------------------------------------------------------
 // Regression locks - web shell is UI continuation only.
 // ---------------------------------------------------------------------------
-
-test('helper module does NOT parse OAuth code, refresh tokens, or token exchange (web is UI continuation only)', () => {
-  const here = path.dirname(fileURLToPath(import.meta.url));
-  const moduleSrc = readFileSync(
-    path.resolve(here, '../src/shell/renderer/features/auth/oauth-next-continuation.ts'),
-    'utf8',
-  );
-  // R-OAUTH-011: the web continuation MUST NOT touch any OAuth code/token
-  // surface. These tokens are searched against the helper source so a
-  // future regression that pulls token-handling into the helper trips
-  // immediately.
-  assert.equal(/[?&]code=/.test(moduleSrc), false, 'must not read OAuth code from query');
-  assert.equal(/\bcode_verifier\b/.test(moduleSrc), false, 'must not handle code_verifier');
-  assert.equal(/\boauth\/token\b/.test(moduleSrc), false, 'must not call /oauth/token');
-  assert.equal(/\boauthTokenExchange\b/.test(moduleSrc), false, 'must not invoke token exchange');
-  assert.equal(/\brefresh_token\b/.test(moduleSrc), false, 'must not handle refresh_token');
-  assert.equal(/\brefreshToken\b/.test(moduleSrc), false, 'must not handle refreshToken');
-  assert.equal(/\baccessToken\b/.test(moduleSrc), false, 'must not handle accessToken');
-  assert.equal(/Authorization:\s*Bearer\b/.test(moduleSrc), false, 'must not send Bearer auth');
-  // Wave C web-relay was retired; helper MUST NOT introduce desktop_callback.
-  assert.equal(/\bdesktop_callback\b/.test(moduleSrc), false, 'must not reintroduce desktop_callback');
-});

@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
 
 import {
   arbitrateAvatarLaunch,
@@ -243,76 +241,3 @@ test('the three policies produce three distinct launch-time outcomes', () => {
 });
 
 // --- D-LLM-105 — single actuation site + D-LLM-072 payload triple ---
-
-const repoRoot = join(import.meta.dirname, '..');
-
-test('start_with_chat is actuated only by the launch-arbitration gate (single actuation site)', () => {
-  const controlsSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
-    'utf8',
-  );
-  // The controls hook is the single actuation site: it imports and calls the
-  // D-LLM-105 gate evaluator.
-  assert.match(controlsSource, /evaluateStartWithChatGate/u);
-  assert.match(controlsSource, /arbitrateAvatarLaunch/u);
-  // The launch executor branches every launch on instance-policy arbitration
-  // before any handoff is emitted.
-  const launchExecutor = controlsSource.match(
-    /executeArbitratedLaunch[\s\S]*?bindings\.app\.commands\.avatarHandoff\.launch\(\{[\s\S]*?\}\)/u,
-  );
-  assert.ok(launchExecutor, 'executeArbitratedLaunch must wrap the handoff call');
-  assert.match(launchExecutor[0], /arbitrateAvatarLaunch\(/u);
-
-  // No other Desktop source emits a start_with_chat launch source string
-  // outside the arbitration module + the controls actuation site.
-  const sourceRoot = join(repoRoot, 'src');
-  const offenders: string[] = [];
-  const walk = (dir: string): void => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!/\.(ts|tsx)$/u.test(entry.name)) {
-        continue;
-      }
-      if (full.endsWith('chat-agent-local-avatar-launch-controls.ts')) {
-        continue;
-      }
-      const text = readFileSync(full, 'utf8');
-      if (/desktop-agent-chat-start-with-chat/u.test(text)) {
-        offenders.push(full);
-      }
-    }
-  };
-  walk(sourceRoot);
-  assert.deepEqual(offenders, [], 'start_with_chat launch source must originate only from the actuation site');
-});
-
-test('start_with_chat condition 6 is not inferred from local readiness', () => {
-  const controlsSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
-    'utf8',
-  );
-  assert.match(controlsSource, /No admitted projection exists/u);
-  assert.doesNotMatch(
-    controlsSource,
-    /avatarHandoffReady\s*&&\s*avatarRuntimeAccountReady[\s\S]{0,120}'authorized'/u,
-  );
-});
-
-test('start_with_chat launch keeps the minimal Desktop-supervised Agent selector', () => {
-  const controlsSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
-    'utf8',
-  );
-  const launchCall = controlsSource.match(/bindings\.app\.commands\.avatarHandoff\.launch\(\{[\s\S]*?\}\)/u);
-  assert.ok(launchCall, 'avatar handoff port call must stay visible to the guard');
-  assert.match(launchCall[0], /agentId:\s*presentation\.activeTarget\.localAgentRef/u);
-  assert.match(launchCall[0], /avatarInstanceId/u);
-  assert.match(launchCall[0], /launchSource/u);
-  // Account, owner and Runtime authority are resolved from the protected
-  // principal; renderer launch intent carries no host-equivalence material.
-  assert.doesNotMatch(launchCall[0], /ownerUserId|runtimeSourceRef|localAgentRef\s*:|package|descriptor|path|profile|token|accountId|carrier|config/u);
-});

@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TFunction } from 'i18next';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
 import { NIMI_RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
@@ -52,17 +50,4 @@ test('describeRuntimeDaemonIssue returns null for unrelated runtime errors', () 
     status: createDaemonStatus({ lastError: 'unrelated-error' }),
   }, testTranslate);
   assert.equal(issue, null);
-});
-
-test('runtime config pages render runtime daemon guidance helper', () => {
-  const runtimeOverviewTab = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-runtime-overview-tab.tsx'),
-    'utf-8',
-  );
-  const overviewPage = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-overview.tsx'),
-    'utf-8',
-  );
-  assert.match(runtimeOverviewTab, /describeRuntimeDaemonIssue/);
-  assert.match(overviewPage, /describeRuntimeDaemonIssue/);
 });

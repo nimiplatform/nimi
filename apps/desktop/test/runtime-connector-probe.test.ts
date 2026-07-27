@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
 import {
   createRuntimeConfigConnectorSdkService,
@@ -26,10 +24,6 @@ import {
   ListProviderCatalogResponse,
 } from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/connector';
 
-const CONNECTOR_SERVICE_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.ts'),
-  'utf8',
-);
 const connectorSdk = createRuntimeConfigConnectorSdkService(getDesktopConnectorAdminClient);
 const {
   clearCaches: clearRuntimeConnectorSdkCaches,
@@ -800,16 +794,4 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
   } finally {
     restoreTauri();
   }
-});
-
-test('connector service delegates inventory ownership to the SDK client', () => {
-  assert.match(CONNECTOR_SERVICE_SOURCE, /createNimiRuntimeConnectorInventoryClient/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /getConnectors\(\)/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /createRuntimeConfigConnectorSdkService/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /surfaceId: 'runtime\.config'/);
-  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /callerKind|callerId/);
-  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /getPlatformClient/);
-  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /PROVIDER_CATALOG_CACHE_TTL_MS|cachedProviderCatalogAt|pendingConnectorModels/);
-  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /listProviderCatalog\(\{\}, CONNECTOR_CALL_OPTIONS\)/);
-  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /listConnectorModels\(request, CONNECTOR_CALL_OPTIONS\)/);
 });

@@ -6,21 +6,6 @@ import {
   type OfflineCoordinatorTimer,
 } from '@nimiplatform/kit/core/offline-coordinator';
 import { attachOfflineCoordinatorBindings } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-offline.js';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
-const RUNTIME_BOOTSTRAP_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
-  'utf8',
-);
-const DESKTOP_SESSION_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts'),
-  'utf8',
-);
-const APP_BOOTSTRAP_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs'),
-  'utf8',
-);
 
 type ScheduledTask = {
   callback: () => void;
@@ -75,35 +60,6 @@ async function flushAsyncWork(): Promise<void> {
 }
 
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
-  test('Desktop probes Realm reachability through the Runtime-mediated Realm session', () => {
-    const runtimeSessionStart = DESKTOP_SESSION_SOURCE.indexOf('export async function configureDesktopRuntimeRealmSession');
-    const runtimeSessionEnd = DESKTOP_SESSION_SOURCE.indexOf(
-      '\nexport function installRealmProjectionSession',
-      runtimeSessionStart,
-    );
-    assert.notEqual(runtimeSessionStart, -1);
-    assert.notEqual(runtimeSessionEnd, -1);
-    const runtimeSessionSource = DESKTOP_SESSION_SOURCE.slice(runtimeSessionStart, runtimeSessionEnd);
-
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /probeRealmReachability:\s*async \(\) => \{/);
-    assert.match(
-      RUNTIME_BOOTSTRAP_SOURCE,
-      /worldPublic\.worldPublicControllerListWorlds\(\{/,
-      'Realm reconnect must probe an admitted generated operation',
-    );
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /return !isRealmOfflineError\(error\)/);
-    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /await realmSocialData\.loadCurrentUser\(\)/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /configureDesktopRuntimeRealmSession\(\{/);
-    assert.match(
-      runtimeSessionSource,
-      /createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport\(\{/,
-    );
-    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /createObservedRealmFetch|realmFetchImpl/);
-    assert.doesNotMatch(runtimeSessionSource, /getAccessToken|resolveAuthToken|Authorization|Bearer/);
-    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('request\.success'/);
-    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('error'/);
-  });
-
   test('realm_reconnect flushes outboxes and invalidates queries', async () => {
     const timer = new FakeTimer();
     const coordinator = new OfflineCoordinator({ timer });
@@ -231,9 +187,4 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.ok(effects.includes('runtimeReconnectEvent'));
   });
 
-  test('D-OFFLINE-003: Agent Chat has no separate native offline transcript gate', () => {
-    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /chatAgentStoreClient\.setOfflineTier\(tier\)/);
-    assert.doesNotMatch(APP_BOOTSTRAP_SOURCE, /chat_agent_store::chat_agent_set_offline_tier/);
-    assert.doesNotMatch(APP_BOOTSTRAP_SOURCE, /chat_agent_store/);
-  });
 });

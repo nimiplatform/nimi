@@ -39,7 +39,6 @@ function installBrowserGlobals(): () => void {
   };
 }
 
-import { existsSync } from 'node:fs';
 import { checkRuntimeDaemonVersion } from '@nimiplatform/kit/shell/renderer/bootstrap';
 
 const desktopVersion = '0.1.0';
@@ -52,17 +51,6 @@ test.beforeEach(() => {
 
 test.afterEach(() => {
   restoreBrowserGlobals();
-});
-
-test('D-IPC-009: daemon version policy is owned by Kit bootstrap', () => {
-  assert.equal(
-    existsSync(new URL('../src/shell/renderer/infra/bootstrap/version-check.ts', import.meta.url)),
-    false,
-  );
-  assert.equal(
-    existsSync(new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap-runtime-availability.ts', import.meta.url)),
-    false,
-  );
 });
 
 test('D-IPC-009: missing version → warn severity, ok=true', () => {

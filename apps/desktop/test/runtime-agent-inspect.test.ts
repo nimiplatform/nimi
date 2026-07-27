@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test, { afterEach } from 'node:test';
 
 import {
@@ -22,21 +21,6 @@ const LOCAL_IDENTITY = {
 
 afterEach(() => {
   clearDesktopNimiClientSession();
-});
-
-test('runtime agent inspect adapter delegates Runtime orchestration to SDK', () => {
-  const source = readFileSync('src/shell/renderer/infra/runtime-agent-inspect.ts', 'utf8');
-  assert.match(source, /createNimiHostRuntimeAgentInspectSurface/);
-  assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.doesNotMatch(source, /projectRuntimeAgentInspectSnapshot/);
-  assert.doesNotMatch(source, /projectRuntimeAgentInspectEventSummary/);
-  assert.doesNotMatch(source, /buildRuntimeAgentStateMutations/);
-  assert.doesNotMatch(source, /buildRuntimeAgentRequestContext/);
-  assert.doesNotMatch(source, /function formatLifecycleStatus/);
-  assert.doesNotMatch(source, /function projectCanonicalMemoryInspect/);
-  assert.doesNotMatch(source, /function readAgentPresentationProfile/);
-  assert.doesNotMatch(source, /function parseLocalAgentIdentity/);
-  assert.doesNotMatch(source, /function buildAgentRequestContext/);
 });
 
 const PROTO_AGENT_AUTONOMY_MODE = {

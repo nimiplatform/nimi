@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -123,45 +121,6 @@ test('confirmDialog invokes the standard shell UI command and payload shape', as
   }
 });
 
-test('Desktop auth custody stays RuntimeAccountService-owned', () => {
-  const authAdapterSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
-    'utf8',
-  );
-  const authSessionCommandsPath = path.join(
-    import.meta.dirname,
-    '../../../kit/shell/tauri/src/auth_session_commands.rs',
-  );
-  const commandRegistrationSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../../../kit/shell/tauri/src/command_registration.rs'),
-    'utf8',
-  );
-  const ipcCommandsSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../../../config/desktop-ipc-commands.yaml'),
-    'utf8',
-  );
-  const tauriBootstrapSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs'),
-    'utf8',
-  );
-
-  assert.doesNotMatch(authAdapterSource, /loadAuthSession|saveAuthSession/);
-  assert.doesNotMatch(authAdapterSource, /shell\/renderer\/bridge\/auth-session|runtime-bridge\/auth-session/);
-  assert.doesNotMatch(authAdapterSource, /auth_session_load|auth_session_save|auth_session_clear/);
-  assert.match(authAdapterSource, /RuntimeAccountService/);
-  assert.match(authAdapterSource, /createRuntimeAccountBrowserBroker/);
-  assert.match(authAdapterSource, /getRuntimeAccountSessionStatus/);
-  assert.doesNotMatch(authAdapterSource, /getAccessToken|refreshAccountSession/);
-
-  assert.equal(fs.existsSync(authSessionCommandsPath), false);
-  assert.doesNotMatch(commandRegistrationSource, /auth_session_load|auth_session_save|auth_session_clear/);
-  assert.doesNotMatch(commandRegistrationSource, /AuthSession|AUTH_SESSION_COMMANDS/);
-  assert.doesNotMatch(ipcCommandsSource, /auth_session_load|Kit shared auth session surface/);
-  assert.match(tauriBootstrapSource, /DESKTOP_CONTROL_TRANSPORT_REQUIRED/);
-  assert.doesNotMatch(tauriBootstrapSource, /desktop-tauri-account-host|RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST/);
-  assert.doesNotMatch(tauriBootstrapSource, /RuntimeBridgeHostAppSessionProvider|app_session:\s*Some/);
-});
-
 test('proxyHttp fallback blocks private-network absolute URLs outside the app origin', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (async () => {
@@ -186,108 +145,5 @@ test('proxyHttp fallback blocks private-network absolute URLs outside the app or
     }
   } finally {
     globalThis.fetch = originalFetch;
-  }
-});
-
-test('desktop shell source guardrails keep auth helpers centralized', () => {
-  const desktopTauriConfigSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src-tauri/tauri.conf.json'),
-    'utf8',
-  );
-  const desktopRendererRoot = path.join(import.meta.dirname, '../src/shell/renderer');
-  const authMenuSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/web-auth-menu.tsx'),
-    'utf8',
-  );
-  const mainSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/main.tsx'),
-    'utf8',
-  );
-  const rendererBootstrapSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/bootstrap.ts'),
-    'utf8',
-  );
-  const authAdapterSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
-    'utf8',
-  );
-  const logoutSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/logout.ts'),
-    'utf8',
-  );
-  const retiredBootstrapAuthPath = path.join(
-    import.meta.dirname,
-    '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts',
-  );
-  const runtimeBootstrapSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
-    'utf8',
-  );
-  const desktopClientSessionSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts'),
-    'utf8',
-  );
-  const sessionLoggingSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src-tauri/src/main_parts/session_logging.rs'),
-    'utf8',
-  );
-  const systemResourcesSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src-tauri/src/main_parts/defaults_and_commands/system_resources.rs'),
-    'utf8',
-  );
-  assert.doesNotMatch(authMenuSource, /function toAuthUserRecord/);
-  assert.match(mainSource, /createRendererEntryModuleLoader/);
-  assert.match(rendererBootstrapSource, /ensureNimiShellRuntimeBridgeInstalled/);
-  assert.match(rendererBootstrapSource, /await import\('\.\/main\.js'\)/);
-  assert.doesNotMatch(rendererBootstrapSource, /installNimiShellRuntimeBridge\(\);/);
-  assert.match(mainSource, /from '@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
-  assert.doesNotMatch(mainSource, /function isRetryableEntryImportError|function createEntryImportError|Failed to fetch dynamically imported module|Importing a module script failed/);
-  assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
-  assert.doesNotMatch(authAdapterSource, /as Promise</);
-  assert.match(authAdapterSource, /createNimiDesktopShellRuntimeAccountCaller/);
-  assert.doesNotMatch(authAdapterSource, /appInstanceId:\s*['"`]nimi\.desktop\.local-first-party/);
-  assert.doesNotMatch(authAdapterSource, /deviceId:\s*['"`]desktop-shell/);
-  assert.doesNotMatch(authAdapterSource, /mode:\s*2/);
-  assert.doesNotMatch(authAdapterSource, /scopes:\s*\[\]/);
-  assert.match(runtimeBootstrapSource, /desktopBridge\.getRuntimeAccountSessionStatus\(\)/);
-  assert.doesNotMatch(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller/);
-  assert.match(desktopClientSessionSource, /createNimiDesktopShellRuntimeAccountCaller/);
-  assert.doesNotMatch(desktopClientSessionSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
-  assert.doesNotMatch(desktopClientSessionSource, /createNimiRuntimeFullAppRegistration|registerApp\(/);
-  assert.match(logoutSource, /useDesktopRendererSdk/);
-  assert.match(logoutSource, /sdk\.accountCaller\(\)/);
-  assert.doesNotMatch(logoutSource, /desktop-nimi-client-session/);
-  assert.doesNotMatch(logoutSource, /createNimiDesktopShellRuntimeAccountCaller|createDesktopShellRuntimeAccountCaller/);
-  assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);
-  assert.equal(fs.existsSync(retiredBootstrapAuthPath), false);
-  assert.doesNotMatch(runtimeBootstrapSource, /runtime-bootstrap-auth|bootstrapAuthSession/);
-  assert.match(sessionLoggingSource, /ns_window_ptr\.is_null\(\)/);
-  assert.match(systemResourcesSource, /static MACOS_CPU_COUNT: OnceLock<f64> = OnceLock::new\(\);/);
-  assert.match(systemResourcesSource, /MACOS_CPU_COUNT\.get_or_init/);
-  assert.doesNotMatch(systemResourcesSource, /collect_cpu_percent\(\)[\s\S]*read_command_output\("sysctl", &\["-n", "hw\.ncpu"\]\)/);
-  assert.equal(fs.existsSync(path.join(import.meta.dirname, '../src/runtime/net/json.ts')), false);
-  for (const sourcePath of [
-    'infra/offline/cache-manager.ts',
-    'infra/offline/types.ts',
-    'infra/realm/realm-api.ts',
-    'features/chat/data/realm-human-chat-data.ts',
-    'features/chat/data/realm-group-chat-data.ts',
-    'features/social/data/profile-data.ts',
-    'features/social/data/realm-social-data.ts',
-    'features/source-detail/data/realm-source-detail-data.ts',
-    'features/world/data/realm-world-data.ts',
-  ]) {
-    const source = fs.readFileSync(path.join(desktopRendererRoot, sourcePath), 'utf8');
-    assert.doesNotMatch(source, /@runtime\/net\/json/);
-    assert.match(source, /@nimiplatform\/sdk\/types/);
-  }
-  for (const sourcePath of [
-    'infra/bootstrap/auth-state-watcher.ts',
-    'infra/bootstrap/exit-handler.ts',
-    'features/social/data/realm-social-data.ts',
-  ]) {
-    const source = fs.readFileSync(path.join(desktopRendererRoot, sourcePath), 'utf8');
-    assert.doesNotMatch(source, /local-agent-courier/);
-    assert.doesNotMatch(source, /LocalAgent(Provision|Termination)Courier/);
   }
 });

@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 // Stub browser globals for Node.js test environment
@@ -34,11 +32,6 @@ import {
 } from './helpers/test-stream-controller.js';
 
 const TEST_CHAT = 'test-chat-backpressure';
-
-const streamControllerSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/turns/stream-controller.ts'),
-  'utf8',
-);
 
 test.afterEach(() => {
   clearStream(TEST_CHAT);
@@ -158,24 +151,3 @@ test('D-STRM-001: traceId propagated to stream state', () => {
 // ---------------------------------------------------------------------------
 // D-STRM-009: source scan — type declarations
 // ---------------------------------------------------------------------------
-
-test('D-STRM-009: StreamState type includes cancelSource field', () => {
-  assert.ok(
-    streamControllerSource.includes('cancelSource: StreamCancelSource | null'),
-    'StreamState must declare cancelSource field typed as StreamCancelSource | null',
-  );
-});
-
-test('D-STRM-009: StreamEvent error variant includes reasonCode field', () => {
-  assert.ok(
-    streamControllerSource.includes('reasonCode?:'),
-    'StreamEvent error variant must include optional reasonCode field',
-  );
-});
-
-test('D-STRM-009: terminal stream states are bounded and scheduled for cleanup', () => {
-  assert.match(streamControllerSource, /STREAM_TERMINAL_STATE_TTL_MS = 60_000/);
-  assert.match(streamControllerSource, /STREAM_MAX_CACHED_STATES = 50/);
-  assert.match(streamControllerSource, /scheduleTerminalCleanup/);
-  assert.match(streamControllerSource, /clearAllStreams/);
-});

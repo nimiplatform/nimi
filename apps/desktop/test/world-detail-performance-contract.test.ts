@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import { createRealmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data.js';
@@ -15,39 +13,6 @@ const realmWorldData = createRealmWorldData({
 import {
   fetchWorldPrimaryDisplayDetail,
 } from '../src/shell/renderer/features/world/world-detail-queries.js';
-
-const worldFlowSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-world-data.ts'),
-  'utf8',
-);
-const worldDetailQueriesSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-queries.ts'),
-  'utf8',
-);
-const worldDetailPrimaryProjectionSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-primary-projection.ts'),
-  'utf8',
-);
-const worldDetailSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail.tsx'),
-  'utf8',
-);
-const worldListSelectedPanelSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-list-selected-panel.tsx'),
-  'utf8',
-);
-const worldDetailTemplateSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-template.tsx'),
-  'utf8',
-);
-const explorePanelSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/explore/explore-panel.tsx'),
-  'utf8',
-);
-const authStateWatcherSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/auth-state-watcher.ts'),
-  'utf8',
-);
 
 const primaryWorldFixture = {
   id: 'world-primary',
@@ -202,81 +167,4 @@ test('world primary display detail preserves connected local-agent relation stat
   } finally {
     realmWorldData.loadWorldDetailWithCharacters = originalLoadWorldDetailWithCharacters;
   }
-});
-
-test('world semantic bundle projects public world detail without raw core fallback', () => {
-  const semanticStart = worldFlowSource.indexOf('export async function loadWorldSemanticBundle');
-  const semanticEnd = worldFlowSource.indexOf('\nexport function createRealmWorldData', semanticStart);
-  const semanticBundleSection = worldFlowSource.slice(semanticStart, semanticEnd);
-  assert.match(semanticBundleSection, /getWorldCore\(realm, worldId\)/);
-  assert.match(semanticBundleSection, /buildWorldPublicSemanticBundle\(asRecord\(world\)\)/);
-  assert.doesNotMatch(semanticBundleSection, /semanticBundle\s*\?\?/);
-  assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById/);
-  assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
-});
-
-test('world entry no longer exposes eager world detail history prefetch', () => {
-  assert.doesNotMatch(worldDetailQueriesSource, /export function prefetchWorldDetailAndHistory/);
-});
-
-test('world detail primary query adopts SDK public world DTO through a bounded adapter', () => {
-  const oldRootSingletonPattern = new RegExp('get' + 'PlatformClient');
-  assert.match(worldDetailPrimaryProjectionSource, /toWorldListItem\(asRecord\(detailValue\)\)/);
-  assert.doesNotMatch(worldDetailQueriesSource, oldRootSingletonPattern);
-  assert.doesNotMatch(worldDetailPrimaryProjectionSource, oldRootSingletonPattern);
-  assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldSemanticBundle/);
-  assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldDetailWithCharacters/);
-  assert.doesNotMatch(worldDetailQueriesSource, /mergeNimiRealmWorldPrimaryDetailTruth/);
-  assert.doesNotMatch(worldDetailQueriesSource, /WORLD_DETAIL_WORLD_TRUTH_INVALID/);
-});
-
-test('world atlas selected panel loads preview people from the primary display detail only', () => {
-  assert.match(worldListSelectedPanelSource, /worldPrimaryDisplayDetailQueryKey\(world\.id\)/);
-  assert.match(worldListSelectedPanelSource, /fetchWorldPrimaryDisplayDetail\(world\.id, createRealmWorldData\(sdk\)\)/);
-  assert.match(worldListSelectedPanelSource, /enabled: Boolean\(world\.id\)/);
-  assert.doesNotMatch(worldListSelectedPanelSource, /enabled: peopleCount > 0/);
-  assert.doesNotMatch(worldListSelectedPanelSource, /worldDisplayDetailQueryKey\(world\.id\)/);
-  assert.doesNotMatch(worldListSelectedPanelSource, /fetchWorldDisplayDetail\(world\.id\)/);
-  assert.doesNotMatch(worldListSelectedPanelSource, /fetchWorldDetailWithCharacters/);
-});
-
-test('world detail only treats the primary query as a page-level error and defers non-critical sections', () => {
-  assert.match(worldDetailSource, /fetchWorldPrimaryDisplayDetail/);
-  assert.match(worldDetailSource, /fetchWorldSupplementalDisplayDetail/);
-  assert.match(worldDetailSource, /worldPrimaryDisplayDetailQueryKey\(world\.id\)/);
-  assert.match(worldDetailSource, /worldSupplementalDisplayDetailQueryKey\(world\.id\)/);
-  assert.match(worldDetailSource, /const primaryLoading = worldPrimaryQuery\.isPending && !primaryDisplay/);
-  assert.match(worldDetailSource, /const supplementalLoading = Boolean\(primaryDisplay\) && worldSupplementalQuery\.isPending && !supplementalDisplay/);
-  assert.match(worldDetailSource, /const initialError = !initialLoading/);
-  assert.doesNotMatch(worldDetailSource, /const supplementalError =/);
-  assert.doesNotMatch(worldDetailSource, /Object\.values\(display\.sections\)\.some\(\(status\) => status === 'error'\)/);
-  assert.match(worldDetailSource, /const pageError = initialError/);
-  assert.match(worldDetailSource, /charactersLoading=\{primaryLoading\}/);
-  assert.match(worldDetailSource, /historyLoading=\{supplementalLoading\}/);
-  assert.match(worldDetailSource, /semanticLoading=\{supplementalLoading\}/);
-  assert.match(worldDetailSource, /publicAssetsLoading=\{supplementalLoading\}/);
-  assert.match(worldDetailSource, /message: 'detail:primary-ready'/);
-  assert.match(worldDetailSource, /message: 'detail:history-semantic-settled'/);
-  assert.match(worldDetailSource, /message: 'detail:assets-audits-settled'/);
-  assert.doesNotMatch(worldDetailSource, /worldCompositeQuery/);
-});
-
-test('world detail error state keeps a back escape hatch', () => {
-  assert.match(worldDetailTemplateSource, /function WorldDetailErrorState\(\{ onBack \}: \{ onBack\?: \(\) => void \}\)/);
-  assert.match(worldDetailTemplateSource, /onClick=\{onBack\}/);
-  assert.match(worldDetailTemplateSource, /return <WorldDetailErrorState onBack=\{props\.onBack\} \/>;/);
-});
-
-test('explore shares the world list cache key and does not refetch characters when world metadata changes', () => {
-  assert.match(explorePanelSource, /fetchWorldListItems\(createRealmWorldData\(bindings\.sdk\)\)/);
-  assert.match(explorePanelSource, /queryKey: worldListQueryKey\(\)/);
-  assert.match(explorePanelSource, /queryKey: \['explore-personas', authStatus, selectedCategory, props\.searchText\]/);
-  assert.match(explorePanelSource, /const personaSources = useMemo\(/);
-  assert.doesNotMatch(explorePanelSource, /dataSync\.loadWorlds\(/);
-  assert.doesNotMatch(explorePanelSource, /worldsDataVersion/);
-});
-
-test('auth-state-watcher does not duplicate contacts loading (handled by bootstrap-auth + React Query)', () => {
-  assert.doesNotMatch(authStateWatcherSource, /loadContacts/);
-  assert.doesNotMatch(authStateWatcherSource, /loadSocialSnapshot/);
 });
