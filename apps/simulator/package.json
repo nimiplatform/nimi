@@ -11,7 +11,9 @@
     "test": "node ../../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs",
     "test:contract": "pnpm --filter @nimiplatform/sdk build && pnpm --filter @nimiplatform/kit build && pnpm run test:contract:prepared",
     "test:contract:prepared": "node --test test/contract/*.test.mjs && node ../../scripts/with-workspace-surfaces.mjs -- tsx --test test/contract/*.test.tsx",
-    "test:integration": "node ../../scripts/with-workspace-surfaces.mjs -- tsx --test test/integration/*.test.mjs"
+    "test:integration": "node ../../scripts/with-workspace-surfaces.mjs -- tsx --test test/integration/*.test.mjs",
+    "test:integration:prepared": "tsx --test test/integration/*.test.mjs",
+    "test:full:prepared": "pnpm run test:contract:prepared && pnpm run test:integration:prepared"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",

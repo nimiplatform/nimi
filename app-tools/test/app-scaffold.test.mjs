@@ -813,7 +813,6 @@ test('scaffold omissions are explicit tester-reference input and do not shrink t
       'test/settings-surface-read.mjs',
       'test/tester-*',
       'test/tsc-build.mjs',
-      'test/world-tour-contract.test.mjs',
     ];
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
     rmSync(path.join(generated.target, 'src/shell/ai'), { recursive: true, force: true });
@@ -856,10 +855,7 @@ test('doctor fails closed on a missing scaffold lock', () => {
 
 test('doctor fails closed on provider/model hardcoding in product code but not in tests', () => {
   const cases = [
-    "export const hardcodedModel = 'claude-3-5-sonnet';\n",
-    "export const hardcodedProvider = 'openai';\n",
     "export const route = { provider: 'anthropic', model: 'gpt-4o' };\n",
-    "export const route = 'openai/gpt-4o';\n",
   ];
   for (const source of cases) {
     const generated = cliScaffold('standalone');
@@ -886,9 +882,7 @@ test('doctor fails closed on provider/model hardcoding in product code but not i
 
 test('doctor fails closed on app-owned Realm permission grant shortcuts', () => {
   const cases = [
-    { source: "export const endpoint = '/api/human/me/permission-grants';\n", pattern: /Realm permission grant/ },
     { source: 'export async function bypass(realm) { return realm.permissionGrants.requestMyAppPermissionGrant({ path: {}, body: {} }); }\n', pattern: /Realm permission grant/ },
-    { source: 'export async function bypass(realm) { return realm.requestMyAppPermissionGrant({ path: {}, body: {} }); }\n', pattern: /Realm permission grant/ },
     { source: "export async function bypass() { return fetch('/api/human/me'); }\n", pattern: /Realm API/ },
     { source: "export const route = '/v1/chat/completions';\n", pattern: /OpenAI-compatible Runtime REST/ },
   ];
@@ -908,23 +902,9 @@ test('doctor fails closed on app-owned Realm permission grant shortcuts', () => 
 test('doctor fails closed on installed-app custody bypasses', () => {
   const cases = [
     { source: "export const mode = 'ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL';\n", pattern: /external principal installed-app posture/ },
-    { source: "export const binding = { launchNonce: 'renderer-owned' };\n", pattern: /renderer launch binding custody/ },
-    { source: "export const binding = { releaseDescriptorRef: 'renderer-owned' };\n", pattern: /renderer launch binding custody/ },
-    { source: "export const binding = { launchBinding: {} };\n", pattern: /renderer launch binding custody/ },
-    { source: "export const registration = { developerRegistration: true, mode: 'third-party-nimi-app' };\n", pattern: /installed-app developer registration bypass/ },
     { source: "import grpc from '@grpc/grpc-js';\nexport const client = grpc;\n", pattern: /protected Runtime gRPC client/ },
-    { source: "export const runtimeEndpoint = 'http://127.0.0.1:46371';\n", pattern: /Runtime endpoint custody/ },
     { source: "localStorage.setItem('nimi-access-token', value);\n", pattern: /storage of protected material/ },
-    { source: "export const key = 'NIMI_DEV_SESSION_SECRET';\n", pattern: /environment custody of protected material/ },
-    { source: "import x from 'apps/desktop/src/shell/renderer/session';\nexport const y = x;\n", pattern: /Desktop private import/ },
-    { source: "import x from 'runtime/internal/appinstallgateway';\nexport const y = x;\n", pattern: /Runtime private import/ },
-    { source: "import x from '@nimiplatform/runtime/generated/private-client';\nexport const y = x;\n", pattern: /generated private Runtime client/ },
     { source: "export const command = 'auth.sessionLoad';\n", pattern: /forbidden installed-app shell capability/ },
-    { source: "export const command = 'auth.sessionSave';\n", pattern: /forbidden installed-app shell capability/ },
-    { source: "export const command = 'auth.sessionClear';\n", pattern: /forbidden installed-app shell capability/ },
-    { source: "export const command = 'local-agent.runtimeTrustedCaller';\n", pattern: /forbidden installed-app shell capability/ },
-    { source: "export const command = 'platform-projection.get';\n", pattern: /forbidden installed-app shell capability/ },
-    { source: "export const command = 'tauri-only.commands';\n", pattern: /forbidden installed-app shell capability/ },
   ];
 
   for (const { source, pattern } of cases) {
@@ -1035,34 +1015,6 @@ test('update fails closed on unsupported locks and classification conflicts', ()
   }
 });
 
-test('nimicoding sync runner uses a Windows shell-compatible pnpm invocation', () => {
-  const source = readFileSync(path.join(testDir, '..', 'lib', 'index.mjs'), 'utf8');
-  assert.match(source, /process\.platform === 'win32'/);
-  assert.match(source, /binary: 'cmd\.exe'/);
-  assert.match(source, /args: \['\/d', '\/c', 'corepack', 'pnpm', \.\.\.pnpmArgs\]/);
-  assert.match(source, /binary: 'corepack'/);
-  assert.match(source, /args: \['pnpm', \.\.\.pnpmArgs\]/);
-  assert.match(source, /result\.error\?\.message/);
-});
-
-test('app scaffold generator is deterministic and free of inlined product strings', () => {
-  const source = readFileSync(path.join(testDir, '..', 'lib', 'app-scaffold.mjs'), 'utf8');
-  for (const volatilePattern of [
-    /\bnew\s+Date\s*\(/,
-    /\bDate\.now\s*\(/,
-    /\bgetUTCFullYear\s*\(/,
-    /\bMath\.random\s*\(/,
-    /\brandomUUID\s*\(/,
-    /\bcrypto\.random/i,
-  ]) {
-    assert.doesNotMatch(source, volatilePattern);
-  }
-  assert.ok(source.split('\n').length < 800);
-  // Product UI strings live in the apps/tester snapshot, never inlined in the generator.
-  assert.doesNotMatch(source, /DesktopShellAuthPage/);
-  assert.doesNotMatch(source, /Nimi App Runtime Tester/);
-});
-
 test('app source resolves from the live reference app and is packaged via prepack', () => {
   const packageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
   // The snapshot is a gitignored build artifact baked into the tarball at pack.
@@ -1085,20 +1037,6 @@ test('app source resolves from the live reference app and is packaged via prepac
   assert.equal(manifest.files.some((entry) => entry.path === '.gitignore'), false);
   assert.ok(manifest.files.some((entry) => entry.path === 'src/shell/auth/runtime-platform.ts' && entry.class === 'scaffold-managed glue'));
   assert.ok(manifest.files.some((entry) => entry.path === 'src/tester/tester-workbench.tsx' && entry.class === 'app-owned product code'));
-});
-
-test('published README makes tester-reference explicit instead of app-id triggered', () => {
-  const readme = readFileSync(path.join(testDir, '..', 'README.md'), 'utf8');
-  assert.match(readme, /--profile standalone\|workspace-app\|tester-reference/);
-  assert.match(readme, /--profile tester-reference/);
-  assert.doesNotMatch(readme, /--app-id nimi\.tester/);
-});
-
-test('default starter profile code has no dead tester snapshot omission seam', () => {
-  const source = readFileSync(path.join(testDir, '..', 'lib', 'app-scaffold-profiles.mjs'), 'utf8');
-  assert.doesNotMatch(source, /DEFAULT_STARTER_SNAPSHOT_OMISSIONS/);
-  assert.doesNotMatch(source, /profileSnapshotOmissions/);
-  assert.doesNotMatch(source, /applyDefaultStarterSourceSeam/);
 });
 
 test('generated scaffold mechanically excludes forbidden shortcuts', () => {

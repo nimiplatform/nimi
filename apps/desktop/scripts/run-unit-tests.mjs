@@ -120,9 +120,6 @@ function commandLength(parts) {
 }
 
 function buildBatches(prefixArgs, filePaths) {
-  if (process.platform === 'win32' && mode === '--rest') {
-    return filePaths.map((filePath) => [filePath]);
-  }
   const batches = [];
   let current = [];
   for (const filePath of filePaths) {

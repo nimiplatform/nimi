@@ -265,7 +265,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Workspace owner tests
-        run: pnpm test
+        run: pnpm test:full
 
   kit-native-tests:
     needs: changes

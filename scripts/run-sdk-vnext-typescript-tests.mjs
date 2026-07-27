@@ -4,17 +4,26 @@ import { globSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSyncCommand } from './lib/command-runner.mjs';
-import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
+import {
+  isSdkDistPrepared,
+  withSdkDistLock,
+} from './lib/sdk-dist-lock.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const vnextRoot = path.join(repoRoot, 'sdks', 'typescript');
 
 const testFiles = process.argv.slice(2);
+const independentWorkspaceTestRoots = [
+  'adapters/mastra/',
+  'adapters/vercel-ai/',
+  'doctor/',
+];
 
 function discoverDefaultTestFiles() {
   const discovered = globSync('**/*.test.ts', { cwd: vnextRoot, absolute: false })
     .map((file) => file.replace(/\\/g, '/'))
+    .filter((file) => !independentWorkspaceTestRoots.some((root) => file.startsWith(root)))
     .sort((a, b) => a.localeCompare(b));
   if (discovered.length === 0) {
     throw new Error('[run-sdk-vnext-typescript-tests] no test files matched **/*.test.ts');
@@ -31,10 +40,12 @@ function runPnpm(args) {
 }
 
 function main() {
-  const buildResult = runPnpm(['--dir', vnextRoot, 'run', 'build']);
-  if (buildResult.status !== 0) {
-    process.exitCode = buildResult.status ?? 1;
-    return;
+  if (!isSdkDistPrepared()) {
+    const buildResult = runPnpm(['--dir', vnextRoot, 'run', 'build']);
+    if (buildResult.status !== 0) {
+      process.exitCode = buildResult.status ?? 1;
+      return;
+    }
   }
 
   const typeContractResult = runPnpm([
@@ -56,7 +67,7 @@ function main() {
     'exec',
     'tsx',
     '--test',
-    '--test-concurrency=1',
+    '--test-concurrency=4',
     ...(testFiles.length > 0 ? testFiles : discoverDefaultTestFiles()),
   ]);
 

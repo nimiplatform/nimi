@@ -361,7 +361,8 @@
     "prepack": "pnpm run build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "pnpm run typecheck",
-    "test": "vitest run --config ui/vitest.config.ts",
+    "test": "vitest run --config ui/vitest.config.ts --exclude shell/electron/test/electron-agent-center-content-admission.test.ts --exclude shell/electron/test/electron-agent-center-custody.test.ts",
+    "test:full": "vitest run --config ui/vitest.config.ts shell/electron/test/electron-agent-center-content-admission.test.ts shell/electron/test/electron-agent-center-custody.test.ts",
     "preview": "vite --config preview/vite.config.ts",
     "preview:build": "vite build --config preview/vite.config.ts"
   },

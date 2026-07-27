@@ -33,7 +33,7 @@ requirement.
 Run the current owner tests and direct package checks:
 
 ```bash
-pnpm test
+pnpm test:full
 pnpm check:license-file-map
 pnpm check:sdk-kit-pack-audit
 ```
