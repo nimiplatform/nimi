@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -30,9 +30,20 @@ function assertSuccessful(result) {
   assert.doesNotMatch(output, /DEP0190/);
 }
 
-test('SDK dist lock runner does not use deprecated shell args on Windows', () => {
-  const lockDir = path.join(os.tmpdir(), `nimi-package-build-runner-lock-${process.pid}-${Date.now()}`);
-  const result = spawnSync(
+function sdkDistLockEnv(lockDir) {
+  const env = envWithThrowDeprecationOverrides({
+    NIMI_SDK_DIST_LOCK_DIR: lockDir,
+    NIMI_SDK_DIST_LOCK_POLL_MS: '10',
+    NIMI_SDK_DIST_LOCK_STALE_MS: '60000',
+    NIMI_SDK_DIST_LOCK_TIMEOUT_MS: '100',
+    NIMI_SDK_DIST_LOCK_WAIT_LOG_MS: '60000',
+  });
+  delete env.NIMI_SDK_DIST_LOCK_TOKEN;
+  return env;
+}
+
+function runSdkDistLock(lockDir) {
+  return spawnSync(
     process.execPath,
     [
       'scripts/with-sdk-dist-lock.mjs',
@@ -43,16 +54,68 @@ test('SDK dist lock runner does not use deprecated shell args on Windows', () =>
     ],
     {
       cwd: repoRoot,
-      env: envWithThrowDeprecationOverrides({
-        NIMI_SDK_DIST_LOCK_DIR: lockDir,
-      }),
+      env: sdkDistLockEnv(lockDir),
       encoding: 'utf8',
       stdio: 'pipe',
     },
   );
+}
+
+test('SDK dist lock runner does not use deprecated shell args on Windows', () => {
+  const lockDir = path.join(os.tmpdir(), `nimi-package-build-runner-lock-${process.pid}-${Date.now()}`);
+  const result = runSdkDistLock(lockDir);
 
   assertSuccessful(result);
   assert.equal(result.stdout, 'locked');
+});
+
+test('SDK dist lock immediately reclaims a fresh lock owned by a dead process', () => {
+  const lockDir = mkdtempSync(path.join(os.tmpdir(), 'nimi-sdk-dist-dead-owner-'));
+  const exitedChild = spawnSync(process.execPath, ['-e', 'process.exit(0)']);
+  assert.equal(exitedChild.status, 0);
+  assert.ok(Number.isInteger(exitedChild.pid));
+  writeFileSync(
+    path.join(lockDir, 'owner.json'),
+    `${JSON.stringify({ token: 'dead-owner', label: 'dead owner', pid: exitedChild.pid })}\n`,
+  );
+
+  try {
+    const result = runSdkDistLock(lockDir);
+    assertSuccessful(result);
+    assert.equal(result.stdout, 'locked');
+    assert.equal(existsSync(lockDir), false);
+  } finally {
+    rmSync(lockDir, { recursive: true, force: true });
+  }
+});
+
+test('SDK dist lock preserves a fresh lock without an owner', () => {
+  const lockDir = mkdtempSync(path.join(os.tmpdir(), 'nimi-sdk-dist-no-owner-'));
+  try {
+    const result = runSdkDistLock(lockDir);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /timed out waiting for SDK dist lock/);
+    assert.equal(existsSync(lockDir), true);
+  } finally {
+    rmSync(lockDir, { recursive: true, force: true });
+  }
+});
+
+test('SDK dist lock preserves a lock owned by a live process', () => {
+  const lockDir = mkdtempSync(path.join(os.tmpdir(), 'nimi-sdk-dist-live-owner-'));
+  writeFileSync(
+    path.join(lockDir, 'owner.json'),
+    `${JSON.stringify({ token: 'live-owner', label: 'live owner', pid: process.pid })}\n`,
+  );
+
+  try {
+    const result = runSdkDistLock(lockDir);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /timed out waiting for SDK dist lock/);
+    assert.equal(existsSync(lockDir), true);
+  } finally {
+    rmSync(lockDir, { recursive: true, force: true });
+  }
 });
 
 test('TypeScript package build runner does not use deprecated shell args on Windows', () => {

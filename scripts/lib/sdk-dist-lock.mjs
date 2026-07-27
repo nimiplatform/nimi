@@ -77,7 +77,7 @@ function describeOwner(owner) {
   return [label, pid, createdAt].filter(Boolean).join(', ');
 }
 
-function removeStaleLock(dir, staleMs) {
+function removeAbandonedLock(dir, staleMs) {
   let stat;
   try {
     stat = fs.statSync(dir);
@@ -88,12 +88,13 @@ function removeStaleLock(dir, staleMs) {
     throw error;
   }
 
-  if (Date.now() - stat.mtimeMs < staleMs) {
-    return false;
-  }
-
   const owner = readOwner(dir);
-  if (owner && processIsAlive(Number(owner.pid))) {
+  const ownerPid = Number(owner?.pid);
+  if (Number.isInteger(ownerPid) && ownerPid > 0) {
+    if (processIsAlive(ownerPid)) {
+      return false;
+    }
+  } else if (Date.now() - stat.mtimeMs < staleMs) {
     return false;
   }
 
@@ -148,7 +149,7 @@ async function acquireSdkDistLock(label, options = {}) {
     }
 
     const owner = readOwner(dir);
-    if (removeStaleLock(dir, staleMs)) {
+    if (removeAbandonedLock(dir, staleMs)) {
       continue;
     }
 
