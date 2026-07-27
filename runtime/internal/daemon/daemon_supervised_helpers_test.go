@@ -14,9 +14,15 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
+func newDaemonForTest(t *testing.T, cfg config.Config, logger *slog.Logger, version string) (*Daemon, error) {
+	t.Helper()
+	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
+	return NewNonProductionAtProductControlRoot(cfg, logger, version, productControlRoot)
+}
+
 func newTestDaemon(t *testing.T, logger *slog.Logger) *Daemon {
 	t.Helper()
-	daemon, err := New(config.Config{
+	daemon, err := newDaemonForTest(t, config.Config{
 		GRPCAddr:            "127.0.0.1:0",
 		HTTPAddr:            "127.0.0.1:0",
 		LocalStatePath:      filepath.Join(t.TempDir(), "local-state.json"),

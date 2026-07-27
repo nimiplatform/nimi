@@ -121,11 +121,6 @@ type Config struct {
 	// override for staging/test environments.
 	AccountTokenURL string
 
-	// NonReleaseDevKernelCheckpoint is populated only by the signed fixed-service
-	// acceptance profile in an explicitly linked non-release Runtime candidate.
-	// Portable config files and environment loading never populate this field.
-	NonReleaseDevKernelCheckpoint *DevKernelCheckpointAcceptance
-
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
 	Providers map[string]RuntimeFileTarget
@@ -220,18 +215,6 @@ type Config struct {
 	// SchedulingPreemptionOccupancyPercent is the global slot occupancy percentage
 	// above which preemption_risk is returned. Default: 75. (K-SCHED-005)
 	SchedulingPreemptionOccupancyPercent int
-}
-
-type DevKernelCheckpointAcceptance struct {
-	TrialID                     string
-	RuntimeCandidateID          string
-	DevelopmentStateCandidateID string
-	AcceptanceRoundID           string
-	PrimaryAccountID            string
-	SecondaryAccountID          string
-	LocalAgentRef               string
-	RuntimeSourceRef            string
-	AgentDisplayName            string
 }
 
 // FileConfig is the on-disk JSON schema for runtime configuration.

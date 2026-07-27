@@ -14,18 +14,16 @@ const (
 type SourceKind string
 
 const (
-	SourceKindNimiBundle                    SourceKind = "nimi-bundle"
-	SourceKindGitHubRelease                 SourceKind = "github-release"
-	SourceKindGitHubCommit                  SourceKind = "github-commit"
-	SourceKindNPMPackage                    SourceKind = "npm-package"
-	SourceKindAdmissionSandboxHTTPSArtifact SourceKind = "admission-sandbox-https-artifact"
+	SourceKindNimiBundle    SourceKind = "nimi-bundle"
+	SourceKindGitHubRelease SourceKind = "github-release"
+	SourceKindGitHubCommit  SourceKind = "github-commit"
+	SourceKindNPMPackage    SourceKind = "npm-package"
 )
 
 type AdmissionTrack string
 
 const (
 	AdmissionTrackOrdinaryReleaseProof AdmissionTrack = "ordinary-release-proof"
-	AdmissionTrackSandboxCI            AdmissionTrack = "admission-sandbox-ci"
 )
 
 type Publisher struct {
@@ -141,7 +139,6 @@ var (
 	ErrDescriptorPackageKindInvalid      = errors.New("release descriptor runtime.package_kind must be nimi-app")
 	ErrDescriptorMutableSource           = errors.New("release descriptor source is mutable or unpinned")
 	ErrDescriptorClassSourceMismatch     = errors.New("release descriptor class/source pairing is invalid")
-	ErrDescriptorTrackSourceMismatch     = errors.New("release descriptor admission track/source pairing is invalid")
 	ErrDescriptorMirrorLicenseUnclear    = errors.New("release descriptor mirror license is not cleared")
 	ErrDescriptorBuildAssuranceInvalid   = errors.New("release descriptor build assurance is invalid")
 	ErrDescriptorPlatformSigningRequired = errors.New("release descriptor platform signing is required")

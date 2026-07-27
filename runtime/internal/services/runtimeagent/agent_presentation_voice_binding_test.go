@@ -48,7 +48,7 @@ func bindableVoiceAsset(voiceAssetID string) *runtimev1.VoiceAsset {
 	targetRef := durableVoiceAssetTargetRef()
 	return &runtimev1.VoiceAsset{
 		VoiceAssetId:        voiceAssetID,
-		AppId:               "runtime-agent-hardcut-test",
+		AppId:               "runtime-agent-boundary-test",
 		SubjectUserId:       "user-1",
 		WorkflowType:        runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
 		Provider:            "provider-1",
@@ -408,9 +408,9 @@ func TestSetAgentPresentationProfileFailsClosedOnEffectiveVoiceAssetAppScope(t *
 		wantCalls  int
 	}{
 		{name: "missing request and header app", wantCode: codes.PermissionDenied},
-		{name: "conflicting request and header app", requestApp: "runtime-agent-hardcut-test", headerApp: "other.app", assetApp: "other.app", wantCode: codes.PermissionDenied},
-		{name: "header-only app", headerApp: "runtime-agent-hardcut-test", assetApp: "runtime-agent-hardcut-test", wantCode: codes.OK, wantCalls: 1},
-		{name: "matching request and header app", requestApp: "runtime-agent-hardcut-test", headerApp: "runtime-agent-hardcut-test", assetApp: "runtime-agent-hardcut-test", wantCode: codes.OK, wantCalls: 1},
+		{name: "conflicting request and header app", requestApp: "runtime-agent-boundary-test", headerApp: "other.app", assetApp: "other.app", wantCode: codes.PermissionDenied},
+		{name: "header-only app", headerApp: "runtime-agent-boundary-test", assetApp: "runtime-agent-boundary-test", wantCode: codes.OK, wantCalls: 1},
+		{name: "matching request and header app", requestApp: "runtime-agent-boundary-test", headerApp: "runtime-agent-boundary-test", assetApp: "runtime-agent-boundary-test", wantCode: codes.OK, wantCalls: 1},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

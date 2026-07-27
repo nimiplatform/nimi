@@ -86,13 +86,13 @@ func (listener *windowsVerifiedLocalAppListener) Accept() (net.Conn, error) {
 			err = fmt.Errorf("local-app pipe peer has no supervised launch binding")
 		}
 		if err != nil {
-			reportWindowsE2EPeerRejection(err)
+			reportWindowsPeerRejection(err)
 			_ = native.Close()
 			continue
 		}
 		raw, err := native.NetConn()
 		if err != nil {
-			reportWindowsE2EPeerRejection(err)
+			reportWindowsPeerRejection(err)
 			_ = pipeLiveness.Close()
 			_ = native.Close()
 			continue

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"golang.org/x/sys/windows"
 )
 
 const windowsTestFileAllAccess = 0x001f01ff
+const windowsTestRuntimeServiceSID = "S-1-5-80-1-2-3-4-5"
 
 func TestProductControlDataRootSecurityRejectsReparseAncestor(t *testing.T) {
 	directRoot := filepath.Join(t.TempDir(), "direct", "nimi-data")
@@ -45,7 +45,7 @@ func TestProductControlDataRootSecurityValidatesOwnerAndExactServiceSID(t *testi
 	if err != nil || tokenUser == nil || tokenUser.User.Sid == nil {
 		t.Fatalf("resolve current user SID: %v", err)
 	}
-	serviceSID, err := windows.StringToSid(protectedlocal.WindowsProductionServiceSID)
+	serviceSID, err := windows.StringToSid(windowsTestRuntimeServiceSID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,12 +89,12 @@ func TestProductControlDataRootSecurityValidatesOwnerAndExactServiceSID(t *testi
 
 	binding := ProductControlDataRootSecurityBinding{
 		InteractiveUserSID: tokenUser.User.Sid.String(),
-		RuntimeServiceSID:  protectedlocal.WindowsProductionServiceSID,
+		RuntimeServiceSID:  windowsTestRuntimeServiceSID,
 	}
 	if err := validateProductControlDataRootPlatform(root, binding); err != nil {
 		t.Fatalf("valid Product Control data-root security rejected: %v", err)
 	}
-	binding.RuntimeServiceSID = "S-1-5-80-1-2-3-4-5"
+	binding.RuntimeServiceSID = "S-1-5-80-1-2-3-4-6"
 	if err := ensureNimiDataRootLayout(root, binding); err == nil ||
 		!strings.Contains(err.Error(), "fixed Runtime service SID") {
 		t.Fatalf("wrong Runtime service SID error = %v", err)
@@ -102,7 +102,7 @@ func TestProductControlDataRootSecurityValidatesOwnerAndExactServiceSID(t *testi
 	if _, err := os.Stat(filepath.Join(root, "models")); !os.IsNotExist(err) {
 		t.Fatalf("layout mutation occurred before fixed-service ACL rejection: %v", err)
 	}
-	binding.RuntimeServiceSID = protectedlocal.WindowsProductionServiceSID
+	binding.RuntimeServiceSID = windowsTestRuntimeServiceSID
 	binding.InteractiveUserSID = "S-1-5-18"
 	if err := validateProductControlDataRootPlatform(root, binding); err == nil ||
 		!strings.Contains(err.Error(), "verified interactive user") {
@@ -119,7 +119,7 @@ func TestProductControlDataRootSecurityRejectsServiceFullControl(t *testing.T) {
 	if err != nil || tokenUser == nil || tokenUser.User.Sid == nil {
 		t.Fatalf("resolve current user SID: %v", err)
 	}
-	serviceSID, err := windows.StringToSid(protectedlocal.WindowsProductionServiceSID)
+	serviceSID, err := windows.StringToSid(windowsTestRuntimeServiceSID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestProductControlDataRootSecurityRejectsServiceFullControl(t *testing.T) {
 	}})
 	binding := ProductControlDataRootSecurityBinding{
 		InteractiveUserSID: tokenUser.User.Sid.String(),
-		RuntimeServiceSID:  protectedlocal.WindowsProductionServiceSID,
+		RuntimeServiceSID:  windowsTestRuntimeServiceSID,
 	}
 	if err := validateProductControlDataRootPlatform(root, binding); err == nil ||
 		!strings.Contains(err.Error(), "fixed Runtime service SID") {
@@ -163,7 +163,7 @@ func TestProductControlDataRootSecurityRejectsBroadWritablePrincipals(t *testing
 			if err != nil || tokenUser == nil || tokenUser.User.Sid == nil {
 				t.Fatalf("resolve current user SID: %v", err)
 			}
-			serviceSID, err := windows.StringToSid(protectedlocal.WindowsProductionServiceSID)
+			serviceSID, err := windows.StringToSid(windowsTestRuntimeServiceSID)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -195,7 +195,7 @@ func TestProductControlDataRootSecurityRejectsBroadWritablePrincipals(t *testing
 			})
 			binding := ProductControlDataRootSecurityBinding{
 				InteractiveUserSID: tokenUser.User.Sid.String(),
-				RuntimeServiceSID:  protectedlocal.WindowsProductionServiceSID,
+				RuntimeServiceSID:  windowsTestRuntimeServiceSID,
 			}
 			if err := validateProductControlDataRootPlatform(root, binding); err == nil ||
 				!strings.Contains(err.Error(), "broad principal") {
@@ -214,7 +214,7 @@ func TestProductControlDataRootSecurityAllowsPrivilegedAndReadOnlyEntries(t *tes
 	if err != nil || tokenUser == nil || tokenUser.User.Sid == nil {
 		t.Fatalf("resolve current user SID: %v", err)
 	}
-	serviceSID, err := windows.StringToSid(protectedlocal.WindowsProductionServiceSID)
+	serviceSID, err := windows.StringToSid(windowsTestRuntimeServiceSID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestProductControlDataRootSecurityAllowsPrivilegedAndReadOnlyEntries(t *tes
 	installWindowsTestAccess(t, root, entries)
 	binding := ProductControlDataRootSecurityBinding{
 		InteractiveUserSID: tokenUser.User.Sid.String(),
-		RuntimeServiceSID:  protectedlocal.WindowsProductionServiceSID,
+		RuntimeServiceSID:  windowsTestRuntimeServiceSID,
 	}
 	if err := validateProductControlDataRootPlatform(root, binding); err != nil {
 		t.Fatalf("privileged or read-only DACL entry was rejected: %v", err)

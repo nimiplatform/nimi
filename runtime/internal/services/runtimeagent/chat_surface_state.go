@@ -451,12 +451,6 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 	if strings.TrimSpace(raw) == "" {
 		return nil
 	}
-	if hasRetiredPublicChatContinuityFields(raw) {
-		if s != nil && s.logger != nil {
-			s.logger.Warn("discarding retired public chat continuity state")
-		}
-		return r.clearPublicChatSurfaceStateForCoreHardcut()
-	}
 	var persisted persistedPublicChatSurfaceState
 	decoder := json.NewDecoder(strings.NewReader(raw))
 	decoder.DisallowUnknownFields()
@@ -470,12 +464,6 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if version, err := decodeSequenceValue(versionRaw); err == nil && version > persisted.Version {
 			persisted.Version = version
 		}
-	}
-	if hasPreCoreHardcutPublicChatSurfaceState(persisted) {
-		if s != nil && s.logger != nil {
-			s.logger.Warn("discarding pre-core hardcut public chat surface state")
-		}
-		return r.clearPublicChatSurfaceStateForCoreHardcut()
 	}
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
@@ -632,52 +620,6 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		}
 	}
 	return nil
-}
-
-// hasRetiredPublicChatContinuityFields is a rejection-only hard-cut sentinel.
-// It never projects old message or prompt fields into canonical transcript
-// truth; any pre-cutover anchor payload is discarded as a unit.
-func hasRetiredPublicChatContinuityFields(raw string) bool {
-	var envelope struct {
-		Anchors []map[string]json.RawMessage `json:"anchors"`
-	}
-	if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
-		return false
-	}
-	for _, anchor := range envelope.Anchors {
-		for _, key := range []string{"transcript", "contextHistory", "systemPrompt", "executionParams"} {
-			if _, exists := anchor[key]; exists {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func hasPreCoreHardcutPublicChatSurfaceState(persisted persistedPublicChatSurfaceState) bool {
-	for _, item := range persisted.Anchors {
-		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RuntimeSourceRef, item.LocalAgentRef); err != nil {
-			return true
-		}
-	}
-	for _, item := range persisted.AvatarLiveInstances {
-		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RuntimeSourceRef, item.LocalAgentRef); err != nil {
-			return true
-		}
-	}
-	return false
-}
-
-func (r *publicChatSurfaceStateRepository) clearPublicChatSurfaceStateForCoreHardcut() error {
-	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		_, err := tx.Exec(
-			`DELETE FROM runtime_local_agent_meta WHERE key IN (?, ?) OR key LIKE ?`,
-			runtimeAgentMetaPublicChatSurfaceStateKey,
-			runtimeAgentMetaPublicChatSurfaceVersionKey,
-			runtimeAgentMetaConversationAnchorMetadata+"%",
-		)
-		return err
-	})
 }
 
 func (s *Service) resolveCommittedChatTurnOrigin(agentID string, turnID string) stateEventOrigin {

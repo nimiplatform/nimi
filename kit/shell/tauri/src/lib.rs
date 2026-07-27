@@ -12,7 +12,6 @@
 // - governed_config: shared `.nimi` current-schema repair routing
 // - nimi_data_directory: shared `nimi_data` layout and cleanup primitives
 // - platform_projection: deterministic host projection record builders
-// - renderer_entry_probe: shared page-load renderer entry smoke probe script
 // - agent_center_avatar_asset: shared Agent Center Avatar local asset resolution
 // - standard_agent_center: shared Agent Center local asset custody commands
 
@@ -25,7 +24,6 @@ mod nimi_data_directory;
 mod oauth_commands;
 mod platform_catalog;
 mod platform_projection;
-mod renderer_entry_probe;
 mod runtime_account_caller;
 mod runtime_ai_config_projection;
 mod runtime_app_storage;

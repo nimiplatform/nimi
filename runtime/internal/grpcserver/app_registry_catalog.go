@@ -7,7 +7,6 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
-	"github.com/nimiplatform/nimi/runtime/internal/firstpartymigration"
 )
 
 func loadNimiAppRegistryCatalog(path string) (*appregistrycatalog.Registry, *appreleasecatalog.Catalog, error) {
@@ -70,11 +69,4 @@ func formatNimiAppRegistryViolations(violations []appregistrycatalog.CrossTableV
 		parts = append(parts, violation.Error())
 	}
 	return strings.Join(parts, "; ")
-}
-
-func defaultFirstPartyMigrationLaunchGate() *firstpartymigration.LaunchGate {
-	return firstpartymigration.NewLaunchGate(
-		firstpartymigration.WithAvatarMasterGateAcked(true),
-		firstpartymigration.WithMigrationNotRequired("nimi.avatar"),
-	)
 }

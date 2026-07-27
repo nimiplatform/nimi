@@ -42,14 +42,8 @@ use crate::{
 mod projection;
 use projection::{project_start_outcome, project_status};
 
-#[cfg(not(feature = "windows-e2e-fixture"))]
 const RUNTIME_SERVICE_NAME: &str = "NimiRuntime";
-#[cfg(feature = "windows-e2e-fixture")]
-const RUNTIME_SERVICE_NAME: &str = "NimiRuntimeE2E";
-#[cfg(not(feature = "windows-e2e-fixture"))]
 const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-protected-v1";
-#[cfg(feature = "windows-e2e-fixture")]
-const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-e2e-protected-v1";
 
 #[path = "windows_service_lifecycle.rs"]
 mod lifecycle;
@@ -399,11 +393,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
             let mut processes = self.development_processes.lock().map_err(|_| {
                 NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
             })?;
-            let _replaced = processes.insert(run_id, process).is_some();
-            #[cfg(feature = "windows-e2e-fixture")]
-            eprintln!(
-                "[protected-local local-development windows-e2e-fixture] stage=host-carrier-retained replaced={_replaced}"
-            );
+            processes.insert(run_id, process);
             Ok(outcome)
         })
     }
@@ -436,14 +426,9 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
-        let _present = processes.contains_key(&supervisor_run_id);
         let running = processes
             .get(&supervisor_run_id)
             .is_some_and(|process| process.running());
-        #[cfg(feature = "windows-e2e-fixture")]
-        eprintln!(
-            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-health present={_present} running={running}"
-        );
         Ok(running)
     }
 
@@ -460,11 +445,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let mut processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
-        let _removed = processes.remove(&supervisor_run_id).is_some();
-        #[cfg(feature = "windows-e2e-fixture")]
-        eprintln!(
-            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-removed removed={_removed}"
-        );
+        processes.remove(&supervisor_run_id);
         Ok(())
     }
 }

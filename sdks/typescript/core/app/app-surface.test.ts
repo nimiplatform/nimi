@@ -292,16 +292,7 @@ describe('vNext app surface', () => {
     assert.equal(entry?.openReadiness, 'package-unavailable');
   });
 
-  it('removes sandbox source kinds from the production bridge parser', () => {
-    assert.throws(() => parseNimiAppBridgeProjection({
-      registryRows: [registryRow({ ordinaryVisibility: 'developer-only' })],
-      releaseDescriptors: [{
-        ...releaseDescriptor(),
-        sourceKind: 'admission-sandbox-https-artifact',
-        admissionPath: 'admission-sandbox-ci',
-      }],
-    }), /sourceKind is invalid/);
-
+  it('filters developer-only rows from the production bridge', () => {
     const projection = parseNimiAppBridgeProjection({
       registryRows: [registryRow(), registryRow({ appId: 'dev.hidden', ordinaryVisibility: 'developer-only' })],
       releaseDescriptors: [releaseDescriptor(), releaseDescriptor({

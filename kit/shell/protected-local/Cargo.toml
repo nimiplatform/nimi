@@ -12,7 +12,6 @@ path = "src/lib.rs"
 
 [features]
 default = []
-windows-e2e-fixture = []
 macos-local-development = []
 
 [dependencies]

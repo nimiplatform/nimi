@@ -8,12 +8,11 @@ use super::{
     invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
     reset_channel_invalidation_count, restart_daemon_async, runtime_account_session_status,
     runtime_bridge_unary, start_daemon_async, stream_event_name_with_namespace,
-    with_runtime_bridge_host_hooks, with_runtime_bridge_host_hooks_async,
-    RuntimeBridgeAccountEventsOpenPayload, RuntimeBridgeAccountEventsOpenResult,
-    RuntimeBridgeAppSession, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
-    RuntimeBridgeProtectedAccessToken, RuntimeBridgeTrustedMetadata,
-    RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
-    DEFAULT_EVENT_NAMESPACE, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+    with_runtime_bridge_host_hooks, with_runtime_bridge_host_hooks_async, RuntimeBridgeAppSession,
+    RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
+    RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
+    RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE,
+    RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
 };
 
 #[tokio::test]
@@ -24,57 +23,6 @@ async fn protected_account_status_fails_closed_without_host_identity() {
     .await
     .expect_err("account status without native host identity must fail closed");
     assert!(error.contains("protected-carrier-required"));
-}
-
-#[tokio::test]
-async fn protected_account_status_uses_explicit_test_override_before_native_carrier() {
-    let expected = super::RuntimeBridgeDesktopAccountSessionStatus {
-        sequence: "7".to_string(),
-        state: "anonymous".to_string(),
-        reason_code: 1,
-        account_reason_code: 1,
-        account_projection: None,
-    };
-    let override_status = expected.clone();
-    let hooks = RuntimeBridgeHostHooks {
-        account_status_override: Some(Arc::new(move || Ok(Some(override_status.clone())))),
-        ..RuntimeBridgeHostHooks::default()
-    };
-
-    let actual = with_runtime_bridge_host_hooks_async(hooks, || async {
-        runtime_account_session_status().await
-    })
-    .await
-    .expect("test account status override");
-
-    assert_eq!(actual, expected);
-}
-
-#[test]
-fn protected_account_event_stream_test_override_is_host_scoped() {
-    let hooks = RuntimeBridgeHostHooks {
-        account_events_open_override: Some(Arc::new(|payload| {
-            assert_eq!(payload.after_sequence, "7");
-            Ok(Some(RuntimeBridgeAccountEventsOpenResult {
-                stream_id: "e2e-account-session-7".to_string(),
-            }))
-        })),
-        ..RuntimeBridgeHostHooks::default()
-    };
-
-    let result = with_runtime_bridge_host_hooks(hooks, || {
-        super::call_account_events_open_override_hook(&RuntimeBridgeAccountEventsOpenPayload {
-            after_sequence: "7".to_string(),
-        })
-    });
-
-    assert_eq!(
-        result
-            .expect("test account event stream override")
-            .expect("test account event stream result")
-            .stream_id,
-        "e2e-account-session-7"
-    );
 }
 
 #[test]

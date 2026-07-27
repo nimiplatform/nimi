@@ -1,13 +1,28 @@
 package entrypoint
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/daemon"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
+
+func runNonProductionDaemonForStartupTest(t *testing.T, program string, args []string) error {
+	t.Helper()
+	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
+	return runNonProductionDaemonFromArgsWithConstructor(
+		program,
+		args,
+		func(cfg config.Config, logger *slog.Logger, version string) (*daemon.Daemon, error) {
+			return daemon.NewNonProductionAtProductControlRoot(cfg, logger, version, productControlRoot)
+		},
+	)
+}
 
 func TestRunProductionDaemonFromArgsRejectsUserSuppliedRuntimeControls(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:59999")
@@ -23,7 +38,7 @@ func TestRunProductionDaemonFromArgsRejectsUserSuppliedRuntimeControls(t *testin
 	}
 }
 
-func TestNonProductionDaemonFromArgsFailsOnInvalidModelRegistry(t *testing.T) {
+func TestPortableDaemonFromArgsFailsOnInvalidModelRegistry(t *testing.T) {
 	homeDir := t.TempDir()
 	setEntrypointTestHome(t, homeDir)
 	clearRuntimeConfigEnvForStartupTest(t)
@@ -35,7 +50,7 @@ func TestNonProductionDaemonFromArgsFailsOnInvalidModelRegistry(t *testing.T) {
 	}
 	t.Setenv("NIMI_RUNTIME_MODEL_REGISTRY_PATH", registryPath)
 
-	err := runNonProductionDaemonFromArgs("nimi serve", nil)
+	err := runNonProductionDaemonForStartupTest(t, "nimi serve", nil)
 	if err == nil {
 		t.Fatal("expected startup failure for invalid model registry")
 	}
@@ -44,7 +59,7 @@ func TestNonProductionDaemonFromArgsFailsOnInvalidModelRegistry(t *testing.T) {
 	}
 }
 
-func TestNonProductionDaemonFromArgsFailsOnInvalidLocalState(t *testing.T) {
+func TestPortableDaemonFromArgsFailsOnInvalidLocalState(t *testing.T) {
 	homeDir := t.TempDir()
 	setEntrypointTestHome(t, homeDir)
 	clearRuntimeConfigEnvForStartupTest(t)
@@ -57,7 +72,7 @@ func TestNonProductionDaemonFromArgsFailsOnInvalidLocalState(t *testing.T) {
 	}
 	t.Setenv("NIMI_RUNTIME_LOCAL_STATE_PATH", localStatePath)
 
-	err := runNonProductionDaemonFromArgs("nimi serve", nil)
+	err := runNonProductionDaemonForStartupTest(t, "nimi serve", nil)
 	if err == nil {
 		t.Fatal("expected startup failure for invalid local state")
 	}

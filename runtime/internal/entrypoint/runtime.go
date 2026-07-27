@@ -38,7 +38,13 @@ func RunProductionDaemonFromArgs(_ string, args []string, version ...string) err
 	return runProductionDaemon(runtimeVersion)
 }
 
+type nonProductionDaemonConstructor func(config.Config, *slog.Logger, string) (*daemon.Daemon, error)
+
 func runNonProductionDaemonFromArgs(program string, args []string, version ...string) error {
+	return runNonProductionDaemonFromArgsWithConstructor(program, args, daemon.New, version...)
+}
+
+func runNonProductionDaemonFromArgsWithConstructor(program string, args []string, constructDaemon nonProductionDaemonConstructor, version ...string) error {
 	runtimeVersion := "0.0.0-dev"
 	if len(version) > 0 && version[0] != "" {
 		runtimeVersion = version[0]
@@ -86,7 +92,7 @@ func runNonProductionDaemonFromArgs(program string, args []string, version ...st
 		return err
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
-	d, err := daemon.New(cfg, logger, runtimeVersion)
+	d, err := constructDaemon(cfg, logger, runtimeVersion)
 	if err != nil {
 		return err
 	}

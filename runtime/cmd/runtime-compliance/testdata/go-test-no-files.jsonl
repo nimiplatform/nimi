@@ -1,3 +1,0 @@
-{"Time":"2026-07-15T00:00:00Z","Action":"start","Package":"github.com/nimiplatform/nimi/runtime/cmd/ggufprobe"}
-{"Time":"2026-07-15T00:00:00.01Z","Action":"output","Package":"github.com/nimiplatform/nimi/runtime/cmd/ggufprobe","Output":"?   github.com/nimiplatform/nimi/runtime/cmd/ggufprobe [no test files]\n"}
-{"Time":"2026-07-15T00:00:00.02Z","Action":"skip","Package":"github.com/nimiplatform/nimi/runtime/cmd/ggufprobe","Elapsed":0}

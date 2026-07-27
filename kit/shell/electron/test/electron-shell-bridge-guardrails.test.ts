@@ -98,7 +98,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('denies forbidden and planned commands before dispatch for local-app hosts', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'community.nimi.fixture.platform-proof',
+      appId: 'community.nimi.example.viewer',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
@@ -142,7 +142,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
   it('rejects renderer-provided bearer and session metadata for protected Runtime calls', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'community.nimi.fixture.platform-proof',
+      appId: 'community.nimi.example.viewer',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,

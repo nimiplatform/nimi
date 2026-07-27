@@ -29,12 +29,8 @@ use windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW;
 use windows_sys::Win32::System::SystemServices::{ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE};
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
-#[cfg(not(feature = "windows-e2e-fixture"))]
 const FIXED_RUNTIME_SERVICE_SID: &str =
     "S-1-5-80-152272774-1324336204-4147968316-71209937-3548791786";
-#[cfg(feature = "windows-e2e-fixture")]
-const FIXED_RUNTIME_SERVICE_SID: &str =
-    "S-1-5-80-2508001767-432113807-2225235661-2974466524-556849280";
 const ACL_TOOL_TIMEOUT: Duration = Duration::from_secs(10);
 const ACL_TOOL_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const FIXED_RUNTIME_SERVICE_MODIFY_ACCESS: u32 =

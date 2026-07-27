@@ -176,7 +176,6 @@ mod tests {
     use crate::first_party_profiles_generated::{
         DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS, DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS,
         DESKTOP_MACHINE_PRODUCT_STREAM_METHODS, DESKTOP_MACHINE_PRODUCT_UNARY_METHODS,
-        DESKTOP_PRODUCT_CONTROL_V1_METHODS, ORDINARY_DESKTOP_RUNTIME_CONSUMER_V1_METHODS,
     };
     use std::collections::HashSet;
 
@@ -211,25 +210,6 @@ mod tests {
                 .collect::<HashSet<_>>(),
             HashSet::from(["/nimi.runtime.v1.RuntimeConnectorService/ListConnectors"]),
         );
-    }
-
-    #[test]
-    fn frozen_product_control_and_ordinary_views_resolve_to_one_canonical_profile() {
-        for method in DESKTOP_PRODUCT_CONTROL_V1_METHODS {
-            assert!(DesktopMachineProductUnaryMethod::from_method_id(method.method_id()).is_some());
-        }
-        for method in ORDINARY_DESKTOP_RUNTIME_CONSUMER_V1_METHODS {
-            let method_id = method.method_id();
-            let memberships =
-                usize::from(DesktopMachineProductUnaryMethod::from_method_id(method_id).is_some())
-                    + usize::from(
-                        DesktopAccountProductUnaryMethod::from_method_id(method_id).is_some(),
-                    );
-            let expected =
-                usize::from(method_id == "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors")
-                    + 1;
-            assert_eq!(memberships, expected, "{method_id}");
-        }
     }
 
     #[cfg(target_os = "windows")]

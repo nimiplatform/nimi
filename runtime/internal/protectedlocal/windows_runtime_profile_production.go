@@ -1,5 +1,3 @@
-//go:build !nimi_runtime_e2e
-
 package protectedlocal
 
 func activeWindowsRuntimeProfile() windowsRuntimeProfile {

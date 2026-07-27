@@ -166,52 +166,6 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
   },
 } as const;
 
-export const NIMI_ELECTRON_PRODUCT_CONTROL_V1_METHODS: ReadonlySet<string> = new Set([
-  "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
-  "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
-  "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
-  "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
-  "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
-  "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
-  "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
-  "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
-  "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
-  "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
-  "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-  "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
-  "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
-  "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
-  "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
-  "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
-  "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
-  "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
-  "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
-  "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
-  "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
-]);
-
-export const NIMI_ELECTRON_ORDINARY_RUNTIME_CONSUMER_V1_METHODS: ReadonlySet<string> = new Set([
-  "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
-  "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
-  "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-  "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
-  "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
-  "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
-  "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
-  "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
-  "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
-  "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-  "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
-]);
-
-export function isNimiElectronProductControlV1Method(methodId: string): boolean {
-  return NIMI_ELECTRON_PRODUCT_CONTROL_V1_METHODS.has(methodId.trim());
-}
-
-export function isNimiElectronOrdinaryRuntimeConsumerV1Method(methodId: string): boolean {
-  return NIMI_ELECTRON_ORDINARY_RUNTIME_CONSUMER_V1_METHODS.has(methodId.trim());
-}
-
 export type NimiElectronDesktopMachineProductMethodId = keyof typeof NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES.desktop_machine_product_v1.methods;
 export type NimiElectronDesktopAccountProductMethodId = keyof typeof NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES.desktop_account_product_v1.methods;
 

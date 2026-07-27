@@ -227,10 +227,6 @@ pub mod desktop_open {
 }
 
 pub mod diagnostics {
-    pub use crate::renderer_entry_probe::{
-        build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,
-    };
-
     #[tauri::command]
     pub fn diagnostics_renderer_entry_probe(
         payload: Option<serde_json::Value>,

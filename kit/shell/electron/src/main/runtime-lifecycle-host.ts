@@ -62,11 +62,8 @@ class ElectronFixedRuntimeLifecycleHost implements NimiElectronFixedRuntimeLifec
     return {
       running,
       managed: true,
-      // The dev-kernel candidate is explicitly non_release and therefore
-      // cannot honestly participate in packaged exact-semver negotiation.
-      // Its fixed-service/process/session trust is still native-verified;
-      // `RUNTIME` here records the non-release lifecycle posture, not a
-      // direct-daemon fallback.
+      // Non-release fixed-service builds use the Runtime lifecycle posture
+      // without claiming packaged exact-semver negotiation.
       launchMode: releasePosture === 'release' ? 'RELEASE' : 'RUNTIME',
       grpcAddr: this.runtimeEndpoint,
       ...(releaseVersion

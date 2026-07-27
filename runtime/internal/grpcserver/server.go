@@ -161,6 +161,19 @@ func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logge
 	if err != nil {
 		return nil, fmt.Errorf("resolve fixed non-production Product Control root: %w", err)
 	}
+	return NewNonProductionAtProductControlRoot(cfg, state, logger, version, productControlRoot)
+}
+
+// NewNonProductionAtProductControlRoot keeps direct Runtime owner tests
+// independent from the interactive user's Product Control data. Production
+// startup never calls this constructor.
+func NewNonProductionAtProductControlRoot(cfg config.Config, state *health.State, logger *slog.Logger, version string, productControlRoot string) (*Server, error) {
+	productControlRoot = filepath.Clean(strings.TrimSpace(productControlRoot))
+	if !filepath.IsAbs(productControlRoot) ||
+		productControlRoot == filepath.VolumeName(productControlRoot)+string(filepath.Separator) ||
+		filepath.Base(productControlRoot) != ".nimi" {
+		return nil, fmt.Errorf("non-production Product Control root must be an absolute .nimi directory")
+	}
 	security := localservice.ProductControlDataRootSecurityBinding{}
 	binding, err := localservice.LoadProductControlDataRootBinding(productControlRoot, security)
 	if err != nil {
@@ -434,7 +447,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		authOptions...,
 	)
 	authSvc.SetNimiAppRegistryCatalog(nimiAppRegistry)
-	authSvc.SetFirstPartyMigrationLaunchGate(defaultFirstPartyMigrationLaunchGate())
 	var protectedGRPCServer *grpc.Server
 	var localAppGRPCServer *grpc.Server
 	accountSvc := accountservice.New(logger)
@@ -614,28 +626,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetVoiceAssetResolver(runtimeagentservice.NewAIBackedVoiceAssetResolver(aiSvc))
 	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
 	aiSvc.SetRuntimeAccountProjectionProvider(accountSvc)
-	if acceptance := cfg.NonReleaseDevKernelCheckpoint; acceptance != nil {
-		if protected == nil {
-			agentSvc.Close()
-			_ = memorySvc.Close()
-			return nil, fmt.Errorf("dev-kernel checkpoint seed requires the fixed protected service")
-		}
-		seededAgent, seedErr := agentSvc.EnsureDevKernelCheckpointSeed(context.Background(), runtimeagentservice.DevKernelCheckpointSeed{
-			OwnerUserID:      acceptance.PrimaryAccountID,
-			LocalAgentRef:    acceptance.LocalAgentRef,
-			RuntimeSourceRef: acceptance.RuntimeSourceRef,
-			DisplayName:      acceptance.AgentDisplayName,
-		})
-		if seedErr != nil {
-			agentSvc.Close()
-			_ = memorySvc.Close()
-			return nil, fmt.Errorf("seed non-release dev-kernel RuntimeAgent: %w", seedErr)
-		}
-		logger.Info("non-release dev-kernel RuntimeAgent seed ready",
-			"local_agent_ref", seededAgent.GetLocalAgentRef(),
-			"owner_user_id", seededAgent.GetOwnerUserId(),
-		)
-	}
 	memorySvc.SetRuntimeEmbeddingIntentResolver(agentSvc.ResolveMemoryEmbeddingIntent)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(agentSvc.AuthorizeMemoryEmbeddingTarget)
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)

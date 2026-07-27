@@ -1,4 +1,4 @@
-//go:build windows && !nimi_runtime_e2e
+//go:build windows
 
 package protectedlocal
 
@@ -17,11 +17,10 @@ type windowsProductionPeerRejection struct {
 	Reason Reason `json:"reason"`
 }
 
-// reportWindowsE2EPeerRejection retains the historical private hook name but
-// now emits one bounded production diagnostic as well. The record contains no
+// reportWindowsPeerRejection emits one bounded production diagnostic. The record contains no
 // executable path, account identifier, SID, token, endpoint, or request data;
 // it exists solely to distinguish fail-closed Windows peer-verification stages.
-func reportWindowsE2EPeerRejection(err error) {
+func reportWindowsPeerRejection(err error) {
 	if err == nil {
 		return
 	}

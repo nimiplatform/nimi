@@ -54,12 +54,8 @@ Discipline.
     role for expressive boundaries.
   - A11y: focus ring now consumes the real `focus.ring_*` tokens
     (previously it silently fell back to a hardcoded blue).
-- Added `kit/preview` — a source-linked workbench for governed UI
-  surfaces plus the automated audit runner (`pnpm audit:ui`) that
-  captures the scheme × density screenshot matrix and enforces rendered
-  assertions (pressed feedback, spring travel, density axis, typography
-  execution, glass vibrancy, dead-class elimination, rendered contrast,
-  hardcoded-value scan).
+- Added `kit/preview` — a source-linked workbench for inspecting governed
+  UI surfaces in the current development environment.
 - Motion coverage follow-through: `SelectField` and `Tooltip`/`TooltipContent`
   moved onto the popover spring grammar with the positioning/animation
   split pattern (Radix popper owns positioning on the outer element,

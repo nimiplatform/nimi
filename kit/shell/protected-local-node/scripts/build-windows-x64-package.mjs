@@ -14,15 +14,20 @@ if (process.platform !== 'win32' || process.arch !== 'x64') {
   throw new Error(`protected-local Node binding is not admitted for ${process.platform}/${process.arch}`);
 }
 
-const e2eFixture = process.argv.slice(2).includes('--e2e-fixture');
+const unsupportedArguments = process.argv.slice(2);
+if (unsupportedArguments.length > 0) {
+  throw new Error(`protected-local Windows package build accepts no arguments: ${unsupportedArguments.join(' ')}`);
+}
+
 const childEnv = { ...process.env };
 const identity = requireWindowsDevSigningIdentity({ cwd: crateRoot });
 const cargoTargetRoot = path.join(
   crateRoot,
   'target',
-  e2eFixture ? 'windows-e2e-fixture' : 'windows-production',
+  'windows-production',
 );
 childEnv.CARGO_TARGET_DIR = cargoTargetRoot;
+childEnv.NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256 = identity.certificateSha256;
 const cargoArgs = [
   'build',
   '--locked',
@@ -30,12 +35,6 @@ const cargoArgs = [
   '--manifest-path',
   path.join(crateRoot, 'Cargo.toml'),
 ];
-if (e2eFixture) {
-  childEnv.NIMI_WINDOWS_E2E_SIGNER_CERT_SHA256 = identity.certificateSha256;
-  cargoArgs.push('--features', 'windows-e2e-fixture');
-} else {
-  childEnv.NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256 = identity.certificateSha256;
-}
 
 const cargo = spawnSync('cargo', cargoArgs, {
   cwd: crateRoot,

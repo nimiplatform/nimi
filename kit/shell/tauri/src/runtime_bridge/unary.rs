@@ -341,8 +341,8 @@ mod tests {
     };
     use crate::runtime_bridge::{generated, RuntimeBridgeMetadata, RuntimeBridgeUnaryPayload};
     use nimi_shell_protected_local::{
-        DesktopMachineProductUnaryMethod, DESKTOP_PRODUCT_CONTROL_V1_METHODS,
-        ORDINARY_DESKTOP_RUNTIME_CONSUMER_V1_METHODS,
+        DesktopMachineProductUnaryMethod, DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS,
+        DESKTOP_MACHINE_PRODUCT_UNARY_METHODS,
     };
 
     fn payload(method_id: &str, request_bytes_base64: &str) -> RuntimeBridgeUnaryPayload {
@@ -392,20 +392,19 @@ mod tests {
     }
 
     #[test]
-    fn desktop_product_control_methods_use_protected_transport_without_widening_local_service() {
-        for method in DESKTOP_PRODUCT_CONTROL_V1_METHODS {
-            let method_id = method.method_id();
+    fn current_product_profile_unary_methods_use_protected_transport() {
+        for method_id in DESKTOP_MACHINE_PRODUCT_UNARY_METHODS
+            .iter()
+            .map(|method| method.method_id())
+            .chain(
+                DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS
+                    .iter()
+                    .map(|method| method.method_id()),
+            )
+        {
             assert!(validate_unary_method(method_id).is_ok());
             assert_eq!(
                 transport_for_public_unary(method_id),
-                UnaryTransport::ProtectedDesktop
-            );
-        }
-        for method in ORDINARY_DESKTOP_RUNTIME_CONSUMER_V1_METHODS {
-            let protected_method = method.method_id();
-            assert!(validate_unary_method(protected_method).is_ok());
-            assert_eq!(
-                transport_for_public_unary(protected_method),
                 UnaryTransport::ProtectedDesktop
             );
         }

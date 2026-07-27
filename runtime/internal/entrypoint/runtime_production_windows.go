@@ -63,7 +63,6 @@ const (
 	windowsRuntimeStartupSecurityState
 	windowsRuntimeStartupDesktopListener
 	windowsRuntimeStartupLocalAppListener
-	windowsRuntimeStartupFixtureCustody
 	windowsRuntimeStartupConfiguration
 	windowsRuntimeStartupDaemon
 )
@@ -246,12 +245,6 @@ func (service *windowsRuntimeService) open(ctx context.Context, requestRestart f
 		_ = desktopListener.Close()
 		_ = securityState.Close()
 		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupConfiguration, err)
-	}
-	if err := prepareWindowsRuntimeFixture(ctx, securityState, cfg); err != nil {
-		_ = localAppListener.Close()
-		_ = desktopListener.Close()
-		_ = securityState.Close()
-		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupFixtureCustody, err)
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	runtimeDaemon, err := daemon.NewProtectedFromWindowsSecurityState(cfg, logger, service.version, securityState, requestRestart)

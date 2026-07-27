@@ -27,10 +27,8 @@ use crate::{
     NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
-#[cfg(all(target_os = "windows", not(feature = "windows-e2e-fixture")))]
+#[cfg(target_os = "windows")]
 const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-local-app-v1";
-#[cfg(all(target_os = "windows", feature = "windows-e2e-fixture"))]
-const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-e2e-local-app-v1";
 
 const ACTION_EXECUTED: i32 = 1;
 const LOCAL_APP_SESSION_READY: i32 = 1;

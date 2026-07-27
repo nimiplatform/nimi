@@ -161,7 +161,6 @@ mod tests {
             .all(|descriptor| descriptor.descriptor_class == "bundled-with-nimi"));
         assert!(!projection.release_descriptors.iter().any(|descriptor| {
             descriptor.descriptor_class == "external-immutable-artifact"
-                || descriptor.descriptor_id.contains("platform-proof")
         }));
     }
 }

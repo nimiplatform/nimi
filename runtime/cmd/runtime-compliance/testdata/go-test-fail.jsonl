@@ -1,5 +1,0 @@
-{"Time":"2026-07-15T00:00:00Z","Action":"start","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil"}
-{"Time":"2026-07-15T00:00:00.01Z","Action":"run","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil","Test":"TestStreamBackpressureCloses"}
-{"Time":"2026-07-15T00:00:00.015Z","Action":"output","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil","Test":"TestStreamBackpressureCloses","Output":"stream_test.go:42: expected stream to close access_token=fixture-secret Authorization: Bearer fixture-bearer {\"refresh_token\":\"fixture-refresh\"}\n"}
-{"Time":"2026-07-15T00:00:00.02Z","Action":"fail","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil","Test":"TestStreamBackpressureCloses","Elapsed":0.01}
-{"Time":"2026-07-15T00:00:00.03Z","Action":"fail","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil","Elapsed":0.03}

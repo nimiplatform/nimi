@@ -1,24 +1,16 @@
-//go:build windows && !nimi_runtime_e2e
+//go:build windows
 
 package entrypoint
 
 import (
-	"crypto/sha256"
-	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
 func TestWindowsProductionRuntimeConfigUsesOnlyServiceOwnedRootAndFixedAuthority(t *testing.T) {
-	previousProductAcceptanceFlag := windowsFirstPartyProductAcceptanceEnabled
-	windowsFirstPartyProductAcceptanceEnabled = ""
-	t.Cleanup(func() { windowsFirstPartyProductAcceptanceEnabled = previousProductAcceptanceFlag })
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:59999")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "https://attacker.invalid")
 	t.Setenv("NIMI_RUNTIME_AUTH_JWT_ISSUER", "https://attacker.invalid")
@@ -44,217 +36,30 @@ func TestWindowsProductionRuntimeConfigUsesOnlyServiceOwnedRootAndFixedAuthority
 	}
 }
 
-func TestWindowsFirstPartyProductAcceptanceUsesOnlyCompiledLocalRealmProjection(t *testing.T) {
-	previousProductAcceptanceFlag := windowsFirstPartyProductAcceptanceEnabled
-	previousDevKernelFlag := windowsNonReleaseAcceptanceProfileEnabled
-	windowsFirstPartyProductAcceptanceEnabled = "true"
-	windowsNonReleaseAcceptanceProfileEnabled = ""
-	t.Cleanup(func() {
-		windowsFirstPartyProductAcceptanceEnabled = previousProductAcceptanceFlag
-		windowsNonReleaseAcceptanceProfileEnabled = previousDevKernelFlag
-	})
-	t.Setenv("NIMI_REALM_URL", "https://attacker.invalid")
-	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "https://attacker.invalid")
-
-	cfg, err := loadWindowsProtectedRuntimeConfig(t.TempDir())
-	if err != nil {
-		t.Fatalf("load first-party product acceptance config: %v", err)
-	}
-	if cfg.AccountRealmBaseURL != windowsProductAcceptanceRealmURL ||
-		cfg.AuthJWTIssuer != windowsProductAcceptanceRealmURL ||
-		cfg.AuthJWTJWKSURL != windowsProductAcceptanceRealmURL+"/api/auth/jwks" ||
-		cfg.AuthJWTRevocationURL != windowsProductAcceptanceRealmURL+"/api/auth/sessions/introspect" {
-		t.Fatalf("first-party product acceptance did not retain its fixed local Realm projection: %+v", cfg)
-	}
-	if cfg.NonReleaseDevKernelCheckpoint != nil || cfg.AllowLoopbackProviderEndpoint {
-		t.Fatalf("first-party product acceptance enabled dev-kernel fixture semantics: %+v", cfg)
-	}
-}
-
-func TestWindowsNonReleaseBuildProfilesAreMutuallyExclusive(t *testing.T) {
-	previousProductAcceptanceFlag := windowsFirstPartyProductAcceptanceEnabled
-	previousDevKernelFlag := windowsNonReleaseAcceptanceProfileEnabled
-	windowsFirstPartyProductAcceptanceEnabled = "true"
-	windowsNonReleaseAcceptanceProfileEnabled = "true"
-	t.Cleanup(func() {
-		windowsFirstPartyProductAcceptanceEnabled = previousProductAcceptanceFlag
-		windowsNonReleaseAcceptanceProfileEnabled = previousDevKernelFlag
-	})
-	if _, err := loadWindowsProtectedRuntimeConfig(t.TempDir()); err == nil {
-		t.Fatal("conflicting non-release Windows Runtime build profiles were accepted")
-	}
-}
-
-func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *testing.T) {
-	previousFlag := windowsNonReleaseAcceptanceProfileEnabled
-	previousSigner := protectedlocal.WindowsProductionSignerCertSHA256
-	windowsNonReleaseAcceptanceProfileEnabled = "true"
-	protectedlocal.WindowsProductionSignerCertSHA256 = "96d9dc911ad1d9d1e5ca17b557b3b4089e9a949ff57fab016b5e3c4049c7c12a"
-	t.Cleanup(func() {
-		windowsNonReleaseAcceptanceProfileEnabled = previousFlag
-		protectedlocal.WindowsProductionSignerCertSHA256 = previousSigner
-	})
+func TestWindowsProductionRuntimeConfigAppliesServiceOwnedDataRoot(t *testing.T) {
 	root := t.TempDir()
-	runtimeRoot := filepath.Join(root, "runtime")
-	if err := os.MkdirAll(runtimeRoot, 0o700); err != nil {
-		t.Fatal(err)
+	if _, err := loadWindowsProtectedRuntimeConfig(root); err != nil {
+		t.Fatalf("initialize production config: %v", err)
 	}
-	profile := windowsAcceptanceProfile{
-		SchemaVersion:               6,
-		Checkpoint:                  windowsAcceptanceCheckpoint,
-		NonRelease:                  true,
-		TrialID:                     "dev-kernel-checkpoint",
-		RuntimeCandidateID:          "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		DevelopmentStateCandidateID: "dev-kernel-runtime-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		AcceptanceRoundID:           "dev-kernel-round-0123456789abcdef0123456789abcdef",
-		AccountRealmBaseURL:         windowsDevKernelAccountRealmURL,
-		FixtureBaseURL:              "http://127.0.0.1:19443",
-		ProviderBaseURL:             "http://127.0.0.1:19443/v1",
-		PrimaryAccountID:            "01J00000000000000000000000",
-		SecondaryAccountID:          "01J00000000000000000000001",
-		LocalAgentRef:               "local-agent:runtime-1f2e3d4c5b6a79800123456789abcdef",
-		RuntimeSourceRef:            "dev-kernel-source-primary",
-		AgentDisplayName:            "知语开发内核验收伙伴",
-		ExpiresAt:                   time.Now().UTC().Add(time.Hour).Format(time.RFC3339),
-		SignerCertificateSHA256:     protectedlocal.WindowsProductionSignerCertSHA256,
+	dataRoot := t.TempDir()
+	serviceConfigPath := filepath.Join(root, "runtime", config.ServiceOwnedConfigFilename)
+	if changed, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, dataRoot); err != nil || !changed {
+		t.Fatalf("write service-owned data root changed=%v err=%v", changed, err)
 	}
-	runtimeHash, err := windowsRuntimeExecutableSHA256()
-	if err != nil {
-		t.Fatal(err)
-	}
-	profile.RuntimeBinarySHA256 = runtimeHash
-	buildRecord := windowsRuntimeBuildRecord{
-		SchemaVersion: 1,
-		ArtifactKind:  "nimi.windows-runtime-service-binary",
-		Checkpoint:    windowsAcceptanceCheckpoint,
-		NonRelease:    true,
-		GeneratedAt:   time.Now().UTC().Format(time.RFC3339Nano),
-		CandidateID:   "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		Source: windowsRuntimeBuildSource{
-			RepositoryID:          "nimi",
-			HeadCommit:            "0123456789abcdef0123456789abcdef01234567",
-			Branch:                "refactory/third-party",
-			Dirty:                 true,
-			TrackedDiffSHA256:     "1111111111111111111111111111111111111111111111111111111111111111",
-			UntrackedFiles:        []windowsRuntimeBuildUntracked{},
-			SourceTreeSHA256:      "2222222222222222222222222222222222222222222222222222222222222222",
-			DirtyDescriptorSHA256: "3333333333333333333333333333333333333333333333333333333333333333",
-		},
-		Runtime: windowsRuntimeBuildArtifact{
-			BinarySHA256:            runtimeHash,
-			SignerCertificateSHA256: protectedlocal.WindowsProductionSignerCertSHA256,
-		},
-	}
-	buildRecordRaw, err := json.Marshal(buildRecord)
-	if err != nil {
-		t.Fatal(err)
-	}
-	executable, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	buildRecordDir := filepath.Join(filepath.Dir(executable), "resources")
-	if err := os.MkdirAll(buildRecordDir, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	buildRecordPath := filepath.Join(buildRecordDir, windowsRuntimeBuildRecordFile)
-	if err := os.WriteFile(buildRecordPath, buildRecordRaw, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Remove(buildRecordPath) })
-	buildRecordHash := sha256.Sum256(buildRecordRaw)
-	profile.RuntimeBuildRecordSHA256 = fmt.Sprintf("%x", buildRecordHash)
-	profile.SourceDirtyDescriptorSHA256 = buildRecord.Source.DirtyDescriptorSHA256
-	profile.SourceTreeSHA256 = buildRecord.Source.SourceTreeSHA256
-	raw, err := json.Marshal(profile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(runtimeRoot, windowsAcceptanceProfileFile), raw, 0o600); err != nil {
-		t.Fatal(err)
-	}
+
 	cfg, err := loadWindowsProtectedRuntimeConfig(root)
 	if err != nil {
-		t.Fatalf("load non-release checkpoint config: %v", err)
+		t.Fatalf("load production config with data root: %v", err)
 	}
-	wantRoot := filepath.Join(root, "acceptance-runs", profile.TrialID, profile.DevelopmentStateCandidateID, profile.AcceptanceRoundID, "runtime")
-	if filepath.Dir(cfg.LocalStatePath) != wantRoot || cfg.DataRootRef != "" || cfg.LocalModelsPath != "" || cfg.ManagedRoots != (config.ManagedRootsConfig{}) || cfg.AccountRealmBaseURL != windowsDevKernelAccountRealmURL || cfg.AuthJWTIssuer != windowsDevKernelAccountRealmURL || cfg.AccountAuthorizationURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/authorize" || cfg.AccountTokenURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/token" || !cfg.AllowLoopbackProviderEndpoint || cfg.NonReleaseDevKernelCheckpoint == nil || cfg.NonReleaseDevKernelCheckpoint.LocalAgentRef != profile.LocalAgentRef || cfg.NonReleaseDevKernelCheckpoint.AcceptanceRoundID != profile.AcceptanceRoundID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentStateCandidateID != profile.DevelopmentStateCandidateID {
-		t.Fatalf("checkpoint config did not retain its bounded service root: %+v", cfg)
-	}
-	serviceConfigPath := filepath.Join(wantRoot, config.ServiceOwnedConfigFilename)
-	developmentDataRoot := t.TempDir()
-	if changed, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, developmentDataRoot); err != nil || !changed {
-		t.Fatalf("write Product Control-derived service data root changed=%v err=%v", changed, err)
-	}
-	cfg, err = loadWindowsProtectedRuntimeConfig(root)
-	if err != nil {
-		t.Fatalf("reload selected non-release checkpoint config: %v", err)
-	}
-	if cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") || cfg.ManagedRoots.Dependencies != filepath.Join(developmentDataRoot, "dependencies") || cfg.ManagedRoots.Environments != filepath.Join(developmentDataRoot, "environments") || cfg.ManagedRoots.Apps != filepath.Join(developmentDataRoot, "apps") || cfg.ManagedRoots.Accounts != filepath.Join(developmentDataRoot, "accounts") || cfg.ManagedRoots.Logs != filepath.Join(developmentDataRoot, "logs") || cfg.ManagedRoots.Audit != filepath.Join(developmentDataRoot, "audit") {
-		t.Fatalf("checkpoint config did not consume Product Control-derived service data root: %+v", cfg)
-	}
-	profile.SchemaVersion = 5
-	legacyRaw, err := json.Marshal(profile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(runtimeRoot, windowsAcceptanceProfileFile), legacyRaw, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := loadWindowsProtectedRuntimeConfig(root); err == nil {
-		t.Fatal("legacy acceptance profile schema was accepted")
-	}
-	profile.SchemaVersion = 6
-	profile.RuntimeCandidateID = "dev-kernel-runtime-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	mismatchedRaw, err := json.Marshal(profile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(runtimeRoot, windowsAcceptanceProfileFile), mismatchedRaw, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := loadWindowsProtectedRuntimeConfig(root); err == nil {
-		t.Fatal("acceptance profile reused a partition under a candidate identity that did not match its signed build record")
-	}
-}
-
-func TestWindowsAcceptanceProfileSeparatesRealAccountAndProviderFixtureAuthority(t *testing.T) {
-	if err := validateWindowsAcceptanceAccountRealmURL(windowsDevKernelAccountRealmURL); err != nil {
-		t.Fatalf("real dev Realm was rejected: %v", err)
-	}
-	for _, raw := range []string{"http://127.0.0.1:19443", windowsProductionRealmBaseURL, windowsDevKernelAccountRealmURL + "/"} {
-		if err := validateWindowsAcceptanceAccountRealmURL(raw); err == nil {
-			t.Fatalf("non-canonical account Realm was accepted: %q", raw)
-		}
-	}
-	if err := validateWindowsAcceptanceProviderPair("http://127.0.0.1:19443", "http://127.0.0.1:19443/v1"); err != nil {
-		t.Fatalf("bounded provider pair was rejected: %v", err)
-	}
-	for _, pair := range [][2]string{
-		{windowsDevKernelAccountRealmURL, windowsDevKernelAccountRealmURL + "/v1"},
-		{"http://127.0.0.1:19443", "http://127.0.0.1:19444/v1"},
-		{"http://127.0.0.1:19443", "http://127.0.0.1:19443/api"},
-	} {
-		if err := validateWindowsAcceptanceProviderPair(pair[0], pair[1]); err == nil {
-			t.Fatalf("invalid provider pair was accepted: %q %q", pair[0], pair[1])
-		}
-	}
-}
-
-func TestWindowsProductionBuildRejectsAcceptanceProfile(t *testing.T) {
-	previousFlag := windowsNonReleaseAcceptanceProfileEnabled
-	windowsNonReleaseAcceptanceProfileEnabled = ""
-	t.Cleanup(func() { windowsNonReleaseAcceptanceProfileEnabled = previousFlag })
-	root := t.TempDir()
-	runtimeRoot := filepath.Join(root, "runtime")
-	if err := os.MkdirAll(runtimeRoot, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(runtimeRoot, windowsAcceptanceProfileFile), []byte("{}"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := loadWindowsProtectedRuntimeConfig(root); err == nil {
-		t.Fatal("ordinary production build accepted a non-release checkpoint profile")
+	if cfg.DataRootRef != dataRoot ||
+		cfg.LocalModelsPath != filepath.Join(dataRoot, "models") ||
+		cfg.ManagedRoots.Dependencies != filepath.Join(dataRoot, "dependencies") ||
+		cfg.ManagedRoots.Environments != filepath.Join(dataRoot, "environments") ||
+		cfg.ManagedRoots.Apps != filepath.Join(dataRoot, "apps") ||
+		cfg.ManagedRoots.Accounts != filepath.Join(dataRoot, "accounts") ||
+		cfg.ManagedRoots.Logs != filepath.Join(dataRoot, "logs") ||
+		cfg.ManagedRoots.Audit != filepath.Join(dataRoot, "audit") {
+		t.Fatalf("production config did not apply service-owned data root: %+v", cfg)
 	}
 }
 

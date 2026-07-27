@@ -30,8 +30,6 @@ const (
 
 	WindowsDesktopProductionTrustSetID = "nimi-desktop-production-v1"
 	WindowsRuntimeProductionTrustSetID = "nimi-runtime-production-v1"
-
-	windowsDesktopE2ETrustSetID = "nimi-desktop-e2e-fixture-v1"
 )
 
 type WindowsExecutableRole string

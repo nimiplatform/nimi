@@ -526,15 +526,3 @@ descriptors:
     source_rule: P-NAPP-014
 `
 }
-
-func TestDefaultFirstPartyMigrationLaunchGate(t *testing.T) {
-	gate := defaultFirstPartyMigrationLaunchGate()
-	nonHardcut := gate.Evaluate("nimi.example-app")
-	if !nonHardcut.Admitted {
-		t.Fatalf("non-hardcut app should admit immediately: %+v", nonHardcut)
-	}
-	avatar := gate.Evaluate("nimi.avatar")
-	if !avatar.Admitted {
-		t.Fatalf("Avatar should be admitted after master gate clearance: %+v", avatar)
-	}
-}

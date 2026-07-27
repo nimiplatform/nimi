@@ -1168,6 +1168,15 @@ func failingHFDownloadServerForTest(t *testing.T) *httptest.Server {
 	}))
 }
 
+// unavailableHFDownloadServerForTest keeps negative materialization tests on a
+// deterministic local endpoint. A 404 is non-retryable, so the tests exercise
+// the download fallthrough without contacting the public catalog.
+func unavailableHFDownloadServerForTest() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "model unavailable", http.StatusNotFound)
+	}))
+}
+
 // TestEnsureLocalEnvironmentModelAssetInstalledAdoptsExistingBundle is the
 // idempotent-materialization regression: when `~/.nimi` is cleared (empty
 // in-memory registry) but the data-root bundle is intact, the materializer
@@ -1269,6 +1278,9 @@ func TestStartModelAssetDependencyJobAdoptsExistingBundleReachesReadyManaged(t *
 // to the download path.
 func TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptCorruptBundle(t *testing.T) {
 	svc := newTestService(t)
+	server := unavailableHFDownloadServerForTest()
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
 
 	modelsRoot := svc.resolvedLocalModelsPath()
 	const assetID = "local/embed-adopt-corrupt"
@@ -1284,8 +1296,8 @@ func TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptCorruptBundle(t *t
 	corruptPayload := append(validTestGGUF(), []byte("tampered-tail")...)
 	writeResolvedModelBundleForTest(t, modelsRoot, logicalModelID, assetID, entry, corruptPayload)
 
-	// No HF base URL configured — the download path fails closed, proving the
-	// corrupt bundle was NOT adopted (an adoption would have returned nil).
+	// The local endpoint rejects the download, proving the corrupt bundle was
+	// NOT adopted (an adoption would have returned nil).
 	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), ""+assetID)
 	if err == nil {
 		t.Fatal("expected the materializer to fall through to download (not adopt a hash-mismatched bundle)")
@@ -1300,6 +1312,9 @@ func TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptCorruptBundle(t *t
 // artifact: it is NEVER adopted and falls through to the download path.
 func TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptIncompleteBundle(t *testing.T) {
 	svc := newTestService(t)
+	server := unavailableHFDownloadServerForTest()
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
 
 	modelsRoot := svc.resolvedLocalModelsPath()
 	const assetID = "local/embed-adopt-incomplete"

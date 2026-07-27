@@ -13,7 +13,7 @@ import (
 
 func testLocalAgentContext(ownerUserID string, runtimeSourceRef string) *runtimev1.AgentRequestContext {
 	return &runtimev1.AgentRequestContext{
-		AppId:            "runtime-agent-hardcut-test",
+		AppId:            "runtime-agent-boundary-test",
 		SubjectUserId:    ownerUserID,
 		OwnerUserId:      ownerUserID,
 		RuntimeSourceRef: runtimeSourceRef,
@@ -221,7 +221,7 @@ func TestInitializeAgentIdempotencyRejectsExistingIdentityMismatch(t *testing.T)
 	localRef := testInitializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
 
 	ownerMismatchCtx := &runtimev1.AgentRequestContext{
-		AppId:            "runtime-agent-hardcut-test",
+		AppId:            "runtime-agent-boundary-test",
 		SubjectUserId:    "user-b",
 		OwnerUserId:      "user-b",
 		RuntimeSourceRef: runtimeSourceRef,
@@ -239,7 +239,7 @@ func TestInitializeAgentIdempotencyRejectsExistingIdentityMismatch(t *testing.T)
 	}
 
 	runtimeSourceMismatchCtx := &runtimev1.AgentRequestContext{
-		AppId:            "runtime-agent-hardcut-test",
+		AppId:            "runtime-agent-boundary-test",
 		SubjectUserId:    "user-a",
 		OwnerUserId:      "user-a",
 		RuntimeSourceRef: "runtime-source-other",

@@ -48,31 +48,7 @@ fn runtime_error_info(status: &Status) -> Option<GoogleRpcErrorInfo> {
     })
 }
 
-#[cfg(feature = "windows-e2e-fixture")]
-fn report_windows_e2e_status(status: &Status) {
-    let info = runtime_error_info(status);
-    let reason = info
-        .as_ref()
-        .map(|value| value.reason.as_str())
-        .unwrap_or("ABSENT");
-    let stage = info
-        .as_ref()
-        .and_then(|value| value.metadata.get("diagnostic_stage"))
-        .map(String::as_str)
-        .unwrap_or("ABSENT");
-    eprintln!(
-		"[protected-local windows-e2e-fixture] grpc_code={:?} runtime_reason={} diagnostic_stage={}",
-        status.code(),
-		reason,
-		stage
-    );
-}
-
-#[cfg(not(feature = "windows-e2e-fixture"))]
-fn report_windows_e2e_status(_: &Status) {}
-
 pub(crate) fn host_error_from_status(status: Status) -> NimiHostError {
-    report_windows_e2e_status(&status);
     let reason = runtime_reason(&status)
         .as_deref()
         .and_then(host_reason_from_runtime_reason);
@@ -89,7 +65,6 @@ pub(crate) fn host_error_from_status(status: Status) -> NimiHostError {
 }
 
 pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationError {
-    report_windows_e2e_status(&status);
     let reason = runtime_reason(&status)
         .as_deref()
         .and_then(local_app_reason_from_runtime_reason)

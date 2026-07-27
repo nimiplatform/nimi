@@ -293,16 +293,16 @@ func TestWindowsNamedPipeConnectedHandleTransfersOnceToDeadlineNetConn(t *testin
 	if _, err := connected.NetConn(); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
 		t.Fatalf("unverified handle transfer error = %v", err)
 	}
-	verifier := &capturingWindowsExecutableVerifier{trustSetID: windowsDesktopE2ETrustSetID}
-	verified, liveness, err := connected.verifyAndBindClientProcess(context.Background(), verifier, windowsDesktopE2ETrustSetID)
+	verifier := &capturingWindowsExecutableVerifier{trustSetID: windowsSyntheticTrustSetID}
+	verified, liveness, err := connected.verifyAndBindClientProcess(context.Background(), verifier, windowsSyntheticTrustSetID)
 	if err != nil {
 		t.Fatalf("verify isolated stream client: %v", err)
 	}
 	defer func() { _ = liveness.Close() }()
-	if verified.PID != uint32(os.Getpid()) || verified.ExecutableTrustSetID != windowsDesktopE2ETrustSetID {
+	if verified.PID != uint32(os.Getpid()) || verified.ExecutableTrustSetID != windowsSyntheticTrustSetID {
 		t.Fatalf("verified isolated stream client = %#v", verified)
 	}
-	if _, repeatedLiveness, err := connected.verifyAndBindClientProcess(context.Background(), verifier, windowsDesktopE2ETrustSetID); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
+	if _, repeatedLiveness, err := connected.verifyAndBindClientProcess(context.Background(), verifier, windowsSyntheticTrustSetID); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
 		if repeatedLiveness != nil {
 			_ = repeatedLiveness.Close()
 		}
@@ -355,8 +355,8 @@ func TestWindowsNamedPipeNetConnRejectsReleasedVerifiedProcessWitness(t *testing
 	_, connected, closePipe := openCurrentProcessWindowsTestPipe(t)
 	defer closePipe()
 
-	verifier := &capturingWindowsExecutableVerifier{trustSetID: windowsDesktopE2ETrustSetID}
-	_, liveness, err := connected.verifyAndBindClientProcess(context.Background(), verifier, windowsDesktopE2ETrustSetID)
+	verifier := &capturingWindowsExecutableVerifier{trustSetID: windowsSyntheticTrustSetID}
+	_, liveness, err := connected.verifyAndBindClientProcess(context.Background(), verifier, windowsSyntheticTrustSetID)
 	if err != nil {
 		t.Fatalf("verify isolated stream client: %v", err)
 	}

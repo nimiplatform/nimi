@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 )
 
 type Principal struct {
@@ -63,6 +64,11 @@ func (principal Principal) Owns(subject string) bool {
 	return principal.Valid() && strings.TrimSpace(subject) == principal.AccountID
 }
 
+func (principal Principal) IsDesktopAccountProduct() bool {
+	return principal.AppID == envelope.ProtectedDesktopAppID &&
+		principal.ProfileID == protectedlocal.DesktopAccountProductProfileID
+}
+
 func (principal Principal) Done() <-chan struct{} {
 	return principal.invalidated
 }
@@ -86,4 +92,21 @@ func New(
 		principal.RealmEnvironment = strings.TrimSpace(projection.GetRealmEnvironmentId())
 	}
 	return principal
+}
+
+func NewDesktopAccountProduct(
+	projection *runtimev1.AccountProjection,
+	generation uint64,
+	bootEpoch protectedlocal.Identifier,
+	invalidated <-chan struct{},
+) Principal {
+	return New(
+		envelope.ProtectedDesktopAppID,
+		protectedlocal.DesktopAccountProductProfileID,
+		protectedlocal.DesktopAccountProductProfileID,
+		projection,
+		generation,
+		bootEpoch,
+		invalidated,
+	)
 }

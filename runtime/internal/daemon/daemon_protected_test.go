@@ -340,14 +340,10 @@ func TestNewProtectedFromWindowsSecurityStateFailsClosedWithoutVerifiedState(t *
 
 func TestResolveProtectedServiceDataRootAdmitsOnlyDescendants(t *testing.T) {
 	root := t.TempDir()
-	for _, localStatePath := range []string{
-		filepath.Join(root, "runtime", "local-state.json"),
-		filepath.Join(root, "acceptance-runs", "dev-kernel-checkpoint", "dev-kernel-runtime-0123456789abcdef0123456789abcdef", "dev-kernel-round-0123456789abcdef0123456789abcdef", "runtime", "local-state.json"),
-	} {
-		resolved, err := resolveProtectedServiceDataRoot(root, localStatePath)
-		if err != nil || !strings.HasPrefix(resolved, root) {
-			t.Fatalf("resolve protected data root %q = %q, %v", localStatePath, resolved, err)
-		}
+	localStatePath := filepath.Join(root, "runtime", "local-state.json")
+	resolved, err := resolveProtectedServiceDataRoot(root, localStatePath)
+	if err != nil || !strings.HasPrefix(resolved, root) {
+		t.Fatalf("resolve protected data root %q = %q, %v", localStatePath, resolved, err)
 	}
 	if _, err := resolveProtectedServiceDataRoot(root, filepath.Join(filepath.Dir(root), "escape", "runtime", "local-state.json")); err == nil {
 		t.Fatal("protected data root escaped the verified service root")

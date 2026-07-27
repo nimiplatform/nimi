@@ -74,6 +74,20 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 	return newDaemon(cfg, logger, version, grpcserver.NewNonProduction)
 }
 
+// NewNonProductionAtProductControlRoot preserves the ordinary non-production
+// Runtime while allowing direct owner tests to bind an isolated Product
+// Control directory instead of reading the interactive user's data.
+func NewNonProductionAtProductControlRoot(cfg config.Config, logger *slog.Logger, version string, productControlRoot string) (*Daemon, error) {
+	if value := strings.TrimSpace(cfg.LocalStatePath); value != "" {
+		if err := runtimeSetenv("NIMI_RUNTIME_LOCAL_STATE_PATH", value); err != nil {
+			return nil, fmt.Errorf("set NIMI_RUNTIME_LOCAL_STATE_PATH: %w", err)
+		}
+	}
+	return newDaemon(cfg, logger, version, func(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*grpcserver.Server, error) {
+		return grpcserver.NewNonProductionAtProductControlRoot(cfg, state, logger, version, productControlRoot)
+	})
+}
+
 // NewProtected wires a production daemon only from OS-verified service
 // bindings. Unlike New, it never publishes the protected state root through
 // process environment state.

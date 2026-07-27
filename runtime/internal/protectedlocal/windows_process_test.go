@@ -14,6 +14,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+const windowsSyntheticTrustSetID = "synthetic-windows-test-trust-set"
+
 func TestWindowsProcessTrustStartupExitCodesAreStableAndUnique(t *testing.T) {
 	stages := []WindowsProcessTrustFailureStage{
 		WindowsProcessTrustStagePrincipalRevalidation,
@@ -97,13 +99,13 @@ func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(
 	identity, connection, closePipe := openCurrentProcessWindowsTestPipe(t)
 	defer closePipe()
 
-	verifier := &capturingWindowsExecutableVerifier{trustSetID: windowsDesktopE2ETrustSetID}
+	verifier := &capturingWindowsExecutableVerifier{trustSetID: windowsSyntheticTrustSetID}
 	tuple, liveness, err := verifyWindowsPipeClientProcess(
 		context.Background(),
 		connection,
 		identity,
 		verifier,
-		windowsDesktopE2ETrustSetID,
+		windowsSyntheticTrustSetID,
 	)
 	if err != nil {
 		t.Fatalf("verify named-pipe client process: %v", err)
@@ -112,7 +114,7 @@ func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(
 	if tuple.PID != uint32(os.Getpid()) || tuple.SecurityPrincipal != identity.UserSID() || tuple.OSLoginSession == "" || strings.HasPrefix(tuple.OSLoginSession, "wts:") {
 		t.Fatalf("verified tuple mismatch: %#v", tuple)
 	}
-	if tuple.ExecutableTrustSetID != windowsDesktopE2ETrustSetID || tuple.ExecutableDigest == (Identifier{}) {
+	if tuple.ExecutableTrustSetID != windowsSyntheticTrustSetID || tuple.ExecutableDigest == (Identifier{}) {
 		t.Fatalf("verified executable trust mismatch: %#v", tuple)
 	}
 	if verifier.role != WindowsExecutableRoleDesktop || verifier.evidence.PID != uint32(os.Getpid()) ||
@@ -127,7 +129,7 @@ func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(
 
 	wrongIdentity := identity
 	wrongIdentity.sessionID++
-	if _, badLiveness, err := verifyWindowsPipeClientProcess(context.Background(), connection, wrongIdentity, verifier, windowsDesktopE2ETrustSetID); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
+	if _, badLiveness, err := verifyWindowsPipeClientProcess(context.Background(), connection, wrongIdentity, verifier, windowsSyntheticTrustSetID); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
 		if badLiveness != nil {
 			_ = badLiveness.Close()
 		}
@@ -140,7 +142,7 @@ func TestWindowsExecutableTrustSetMismatchFailsClosed(t *testing.T) {
 	defer closePipe()
 
 	verifier := &capturingWindowsExecutableVerifier{trustSetID: "unexpected-test-trust-set"}
-	_, liveness, err := verifyWindowsPipeClientProcess(context.Background(), connection, identity, verifier, windowsDesktopE2ETrustSetID)
+	_, liveness, err := verifyWindowsPipeClientProcess(context.Background(), connection, identity, verifier, windowsSyntheticTrustSetID)
 	if liveness != nil {
 		_ = liveness.Close()
 	}

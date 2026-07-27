@@ -244,7 +244,7 @@ test('presentation projection reads typed AgentRecord fields and committed revis
   assert.equal(snapshot.presentationProfile?.avatarAssetRef, 'agent_avatar:account-1/agent-1/avatar.vrm');
 });
 
-test('presentation projection rejects retired metadata and invalid persisted profiles', () => {
+test('presentation projection rejects metadata-owned and invalid persisted profiles', () => {
   assert.equal(readNimiRuntimeAgentPresentationProfile({
     metadata: {
       fields: {

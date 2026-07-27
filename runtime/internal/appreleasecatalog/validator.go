@@ -24,7 +24,7 @@ func ValidateDescriptor(descriptor Descriptor) error {
 		return fmt.Errorf("%w: %q", ErrDescriptorUnknownClass, descriptor.DescriptorClass)
 	}
 	switch descriptor.Source.Kind {
-	case SourceKindNimiBundle, SourceKindGitHubRelease, SourceKindGitHubCommit, SourceKindNPMPackage, SourceKindAdmissionSandboxHTTPSArtifact:
+	case SourceKindNimiBundle, SourceKindGitHubRelease, SourceKindGitHubCommit, SourceKindNPMPackage:
 	default:
 		return fmt.Errorf("%w: %q", ErrDescriptorUnknownSourceKind, descriptor.Source.Kind)
 	}
@@ -125,20 +125,11 @@ func validateExternalImmutableDescriptor(descriptor Descriptor) error {
 	if !strings.HasPrefix(descriptor.Artifact.Locator, "https://") {
 		return fmt.Errorf("%w: artifact.locator", ErrDescriptorMutableSource)
 	}
-	switch descriptor.AdmissionTrack {
-	case AdmissionTrackOrdinaryReleaseProof:
-		if descriptor.Source.Kind == SourceKindAdmissionSandboxHTTPSArtifact {
-			return fmt.Errorf("%w: ordinary-release-proof cannot use %s", ErrDescriptorTrackSourceMismatch, descriptor.Source.Kind)
-		}
-		if ordinarySigningUsesInternalOrNA(descriptor.PlatformSigningAssurance) {
-			return fmt.Errorf("%w: ordinary-release-proof", ErrDescriptorPlatformSigningRequired)
-		}
-	case AdmissionTrackSandboxCI:
-		if descriptor.Source.Kind != SourceKindAdmissionSandboxHTTPSArtifact {
-			return fmt.Errorf("%w: admission-sandbox-ci cannot use %s", ErrDescriptorTrackSourceMismatch, descriptor.Source.Kind)
-		}
-	default:
+	if descriptor.AdmissionTrack != AdmissionTrackOrdinaryReleaseProof {
 		return fmt.Errorf("%w: admission_track", ErrDescriptorMissingFields)
+	}
+	if ordinarySigningUsesInternalOrNA(descriptor.PlatformSigningAssurance) {
+		return fmt.Errorf("%w: ordinary-release-proof", ErrDescriptorPlatformSigningRequired)
 	}
 	return nil
 }
@@ -230,20 +221,9 @@ func mutableSourceRef(kind SourceKind, ref string) bool {
 		return !exactGitCommitRef(normalized)
 	case SourceKindGitHubRelease:
 		return bareGitTagRef(normalized) || !immutableGitHubReleaseArtifactRef(normalized)
-	case SourceKindAdmissionSandboxHTTPSArtifact:
-		return !immutableHTTPSArtifactRef(normalized)
 	default:
 		return true
 	}
-}
-
-func immutableHTTPSArtifactRef(ref string) bool {
-	return strings.HasPrefix(ref, "https://") &&
-		!strings.Contains(ref, "/latest/") &&
-		!strings.Contains(ref, "/main/") &&
-		!strings.Contains(ref, "/master/") &&
-		!strings.Contains(ref, "/next/") &&
-		!strings.Contains(ref, "/stable/")
 }
 
 func exactNPMPackageVersionRef(ref string) bool {

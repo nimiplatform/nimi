@@ -31,8 +31,8 @@ func TestWindowsVerifiedDesktopListenerBindsAuthenticatedPipeAndReopens(t *testi
 		initialPipe:               initialPipe,
 		runtimeProcess:            windowsVerifiedListenerTestRuntimeProcess(),
 		bootEpoch:                 windowsVerifiedListenerTestIdentifier(0x71),
-		verifier:                  &capturingWindowsExecutableVerifier{trustSetID: windowsDesktopE2ETrustSetID},
-		expectedDesktopTrustSetID: windowsDesktopE2ETrustSetID,
+		verifier:                  &capturingWindowsExecutableVerifier{trustSetID: windowsSyntheticTrustSetID},
+		expectedDesktopTrustSetID: windowsSyntheticTrustSetID,
 		random:                    cryptorand.Reader,
 		reopen: func(ctx context.Context) (*WindowsDesktopPipeInstance, error) {
 			pipe, err := createWindowsDesktopPipeInstance(ctx, pipeName, principal, identity, false)
@@ -83,14 +83,14 @@ func TestWindowsVerifiedDesktopListenerRepeatedRejectionsCannotStarveLaterValidD
 	if err != nil {
 		t.Fatalf("create rejection test pipe: %v", err)
 	}
-	verifier := &rejectingThenAcceptingWindowsVerifier{rejectCount: 3, expectedTrustSetID: windowsDesktopE2ETrustSetID}
+	verifier := &rejectingThenAcceptingWindowsVerifier{rejectCount: 3, expectedTrustSetID: windowsSyntheticTrustSetID}
 	var reopens atomic.Uint32
 	listener, err := newWindowsVerifiedDesktopListener(context.Background(), windowsVerifiedDesktopListenerOptions{
 		initialPipe:               initialPipe,
 		runtimeProcess:            windowsVerifiedListenerTestRuntimeProcess(),
 		bootEpoch:                 windowsVerifiedListenerTestIdentifier(0x73),
 		verifier:                  verifier,
-		expectedDesktopTrustSetID: windowsDesktopE2ETrustSetID,
+		expectedDesktopTrustSetID: windowsSyntheticTrustSetID,
 		random:                    cryptorand.Reader,
 		reopen: func(ctx context.Context) (*WindowsDesktopPipeInstance, error) {
 			reopens.Add(1)

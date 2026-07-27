@@ -79,7 +79,7 @@ func TestStartSupervisedEnginesCachesUnsupportedImageSelectionWithoutBootstrappi
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -288,7 +288,7 @@ func TestStartSupervisedEnginesDefersAutoManagedLlamaWithoutRuntimePreset(t *tes
 		EngineLlamaPort:        1234,
 		EngineLlamaVersion:     "b8575",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -353,7 +353,7 @@ func TestStartSupervisedEnginesDefersManagedLlamaWhenEnginePackageMissing(t *tes
 		EngineLlamaPort:      1234,
 		EngineLlamaVersion:   "b8575",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -427,7 +427,7 @@ func TestStartSupervisedEnginesRegistersManagedLlamaFromStateWithoutBootstrappin
 		EngineLlamaPort:      1234,
 		EngineLlamaVersion:   "b8575",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -476,7 +476,7 @@ func TestStartSupervisedEnginesInjectsManagerWithoutBootstrappingWhenNoManagedEn
 		LocalStatePath:      filepath.Join(t.TempDir(), "local-state.json"),
 		IdempotencyCapacity: 32,
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -572,7 +572,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	if err := os.Mkdir(filepath.Join(localStateRoot, "llama-models.yaml"), 0o755); err != nil {
 		t.Fatalf("block Runtime state-derived llama config path: %v", err)
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -676,7 +676,7 @@ func TestStartSupervisedEnginesFailsClosedForUnsupportedSidecar(t *testing.T) {
 		EngineSidecarPort:    9331,
 		EngineSidecarVersion: "test",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}

@@ -191,7 +191,6 @@ export * from './runtime-agent-ai-config';
 export * from './runtime-agent-participation';
 export * from './runtime-agent-group-message';
 export * from './runtime-agent-inspect';
-export * from './runtime-agent-smoke-verification';
 export * from './scenario-jobs';
 export * from './speech';
 

@@ -455,9 +455,8 @@ func bindDesktopAccountProductPrincipal(
 		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
 	}
 	projection, generation, invalidated, ok := provider.BindAuthenticatedRuntimeGeneration(ctx)
-	principal := protectedprincipal.New(
-		envelope.ProtectedDesktopAppID, profileID, profileID, projection,
-		generation, desktopSessions.BootEpoch(), invalidated,
+	principal := protectedprincipal.NewDesktopAccountProduct(
+		projection, generation, desktopSessions.BootEpoch(), invalidated,
 	)
 	if !ok || !principal.Valid() {
 		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)

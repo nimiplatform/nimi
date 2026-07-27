@@ -6,7 +6,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,9 +33,7 @@ func bundledAvatarTestPrincipalContext(capability string, accountID string, inva
 }
 
 func desktopAccountProductTestPrincipalContext(accountID string, invalidated <-chan struct{}) context.Context {
-	principal := protectedprincipal.New(
-		"nimi.desktop", protectedlocal.DesktopAccountProductProfileID,
-		protectedlocal.DesktopAccountProductProfileID,
+	principal := protectedprincipal.NewDesktopAccountProduct(
 		&runtimev1.AccountProjection{AccountId: accountID, RealmEnvironmentId: "realm-test"},
 		7, [32]byte{2}, invalidated,
 	)

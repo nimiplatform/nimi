@@ -175,7 +175,7 @@ func (listener *windowsVerifiedDesktopListener) Accept() (net.Conn, error) {
 
 		client, liveness, err := nativeConnection.verifyAndBindClientProcess(listener.ctx, listener.verifier, listener.expectedDesktopTrustSetID)
 		if err != nil {
-			reportWindowsE2EPeerRejection(err)
+			reportWindowsPeerRejection(err)
 			_ = nativeConnection.Close()
 			listener.discardPipe(pipe)
 			if listener.isClosed() {
@@ -185,7 +185,7 @@ func (listener *windowsVerifiedDesktopListener) Accept() (net.Conn, error) {
 		}
 		raw, err := nativeConnection.NetConn()
 		if err != nil {
-			reportWindowsE2EPeerRejection(err)
+			reportWindowsPeerRejection(err)
 			_ = liveness.Close()
 			_ = nativeConnection.Close()
 			listener.discardPipe(pipe)

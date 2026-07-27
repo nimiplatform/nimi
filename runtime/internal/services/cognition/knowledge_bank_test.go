@@ -47,10 +47,7 @@ func TestCreateKnowledgeBankAppPrivateRegistersTypedScope(t *testing.T) {
 	}
 }
 
-// S2.2 — CreateKnowledgeBank duplicate yields
-// KNOWLEDGE_BANK_ALREADY_EXISTS. RS-11-62 evidence pinning: this
-// function name is referenced by runtime/cmd/runtime-compliance and
-// must remain exact across cognition refactors so wave-3 can rebind.
+// CreateKnowledgeBank duplicate yields KNOWLEDGE_BANK_ALREADY_EXISTS.
 func TestCreateKnowledgeBankDuplicateReasonCode(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
@@ -81,10 +78,7 @@ func TestCreateKnowledgeBankDuplicateReasonCode(t *testing.T) {
 	}
 }
 
-// RS-11-62 evidence pinning: GetKnowledgeBank for a missing bank
-// surfaces KNOWLEDGE_BANK_NOT_FOUND. Function name is stable across
-// cognition refactors so wave-3 can rebind runtime-compliance evidence
-// to this cognition package.
+// GetKnowledgeBank for a missing bank surfaces KNOWLEDGE_BANK_NOT_FOUND.
 func TestGetKnowledgeBankMissingReasonCode(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()

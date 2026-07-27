@@ -123,7 +123,7 @@ func TestSampleAIProviderHealthSkipsManagedLoopbackProbeWhenEngineIsIdle(t *test
 	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
 		t.Fatalf("write local state: %v", err)
 	}
-	daemon, err := New(config.Config{
+	daemon, err := newDaemonForTest(t, config.Config{
 		GRPCAddr:            "127.0.0.1:0",
 		HTTPAddr:            "127.0.0.1:0",
 		LocalStatePath:      localStatePath,
@@ -208,7 +208,7 @@ func TestSampleAIProviderHealthProbesManagedLoopbackWhenActiveSupervisedAssetExi
 		t.Fatalf("write local state: %v", err)
 	}
 
-	daemon, err := New(config.Config{
+	daemon, err := newDaemonForTest(t, config.Config{
 		GRPCAddr:            "127.0.0.1:0",
 		HTTPAddr:            "127.0.0.1:0",
 		LocalStatePath:      localStatePath,
@@ -366,7 +366,7 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 		EngineLlamaPort:      1234,
 		EngineLlamaVersion:   "b8575",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -435,7 +435,7 @@ func TestStartSupervisedEnginesResolvesEngineRootsFromDataPlaneConfig(t *testing
 		cfg.EngineLlamaEnabled = true
 		cfg.EngineLlamaPort = 1234
 		cfg.EngineLlamaVersion = "b8575"
-		daemon, err := New(cfg, logger, "test")
+		daemon, err := newDaemonForTest(t, cfg, logger, "test")
 		if err != nil {
 			t.Fatalf("create daemon: %v", err)
 		}
@@ -464,7 +464,7 @@ func TestStartSupervisedEnginesResolvesEngineRootsFromDataPlaneConfig(t *testing
 			Environments: filepath.Join(dataRoot, "environments"),
 			Dependencies: filepath.Join(dataRoot, "dependencies"),
 		}
-		daemon, err := New(cfg, logger, "test")
+		daemon, err := newDaemonForTest(t, cfg, logger, "test")
 		if err != nil {
 			t.Fatalf("create daemon: %v", err)
 		}
@@ -484,7 +484,7 @@ func TestStartSupervisedEnginesResolvesEngineRootsFromDataPlaneConfig(t *testing
 
 	t.Run("no engine work without data root does not degrade", func(t *testing.T) {
 		cfg := baseCfg()
-		daemon, err := New(cfg, logger, "test")
+		daemon, err := newDaemonForTest(t, cfg, logger, "test")
 		if err != nil {
 			t.Fatalf("create daemon: %v", err)
 		}
@@ -512,7 +512,7 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -573,7 +573,7 @@ func TestStartSupervisedEnginesRegistersSpeechWithoutBootstrapping(t *testing.T)
 		EngineSpeechPort:     8330,
 		EngineSpeechVersion:  "0.1.0-qwen3-tts",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -621,7 +621,7 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -761,7 +761,7 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 			Dependencies: engineRoots.Dependencies,
 		},
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -886,7 +886,7 @@ func TestStartSupervisedEnginesFailsClosedOnManagedImageBootstrapConflict(t *tes
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
 	}
-	daemon, err := New(cfg, logger, "test")
+	daemon, err := newDaemonForTest(t, cfg, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}

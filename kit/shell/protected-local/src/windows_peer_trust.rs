@@ -21,12 +21,8 @@ use windows_sys::Win32::System::Threading::{
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 
 const FILE_SHARE_READ: u32 = 0x0000_0001;
-#[cfg(not(feature = "windows-e2e-fixture"))]
 const EXPECTED_SIGNER_CERT_SHA256: Option<&str> =
     option_env!("NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256");
-#[cfg(feature = "windows-e2e-fixture")]
-const EXPECTED_SIGNER_CERT_SHA256: Option<&str> =
-    option_env!("NIMI_WINDOWS_E2E_SIGNER_CERT_SHA256");
 
 pub(super) struct VerifiedRuntimePeer {
     _process: OwnedHandle,

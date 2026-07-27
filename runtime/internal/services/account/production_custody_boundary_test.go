@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestProductionAccountCustodyDoesNotUseEnvironmentOrGenericUserKeyring(t *testing.T) {
+func TestProductionAccountCustodyRejectsEnvironmentAndGenericUserKeyring(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "https://env-realm.example")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "https://env-realm.example/api/auth/oauth/authorize")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_TOKEN_URL", "https://env-realm.example/api/auth/oauth/token")

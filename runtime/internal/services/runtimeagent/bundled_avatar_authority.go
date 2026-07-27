@@ -7,7 +7,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
@@ -39,7 +38,7 @@ func protectedAccountProductPrincipal(ctx context.Context, avatarCapability stri
 	if !principal.Valid() {
 		return protectedprincipal.Principal{}, true, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
-	if principal.ProfileID == protectedlocal.DesktopAccountProductProfileID && principal.AppID == "nimi.desktop" {
+	if principal.IsDesktopAccountProduct() {
 		return principal, true, nil
 	}
 	if principal.ProfileID == bundledavatar.ProfileID && principal.AppID == bundledavatar.AppID && principal.Capability == avatarCapability {

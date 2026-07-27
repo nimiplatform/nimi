@@ -37,7 +37,7 @@ func TestDaemonNewDoesNotImportLegacyMemoryStateBeforeReadiness(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestDaemonRunCreatesSQLiteBackupOnShutdown(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestDaemonNewFailsClosedOnCorruptedSQLiteWithoutBackup(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	if _, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test"); err == nil {
+	if _, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test"); err == nil {
 		t.Fatal("expected daemon init to fail closed on corrupted sqlite without backup")
 	}
 }
@@ -145,7 +145,7 @@ func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
 		t.Fatalf("os.WriteFile(corrupted primary): %v", err)
 	}
 
-	restored, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	restored, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon(restored): %v", err)
 	}

@@ -10,10 +10,10 @@ use crate::generated::runtime_development_service_client::RuntimeDevelopmentServ
 use crate::generated::{
     BindLocalAppProcessRequest, DecideLocalDevelopmentProjectRequest,
     EndLocalDevelopmentRunRequest, EvaluateLocalDevelopmentProjectRequest,
-    EvaluateLocalDevelopmentProjectResponse, GetDeveloperModeStatusRequest,
-    ListLocalDevelopmentAuthorizationsRequest, LocalDevelopmentAuthorizationProjection,
-    LocalDevelopmentProjectProjection, PrepareLocalAppLaunchRequest,
-    RevokeLocalDevelopmentAuthorizationRequest, SetDeveloperModeRequest,
+    GetDeveloperModeStatusRequest, ListLocalDevelopmentAuthorizationsRequest,
+    LocalDevelopmentAuthorizationProjection, LocalDevelopmentProjectProjection,
+    PrepareLocalAppLaunchRequest, RevokeLocalDevelopmentAuthorizationRequest,
+    SetDeveloperModeRequest,
 };
 use crate::grpc_status::host_error_from_status;
 #[cfg(target_os = "macos")]
@@ -127,48 +127,6 @@ mod developer_mode_projection_tests {
     }
 }
 
-#[cfg(feature = "windows-e2e-fixture")]
-fn report_windows_e2e_evaluation_response(response: &EvaluateLocalDevelopmentProjectResponse) {
-    let project = response.project.as_ref();
-    eprintln!(
-        "[protected-local local-development windows-e2e-fixture] stage=evaluation-response reason_code={} state={} confirmation_required={} evaluation_id_len={} project_present={} project_app_id_present={} project_display_name_present={} project_root_present={} project_manifest_present={} project_account_present={} permission_requirement_count={} permission_requirement_fingerprint_len={} trust_class_matches={} authorization_present={} expires_present={}",
-        response.reason_code,
-        response.state,
-        response.confirmation_required,
-        response.evaluation_id.len(),
-        project.is_some(),
-        project.is_some_and(|value| !value.app_id.is_empty()),
-        project.is_some_and(|value| !value.display_name.is_empty()),
-        project.is_some_and(|value| !value.canonical_project_root.is_empty()),
-        project.is_some_and(|value| !value.canonical_manifest_path.is_empty()),
-        project.is_some_and(|value| !value.account_id.is_empty()),
-        project.map_or(0, |value| value.permission_requirements.len()),
-        project.map_or(0, |value| value.permission_requirement_fingerprint.len()),
-        project.is_some_and(|value| value.trust_class == LOCAL_DEVELOPMENT_TRUST_CLASS),
-        response.authorization.is_some(),
-        response.evaluation_expires_at.is_some(),
-    );
-}
-
-#[cfg(not(feature = "windows-e2e-fixture"))]
-fn report_windows_e2e_evaluation_response(_: &EvaluateLocalDevelopmentProjectResponse) {}
-
-#[cfg(feature = "windows-e2e-fixture")]
-fn report_windows_e2e_projection_stage(stage: &str) {
-    eprintln!(
-        "[protected-local local-development windows-e2e-fixture] stage={}",
-        stage
-    );
-}
-
-#[cfg(not(feature = "windows-e2e-fixture"))]
-fn report_windows_e2e_projection_stage(_: &str) {}
-
-fn projection_error(stage: &str, error: NimiHostError) -> NimiHostError {
-    report_windows_e2e_projection_stage(stage);
-    error
-}
-
 pub(crate) async fn evaluate_project(
     channel: Channel,
     request: NativeEvaluationRequest,
@@ -186,36 +144,27 @@ pub(crate) async fn evaluate_project(
         .await
         .map_err(host_error_from_status)?
         .into_inner();
-    report_windows_e2e_evaluation_response(&response);
-    require_success_reason(response.reason_code)
-        .map_err(|error| projection_error("evaluation-reason-code", error))?;
-    let state = authorization_state(response.state)
-        .map_err(|error| projection_error("evaluation-authorization-state", error))?;
+    require_success_reason(response.reason_code)?;
+    let state = authorization_state(response.state)?;
     let project = project_projection(response.project, Some(request.shell_kind))?;
-    let evaluation_id = optional_identifier(response.evaluation_id)
-        .map_err(|error| projection_error("evaluation-identifier", error))?;
-    let evaluation_expires_at_unix_ms = optional_timestamp_ms(response.evaluation_expires_at)
-        .map_err(|error| projection_error("evaluation-expiry", error))?;
+    let evaluation_id = optional_identifier(response.evaluation_id)?;
+    let evaluation_expires_at_unix_ms = optional_timestamp_ms(response.evaluation_expires_at)?;
     let authorization = response
         .authorization
         .map(authorization_projection)
-        .transpose()
-        .map_err(|error| projection_error("evaluation-authorization", error))?;
+        .transpose()?;
     if response.confirmation_required {
         let fresh_decision = evaluation_id.is_some()
             && evaluation_expires_at_unix_ms.is_some()
             && authorization.is_none();
         if !fresh_decision {
-            return Err(projection_error(
-                "evaluation-confirmation-shape",
-                untrusted(),
-            ));
+            return Err(untrusted());
         }
     } else if state != LocalDevelopmentAuthorizationState::Active
         || evaluation_id.is_some()
         || authorization.is_none()
     {
-        return Err(projection_error("evaluation-active-shape", untrusted()));
+        return Err(untrusted());
     }
     Ok(LocalDevelopmentEvaluation {
         evaluation_id,
@@ -265,7 +214,6 @@ pub(crate) async fn list_authorizations(
         .await
         .map_err(host_error_from_status)?
         .into_inner();
-    report_windows_e2e_projection_stage("launch-prepare-response");
     require_success_reason(response.reason_code)?;
     response
         .authorizations
@@ -302,20 +250,9 @@ pub(crate) async fn launch_host(
 ) -> Result<(LocalDevelopmentLaunchOutcome, SupervisedDevelopmentProcess), NimiHostError> {
     validate_identifier(request.authorization_id)?;
     validate_identifier(request.supervisor_run_id)?;
-    report_windows_e2e_projection_stage("launch-identifiers-validated");
-    let host_executable_path = canonical_file(&request.host_executable_path).inspect_err(|_| {
-        report_windows_e2e_projection_stage("launch-host-canonical-rejected");
-    })?;
-    report_windows_e2e_projection_stage("launch-host-canonical-validated");
-    let working_directory = canonical_directory(&request.working_directory).inspect_err(|_| {
-        report_windows_e2e_projection_stage("launch-working-directory-rejected");
-    })?;
-    report_windows_e2e_projection_stage("launch-working-directory-validated");
-    let _renderer_origin =
-        controlled_renderer_origin(&request.renderer_origin).inspect_err(|_| {
-            report_windows_e2e_projection_stage("launch-renderer-origin-rejected");
-        })?;
-    report_windows_e2e_projection_stage("launch-prepare-request");
+    let host_executable_path = canonical_file(&request.host_executable_path)?;
+    let working_directory = canonical_directory(&request.working_directory)?;
+    let _renderer_origin = controlled_renderer_origin(&request.renderer_origin)?;
     let response = RuntimeAppServiceClient::new(channel.clone())
         .prepare_local_app_launch(PrepareLocalAppLaunchRequest {
             local_app_handle: request.authorization_id.to_vec(),
@@ -332,7 +269,6 @@ pub(crate) async fn launch_host(
         &request.host_arguments,
         &working_directory,
     )?;
-    report_windows_e2e_projection_stage("launch-process-created-suspended");
     let bound = RuntimeAppServiceClient::new(channel)
         .bind_local_app_process(BindLocalAppProcessRequest {
             launch_id: launch_id.to_vec(),
@@ -341,7 +277,6 @@ pub(crate) async fn launch_host(
         .await
         .map_err(host_error_from_status)?
         .into_inner();
-    report_windows_e2e_projection_stage("launch-bind-response");
     require_success_reason(bound.reason_code)?;
     if required_identifier(bound.launch_id)? != launch_id {
         return Err(untrusted());
@@ -357,11 +292,7 @@ pub(crate) async fn launch_host(
     {
         return Err(untrusted());
     }
-    report_windows_e2e_projection_stage("launch-bind-deadline-validated");
-    process.resume().inspect_err(|_| {
-        report_windows_e2e_projection_stage("launch-process-resume-rejected");
-    })?;
-    report_windows_e2e_projection_stage("launch-process-resumed");
+    process.resume()?;
     Ok((
         LocalDevelopmentLaunchOutcome {
             process_id: process.id(),
@@ -402,26 +333,21 @@ fn project_projection(
     project: Option<LocalDevelopmentProjectProjection>,
     expected_shell: Option<LocalDevelopmentShellKind>,
 ) -> Result<LocalDevelopmentProject, NimiHostError> {
-    let project = project.ok_or_else(|| projection_error("project-missing", untrusted()))?;
+    let project = project.ok_or_else(untrusted)?;
     if project.trust_class != LOCAL_DEVELOPMENT_TRUST_CLASS {
-        return Err(projection_error("project-trust-class", untrusted()));
+        return Err(untrusted());
     }
-    let shell_kind = shell_kind(project.shell_kind)
-        .map_err(|error| projection_error("project-shell-kind", error))?;
+    let shell_kind = shell_kind(project.shell_kind)?;
     if expected_shell.is_some_and(|expected| expected != shell_kind) {
-        return Err(projection_error("project-shell-mismatch", untrusted()));
+        return Err(untrusted());
     }
-    let canonical_project_root = canonical_directory(Path::new(&project.canonical_project_root))
-        .map_err(|error| projection_error("project-root", error))?;
-    let canonical_manifest_path = canonical_file(Path::new(&project.canonical_manifest_path))
-        .map_err(|error| projection_error("project-manifest", error))?;
+    let canonical_project_root = canonical_directory(Path::new(&project.canonical_project_root))?;
+    let canonical_manifest_path = canonical_file(Path::new(&project.canonical_manifest_path))?;
     if !canonical_manifest_path.starts_with(&canonical_project_root) {
-        return Err(projection_error("project-manifest-boundary", untrusted()));
+        return Err(untrusted());
     }
     let permission_requirement_fingerprint =
-        required_identifier(project.permission_requirement_fingerprint).map_err(|error| {
-            projection_error("project-permission-requirement-fingerprint", error)
-        })?;
+        required_identifier(project.permission_requirement_fingerprint)?;
     let mut previous: Option<String> = None;
     let mut permission_requirements = Vec::with_capacity(project.permission_requirements.len());
     for requirement in project.permission_requirements {
@@ -434,10 +360,7 @@ fn project_projection(
                 .as_ref()
                 .is_some_and(|value| value.as_str() >= requirement.permission_id.as_str())
         {
-            return Err(projection_error(
-                "project-permission-requirement",
-                untrusted(),
-            ));
+            return Err(untrusted());
         }
         previous = Some(requirement.permission_id.clone());
         permission_requirements.push(crate::LocalDevelopmentPermissionRequirement {
@@ -446,15 +369,12 @@ fn project_projection(
         });
     }
     Ok(LocalDevelopmentProject {
-        app_id: required_text(project.app_id)
-            .map_err(|error| projection_error("project-app-id", error))?,
-        display_name: required_text(project.display_name)
-            .map_err(|error| projection_error("project-display-name", error))?,
+        app_id: required_text(project.app_id)?,
+        display_name: required_text(project.display_name)?,
         canonical_project_root,
         canonical_manifest_path,
         shell_kind,
-        account_id: required_text(project.account_id)
-            .map_err(|error| projection_error("project-account-id", error))?,
+        account_id: required_text(project.account_id)?,
         permission_requirements,
         permission_requirement_fingerprint,
     })

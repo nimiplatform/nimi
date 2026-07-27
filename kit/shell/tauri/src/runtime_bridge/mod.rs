@@ -155,17 +155,6 @@ const DEFAULT_EVENT_NAMESPACE: &str = "runtime_bridge";
 
 type StatusOverrideHook =
     Arc<dyn Fn() -> Result<Option<RuntimeBridgeDaemonStatus>, String> + Send + Sync>;
-#[cfg(any(test, feature = "runtime-account-e2e-fixture"))]
-type AccountStatusOverrideHook =
-    Arc<dyn Fn() -> Result<Option<RuntimeBridgeDesktopAccountSessionStatus>, String> + Send + Sync>;
-#[cfg(any(test, feature = "runtime-account-e2e-fixture"))]
-type AccountEventsOpenOverrideHook = Arc<
-    dyn Fn(
-            &RuntimeBridgeAccountEventsOpenPayload,
-        ) -> Result<Option<RuntimeBridgeAccountEventsOpenResult>, String>
-        + Send
-        + Sync,
->;
 type StatusSyncHook = Arc<dyn Fn(&AppHandle, RuntimeBridgeDaemonStatus) + Send + Sync>;
 type ActionInFlightHook = Arc<dyn Fn(&AppHandle, Option<&'static str>) + Send + Sync>;
 type UnaryOverrideHook = Arc<
@@ -194,10 +183,6 @@ pub struct RuntimeBridgeTrustedMetadataRequest {
 #[derive(Clone, Default)]
 pub struct RuntimeBridgeHostHooks {
     pub status_override: Option<StatusOverrideHook>,
-    #[cfg(any(test, feature = "runtime-account-e2e-fixture"))]
-    pub account_status_override: Option<AccountStatusOverrideHook>,
-    #[cfg(any(test, feature = "runtime-account-e2e-fixture"))]
-    pub account_events_open_override: Option<AccountEventsOpenOverrideHook>,
     pub unary_override: Option<UnaryOverrideHook>,
     pub trusted_metadata: Option<TrustedMetadataHook>,
     pub sync_daemon_status: Option<StatusSyncHook>,
@@ -294,25 +279,6 @@ fn desktop_account_status_request() -> Result<DesktopAccountSessionStatusRequest
 fn call_status_override_hook() -> Result<Option<RuntimeBridgeDaemonStatus>, String> {
     match host_hooks().and_then(|hooks| hooks.status_override.clone()) {
         Some(hook) => hook(),
-        None => Ok(None),
-    }
-}
-
-#[cfg(any(test, feature = "runtime-account-e2e-fixture"))]
-fn call_account_status_override_hook(
-) -> Result<Option<RuntimeBridgeDesktopAccountSessionStatus>, String> {
-    match host_hooks().and_then(|hooks| hooks.account_status_override.clone()) {
-        Some(hook) => hook(),
-        None => Ok(None),
-    }
-}
-
-#[cfg(any(test, feature = "runtime-account-e2e-fixture"))]
-fn call_account_events_open_override_hook(
-    payload: &RuntimeBridgeAccountEventsOpenPayload,
-) -> Result<Option<RuntimeBridgeAccountEventsOpenResult>, String> {
-    match host_hooks().and_then(|hooks| hooks.account_events_open_override.clone()) {
-        Some(hook) => hook(payload),
         None => Ok(None),
     }
 }
@@ -573,10 +539,6 @@ pub async fn runtime_bridge_status(app: AppHandle) -> RuntimeBridgeDaemonStatus 
 
 pub async fn runtime_account_session_status(
 ) -> Result<RuntimeBridgeDesktopAccountSessionStatus, String> {
-    #[cfg(any(test, feature = "runtime-account-e2e-fixture"))]
-    if let Some(status) = call_account_status_override_hook()? {
-        return Ok(status);
-    }
     let request = desktop_account_status_request()?;
     let status = service_control::get_account_session_status(request)
         .await
@@ -605,10 +567,6 @@ pub async fn runtime_account_session_events_open(
     app: AppHandle,
     payload: RuntimeBridgeAccountEventsOpenPayload,
 ) -> Result<RuntimeBridgeAccountEventsOpenResult, String> {
-    #[cfg(any(test, feature = "runtime-account-e2e-fixture"))]
-    if let Some(result) = call_account_events_open_override_hook(&payload)? {
-        return Ok(result);
-    }
     account_events::open(app, payload).await
 }
 

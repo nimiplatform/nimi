@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   buildNimiRuntimeAgentStateMutations,
   createNimiHostRuntimeAgentInspectSurface,
-  createNimiRuntimeAgentSmokeVerificationSurface,
   buildNimiSetRuntimeAgentPresentationProfileRequest,
   createNimiHostRuntimeAgentPresentationProfileSurface,
   projectNimiRuntimeAgentInspectSnapshot,
@@ -33,7 +32,6 @@ import {
   HookTriggerFamily,
   MemoryCanonicalClass,
   MemoryRecordKind,
-  RuntimeHealthStatus,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 
@@ -720,99 +718,4 @@ test('Runtime Agent presentation builder admits partial presentation patch witho
   assert.equal(request.mutation.patch.defaultVoiceReference, 'voice_asset_id:voice-1');
   assert.equal(request.mutation.patch.avatarAutoplay, false);
   assert.equal(request.mutation.patch.backgroundAssetRef, 'background:agent/night');
-});
-
-test('Runtime Agent smoke verification reads protected anchor snapshot and health evidence', async () => {
-  const issuedScopes: string[][] = [];
-  const issuedOptions: RuntimeTypedCallOptions[] = [];
-  const anchorRequests: unknown[] = [];
-  const healthOptions: RuntimeTypedCallOptions[] = [];
-  const runtime = {
-    appId: 'sdk.test',
-    auth: {
-      async registerApp() {
-        return {
-          appInstanceId: 'sdk.test.runtime-agent',
-          accepted: true,
-          reasonCode: 0,
-        };
-      },
-    },
-    agents: {
-      async getConversationAnchorSnapshot(request: unknown, options?: RuntimeTypedCallOptions) {
-        anchorRequests.push(request);
-        if (options) {
-          issuedOptions.push(options);
-        }
-        return {
-          snapshot: {
-            anchor: {
-              conversationAnchorId: 'anchor-1',
-              agentId: LOCAL_AGENT_REF,
-              subjectUserId: OWNER_USER_ID,
-              status: 1,
-              lastTurnId: 'turn-1',
-              lastMessageId: 'message-1',
-              localAgentRef: LOCAL_AGENT_REF,
-              ownerUserId: OWNER_USER_ID,
-              runtimeSourceRef: RUNTIME_SOURCE_REF,
-            },
-            activeTurnId: '',
-            activeStreamId: 'stream-1',
-          },
-        };
-      },
-    },
-    async health(_request = {}, options?: RuntimeTypedCallOptions) {
-      if (options) {
-        healthOptions.push(options);
-      }
-      return {
-        status: RuntimeHealthStatus.READY,
-        reason: 'ready',
-        queueDepth: 1,
-        activeWorkflows: 2,
-        activeInferenceJobs: 3,
-        cpuMilli: '10',
-        memoryBytes: '20',
-        vramBytes: '30',
-        sampledAt: toNimiRuntimeTimestamp('2026-06-05T00:00:00.000Z'),
-      };
-    },
-  };
-
-  const surface = createNimiRuntimeAgentSmokeVerificationSurface({
-    getRuntime: () => runtime,
-    getSubjectUserId: () => 'user-1',
-    withScopes: async (scopes, operation) => {
-      issuedScopes.push([...scopes]);
-      return operation({ metadata: { 'x-nimi-test-protected-carrier': 'smoke' } });
-    },
-  });
-
-  const evidence = await surface.readProductPathEvidence({
-    ...AGENT_IDENTITY,
-    conversationAnchorId: 'anchor-1',
-  });
-
-  assert.deepEqual(issuedScopes, [['runtime.agent.read']]);
-  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-test-protected-carrier'], 'smoke');
-  assert.equal(healthOptions.length, 1);
-  assert.deepEqual(anchorRequests[0], {
-    context: {
-      appId: 'sdk.test',
-      subjectUserId: OWNER_USER_ID,
-      ownerUserId: OWNER_USER_ID,
-      runtimeSourceRef: RUNTIME_SOURCE_REF,
-      localAgentRef: LOCAL_AGENT_REF,
-    },
-    agentId: LOCAL_AGENT_REF,
-    conversationAnchorId: 'anchor-1',
-  });
-  assert.equal(evidence.same_anchor, true);
-  assert.equal(evidence.runtime_authenticated, true);
-  assert.deepEqual(evidence.runtime_auth_scopes, ['runtime.agent.read']);
-  assert.equal(evidence.runtime_health.sampled_at, '2026-06-05T00:00:00.000Z');
-  assert.equal(evidence.anchor_snapshot.last_turn_id, 'turn-1');
-  assert.equal(evidence.has_runtime_turn, true);
 });

@@ -13,7 +13,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/firstpartymigration"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
@@ -98,7 +97,6 @@ type Service struct {
 	logger          *slog.Logger
 	registry        *appregistry.Registry
 	nimiApps        *appregistrycatalog.Registry
-	migrations      *firstpartymigration.LaunchGate
 	auditStore      *auditlog.Store
 	desktopSessions *protectedlocal.DesktopSessionManager
 	accountSecurity runtimeAccountSecurityContextProvider
@@ -165,10 +163,6 @@ func (s *Service) SetRuntimeAccountSecurityContextProvider(provider runtimeAccou
 
 func (s *Service) SetLocalAppSessionOpener(opener localAppSessionOpener) {
 	s.localAppOpener = opener
-}
-
-func (s *Service) SetFirstPartyMigrationLaunchGate(gate *firstpartymigration.LaunchGate) {
-	s.migrations = gate
 }
 
 // OpenDesktopSession establishes non-portable Desktop authority from the
@@ -276,17 +270,6 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 			ReasonCode: reasonCode,
 		}, nil
 	}
-	if reasonCode, migrationReason, ok := s.checkFirstPartyMigrationGate(appID); !ok {
-		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, map[string]any{
-			"migration_reason": migrationReason,
-			"registry_app_id":  normalizeNimiAppRegistryID(appID),
-		})
-		return &runtimev1.RegisterAppResponse{
-			Accepted:   false,
-			ReasonCode: reasonCode,
-		}, nil
-	}
-
 	instanceID := strings.TrimSpace(req.GetAppInstanceId())
 	if instanceID == "" {
 		instanceID = ulid.Make().String()
@@ -354,23 +337,6 @@ func (s *Service) evaluateNimiAppRegistryEligibility(registryAppID string) (runt
 		return runtimev1.ReasonCode_ACTION_EXECUTED, eligibility.Reason, true
 	}
 	return mapNimiAppEligibilityReason(eligibility.Reason), eligibility.Reason, false
-}
-
-func (s *Service) checkFirstPartyMigrationGate(appID string) (runtimev1.ReasonCode, string, bool) {
-	if s.nimiApps != nil {
-		if app, err := s.nimiApps.FindByID(normalizeNimiAppRegistryID(appID)); err == nil &&
-			app.AdmissionStatus == appregistrycatalog.AdmissionStatusAdmitted {
-			return runtimev1.ReasonCode_ACTION_EXECUTED, "registry-admitted", true
-		}
-	}
-	if s.migrations == nil {
-		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
-	}
-	decision := s.migrations.Evaluate(appID)
-	if decision.Admitted {
-		return runtimev1.ReasonCode_ACTION_EXECUTED, decision.Reason, true
-	}
-	return runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, decision.Reason, false
 }
 
 func normalizeNimiAppRegistryID(appID string) string {

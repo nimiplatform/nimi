@@ -426,11 +426,6 @@ func TestRegisterAppUnadmittedGovernedAppFailsClosedAndAuditsEligibility(t *test
 	}
 }
 
-// Migration-gate behavior is unit-tested in
-// runtime/internal/firstpartymigration/launch_gate_test.go; the auth-service
-// admitted/gated registry path is covered by
-// TestRegisterAppChecksNimiAppRegistryProjection.
-
 func TestRegisterAppKeepsDesktopHostOutsideNimiAppRegistry(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 

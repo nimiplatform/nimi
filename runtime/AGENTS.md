@@ -17,7 +17,6 @@
 - Skip unrelated Runtime packages, generated files, large fixtures, and historical evidence.
 
 ## Verification Commands
-- Targeted owner loop: `cd runtime && go run ./cmd/runtime-compliance --profile=developer --package <affected-package>`.
-- Use `--profile=owner-batch --package <affected-package>` for package-wide diagnostics.
-- Run `cd runtime && go run ./cmd/runtime-compliance --gate` once only for Runtime admission; it already owns full test, build, vet, and compliance checks.
+- Targeted owner loop: `cd runtime && go test ./<affected-package>/...`.
+- For a Runtime-wide change, run `cd runtime && go test ./...`; add `go vet ./...` and `go build ./...` only when the changed boundary requires them.
 - For proto or catalog changes, run only their directly affected generation and drift checks.

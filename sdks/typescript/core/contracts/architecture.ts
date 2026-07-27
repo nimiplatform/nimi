@@ -116,7 +116,7 @@ export const NIMI_TYPESCRIPT_TARGET_EXPORTS = [
   {
     id: 'features-workflow',
     owner: 'sdks/typescript/features/workflow',
-    semantics: 'Workflow events, checkpoints, graph handoff, and migration proof coverage.',
+    semantics: 'Workflow events, checkpoints, and graph handoff.',
   },
   {
     id: 'features-evaluation',
@@ -127,11 +127,6 @@ export const NIMI_TYPESCRIPT_TARGET_EXPORTS = [
     id: 'features-toolkits',
     owner: 'sdks/typescript/features/toolkits',
     semantics: 'Approval, external execution, artifact, file, and MCP tool helpers.',
-  },
-  {
-    id: 'migration-proofs',
-    owner: 'sdks/typescript/migration-proofs',
-    semantics: 'External app migration proofs for adapter/model replacement and MingSim-shaped flows.',
   },
 ] as const satisfies readonly NimiTypescriptTargetExport[];
 

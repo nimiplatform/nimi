@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
 
-describe('Electron preload protected-authority hardcut', () => {
+describe('Electron preload protected-authority boundary', () => {
   it('exposes only invoke/listen and no protected local-app material', () => {
     let exposed: unknown;
     installNimiElectronRuntimeBridge({

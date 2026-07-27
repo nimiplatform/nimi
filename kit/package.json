@@ -363,8 +363,7 @@
     "lint": "pnpm run typecheck",
     "test": "vitest run --config ui/vitest.config.ts",
     "preview": "vite --config preview/vite.config.ts",
-    "preview:build": "vite build --config preview/vite.config.ts",
-    "audit:ui": "node preview/audit/run-audit.mjs"
+    "preview:build": "vite build --config preview/vite.config.ts"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
@@ -421,7 +420,6 @@
     "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^28.1.0",
-    "playwright": "^1.61.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwindcss": "^4.3.0",

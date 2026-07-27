@@ -28,7 +28,7 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestDaemonRunTransitionsReadyBeforeStartupDegraded(t *testing.T) {
 		EngineLlamaPort:      18321,
 		EngineLlamaVersion:   "test",
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestDaemonRunReadyDefersEmptyManagedLlamaBootstrap(t *testing.T) {
 		EngineLlamaPort:      18321,
 		EngineLlamaVersion:   "test",
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -229,7 +229,7 @@ func TestDaemonRunRefreshesManagedEmbeddingProfileOnStartup(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -296,7 +296,7 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 		AIHealthIntervalSeconds: 1,
 		AIHTTPTimeoutSeconds:    1,
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -376,7 +376,7 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -428,7 +428,7 @@ func TestDaemonRunDoesNotRestoreLegacyMemoryReplicationBacklog(t *testing.T) {
 		AIHTTPTimeoutSeconds: 1,
 	}
 
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
@@ -455,7 +455,7 @@ func TestDaemonRunDoesNotRestoreLegacyMemoryReplicationBacklog(t *testing.T) {
 		t.Fatalf("legacy memory-state.json must remain inert after daemon run: %v", err)
 	}
 
-	daemon2, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon2, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("create daemon restart: %v", err)
 	}
