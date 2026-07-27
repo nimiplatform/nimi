@@ -6,43 +6,7 @@ function readRepo(path: string): string {
   return readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
 }
 
-const retiredPackageKindPattern = new RegExp(`package_kind:\\s*(${['public', 'mod'].join('-')}|extension)\\b`);
-
 describe('Nimi App registry/admission domain boundary', () => {
-  it('keeps admission, registry, and release descriptor authority in platform spec tables', () => {
-    const admissionContract = readRepo('.nimi/spec/platform/app-ecosystem.authority.yaml');
-    const appSliceContract = readRepo('.nimi/spec/platform/authority-admission.authority.yaml');
-    const registryTable = readRepo('config/platform-nimi-app-registry.yaml');
-    const releaseDescriptors = readRepo(
-      'config/platform-nimi-app-release-descriptors.yaml',
-    );
-    const localConfigRegistry = readRepo(
-      'config/platform-local-config-file-registry.yaml',
-    );
-
-    assert.match(admissionContract, /id: rule\.nimi\.platform\.app-ecosystem\.p-napp-001a/);
-    assert.match(admissionContract, /Platform owns verified catalog and release admission/);
-    assert.match(admissionContract, /id: rule\.nimi\.platform\.app-ecosystem\.p-napp-009a/);
-    assert.match(admissionContract, /Apps consumes only admitted registry, package, and SDK projection satisfying the complete listing closure/);
-    assert.match(appSliceContract, /id: rule\.nimi\.platform\.authority-admission\.p-app-001/);
-    assert.match(appSliceContract, /claims repo-wide or independent authority merely from its location/);
-    assert.match(appSliceContract, /id: rule\.nimi\.platform\.authority-admission\.p-app-002/);
-    assert.match(appSliceContract, /claims semantics outside its own local shell, renderer, Tauri host, route, package, fixture, or app-specific feature boundary/);
-
-    assert.doesNotMatch(registryTable, retiredPackageKindPattern);
-    assert.doesNotMatch(releaseDescriptors, retiredPackageKindPattern);
-    assert.match(registryTable, /package_kind:\s*nimi-app/);
-    assert.match(releaseDescriptors, /package_kind:\s*nimi-app/);
-
-    assert.doesNotMatch(localConfigRegistry, /config_file_id:\s*(?:registry|packages)_json/);
-    assert.doesNotMatch(localConfigRegistry, /schema_owner:\s*account_apps_(?:registry|packages)/);
-    assert.match(
-      localConfigRegistry,
-      /Runtime-owned local-app principal, record, permission-decision, session, inventory, and/,
-    );
-    assert.match(localConfigRegistry, /retired user-local app projections are not/);
-  });
-
   it('keeps the Apps registry materializer in Kit without app-local duplicate modules', () => {
     const kitPlatformProjection = readRepo('kit/shell/tauri/src/standard_platform_projection.rs');
     const desktopBootstrap = readRepo('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');

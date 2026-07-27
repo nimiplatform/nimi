@@ -439,18 +439,6 @@ function buildStructuredFiles(identity, profile, versions) {
       mutationClass: 'scaffold-managed glue',
     },
   ];
-  if (profile === 'workspace-app') {
-    files.push({
-      path: `apps/${identity.packageName}/spec/app-slice.md`,
-      content: [
-        `# ${identity.appId} App Slice`,
-        '',
-        'Workspace-app profile input under P-APP authority. This app-slice file is not public Nimi App admission and does not create ordinary-user visibility.',
-        '',
-      ].join('\n'),
-      mutationClass: 'package-owned projection',
-    });
-  }
   return files;
 }
 

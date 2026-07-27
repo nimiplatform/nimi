@@ -14,7 +14,7 @@
 - Platform review owns listing admission, permission grants, release descriptors, installed-app visibility, and update truth.
 - Keep scaffold-managed glue explicit and reviewable in generator-owned code. Do not hide shared Runtime/SDK/Kit/shell behavior inside app-owned tester product files.
 - Do not add install-time side effects that mutate `.nimi/**`; activation belongs to explicit `nimi-app init`.
-- Keep `apps/tester` free of legacy Mod/Extension or app-slice admission claims unless the active spec explicitly admits them.
+- Keep `apps/tester` free of app-local product authority or app-slice admission claims.
 
 ## Retrieval Defaults
 - For generic scaffolds, read the affected generator, `templates/default-starter/**`, its manifest, and focused tests.

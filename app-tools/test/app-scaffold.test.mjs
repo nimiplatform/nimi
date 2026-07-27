@@ -664,7 +664,7 @@ test('generated app grants the Tauri event capability streaming needs', () => {
   }
 });
 
-test('workspace-app scaffold uses workspace + path deps and writes an app-slice input', () => {
+test('workspace-app scaffold uses workspace + path deps without product authority', () => {
   const generated = scaffold('workspace-app');
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
@@ -676,9 +676,6 @@ test('workspace-app scaffold uses workspace + path deps and writes an app-slice 
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = \{ path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri" \}/);
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('nimi.app.yaml'), /profile: workspace-app/);
-    assert.match(generated.read('apps/acme-widget/spec/app-slice.md'), /not public Nimi App admission/);
-    const lock = generated.lock();
-    assert.ok(lock.managedFileTaxonomy.packageOwnedProjection.includes('apps/acme-widget/spec/app-slice.md'));
     assertTauriIconSupport(generated);
   } finally {
     generated.cleanup();
