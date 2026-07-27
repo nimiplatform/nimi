@@ -138,12 +138,6 @@
     "preCutover": true,
     "targetPackage": "@nimiplatform/sdk",
     "workspaceCutover": "active-local-hardcut",
-    "adapterPackageNames": "independent-packages",
-    "duplicateDependencyReferenceExceptions": {
-      "@grpc/grpc-js": {
-        "sections": ["devDependencies", "peerDependencies"],
-        "reason": "Optional Node gRPC peer for consumers; devDependency is required to typecheck and test the node-grpc transport inside the SDK source package."
-      }
-    }
+    "adapterPackageNames": "independent-packages"
   }
 }

@@ -219,6 +219,12 @@ jobs:
         run: pnpm check:runtime-bridge-method-drift
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
+      - name: Check Kit contracts
+        run: pnpm check:nimi-kit
+      - name: Check license file map
+        run: pnpm check:license-file-map
+      - name: Audit SDK and Kit package contents
+        run: pnpm check:sdk-kit-pack-audit
       - name: gate.workflow.actionlint
         run: pnpm check:actionlint
       - name: authority.canonical.check

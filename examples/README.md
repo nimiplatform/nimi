@@ -83,7 +83,6 @@ export NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=YOUR_KEY
 
 ```bash
 pnpm --filter @nimiplatform/examples run check
-node scripts/check-example-run-comments.mjs
 ```
 
 ## Layout

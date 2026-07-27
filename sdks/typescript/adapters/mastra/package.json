@@ -42,20 +42,6 @@
     "preCutover": true,
     "adapterId": "mastra",
     "targetPackage": "@nimiplatform/sdk-adapter-mastra",
-    "basePackage": "@nimiplatform/sdk",
-    "duplicateDependencyReferenceExceptions": {
-      "@ai-sdk/provider": {
-        "sections": ["devDependencies", "peerDependencies"],
-        "reason": "Peer dependency for adapter consumers; devDependency is required for adapter source typecheck and tests."
-      },
-      "@mastra/core": {
-        "sections": ["devDependencies", "peerDependencies"],
-        "reason": "Peer dependency for adapter consumers; devDependency is required for Mastra compatibility tests."
-      },
-      "@nimiplatform/sdk": {
-        "sections": ["devDependencies", "peerDependencies"],
-        "reason": "Peer dependency for adapter consumers; workspace devDependency binds local SDK sources during adapter development."
-      }
-    }
+    "basePackage": "@nimiplatform/sdk"
   }
 }

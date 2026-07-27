@@ -72,7 +72,7 @@ export function requireWindowsDevSigningIdentity(options = {}) {
     || certificate?.stores?.currentUserTrustedPublisher !== true
   ) {
     throw new Error(
-      'Windows E2E signing identity is not fully provisioned; run `pnpm provision:windows-dev-trust`.',
+      'Windows local development signing identity is not fully provisioned; run `pnpm provision:windows-dev-trust`.',
     );
   }
   return Object.freeze({

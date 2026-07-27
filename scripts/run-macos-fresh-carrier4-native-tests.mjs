@@ -19,4 +19,4 @@ const sources=[
 const sdk=runReleaseCommand('/usr/bin/xcrun',['--sdk','macosx','--show-sdk-path']).stdout.trim();
 runReleaseCommand('/usr/bin/xcrun',['swiftc','-parse-as-library','-target','arm64-apple-macos13.0','-sdk',sdk,'-framework','Security','-framework','OpenDirectory','-o',executable,...sources],{cwd:root,inherit:true});
 runReleaseCommand(executable,[],{cwd:root,inherit:true});
-process.stdout.write(`${JSON.stringify({status:'passed',assertions:2087,mutationSubsets:2048,keychainMutation:false,systemMutation:false})}\n`);
+process.stdout.write('fresh carrier-4 native security tests passed\n');

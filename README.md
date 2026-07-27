@@ -139,8 +139,8 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
 The Platform, Runtime, SDK, Desktop, Web, Realm, Avatar, and Cognition
 surfaces are documented at the contract level under `docs/` and authored
 under `.nimi/spec/`. Their stable public product release channels remain
-release-gated and are not opened by the source checkout itself. Cloning the
-repo does not make those products publicly installable.
+separate from the source checkout itself. Cloning the repo does not make those
+products publicly installable.
 
 ## Source Checkout Quickstart
 
@@ -174,21 +174,6 @@ nimi model health --model-id <installed-model-id>
 ```
 
 `nimi doctor` reports environment, daemon, and provider readiness.
-
-## Public Existence Proof
-
-For the first public existence event, run the named release-gate proof:
-
-```bash
-pnpm release:proof:first-public
-```
-
-This runs the `first-public-existence` tier from the release-gate registry and
-writes `release-gate-evidence/v1` output under `.local/report/release/`. A pass
-proves the frozen public promise boundary, SDK/app-tools developer entry, and
-spec governance checks for this source checkout. It does not open product
-release channels, app admission, permission grants, release descriptors, or
-installed-app update truth.
 
 ## Documentation
 

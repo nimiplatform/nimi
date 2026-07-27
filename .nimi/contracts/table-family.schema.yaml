@@ -25,7 +25,6 @@ table_family_enum:
   - product_catalog
   - product_state_machine
   - product_record_schema
-  - gate_registry
   - support_registry
 authority_class_enum:
   - product_authority_table
@@ -65,11 +64,6 @@ table_families:
     authority_class: product_authority_table
     required_fields: [table_family, owner, record_id, path, schema_version, required_top_level_fields, invariants]
     allowed_fields: [description, authority_refs, field, schema_ref, invariant, path, owner]
-    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
-  - table_family: gate_registry
-    authority_class: product_authority_table
-    required_fields: [table_family, owner, registry_id, schema_version, registry_version, profile_id, tiers, targets, reason_codes, gates]
-    allowed_fields: [description, authority_refs, id, command, tier, target, prerequisite, evidence, blocker_semantics]
     forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
   - table_family: support_registry
     authority_class: support_registry
@@ -130,4 +124,3 @@ semantic_constraints:
   - operational_state_and_audit_coverage_must_move_local
   - unknown_table_family_fails_closed
   - product_authority_table_rows_must_define_stable_product_facts
-  - release_gate_registry_must_use_gate_registry_family_not_closed_enum

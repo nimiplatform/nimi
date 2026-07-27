@@ -1,8 +1,9 @@
 # License layout
 
-Per active platform governance authority `.nimi/spec/platform/governance-release.authority.yaml` (history: `docs/authority/platform-governance-release-rationale.md`):
-- `runtime/`, `sdk/`, `proto/`: Apache-2.0
-- `apps/desktop/`, `apps/web/`, `kit/`: MIT
-- `docs/protocol` specs: CC BY 4.0
+The source tree uses the following licenses:
 
-Per-directory `LICENSE` files are already applied in this staging workspace.
+- `runtime/`, `sdks/typescript/`, `proto/`: Apache-2.0
+- `apps/desktop/`, `apps/web/`, `kit/`: MIT
+- `docs/`: CC BY 4.0
+
+Each listed directory carries its own `LICENSE` file.
