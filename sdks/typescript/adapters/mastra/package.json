@@ -26,10 +26,10 @@
   },
   "devDependencies": {
     "@ai-sdk/provider": "3.0.10",
-    "@mastra/core": "1.41.0",
+    "@mastra/core": "1.52.1",
     "@nimiplatform/sdk": "workspace:*",
     "@types/node": "^25.9.1",
-    "tsx": "^4.22.3",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "zod": "4.4.3"
   },
