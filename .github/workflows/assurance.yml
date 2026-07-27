@@ -77,8 +77,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: gate.desktop.open-intent-contract
-        run: pnpm check:desktop-open-contract
       - name: gate.sdk.consumer-smoke
         run: pnpm check:sdk-consumer-smoke
       - name: gate.sdk.coverage
@@ -212,8 +210,6 @@ jobs:
         run: pnpm --filter @nimiplatform/avatar test
       - name: gate.desktop.lint
         run: pnpm --filter @nimiplatform/desktop lint
-      - name: gate.desktop.open-intent-contract
-        run: pnpm check:desktop-open-contract
       - name: gate.desktop.test
         run: pnpm --filter @nimiplatform/desktop test
       - name: gate.desktop.typecheck

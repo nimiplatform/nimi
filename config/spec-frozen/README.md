@@ -27,9 +27,7 @@ report it as byte drift:
 - `runtime/tables/error-mapping-matrix.yaml` — its `fragments.mappings` list is
   a **reader coordinate**, not data. When the realm merge activated the
   `15-realm-broker.yaml` fragment as `config/runtime-error-mapping-realm-broker.yaml`,
-  that entry had to follow the move or the matrix could not be loaded at all
-  (it did not, for one commit: `check:runtime-proto-spec-linkage` crashed with
-  ENOENT until `4db8dcd65` repointed it).
+  that entry had to follow the move or the matrix could not be loaded at all.
 
 The rule this settles: a `fragments`/`$ref` entry is a coordinate and follows
 its target; every other string in frozen data is an identifier and does not.

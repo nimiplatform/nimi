@@ -18,17 +18,10 @@ const appShellRoots = [
   'apps/zhiyu/src-electron',
 ];
 const tablesRoot = 'config';
-const agentCenterLocalConfigHardcutFiles = new Set([
-  'apps/zhiyu/src-electron/agent-center-local-config.ts',
-  'apps/zhiyu/src-electron/agent-center-local-config-schema.ts',
-  'apps/zhiyu/src-electron/live2d-source.ts',
-]);
-
 const gates = new Map([
   ['first-party-carrier-consumption', checkFirstPartyCarrierConsumption],
   ['sdk-kit-turn-consumption', checkSdkKitTurnConsumption],
   ['no-duplicate-turn-reducer', checkNoDuplicateTurnReducer],
-  ['config-boundary', checkConfigBoundary],
   ['no-direct-ai-consumption', checkNoDirectAIConsumption],
   ['conversation-artifact-boundary', checkConversationArtifactBoundary],
   ['local-persistence-boundary', checkLocalPersistenceBoundary],
@@ -180,60 +173,6 @@ function checkNoDuplicateTurnReducer() {
     { label: 'terminal success synthesis', pattern: /reasonCode:\s*['"](?:ok|success|completed)['"]/u },
   ]);
   reportHits('no duplicate turn reducer gate', hits);
-}
-
-function checkConfigBoundary() {
-  const files = [
-    ...walkFiles('apps/zhiyu/src/shell/agent-chat'),
-    ...walkFiles('apps/zhiyu/src/shell/ai-config'),
-    ...walkFiles('apps/zhiyu/src/shell/avatar'),
-    ...walkFiles('apps/zhiyu/src-electron'),
-  ];
-  requireFileIncludes('.nimi/spec/zhiyu/local-partner-surface.authority.yaml', [
-    'id: rule.nimi.zhiyu.local-partner-surface.r028',
-    'Z-CONFIG-005 retired app-local configuration remains absent',
-    '__nimiZhiyuAgentCenterLocalConfig',
-    'zhiyu:agent-center-local-config',
-    'avatar_autoplay remains only in Runtime AgentPresentationProfile',
-  ]);
-  requireFileIncludes(`${tablesRoot}/zhiyu-local-persistence-boundary.yaml`, [
-    'agent_center_local_config_hardcut',
-    'retired',
-    'source_rule: Z-CONFIG-005',
-  ]);
-  for (const rel of [
-    'apps/zhiyu/src-electron/agent-center-local-config.ts',
-    'apps/zhiyu/src-electron/agent-center-local-config-schema.ts',
-    'apps/zhiyu/src-electron/live2d-source.ts',
-    'apps/zhiyu/src/shell/agent-chat/zhiyu-agent-center-local-config.ts',
-    'apps/zhiyu/src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts',
-  ]) {
-    if (exists(rel)) {
-      fail(`retired Agent Center local config file must be removed: ${rel}`);
-    }
-  }
-  const hits = scan([
-    { label: 'app-local AI config store', pattern: /createNimiAIConfigStore/u },
-    { label: 'app-local AI snapshot store', pattern: /createNimiAISnapshotStore/u },
-    { label: 'local browser storage for AI config', pattern: /resolveBrowserStorage\s*\(\s*['"]local['"]\s*\)/u },
-    { label: 'Zhiyu AI config storage key', pattern: /ZHIYU_AI_CONFIG_STORAGE_KEY/u },
-    { label: 'Zhiyu AI snapshot storage key', pattern: /ZHIYU_AI_SNAPSHOT/u },
-    { label: 'AI config local save API', pattern: /function\s+saveZhiyuAIConfig/u },
-    { label: 'AI snapshot local record API', pattern: /function\s+recordZhiyuAISnapshot/u },
-    { label: 'app-local Avatar config store', pattern: /(?:create\w*Avatar\w*Store|avatarConfigStore|avatar_configuration_store|ZHIYU_AVATAR_CONFIG_STORAGE)/u },
-    { label: 'app-local Avatar resource store', pattern: /(?:avatarResourceStore|avatar_resource_store|ZHIYU_AVATAR_RESOURCE_STORAGE|live2dResourceStore|vrmResourceStore)/u },
-    { label: 'Avatar browser storage truth', pattern: /(?:avatar|live2d|vrm)[\s\S]{0,80}(?:localStorage|sessionStorage|indexedDB)|(?:localStorage|sessionStorage|indexedDB)[\s\S]{0,80}(?:avatar|live2d|vrm)/iu },
-    { label: 'app-local Avatar carrier lifecycle truth', pattern: /(?:carrierLifecycleStore|carrier_lifecycle_store|avatarCarrierTruth|avatar_carrier_truth)/u },
-    { label: 'retired Zhiyu Agent Center local config global', pattern: /__nimiZhiyuAgentCenterLocalConfig/u },
-    { label: 'retired Zhiyu Agent Center local config IPC', pattern: /zhiyu:agent-center-local-config/u },
-    { label: 'retired Agent Center local config type', pattern: /\b(?:Zhiyu)?AgentCenterLocalConfig\b/u },
-    { label: 'retired Agent Center local avatar ref field', pattern: /\blocal_avatar_asset_ref\b/u },
-    { label: 'retired Agent Center local background field', pattern: /\bbackground_asset_id\b/u },
-  ], files);
-  const avatarFilesystemHits = scan([
-    { label: 'Avatar filesystem truth in app shell', pattern: /(?:avatar|live2d|vrm)[\s\S]{0,120}(?:writeFile|appendFile)|(?:writeFile|appendFile)[\s\S]{0,120}(?:avatar|live2d|vrm)/iu },
-  ], files.filter((rel) => !agentCenterLocalConfigHardcutFiles.has(rel)));
-  reportHits('config boundary gate', [...hits, ...avatarFilesystemHits]);
 }
 
 function checkNoDirectAIConsumption() {

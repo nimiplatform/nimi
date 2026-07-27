@@ -36,7 +36,6 @@ const retiredSdkLiveAuthorityScanPaths = [
   'package.json',
   'scripts/run-live-test-matrix.mjs',
   'scripts/check-live-smoke-gate.mjs',
-  'scripts/check-runtime-target-identity-v2.mjs',
   'config/live/live-gate-baseline.yaml',
   'config/live/live-test.env.example',
   'config/live/dashscope-gold-path.env',
