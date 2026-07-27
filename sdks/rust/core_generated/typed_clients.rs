@@ -41504,6 +41504,12 @@ pub struct BundleMemberDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CanDmResultDto {
+    pub can_dm: bool,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CanWithdrawDto {
     pub balance: String,
     pub can_withdraw: bool,
@@ -42098,7 +42104,8 @@ pub struct CurrencyTransactionHistoryDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CursorPageMetaDto {
-    pub has_next: bool,
+    pub cursor: String,
+    pub limit: f64,
     pub next_cursor: String,
 }
 
@@ -42758,6 +42765,11 @@ pub struct OAuthTokenResponseDto {
     pub realm_environment_id: String,
     pub refresh_token: String,
     pub token_type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Object {
+
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43583,6 +43595,26 @@ pub struct UpdateUserSettingsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateVisibilityBulkDto {
+    pub account_visibility: String,
+    pub default_post_visibility: String,
+    pub dm_visibility: String,
+    pub friend_list_visibility: String,
+    pub friend_request_visibility: String,
+    pub mention_visibility: String,
+    pub online_status_visibility: String,
+    pub profile_visibility: String,
+    pub social_visibility: String,
+    pub wallet_visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateVisibilityDto {
+    pub scope: String,
+    pub visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UsePolicyDto {
     pub allowed_binding_points: Vec<String>,
     pub allowed_host_types: Vec<String>,
@@ -43735,6 +43767,20 @@ pub struct UserTierSummaryDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UserVisibilitySettingsDto {
+    pub account_visibility: String,
+    pub default_post_visibility: String,
+    pub dm_visibility: String,
+    pub friend_list_visibility: String,
+    pub friend_request_visibility: String,
+    pub mention_visibility: String,
+    pub online_status_visibility: String,
+    pub profile_visibility: String,
+    pub social_visibility: String,
+    pub wallet_visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserWalletDto {
     pub address: String,
     pub bound_on_chains: Vec<String>,
@@ -43768,6 +43814,12 @@ pub struct VerifyInvitationCodeDto {
 }
 
 pub type Visibility = String;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VisibilityCheckResultDto {
+    pub can_view: bool,
+    pub reason: String,
+}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WalletBindDto {
@@ -45765,6 +45817,53 @@ pub struct RealmExploreControllerCheckStatusOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmFeedbackControllerGetMyFeedbacksOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmFeedbackControllerGetMyFeedbacksOperationQuery {
+    pub limit: Option<f64>,
+    pub cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmFeedbackControllerGetMyFeedbacksOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmFeedbackControllerGetMyFeedbacksOperationRequest {
+    pub path: RealmFeedbackControllerGetMyFeedbacksOperationPath,
+    pub query: RealmFeedbackControllerGetMyFeedbacksOperationQuery,
+    pub headers: RealmFeedbackControllerGetMyFeedbacksOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmFeedbackControllerSubmitFeedbackOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmFeedbackControllerSubmitFeedbackOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmFeedbackControllerSubmitFeedbackOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmFeedbackControllerSubmitFeedbackOperationRequest {
+    pub path: RealmFeedbackControllerSubmitFeedbackOperationPath,
+    pub query: RealmFeedbackControllerSubmitFeedbackOperationQuery,
+    pub headers: RealmFeedbackControllerSubmitFeedbackOperationHeaders,
+    pub body: Object,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmFinalizeResourceOperationPath {
     pub resource_id: String,
 }
@@ -46258,6 +46357,31 @@ pub struct RealmGetPostOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetPostRecommendationsOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetPostRecommendationsOperationQuery {
+    pub seed: Option<f64>,
+    pub cursor: Option<String>,
+    pub limit: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetPostRecommendationsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetPostRecommendationsOperationRequest {
+    pub path: RealmGetPostRecommendationsOperationPath,
+    pub query: RealmGetPostRecommendationsOperationQuery,
+    pub headers: RealmGetPostRecommendationsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetPublicPostOperationPath {
     pub id: String,
 }
@@ -46277,6 +46401,31 @@ pub struct RealmGetPublicPostOperationRequest {
     pub path: RealmGetPublicPostOperationPath,
     pub query: RealmGetPublicPostOperationQuery,
     pub headers: RealmGetPublicPostOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetRecommendationsOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetRecommendationsOperationQuery {
+    pub seed: Option<f64>,
+    pub cursor: Option<String>,
+    pub limit: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetRecommendationsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetRecommendationsOperationRequest {
+    pub path: RealmGetRecommendationsOperationPath,
+    pub query: RealmGetRecommendationsOperationQuery,
+    pub headers: RealmGetRecommendationsOperationHeaders,
     pub body: (),
 }
 
@@ -48333,6 +48482,146 @@ pub struct RealmVerifyEmailOtpOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanDmOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanDmOperationQuery {
+    pub target_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanDmOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanDmOperationRequest {
+    pub path: RealmVisibilityControllerCheckCanDmOperationPath,
+    pub query: RealmVisibilityControllerCheckCanDmOperationQuery,
+    pub headers: RealmVisibilityControllerCheckCanDmOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanViewOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanViewOperationQuery {
+    pub scope: Option<String>,
+    pub target_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanViewOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanViewOperationRequest {
+    pub path: RealmVisibilityControllerCheckCanViewOperationPath,
+    pub query: RealmVisibilityControllerCheckCanViewOperationQuery,
+    pub headers: RealmVisibilityControllerCheckCanViewOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanViewPublicOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanViewPublicOperationQuery {
+    pub scope: Option<String>,
+    pub target_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanViewPublicOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerCheckCanViewPublicOperationRequest {
+    pub path: RealmVisibilityControllerCheckCanViewPublicOperationPath,
+    pub query: RealmVisibilityControllerCheckCanViewPublicOperationQuery,
+    pub headers: RealmVisibilityControllerCheckCanViewPublicOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerGetUserSettingsOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerGetUserSettingsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerGetUserSettingsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerGetUserSettingsOperationRequest {
+    pub path: RealmVisibilityControllerGetUserSettingsOperationPath,
+    pub query: RealmVisibilityControllerGetUserSettingsOperationQuery,
+    pub headers: RealmVisibilityControllerGetUserSettingsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerUpdateUserSettingOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerUpdateUserSettingOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerUpdateUserSettingOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerUpdateUserSettingOperationRequest {
+    pub path: RealmVisibilityControllerUpdateUserSettingOperationPath,
+    pub query: RealmVisibilityControllerUpdateUserSettingOperationQuery,
+    pub headers: RealmVisibilityControllerUpdateUserSettingOperationHeaders,
+    pub body: UpdateVisibilityDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerUpdateUserSettingsBulkOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerUpdateUserSettingsBulkOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerUpdateUserSettingsBulkOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest {
+    pub path: RealmVisibilityControllerUpdateUserSettingsBulkOperationPath,
+    pub query: RealmVisibilityControllerUpdateUserSettingsBulkOperationQuery,
+    pub headers: RealmVisibilityControllerUpdateUserSettingsBulkOperationHeaders,
+    pub body: UpdateVisibilityBulkDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWalletChallengeOperationPath {
 
 }
@@ -49323,6 +49612,14 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ExploreController_checkStatus");
     }
 
+    pub fn feedback_controller_get_my_feedbacks(&self, _request: RealmFeedbackControllerGetMyFeedbacksOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for FeedbackController_getMyFeedbacks");
+    }
+
+    pub fn feedback_controller_submit_feedback(&self, _request: RealmFeedbackControllerSubmitFeedbackOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for FeedbackController_submitFeedback");
+    }
+
     pub fn finalize_resource(&self, _request: RealmFinalizeResourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for finalizeResource");
     }
@@ -49407,8 +49704,16 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getPost");
     }
 
+    pub fn get_post_recommendations(&self, _request: RealmGetPostRecommendationsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getPostRecommendations");
+    }
+
     pub fn get_public_post(&self, _request: RealmGetPublicPostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getPublicPost");
+    }
+
+    pub fn get_recommendations(&self, _request: RealmGetRecommendationsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserSearchResponseDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getRecommendations");
     }
 
     pub fn get_resource(&self, _request: RealmGetResourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
@@ -49753,6 +50058,30 @@ where
 
     pub fn verify_email_otp(&self, _request: RealmVerifyEmailOtpOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for verifyEmailOtp");
+    }
+
+    pub fn visibility_controller_check_can_dm(&self, _request: RealmVisibilityControllerCheckCanDmOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CanDmResultDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_checkCanDm");
+    }
+
+    pub fn visibility_controller_check_can_view(&self, _request: RealmVisibilityControllerCheckCanViewOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<VisibilityCheckResultDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_checkCanView");
+    }
+
+    pub fn visibility_controller_check_can_view_public(&self, _request: RealmVisibilityControllerCheckCanViewPublicOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<VisibilityCheckResultDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_checkCanViewPublic");
+    }
+
+    pub fn visibility_controller_get_user_settings(&self, _request: RealmVisibilityControllerGetUserSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserVisibilitySettingsDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_getUserSettings");
+    }
+
+    pub fn visibility_controller_update_user_setting(&self, _request: RealmVisibilityControllerUpdateUserSettingOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_updateUserSetting");
+    }
+
+    pub fn visibility_controller_update_user_settings_bulk(&self, _request: RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_updateUserSettingsBulk");
     }
 
     pub fn wallet_challenge(&self, _request: RealmWalletChallengeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WalletChallengeResponseDto, T::Error> {

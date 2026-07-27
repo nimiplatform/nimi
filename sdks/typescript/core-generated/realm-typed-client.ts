@@ -155,6 +155,10 @@ export interface BundleMemberDto {
   readonly assetId: string;
   readonly sortOrder: number;
 }
+export interface CanDmResultDto {
+  readonly canDm: boolean;
+  readonly reason?: string;
+}
 export interface CanWithdrawDto {
   readonly balance: string;
   readonly canWithdraw: boolean;
@@ -599,8 +603,9 @@ export interface CurrencyTransactionHistoryDto {
   readonly nextCursor: string | null;
 }
 export interface CursorPageMetaDto {
-  readonly hasNext: boolean;
-  readonly nextCursor: string | null;
+  readonly cursor?: string | null;
+  readonly limit?: number;
+  readonly nextCursor?: string | null;
 }
 export interface DeleteRelationshipResponseDto {
   readonly deleted: boolean;
@@ -1105,6 +1110,9 @@ export interface OAuthTokenResponseDto {
   readonly realm_environment_id: string;
   readonly refresh_token: string;
   readonly token_type: string;
+}
+export interface Object {
+
 }
 export interface PasswordLoginDto {
   readonly identifier: string;
@@ -1735,6 +1743,22 @@ export interface UpdateUserSettingsDto {
   readonly walletSecurityChallengeEnabled?: boolean;
   readonly walletVisibility?: Visibility;
 }
+export interface UpdateVisibilityBulkDto {
+  readonly accountVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly defaultPostVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly dmVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly friendListVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly friendRequestVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly mentionVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly onlineStatusVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly profileVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly socialVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly walletVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+}
+export interface UpdateVisibilityDto {
+  readonly scope: "account" | "profile" | "defaultPost" | "wallet" | "social" | "dm" | "friendList" | "friendRequest" | "mention" | "onlineStatus";
+  readonly visibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+}
 export interface UsePolicyDto {
   readonly allowedBindingPoints?: readonly ("WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "WORLD_CHARACTER_AVATAR" | "WORLD_CHARACTER_PORTRAIT" | "WORLD_CHARACTER_EXPRESSION" | "WORLD_CHARACTER_OUTFIT" | "WORLD_CHARACTER_CANDIDATE" | "WORLD_CHARACTER_VOICE_SAMPLE" | "PERSONA_CHARACTER_AVATAR" | "PERSONA_CHARACTER_PORTRAIT" | "PERSONA_CHARACTER_EXPRESSION" | "PERSONA_CHARACTER_OUTFIT" | "PERSONA_CHARACTER_CANDIDATE" | "PERSONA_CHARACTER_VOICE_SAMPLE")[];
   readonly allowedHostTypes: readonly ("WORLD" | "WORLD_CHARACTER" | "PERSONA_CHARACTER" | "SCENE")[];
@@ -1865,6 +1889,18 @@ export interface UserTierSummaryDto {
   readonly interactionTier?: number;
   readonly vitalityScore?: number;
 }
+export interface UserVisibilitySettingsDto {
+  readonly accountVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly defaultPostVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly dmVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly friendListVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly friendRequestVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly mentionVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly onlineStatusVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly profileVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly socialVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+  readonly walletVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+}
 export interface UserWalletDto {
   readonly address: string;
   readonly boundOnChains: readonly (string)[];
@@ -1889,6 +1925,10 @@ export interface VerifyInvitationCodeDto {
   readonly invitationCode: string;
 }
 export type Visibility = "PUBLIC" | "FRIENDS" | "PRIVATE";
+export interface VisibilityCheckResultDto {
+  readonly canView: boolean;
+  readonly reason?: string;
+}
 export interface WalletBindDto {
   readonly chainId?: number;
   readonly message?: string;
@@ -2746,6 +2786,7 @@ export interface RealmTypedModelMap {
   readonly "BundleDetailDto": BundleDetailDto;
   readonly "BundleListDto": BundleListDto;
   readonly "BundleMemberDto": BundleMemberDto;
+  readonly "CanDmResultDto": CanDmResultDto;
   readonly "CanWithdrawDto": CanWithdrawDto;
   readonly "ChangeEmailDto": ChangeEmailDto;
   readonly "CharacterProfileCoreDto": CharacterProfileCoreDto;
@@ -2883,6 +2924,7 @@ export interface RealmTypedModelMap {
   readonly "OAuthProvider": OAuthProvider;
   readonly "OAuthTokenRequestDto": OAuthTokenRequestDto;
   readonly "OAuthTokenResponseDto": OAuthTokenResponseDto;
+  readonly "Object": Object;
   readonly "PasswordLoginDto": PasswordLoginDto;
   readonly "PasswordRegisterDto": PasswordRegisterDto;
   readonly "PersonaCharacterCoreDto": PersonaCharacterCoreDto;
@@ -2973,6 +3015,8 @@ export interface RealmTypedModelMap {
   readonly "UpdateUserDto": UpdateUserDto;
   readonly "UpdateUserNotificationSettingsDto": UpdateUserNotificationSettingsDto;
   readonly "UpdateUserSettingsDto": UpdateUserSettingsDto;
+  readonly "UpdateVisibilityBulkDto": UpdateVisibilityBulkDto;
+  readonly "UpdateVisibilityDto": UpdateVisibilityDto;
   readonly "UsePolicyDto": UsePolicyDto;
   readonly "UserCapabilitiesDto": UserCapabilitiesDto;
   readonly "UserFeatureCapabilitiesDto": UserFeatureCapabilitiesDto;
@@ -2984,12 +3028,14 @@ export interface RealmTypedModelMap {
   readonly "UserSettingsDto": UserSettingsDto;
   readonly "UserStatsDto": UserStatsDto;
   readonly "UserTierSummaryDto": UserTierSummaryDto;
+  readonly "UserVisibilitySettingsDto": UserVisibilitySettingsDto;
   readonly "UserWalletDto": UserWalletDto;
   readonly "UserWalletListResponseDto": UserWalletListResponseDto;
   readonly "ValidityIssueDto": ValidityIssueDto;
   readonly "ValidityResultDto": ValidityResultDto;
   readonly "VerifyInvitationCodeDto": VerifyInvitationCodeDto;
   readonly "Visibility": Visibility;
+  readonly "VisibilityCheckResultDto": VisibilityCheckResultDto;
   readonly "WalletBindDto": WalletBindDto;
   readonly "WalletChallengeDto": WalletChallengeDto;
   readonly "WalletChallengeResponseDto": WalletChallengeResponseDto;
@@ -3793,6 +3839,33 @@ export interface RealmExploreControllerCheckStatusOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmExploreControllerCheckStatusOperationResponse = Record<string, never>;
+export interface RealmFeedbackControllerGetMyFeedbacksOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly limit?: number;
+    readonly cursor?: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmFeedbackControllerGetMyFeedbacksOperationResponse = Record<string, unknown>;
+export interface RealmFeedbackControllerSubmitFeedbackOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: Object;
+}
+export type RealmFeedbackControllerSubmitFeedbackOperationResponse = Record<string, unknown>;
 export interface RealmFinalizeResourceOperationRequest {
   readonly path: {
     readonly resourceId: string;
@@ -4076,6 +4149,21 @@ export interface RealmGetPostOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetPostOperationResponse = PostDto;
+export interface RealmGetPostRecommendationsOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly seed?: number;
+    readonly cursor?: string;
+    readonly limit?: number;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetPostRecommendationsOperationResponse = FeedResponseDto;
 export interface RealmGetPublicPostOperationRequest {
   readonly path: {
     readonly id: string;
@@ -4089,6 +4177,21 @@ export interface RealmGetPublicPostOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetPublicPostOperationResponse = PostDto;
+export interface RealmGetRecommendationsOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly seed?: number;
+    readonly cursor?: string;
+    readonly limit?: number;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetRecommendationsOperationResponse = UserSearchResponseDto;
 export interface RealmGetResourceOperationRequest {
   readonly path: {
     readonly resourceId: string;
@@ -5281,6 +5384,86 @@ export interface RealmVerifyEmailOtpOperationRequest {
   readonly body: EmailOtpVerifyDto;
 }
 export type RealmVerifyEmailOtpOperationResponse = OAuthLoginResultDto;
+export interface RealmVisibilityControllerCheckCanDmOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly targetId: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmVisibilityControllerCheckCanDmOperationResponse = CanDmResultDto;
+export interface RealmVisibilityControllerCheckCanViewOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly scope: "account" | "profile";
+    readonly targetId: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmVisibilityControllerCheckCanViewOperationResponse = VisibilityCheckResultDto;
+export interface RealmVisibilityControllerCheckCanViewPublicOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly scope: "account" | "profile";
+    readonly targetId: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmVisibilityControllerCheckCanViewPublicOperationResponse = VisibilityCheckResultDto;
+export interface RealmVisibilityControllerGetUserSettingsOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmVisibilityControllerGetUserSettingsOperationResponse = UserVisibilitySettingsDto;
+export interface RealmVisibilityControllerUpdateUserSettingOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: UpdateVisibilityDto;
+}
+export type RealmVisibilityControllerUpdateUserSettingOperationResponse = Record<string, never>;
+export interface RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: UpdateVisibilityBulkDto;
+}
+export type RealmVisibilityControllerUpdateUserSettingsBulkOperationResponse = Record<string, never>;
 export interface RealmWalletChallengeOperationRequest {
   readonly path: {
 
@@ -6324,6 +6507,28 @@ export class RealmTypedClient {
     });
   }
 
+  async feedbackControllerGetMyFeedbacks(request: RealmFeedbackControllerGetMyFeedbacksOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmFeedbackControllerGetMyFeedbacksOperationResponse> {
+    return this.core.unary<RealmFeedbackControllerGetMyFeedbacksOperationResponse, RealmFeedbackControllerGetMyFeedbacksOperationRequest>({
+      methodId: "FeedbackController_getMyFeedbacks",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async feedbackControllerSubmitFeedback(request: RealmFeedbackControllerSubmitFeedbackOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmFeedbackControllerSubmitFeedbackOperationResponse> {
+    return this.core.unary<RealmFeedbackControllerSubmitFeedbackOperationResponse, RealmFeedbackControllerSubmitFeedbackOperationRequest>({
+      methodId: "FeedbackController_submitFeedback",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async finalizeResource(request: RealmFinalizeResourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmFinalizeResourceOperationResponse> {
     return this.core.unary<RealmFinalizeResourceOperationResponse, RealmFinalizeResourceOperationRequest>({
       methodId: "finalizeResource",
@@ -6555,9 +6760,31 @@ export class RealmTypedClient {
     });
   }
 
+  async getPostRecommendations(request: RealmGetPostRecommendationsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetPostRecommendationsOperationResponse> {
+    return this.core.unary<RealmGetPostRecommendationsOperationResponse, RealmGetPostRecommendationsOperationRequest>({
+      methodId: "getPostRecommendations",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async getPublicPost(request: RealmGetPublicPostOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetPublicPostOperationResponse> {
     return this.core.unary<RealmGetPublicPostOperationResponse, RealmGetPublicPostOperationRequest>({
       methodId: "getPublicPost",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getRecommendations(request: RealmGetRecommendationsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetRecommendationsOperationResponse> {
+    return this.core.unary<RealmGetRecommendationsOperationResponse, RealmGetRecommendationsOperationRequest>({
+      methodId: "getRecommendations",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -7504,6 +7731,72 @@ export class RealmTypedClient {
   async verifyEmailOtp(request: RealmVerifyEmailOtpOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVerifyEmailOtpOperationResponse> {
     return this.core.unary<RealmVerifyEmailOtpOperationResponse, RealmVerifyEmailOtpOperationRequest>({
       methodId: "verifyEmailOtp",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async visibilityControllerCheckCanDm(request: RealmVisibilityControllerCheckCanDmOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerCheckCanDmOperationResponse> {
+    return this.core.unary<RealmVisibilityControllerCheckCanDmOperationResponse, RealmVisibilityControllerCheckCanDmOperationRequest>({
+      methodId: "VisibilityController_checkCanDm",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async visibilityControllerCheckCanView(request: RealmVisibilityControllerCheckCanViewOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerCheckCanViewOperationResponse> {
+    return this.core.unary<RealmVisibilityControllerCheckCanViewOperationResponse, RealmVisibilityControllerCheckCanViewOperationRequest>({
+      methodId: "VisibilityController_checkCanView",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async visibilityControllerCheckCanViewPublic(request: RealmVisibilityControllerCheckCanViewPublicOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerCheckCanViewPublicOperationResponse> {
+    return this.core.unary<RealmVisibilityControllerCheckCanViewPublicOperationResponse, RealmVisibilityControllerCheckCanViewPublicOperationRequest>({
+      methodId: "VisibilityController_checkCanViewPublic",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async visibilityControllerGetUserSettings(request: RealmVisibilityControllerGetUserSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerGetUserSettingsOperationResponse> {
+    return this.core.unary<RealmVisibilityControllerGetUserSettingsOperationResponse, RealmVisibilityControllerGetUserSettingsOperationRequest>({
+      methodId: "VisibilityController_getUserSettings",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async visibilityControllerUpdateUserSetting(request: RealmVisibilityControllerUpdateUserSettingOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerUpdateUserSettingOperationResponse> {
+    return this.core.unary<RealmVisibilityControllerUpdateUserSettingOperationResponse, RealmVisibilityControllerUpdateUserSettingOperationRequest>({
+      methodId: "VisibilityController_updateUserSetting",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async visibilityControllerUpdateUserSettingsBulk(request: RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerUpdateUserSettingsBulkOperationResponse> {
+    return this.core.unary<RealmVisibilityControllerUpdateUserSettingsBulkOperationResponse, RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest>({
+      methodId: "VisibilityController_updateUserSettingsBulk",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

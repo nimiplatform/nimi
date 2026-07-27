@@ -202,6 +202,11 @@ class BundleMemberDto:
     sortOrder: float | None = None
 
 @dataclass(frozen=True)
+class CanDmResultDto:
+    canDm: bool | None = None
+    reason: str | None = None
+
+@dataclass(frozen=True)
 class CanWithdrawDto:
     balance: str | None = None
     canWithdraw: bool | None = None
@@ -710,7 +715,8 @@ class CurrencyTransactionHistoryDto:
 
 @dataclass(frozen=True)
 class CursorPageMetaDto:
-    hasNext: bool | None = None
+    cursor: str | None = None
+    limit: float | None = None
     nextCursor: str | None = None
 
 @dataclass(frozen=True)
@@ -1284,6 +1290,10 @@ class OAuthTokenResponseDto:
     realm_environment_id: str | None = None
     refresh_token: str | None = None
     token_type: str | None = None
+
+@dataclass(frozen=True)
+class Object:
+    pass
 
 @dataclass(frozen=True)
 class PasswordLoginDto:
@@ -2003,6 +2013,24 @@ class UpdateUserSettingsDto:
     walletVisibility: Visibility | None = None
 
 @dataclass(frozen=True)
+class UpdateVisibilityBulkDto:
+    accountVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    defaultPostVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    dmVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    friendListVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    friendRequestVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    mentionVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    onlineStatusVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    profileVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    socialVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    walletVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+
+@dataclass(frozen=True)
+class UpdateVisibilityDto:
+    scope: Literal["account", "profile", "defaultPost", "wallet", "social", "dm", "friendList", "friendRequest", "mention", "onlineStatus"] | None = None
+    visibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+
+@dataclass(frozen=True)
 class UsePolicyDto:
     allowedBindingPoints: tuple[Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "WORLD_CHARACTER_AVATAR", "WORLD_CHARACTER_PORTRAIT", "WORLD_CHARACTER_EXPRESSION", "WORLD_CHARACTER_OUTFIT", "WORLD_CHARACTER_CANDIDATE", "WORLD_CHARACTER_VOICE_SAMPLE", "PERSONA_CHARACTER_AVATAR", "PERSONA_CHARACTER_PORTRAIT", "PERSONA_CHARACTER_EXPRESSION", "PERSONA_CHARACTER_OUTFIT", "PERSONA_CHARACTER_CANDIDATE", "PERSONA_CHARACTER_VOICE_SAMPLE"], ...] = field(default_factory=tuple)
     allowedHostTypes: tuple[Literal["WORLD", "WORLD_CHARACTER", "PERSONA_CHARACTER", "SCENE"], ...] = field(default_factory=tuple)
@@ -2144,6 +2172,19 @@ class UserTierSummaryDto:
     vitalityScore: float | None = None
 
 @dataclass(frozen=True)
+class UserVisibilitySettingsDto:
+    accountVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    defaultPostVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    dmVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    friendListVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    friendRequestVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    mentionVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    onlineStatusVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    profileVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    socialVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+    walletVisibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
+
+@dataclass(frozen=True)
 class UserWalletDto:
     address: str | None = None
     boundOnChains: tuple[str, ...] = field(default_factory=tuple)
@@ -2172,6 +2213,11 @@ class VerifyInvitationCodeDto:
     invitationCode: str | None = None
 
 Visibility = Literal["PUBLIC", "FRIENDS", "PRIVATE"]
+
+@dataclass(frozen=True)
+class VisibilityCheckResultDto:
+    canView: bool | None = None
+    reason: str | None = None
 
 @dataclass(frozen=True)
 class WalletBindDto:
@@ -4045,6 +4091,51 @@ class RealmExploreControllerCheckStatusOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmFeedbackControllerGetMyFeedbacksOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmFeedbackControllerGetMyFeedbacksOperationQuery:
+    limit: float | None = None
+    cursor: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmFeedbackControllerGetMyFeedbacksOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmFeedbackControllerGetMyFeedbacksOperationRequest:
+    path: RealmFeedbackControllerGetMyFeedbacksOperationPath
+    query: RealmFeedbackControllerGetMyFeedbacksOperationQuery | None = None
+    headers: RealmFeedbackControllerGetMyFeedbacksOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmFeedbackControllerSubmitFeedbackOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmFeedbackControllerSubmitFeedbackOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmFeedbackControllerSubmitFeedbackOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmFeedbackControllerSubmitFeedbackOperationRequest:
+    path: RealmFeedbackControllerSubmitFeedbackOperationPath
+    query: RealmFeedbackControllerSubmitFeedbackOperationQuery | None = None
+    headers: RealmFeedbackControllerSubmitFeedbackOperationHeaders | None = None
+    body: Object | None = None
+
+@dataclass(frozen=True)
 class RealmFinalizeResourceOperationPath:
     resourceId: str
 
@@ -4517,6 +4608,30 @@ class RealmGetPostOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmGetPostRecommendationsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetPostRecommendationsOperationQuery:
+    seed: float | None = None
+    cursor: str | None = None
+    limit: float | None = None
+
+
+@dataclass(frozen=True)
+class RealmGetPostRecommendationsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetPostRecommendationsOperationRequest:
+    path: RealmGetPostRecommendationsOperationPath
+    query: RealmGetPostRecommendationsOperationQuery | None = None
+    headers: RealmGetPostRecommendationsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmGetPublicPostOperationPath:
     id: str
 
@@ -4536,6 +4651,30 @@ class RealmGetPublicPostOperationRequest:
     path: RealmGetPublicPostOperationPath
     query: RealmGetPublicPostOperationQuery | None = None
     headers: RealmGetPublicPostOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetRecommendationsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRecommendationsOperationQuery:
+    seed: float | None = None
+    cursor: str | None = None
+    limit: float | None = None
+
+
+@dataclass(frozen=True)
+class RealmGetRecommendationsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRecommendationsOperationRequest:
+    path: RealmGetRecommendationsOperationPath
+    query: RealmGetRecommendationsOperationQuery | None = None
+    headers: RealmGetRecommendationsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -6505,6 +6644,140 @@ class RealmVerifyEmailOtpOperationRequest:
     body: EmailOtpVerifyDto | None = None
 
 @dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanDmOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanDmOperationQuery:
+    targetId: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanDmOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanDmOperationRequest:
+    path: RealmVisibilityControllerCheckCanDmOperationPath
+    query: RealmVisibilityControllerCheckCanDmOperationQuery | None = None
+    headers: RealmVisibilityControllerCheckCanDmOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanViewOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanViewOperationQuery:
+    scope: Literal["account", "profile"] | None = None
+    targetId: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanViewOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanViewOperationRequest:
+    path: RealmVisibilityControllerCheckCanViewOperationPath
+    query: RealmVisibilityControllerCheckCanViewOperationQuery | None = None
+    headers: RealmVisibilityControllerCheckCanViewOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanViewPublicOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanViewPublicOperationQuery:
+    scope: Literal["account", "profile"] | None = None
+    targetId: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanViewPublicOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerCheckCanViewPublicOperationRequest:
+    path: RealmVisibilityControllerCheckCanViewPublicOperationPath
+    query: RealmVisibilityControllerCheckCanViewPublicOperationQuery | None = None
+    headers: RealmVisibilityControllerCheckCanViewPublicOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerGetUserSettingsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerGetUserSettingsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerGetUserSettingsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerGetUserSettingsOperationRequest:
+    path: RealmVisibilityControllerGetUserSettingsOperationPath
+    query: RealmVisibilityControllerGetUserSettingsOperationQuery | None = None
+    headers: RealmVisibilityControllerGetUserSettingsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerUpdateUserSettingOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerUpdateUserSettingOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerUpdateUserSettingOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerUpdateUserSettingOperationRequest:
+    path: RealmVisibilityControllerUpdateUserSettingOperationPath
+    query: RealmVisibilityControllerUpdateUserSettingOperationQuery | None = None
+    headers: RealmVisibilityControllerUpdateUserSettingOperationHeaders | None = None
+    body: UpdateVisibilityDto | None = None
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerUpdateUserSettingsBulkOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerUpdateUserSettingsBulkOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerUpdateUserSettingsBulkOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest:
+    path: RealmVisibilityControllerUpdateUserSettingsBulkOperationPath
+    query: RealmVisibilityControllerUpdateUserSettingsBulkOperationQuery | None = None
+    headers: RealmVisibilityControllerUpdateUserSettingsBulkOperationHeaders | None = None
+    body: UpdateVisibilityBulkDto | None = None
+
+@dataclass(frozen=True)
 class RealmWalletChallengeOperationPath:
     pass
 
@@ -7781,6 +8054,26 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="ExploreController_checkStatus", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
+    async def feedback_controller_get_my_feedbacks(self, request: RealmFeedbackControllerGetMyFeedbacksOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmFeedbackControllerGetMyFeedbacksOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="FeedbackController_getMyFeedbacks", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(Mapping[str, object], raw)
+
+    async def feedback_controller_submit_feedback(self, request: RealmFeedbackControllerSubmitFeedbackOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmFeedbackControllerSubmitFeedbackOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="FeedbackController_submitFeedback", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(Mapping[str, object], raw)
+
     async def finalize_resource(self, request: RealmFinalizeResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmFinalizeResourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7991,6 +8284,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getPost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PostDto, raw)
 
+    async def get_post_recommendations(self, request: RealmGetPostRecommendationsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetPostRecommendationsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getPostRecommendations", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(FeedResponseDto, raw)
+
     async def get_public_post(self, request: RealmGetPublicPostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetPublicPostOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8000,6 +8303,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getPublicPost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PostDto, raw)
+
+    async def get_recommendations(self, request: RealmGetRecommendationsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetRecommendationsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getRecommendations", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UserSearchResponseDto, raw)
 
     async def get_resource(self, request: RealmGetResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetResourceOperationResponse:
         envelope: dict[str, object] = {
@@ -8860,6 +9173,66 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="verifyEmailOtp", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
+
+    async def visibility_controller_check_can_dm(self, request: RealmVisibilityControllerCheckCanDmOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerCheckCanDmOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_checkCanDm", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CanDmResultDto, raw)
+
+    async def visibility_controller_check_can_view(self, request: RealmVisibilityControllerCheckCanViewOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerCheckCanViewOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_checkCanView", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(VisibilityCheckResultDto, raw)
+
+    async def visibility_controller_check_can_view_public(self, request: RealmVisibilityControllerCheckCanViewPublicOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerCheckCanViewPublicOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_checkCanViewPublic", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(VisibilityCheckResultDto, raw)
+
+    async def visibility_controller_get_user_settings(self, request: RealmVisibilityControllerGetUserSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerGetUserSettingsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_getUserSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UserVisibilitySettingsDto, raw)
+
+    async def visibility_controller_update_user_setting(self, request: RealmVisibilityControllerUpdateUserSettingOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerUpdateUserSettingOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_updateUserSetting", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(None, raw)
+
+    async def visibility_controller_update_user_settings_bulk(self, request: RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerUpdateUserSettingsBulkOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_updateUserSettingsBulk", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(None, raw)
 
     async def wallet_challenge(self, request: RealmWalletChallengeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWalletChallengeOperationResponse:
         envelope: dict[str, object] = {

@@ -344,6 +344,18 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/explore/status"),
     },
     RealmOperationDescriptor {
+        operation_id: "FeedbackController_getMyFeedbacks",
+        service: "Support (Feedback)",
+        method: "GET",
+        path: Some("/api/support/feedback"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "FeedbackController_submitFeedback",
+        service: "Support (Feedback)",
+        method: "POST",
+        path: Some("/api/support/feedback"),
+    },
+    RealmOperationDescriptor {
         operation_id: "finalizeResource",
         service: "Resources",
         method: "POST",
@@ -470,10 +482,22 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/world/posts/by-id/{id}"),
     },
     RealmOperationDescriptor {
+        operation_id: "getPostRecommendations",
+        service: "Discover",
+        method: "GET",
+        path: Some("/api/discover/recommendations/posts"),
+    },
+    RealmOperationDescriptor {
         operation_id: "getPublicPost",
         service: "Posts",
         method: "GET",
         path: Some("/api/world/posts/public/{id}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getRecommendations",
+        service: "Discover",
+        method: "GET",
+        path: Some("/api/discover/recommendations"),
     },
     RealmOperationDescriptor {
         operation_id: "getResource",
@@ -990,6 +1014,42 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Auth",
         method: "POST",
         path: Some("/api/auth/email/otp/verify"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "VisibilityController_checkCanDm",
+        service: "Visibility (V1)",
+        method: "GET",
+        path: Some("/api/human/visibility/check/dm"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "VisibilityController_checkCanView",
+        service: "Visibility (V1)",
+        method: "GET",
+        path: Some("/api/human/visibility/check/view"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "VisibilityController_checkCanViewPublic",
+        service: "Visibility (V1)",
+        method: "GET",
+        path: Some("/api/human/visibility/check/view/public"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "VisibilityController_getUserSettings",
+        service: "Visibility (V1)",
+        method: "GET",
+        path: Some("/api/human/visibility/user/settings"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "VisibilityController_updateUserSetting",
+        service: "Visibility (V1)",
+        method: "PUT",
+        path: Some("/api/human/visibility/user/settings"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "VisibilityController_updateUserSettingsBulk",
+        service: "Visibility (V1)",
+        method: "PATCH",
+        path: Some("/api/human/visibility/user/settings"),
     },
     RealmOperationDescriptor {
         operation_id: "walletChallenge",

@@ -343,6 +343,18 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/explore/status"
   },
   {
+    "operationId": "FeedbackController_getMyFeedbacks",
+    "service": "Support (Feedback)",
+    "method": "GET",
+    "path": "/api/support/feedback"
+  },
+  {
+    "operationId": "FeedbackController_submitFeedback",
+    "service": "Support (Feedback)",
+    "method": "POST",
+    "path": "/api/support/feedback"
+  },
+  {
     "operationId": "finalizeResource",
     "service": "Resources",
     "method": "POST",
@@ -469,10 +481,22 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/world/posts/by-id/{id}"
   },
   {
+    "operationId": "getPostRecommendations",
+    "service": "Discover",
+    "method": "GET",
+    "path": "/api/discover/recommendations/posts"
+  },
+  {
     "operationId": "getPublicPost",
     "service": "Posts",
     "method": "GET",
     "path": "/api/world/posts/public/{id}"
+  },
+  {
+    "operationId": "getRecommendations",
+    "service": "Discover",
+    "method": "GET",
+    "path": "/api/discover/recommendations"
   },
   {
     "operationId": "getResource",
@@ -989,6 +1013,42 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/email/otp/verify"
+  },
+  {
+    "operationId": "VisibilityController_checkCanDm",
+    "service": "Visibility (V1)",
+    "method": "GET",
+    "path": "/api/human/visibility/check/dm"
+  },
+  {
+    "operationId": "VisibilityController_checkCanView",
+    "service": "Visibility (V1)",
+    "method": "GET",
+    "path": "/api/human/visibility/check/view"
+  },
+  {
+    "operationId": "VisibilityController_checkCanViewPublic",
+    "service": "Visibility (V1)",
+    "method": "GET",
+    "path": "/api/human/visibility/check/view/public"
+  },
+  {
+    "operationId": "VisibilityController_getUserSettings",
+    "service": "Visibility (V1)",
+    "method": "GET",
+    "path": "/api/human/visibility/user/settings"
+  },
+  {
+    "operationId": "VisibilityController_updateUserSetting",
+    "service": "Visibility (V1)",
+    "method": "PUT",
+    "path": "/api/human/visibility/user/settings"
+  },
+  {
+    "operationId": "VisibilityController_updateUserSettingsBulk",
+    "service": "Visibility (V1)",
+    "method": "PATCH",
+    "path": "/api/human/visibility/user/settings"
   },
   {
     "operationId": "walletChallenge",

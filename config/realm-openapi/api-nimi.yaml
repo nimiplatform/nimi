@@ -462,6 +462,15 @@ components:
         - assetId
         - sortOrder
       type: object
+    CanDmResultDto:
+      properties:
+        canDm:
+          type: boolean
+        reason:
+          type: string
+      required:
+        - canDm
+      type: object
     CanWithdrawDto:
       properties:
         balance:
@@ -2795,14 +2804,14 @@ components:
       type: object
     CursorPageMetaDto:
       properties:
-        hasNext:
-          type: boolean
+        cursor:
+          nullable: true
+          type: string
+        limit:
+          type: number
         nextCursor:
           nullable: true
           type: string
-      required:
-        - nextCursor
-        - hasNext
       type: object
     DeleteRelationshipResponseDto:
       properties:
@@ -4562,6 +4571,9 @@ components:
         - account_id
         - display_name
         - realm_environment_id
+      type: object
+    Object:
+      properties: {}
       type: object
     PPSlotConfigDto:
       properties:
@@ -7336,6 +7348,95 @@ components:
           allOf:
             - $ref: '#/components/schemas/Visibility'
       type: object
+    UpdateVisibilityBulkDto:
+      properties:
+        accountVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        defaultPostVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        dmVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        friendListVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        friendRequestVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        mentionVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        onlineStatusVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        profileVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        socialVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        walletVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+      type: object
+    UpdateVisibilityDto:
+      properties:
+        scope:
+          description: Which visibility scope to update
+          enum:
+            - account
+            - profile
+            - defaultPost
+            - wallet
+            - social
+            - dm
+            - friendList
+            - friendRequest
+            - mention
+            - onlineStatus
+          type: string
+        visibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+      required:
+        - scope
+        - visibility
+      type: object
     UsePolicyDto:
       properties:
         allowedBindingPoints:
@@ -7718,6 +7819,80 @@ components:
         vitalityScore:
           type: number
       type: object
+    UserVisibilitySettingsDto:
+      properties:
+        accountVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        defaultPostVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        dmVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        friendListVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        friendRequestVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        mentionVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        onlineStatusVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        profileVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        socialVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+        walletVisibility:
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          type: string
+      required:
+        - accountVisibility
+        - profileVisibility
+        - defaultPostVisibility
+        - walletVisibility
+        - socialVisibility
+        - dmVisibility
+        - friendListVisibility
+        - friendRequestVisibility
+        - mentionVisibility
+        - onlineStatusVisibility
+      type: object
     UserWalletDto:
       properties:
         address:
@@ -7795,6 +7970,15 @@ components:
         - FRIENDS
         - PRIVATE
       type: string
+    VisibilityCheckResultDto:
+      properties:
+        canView:
+          type: boolean
+        reason:
+          type: string
+      required:
+        - canView
+      type: object
     WalletBindDto:
       properties:
         chainId:
@@ -10563,6 +10747,74 @@ paths:
       summary: Publish bundle
       tags:
         - Bundles
+  /api/discover/recommendations:
+    get:
+      description: >-
+        Returns personalized user recommendations based on the 4-layer
+        recommendation algorithm.
+      operationId: getRecommendations
+      parameters:
+        - in: query
+          name: seed
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSearchResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get personalized user recommendations
+      tags:
+        - Discover
+  /api/discover/recommendations/posts:
+    get:
+      description: >-
+        Returns personalized post recommendations based on the 4-layer
+        recommendation algorithm.
+      operationId: getPostRecommendations
+      parameters:
+        - in: query
+          name: seed
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get personalized post recommendations
+      tags:
+        - Discover
   /api/economy/balances:
     get:
       operationId: EconomyController_getBalances
@@ -12912,6 +13164,138 @@ paths:
       summary: Search users
       tags:
         - User
+  /api/human/visibility/check/dm:
+    get:
+      operationId: VisibilityController_checkCanDm
+      parameters:
+        - description: Target user ID
+          in: query
+          name: targetId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanDmResultDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Check if current user can DM target user
+      tags:
+        - Visibility (V1)
+  /api/human/visibility/check/view:
+    get:
+      operationId: VisibilityController_checkCanView
+      parameters:
+        - description: Visibility scope
+          in: query
+          name: scope
+          required: true
+          schema:
+            enum:
+              - account
+              - profile
+            type: string
+        - description: Target account ID
+          in: query
+          name: targetId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisibilityCheckResultDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Check if current user can view target entity
+      tags:
+        - Visibility (V1)
+  /api/human/visibility/check/view/public:
+    get:
+      operationId: VisibilityController_checkCanViewPublic
+      parameters:
+        - description: Visibility scope
+          in: query
+          name: scope
+          required: true
+          schema:
+            enum:
+              - account
+              - profile
+            type: string
+        - description: Target account ID
+          in: query
+          name: targetId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisibilityCheckResultDto'
+          description: ''
+      summary: Check if anonymous user can view target entity
+      tags:
+        - Visibility (V1)
+  /api/human/visibility/user/settings:
+    get:
+      operationId: VisibilityController_getUserSettings
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserVisibilitySettingsDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get current user visibility settings
+      tags:
+        - Visibility (V1)
+    patch:
+      operationId: VisibilityController_updateUserSettingsBulk
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVisibilityBulkDto'
+        required: true
+      responses:
+        '200':
+          description: Settings updated successfully
+      security:
+        - bearer: []
+      summary: Bulk update visibility settings
+      tags:
+        - Visibility (V1)
+    put:
+      operationId: VisibilityController_updateUserSetting
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVisibilityDto'
+        required: true
+      responses:
+        '200':
+          description: Setting updated successfully
+      security:
+        - bearer: []
+      summary: Update a single visibility setting
+      tags:
+        - Visibility (V1)
   /api/invitations:
     get:
       operationId: InvitationController_listMyCodes
@@ -14083,6 +14467,180 @@ paths:
       summary: Search users
       tags:
         - Search
+  /api/support/feedback:
+    get:
+      operationId: FeedbackController_getMyFeedbacks
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      properties:
+                        aiReason:
+                          type: string
+                        contactEmail:
+                          type: string
+                        createdAt:
+                          format: date-time
+                          type: string
+                        description:
+                          type: string
+                        id:
+                          type: string
+                        priority:
+                          enum:
+                            - P0
+                            - P1
+                            - P2
+                          type: string
+                        screenshotUrls:
+                          items:
+                            type: string
+                          type: array
+                        status:
+                          enum:
+                            - PENDING
+                            - IN_PROGRESS
+                            - RESOLVED
+                            - CLOSED
+                          type: string
+                        type:
+                          enum:
+                            - BUG
+                            - SUGGESTION
+                            - PAYMENT_ISSUE
+                            - OTHER
+                          type: string
+                      required:
+                        - id
+                        - createdAt
+                        - type
+                        - description
+                        - screenshotUrls
+                        - priority
+                        - status
+                      type: object
+                    type: array
+                  nextCursor:
+                    type: string
+                  total:
+                    type: number
+                required:
+                  - items
+                  - total
+                type: object
+          description: ''
+      security:
+        - bearer: []
+      summary: Get my feedback submissions
+      tags:
+        - Support (Feedback)
+    post:
+      description: Submit user feedback. Can be used anonymously or authenticated.
+      operationId: FeedbackController_submitFeedback
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Object'
+              properties:
+                appVersion:
+                  type: string
+                contactEmail:
+                  format: email
+                  type: string
+                description:
+                  maxLength: 5000
+                  type: string
+                screenshotUrls:
+                  items:
+                    format: uri
+                    type: string
+                  maxItems: 8
+                  type: array
+                type:
+                  enum:
+                    - BUG
+                    - SUGGESTION
+                    - PAYMENT_ISSUE
+                    - OTHER
+                  type: string
+                userAgent:
+                  type: string
+              required:
+                - type
+                - description
+              type: object
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                properties:
+                  aiReason:
+                    type: string
+                  contactEmail:
+                    type: string
+                  createdAt:
+                    format: date-time
+                    type: string
+                  description:
+                    type: string
+                  id:
+                    type: string
+                  priority:
+                    enum:
+                      - P0
+                      - P1
+                      - P2
+                    type: string
+                  screenshotUrls:
+                    items:
+                      type: string
+                    type: array
+                  status:
+                    enum:
+                      - PENDING
+                      - IN_PROGRESS
+                      - RESOLVED
+                      - CLOSED
+                    type: string
+                  type:
+                    enum:
+                      - BUG
+                      - SUGGESTION
+                      - PAYMENT_ISSUE
+                      - OTHER
+                    type: string
+                required:
+                  - id
+                  - createdAt
+                  - type
+                  - description
+                  - screenshotUrls
+                  - priority
+                  - status
+                type: object
+          description: ''
+      summary: Submit feedback
+      tags:
+        - Support (Feedback)
   /api/translation/translate:
     post:
       operationId: translateText

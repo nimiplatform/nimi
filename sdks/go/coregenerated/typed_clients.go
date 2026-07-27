@@ -11077,6 +11077,11 @@ type BundleMemberDto struct {
 	SortOrder float64 `json:"sortOrder,omitempty"`
 }
 
+type CanDmResultDto struct {
+	CanDm bool `json:"canDm,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
 type CanWithdrawDto struct {
 	Balance string `json:"balance,omitempty"`
 	CanWithdraw bool `json:"canWithdraw,omitempty"`
@@ -11632,7 +11637,8 @@ type CurrencyTransactionHistoryDto struct {
 }
 
 type CursorPageMetaDto struct {
-	HasNext bool `json:"hasNext,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
+	Limit float64 `json:"limit,omitempty"`
 	NextCursor string `json:"nextCursor,omitempty"`
 }
 
@@ -12253,6 +12259,10 @@ type OAuthTokenResponseDto struct {
 	RealmEnvironmentId string `json:"realm_environment_id,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	TokenType string `json:"token_type,omitempty"`
+}
+
+type Object struct {
+
 }
 
 type PasswordLoginDto struct {
@@ -13019,6 +13029,24 @@ type UpdateUserSettingsDto struct {
 	WalletVisibility *Visibility `json:"walletVisibility,omitempty"`
 }
 
+type UpdateVisibilityBulkDto struct {
+	AccountVisibility string `json:"accountVisibility,omitempty"`
+	DefaultPostVisibility string `json:"defaultPostVisibility,omitempty"`
+	DmVisibility string `json:"dmVisibility,omitempty"`
+	FriendListVisibility string `json:"friendListVisibility,omitempty"`
+	FriendRequestVisibility string `json:"friendRequestVisibility,omitempty"`
+	MentionVisibility string `json:"mentionVisibility,omitempty"`
+	OnlineStatusVisibility string `json:"onlineStatusVisibility,omitempty"`
+	ProfileVisibility string `json:"profileVisibility,omitempty"`
+	SocialVisibility string `json:"socialVisibility,omitempty"`
+	WalletVisibility string `json:"walletVisibility,omitempty"`
+}
+
+type UpdateVisibilityDto struct {
+	Scope string `json:"scope,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
+}
+
 type UsePolicyDto struct {
 	AllowedBindingPoints []string `json:"allowedBindingPoints,omitempty"`
 	AllowedHostTypes []string `json:"allowedHostTypes,omitempty"`
@@ -13160,6 +13188,19 @@ type UserTierSummaryDto struct {
 	VitalityScore float64 `json:"vitalityScore,omitempty"`
 }
 
+type UserVisibilitySettingsDto struct {
+	AccountVisibility string `json:"accountVisibility,omitempty"`
+	DefaultPostVisibility string `json:"defaultPostVisibility,omitempty"`
+	DmVisibility string `json:"dmVisibility,omitempty"`
+	FriendListVisibility string `json:"friendListVisibility,omitempty"`
+	FriendRequestVisibility string `json:"friendRequestVisibility,omitempty"`
+	MentionVisibility string `json:"mentionVisibility,omitempty"`
+	OnlineStatusVisibility string `json:"onlineStatusVisibility,omitempty"`
+	ProfileVisibility string `json:"profileVisibility,omitempty"`
+	SocialVisibility string `json:"socialVisibility,omitempty"`
+	WalletVisibility string `json:"walletVisibility,omitempty"`
+}
+
 type UserWalletDto struct {
 	Address string `json:"address,omitempty"`
 	BoundOnChains []string `json:"boundOnChains,omitempty"`
@@ -13189,6 +13230,11 @@ type VerifyInvitationCodeDto struct {
 }
 
 type Visibility string
+
+type VisibilityCheckResultDto struct {
+	CanView bool `json:"canView,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
 
 type WalletBindDto struct {
 	ChainId float64 `json:"chainId,omitempty"`
@@ -14890,6 +14936,45 @@ type RealmExploreControllerCheckStatusOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
+type RealmFeedbackControllerGetMyFeedbacksOperationPath struct {
+
+}
+
+type RealmFeedbackControllerGetMyFeedbacksOperationQuery struct {
+	Limit float64 `json:"limit,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
+}
+
+type RealmFeedbackControllerGetMyFeedbacksOperationHeaders struct {
+
+}
+
+type RealmFeedbackControllerGetMyFeedbacksOperationRequest struct {
+	Path    RealmFeedbackControllerGetMyFeedbacksOperationPath `json:"path,omitempty"`
+	Query   RealmFeedbackControllerGetMyFeedbacksOperationQuery `json:"query,omitempty"`
+	Headers RealmFeedbackControllerGetMyFeedbacksOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmFeedbackControllerSubmitFeedbackOperationPath struct {
+
+}
+
+type RealmFeedbackControllerSubmitFeedbackOperationQuery struct {
+
+}
+
+type RealmFeedbackControllerSubmitFeedbackOperationHeaders struct {
+
+}
+
+type RealmFeedbackControllerSubmitFeedbackOperationRequest struct {
+	Path    RealmFeedbackControllerSubmitFeedbackOperationPath `json:"path,omitempty"`
+	Query   RealmFeedbackControllerSubmitFeedbackOperationQuery `json:"query,omitempty"`
+	Headers RealmFeedbackControllerSubmitFeedbackOperationHeaders `json:"headers,omitempty"`
+	Body    Object `json:"body,omitempty"`
+}
+
 type RealmFinalizeResourceOperationPath struct {
 	ResourceId string `json:"resourceId,omitempty"`
 }
@@ -15299,6 +15384,27 @@ type RealmGetPostOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
+type RealmGetPostRecommendationsOperationPath struct {
+
+}
+
+type RealmGetPostRecommendationsOperationQuery struct {
+	Seed float64 `json:"seed,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
+	Limit float64 `json:"limit,omitempty"`
+}
+
+type RealmGetPostRecommendationsOperationHeaders struct {
+
+}
+
+type RealmGetPostRecommendationsOperationRequest struct {
+	Path    RealmGetPostRecommendationsOperationPath `json:"path,omitempty"`
+	Query   RealmGetPostRecommendationsOperationQuery `json:"query,omitempty"`
+	Headers RealmGetPostRecommendationsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
 type RealmGetPublicPostOperationPath struct {
 	Id string `json:"id,omitempty"`
 }
@@ -15315,6 +15421,27 @@ type RealmGetPublicPostOperationRequest struct {
 	Path    RealmGetPublicPostOperationPath `json:"path,omitempty"`
 	Query   RealmGetPublicPostOperationQuery `json:"query,omitempty"`
 	Headers RealmGetPublicPostOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetRecommendationsOperationPath struct {
+
+}
+
+type RealmGetRecommendationsOperationQuery struct {
+	Seed float64 `json:"seed,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
+	Limit float64 `json:"limit,omitempty"`
+}
+
+type RealmGetRecommendationsOperationHeaders struct {
+
+}
+
+type RealmGetRecommendationsOperationRequest struct {
+	Path    RealmGetRecommendationsOperationPath `json:"path,omitempty"`
+	Query   RealmGetRecommendationsOperationQuery `json:"query,omitempty"`
+	Headers RealmGetRecommendationsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -17026,6 +17153,122 @@ type RealmVerifyEmailOtpOperationRequest struct {
 	Body    EmailOtpVerifyDto `json:"body,omitempty"`
 }
 
+type RealmVisibilityControllerCheckCanDmOperationPath struct {
+
+}
+
+type RealmVisibilityControllerCheckCanDmOperationQuery struct {
+	TargetId string `json:"targetId,omitempty"`
+}
+
+type RealmVisibilityControllerCheckCanDmOperationHeaders struct {
+
+}
+
+type RealmVisibilityControllerCheckCanDmOperationRequest struct {
+	Path    RealmVisibilityControllerCheckCanDmOperationPath `json:"path,omitempty"`
+	Query   RealmVisibilityControllerCheckCanDmOperationQuery `json:"query,omitempty"`
+	Headers RealmVisibilityControllerCheckCanDmOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmVisibilityControllerCheckCanViewOperationPath struct {
+
+}
+
+type RealmVisibilityControllerCheckCanViewOperationQuery struct {
+	Scope string `json:"scope,omitempty"`
+	TargetId string `json:"targetId,omitempty"`
+}
+
+type RealmVisibilityControllerCheckCanViewOperationHeaders struct {
+
+}
+
+type RealmVisibilityControllerCheckCanViewOperationRequest struct {
+	Path    RealmVisibilityControllerCheckCanViewOperationPath `json:"path,omitempty"`
+	Query   RealmVisibilityControllerCheckCanViewOperationQuery `json:"query,omitempty"`
+	Headers RealmVisibilityControllerCheckCanViewOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmVisibilityControllerCheckCanViewPublicOperationPath struct {
+
+}
+
+type RealmVisibilityControllerCheckCanViewPublicOperationQuery struct {
+	Scope string `json:"scope,omitempty"`
+	TargetId string `json:"targetId,omitempty"`
+}
+
+type RealmVisibilityControllerCheckCanViewPublicOperationHeaders struct {
+
+}
+
+type RealmVisibilityControllerCheckCanViewPublicOperationRequest struct {
+	Path    RealmVisibilityControllerCheckCanViewPublicOperationPath `json:"path,omitempty"`
+	Query   RealmVisibilityControllerCheckCanViewPublicOperationQuery `json:"query,omitempty"`
+	Headers RealmVisibilityControllerCheckCanViewPublicOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmVisibilityControllerGetUserSettingsOperationPath struct {
+
+}
+
+type RealmVisibilityControllerGetUserSettingsOperationQuery struct {
+
+}
+
+type RealmVisibilityControllerGetUserSettingsOperationHeaders struct {
+
+}
+
+type RealmVisibilityControllerGetUserSettingsOperationRequest struct {
+	Path    RealmVisibilityControllerGetUserSettingsOperationPath `json:"path,omitempty"`
+	Query   RealmVisibilityControllerGetUserSettingsOperationQuery `json:"query,omitempty"`
+	Headers RealmVisibilityControllerGetUserSettingsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmVisibilityControllerUpdateUserSettingOperationPath struct {
+
+}
+
+type RealmVisibilityControllerUpdateUserSettingOperationQuery struct {
+
+}
+
+type RealmVisibilityControllerUpdateUserSettingOperationHeaders struct {
+
+}
+
+type RealmVisibilityControllerUpdateUserSettingOperationRequest struct {
+	Path    RealmVisibilityControllerUpdateUserSettingOperationPath `json:"path,omitempty"`
+	Query   RealmVisibilityControllerUpdateUserSettingOperationQuery `json:"query,omitempty"`
+	Headers RealmVisibilityControllerUpdateUserSettingOperationHeaders `json:"headers,omitempty"`
+	Body    UpdateVisibilityDto `json:"body,omitempty"`
+}
+
+type RealmVisibilityControllerUpdateUserSettingsBulkOperationPath struct {
+
+}
+
+type RealmVisibilityControllerUpdateUserSettingsBulkOperationQuery struct {
+
+}
+
+type RealmVisibilityControllerUpdateUserSettingsBulkOperationHeaders struct {
+
+}
+
+type RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest struct {
+	Path    RealmVisibilityControllerUpdateUserSettingsBulkOperationPath `json:"path,omitempty"`
+	Query   RealmVisibilityControllerUpdateUserSettingsBulkOperationQuery `json:"query,omitempty"`
+	Headers RealmVisibilityControllerUpdateUserSettingsBulkOperationHeaders `json:"headers,omitempty"`
+	Body    UpdateVisibilityBulkDto `json:"body,omitempty"`
+}
+
 type RealmWalletChallengeOperationPath struct {
 
 }
@@ -18108,6 +18351,22 @@ func (c RealmTypedClient) ExploreControllerCheckStatus(ctx context.Context, requ
 	return decodeTypedResponse[struct{}](raw)
 }
 
+func (c RealmTypedClient) FeedbackControllerGetMyFeedbacks(ctx context.Context, request RealmFeedbackControllerGetMyFeedbacksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+	raw, err := c.operationTyped(ctx, "FeedbackController_getMyFeedbacks", request, metadata, timeoutMS)
+	if err != nil {
+		return map[string]any{}, err
+	}
+	return decodeTypedResponse[map[string]any](raw)
+}
+
+func (c RealmTypedClient) FeedbackControllerSubmitFeedback(ctx context.Context, request RealmFeedbackControllerSubmitFeedbackOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+	raw, err := c.operationTyped(ctx, "FeedbackController_submitFeedback", request, metadata, timeoutMS)
+	if err != nil {
+		return map[string]any{}, err
+	}
+	return decodeTypedResponse[map[string]any](raw)
+}
+
 func (c RealmTypedClient) FinalizeResource(ctx context.Context, request RealmFinalizeResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "finalizeResource", request, metadata, timeoutMS)
 	if err != nil {
@@ -18276,12 +18535,28 @@ func (c RealmTypedClient) GetPost(ctx context.Context, request RealmGetPostOpera
 	return decodeTypedResponse[PostDto](raw)
 }
 
+func (c RealmTypedClient) GetPostRecommendations(ctx context.Context, request RealmGetPostRecommendationsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "getPostRecommendations", request, metadata, timeoutMS)
+	if err != nil {
+		return FeedResponseDto{}, err
+	}
+	return decodeTypedResponse[FeedResponseDto](raw)
+}
+
 func (c RealmTypedClient) GetPublicPost(ctx context.Context, request RealmGetPublicPostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PostDto, error) {
 	raw, err := c.operationTyped(ctx, "getPublicPost", request, metadata, timeoutMS)
 	if err != nil {
 		return PostDto{}, err
 	}
 	return decodeTypedResponse[PostDto](raw)
+}
+
+func (c RealmTypedClient) GetRecommendations(ctx context.Context, request RealmGetRecommendationsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSearchResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "getRecommendations", request, metadata, timeoutMS)
+	if err != nil {
+		return UserSearchResponseDto{}, err
+	}
+	return decodeTypedResponse[UserSearchResponseDto](raw)
 }
 
 func (c RealmTypedClient) GetResource(ctx context.Context, request RealmGetResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {
@@ -18970,6 +19245,54 @@ func (c RealmTypedClient) VerifyEmailOtp(ctx context.Context, request RealmVerif
 		return OAuthLoginResultDto{}, err
 	}
 	return decodeTypedResponse[OAuthLoginResultDto](raw)
+}
+
+func (c RealmTypedClient) VisibilityControllerCheckCanDm(ctx context.Context, request RealmVisibilityControllerCheckCanDmOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CanDmResultDto, error) {
+	raw, err := c.operationTyped(ctx, "VisibilityController_checkCanDm", request, metadata, timeoutMS)
+	if err != nil {
+		return CanDmResultDto{}, err
+	}
+	return decodeTypedResponse[CanDmResultDto](raw)
+}
+
+func (c RealmTypedClient) VisibilityControllerCheckCanView(ctx context.Context, request RealmVisibilityControllerCheckCanViewOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (VisibilityCheckResultDto, error) {
+	raw, err := c.operationTyped(ctx, "VisibilityController_checkCanView", request, metadata, timeoutMS)
+	if err != nil {
+		return VisibilityCheckResultDto{}, err
+	}
+	return decodeTypedResponse[VisibilityCheckResultDto](raw)
+}
+
+func (c RealmTypedClient) VisibilityControllerCheckCanViewPublic(ctx context.Context, request RealmVisibilityControllerCheckCanViewPublicOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (VisibilityCheckResultDto, error) {
+	raw, err := c.operationTyped(ctx, "VisibilityController_checkCanViewPublic", request, metadata, timeoutMS)
+	if err != nil {
+		return VisibilityCheckResultDto{}, err
+	}
+	return decodeTypedResponse[VisibilityCheckResultDto](raw)
+}
+
+func (c RealmTypedClient) VisibilityControllerGetUserSettings(ctx context.Context, request RealmVisibilityControllerGetUserSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserVisibilitySettingsDto, error) {
+	raw, err := c.operationTyped(ctx, "VisibilityController_getUserSettings", request, metadata, timeoutMS)
+	if err != nil {
+		return UserVisibilitySettingsDto{}, err
+	}
+	return decodeTypedResponse[UserVisibilitySettingsDto](raw)
+}
+
+func (c RealmTypedClient) VisibilityControllerUpdateUserSetting(ctx context.Context, request RealmVisibilityControllerUpdateUserSettingOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+	raw, err := c.operationTyped(ctx, "VisibilityController_updateUserSetting", request, metadata, timeoutMS)
+	if err != nil {
+		return struct{}{}, err
+	}
+	return decodeTypedResponse[struct{}](raw)
+}
+
+func (c RealmTypedClient) VisibilityControllerUpdateUserSettingsBulk(ctx context.Context, request RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+	raw, err := c.operationTyped(ctx, "VisibilityController_updateUserSettingsBulk", request, metadata, timeoutMS)
+	if err != nil {
+		return struct{}{}, err
+	}
+	return decodeTypedResponse[struct{}](raw)
 }
 
 func (c RealmTypedClient) WalletChallenge(ctx context.Context, request RealmWalletChallengeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WalletChallengeResponseDto, error) {

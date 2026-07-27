@@ -2829,6 +2829,460 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "FeedbackController_getMyFeedbacks",
+      "method": "GET",
+      "path": "/api/support/feedback",
+      "service": "Support (Feedback)",
+      "tags": [
+        "Support (Feedback)"
+      ],
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "items",
+                "required": true,
+                "schema": {
+                  "kind": "array",
+                  "items": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "aiReason",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null,
+                          "minimum": null,
+                          "maximum": null,
+                          "min_length": null,
+                          "max_length": null,
+                          "pattern": null
+                        }
+                      },
+                      {
+                        "name": "contactEmail",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null,
+                          "minimum": null,
+                          "maximum": null,
+                          "min_length": null,
+                          "max_length": null,
+                          "pattern": null
+                        }
+                      },
+                      {
+                        "name": "createdAt",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": "date-time",
+                          "minimum": null,
+                          "maximum": null,
+                          "min_length": null,
+                          "max_length": null,
+                          "pattern": null
+                        }
+                      },
+                      {
+                        "name": "description",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null,
+                          "minimum": null,
+                          "maximum": null,
+                          "min_length": null,
+                          "max_length": null,
+                          "pattern": null
+                        }
+                      },
+                      {
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null,
+                          "minimum": null,
+                          "maximum": null,
+                          "min_length": null,
+                          "max_length": null,
+                          "pattern": null
+                        }
+                      },
+                      {
+                        "name": "priority",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "P0",
+                            "P1",
+                            "P2"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "name": "screenshotUrls",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null,
+                            "minimum": null,
+                            "maximum": null,
+                            "min_length": null,
+                            "max_length": null,
+                            "pattern": null
+                          },
+                          "min_items": null,
+                          "max_items": null
+                        }
+                      },
+                      {
+                        "name": "status",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "PENDING",
+                            "IN_PROGRESS",
+                            "RESOLVED",
+                            "CLOSED"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "name": "type",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "BUG",
+                            "SUGGESTION",
+                            "PAYMENT_ISSUE",
+                            "OTHER"
+                          ],
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "required_properties": [
+                      "id",
+                      "createdAt",
+                      "type",
+                      "description",
+                      "screenshotUrls",
+                      "priority",
+                      "status"
+                    ],
+                    "closed": false,
+                    "additional_properties": null
+                  },
+                  "min_items": null,
+                  "max_items": null
+                }
+              },
+              {
+                "name": "nextCursor",
+                "required": false,
+                "schema": {
+                  "kind": "scalar",
+                  "type": "string",
+                  "format": null,
+                  "minimum": null,
+                  "maximum": null,
+                  "min_length": null,
+                  "max_length": null,
+                  "pattern": null
+                }
+              },
+              {
+                "name": "total",
+                "required": true,
+                "schema": {
+                  "kind": "scalar",
+                  "type": "number",
+                  "format": null,
+                  "minimum": null,
+                  "maximum": null,
+                  "min_length": null,
+                  "max_length": null,
+                  "pattern": null
+                }
+              }
+            ],
+            "required_properties": [
+              "items",
+              "total"
+            ],
+            "closed": false,
+            "additional_properties": null
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "FeedbackController_submitFeedback",
+      "method": "POST",
+      "path": "/api/support/feedback",
+      "service": "Support (Feedback)",
+      "tags": [
+        "Support (Feedback)"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/Object",
+        "ref_name": "Object"
+      },
+      "request_schema_ref": "#/components/schemas/Object",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "aiReason",
+                "required": false,
+                "schema": {
+                  "kind": "scalar",
+                  "type": "string",
+                  "format": null,
+                  "minimum": null,
+                  "maximum": null,
+                  "min_length": null,
+                  "max_length": null,
+                  "pattern": null
+                }
+              },
+              {
+                "name": "contactEmail",
+                "required": false,
+                "schema": {
+                  "kind": "scalar",
+                  "type": "string",
+                  "format": null,
+                  "minimum": null,
+                  "maximum": null,
+                  "min_length": null,
+                  "max_length": null,
+                  "pattern": null
+                }
+              },
+              {
+                "name": "createdAt",
+                "required": true,
+                "schema": {
+                  "kind": "scalar",
+                  "type": "string",
+                  "format": "date-time",
+                  "minimum": null,
+                  "maximum": null,
+                  "min_length": null,
+                  "max_length": null,
+                  "pattern": null
+                }
+              },
+              {
+                "name": "description",
+                "required": true,
+                "schema": {
+                  "kind": "scalar",
+                  "type": "string",
+                  "format": null,
+                  "minimum": null,
+                  "maximum": null,
+                  "min_length": null,
+                  "max_length": null,
+                  "pattern": null
+                }
+              },
+              {
+                "name": "id",
+                "required": true,
+                "schema": {
+                  "kind": "scalar",
+                  "type": "string",
+                  "format": null,
+                  "minimum": null,
+                  "maximum": null,
+                  "min_length": null,
+                  "max_length": null,
+                  "pattern": null
+                }
+              },
+              {
+                "name": "priority",
+                "required": true,
+                "schema": {
+                  "kind": "enum",
+                  "values": [
+                    "P0",
+                    "P1",
+                    "P2"
+                  ],
+                  "type": "string"
+                }
+              },
+              {
+                "name": "screenshotUrls",
+                "required": true,
+                "schema": {
+                  "kind": "array",
+                  "items": {
+                    "kind": "scalar",
+                    "type": "string",
+                    "format": null,
+                    "minimum": null,
+                    "maximum": null,
+                    "min_length": null,
+                    "max_length": null,
+                    "pattern": null
+                  },
+                  "min_items": null,
+                  "max_items": null
+                }
+              },
+              {
+                "name": "status",
+                "required": true,
+                "schema": {
+                  "kind": "enum",
+                  "values": [
+                    "PENDING",
+                    "IN_PROGRESS",
+                    "RESOLVED",
+                    "CLOSED"
+                  ],
+                  "type": "string"
+                }
+              },
+              {
+                "name": "type",
+                "required": true,
+                "schema": {
+                  "kind": "enum",
+                  "values": [
+                    "BUG",
+                    "SUGGESTION",
+                    "PAYMENT_ISSUE",
+                    "OTHER"
+                  ],
+                  "type": "string"
+                }
+              }
+            ],
+            "required_properties": [
+              "id",
+              "createdAt",
+              "type",
+              "description",
+              "screenshotUrls",
+              "priority",
+              "status"
+            ],
+            "closed": false,
+            "additional_properties": null
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
+    },
+    {
       "operation_id": "finalizeResource",
       "method": "POST",
       "path": "/api/resources/{resourceId}/finalize",
@@ -4772,6 +5226,133 @@
       ]
     },
     {
+      "operation_id": "getPostRecommendations",
+      "method": "GET",
+      "path": "/api/discover/recommendations/posts",
+      "service": "Discover",
+      "tags": [
+        "Discover"
+      ],
+      "parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FeedResponseDto",
+            "ref_name": "FeedResponseDto"
+          },
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
       "operation_id": "getPublicPost",
       "method": "GET",
       "path": "/api/world/posts/public/{id}",
@@ -4835,6 +5416,133 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/PostDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getRecommendations",
+      "method": "GET",
+      "path": "/api/discover/recommendations",
+      "service": "Discover",
+      "tags": [
+        "Discover"
+      ],
+      "parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "seed",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserSearchResponseDto",
+            "ref_name": "UserSearchResponseDto"
+          },
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
         }
       ]
     },
@@ -11736,6 +12444,338 @@
       ]
     },
     {
+      "operation_id": "VisibilityController_checkCanDm",
+      "method": "GET",
+      "path": "/api/human/visibility/check/dm",
+      "service": "Visibility (V1)",
+      "tags": [
+        "Visibility (V1)"
+      ],
+      "parameters": [
+        {
+          "name": "targetId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "targetId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/CanDmResultDto",
+            "ref_name": "CanDmResultDto"
+          },
+          "schema_ref": "#/components/schemas/CanDmResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CanDmResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "VisibilityController_checkCanView",
+      "method": "GET",
+      "path": "/api/human/visibility/check/view",
+      "service": "Visibility (V1)",
+      "tags": [
+        "Visibility (V1)"
+      ],
+      "parameters": [
+        {
+          "name": "scope",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "account",
+              "profile"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "targetId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "scope",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "account",
+              "profile"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "targetId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/VisibilityCheckResultDto",
+            "ref_name": "VisibilityCheckResultDto"
+          },
+          "schema_ref": "#/components/schemas/VisibilityCheckResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/VisibilityCheckResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "VisibilityController_checkCanViewPublic",
+      "method": "GET",
+      "path": "/api/human/visibility/check/view/public",
+      "service": "Visibility (V1)",
+      "tags": [
+        "Visibility (V1)"
+      ],
+      "parameters": [
+        {
+          "name": "scope",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "account",
+              "profile"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "targetId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "scope",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "account",
+              "profile"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "targetId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/VisibilityCheckResultDto",
+            "ref_name": "VisibilityCheckResultDto"
+          },
+          "schema_ref": "#/components/schemas/VisibilityCheckResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/VisibilityCheckResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "VisibilityController_getUserSettings",
+      "method": "GET",
+      "path": "/api/human/visibility/user/settings",
+      "service": "Visibility (V1)",
+      "tags": [
+        "Visibility (V1)"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserVisibilitySettingsDto",
+            "ref_name": "UserVisibilitySettingsDto"
+          },
+          "schema_ref": "#/components/schemas/UserVisibilitySettingsDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserVisibilitySettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "VisibilityController_updateUserSetting",
+      "method": "PUT",
+      "path": "/api/human/visibility/user/settings",
+      "service": "Visibility (V1)",
+      "tags": [
+        "Visibility (V1)"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/UpdateVisibilityDto",
+        "ref_name": "UpdateVisibilityDto"
+      },
+      "request_schema_ref": "#/components/schemas/UpdateVisibilityDto",
+      "request_content_type": "application/json",
+      "response_schemas": [],
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "VisibilityController_updateUserSettingsBulk",
+      "method": "PATCH",
+      "path": "/api/human/visibility/user/settings",
+      "service": "Visibility (V1)",
+      "tags": [
+        "Visibility (V1)"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/UpdateVisibilityBulkDto",
+        "ref_name": "UpdateVisibilityBulkDto"
+      },
+      "request_schema_ref": "#/components/schemas/UpdateVisibilityBulkDto",
+      "request_content_type": "application/json",
+      "response_schemas": [],
+      "response_schema_refs": []
+    },
+    {
       "operation_id": "walletChallenge",
       "method": "POST",
       "path": "/api/auth/wallet/challenge",
@@ -14680,6 +15720,18 @@
       "path": "/api/explore/status"
     },
     {
+      "operation_id": "FeedbackController_getMyFeedbacks",
+      "service": "Support (Feedback)",
+      "method": "GET",
+      "path": "/api/support/feedback"
+    },
+    {
+      "operation_id": "FeedbackController_submitFeedback",
+      "service": "Support (Feedback)",
+      "method": "POST",
+      "path": "/api/support/feedback"
+    },
+    {
       "operation_id": "finalizeResource",
       "service": "Resources",
       "method": "POST",
@@ -14806,10 +15858,22 @@
       "path": "/api/world/posts/by-id/{id}"
     },
     {
+      "operation_id": "getPostRecommendations",
+      "service": "Discover",
+      "method": "GET",
+      "path": "/api/discover/recommendations/posts"
+    },
+    {
       "operation_id": "getPublicPost",
       "service": "Posts",
       "method": "GET",
       "path": "/api/world/posts/public/{id}"
+    },
+    {
+      "operation_id": "getRecommendations",
+      "service": "Discover",
+      "method": "GET",
+      "path": "/api/discover/recommendations"
     },
     {
       "operation_id": "getResource",
@@ -15334,6 +16398,42 @@
       "path": "/api/auth/email/otp/verify"
     },
     {
+      "operation_id": "VisibilityController_checkCanDm",
+      "service": "Visibility (V1)",
+      "method": "GET",
+      "path": "/api/human/visibility/check/dm"
+    },
+    {
+      "operation_id": "VisibilityController_checkCanView",
+      "service": "Visibility (V1)",
+      "method": "GET",
+      "path": "/api/human/visibility/check/view"
+    },
+    {
+      "operation_id": "VisibilityController_checkCanViewPublic",
+      "service": "Visibility (V1)",
+      "method": "GET",
+      "path": "/api/human/visibility/check/view/public"
+    },
+    {
+      "operation_id": "VisibilityController_getUserSettings",
+      "service": "Visibility (V1)",
+      "method": "GET",
+      "path": "/api/human/visibility/user/settings"
+    },
+    {
+      "operation_id": "VisibilityController_updateUserSetting",
+      "service": "Visibility (V1)",
+      "method": "PUT",
+      "path": "/api/human/visibility/user/settings"
+    },
+    {
+      "operation_id": "VisibilityController_updateUserSettingsBulk",
+      "service": "Visibility (V1)",
+      "method": "PATCH",
+      "path": "/api/human/visibility/user/settings"
+    },
+    {
       "operation_id": "walletChallenge",
       "service": "Auth",
       "method": "POST",
@@ -15579,6 +16679,13 @@
       ]
     },
     {
+      "name": "Discover",
+      "operation_ids": [
+        "getPostRecommendations",
+        "getRecommendations"
+      ]
+    },
+    {
       "name": "Economy (Currency & Gifts)",
       "operation_ids": [
         "EconomyController_acceptGift",
@@ -15809,6 +16916,13 @@
       ]
     },
     {
+      "name": "Support (Feedback)",
+      "operation_ids": [
+        "FeedbackController_getMyFeedbacks",
+        "FeedbackController_submitFeedback"
+      ]
+    },
+    {
       "name": "Transits",
       "operation_ids": [
         "TransitController_abandon",
@@ -15838,6 +16952,17 @@
         "listOnlineUsers",
         "removeFriend",
         "searchHumanUsers"
+      ]
+    },
+    {
+      "name": "Visibility (V1)",
+      "operation_ids": [
+        "VisibilityController_checkCanDm",
+        "VisibilityController_checkCanView",
+        "VisibilityController_checkCanViewPublic",
+        "VisibilityController_getUserSettings",
+        "VisibilityController_updateUserSetting",
+        "VisibilityController_updateUserSettingsBulk"
       ]
     },
     {
@@ -15925,6 +17050,9 @@
     },
     {
       "name": "BundleMemberDto"
+    },
+    {
+      "name": "CanDmResultDto"
     },
     {
       "name": "CanWithdrawDto"
@@ -16338,6 +17466,9 @@
       "name": "OAuthTokenResponseDto"
     },
     {
+      "name": "Object"
+    },
+    {
       "name": "PasswordLoginDto"
     },
     {
@@ -16608,6 +17739,12 @@
       "name": "UpdateUserSettingsDto"
     },
     {
+      "name": "UpdateVisibilityBulkDto"
+    },
+    {
+      "name": "UpdateVisibilityDto"
+    },
+    {
       "name": "UsePolicyDto"
     },
     {
@@ -16641,6 +17778,9 @@
       "name": "UserTierSummaryDto"
     },
     {
+      "name": "UserVisibilitySettingsDto"
+    },
+    {
       "name": "UserWalletDto"
     },
     {
@@ -16657,6 +17797,9 @@
     },
     {
       "name": "Visibility"
+    },
+    {
+      "name": "VisibilityCheckResultDto"
     },
     {
       "name": "WalletBindDto"
@@ -18651,6 +19794,47 @@
         "required_properties": [
           "assetId",
           "sortOrder"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CanDmResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "canDm",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "canDm"
         ],
         "closed": false,
         "additional_properties": null
@@ -27446,11 +28630,26 @@
         "kind": "object",
         "properties": [
           {
-            "name": "hasNext",
-            "required": true,
+            "name": "cursor",
+            "required": false,
             "schema": {
               "kind": "scalar",
-              "type": "boolean",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
               "format": null,
               "minimum": null,
               "maximum": null,
@@ -27461,7 +28660,7 @@
           },
           {
             "name": "nextCursor",
-            "required": true,
+            "required": false,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -27475,10 +28674,7 @@
             }
           }
         ],
-        "required_properties": [
-          "nextCursor",
-          "hasNext"
-        ],
+        "required_properties": [],
         "closed": false,
         "additional_properties": null
       }
@@ -33829,6 +35025,16 @@
           "display_name",
           "realm_environment_id"
         ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "Object",
+      "schema": {
+        "kind": "object",
+        "properties": [],
+        "required_properties": [],
         "closed": false,
         "additional_properties": null
       }
@@ -43926,6 +45132,194 @@
       }
     },
     {
+      "name": "UpdateVisibilityBulkDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "defaultPostVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "dmVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "friendListVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "friendRequestVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "mentionVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "onlineStatusVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "profileVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "socialVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "walletVisibility",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "UpdateVisibilityDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "scope",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "account",
+                "profile",
+                "defaultPost",
+                "wallet",
+                "social",
+                "dm",
+                "friendList",
+                "friendRequest",
+                "mention",
+                "onlineStatus"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "visibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "scope",
+          "visibility"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "UsePolicyDto",
       "schema": {
         "kind": "object",
@@ -45522,6 +46916,158 @@
       }
     },
     {
+      "name": "UserVisibilitySettingsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "defaultPostVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "dmVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "friendListVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "friendRequestVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "mentionVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "onlineStatusVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "profileVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "socialVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "walletVisibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PUBLIC",
+                "FRIENDS",
+                "PRIVATE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "accountVisibility",
+          "profileVisibility",
+          "defaultPostVisibility",
+          "walletVisibility",
+          "socialVisibility",
+          "dmVisibility",
+          "friendListVisibility",
+          "friendRequestVisibility",
+          "mentionVisibility",
+          "onlineStatusVisibility"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "UserWalletDto",
       "schema": {
         "kind": "object",
@@ -45787,6 +47333,47 @@
           "PRIVATE"
         ],
         "type": "string"
+      }
+    },
+    {
+      "name": "VisibilityCheckResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "canView",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "canView"
+        ],
+        "closed": false,
+        "additional_properties": null
       }
     },
     {
