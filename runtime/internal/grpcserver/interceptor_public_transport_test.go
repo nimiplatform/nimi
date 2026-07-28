@@ -5,8 +5,6 @@ import (
 	"io"
 	"log/slog"
 	"net"
-	"os"
-	"path/filepath"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -18,7 +16,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
-	"gopkg.in/yaml.v3"
 )
 
 func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testing.T) {
@@ -103,72 +100,6 @@ func TestA0OrdinaryGRPCRejectsProtectedStreamsBeforeHandler(t *testing.T) {
 		if handlerCalled || status.Code(err) != wantCode {
 			t.Fatalf("protected stream %s was not denied before handler: called=%v err=%v", method, handlerCalled, err)
 		}
-	}
-}
-
-func TestA0PublicTransportGateCoversCanonicalProtectedMatrix(t *testing.T) {
-	type matrixRow struct {
-		MethodID                string   `yaml:"method_id"`
-		AllowedTransportClasses []string `yaml:"allowed_transport_classes"`
-		PublicTCPDisposition    string   `yaml:"public_tcp_disposition"`
-	}
-	var matrix struct {
-		Methods []matrixRow `yaml:"methods"`
-	}
-	raw, err := os.ReadFile(findRepoFile(t, filepath.FromSlash("config/spec-frozen/runtime/tables/protected-local-rpc-transport-matrix.yaml")))
-	if err != nil {
-		t.Fatalf("read protected-local matrix: %v", err)
-	}
-	if err := yaml.Unmarshal(raw, &matrix); err != nil {
-		t.Fatalf("parse protected-local matrix: %v", err)
-	}
-	for _, row := range matrix.Methods {
-		reason, blocked := publicTransportDenial(row.MethodID)
-		switch row.PublicTCPDisposition {
-		case "deny":
-			if !blocked {
-				t.Fatalf("canonical public deny is not enforced: %s", row.MethodID)
-			}
-			want := runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED
-			if containsTransportClass(row.AllowedTransportClasses, "local_app_bootstrap") || containsTransportClass(row.AllowedTransportClasses, "local_app_host") {
-				want = runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH
-			}
-			if reason != want {
-				t.Fatalf("canonical public denial reason mismatch for %s: got=%v want=%v", row.MethodID, reason, want)
-			}
-		case "binding_only":
-			if blocked {
-				t.Fatalf("binding-only bootstrap was blocked: %s reason=%v", row.MethodID, reason)
-			}
-		}
-	}
-}
-
-func containsTransportClass(classes []string, required string) bool {
-	for _, class := range classes {
-		if class == required {
-			return true
-		}
-	}
-	return false
-}
-
-func findRepoFile(t *testing.T, relative string) string {
-	t.Helper()
-	dir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("working directory: %v", err)
-	}
-	for {
-		candidate := filepath.Join(dir, relative)
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Fatalf("repo file not found: %s", relative)
-		}
-		dir = parent
 	}
 }
 

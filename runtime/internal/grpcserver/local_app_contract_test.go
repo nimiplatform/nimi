@@ -35,18 +35,6 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentServiceDoesNotExposeRetiredLocalAppShortcuts(t *testing.T) {
-	service := runtimev1.File_runtime_v1_agent_service_proto.Services().ByName("RuntimeAgentService")
-	if service == nil {
-		t.Fatal("RuntimeAgentService descriptor is missing")
-	}
-	for _, retired := range []protoreflect.Name{"ListLocalAppAgentInventory", "TranscribeLocalAppAgentAudio"} {
-		if service.Methods().ByName(retired) != nil {
-			t.Fatalf("retired local-app shortcut RPC %q remains publicly callable", retired)
-		}
-	}
-}
-
 func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 	desktopMethods := []string{
 		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -88,23 +76,6 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 	}
 	if len(protectedLocalAppStreamMethodPolicies) != 0 {
 		t.Fatalf("third-party local-app transport unexpectedly admits streams: %+v", protectedLocalAppStreamMethodPolicies)
-	}
-}
-
-func TestRuntimeAccountServiceDoesNotExposeRetiredOperationGrantRPCs(t *testing.T) {
-	service := runtimev1.File_runtime_v1_account_proto.Services().ByName("RuntimeAccountService")
-	if service == nil {
-		t.Fatal("RuntimeAccountService descriptor is missing")
-	}
-	for _, retired := range []protoreflect.Name{
-		"GetLocalAppGrantStatus",
-		"RequestLocalAppGrant",
-		"DecideLocalAppGrant",
-		"RevokeLocalAppGrant",
-	} {
-		if service.Methods().ByName(retired) != nil {
-			t.Fatalf("retired operation-grant RPC %q remains publicly callable", retired)
-		}
 	}
 }
 

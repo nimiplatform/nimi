@@ -42,6 +42,15 @@ fn parse_repeated_string(raw: &[u8], target_key: &str) -> Vec<String> {
     out
 }
 
+fn push_nested_pairs(out: &mut Vec<String>, field_name: &str, raw: &[u8]) {
+    let text = String::from_utf8_lossy(raw);
+    for pair in text.split(';') {
+        if !pair.is_empty() {
+            out.push(format!("{}.{}", field_name, pair));
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AccountAppInstallState {
     ACCOUNTAPPINSTALLSTATEUNSPECIFIED,
@@ -3515,14 +3524,14 @@ pub struct AddLinkResponse {
 
 impl AddLinkResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.link.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode link"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["link"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -3660,7 +3669,7 @@ impl AgentAvatarDebugEventDetail {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["family", "request", "result", "replay"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -4004,7 +4013,7 @@ impl AgentLifecycleEventDetail {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["previous_status", "current_status"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -4027,7 +4036,7 @@ pub struct AgentMemoryEventDetail {
 
 impl AgentMemoryEventDetail {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.accepted.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode accepted"); }
         if !self.rejected.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode rejected"); }
         pairs.join(";").into_bytes()
@@ -4035,7 +4044,7 @@ impl AgentMemoryEventDetail {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["accepted", "rejected"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -4689,7 +4698,7 @@ pub struct AgentStateMutation {
 
 impl AgentStateMutation {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.set_status_text.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode set_status_text"); }
         if self.set_world_context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode set_world_context"); }
         if self.clear_world_context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode clear_world_context"); }
@@ -4702,7 +4711,7 @@ impl AgentStateMutation {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["set_status_text", "set_world_context", "clear_world_context", "set_dyadic_context", "clear_dyadic_context", "put_attribute", "remove_attribute"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -6157,14 +6166,14 @@ pub struct ApplyProfileRequest {
 
 impl ApplyProfileRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["plan"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -6186,14 +6195,14 @@ pub struct ApplyProfileResponse {
 
 impl ApplyProfileResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.result.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode result"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["result"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -6290,14 +6299,14 @@ pub struct AudioChunks {
 
 impl AudioChunks {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.chunks.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode chunks"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["chunks"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -6641,7 +6650,7 @@ pub struct BeginLoginRequest {
 impl BeginLoginRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.redirect_uri { pairs.push(format!("redirect_uri={}", value)); }
         if let Some(value) = &self.callback_origin { pairs.push(format!("callback_origin={}", value)); }
         for value in &self.requested_scopes { pairs.push(format!("requested_scopes={}", value)); }
@@ -6865,7 +6874,7 @@ pub struct CancelCompanionParticipationResponse {
 
 impl CancelCompanionParticipationResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
         pairs.join(";").into_bytes()
     }
@@ -6919,14 +6928,14 @@ pub struct CancelHookResponse {
 
 impl CancelHookResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.outcome.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode outcome"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["outcome"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -6969,14 +6978,14 @@ pub struct CancelLocalEnvironmentDependencyJobResponse {
 
 impl CancelLocalEnvironmentDependencyJobResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -7019,14 +7028,14 @@ pub struct CancelLocalTransferResponse {
 
 impl CancelLocalTransferResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.transfer.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode transfer"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["transfer"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -7072,14 +7081,14 @@ pub struct CancelScenarioJobResponse {
 
 impl CancelScenarioJobResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -7682,7 +7691,7 @@ pub struct CharacterSourceRefV3 {
 
 impl CharacterSourceRefV3 {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.world_character.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode world_character"); }
         if self.persona_character.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode persona_character"); }
         pairs.join(";").into_bytes()
@@ -7690,7 +7699,7 @@ impl CharacterSourceRefV3 {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["world_character", "persona_character"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -7868,14 +7877,14 @@ pub struct CheckLocalAssetHealthResponse {
 
 impl CheckLocalAssetHealthResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.assets.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode assets"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["assets"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -7918,14 +7927,14 @@ pub struct CheckLocalServiceHealthResponse {
 
 impl CheckLocalServiceHealthResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.services.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode services"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["services"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -8112,14 +8121,14 @@ pub struct CloseRealtimeSessionResponse {
 
 impl CloseRealtimeSessionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -8141,14 +8150,14 @@ pub struct CollectDeviceProfileRequest {
 
 impl CollectDeviceProfileRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.extra_ports.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode extra_ports"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["extra_ports"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -8170,14 +8179,14 @@ pub struct CollectDeviceProfileResponse {
 
 impl CollectDeviceProfileResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode profile"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["profile"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -8277,7 +8286,7 @@ pub struct CompleteLoginRequest {
 impl CompleteLoginRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.login_attempt_id { pairs.push(format!("login_attempt_id={}", value)); }
         if let Some(value) = &self.code { pairs.push(format!("code={}", value)); }
         if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
@@ -8633,14 +8642,14 @@ pub struct CreateBankResponse {
 
 impl CreateBankResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["bank"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -8705,14 +8714,14 @@ pub struct CreateConnectorResponse {
 
 impl CreateConnectorResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.connector.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode connector"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["connector"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -8766,14 +8775,14 @@ pub struct CreateKnowledgeBankResponse {
 
 impl CreateKnowledgeBankResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["bank"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -8855,14 +8864,14 @@ pub struct CreateRealmGroupMessageCandidateResponse {
 
 impl CreateRealmGroupMessageCandidateResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.candidate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode candidate"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["candidate"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -8923,7 +8932,7 @@ impl DecideLocalDevelopmentProjectResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["authorization", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9318,7 +9327,7 @@ pub struct DeleteBankRequest {
 
 impl DeleteBankRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.locator.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode locator"); }
         pairs.join(";").into_bytes()
@@ -9326,7 +9335,7 @@ impl DeleteBankRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context", "locator"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9348,14 +9357,14 @@ pub struct DeleteBankResponse {
 
 impl DeleteBankResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9402,7 +9411,7 @@ pub struct DeleteCatalogModelOverlayResponse {
 
 impl DeleteCatalogModelOverlayResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         if self.provider.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider"); }
         pairs.join(";").into_bytes()
@@ -9410,7 +9419,7 @@ impl DeleteCatalogModelOverlayResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack", "provider"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9453,14 +9462,14 @@ pub struct DeleteConnectorResponse {
 
 impl DeleteConnectorResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9510,14 +9519,14 @@ pub struct DeleteKnowledgeBankResponse {
 
 impl DeleteKnowledgeBankResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9621,14 +9630,14 @@ pub struct DeleteModelCatalogProviderResponse {
 
 impl DeleteModelCatalogProviderResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9684,14 +9693,14 @@ pub struct DeletePageResponse {
 
 impl DeletePageResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9734,14 +9743,14 @@ pub struct DeleteVoiceAssetResponse {
 
 impl DeleteVoiceAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9770,7 +9779,7 @@ impl DescribeParticipationContextBlocksRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["profile_kind"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9792,14 +9801,14 @@ pub struct DescribeParticipationContextBlocksResponse {
 
 impl DescribeParticipationContextBlocksResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.context_blocks.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context_blocks"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context_blocks"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9839,14 +9848,14 @@ pub struct DescribeParticipationProfilesResponse {
 
 impl DescribeParticipationProfilesResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.profiles.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode profiles"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["profiles"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -9971,14 +9980,14 @@ pub struct DisableAutonomyResponse {
 
 impl DisableAutonomyResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.autonomy.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode autonomy"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["autonomy"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10028,14 +10037,14 @@ pub struct EmbeddingVector {
 
 impl EmbeddingVector {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.values.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode values"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["values"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10085,14 +10094,14 @@ pub struct EnableAutonomyResponse {
 
 impl EnableAutonomyResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.autonomy.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode autonomy"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["autonomy"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10115,7 +10124,7 @@ pub struct EndLocalDevelopmentRunRequest {
 
 impl EndLocalDevelopmentRunRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.authorization_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization_id"); }
         if self.supervisor_run_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode supervisor_run_id"); }
         pairs.join(";").into_bytes()
@@ -10123,7 +10132,7 @@ impl EndLocalDevelopmentRunRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["authorization_id", "supervisor_run_id"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10152,7 +10161,7 @@ impl EndLocalDevelopmentRunResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10198,14 +10207,14 @@ pub struct EnsureEngineResponse {
 
 impl EnsureEngineResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.engine.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["engine"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10441,7 +10450,7 @@ pub struct ExecuteDelegatedCapabilityResponse {
 
 impl ExecuteDelegatedCapabilityResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.diagnostic.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode diagnostic"); }
         if self.replay_trace.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode replay_trace"); }
         if self.model_output.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode model_output"); }
@@ -10451,7 +10460,7 @@ impl ExecuteDelegatedCapabilityResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["diagnostic", "replay_trace", "model_output", "approval_request"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10501,7 +10510,7 @@ pub struct ExecuteLocalStateCutoverResponse {
 
 impl ExecuteLocalStateCutoverResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
         if self.transfer.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode transfer"); }
         pairs.join(";").into_bytes()
@@ -10509,7 +10518,7 @@ impl ExecuteLocalStateCutoverResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["plan", "transfer"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10531,14 +10540,14 @@ pub struct ExecuteParticipationRequest {
 
 impl ExecuteParticipationRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.spec.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode spec"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["spec"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -10612,7 +10621,7 @@ impl ExecuteScenarioRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["head", "scenario_type", "execution_mode", "spec", "extensions"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11309,13 +11318,13 @@ pub struct GetAccountSessionStatusRequest {
 impl GetAccountSessionStatusRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["caller"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11397,14 +11406,14 @@ pub struct GetAgentCanonicalMemoryBankStatusResponse {
 
 impl GetAgentCanonicalMemoryBankStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.status.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode status"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["status"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11456,14 +11465,14 @@ pub struct GetAgentCanonicalMemoryReviewStatusResponse {
 
 impl GetAgentCanonicalMemoryReviewStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.status.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode status"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["status"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11513,14 +11522,14 @@ pub struct GetAgentResponse {
 
 impl GetAgentResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.agent.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode agent"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["agent"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11570,14 +11579,14 @@ pub struct GetAgentStateResponse {
 
 impl GetAgentStateResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.state.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode state"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["state"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11620,14 +11629,14 @@ pub struct GetAppInstallJobResponse {
 
 impl GetAppInstallJobResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11730,14 +11739,14 @@ pub struct GetAppPackageReadinessResponse {
 
 impl GetAppPackageReadinessResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["projection"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11780,14 +11789,14 @@ pub struct GetAppStorageResponse {
 
 impl GetAppStorageResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["projection"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11845,7 +11854,7 @@ pub struct GetAvatarDebugReplayResponse {
 
 impl GetAvatarDebugReplayResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.request.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode request"); }
         if self.result.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode result"); }
         if self.replay_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode replay_ref"); }
@@ -11854,7 +11863,7 @@ impl GetAvatarDebugReplayResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["request", "result", "replay_ref"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11944,7 +11953,7 @@ pub struct GetBankRequest {
 
 impl GetBankRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.locator.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode locator"); }
         pairs.join(";").into_bytes()
@@ -11952,7 +11961,7 @@ impl GetBankRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context", "locator"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -11974,14 +11983,14 @@ pub struct GetBankResponse {
 
 impl GetBankResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["bank"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12029,7 +12038,7 @@ pub struct GetCatalogModelDetailResponse {
 
 impl GetCatalogModelDetailResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.provider.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider"); }
         if self.model.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode model"); }
         if !self.warnings.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode warnings"); }
@@ -12038,7 +12047,7 @@ impl GetCatalogModelDetailResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["provider", "model", "warnings"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12104,7 +12113,7 @@ pub struct GetCompanionParticipationProjectionResponse {
 
 impl GetCompanionParticipationProjectionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
         pairs.join(";").into_bytes()
     }
@@ -12145,14 +12154,14 @@ pub struct GetConnectorResponse {
 
 impl GetConnectorResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.connector.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode connector"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["connector"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12205,14 +12214,14 @@ pub struct GetConversationAnchorSnapshotResponse {
 
 impl GetConversationAnchorSnapshotResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12265,14 +12274,14 @@ pub struct GetDelegatedControlSurfaceSnapshotResponse {
 
 impl GetDelegatedControlSurfaceSnapshotResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12331,14 +12340,14 @@ pub struct GetDelegatedReplayTraceResponse {
 
 impl GetDelegatedReplayTraceResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.trace.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode trace"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["trace"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12432,14 +12441,14 @@ pub struct GetEngineStatusResponse {
 
 impl GetEngineStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.engine.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["engine"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12489,14 +12498,14 @@ pub struct GetIngestTaskResponse {
 
 impl GetIngestTaskResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.task.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode task"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["task"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12546,14 +12555,14 @@ pub struct GetKnowledgeBankResponse {
 
 impl GetKnowledgeBankResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["bank"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12596,14 +12605,14 @@ pub struct GetLocalAppPermissionStatusResponse {
 
 impl GetLocalAppPermissionStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["projection"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12654,7 +12663,7 @@ impl GetLocalDevelopmentAuthoritySummaryResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["developer_mode", "project_authorization", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12710,14 +12719,14 @@ pub struct GetPageResponse {
 
 impl GetPageResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.page.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode page"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["page"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12769,7 +12778,7 @@ impl GetParticipationCandidateResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["candidate", "status"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12812,14 +12821,14 @@ pub struct GetParticipationReplayResponse {
 
 impl GetParticipationReplayResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.replay.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode replay"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["replay"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -12963,14 +12972,14 @@ pub struct GetPublicChatSessionSnapshotResponse {
 
 impl GetPublicChatSessionSnapshotResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13044,14 +13053,14 @@ pub struct GetRealmGroupMessageCandidateEvidenceResponse {
 
 impl GetRealmGroupMessageCandidateEvidenceResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.evidence.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode evidence"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["evidence"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13097,14 +13106,14 @@ pub struct GetRecommendationFeedResponse {
 
 impl GetRecommendationFeedResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.feed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode feed"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["feed"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13126,14 +13135,14 @@ pub struct GetRuntimeAgentAIConfigReadinessRequest {
 
 impl GetRuntimeAgentAIConfigReadinessRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13155,14 +13164,14 @@ pub struct GetRuntimeAgentAIConfigReadinessResponse {
 
 impl GetRuntimeAgentAIConfigReadinessResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13184,14 +13193,14 @@ pub struct GetRuntimeAgentAIConfigRequest {
 
 impl GetRuntimeAgentAIConfigRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13213,14 +13222,14 @@ pub struct GetRuntimeAgentAIConfigResponse {
 
 impl GetRuntimeAgentAIConfigResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["config"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13384,14 +13393,14 @@ pub struct GetScenarioJobResponse {
 
 impl GetScenarioJobResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13434,14 +13443,14 @@ pub struct GetVoiceAssetResponse {
 
 impl GetVoiceAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13555,14 +13564,14 @@ pub struct HealthRepairAppResponse {
 
 impl HealthRepairAppResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13586,7 +13595,7 @@ pub struct HistoryRequest {
 
 impl HistoryRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
         if self.query.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode query"); }
@@ -13595,7 +13604,7 @@ impl HistoryRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context", "bank", "query"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13738,7 +13747,7 @@ pub struct HookTriggerDetail {
 
 impl HookTriggerDetail {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.time.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode time"); }
         if self.event_user_idle.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode event_user_idle"); }
         if self.event_chat_ended.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode event_chat_ended"); }
@@ -13747,7 +13756,7 @@ impl HookTriggerDetail {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["time", "event_user_idle", "event_chat_ended"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13853,14 +13862,14 @@ pub struct ImageGenerateResult {
 
 impl ImageGenerateResult {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.artifacts.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifacts"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["artifacts"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -13966,14 +13975,14 @@ pub struct ImportLocalAssetBundleResponse {
 
 impl ImportLocalAssetBundleResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.transfer.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode transfer"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["transfer"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14035,14 +14044,14 @@ pub struct ImportLocalAssetFileResponse {
 
 impl ImportLocalAssetFileResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14095,14 +14104,14 @@ pub struct ImportLocalAssetResponse {
 
 impl ImportLocalAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14248,7 +14257,7 @@ pub struct InitializeAgentResponse {
 
 impl InitializeAgentResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.agent.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode agent"); }
         if self.state.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode state"); }
         pairs.join(";").into_bytes()
@@ -14256,7 +14265,7 @@ impl InitializeAgentResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["agent", "state"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14279,7 +14288,7 @@ pub struct InspectMemoryEmbeddingRuntimeRequest {
 
 impl InspectMemoryEmbeddingRuntimeRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.locator.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode locator"); }
         pairs.join(";").into_bytes()
@@ -14287,7 +14296,7 @@ impl InspectMemoryEmbeddingRuntimeRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context", "locator"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14383,14 +14392,14 @@ pub struct InstallAppResponse {
 
 impl InstallAppResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14448,14 +14457,14 @@ pub struct InstallLocalServiceResponse {
 
 impl InstallLocalServiceResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.service.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode service"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["service"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14477,14 +14486,14 @@ pub struct InstallModelFromPlanRequest {
 
 impl InstallModelFromPlanRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["plan"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14506,14 +14515,14 @@ pub struct InstallModelFromPlanResponse {
 
 impl InstallModelFromPlanResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14559,14 +14568,14 @@ pub struct InstallVerifiedAssetResponse {
 
 impl InstallVerifiedAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14663,7 +14672,7 @@ pub struct InvokeRealmUnaryRequest {
 impl InvokeRealmUnaryRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.method_id { pairs.push(format!("method_id={}", value)); }
         if let Some(value) = &self.realm_base_url { pairs.push(format!("realm_base_url={}", value)); }
         if let Some(value) = &self.request_json { pairs.push(format!("request_json={}", value)); }
@@ -14740,7 +14749,7 @@ pub struct IssueScopedAppBindingRequest {
 impl IssueScopedAppBindingRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if self.relation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode relation"); }
         if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
         pairs.join(";").into_bytes()
@@ -14812,7 +14821,7 @@ pub struct IssueWorkspaceBindingRequest {
 impl IssueWorkspaceBindingRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.workspace_id { pairs.push(format!("workspace_id={}", value)); }
         for value in &self.scopes { pairs.push(format!("scopes={}", value)); }
         if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
@@ -14953,7 +14962,7 @@ impl KnowledgeBankLocator {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["scope", "app_private", "workspace_private"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -14976,7 +14985,7 @@ pub struct KnowledgeBankOwnerFilter {
 
 impl KnowledgeBankOwnerFilter {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.app_private.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode app_private"); }
         if self.workspace_private.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode workspace_private"); }
         pairs.join(";").into_bytes()
@@ -14984,7 +14993,7 @@ impl KnowledgeBankOwnerFilter {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["app_private", "workspace_private"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -15354,14 +15363,14 @@ pub struct ListAIProviderHealthResponse {
 
 impl ListAIProviderHealthResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.providers.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode providers"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["providers"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -15532,14 +15541,14 @@ pub struct ListAppInstallJobsResponse {
 
 impl ListAppInstallJobsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.jobs.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode jobs"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["jobs"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -15673,14 +15682,14 @@ pub struct ListAvatarDebugProbeResultsResponse {
 
 impl ListAvatarDebugProbeResultsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.probe_results.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode probe_results"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["probe_results"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -15913,14 +15922,14 @@ pub struct ListCatalogVariantsResponse {
 
 impl ListCatalogVariantsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.variants.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode variants"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["variants"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16095,14 +16104,14 @@ pub struct ListDelegatedApprovalRequestsResponse {
 
 impl ListDelegatedApprovalRequestsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.approval_requests.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode approval_requests"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["approval_requests"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16155,14 +16164,14 @@ pub struct ListDelegatedDiagnosticsResponse {
 
 impl ListDelegatedDiagnosticsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.diagnostics.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode diagnostics"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["diagnostics"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16212,14 +16221,14 @@ pub struct ListDelegatedProviderProfilesResponse {
 
 impl ListDelegatedProviderProfilesResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.provider_profiles.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_profiles"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["provider_profiles"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16341,14 +16350,14 @@ pub struct ListEnginesResponse {
 
 impl ListEnginesResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.engines.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engines"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["engines"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16678,7 +16687,7 @@ impl ListLocalDevelopmentAuthorizationsResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["authorizations", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16724,14 +16733,14 @@ pub struct ListLocalEnvironmentDependencyJobsResponse {
 
 impl ListLocalEnvironmentDependencyJobsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.jobs.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode jobs"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["jobs"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16777,14 +16786,14 @@ pub struct ListLocalEnvironmentSelectedSourcesResponse {
 
 impl ListLocalEnvironmentSelectedSourcesResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.sources.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode sources"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["sources"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16883,14 +16892,14 @@ pub struct ListLocalTransfersResponse {
 
 impl ListLocalTransfersResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.transfers.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode transfers"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["transfers"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16930,14 +16939,14 @@ pub struct ListModelCatalogProvidersResponse {
 
 impl ListModelCatalogProvidersResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.providers.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode providers"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["providers"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -16977,14 +16986,14 @@ pub struct ListModelsResponse {
 
 impl ListModelsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.models.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode models"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["models"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -17344,14 +17353,14 @@ pub struct ListProviderCatalogResponse {
 
 impl ListProviderCatalogResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.providers.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode providers"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["providers"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -17394,14 +17403,14 @@ pub struct ListScenarioProfilesResponse {
 
 impl ListScenarioProfilesResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.profiles.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode profiles"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["profiles"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -18254,7 +18263,7 @@ impl LocalDevelopmentDeveloperModeSummary {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["availability", "state", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -18871,7 +18880,7 @@ pub struct LocalExecutionDeclarationDescriptor {
 
 impl LocalExecutionDeclarationDescriptor {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.required.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode required"); }
         if !self.optional.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode optional"); }
         if !self.alternatives.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode alternatives"); }
@@ -18881,7 +18890,7 @@ impl LocalExecutionDeclarationDescriptor {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["required", "optional", "alternatives", "preferred"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -19676,7 +19685,7 @@ pub struct LocalProviderHints {
 
 impl LocalProviderHints {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.llama.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode llama"); }
         if self.media.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode media"); }
         if self.speech.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech"); }
@@ -19687,7 +19696,7 @@ impl LocalProviderHints {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["llama", "media", "speech", "sidecar", "extra"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -20598,7 +20607,7 @@ pub struct LogoutRequest {
 impl LogoutRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -20786,7 +20795,7 @@ impl MemoryBankLocator {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["scope", "agent_core", "agent_dyadic", "world_shared", "app_private", "workspace_private"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -20812,7 +20821,7 @@ pub struct MemoryBankOwnerFilter {
 
 impl MemoryBankOwnerFilter {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.agent_core.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode agent_core"); }
         if self.agent_dyadic.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode agent_dyadic"); }
         if self.world_shared.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode world_shared"); }
@@ -20823,7 +20832,7 @@ impl MemoryBankOwnerFilter {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["agent_core", "agent_dyadic", "world_shared", "app_private", "workspace_private"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -21287,7 +21296,7 @@ impl MemoryRecordInput {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["kind", "canonical_class", "provenance", "metadata", "extensions", "episodic", "semantic", "observational"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -21911,14 +21920,14 @@ pub struct MusicGenerateResult {
 
 impl MusicGenerateResult {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.artifacts.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifacts"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["artifacts"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -22171,14 +22180,14 @@ pub struct OpenConversationAnchorResponse {
 
 impl OpenConversationAnchorResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -22219,7 +22228,7 @@ pub struct OpenDesktopSessionResponse {
 
 impl OpenDesktopSessionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.desktop_session_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode desktop_session_id"); }
         if self.runtime_boot_epoch.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode runtime_boot_epoch"); }
         pairs.join(";").into_bytes()
@@ -22227,7 +22236,7 @@ impl OpenDesktopSessionResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["desktop_session_id", "runtime_boot_epoch"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -22648,7 +22657,7 @@ pub struct ParticipationContextBlock {
 
 impl ParticipationContextBlock {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.runtime_conversation_anchor_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode runtime_conversation_anchor_ref"); }
         if self.realm_group_thread_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode realm_group_thread_ref"); }
         if self.trigger_message_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode trigger_message_ref"); }
@@ -22675,7 +22684,7 @@ impl ParticipationContextBlock {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["runtime_conversation_anchor_ref", "realm_group_thread_ref", "trigger_message_ref", "participant_projection", "recent_group_transcript_projection", "agent_slot_projection", "scenario_package_ref", "scenario_run_ref", "scenario_branch_ref", "visible_scene_state", "recent_sandbox_transcript_projection", "world_context_ref", "world_event_ref", "visible_world_state_projection", "recent_world_transcript_or_event_projection", "external_participant_identity_ref", "external_payload_ref", "gateway_verdict_ref", "domain_context_ref", "tool_or_capability_projection", "diagnostic_probe_ref"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -22948,7 +22957,7 @@ impl ParticipationVerdictSet {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["memory_read", "memory_write", "capability_scope", "concurrency", "resolved_memory_read_scope", "resolved_memory_write_default", "resolved_capability_scope", "resolved_concurrency"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -22991,14 +23000,14 @@ pub struct PauseLocalTransferResponse {
 
 impl PauseLocalTransferResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.transfer.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode transfer"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["transfer"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -23050,7 +23059,7 @@ pub struct PeekSchedulingResponse {
 
 impl PeekSchedulingResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.occupancy.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode occupancy"); }
         if self.aggregate_judgement.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode aggregate_judgement"); }
         if !self.target_judgements.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target_judgements"); }
@@ -23059,7 +23068,7 @@ impl PeekSchedulingResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["occupancy", "aggregate_judgement", "target_judgements"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -23222,7 +23231,7 @@ pub struct PrepareLocalAppLaunchRequest {
 
 impl PrepareLocalAppLaunchRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.local_app_handle.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_app_handle"); }
         if self.supervisor_run_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode supervisor_run_id"); }
         pairs.join(";").into_bytes()
@@ -23230,7 +23239,7 @@ impl PrepareLocalAppLaunchRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["local_app_handle", "supervisor_run_id"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -23282,14 +23291,14 @@ pub struct PrepareProfileRuntimeDescriptorRequest {
 
 impl PrepareProfileRuntimeDescriptorRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.descriptor_json.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode descriptor_json"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["descriptor_json"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -23472,7 +23481,7 @@ pub struct PublicKnowledgeBankLocator {
 
 impl PublicKnowledgeBankLocator {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.app_private.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode app_private"); }
         if self.workspace_private.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode workspace_private"); }
         pairs.join(";").into_bytes()
@@ -23480,7 +23489,7 @@ impl PublicKnowledgeBankLocator {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["app_private", "workspace_private"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -23503,7 +23512,7 @@ pub struct PublicMemoryBankLocator {
 
 impl PublicMemoryBankLocator {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.app_private.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode app_private"); }
         if self.workspace_private.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode workspace_private"); }
         pairs.join(";").into_bytes()
@@ -23511,7 +23520,7 @@ impl PublicMemoryBankLocator {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["app_private", "workspace_private"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -23639,14 +23648,14 @@ pub struct PutPageResponse {
 
 impl PutPageResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.page.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode page"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["page"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -23710,7 +23719,7 @@ pub struct QueryAgentMemoryResponse {
 
 impl QueryAgentMemoryResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.memories.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode memories"); }
         if !self.narratives.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode narratives"); }
         pairs.join(";").into_bytes()
@@ -23718,7 +23727,7 @@ impl QueryAgentMemoryResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["memories", "narratives"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -23740,14 +23749,14 @@ pub struct RawChunk {
 
 impl RawChunk {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.value.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode value"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["value"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -24217,7 +24226,7 @@ impl RealtimeCompleted {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["finish_reason", "usage"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -24312,7 +24321,7 @@ pub struct RealtimeInputItem {
 
 impl RealtimeInputItem {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.message.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode message"); }
         if self.audio.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode audio"); }
         pairs.join(";").into_bytes()
@@ -24320,7 +24329,7 @@ impl RealtimeInputItem {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["message", "audio"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -24447,7 +24456,7 @@ pub struct RecallRequest {
 
 impl RecallRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
         if self.query.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode query"); }
@@ -24456,7 +24465,7 @@ impl RecallRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context", "bank", "query"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -24479,7 +24488,7 @@ pub struct RecallResponse {
 
 impl RecallResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.hits.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode hits"); }
         if !self.narrative_hits.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode narrative_hits"); }
         pairs.join(";").into_bytes()
@@ -24487,7 +24496,7 @@ impl RecallResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["hits", "narrative_hits"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -24823,7 +24832,7 @@ pub struct RegisterAvatarLiveInstanceBindingResponse {
 
 impl RegisterAvatarLiveInstanceBindingResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode binding"); }
         if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
@@ -24831,7 +24840,7 @@ impl RegisterAvatarLiveInstanceBindingResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["binding", "snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -24954,14 +24963,14 @@ pub struct RemoveLinkResponse {
 
 impl RemoveLinkResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25053,14 +25062,14 @@ pub struct RemoveLocalAssetResponse {
 
 impl RemoveLocalAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25103,14 +25112,14 @@ pub struct RemoveLocalServiceResponse {
 
 impl RemoveLocalServiceResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.service.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode service"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["service"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25210,14 +25219,14 @@ pub struct RepairLocalEnvironmentDependencyResponse {
 
 impl RepairLocalEnvironmentDependencyResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25349,7 +25358,7 @@ pub struct RequestAvatarDebugProbeResponse {
 
 impl RequestAvatarDebugProbeResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.request.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode request"); }
         if self.result.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode result"); }
         if self.replay_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode replay_ref"); }
@@ -25358,7 +25367,7 @@ impl RequestAvatarDebugProbeResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["request", "result", "replay_ref"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25436,7 +25445,7 @@ pub struct RequestCompanionParticipationResponse {
 
 impl RequestCompanionParticipationResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
         pairs.join(";").into_bytes()
     }
@@ -25480,14 +25489,14 @@ pub struct RequestLocalAppPermissionResponse {
 
 impl RequestLocalAppPermissionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["projection"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25510,7 +25519,7 @@ pub struct RequestMemoryEmbeddingRuntimeBindRequest {
 
 impl RequestMemoryEmbeddingRuntimeBindRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.locator.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode locator"); }
         pairs.join(";").into_bytes()
@@ -25518,7 +25527,7 @@ impl RequestMemoryEmbeddingRuntimeBindRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context", "locator"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25575,7 +25584,7 @@ pub struct RequestMemoryEmbeddingRuntimeCutoverRequest {
 
 impl RequestMemoryEmbeddingRuntimeCutoverRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.locator.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode locator"); }
         pairs.join(";").into_bytes()
@@ -25583,7 +25592,7 @@ impl RequestMemoryEmbeddingRuntimeCutoverRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context", "locator"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25639,7 +25648,7 @@ pub struct RequestPresenceVerificationRequest {
 impl RequestPresenceVerificationRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.purpose { pairs.push(format!("purpose={}", value)); }
         if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
         pairs.join(";").into_bytes()
@@ -25779,14 +25788,14 @@ pub struct RescanLocalAssetBundleResponse {
 
 impl RescanLocalAssetBundleResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.transfer.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode transfer"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["transfer"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25837,7 +25846,7 @@ pub struct ResolveAvatarLiveInstanceBindingResponse {
 
 impl ResolveAvatarLiveInstanceBindingResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode binding"); }
         if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
@@ -25845,7 +25854,7 @@ impl ResolveAvatarLiveInstanceBindingResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["binding", "snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -25984,14 +25993,14 @@ pub struct ResolveLocalEnvironmentActivationGateResponse {
 
 impl ResolveLocalEnvironmentActivationGateResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.gate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode gate"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["gate"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26062,14 +26071,14 @@ pub struct ResolveLocalEnvironmentPlanResponse {
 
 impl ResolveLocalEnvironmentPlanResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["plan"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26112,14 +26121,14 @@ pub struct ResolveLocalStateReconciliationResponse {
 
 impl ResolveLocalStateReconciliationResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["plan"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26204,14 +26213,14 @@ pub struct ResolveModelInstallPlanResponse {
 
 impl ResolveModelInstallPlanResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["plan"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26268,14 +26277,14 @@ pub struct ResolveProfileResponse {
 
 impl ResolveProfileResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["plan"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26463,7 +26472,7 @@ pub struct ResumeDelegatedCapabilityResponse {
 
 impl ResumeDelegatedCapabilityResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.diagnostic.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode diagnostic"); }
         if self.replay_trace.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode replay_trace"); }
         if self.model_output.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode model_output"); }
@@ -26473,7 +26482,7 @@ impl ResumeDelegatedCapabilityResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["diagnostic", "replay_trace", "model_output", "approval_request"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26516,14 +26525,14 @@ pub struct ResumeLocalTransferResponse {
 
 impl ResumeLocalTransferResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.transfer.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode transfer"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["transfer"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26547,7 +26556,7 @@ pub struct RetainRequest {
 
 impl RetainRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
         if !self.records.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode records"); }
@@ -26556,7 +26565,7 @@ impl RetainRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context", "bank", "records"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26578,14 +26587,14 @@ pub struct RetainResponse {
 
 impl RetainResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.records.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode records"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["records"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26631,14 +26640,14 @@ pub struct RetryLocalEnvironmentDependencyJobResponse {
 
 impl RetryLocalEnvironmentDependencyJobResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26681,14 +26690,14 @@ pub struct RevokeLocalDevelopmentAuthorizationRequest {
 
 impl RevokeLocalDevelopmentAuthorizationRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.authorization_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization_id"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["authorization_id"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26719,7 +26728,7 @@ impl RevokeLocalDevelopmentAuthorizationResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["authorization", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -26744,7 +26753,7 @@ pub struct RevokeScopedAppBindingRequest {
 impl RevokeScopedAppBindingRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.binding_id { pairs.push(format!("binding_id={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
@@ -26830,7 +26839,7 @@ pub struct RevokeWorkspaceBindingRequest {
 impl RevokeWorkspaceBindingRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.binding_id { pairs.push(format!("binding_id={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
@@ -27282,7 +27291,7 @@ pub struct RuntimeDurableTargetRef {
 
 impl RuntimeDurableTargetRef {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.local_runtime.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_runtime"); }
         if self.cloud.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud"); }
         pairs.join(";").into_bytes()
@@ -27290,7 +27299,7 @@ impl RuntimeDurableTargetRef {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["local_runtime", "cloud"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -27511,14 +27520,14 @@ pub struct ScaffoldOrphanAssetResponse {
 
 impl ScaffoldOrphanAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -27558,14 +27567,14 @@ pub struct ScanUnregisteredAssetsResponse {
 
 impl ScanUnregisteredAssetsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.items.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode items"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["items"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -27820,7 +27829,7 @@ pub struct ScenarioOutput {
 
 impl ScenarioOutput {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.text_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_generate"); }
         if self.text_embed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_embed"); }
         if self.image_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode image_generate"); }
@@ -27834,7 +27843,7 @@ impl ScenarioOutput {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["text_generate", "text_embed", "image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "music_generate", "world_generate"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -27981,7 +27990,7 @@ pub struct ScenarioSpec {
 
 impl ScenarioSpec {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.text_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_generate"); }
         if self.text_embed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_embed"); }
         if self.image_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode image_generate"); }
@@ -27997,7 +28006,7 @@ impl ScenarioSpec {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["text_generate", "text_embed", "image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "voice_clone", "voice_design", "music_generate", "world_generate"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -28053,7 +28062,7 @@ pub struct ScenarioStreamDelta {
 
 impl ScenarioStreamDelta {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.text.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text"); }
         if self.artifact.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifact"); }
         if self.reasoning.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode reasoning"); }
@@ -28064,7 +28073,7 @@ impl ScenarioStreamDelta {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["text", "artifact", "reasoning", "source", "raw"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -28274,7 +28283,7 @@ pub struct SchedulingTargetJudgement {
 
 impl SchedulingTargetJudgement {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.target.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target"); }
         if self.judgement.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode judgement"); }
         pairs.join(";").into_bytes()
@@ -28282,7 +28291,7 @@ impl SchedulingTargetJudgement {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["target", "judgement"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -28624,7 +28633,7 @@ impl SearchKeywordResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["hits", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -28865,14 +28874,14 @@ pub struct SetAutonomyConfigResponse {
 
 impl SetAutonomyConfigResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.autonomy.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode autonomy"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["autonomy"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -28930,14 +28939,14 @@ pub struct SetDelegatedProviderStateResponse {
 
 impl SetDelegatedProviderStateResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.provider_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_profile"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["provider_profile"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29046,7 +29055,7 @@ impl SpeechAlignment {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["unit", "tokens"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29095,14 +29104,14 @@ pub struct SpeechSynthesizeResult {
 
 impl SpeechSynthesizeResult {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.artifacts.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifacts"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["artifacts"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29308,14 +29317,14 @@ pub struct StartEngineResponse {
 
 impl StartEngineResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.engine.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["engine"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29358,14 +29367,14 @@ pub struct StartLocalAssetResponse {
 
 impl StartLocalAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29423,14 +29432,14 @@ pub struct StartLocalEnvironmentDependencyJobResponse {
 
 impl StartLocalEnvironmentDependencyJobResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29473,14 +29482,14 @@ pub struct StartLocalServiceResponse {
 
 impl StartLocalServiceResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.service.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode service"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["service"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29523,14 +29532,14 @@ pub struct StopEngineResponse {
 
 impl StopEngineResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.engine.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["engine"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29573,14 +29582,14 @@ pub struct StopLocalAssetResponse {
 
 impl StopLocalAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29623,14 +29632,14 @@ pub struct StopLocalServiceResponse {
 
 impl StopLocalServiceResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.service.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode service"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["service"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29717,7 +29726,7 @@ impl StreamScenarioRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["head", "scenario_type", "execution_mode", "spec", "extensions"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29772,14 +29781,14 @@ pub struct SubmitAvatarDebugProbeResultResponse {
 
 impl SubmitAvatarDebugProbeResultResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.result.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode result"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["result"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29837,14 +29846,14 @@ pub struct SubmitDelegatedApprovalDecisionResponse {
 
 impl SubmitDelegatedApprovalDecisionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.approval_request.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode approval_request"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["approval_request"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -29908,7 +29917,7 @@ pub struct SubmitScenarioJobResponse {
 
 impl SubmitScenarioJobResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
         pairs.join(";").into_bytes()
@@ -29916,7 +29925,7 @@ impl SubmitScenarioJobResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job", "asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -30023,7 +30032,7 @@ pub struct SubscribeAccountSessionEventsRequest {
 impl SubscribeAccountSessionEventsRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.after_sequence { pairs.push(format!("after_sequence={}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -30194,14 +30203,14 @@ pub struct SubscribeRuntimeAgentAIConfigReadinessRequest {
 
 impl SubscribeRuntimeAgentAIConfigReadinessRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["context"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -30285,7 +30294,7 @@ pub struct SwitchAccountRequest {
 impl SwitchAccountRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
         if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -30403,14 +30412,14 @@ pub struct TerminateAgentResponse {
 
 impl TerminateAgentResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -30453,14 +30462,14 @@ pub struct TestConnectorResponse {
 
 impl TestConnectorResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.ack.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ack"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["ack"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -30482,14 +30491,14 @@ pub struct TextEmbedOutput {
 
 impl TextEmbedOutput {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.vectors.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode vectors"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["vectors"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -30517,7 +30526,6 @@ impl TextEmbedScenarioSpec {
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
         let mut out = Self::default();
 
         out.inputs = parse_repeated_string(raw, "inputs");
@@ -31038,7 +31046,7 @@ pub struct UninstallAppResponse {
 
 impl UninstallAppResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.result.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode result"); }
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
@@ -31046,7 +31054,7 @@ impl UninstallAppResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["result", "job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31098,14 +31106,14 @@ pub struct UpdateAgentStateResponse {
 
 impl UpdateAgentStateResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.state.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode state"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["state"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31157,14 +31165,14 @@ pub struct UpdateAppResponse {
 
 impl UpdateAppResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31233,14 +31241,14 @@ pub struct UpdateConnectorResponse {
 
 impl UpdateConnectorResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.connector.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode connector"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["connector"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31321,7 +31329,7 @@ pub struct UploadArtifactRequest {
 
 impl UploadArtifactRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
         if self.chunk.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode chunk"); }
         pairs.join(";").into_bytes()
@@ -31329,7 +31337,7 @@ impl UploadArtifactRequest {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["metadata", "chunk"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31415,7 +31423,7 @@ pub struct UpsertCatalogModelOverlayResponse {
 
 impl UpsertCatalogModelOverlayResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.provider.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider"); }
         if self.model.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode model"); }
         if !self.warnings.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode warnings"); }
@@ -31424,7 +31432,7 @@ impl UpsertCatalogModelOverlayResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["provider", "model", "warnings"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31476,14 +31484,14 @@ pub struct UpsertDelegatedProviderProfileResponse {
 
 impl UpsertDelegatedProviderProfileResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.provider_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_profile"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["provider_profile"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31529,14 +31537,14 @@ pub struct UpsertModelCatalogProviderResponse {
 
 impl UpsertModelCatalogProviderResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.provider.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["provider"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31588,14 +31596,14 @@ pub struct UpsertRuntimeAgentAIConfigResponse {
 
 impl UpsertRuntimeAgentAIConfigResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["config"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31716,14 +31724,14 @@ pub struct ValidateParticipationRequest {
 
 impl ValidateParticipationRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.spec.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode spec"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["spec"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -31877,14 +31885,14 @@ pub struct VideoGenerateResult {
 
 impl VideoGenerateResult {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.artifacts.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifacts"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["artifacts"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -32961,14 +32969,14 @@ pub struct WorldGenerateImagePrompt {
 
 impl WorldGenerateImagePrompt {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.content.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode content"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["content"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -32990,14 +32998,14 @@ pub struct WorldGenerateMultiImagePrompt {
 
 impl WorldGenerateMultiImagePrompt {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.images.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode images"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["images"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -33165,14 +33173,14 @@ pub struct WorldGenerateVideoPrompt {
 
 impl WorldGenerateVideoPrompt {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if self.content.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode content"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["content"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -33246,7 +33254,7 @@ pub struct WriteAgentMemoryResponse {
 
 impl WriteAgentMemoryResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
+        let pairs: Vec<String> = Vec::new();
         if !self.accepted.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode accepted"); }
         if !self.rejected.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode rejected"); }
         pairs.join(";").into_bytes()
@@ -33254,7 +33262,7 @@ impl WriteAgentMemoryResponse {
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
+        let out = Self::default();
         for key in ["accepted", "rejected"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
@@ -49428,8 +49436,23 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for checkEmail");
     }
 
-    pub fn check_handle(&self, _request: RealmCheckHandleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<HandleAvailabilityDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for checkHandle");
+    pub fn check_handle(&self, request: RealmCheckHandleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<HandleAvailabilityDto, T::Error> {
+        let mut pairs: Vec<String> = Vec::new();
+        let value = request.query.handle.as_ref().unwrap_or_else(|| {
+            panic!("SDK_REALM_REQUEST_ENCODE_FAILED: checkHandle requires query.handle");
+        });
+        pairs.push(format!("query.handle={}", value));
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "checkHandle".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(HandleAvailabilityDto {
+            available: pairs.get("available").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: checkHandle requires available")),
+            message: pairs.get("message").cloned().unwrap_or_default(),
+        })
     }
 
     pub fn clone_asset(&self, _request: RealmCloneAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
@@ -49488,8 +49511,25 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_acceptGift");
     }
 
-    pub fn economy_controller_calculate_withdrawal(&self, _request: RealmEconomyControllerCalculateWithdrawalOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WithdrawalSummaryDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_calculateWithdrawal");
+    pub fn economy_controller_calculate_withdrawal(&self, request: RealmEconomyControllerCalculateWithdrawalOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalSummaryDto, T::Error> {
+        let mut pairs: Vec<String> = Vec::new();
+        let value = request.query.amount.as_ref().unwrap_or_else(|| {
+            panic!("SDK_REALM_REQUEST_ENCODE_FAILED: EconomyController_calculateWithdrawal requires query.amount");
+        });
+        pairs.push(format!("query.amount={}", value));
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "EconomyController_calculateWithdrawal".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(WithdrawalSummaryDto {
+            fee_amount: pairs.get("feeAmount").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_calculateWithdrawal requires feeAmount")),
+            gem_amount: pairs.get("gemAmount").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_calculateWithdrawal requires gemAmount")),
+            net_amount: pairs.get("netAmount").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_calculateWithdrawal requires netAmount")),
+            usd_amount: pairs.get("usdAmount").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_calculateWithdrawal requires usdAmount")),
+        })
     }
 
     pub fn economy_controller_cancel_subscription(&self, _request: RealmEconomyControllerCancelSubscriptionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
@@ -49500,8 +49540,19 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_canWithdraw");
     }
 
-    pub fn economy_controller_create_connect_dashboard(&self, _request: RealmEconomyControllerCreateConnectDashboardOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ConnectDashboardLinkDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createConnectDashboard");
+    pub fn economy_controller_create_connect_dashboard(&self, _request: RealmEconomyControllerCreateConnectDashboardOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ConnectDashboardLinkDto, T::Error> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "EconomyController_createConnectDashboard".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(ConnectDashboardLinkDto {
+            url: pairs.get("url").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_createConnectDashboard requires url")),
+        })
     }
 
     pub fn economy_controller_create_connect_onboarding(&self, _request: RealmEconomyControllerCreateConnectOnboardingOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ConnectOnboardingResponseDto, T::Error> {
@@ -49524,8 +49575,20 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createWithdrawal");
     }
 
-    pub fn economy_controller_get_balances(&self, _request: RealmEconomyControllerGetBalancesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CurrencyBalancesDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getBalances");
+    pub fn economy_controller_get_balances(&self, _request: RealmEconomyControllerGetBalancesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CurrencyBalancesDto, T::Error> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "EconomyController_getBalances".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(CurrencyBalancesDto {
+            gem_balance: pairs.get("gemBalance").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_getBalances requires gemBalance")),
+            spark_balance: pairs.get("sparkBalance").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_getBalances requires sparkBalance")),
+        })
     }
 
     pub fn economy_controller_get_connect_status(&self, _request: RealmEconomyControllerGetConnectStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<StripeConnectStatusDto, T::Error> {
@@ -49544,8 +49607,20 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getReceivedGifts");
     }
 
-    pub fn economy_controller_get_revenue_share_config(&self, _request: RealmEconomyControllerGetRevenueShareConfigOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RevenueShareConfigDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getRevenueShareConfig");
+    pub fn economy_controller_get_revenue_share_config(&self, _request: RealmEconomyControllerGetRevenueShareConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevenueShareConfigDto, T::Error> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "EconomyController_getRevenueShareConfig".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(RevenueShareConfigDto {
+            min_share_threshold: pairs.get("minShareThreshold").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_getRevenueShareConfig requires minShareThreshold")),
+            world_creator_share_percent: pairs.get("worldCreatorSharePercent").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_getRevenueShareConfig requires worldCreatorSharePercent")),
+        })
     }
 
     pub fn economy_controller_get_sent_gifts(&self, _request: RealmEconomyControllerGetSentGiftsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReceivedGiftsResponseDto, T::Error> {
@@ -49576,8 +49651,21 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getWithdrawal");
     }
 
-    pub fn economy_controller_get_withdrawal_config(&self, _request: RealmEconomyControllerGetWithdrawalConfigOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WithdrawalConfigDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getWithdrawalConfig");
+    pub fn economy_controller_get_withdrawal_config(&self, _request: RealmEconomyControllerGetWithdrawalConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalConfigDto, T::Error> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "EconomyController_getWithdrawalConfig".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(WithdrawalConfigDto {
+            fee_percent: pairs.get("feePercent").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_getWithdrawalConfig requires feePercent")),
+            gem_to_usd_rate: pairs.get("gemToUsdRate").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_getWithdrawalConfig requires gemToUsdRate")),
+            min_gem_amount: pairs.get("minGemAmount").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: EconomyController_getWithdrawalConfig requires minGemAmount")),
+        })
     }
 
     pub fn economy_controller_get_withdrawal_history(&self, _request: RealmEconomyControllerGetWithdrawalHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WithdrawalHistoryDto, T::Error> {
@@ -49672,8 +49760,24 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyCapabilities");
     }
 
-    pub fn get_my_creator_eligibility(&self, _request: RealmGetMyCreatorEligibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorEligibilityResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyCreatorEligibility");
+    pub fn get_my_creator_eligibility(&self, _request: RealmGetMyCreatorEligibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreatorEligibilityResponseDto, T::Error> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getMyCreatorEligibility".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(CreatorEligibilityResponseDto {
+            can_create_persona_character: pairs.get("canCreatePersonaCharacter").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyCreatorEligibility requires canCreatePersonaCharacter")),
+            can_create_world: pairs.get("canCreateWorld").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyCreatorEligibility requires canCreateWorld")),
+            is_eligible: pairs.get("isEligible").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyCreatorEligibility requires isEligible")),
+            message: pairs.get("message").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyCreatorEligibility requires message")),
+            status: pairs.get("status").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyCreatorEligibility requires status")),
+            tier: pairs.get("tier").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyCreatorEligibility requires tier")),
+        })
     }
 
     pub fn get_my_notification_settings(&self, _request: RealmGetMyNotificationSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserNotificationSettingsDto, T::Error> {
@@ -49692,8 +49796,26 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMySettings");
     }
 
-    pub fn get_my_tiers(&self, _request: RealmGetMyTiersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TierDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyTiers");
+    pub fn get_my_tiers(&self, _request: RealmGetMyTiersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TierDetailDto, T::Error> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getMyTiers".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(TierDetailDto {
+            asset_tier: pairs.get("assetTier").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyTiers requires assetTier")),
+            asset_value: pairs.get("assetValue").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyTiers requires assetValue")),
+            influence_tier: pairs.get("influenceTier").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyTiers requires influenceTier")),
+            interaction_score: pairs.get("interactionScore").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyTiers requires interactionScore")),
+            interaction_tier: pairs.get("interactionTier").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyTiers requires interactionTier")),
+            total_followers: pairs.get("totalFollowers").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyTiers requires totalFollowers")),
+            user_id: pairs.get("userId").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyTiers requires userId")),
+            vitality_score: pairs.get("vitalityScore").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: getMyTiers requires vitalityScore")),
+        })
     }
 
     pub fn get_my_wallets(&self, _request: RealmGetMyWalletsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserWalletListResponseDto, T::Error> {
@@ -49852,8 +49974,20 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for passwordRegister");
     }
 
-    pub fn prepare2_fa(&self, _request: RealmPrepare2FaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Me2faPrepareResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for prepare2Fa");
+    pub fn prepare2_fa(&self, _request: RealmPrepare2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Me2faPrepareResponseDto, T::Error> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "prepare2Fa".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(Me2faPrepareResponseDto {
+            otpauth_uri: pairs.get("otpauthUri").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: prepare2Fa requires otpauthUri")),
+            secret: pairs.get("secret").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: prepare2Fa requires secret")),
+        })
     }
 
     pub fn prepare_bind_wallet(&self, _request: RealmPrepareBindWalletOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WalletPrepareBindResponseDto, T::Error> {
@@ -49880,8 +50014,19 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_createRelationship");
     }
 
-    pub fn relationship_controller_delete_relationship(&self, _request: RealmRelationshipControllerDeleteRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteRelationshipResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_deleteRelationship");
+    pub fn relationship_controller_delete_relationship(&self, request: RealmRelationshipControllerDeleteRelationshipOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteRelationshipResponseDto, T::Error> {
+        let mut pairs: Vec<String> = Vec::new();
+        pairs.push(format!("path.id={}", request.path.id));
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "RelationshipController_deleteRelationship".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(DeleteRelationshipResponseDto {
+            deleted: pairs.get("deleted").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: RelationshipController_deleteRelationship requires deleted")),
+        })
     }
 
     pub fn relationship_controller_get_my_relationships(&self, _request: RealmRelationshipControllerGetMyRelationshipsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<RelationshipResponseDto>, T::Error> {
@@ -50060,20 +50205,93 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for verifyEmailOtp");
     }
 
-    pub fn visibility_controller_check_can_dm(&self, _request: RealmVisibilityControllerCheckCanDmOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CanDmResultDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_checkCanDm");
+    pub fn visibility_controller_check_can_dm(&self, request: RealmVisibilityControllerCheckCanDmOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CanDmResultDto, T::Error> {
+        let mut pairs: Vec<String> = Vec::new();
+        let value = request.query.target_id.as_ref().unwrap_or_else(|| {
+            panic!("SDK_REALM_REQUEST_ENCODE_FAILED: VisibilityController_checkCanDm requires query.targetId");
+        });
+        pairs.push(format!("query.targetId={}", value));
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "VisibilityController_checkCanDm".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(CanDmResultDto {
+            can_dm: pairs.get("canDm").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_checkCanDm requires canDm")),
+            reason: pairs.get("reason").cloned().unwrap_or_default(),
+        })
     }
 
-    pub fn visibility_controller_check_can_view(&self, _request: RealmVisibilityControllerCheckCanViewOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<VisibilityCheckResultDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_checkCanView");
+    pub fn visibility_controller_check_can_view(&self, request: RealmVisibilityControllerCheckCanViewOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<VisibilityCheckResultDto, T::Error> {
+        let mut pairs: Vec<String> = Vec::new();
+        let value = request.query.scope.as_ref().unwrap_or_else(|| {
+            panic!("SDK_REALM_REQUEST_ENCODE_FAILED: VisibilityController_checkCanView requires query.scope");
+        });
+        pairs.push(format!("query.scope={}", value));
+        let value = request.query.target_id.as_ref().unwrap_or_else(|| {
+            panic!("SDK_REALM_REQUEST_ENCODE_FAILED: VisibilityController_checkCanView requires query.targetId");
+        });
+        pairs.push(format!("query.targetId={}", value));
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "VisibilityController_checkCanView".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(VisibilityCheckResultDto {
+            can_view: pairs.get("canView").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_checkCanView requires canView")),
+            reason: pairs.get("reason").cloned().unwrap_or_default(),
+        })
     }
 
-    pub fn visibility_controller_check_can_view_public(&self, _request: RealmVisibilityControllerCheckCanViewPublicOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<VisibilityCheckResultDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_checkCanViewPublic");
+    pub fn visibility_controller_check_can_view_public(&self, request: RealmVisibilityControllerCheckCanViewPublicOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<VisibilityCheckResultDto, T::Error> {
+        let mut pairs: Vec<String> = Vec::new();
+        let value = request.query.scope.as_ref().unwrap_or_else(|| {
+            panic!("SDK_REALM_REQUEST_ENCODE_FAILED: VisibilityController_checkCanViewPublic requires query.scope");
+        });
+        pairs.push(format!("query.scope={}", value));
+        let value = request.query.target_id.as_ref().unwrap_or_else(|| {
+            panic!("SDK_REALM_REQUEST_ENCODE_FAILED: VisibilityController_checkCanViewPublic requires query.targetId");
+        });
+        pairs.push(format!("query.targetId={}", value));
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "VisibilityController_checkCanViewPublic".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(VisibilityCheckResultDto {
+            can_view: pairs.get("canView").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_checkCanViewPublic requires canView")),
+            reason: pairs.get("reason").cloned().unwrap_or_default(),
+        })
     }
 
-    pub fn visibility_controller_get_user_settings(&self, _request: RealmVisibilityControllerGetUserSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserVisibilitySettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for VisibilityController_getUserSettings");
+    pub fn visibility_controller_get_user_settings(&self, _request: RealmVisibilityControllerGetUserSettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserVisibilitySettingsDto, T::Error> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "VisibilityController_getUserSettings".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        })?;
+        let pairs = parse_pairs(&raw);
+        Ok(UserVisibilitySettingsDto {
+            account_visibility: pairs.get("accountVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires accountVisibility")),
+            default_post_visibility: pairs.get("defaultPostVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires defaultPostVisibility")),
+            dm_visibility: pairs.get("dmVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires dmVisibility")),
+            friend_list_visibility: pairs.get("friendListVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires friendListVisibility")),
+            friend_request_visibility: pairs.get("friendRequestVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires friendRequestVisibility")),
+            mention_visibility: pairs.get("mentionVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires mentionVisibility")),
+            online_status_visibility: pairs.get("onlineStatusVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires onlineStatusVisibility")),
+            profile_visibility: pairs.get("profileVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires profileVisibility")),
+            social_visibility: pairs.get("socialVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires socialVisibility")),
+            wallet_visibility: pairs.get("walletVisibility").cloned().unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: VisibilityController_getUserSettings requires walletVisibility")),
+        })
     }
 
     pub fn visibility_controller_update_user_setting(&self, _request: RealmVisibilityControllerUpdateUserSettingOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {

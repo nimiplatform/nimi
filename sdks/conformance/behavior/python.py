@@ -1,11 +1,8 @@
 import asyncio
-import os
-from pathlib import Path
 import json
+from pathlib import Path
 
 from sdks.python.core_client import CoreClient
-from sdks.python.core_generated.realm_client import RealmGeneratedClient
-from sdks.python.core_generated.runtime_client import RuntimeGeneratedClient
 import sdks.python.core_generated.realm_typed_client as realm_typed
 import sdks.python.core_generated.runtime_typed_client as runtime_typed
 
@@ -16,24 +13,26 @@ class FakeTransport:
     def __init__(self):
         self.unary_calls = []
         self.stream_calls = []
+        self.cancellation_started = asyncio.Event()
 
     async def unary(self, request):
         self.unary_calls.append(request)
+        if isinstance(request.body, dict) and request.body.get("redirect_uri") == "cancel":
+            self.cancellation_started.set()
+            await asyncio.Future()
         if isinstance(request.body, dict) and request.body.get("redirect_uri") == "force-error":
             error = RuntimeError(FIXTURES["cases"]["structured_error"]["message"])
             setattr(error, "code", FIXTURES["cases"]["structured_error"]["reason_code"])
             setattr(error, "details", FIXTURES["cases"]["structured_error"]["details"])
             raise error
         if request.method_id == FIXTURES["cases"]["runtime_unary"]["method_id"]:
-            if os.environ.get("SDKS_CONFORMANCE_PROFILE") == "typed-core":
-                return {
-                    "accepted": True,
-                    "login_attempt_id": "login-conformance",
-                    "callback_origin": "https://app.example",
-                }
-            return FIXTURES["cases"]["runtime_unary"]["response_body"]
-        if request.method_id == FIXTURES["cases"]["realm_operation"]["operation_id"]:
-            return FIXTURES["cases"]["realm_operation"]["response_body"]
+            return {
+                "accepted": True,
+                "login_attempt_id": "login-conformance",
+                "callback_origin": "https://app.example",
+            }
+        if request.method_id == FIXTURES["cases"]["realm_unary"]["operation_id"]:
+            return FIXTURES["cases"]["realm_unary"]["response"]
         error = RuntimeError(f"unexpected unary {request.method_id}")
         setattr(error, "code", "SDK_RUNTIME_METHOD_UNAVAILABLE")
         raise error
@@ -41,125 +40,97 @@ class FakeTransport:
     async def server_stream(self, request):
         self.stream_calls.append(request)
         assert request.method_id == FIXTURES["cases"]["runtime_stream"]["method_id"]
-        if os.environ.get("SDKS_CONFORMANCE_PROFILE") == "typed-core":
-            yield {"event_id": "event-1", "sequence": 1, "event_type": "ACCOUNT_EVENT_TYPE_LOGIN_STARTED"}
-            yield {"event_id": "event-2", "sequence": 2, "event_type": "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED"}
-            return
-        for event in FIXTURES["cases"]["runtime_stream"]["events"]:
-            yield event
+        yield {"event_id": "event-1", "sequence": 1, "event_type": "ACCOUNT_EVENT_TYPE_LOGIN_STARTED"}
+        yield {"event_id": "event-2", "sequence": 2, "event_type": "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED"}
 
 
 async def main():
-    profile = os.environ.get("SDKS_CONFORMANCE_PROFILE", "descriptor-foundation")
     transport = FakeTransport()
     core = CoreClient(transport, auth_metadata=lambda: FIXTURES["cases"]["metadata"]["auth"])
-    runtime = RuntimeGeneratedClient(core)
-    realm = RealmGeneratedClient(core)
+    typed_runtime = runtime_typed.RuntimeTypedClient(core)
+    typed_realm = realm_typed.RealmTypedClient(core)
 
-    if profile == "typed-core":
-        typed_runtime = runtime_typed.RuntimeTypedClient(core)
-        typed_realm = realm_typed.RealmTypedClient(core)
-
-        runtime_request = runtime_typed.BeginLoginRequest(
-            caller=runtime_typed.AccountCaller(
-                app_id="app-conformance",
-                mode="ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
-                scopes=("account.login",),
-            ),
-            redirect_uri="https://app.example/callback",
-            callback_origin="https://app.example",
-            requested_scopes=("openid", "profile"),
-            ttl_seconds=60,
-        )
-        runtime_response = await typed_runtime.begin_login(
-            runtime_request,
-            metadata=FIXTURES["cases"]["metadata"]["caller"],
-            timeout_ms=FIXTURES["cases"]["timeout_ms"],
-        )
-        assert runtime_response.accepted is True
-        assert runtime_response.login_attempt_id == "login-conformance"
-
-        stream_request = runtime_typed.SubscribeAccountSessionEventsRequest(
-            caller=runtime_request.caller,
-            after_sequence=0,
-        )
-        events = []
-        async for event in typed_runtime.subscribe_account_session_events(stream_request):
-            events.append(event)
-        assert events[0].event_type == "ACCOUNT_EVENT_TYPE_LOGIN_STARTED"
-        assert events[1].event_type == "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED"
-
-        packet_request_shape = realm_typed.CreateSourceMaterializationPacketV3Dto(
-            intendedRuntimeAudience="sdk.conformance",
-            materializerAccountId="account-conformance",
-            challengeId="challenge_conformance_0001",
-            challengeDigest="a" * 64,
-            challengeExpiresAt="2026-01-01T00:05:00.000Z",
-            publishedLimits=realm_typed.SourceMaterializationPublishedLimitsDto(
-                maxSegmentBytes=8388608,
-                maxSegmentComponentCount=256,
-                maxSegmentChunks=4096,
-                maxChunkBytes=262144,
-                maxSetSegments=64,
-                maxSetBytes=134217728,
-                maxSetComponentCount=16384,
-                maxSetChunks=65536,
-            ),
-            sourceRef=realm_typed.PersonaCharacterSourceRefV3Dto(
-                kind="personaCharacter",
-                id="persona-conformance",
-                ownerAccountId="account-conformance",
-                sourceHash="e" * 64,
-                worldId="oasis",
-            ),
-        )
-        assert packet_request_shape.materializerAccountId == "account-conformance"
-        assert not hasattr(typed_realm, "world_core_controller_create_source_materialization_packet")
-        try:
-            realm.describe("WorldCoreController_createSourceMaterializationPacket")
-        except RuntimeError as error:
-            assert "unknown Realm operation" in str(error)
-        else:
-            raise AssertionError("private Realm packet operation remained in the public descriptor")
-        assert transport.unary_calls[0].method_id == FIXTURES["cases"]["runtime_unary"]["method_id"]
-        assert transport.unary_calls[0].body["redirect_uri"] == "https://app.example/callback"
-        error_request = runtime_typed.BeginLoginRequest(**{**runtime_request.__dict__, "redirect_uri": "force-error"})
-        try:
-            await typed_runtime.begin_login(error_request)
-        except RuntimeError as error:
-            assert getattr(error, "code") == FIXTURES["cases"]["structured_error"]["reason_code"]
-            assert str(error) == FIXTURES["cases"]["structured_error"]["message"]
-            assert getattr(error, "details") == FIXTURES["cases"]["structured_error"]["details"]
-        else:
-            raise AssertionError("typed structured error did not raise")
-        print("sdks behavior conformance: OK (python typed-core)")
-        return
-
-    response = await runtime.call(
-        FIXTURES["cases"]["runtime_unary"]["method_id"],
-        FIXTURES["cases"]["runtime_unary"]["request_body"],
+    runtime_request = runtime_typed.BeginLoginRequest(
+        caller=runtime_typed.AccountCaller(
+            app_id="app-conformance",
+            mode="ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
+            scopes=("account.login",),
+        ),
+        redirect_uri="https://app.example/callback",
+        callback_origin="https://app.example",
+        requested_scopes=("openid", "profile"),
+        ttl_seconds=60,
+    )
+    runtime_response = await typed_runtime.begin_login(
+        runtime_request,
         metadata=FIXTURES["cases"]["metadata"]["caller"],
         timeout_ms=FIXTURES["cases"]["timeout_ms"],
     )
-    assert response == FIXTURES["cases"]["runtime_unary"]["response_body"]
-    assert transport.unary_calls[0].body == FIXTURES["cases"]["runtime_unary"]["request_body"]
-    assert transport.unary_calls[0].timeout_ms == FIXTURES["cases"]["timeout_ms"]
-    assert transport.unary_calls[0].metadata["x-nimi-access-token-id"] == FIXTURES["cases"]["metadata"]["auth"]["x-nimi-access-token-id"]
-    assert transport.unary_calls[0].metadata["x-nimi-caller"] == FIXTURES["cases"]["metadata"]["caller"]["x-nimi-caller"]
+    assert runtime_response.accepted is True
+    assert runtime_response.login_attempt_id == "login-conformance"
 
-    events = []
-    async for event in runtime.stream(
-        FIXTURES["cases"]["runtime_stream"]["method_id"],
-        FIXTURES["cases"]["runtime_stream"]["request_body"],
-    ):
-        events.append(event)
-    assert events == FIXTURES["cases"]["runtime_stream"]["events"]
-
-    realm_response = await realm.operation(
-        FIXTURES["cases"]["realm_operation"]["operation_id"],
-        FIXTURES["cases"]["realm_operation"]["request_body"],
+    stream_request = runtime_typed.SubscribeAccountSessionEventsRequest(
+        caller=runtime_request.caller,
+        after_sequence=0,
     )
-    assert realm_response == FIXTURES["cases"]["realm_operation"]["response_body"]
+    events = []
+    async for event in typed_runtime.subscribe_account_session_events(stream_request):
+        events.append(event)
+    assert events[0].event_type == "ACCOUNT_EVENT_TYPE_LOGIN_STARTED"
+    assert events[1].event_type == "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED"
+
+    realm_response = await typed_realm.check_handle(
+        realm_typed.RealmCheckHandleOperationRequest(
+            path=realm_typed.RealmCheckHandleOperationPath(),
+            query=realm_typed.RealmCheckHandleOperationQuery(
+                handle=FIXTURES["cases"]["realm_unary"]["query"]["handle"],
+            ),
+        ),
+        metadata=FIXTURES["cases"]["metadata"]["caller"],
+        timeout_ms=FIXTURES["cases"]["timeout_ms"],
+    )
+    assert realm_response.available is FIXTURES["cases"]["realm_unary"]["response"]["available"]
+    assert realm_response.message == FIXTURES["cases"]["realm_unary"]["response"]["message"]
+    realm_call = transport.unary_calls[-1]
+    assert realm_call.method_id == FIXTURES["cases"]["realm_unary"]["operation_id"]
+    assert realm_call.body["query"] == FIXTURES["cases"]["realm_unary"]["query"]
+    assert realm_call.timeout_ms == FIXTURES["cases"]["timeout_ms"]
+    assert realm_call.metadata["x-nimi-access-token-id"] == FIXTURES["cases"]["metadata"]["auth"]["x-nimi-access-token-id"]
+    assert realm_call.metadata["x-nimi-caller"] == FIXTURES["cases"]["metadata"]["caller"]["x-nimi-caller"]
+
+    first_call = transport.unary_calls[0]
+    assert first_call.method_id == FIXTURES["cases"]["runtime_unary"]["method_id"]
+    assert first_call.body["caller"]["app_id"] == "app-conformance"
+    assert first_call.body["redirect_uri"] == "https://app.example/callback"
+    assert first_call.timeout_ms == FIXTURES["cases"]["timeout_ms"]
+    assert first_call.metadata["x-nimi-access-token-id"] == FIXTURES["cases"]["metadata"]["auth"]["x-nimi-access-token-id"]
+    assert first_call.metadata["x-nimi-caller"] == FIXTURES["cases"]["metadata"]["caller"]["x-nimi-caller"]
+
+    cancel_request = runtime_typed.BeginLoginRequest(
+        **{**runtime_request.__dict__, "redirect_uri": "cancel"}
+    )
+    cancel_task = asyncio.create_task(typed_runtime.begin_login(cancel_request))
+    await transport.cancellation_started.wait()
+    cancel_task.cancel()
+    try:
+        await cancel_task
+    except asyncio.CancelledError:
+        pass
+    else:
+        raise AssertionError("typed Runtime cancellation did not propagate")
+
+    error_request = runtime_typed.BeginLoginRequest(
+        **{**runtime_request.__dict__, "redirect_uri": "force-error"}
+    )
+    try:
+        await typed_runtime.begin_login(error_request)
+    except RuntimeError as error:
+        assert getattr(error, "code") == FIXTURES["cases"]["structured_error"]["reason_code"]
+        assert str(error) == FIXTURES["cases"]["structured_error"]["message"]
+        assert getattr(error, "details") == FIXTURES["cases"]["structured_error"]["details"]
+    else:
+        raise AssertionError("typed structured error did not raise")
+
     print("sdks behavior conformance: OK (python)")
 
 

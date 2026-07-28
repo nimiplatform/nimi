@@ -19,6 +19,8 @@ jobs:
       core_changed: ${{ steps.detect.outputs.core_changed }}
       shared_changed: ${{ steps.detect.outputs.shared_changed }}
       sdk_changed: ${{ steps.detect.outputs.sdk_changed }}
+      sdk_adapter_upstream_changed: ${{ steps.detect.outputs.sdk_adapter_upstream_changed }}
+      sdk_conformance_changed: ${{ steps.detect.outputs.sdk_conformance_changed }}
       runtime_changed: ${{ steps.detect.outputs.runtime_changed }}
       desktop_web_changed: ${{ steps.detect.outputs.desktop_web_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
@@ -47,6 +49,8 @@ jobs:
               echo "core_changed=true"
               echo "shared_changed=true"
               echo "sdk_changed=true"
+              echo "sdk_adapter_upstream_changed=true"
+              echo "sdk_conformance_changed=true"
               echo "runtime_changed=true"
               echo "desktop_web_changed=true"
               echo "kit_native_changed=true"
@@ -77,6 +81,8 @@ jobs:
           core_changed=false
           shared_changed=false
           sdk_changed=false
+          sdk_adapter_upstream_changed=false
+          sdk_conformance_changed=false
           runtime_changed=false
           desktop_web_changed=false
           kit_native_changed=false
@@ -101,6 +107,21 @@ jobs:
             fi
             if [[ "${file}" =~ ^sdk/ || "${file}" =~ ^sdks/ || "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
               sdk_changed=true
+            fi
+            if [[ "${file}" =~ ^sdks/typescript/adapters/(mastra|vercel-ai)/ ||
+                  "${file}" == "pnpm-lock.yaml" ]]; then
+              sdk_adapter_upstream_changed=true
+            fi
+            if [[ "${file}" =~ ^sdks/conformance/ ||
+                  "${file}" =~ ^sdks/generators/ ||
+                  "${file}" =~ ^proto/ ||
+                  "${file}" =~ ^config/realm-openapi ||
+                  "${file}" == "config/sdks-error-codes.yaml" ||
+                  "${file}" == "config/sdks-realm-private-operation-carriers.yaml" ||
+                  "${file}" =~ ^config/spec-frozen/runtime/tables/runtime-rpc-auth-posture ||
+                  "${file}" == "scripts/lib/read-yaml-with-fragments.mjs" ||
+                  "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
+              sdk_conformance_changed=true
             fi
             if [[ "${file}" =~ ^runtime/ || "${file}" =~ ^proto/ || "${file}" == ".goreleaser.yml" ]]; then
               runtime_changed=true
@@ -133,12 +154,23 @@ jobs:
             core_changed=true
             desktop_web_changed=true
           fi
+          if [[ "${sdk_conformance_changed}" == "true" ]]; then
+            sdk_changed=true
+            core_changed=true
+            desktop_web_changed=true
+          fi
+          if [[ "${sdk_adapter_upstream_changed}" == "true" ]]; then
+            sdk_changed=true
+            core_changed=true
+          fi
 
           {
             echo "docs_changed=${docs_changed}"
             echo "core_changed=${core_changed}"
             echo "shared_changed=${shared_changed}"
             echo "sdk_changed=${sdk_changed}"
+            echo "sdk_adapter_upstream_changed=${sdk_adapter_upstream_changed}"
+            echo "sdk_conformance_changed=${sdk_conformance_changed}"
             echo "runtime_changed=${runtime_changed}"
             echo "desktop_web_changed=${desktop_web_changed}"
             echo "kit_native_changed=${kit_native_changed}"
@@ -250,22 +282,11 @@ jobs:
           cache: pnpm
           cache-dependency-path: package.json
 
-      - name: Setup Go
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        with:
-          go-version: '1.26.4'
-          cache-dependency-path: runtime/go.sum
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: '3.12'
-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Workspace owner tests
-        run: pnpm test:full
+        run: pnpm test:workspace:full
 
   kit-native-tests:
     needs: changes
@@ -399,7 +420,12 @@ jobs:
         run: PATH="${PWD}/node_modules/.bin:${PATH}" pnpm check:sdks-generators
 
       - name: SDK typed-core conformance check
+        if: needs.changes.outputs.sdk_conformance_changed == 'true'
         run: pnpm check:sdks-conformance-typed-core
+
+      - name: SDK adapter upstream compatibility
+        if: needs.changes.outputs.sdk_adapter_upstream_changed == 'true'
+        run: pnpm test:sdks-adapters:upstream
 
       - name: SDK vNext public surface smoke
         run: pnpm check:sdk-vnext-public-surface-smoke
@@ -433,11 +459,19 @@ jobs:
           go-version: '1.26.4'
           cache-dependency-path: runtime/go.sum
 
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
+
+      - name: Runtime tests
+        run: pnpm test:runtime:go && pnpm test:runtime:python
 
       - name: Runtime vet and build
         working-directory: runtime

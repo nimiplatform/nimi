@@ -8,10 +8,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 func codexJWTForTest(t *testing.T, accountID string) string {
@@ -49,9 +49,8 @@ func TestValidateKeySourceManagedMissingConnectorID(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for managed without connector_id")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED) {
-		t.Errorf("expected AI_CONNECTOR_ID_REQUIRED, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED {
+		t.Errorf("expected AI_CONNECTOR_ID_REQUIRED, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -75,9 +74,8 @@ func TestValidateKeySourceInlineMissingProviderType(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for inline without provider_type")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING) {
-		t.Errorf("expected AI_REQUEST_CREDENTIAL_MISSING, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING {
+		t.Errorf("expected AI_REQUEST_CREDENTIAL_MISSING, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -114,9 +112,8 @@ func TestValidateKeySourceConflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for connector_id + inline fields conflict")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_CONFLICT) {
-		t.Errorf("expected AI_REQUEST_CREDENTIAL_CONFLICT, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_CONFLICT {
+		t.Errorf("expected AI_REQUEST_CREDENTIAL_CONFLICT, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -137,9 +134,8 @@ func TestValidateKeySourceAppIDConflict(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected app_id conflict error")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_APP_ID_CONFLICT) {
-		t.Fatalf("expected AI_APP_ID_CONFLICT, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_APP_ID_CONFLICT {
+		t.Fatalf("expected AI_APP_ID_CONFLICT, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -152,9 +148,8 @@ func TestValidateKeySourceAppIDRequiredWhenKeySourceUsed(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected app_id required error")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_APP_ID_REQUIRED) {
-		t.Fatalf("expected AI_APP_ID_REQUIRED, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_APP_ID_REQUIRED {
+		t.Fatalf("expected AI_APP_ID_REQUIRED, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -166,9 +161,8 @@ func TestValidateKeySourceImplicitInlineFailsClose(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected implicit inline credential error")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID) {
-		t.Fatalf("expected AI_REQUEST_CREDENTIAL_INVALID, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID {
+		t.Fatalf("expected AI_REQUEST_CREDENTIAL_INVALID, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -259,7 +253,7 @@ func TestResolveKeySourceManagedQwenOAuthUsesAccessToken(t *testing.T) {
 		OwnerID:             "user-1",
 		Provider:            "openai_compatible",
 		ProviderAuthProfile: "qwen_oauth",
-		Endpoint:            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+		Endpoint:            "https://192.0.2.1/compatible-mode/v1",
 		Status:              runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
 	if _, err := store.Create(rec, `{"access_token":"qwen-access-token"}`); err != nil {
@@ -345,9 +339,8 @@ func TestResolveKeySourceManagedDisabled(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for disabled connector")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_DISABLED) {
-		t.Errorf("expected AI_CONNECTOR_DISABLED, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_DISABLED {
+		t.Errorf("expected AI_CONNECTOR_DISABLED, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -386,9 +379,8 @@ func TestResolveKeySourceManagedRetiredLocalConnectorFailsClosed(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected local connector managed path to be rejected")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED) {
-		t.Fatalf("expected AI_LOCAL_CONNECTOR_RETIRED, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED {
+		t.Fatalf("expected AI_LOCAL_CONNECTOR_RETIRED, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -413,9 +405,8 @@ func TestResolveKeySourceManagedOwnerMismatchNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected owner mismatch to be hidden as not found")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND) {
-		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
+		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -443,9 +434,8 @@ func TestResolveKeySourceManagedRejectsNonUserOwnedOAuthManagedConnector(t *test
 	if err == nil {
 		t.Fatal("expected invalid non-user-owned oauth-managed connector to be hidden as not found")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND) {
-		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
+		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -470,9 +460,8 @@ func TestResolveKeySourceManagedAnonymousNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected anonymous access to be hidden as not found")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND) {
-		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got %s", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
+		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got reason=%v ok=%v", reason, ok)
 	}
 }
 
@@ -531,8 +520,4 @@ func TestParseKeySourceUsesScrubbedCredentialMetadata(t *testing.T) {
 	if parsed.AppID != "nimi.desktop" {
 		t.Fatalf("expected app_id=nimi.desktop, got %s", parsed.AppID)
 	}
-}
-
-func containsReason(message string, code runtimev1.ReasonCode) bool {
-	return message == code.String()
 }

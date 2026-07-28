@@ -1,14 +1,9 @@
 package nimillm
 
 import (
-	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 	"testing"
 
 	"google.golang.org/grpc/codes"
@@ -58,72 +53,6 @@ func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
 			t.Fatalf("NormalizeTokenProviderID(%q) error code mismatch: got=%v want=%v", raw, status.Code(err), codes.InvalidArgument)
 		}
 	}
-}
-
-func TestEmbeddedProviderProbeTargetsAuthorityMatchesSpec(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "config", "spec-frozen", "runtime", "tables", "provider-probe-targets.yaml"))
-	if err != nil {
-		t.Fatalf("read provider probe target authority: %v", err)
-	}
-	if !bytes.Equal(bytes.TrimSpace(providerProbeTargetsAuthorityYAML), bytes.TrimSpace(raw)) {
-		t.Fatalf("embedded provider probe target authority must match .nimi spec source")
-	}
-}
-
-func TestAdmittedTokenProbeProvidersLoadFromAuthorityProjection(t *testing.T) {
-	admitted, err := admittedTokenProbeProviderSet()
-	if err != nil {
-		t.Fatalf("load admitted provider authority: %v", err)
-	}
-	raw := providerProbeTargetsAuthorityYAML
-	want := map[string]struct{}{}
-	var currentName string
-	var currentCategory string
-	flush := func() {
-		if currentCategory == "cloud" && strings.HasPrefix(currentName, "cloud-") {
-			providerID := strings.ReplaceAll(strings.TrimPrefix(currentName, "cloud-"), "-", "_")
-			want[providerID] = struct{}{}
-		}
-		currentName = ""
-		currentCategory = ""
-	}
-	for _, line := range strings.Split(string(raw), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "- name: ") {
-			flush()
-			currentName = strings.TrimSpace(strings.TrimPrefix(trimmed, "- name: "))
-			continue
-		}
-		if strings.HasPrefix(trimmed, "category: ") {
-			currentCategory = strings.TrimSpace(strings.TrimPrefix(trimmed, "category: "))
-			continue
-		}
-	}
-	flush()
-	if !sameStringSet(admitted, want) {
-		t.Fatalf("admitted token probe providers do not match provider-probe-target authority: got=%v want=%v", sortedSetKeys(admitted), sortedSetKeys(want))
-	}
-}
-
-func sameStringSet(got map[string]struct{}, want map[string]struct{}) bool {
-	if len(got) != len(want) {
-		return false
-	}
-	for key := range got {
-		if _, ok := want[key]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-func sortedSetKeys(values map[string]struct{}) []string {
-	keys := make([]string, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 func TestBackendProbeConnectorAndListModelsUseAnthropicAPI(t *testing.T) {

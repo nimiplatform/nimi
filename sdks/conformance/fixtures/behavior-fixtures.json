@@ -1,85 +1,19 @@
 {
-  "contract": "nimi.sdks.behavior-fixtures.v1",
-  "generated_by": "sdks/generators/generate.mjs",
-  "source_kind": "generated_core_manifests",
-  "source_paths": [
-    "sdks/generators/shared/generated/runtime-core.manifest.json",
-    "sdks/generators/shared/generated/realm-core.manifest.json"
-  ],
   "cases": {
     "runtime_unary": {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
-      "method": "BeginLogin",
-      "typed_names": {
-        "typescript": "beginLogin",
-        "python": "begin_login",
-        "go": "BeginLogin",
-        "rust": "begin_login"
-      },
-      "request_type": "BeginLoginRequest",
-      "response_type": "BeginLoginResponse",
-      "kind": "unary",
-      "request_body": {
-        "hello": "runtime"
-      },
-      "response_body": {
-        "ok": true,
-        "source": "runtime-unary"
-      }
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
     },
     "runtime_stream": {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
-      "method": "SubscribeAccountSessionEvents",
-      "typed_names": {
-        "typescript": "subscribeAccountSessionEvents",
-        "python": "subscribe_account_session_events",
-        "go": "SubscribeAccountSessionEvents",
-        "rust": "subscribe_account_session_events"
-      },
-      "request_type": "SubscribeAccountSessionEventsRequest",
-      "response_type": "AccountSessionEvent",
-      "kind": "server_stream",
-      "request_body": {
-        "hello": "stream"
-      },
-      "events": [
-        {
-          "index": 1,
-          "branch": "delta"
-        },
-        {
-          "index": 2,
-          "branch": "done"
-        }
-      ]
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents"
     },
-    "realm_operation": {
-      "operation_id": "addFriend",
-      "typed_names": {
-        "typescript": "addFriend",
-        "python": "add_friend",
-        "go": "AddFriend",
-        "rust": "add_friend"
-      },
-      "request_type": "RealmAddFriendOperationRequest",
-      "response_type": "RealmAddFriendOperationResponse",
-      "method": "POST",
-      "path": "/api/human/accounts/{id}/friends",
-      "path_params": {
-        "intentId": "intent-conformance"
-      },
+    "realm_unary": {
+      "operation_id": "checkHandle",
       "query": {
-        "include": "projection"
+        "handle": "realm-conformance"
       },
-      "headers": {
-        "x-realm-public-projection-boundary": "conformance"
-      },
-      "request_body": {
-        "hello": "realm"
-      },
-      "response_body": {
-        "ok": true,
-        "source": "realm-operation"
+      "response": {
+        "available": true,
+        "message": "available"
       }
     },
     "metadata": {
@@ -99,9 +33,6 @@
       "message": "typed conformance error",
       "details": {
         "fixture": "typed-core"
-      },
-      "request_body": {
-        "force_error": "structured"
       }
     }
   }

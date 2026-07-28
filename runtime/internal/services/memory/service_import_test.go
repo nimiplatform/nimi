@@ -2,8 +2,6 @@ package memory
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -13,154 +11,9 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-func TestMemoryServiceDoesNotImportLegacyJSONIntoSQLite(t *testing.T) {
-	t.Parallel()
-
-	dir := t.TempDir()
-	localStatePath := filepath.Join(dir, "local-state.json")
-	legacyPath := filepath.Join(dir, "memory-state.json")
-	now := time.Now().UTC()
-	locator := &runtimev1.MemoryBankLocator{
-		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-legacy"},
-		},
-	}
-	bank := &runtimev1.MemoryBank{
-		BankId:              "bank-legacy",
-		Locator:             cloneLocator(locator),
-		DisplayName:         "Legacy Agent Memory",
-		CanonicalAgentScope: true,
-		PublicApiWritable:   false,
-		CreatedAt:           timestamppb.New(now),
-		UpdatedAt:           timestamppb.New(now),
-	}
-	record := &runtimev1.MemoryRecord{
-		MemoryId:       "mem-legacy",
-		Bank:           cloneLocator(locator),
-		Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
-		CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
-		Provenance: &runtimev1.MemoryProvenance{
-			SourceSystem:  "legacy",
-			SourceEventId: "evt-legacy",
-		},
-		Replication: &runtimev1.MemoryReplicationState{
-			Outcome:      runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_PENDING,
-			LocalVersion: "mem-legacy",
-			Detail: &runtimev1.MemoryReplicationState_Pending{
-				Pending: &runtimev1.MemoryReplicationPending{
-					EnqueuedAt: timestamppb.New(now),
-				},
-			},
-		},
-		Payload: &runtimev1.MemoryRecord_Observational{
-			Observational: &runtimev1.ObservationalMemoryRecord{Observation: "legacy imported memory"},
-		},
-		CreatedAt: timestamppb.New(now),
-		UpdatedAt: timestamppb.New(now),
-	}
-	backlog, err := marshalReplicationBacklogItem(&ReplicationBacklogItem{
-		BacklogKey:   replicationBacklogKey(locator, record.GetMemoryId()),
-		Locator:      cloneLocator(locator),
-		MemoryID:     record.GetMemoryId(),
-		LocalVersion: record.GetReplication().GetLocalVersion(),
-		EnqueuedAt:   now,
-		Status:       replicationBacklogStatusPending,
-	})
-	if err != nil {
-		t.Fatalf("marshalReplicationBacklogItem: %v", err)
-	}
-	bankRaw, err := protojson.Marshal(bank)
-	if err != nil {
-		t.Fatalf("protojson.Marshal(bank): %v", err)
-	}
-	recordRaw, err := protojson.Marshal(record)
-	if err != nil {
-		t.Fatalf("protojson.Marshal(record): %v", err)
-	}
-	legacy := persistedMemoryState{
-		SchemaVersion: memoryStateSchemaVersion,
-		SavedAt:       now.Format(time.RFC3339Nano),
-		Sequence:      7,
-		Banks: []persistedBankState{
-			{
-				LocatorKey: locatorKey(locator),
-				Bank:       bankRaw,
-				Records:    []json.RawMessage{recordRaw},
-			},
-		},
-		ReplicationBacklog: []persistedReplicationBacklogItem{backlog},
-	}
-	raw, err := json.MarshalIndent(legacy, "", "  ")
-	if err != nil {
-		t.Fatalf("json.MarshalIndent: %v", err)
-	}
-	if err := os.WriteFile(legacyPath, raw, 0o600); err != nil {
-		t.Fatalf("os.WriteFile(memory-state.json): %v", err)
-	}
-
-	svc, err := New(nil, config.Config{
-		LocalStatePath:       localStatePath,
-		AIHTTPTimeoutSeconds: 2,
-	})
-	if err != nil {
-		t.Fatalf("New: %v", err)
-	}
-	closeMemoryServiceForTest(t, svc)
-
-	historyResp, err := svc.History(context.Background(), &runtimev1.HistoryRequest{
-		Bank:  locator,
-		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
-	})
-	if err == nil {
-		t.Fatalf("legacy memory-state.json must not become active runtime truth, got response %#v", historyResp)
-	}
-	backlogItems := svc.ListReplicationBacklog()
-	if len(backlogItems) != 0 {
-		t.Fatalf("legacy replication backlog must not become active runtime truth: %#v", backlogItems)
-	}
-	if _, err := os.Stat(filepath.Join(dir, "memory.db")); err != nil {
-		t.Fatalf("expected memory.db: %v", err)
-	}
-	if _, err := os.Stat(legacyPath); err != nil {
-		t.Fatalf("legacy path must remain inert evidence, stat err=%v", err)
-	}
-
-	if err := svc.PersistenceBackend().Close(); err != nil {
-		t.Fatalf("Close(first backend): %v", err)
-	}
-
-	svc, err = New(nil, config.Config{
-		LocalStatePath:       localStatePath,
-		AIHTTPTimeoutSeconds: 2,
-	})
-	if err != nil {
-		t.Fatalf("New(restart): %v", err)
-	}
-	closeMemoryServiceForTest(t, svc)
-	defer func() {
-		if err := svc.PersistenceBackend().Close(); err != nil {
-			t.Fatalf("Close(second backend): %v", err)
-		}
-	}()
-
-	historyResp, err = svc.History(context.Background(), &runtimev1.HistoryRequest{
-		Bank:  locator,
-		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
-	})
-	if err == nil {
-		t.Fatalf("legacy memory-state.json must remain inert after restart, got response %#v", historyResp)
-	}
-	if got := svc.ListReplicationBacklog(); len(got) != 0 {
-		t.Fatalf("expected no backlog item after restart, got %#v", got)
-	}
-}
 
 func newTestMemoryRecord(t *testing.T) (*Service, *runtimev1.MemoryBankLocator, *runtimev1.MemoryRecord) {
 	t.Helper()

@@ -161,13 +161,27 @@ Health endpoints:
   files and generated snapshots are support/projection inputs, not standalone
   product truth.
 
-## Compliance
+## Tests
+
+From the repository root:
+
+```bash
+pnpm test:runtime:go
+pnpm test:runtime:python
+```
+
+Provider live smokes are opt-in and require their corresponding
+`NIMI_LIVE_*` credentials:
+
+```bash
+pnpm test:runtime:live
+```
+
+## Proto baseline
 
 ```bash
 cd runtime
 make proto-baseline
-make compliance
-make compliance-gate
 ```
 
 `make proto-baseline` 会把当前 proto contract 快照写入

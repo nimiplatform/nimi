@@ -10,7 +10,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
-	"gopkg.in/yaml.v3"
 )
 
 func TestProfileRuntimeDescriptorRejectsForbiddenRuntimeEvidence(t *testing.T) {
@@ -152,42 +151,6 @@ func TestProfileRuntimeDescriptorRequiresFamilyCompanions(t *testing.T) {
 	}
 	if _, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, ideogram)); err != nil {
 		t.Fatalf("expected ideogram4 descriptor with uncond, llm, and vae companions to validate: %v", err)
-	}
-}
-
-func TestProfileRuntimeImageFamilyCompanionContractFollowsSpec(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "config", "spec-frozen", "runtime", "tables", "profile-image-family-companion-slots.yaml"))
-	if err != nil {
-		t.Fatalf("read image family companion spec: %v", err)
-	}
-	var spec struct {
-		Families map[string]struct {
-			RequiredCompanionSlots []struct {
-				Role          string `yaml:"role"`
-				EngineSlot    string `yaml:"engine_slot"`
-				ComponentKind string `yaml:"component_kind"`
-			} `yaml:"required_companion_slots"`
-		} `yaml:"families"`
-	}
-	if err := yaml.Unmarshal(raw, &spec); err != nil {
-		t.Fatalf("parse image family companion spec: %v", err)
-	}
-	if len(spec.Families) == 0 {
-		t.Fatal("image family companion spec must declare at least one family")
-	}
-	for family, contract := range spec.Families {
-		got := profileRuntimeRequiredImageCompanionSlots(family)
-		if len(got) != len(contract.RequiredCompanionSlots) {
-			t.Fatalf("%s required companion slot count mismatch: got=%+v want=%+v", family, got, contract.RequiredCompanionSlots)
-		}
-		for index, want := range contract.RequiredCompanionSlots {
-			if got[index].Role != want.Role ||
-				got[index].EngineSlot != want.EngineSlot ||
-				got[index].ComponentKind != want.ComponentKind ||
-				!got[index].Required {
-				t.Fatalf("%s companion slot %d mismatch: got=%+v want=%+v", family, index, got[index], want)
-			}
-		}
 	}
 }
 

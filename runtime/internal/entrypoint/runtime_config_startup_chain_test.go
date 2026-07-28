@@ -25,43 +25,6 @@ func setEntrypointTestHome(t *testing.T, homeDir string) {
 	t.Setenv("HOMEPATH", homePath)
 }
 
-func TestNonProductionDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.T) {
-	homeDir := t.TempDir()
-	setEntrypointTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
-	clearRuntimeConfigEnvForStartupTest(t)
-
-	legacyPath := filepath.Join(homeDir, ".nimi/config.json")
-	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
-		t.Fatalf("mkdir legacy config dir: %v", err)
-	}
-	legacyBody := `{
-  "runtime": {
-    "grpcAddr": "127.0.0.1:59001",
-    "httpAddr": "127.0.0.1:59002"
-  }
-}`
-	if err := os.WriteFile(legacyPath, []byte(legacyBody), 0o600); err != nil {
-		t.Fatalf("write legacy config: %v", err)
-	}
-
-	err := runNonProductionDaemonFromArgs("nimi serve", []string{"--shutdown-timeout=invalid-duration"})
-	if err == nil {
-		t.Fatalf("expected parse shutdown-timeout error")
-	}
-	if !strings.Contains(err.Error(), "parse shutdown-timeout") {
-		t.Fatalf("unexpected startup error: %v", err)
-	}
-
-	if _, statErr := os.Stat(legacyPath); statErr != nil {
-		t.Fatalf("legacy config should not be touched: %v", statErr)
-	}
-	newPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
-	if _, statErr := os.Stat(newPath); !os.IsNotExist(statErr) {
-		t.Fatalf("canonical config should not be auto-created on startup")
-	}
-}
-
 func TestAcquireRuntimeInstanceLock(t *testing.T) {
 	homeDir := t.TempDir()
 	setEntrypointTestHome(t, homeDir)

@@ -212,6 +212,7 @@ func TestPublicChatAnchorContinuityCrossesAppsButEventsStayWithTurnCaller(t *tes
 func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	installPublicChatFollowUpGate(t, svc)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)

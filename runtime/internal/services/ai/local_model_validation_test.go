@@ -699,11 +699,15 @@ func TestValidateLocalModelRequestIncludesUnhealthyDetail(t *testing.T) {
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected local model unavailable, got=%v ok=%v", reason, ok)
 	}
-	if err == nil || !strings.Contains(err.Error(), "inspect_local_runtime_model_health") {
-		t.Fatalf("expected action hint in structured error payload, got %v", err)
+	metadata, ok := grpcerr.ExtractReasonMetadata(err)
+	if !ok {
+		t.Fatalf("expected structured reason metadata, got %v", err)
 	}
-	if err == nil || !strings.Contains(err.Error(), "CUDA-ready NVIDIA runtime") {
-		t.Fatalf("expected unhealthy detail in structured error payload, got %v", err)
+	if metadata["action_hint"] != "inspect_local_runtime_model_health" {
+		t.Fatalf("expected local runtime health action hint, got %q", metadata["action_hint"])
+	}
+	if metadata["provider_message"] == "" {
+		t.Fatal("expected non-empty provider_message metadata")
 	}
 }
 

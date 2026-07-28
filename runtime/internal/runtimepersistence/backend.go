@@ -39,7 +39,7 @@ const (
 	retiredSourceSnapshotTable             = "runtime_local_agent_source_snapshot"
 )
 
-var ErrRealmSourceMaterializationDataResetRequired = errors.New("source_materialization_data_reset_required")
+var ErrIncompatibleRealmSourceMaterializationData = errors.New("incompatible_source_materialization_data")
 
 func retiredRealmSourceMaterializationTriggers() []string {
 	return []string{
@@ -126,7 +126,7 @@ func Open(logger *slog.Logger, localStatePath string) (*Backend, error) {
 		_ = writeDB.Close()
 		return nil, err
 	}
-	if err := backend.requireRealmSourceMaterializationResetAbsent(); err != nil {
+	if err := backend.requireRealmSourceMaterializationCompatibility(); err != nil {
 		_ = writeDB.Close()
 		return nil, err
 	}
@@ -609,7 +609,7 @@ func (b *Backend) ensureSchema() error {
 	return b.initializeRealmSourceMaterializationEpochV3()
 }
 
-func (b *Backend) requireRealmSourceMaterializationResetAbsent() error {
+func (b *Backend) requireRealmSourceMaterializationCompatibility() error {
 	var metaTableCount int
 	if err := b.writeDB.QueryRow(`SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'runtime_local_agent_meta'`).Scan(&metaTableCount); err != nil {
 		return fmt.Errorf("inspect Realm source materialization metadata table: %w", err)
@@ -631,7 +631,7 @@ func (b *Backend) requireRealmSourceMaterializationResetAbsent() error {
 	staleSnapshotCount := len(staleSnapshotRefs)
 	if metaTableCount == 0 {
 		if retiredObjects > 0 || legacyAgentCount > 0 || staleSnapshotCount > 0 {
-			return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=missing", ErrRealmSourceMaterializationDataResetRequired, retiredObjects, legacyAgentCount, staleSnapshotCount)
+			return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=missing", ErrIncompatibleRealmSourceMaterializationData, retiredObjects, legacyAgentCount, staleSnapshotCount)
 		}
 		if len(runtimeSourceRefs.currentV3) > 0 {
 			return fmt.Errorf("Realm source materialization v3 agents exist without contract epoch")
@@ -644,7 +644,7 @@ func (b *Backend) requireRealmSourceMaterializationResetAbsent() error {
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		if retiredObjects > 0 || legacyAgentCount > 0 || staleSnapshotCount > 0 {
-			return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=missing", ErrRealmSourceMaterializationDataResetRequired, retiredObjects, legacyAgentCount, staleSnapshotCount)
+			return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=missing", ErrIncompatibleRealmSourceMaterializationData, retiredObjects, legacyAgentCount, staleSnapshotCount)
 		}
 		if len(runtimeSourceRefs.currentV3) > 0 {
 			return fmt.Errorf("Realm source materialization v3 agents exist without contract epoch")
@@ -653,11 +653,11 @@ func (b *Backend) requireRealmSourceMaterializationResetAbsent() error {
 	case err != nil:
 		return fmt.Errorf("read Realm source materialization epoch: %w", err)
 	case epoch == "v1" || epoch == "v2":
-		return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=%s", ErrRealmSourceMaterializationDataResetRequired, retiredObjects, legacyAgentCount, staleSnapshotCount, epoch)
+		return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=%s", ErrIncompatibleRealmSourceMaterializationData, retiredObjects, legacyAgentCount, staleSnapshotCount, epoch)
 	case epoch != realmSourceMaterializationEpochV3:
 		return fmt.Errorf("unsupported Realm source materialization epoch %q", epoch)
 	case retiredObjects > 0 || legacyAgentCount > 0 || staleSnapshotCount > 0:
-		return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=%s", ErrRealmSourceMaterializationDataResetRequired, retiredObjects, legacyAgentCount, staleSnapshotCount, epoch)
+		return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=%s", ErrIncompatibleRealmSourceMaterializationData, retiredObjects, legacyAgentCount, staleSnapshotCount, epoch)
 	default:
 		return nil
 	}
@@ -687,7 +687,7 @@ func (b *Backend) initializeRealmSourceMaterializationEpochV3() error {
 		case err != nil:
 			return fmt.Errorf("read Realm source materialization epoch: %w", err)
 		case epoch == "v1" || epoch == "v2":
-			return fmt.Errorf("%w: epoch=%s", ErrRealmSourceMaterializationDataResetRequired, epoch)
+			return fmt.Errorf("%w: epoch=%s", ErrIncompatibleRealmSourceMaterializationData, epoch)
 		case epoch != realmSourceMaterializationEpochV3:
 			return fmt.Errorf("unsupported Realm source materialization epoch %q", epoch)
 		}
@@ -739,7 +739,7 @@ func verifyRealmSourceMaterializationEpochV3(tx *sql.Tx) error {
 		if err != nil {
 			return fmt.Errorf("verify retired Realm source materialization object %s: %w", name, err)
 		}
-		return fmt.Errorf("retired Realm source materialization %s %s remains after v3 reset", kind, name)
+		return fmt.Errorf("retired Realm source materialization %s %s is incompatible with the current schema", kind, name)
 	}
 	return nil
 }

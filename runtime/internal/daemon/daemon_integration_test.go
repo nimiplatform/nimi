@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -408,70 +407,5 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("daemon run returned error: %v", err)
-	}
-}
-
-func TestDaemonRunDoesNotRestoreLegacyMemoryReplicationBacklog(t *testing.T) {
-	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	memoryID := "mem-daemon-replication"
-	if err := writePersistedMemoryState(localStatePath, "agent-daemon-replication", memoryID); err != nil {
-		t.Fatalf("writePersistedMemoryState: %v", err)
-	}
-	cfg := config.Config{
-		GRPCAddr:             "127.0.0.1:0",
-		HTTPAddr:             "127.0.0.1:0",
-		ShutdownTimeout:      2 * time.Second,
-		LocalStatePath:       localStatePath,
-		AuditRingBufferSize:  64,
-		UsageStatsBufferSize: 64,
-		IdempotencyCapacity:  32,
-		AIHTTPTimeoutSeconds: 1,
-	}
-
-	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error, 1)
-	go func() {
-		done <- daemon.Run(ctx)
-	}()
-	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
-	// Ready is the bounded startup condition: persisted Runtime services have
-	// completed restoration before this transition. A fixed post-ready sleep
-	// added no additional synchronization or integration coverage.
-	assertMemoryReplicationBacklogAbsent(t, daemon.grpc.MemoryService(), memoryID)
-	cancel()
-	if err := <-done; err != nil {
-		t.Fatalf("daemon run returned error: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(filepath.Dir(localStatePath), "memory-state.json")); err != nil {
-		t.Fatalf("legacy memory-state.json must remain inert after daemon run: %v", err)
-	}
-
-	daemon2, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
-	if err != nil {
-		t.Fatalf("create daemon restart: %v", err)
-	}
-	closeDaemonForTest(t, daemon2)
-	if svc := daemon2.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-	ctx2, cancel2 := context.WithCancel(context.Background())
-	done2 := make(chan error, 1)
-	go func() {
-		done2 <- daemon2.Run(ctx2)
-	}()
-	waitForDaemonStatus(t, daemon2, health.StatusReady, 2*time.Second)
-	assertMemoryReplicationBacklogAbsent(t, daemon2.grpc.MemoryService(), memoryID)
-	cancel2()
-	if err := <-done2; err != nil {
-		t.Fatalf("daemon restart returned error: %v", err)
 	}
 }

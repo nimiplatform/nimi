@@ -1,14 +1,11 @@
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::time::Duration;
 
 use crate::core_client::CoreTransport;
-use crate::core_generated::realm_client::RealmGeneratedClient;
-use crate::core_generated::runtime_client::RuntimeGeneratedClient;
 use crate::core_generated::typed_clients::{
-    AccountCaller, BeginLoginRequest, CharacterSourceRefV3Dto, CoreTypedStream,
-    CreateSourceMaterializationPacketV3Dto, PersonaCharacterSourceRefV3Dto, RuntimeTypedClient,
-    SourceMaterializationPacketV3DtoSemanticPayload, SourceMaterializationPublishedLimitsDto,
+    AccountCaller, BeginLoginRequest, CoreTypedStream, RealmCheckHandleOperationHeaders,
+    RealmCheckHandleOperationPath, RealmCheckHandleOperationQuery,
+    RealmCheckHandleOperationRequest, RealmTypedClient, RuntimeTypedClient,
     SubscribeAccountSessionEventsRequest,
 };
 use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
@@ -19,8 +16,8 @@ struct FakeStream {
     index: usize,
 }
 
-impl FakeStream {
-    fn recv(&mut self) -> Option<Vec<u8>> {
+impl CoreTypedStream for FakeStream {
+    fn recv_typed_payload(&mut self) -> Option<Vec<u8>> {
         if self.index >= self.events.len() {
             return None;
         }
@@ -30,51 +27,69 @@ impl FakeStream {
     }
 }
 
-impl CoreTypedStream for FakeStream {
-    fn recv_typed_payload(&mut self) -> Option<Vec<u8>> {
-        self.recv()
-    }
-}
-
 #[derive(Default)]
-struct FakeTransport {
-    unary_calls: RefCell<Vec<CoreUnaryRequest>>,
-    stream_calls: RefCell<Vec<CoreStreamRequest>>,
-}
+struct FakeTransport;
 
 impl CoreTransport for FakeTransport {
     type Stream = FakeStream;
     type Error = String;
 
     fn unary(&self, request: CoreUnaryRequest) -> Result<Vec<u8>, Self::Error> {
-        self.unary_calls.borrow_mut().push(request.clone());
-        if String::from_utf8_lossy(&request.body).contains("redirect_uri=force-error") {
+        let body = String::from_utf8_lossy(&request.body);
+        if body.contains("redirect_uri=force-error") {
             return Err(
                 "SDK_RUNTIME_METHOD_UNAVAILABLE: typed conformance error: fixture=typed-core"
                     .to_string(),
             );
         }
-        if std::env::var("SDKS_CONFORMANCE_PROFILE").ok().as_deref() == Some("typed-core") {
-            if request.method_id.contains("BeginLogin") {
-                return Ok(b"accepted=true;login_attempt_id=login-conformance;callback_origin=https://app.example".to_vec());
-            }
+        if request.method_id == "checkHandle" {
+            assert_eq!(
+                request.metadata.get("x-nimi-access-token-id").map(String::as_str),
+                Some("conformance-token-id")
+            );
+            assert_eq!(
+                request.metadata.get("x-nimi-caller").map(String::as_str),
+                Some("sdks-conformance")
+            );
+            assert_eq!(request.timeout, Some(Duration::from_millis(1234)));
+            assert_eq!(body, "query.handle=realm-conformance");
+            return Ok(b"available=true;message=available".to_vec());
         }
-        Ok(format!("response:{}", request.method_id).into_bytes())
+        assert_eq!(
+            request.method_id,
+            "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
+        );
+        assert_eq!(
+            request.metadata.get("x-nimi-access-token-id").map(String::as_str),
+            Some("conformance-token-id")
+        );
+        assert_eq!(
+            request.metadata.get("x-nimi-caller").map(String::as_str),
+            Some("sdks-conformance")
+        );
+        assert_eq!(request.timeout, Some(Duration::from_millis(1234)));
+        assert!(body.contains("caller.app_id=app-conformance"));
+        assert!(body.contains("caller.scopes=account.login"));
+        assert!(body.contains("redirect_uri=https://app.example/callback"));
+        Ok(
+            b"accepted=true;login_attempt_id=login-conformance;callback_origin=https://app.example"
+                .to_vec(),
+        )
     }
 
     fn server_stream(&self, request: CoreStreamRequest) -> Result<Self::Stream, Self::Error> {
-        self.stream_calls.borrow_mut().push(request);
-        if std::env::var("SDKS_CONFORMANCE_PROFILE").ok().as_deref() == Some("typed-core") {
-            return Ok(FakeStream {
-                events: vec![
-                    b"event_id=event-1;sequence=1".to_vec(),
-                    b"event_id=event-2;sequence=2".to_vec(),
-                ],
-                index: 0,
-            });
-        }
+        let body = String::from_utf8_lossy(&request.body);
+        assert_eq!(
+            request.method_id,
+            "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents"
+        );
+        assert!(body.contains("caller.app_id=app-conformance"));
+        assert!(body.contains("after_sequence=0"));
         Ok(FakeStream {
-            events: vec![b"event:1".to_vec(), b"event:2".to_vec()],
+            events: vec![
+                b"event_id=event-1;sequence=1".to_vec(),
+                b"event_id=event-2;sequence=2".to_vec(),
+            ],
             index: 0,
         })
     }
@@ -89,189 +104,93 @@ fn auth_metadata() -> CoreMetadata {
     metadata
 }
 
-#[test]
-fn generated_clients_use_fake_transport() {
-    if std::env::var("SDKS_CONFORMANCE_PROFILE").ok().as_deref() == Some("typed-core") {
-        let runtime_core =
-            crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
-        let runtime = RuntimeTypedClient::new(runtime_core);
-        let mut metadata = BTreeMap::new();
-        metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
-        let nested_request_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let _ = runtime.begin_login(
-                BeginLoginRequest {
-                    caller: Some(Box::new(AccountCaller {
-                        app_id: Some("app-conformance".to_string()),
-                        mode: Some(Default::default()),
-                        scopes: vec!["account.login".to_string()],
-                        ..Default::default()
-                    })),
-                    ..Default::default()
-                },
-                BTreeMap::new(),
-                None,
-            );
-        }));
-        assert!(nested_request_result.is_err());
-
-        let response = runtime
-            .begin_login(
-                BeginLoginRequest {
-                    redirect_uri: Some("https://app.example/callback".to_string()),
-                    callback_origin: Some("https://app.example".to_string()),
-                    ttl_seconds: Some(60),
-                    ..Default::default()
-                },
-                metadata,
-                Some(Duration::from_millis(1234)),
-            )
-            .expect("typed runtime call");
-        assert_eq!(response.accepted, Some(true));
-        assert_eq!(
-            response.login_attempt_id.as_deref(),
-            Some("login-conformance")
-        );
-
-        let stream_core =
-            crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
-        let runtime_stream = RuntimeTypedClient::new(stream_core);
-        let mut stream = runtime_stream
-            .subscribe_account_session_events(
-                SubscribeAccountSessionEventsRequest {
-                    after_sequence: Some(0),
-                    ..Default::default()
-                },
-                BTreeMap::new(),
-                None,
-            )
-            .expect("typed runtime stream");
-        let first = stream.recv().expect("first typed event");
-        assert_eq!(first.event_id.as_deref(), Some("event-1"));
-        let second = stream.recv().expect("second typed event");
-        assert_eq!(second.event_id.as_deref(), Some("event-2"));
-        assert!(stream.recv().is_none());
-
-        assert!(SourceMaterializationPacketV3DtoSemanticPayload::try_from_discriminator(
-            "personaCharacter"
-        )
-        .is_ok());
-        assert!(SourceMaterializationPacketV3DtoSemanticPayload::try_from_discriminator(
-            "worldCharacter"
-        )
-        .is_ok());
-        assert!(SourceMaterializationPacketV3DtoSemanticPayload::try_from_discriminator("profile")
-            .is_err());
-        let packet_request_shape = CreateSourceMaterializationPacketV3Dto {
-            intended_runtime_audience: "sdk.conformance".to_string(),
-            materializer_account_id: "account-conformance".to_string(),
-            challenge_id: "challenge_conformance_0001".to_string(),
-            challenge_digest: "a".repeat(64),
-            challenge_expires_at: "2026-01-01T00:05:00.000Z".to_string(),
-            published_limits: Box::new(SourceMaterializationPublishedLimitsDto {
-                max_chunk_bytes: 262_144.0,
-                max_segment_bytes: 8_388_608.0,
-                max_segment_chunks: 4_096.0,
-                max_segment_component_count: 256.0,
-                max_set_bytes: 134_217_728.0,
-                max_set_chunks: 65_536.0,
-                max_set_component_count: 16_384.0,
-                max_set_segments: 64.0,
-            }),
-            source_ref: Box::new(CharacterSourceRefV3Dto::PersonaCharacterSourceRefV3(
-                Box::new(PersonaCharacterSourceRefV3Dto {
-                    id: "persona-conformance".to_string(),
-                    kind: "personaCharacter".to_string(),
-                    owner_account_id: "account-conformance".to_string(),
-                    source_hash: "e".repeat(64),
-                    world_id: "oasis".to_string(),
-                }),
-            )),
-        };
-        assert_eq!(packet_request_shape.materializer_account_id, "account-conformance");
-        for private_operation_id in [
-            "WorldCoreController_createSourceMaterializationPacket",
-            "getSourceMaterializationJwks",
-        ] {
-            assert!(
-                crate::core_generated::realm_client::REALM_OPERATIONS
-                    .iter()
-                    .all(|operation| operation.operation_id != private_operation_id),
-                "private Realm operation remained in public Rust descriptors: {}",
-                private_operation_id,
-            );
-        }
-        let error = runtime
-            .begin_login(
-                BeginLoginRequest {
-                    redirect_uri: Some("force-error".to_string()),
-                    ..Default::default()
-                },
-                BTreeMap::new(),
-                None,
-            )
-            .expect_err("typed structured error");
-        assert!(error.contains("SDK_RUNTIME_METHOD_UNAVAILABLE"));
-        assert!(error.contains("typed conformance error"));
-        assert!(error.contains("fixture=typed-core"));
-        return;
+fn account_caller() -> AccountCaller {
+    AccountCaller {
+        app_id: Some("app-conformance".to_string()),
+        mode: Some(Default::default()),
+        scopes: vec!["account.login".to_string()],
+        ..Default::default()
     }
+}
 
-    let runtime_method = crate::core_generated::runtime_client::RUNTIME_METHODS
-        .iter()
-        .find(|method| method.kind == "unary")
-        .expect("unary method");
-    let stream_method = crate::core_generated::runtime_client::RUNTIME_METHODS
-        .iter()
-        .find(|method| method.kind == "server_stream")
-        .expect("stream method");
-    let realm_operation = crate::core_generated::realm_client::REALM_OPERATIONS
-        .first()
-        .expect("realm operation");
-
+#[test]
+fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
     let runtime_core =
-        crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
-    let runtime = RuntimeGeneratedClient::new(runtime_core);
+        crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
+    let runtime = RuntimeTypedClient::new(runtime_core);
     let mut metadata = BTreeMap::new();
     metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
     let response = runtime
-        .call(
-            runtime_method.method_id,
-            b"runtime-body".to_vec(),
+        .begin_login(
+            BeginLoginRequest {
+                caller: Some(Box::new(account_caller())),
+                redirect_uri: Some("https://app.example/callback".to_string()),
+                callback_origin: Some("https://app.example".to_string()),
+                requested_scopes: vec!["openid".to_string(), "profile".to_string()],
+                ttl_seconds: Some(60),
+            },
             metadata,
             Some(Duration::from_millis(1234)),
         )
-        .expect("runtime call");
-    assert!(String::from_utf8(response)
-        .expect("utf8")
-        .contains(runtime_method.method_id));
+        .expect("typed runtime call");
+    assert_eq!(response.accepted, Some(true));
+    assert_eq!(
+        response.login_attempt_id.as_deref(),
+        Some("login-conformance")
+    );
 
     let stream_core =
-        crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
-    let runtime_stream = RuntimeGeneratedClient::new(stream_core);
+        crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
+    let runtime_stream = RuntimeTypedClient::new(stream_core);
     let mut stream = runtime_stream
-        .stream(
-            stream_method.method_id,
-            b"stream-body".to_vec(),
+        .subscribe_account_session_events(
+            SubscribeAccountSessionEventsRequest {
+                caller: Some(Box::new(account_caller())),
+                after_sequence: Some(0),
+            },
             BTreeMap::new(),
             None,
         )
-        .expect("runtime stream");
-    assert_eq!(stream.recv(), Some(b"event:1".to_vec()));
-    assert_eq!(stream.recv(), Some(b"event:2".to_vec()));
-    assert_eq!(stream.recv(), None);
+        .expect("typed runtime stream");
+    let first = stream.recv().expect("first typed event");
+    assert_eq!(first.event_id.as_deref(), Some("event-1"));
+    let second = stream.recv().expect("second typed event");
+    assert_eq!(second.event_id.as_deref(), Some("event-2"));
+    assert!(stream.recv().is_none());
 
     let realm_core =
-        crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
-    let realm = RealmGeneratedClient::new(realm_core);
+        crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
+    let realm = RealmTypedClient::new(realm_core);
+    let mut realm_metadata = BTreeMap::new();
+    realm_metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
     let realm_response = realm
-        .operation(
-            realm_operation.operation_id,
-            b"realm-body".to_vec(),
+        .check_handle(
+            RealmCheckHandleOperationRequest {
+                path: RealmCheckHandleOperationPath::default(),
+                query: RealmCheckHandleOperationQuery {
+                    handle: Some("realm-conformance".to_string()),
+                },
+                headers: RealmCheckHandleOperationHeaders::default(),
+                body: (),
+            },
+            realm_metadata,
+            Some(Duration::from_millis(1234)),
+        )
+        .expect("typed Realm call");
+    assert!(realm_response.available);
+    assert_eq!(realm_response.message, "available");
+
+    let error = runtime
+        .begin_login(
+            BeginLoginRequest {
+                redirect_uri: Some("force-error".to_string()),
+                ..Default::default()
+            },
             BTreeMap::new(),
             None,
         )
-        .expect("realm operation");
-    assert!(String::from_utf8(realm_response)
-        .expect("utf8")
-        .contains(realm_operation.operation_id));
+        .expect_err("typed structured error");
+    assert!(error.contains("SDK_RUNTIME_METHOD_UNAVAILABLE"));
+    assert!(error.contains("typed conformance error"));
+    assert!(error.contains("fixture=typed-core"));
 }

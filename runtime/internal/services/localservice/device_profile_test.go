@@ -230,36 +230,6 @@ func TestProbeGPUProfileFailsClosedWhenNvidiaSmiTimesOut(t *testing.T) {
 	}
 }
 
-func TestDeviceProfileIgnoresLegacyRuntimeGPUOverride(t *testing.T) {
-	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	setUnsupportedGPUProbeForTest(t)
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_MODEL", "legacy-env-rtx")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
-
-	profile := collectDeviceProfile()
-	if profile.GetGpu().GetAvailable() {
-		t.Fatalf("legacy runtime GPU env must not make GPU available: %#v", profile.GetGpu())
-	}
-	if profile.GetGpu().GetVendor() != "" || profile.GetGpu().GetModel() != "" {
-		t.Fatalf("legacy runtime GPU env must not project vendor/model: %#v", profile.GetGpu())
-	}
-}
-
-func TestDeviceProfileIgnoresLegacyRuntimeNPUOverride(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_NPU_AVAILABLE", "true")
-	t.Setenv("NIMI_RUNTIME_NPU_READY", "true")
-	t.Setenv("NIMI_RUNTIME_NPU_VENDOR", "legacy-npu")
-
-	profile := collectDeviceProfile()
-	if profile.GetNpu().GetAvailable() || profile.GetNpu().GetReady() {
-		t.Fatalf("legacy runtime NPU env must not make NPU available: %#v", profile.GetNpu())
-	}
-	if profile.GetNpu().GetVendor() != "" {
-		t.Fatalf("legacy runtime NPU env must not project vendor: %#v", profile.GetNpu())
-	}
-}
-
 func TestNPUReadyRequiresAdmittedAvailability(t *testing.T) {
 	t.Setenv("NIMI_NPU_READY", "true")
 

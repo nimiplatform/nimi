@@ -421,6 +421,7 @@ func assertProfileRuntimePlanBindingsRequired(t *testing.T, svc *Service) {
 }
 
 func TestServicePrepareProfileRuntimeDescriptorAcceptsSDKFormedShape(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	raw := []byte(`{
 		"schema_version": 1,
@@ -535,6 +536,7 @@ func TestServicePrepareProfileRuntimeDescriptorAcceptsSDKFormedShape(t *testing.
 }
 
 func TestServicePrepareProfileRuntimeDescriptorReadyAfterCanonicalMaterializationFacts(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeDescriptor()
 	seedProfileRuntimeReadyFactsForService(t, svc, descriptor)
@@ -557,6 +559,7 @@ func TestServicePrepareProfileRuntimeDescriptorReadyAfterCanonicalMaterializatio
 }
 
 func TestServicePrepareProfileRuntimeDescriptorCachesDescriptorBackedImageMaterializationBindings(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
@@ -633,6 +636,7 @@ func TestServicePrepareProfileRuntimeDescriptorCachesDescriptorBackedImageMateri
 }
 
 func TestServicePrepareProfileRuntimeDescriptorRPCBytesClearsPlanBindings(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
@@ -656,6 +660,7 @@ func TestServicePrepareProfileRuntimeDescriptorRPCBytesClearsPlanBindings(t *tes
 }
 
 func TestServicePrepareProfileRuntimeDescriptorRPCUsesDataRootSelectedSourceWhenServiceModelsRoot(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	modelsRoot := svc.resolvedLocalModelsPath()
@@ -716,6 +721,7 @@ func TestServicePrepareProfileRuntimeDescriptorRPCUsesDataRootSelectedSourceWhen
 }
 
 func TestProfileRuntimeDescriptorMaterializationPersistsAcrossRestart(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
@@ -752,6 +758,7 @@ func TestProfileRuntimeDescriptorMaterializationPersistsAcrossRestart(t *testing
 }
 
 func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesOnPlan(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
@@ -772,6 +779,7 @@ func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesOnP
 }
 
 func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesAcrossRestart(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
@@ -801,6 +809,7 @@ func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesAcr
 }
 
 func TestProfileRuntimeDescriptorMaterializationRestoreFailsClosedForCorruptState(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name   string
 		mutate func(*localStateSnapshot)
@@ -883,6 +892,7 @@ func TestProfileRuntimeDescriptorMaterializationRestoreFailsClosedForCorruptStat
 }
 
 func TestServicePrepareProfileRuntimeDescriptorMissingCompanionDoesNotCacheMaterialization(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
@@ -921,6 +931,7 @@ func TestServicePrepareProfileRuntimeDescriptorMissingCompanionDoesNotCacheMater
 }
 
 func TestServicePrepareProfileRuntimeDescriptorIgnoresOldHostSelectedSource(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	oldHostRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
@@ -961,6 +972,7 @@ func TestServicePrepareProfileRuntimeDescriptorIgnoresOldHostSelectedSource(t *t
 }
 
 func TestServicePrepareProfileRuntimeDescriptorRejectsCompanionIdentityAndKindMismatchWithoutCache(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name       string
 		assetID    string
@@ -1007,6 +1019,7 @@ func TestServicePrepareProfileRuntimeDescriptorRejectsCompanionIdentityAndKindMi
 }
 
 func TestProfileRuntimePrepareRejectsNonCanonicalNativePackageFacts(t *testing.T) {
+	t.Parallel()
 	descriptor := testProfileRuntimeDescriptor()
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	facts.NativeBackendPackages[0].PackageSource = "experimental_official_sdcpp"
@@ -1040,6 +1053,7 @@ func TestProfileRuntimePrepareRejectsNonCanonicalNativePackageFacts(t *testing.T
 }
 
 func TestProfileRuntimePrepareAcceptsWindowsRuntimeWrapperNativePackageFacts(t *testing.T) {
+	t.Parallel()
 	descriptor := testProfileRuntimeDescriptor()
 	descriptor.CapabilitySlices[0].RuntimeConsumerID = "stable-diffusion.cpp.cuda"
 	facts := testProfileRuntimeReadyFacts(descriptor)
@@ -1063,6 +1077,7 @@ func TestProfileRuntimePrepareAcceptsWindowsRuntimeWrapperNativePackageFacts(t *
 }
 
 func TestProfileRuntimePrepareRejectsWrongNativeConsumerAndSource(t *testing.T) {
+	t.Parallel()
 	descriptor := testProfileRuntimeDescriptor()
 	descriptor.CapabilitySlices[0].RuntimeConsumerID = "stable-diffusion.cpp.cuda"
 	facts := testProfileRuntimeReadyFacts(descriptor)
@@ -1092,6 +1107,7 @@ func TestProfileRuntimePrepareRejectsWrongNativeConsumerAndSource(t *testing.T) 
 }
 
 func TestProfileRuntimePrepareFailsClosedForPreparedAssetExactMismatch(t *testing.T) {
+	t.Parallel()
 	descriptor := testProfileRuntimeDescriptor()
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	for index := range facts.PreparedAssets {
@@ -1116,6 +1132,7 @@ func TestProfileRuntimePrepareFailsClosedForPreparedAssetExactMismatch(t *testin
 }
 
 func TestProfileRuntimePrepareFailsClosedForPreparedAssetRoleMismatch(t *testing.T) {
+	t.Parallel()
 	descriptor := testProfileRuntimeDescriptor()
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	for index := range facts.PreparedAssets {
@@ -1139,6 +1156,7 @@ func TestProfileRuntimePrepareFailsClosedForPreparedAssetRoleMismatch(t *testing
 }
 
 func TestProfileRuntimePrepareFailsClosedForQwenBackupOnlyCompanion(t *testing.T) {
+	t.Parallel()
 	descriptor := testProfileRuntimeDescriptor()
 	descriptor.AssetBindings[1].ComponentKind = "chat"
 	descriptor.AssetBindings[1].ExpectedIdentity = "backup:Qwen3-4B-Q4_K_M.gguf"
@@ -1175,6 +1193,7 @@ func TestProfileRuntimePrepareFailsClosedForQwenBackupOnlyCompanion(t *testing.T
 }
 
 func TestProfileRuntimePrepareFailsClosedForSourceUnreadyRequiredCompanion(t *testing.T) {
+	t.Parallel()
 	descriptor := testProfileRuntimeDescriptor()
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	for index := range facts.PreparedAssets {
@@ -1198,6 +1217,7 @@ func TestProfileRuntimePrepareFailsClosedForSourceUnreadyRequiredCompanion(t *te
 }
 
 func TestServicePrepareAfterFailedNativeSetupRetryDoesNotPoisonReusableAssetHealth(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeDescriptor()
 	seedProfileRuntimePreparedAssetsForService(t, svc, descriptor)
@@ -1237,6 +1257,7 @@ func TestServicePrepareAfterFailedNativeSetupRetryDoesNotPoisonReusableAssetHeal
 }
 
 func TestServicePrepareProfileRuntimeDescriptorKeepsRequiredUnsupportedSlices(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeDescriptor()
 	descriptor.CapabilitySlices = []profileRuntimeDescriptorCapability{

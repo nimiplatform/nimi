@@ -239,44 +239,6 @@ export function rustOpenApiFieldType(schema) {
   return schema?.kind === 'ref' ? `Box<${schema.ref_name}>` : rustOpenApiType(schema);
 }
 
-export function rustDefaultExpr(type) {
-  if (type === '()') return '<()>::default()';
-  if (type.startsWith('Vec<')) return `${type.replace('Vec<', 'Vec::<')}::default()`;
-  if (type.startsWith('BTreeMap<')) return `${type.replace('BTreeMap<', 'BTreeMap::<')}::default()`;
-  return `${type}::default()`;
-}
-
 export function realmOperationTypeBase(operationId) {
   return `Realm${pascalCase(operationId)}Operation`;
-}
-
-export function realmOperationRequestType(operationId) {
-  return `${realmOperationTypeBase(operationId)}Request`;
-}
-
-export function realmOperationResponseType(operationId) {
-  return `${realmOperationTypeBase(operationId)}Response`;
-}
-
-export function typedFixtureNames(runtimeMethod, streamMethod, realmOperation) {
-  return {
-    runtime_unary: {
-      typescript: lowerCamelCase(runtimeMethod.method),
-      python: snakeCase(runtimeMethod.method),
-      go: pascalCase(runtimeMethod.method),
-      rust: snakeCase(runtimeMethod.method),
-    },
-    runtime_stream: {
-      typescript: lowerCamelCase(streamMethod.method),
-      python: snakeCase(streamMethod.method),
-      go: pascalCase(streamMethod.method),
-      rust: snakeCase(streamMethod.method),
-    },
-    realm_operation: {
-      typescript: lowerCamelCase(realmOperation.operation_id),
-      python: snakeCase(realmOperation.operation_id),
-      go: pascalCase(realmOperation.operation_id),
-      rust: snakeCase(realmOperation.operation_id),
-    },
-  };
 }

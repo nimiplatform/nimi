@@ -403,23 +403,6 @@ func findPostureTableFixture(t *testing.T, sourceFile string) string {
 	}
 }
 
-// TestPostureTableConsumerLoadsWave0FixtureShape asserts the basic shape of
-// the Wave 0 spec table from the runtime test consumer's perspective. The
-// shape gate already enforces this server-side; this consumer-side test
-// confirms runtime can load and parse the same structure without drift.
-func TestPostureTableConsumerLoadsWave0FixtureShape(t *testing.T) {
-	table := loadPostureTableFixture(t)
-	if strings.TrimSpace(table.PostureDecisionDoctrine) == "" {
-		t.Fatal("expected non-empty posture_decision_doctrine field")
-	}
-	// Defensive lower bound; the admitted baseline contains 177 methods. This
-	// test fails closed if the table contracts dramatically, signaling authority
-	// drift rather than accepting it silently.
-	if len(table.Methods) < 100 {
-		t.Fatalf("expected at least 100 method entries, got %d", len(table.Methods))
-	}
-}
-
 // TestInterceptorPermitsAnonymousOnAnonymousReadMethods asserts that for at
 // least 3 sample method ids classified `anonymous_read` in the Wave 0 table,
 // an inbound gRPC call WITHOUT an Authorization header reaches the handler

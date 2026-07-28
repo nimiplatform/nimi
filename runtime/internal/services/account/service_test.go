@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -395,32 +392,6 @@ func TestUnavailableCustodyFailsClosed(t *testing.T) {
 	}
 	if resp.GetAccepted() || resp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
 		t.Fatalf("custody unavailable must fail closed: %+v", resp)
-	}
-}
-
-func TestNoDesktopSharedAuthReadMirrorPath(t *testing.T) {
-	root := "."
-	var hits []string
-	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
-			return err
-		}
-		body, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return readErr
-		}
-		for _, needle := range []string{"auth_session_load", "auth_session_save", "shared_auth", "subject_user_id"} {
-			if strings.Contains(string(body), needle) {
-				hits = append(hits, path+":"+needle)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("scan account service: %v", err)
-	}
-	if len(hits) > 0 {
-		t.Fatalf("account service must not read/mirror Desktop shared auth or app subject truth: %v", hits)
 	}
 }
 

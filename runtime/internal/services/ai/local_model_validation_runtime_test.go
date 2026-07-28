@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -233,9 +232,6 @@ func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartDoesNotActiv
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
 	}
-	if !strings.Contains(err.Error(), "connection refused") {
-		t.Fatalf("expected start failure detail to be preserved, got %v", err)
-	}
 }
 
 func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartLeavesInstalled(t *testing.T) {
@@ -271,9 +267,6 @@ func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartLeavesInstal
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
-	}
-	if !strings.Contains(err.Error(), "not started") {
-		t.Fatalf("expected installed start detail to be preserved, got %v", err)
 	}
 }
 

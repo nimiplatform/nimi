@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
 func realtimeContext(appID string) context.Context {
@@ -194,8 +194,8 @@ func TestUploadArtifactRejectsOversizedChunk(t *testing.T) {
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("status code mismatch: got=%s want=%s err=%v", status.Code(err), codes.InvalidArgument, err)
 	}
-	if status.Convert(err).Message() != runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE.String() {
-		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE {
+		t.Fatalf("unexpected reason: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE)
 	}
 }
 

@@ -24,10 +24,8 @@ import { NIMI_VERCEL_AI_ADAPTER_MANIFEST } from './manifest';
 
 const VERCEL_AI_METADATA_KEY = 'x-nimi-vercel-ai-metadata';
 
-// Conformance suite driving the real Vercel AI SDK through the adapter. Imported
-// here so it runs inside the single-file adapter capability ledger gate.
+// Adapter-owned conformance suite driving the real Vercel AI SDK.
 import './vercel-ai.conformance.test';
-import './vercel-ai.upstream-compat.test';
 
 test('vercel-ai adapter maps LanguageModelV3 generate calls to Nimi model requests', async () => {
   const calls: NimiGenerateTextRequest[] = [];

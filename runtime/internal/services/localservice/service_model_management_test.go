@@ -11,6 +11,7 @@ import (
 )
 
 func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	first := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID: "local/dup-model",
@@ -38,6 +39,7 @@ func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
 }
 
 func TestLocalInstallLocalModelRejectsCanonicalAliasDuplicate(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	if _, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:  "z_image_turbo",
@@ -62,6 +64,7 @@ func TestLocalInstallLocalModelRejectsCanonicalAliasDuplicate(t *testing.T) {
 }
 
 func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	svc.assets = map[string]*runtimev1.LocalAssetRecord{
 		"legacy-local": {
@@ -102,6 +105,7 @@ func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
 }
 
 func TestLocalInstallLocalModelRequiresEndpointForSidecar(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "local/sidecar-model",
@@ -121,6 +125,7 @@ func TestLocalInstallLocalModelRequiresEndpointForSidecar(t *testing.T) {
 }
 
 func TestLocalInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	_, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
@@ -156,6 +161,7 @@ func TestLocalInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
 }
 
 func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	model1 := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
@@ -217,6 +223,7 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 }
 
 func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
@@ -263,6 +270,7 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 }
 
 func TestLocalListLocalServicesSortByServiceID(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	modelA := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
@@ -303,6 +311,7 @@ func TestLocalListLocalServicesSortByServiceID(t *testing.T) {
 }
 
 func TestLocalRemoveModelRejectedWhenServiceBound(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	model := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
@@ -334,6 +343,7 @@ func TestLocalRemoveModelRejectedWhenServiceBound(t *testing.T) {
 }
 
 func TestLocalResolveExecutionPlanRejectsServiceWithoutModelID(t *testing.T) {
+	t.Parallel()
 	newTestService(t)
 
 	plan := resolveExecutionPlan(&executionResolveRequest{
@@ -367,6 +377,7 @@ func TestLocalResolveExecutionPlanRejectsServiceWithoutModelID(t *testing.T) {
 }
 
 func TestLocalInstallVerifiedModelTemplateNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	_, err := svc.InstallVerifiedAsset(context.Background(), &runtimev1.InstallVerifiedAssetRequest{
 		TemplateId: "verified.missing-template",

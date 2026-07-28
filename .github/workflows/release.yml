@@ -159,6 +159,10 @@ jobs:
 
       - name: SDK tests
         run: pnpm --filter @nimiplatform/sdk test
+      - name: SDK typed-core conformance
+        run: pnpm check:sdks-conformance-typed-core
+      - name: SDK adapter upstream compatibility
+        run: pnpm test:sdks-adapters:upstream
       - name: gate.sdk.version-matrix
         run: pnpm check:sdk-version-matrix
       - name: gate.security.package-license-matrix

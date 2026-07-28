@@ -36,7 +36,8 @@
   "scripts": {
     "build": "pnpm --dir ../../../../ --filter @nimiplatform/sdk build && node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
     "lint": "pnpm exec tsc -p tsconfig.json",
-    "test": "pnpm exec tsx --test vercel-ai.test.ts"
+    "test": "pnpm exec tsx --test vercel-ai.test.ts",
+    "test:upstream": "pnpm exec tsx --test vercel-ai.upstream-compat.test.ts"
   },
   "nimi": {
     "preCutover": true,

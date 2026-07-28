@@ -497,64 +497,6 @@ func TestRuntimeProductControlInstallLevelValidatesPresetAlias(t *testing.T) {
 	}
 }
 
-func TestRuntimeProductControlLegacyReadyRecordDoesNotAdmit(t *testing.T) {
-	home := setProductControlHomeForTest(t)
-	service := newTestService(t)
-	dataRoot := filepath.Join(home, "chosen-nimi-data")
-	response, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot})
-	mustProductControlForTest(t, response, err)
-	response, err = service.SetProductControlFirstRunInstallLevel(context.Background(), &runtimev1.SetProductControlFirstRunInstallLevelRequest{
-		InstallLevel:   "minimal",
-		AiProfileAlias: "local-speech-ready",
-	})
-	mustProductControlForTest(t, response, err)
-
-	path, err := service.productControlRecordPath()
-	if err != nil {
-		t.Fatal(err)
-	}
-	record, err := readProductControlRecord(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	completedAt := "2026-06-02T00:00:00.000Z"
-	record.State = productControlStateReadyForUse
-	record.DataRoot.Status = productDataRootStatusReady
-	record.FirstRun.Completed = true
-	record.FirstRun.CompletedAt = &completedAt
-	record.FirstRun.InitializationPlanID = stringPtr("plan")
-	record.FirstRun.BaselineProfileRef = stringPtr("profile")
-	record.FirstRun.BaselineCommitID = stringPtr("commit")
-	record.FirstRun.AccountDefaultProfileRef = stringPtr("account-profile")
-	record.FirstRun.BuiltInAIConfigRefs = []string{"aiconfig:nimi", "aiconfig:agent"}
-	record.FirstRun.RuntimeBaselineRef = stringPtr("runtime-baseline")
-	record.FirstRun.ExecutionEvidenceRef = stringPtr("execution")
-	if err := writeProductControlRecord(path, record); err != nil {
-		t.Fatal(err)
-	}
-
-	response, err = service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
-	projection := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if projection.State != productControlStateLocalAIProfileNotReady {
-		t.Fatalf("legacy ready record state = %s, want recoverable setup downgrade", projection.State)
-	}
-	if projection.Error == nil {
-		t.Fatalf("expected fail-closed ready admission error")
-	}
-	if projection.Record == nil {
-		t.Fatalf("ready-read downgrade must preserve the product-control record for first-run recovery")
-	}
-	if projection.Record.FirstRun.InstallLevel == nil || *projection.Record.FirstRun.InstallLevel != "minimal" {
-		t.Fatalf("ready-read downgrade lost install level: %+v", projection.Record.FirstRun)
-	}
-	if projection.Record.DataRoot == nil || projection.Record.DataRoot.Path != dataRoot {
-		t.Fatalf("ready-read downgrade lost data root: %+v", projection.Record.DataRoot)
-	}
-	if projection.Record.FirstRun.RuntimeBaselineRef == nil || *projection.Record.FirstRun.RuntimeBaselineRef != "runtime-baseline" {
-		t.Fatalf("ready-read downgrade lost runtime baseline ref: %+v", projection.Record.FirstRun)
-	}
-}
-
 func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)

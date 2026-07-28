@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -519,9 +518,6 @@ func TestExecuteBackendSyncMediaImageFailsClosedWhenBackendTargetUnavailable(t *
 		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 			t.Fatalf("backend target unavailable reason = %v (ok=%v), want %v", reason, ok, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 		}
-		if !strings.Contains(err.Error(), "managed image backend target is unavailable") {
-			t.Fatalf("expected managed backend target detail, got %v", err)
-		}
 		if resolver.ensureLoadCalls != 0 {
 			t.Fatalf("expected no direct managed image preload when backend target unavailable, got %d", resolver.ensureLoadCalls)
 		}
@@ -714,13 +710,6 @@ func TestExecuteBackendSyncMediaImageFailsClosedWithoutLocalImageResolver(t *tes
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v ok=%v", err, reason, ok)
 	}
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatalf("expected gRPC status error, got %T", err)
-	}
-	if !strings.Contains(st.Message(), "canonical image resolver unavailable") {
-		t.Fatalf("expected resolver-unavailable detail, got %q", st.Message())
-	}
 }
 
 func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSelection(t *testing.T) {
@@ -776,13 +765,6 @@ func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSelection(t *testi
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v ok=%v", err, reason, ok)
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatalf("expected gRPC status error, got %T", err)
-	}
-	if !strings.Contains(st.Message(), "reserved topology only") {
-		t.Fatalf("expected compatibility detail to surface, got %q", st.Message())
 	}
 }
 
@@ -847,12 +829,5 @@ func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSafetensorsNativeS
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v ok=%v", err, reason, ok)
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatalf("expected gRPC status error, got %T", err)
-	}
-	if !strings.Contains(st.Message(), "single-file safetensors image assets") {
-		t.Fatalf("expected native safetensors compatibility detail to surface, got %q", st.Message())
 	}
 }

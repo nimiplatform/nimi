@@ -48,27 +48,6 @@ func TestGetAppStorageMaterializesOnlyPrivateDataRoots(t *testing.T) {
 	}
 }
 
-func TestGetAppStorageIgnoresLegacyActiveReleasePointer(t *testing.T) {
-	dataRoot := t.TempDir()
-	legacyRoot := filepath.Join(dataRoot, "apps", "dev.nimi.tester", ".nimi")
-	if err := os.MkdirAll(legacyRoot, 0o755); err != nil {
-		t.Fatalf("mkdir legacy pointer root: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(legacyRoot, "active-release.json"), []byte("not-json"), 0o644); err != nil {
-		t.Fatalf("write corrupt legacy pointer: %v", err)
-	}
-
-	svc := New(testLogger(), WithAppStorageDataRoot(dataRoot), WithSessionValidator(allowingAppSessionValidator{}))
-	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "dev.nimi.tester"})
-	if err != nil {
-		t.Fatalf("GetAppStorage: %v", err)
-	}
-	projection := resp.GetProjection()
-	if projection.GetState() != runtimev1.AppStorageState_APP_STORAGE_STATE_READY || projection.GetActiveReleaseRoot() != "" || projection.GetActiveVersion() != "" {
-		t.Fatalf("legacy package pointer influenced 0K storage: %+v", projection)
-	}
-}
-
 func TestGetAppStorageFailsClosedWithoutDataRoot(t *testing.T) {
 	svc := New(testLogger(), WithSessionValidator(allowingAppSessionValidator{}))
 	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "dev.nimi.tester"})

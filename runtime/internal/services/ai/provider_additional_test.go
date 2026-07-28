@@ -373,40 +373,6 @@ func TestPreferredRouteUsesProviderRegistryRuntimePlane(t *testing.T) {
 	}
 }
 
-func TestLocalProviderLegacyWrappers(t *testing.T) {
-	p := &localProvider{}
-
-	if _, _, _, err := p.GenerateText(context.Background(), "local/qwen", nil, ""); err == nil {
-		t.Fatalf("GenerateText should reject nil spec")
-	}
-	if _, _, err := p.StreamGenerateText(context.Background(), "local/qwen", nil, func(string) error { return nil }); err == nil {
-		t.Fatalf("StreamGenerateText should reject nil spec")
-	}
-
-	spec := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hi"}}}
-	_, _, _, err := p.GenerateText(context.Background(), "local/qwen", spec, "")
-	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH {
-		t.Fatalf("unexpected GenerateText fallback reason: %v", reason)
-	}
-	_, _, err = p.StreamGenerateText(context.Background(), "local/qwen", spec, func(string) error { return nil })
-	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH {
-		t.Fatalf("unexpected StreamGenerateText fallback reason: %v", reason)
-	}
-
-	_, _, err = p.Embed(context.Background(), "llama/embedding-model", []string{"hello"})
-	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH {
-		t.Fatalf("unexpected explicit backend mismatch reason: %v", reason)
-	}
-	_, _, err = p.Embed(context.Background(), "", []string{"hello"})
-	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
-		t.Fatalf("unexpected embed unavailable reason: %v", reason)
-	}
-
-	if got := p.ResolveModelID("   "); got != "" {
-		t.Fatalf("expected empty resolved model id, got %q", got)
-	}
-}
-
 func TestLocalProviderResolveModelIDPreservesExplicitEnginePrefixes(t *testing.T) {
 	p := &localProvider{}
 

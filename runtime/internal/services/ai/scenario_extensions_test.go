@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -113,8 +114,8 @@ func TestClassifyScenarioExtensionsRejectsUnknownMediaNamespace(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.InvalidArgument)
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED.String() {
-		t.Fatalf("reason code mismatch: got=%q want=%q", st.Message(), runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED.String())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("reason code mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 }
 
@@ -139,8 +140,8 @@ func TestClassifyScenarioExtensionsRejectsFirstRunInternalKeys(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.InvalidArgument)
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED.String() {
-		t.Fatalf("reason code mismatch: got=%q want=%q", st.Message(), runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED.String())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("reason code mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 }
 
@@ -158,8 +159,8 @@ func TestClassifyScenarioExtensionsRejectsUnknownVoiceNamespace(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.InvalidArgument)
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED.String() {
-		t.Fatalf("reason code mismatch: got=%q want=%q", st.Message(), runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED.String())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
+		t.Fatalf("reason code mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 }
 
@@ -177,7 +178,7 @@ func TestClassifyScenarioExtensionsRejectsEmptyNamespace(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.InvalidArgument)
 	}
-	if st.Message() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String() {
-		t.Fatalf("reason code mismatch: got=%q want=%q", st.Message(), runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("reason code mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 }

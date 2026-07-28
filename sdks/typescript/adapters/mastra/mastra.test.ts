@@ -16,14 +16,11 @@ import {
 } from './index';
 import { createNimiFixtureModel, createNonStreamingFixtureModel } from './mastra.fixtures';
 
-// Conformance + upstream suites driving the real Mastra public API through the
-// adapter. Imported here so they run inside the single-file adapter capability
-// ledger gate, alongside the model-shape, fail-closed, and manifest checks below.
+// Adapter-owned conformance suites driving the real Mastra public API.
 import './mastra.context.test';
 import './mastra.conformance.test';
 import './mastra.embedding-voice.test';
 import './mastra.runtime-delegated-tools.test';
-import './mastra.upstream-compat.test';
 
 test('mastra adapter produces a LanguageModelV3 Mastra accepts as a model config', () => {
   // The wrapped Nimi model is a v3 provider model assignable to MastraModelConfig

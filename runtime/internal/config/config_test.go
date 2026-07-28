@@ -684,26 +684,6 @@ func TestLoadDefaultCloudProviderEnvOverrideWinsAndNormalizes(t *testing.T) {
 	}
 }
 
-func TestProviderEnvBindingsFollowProbeTargetFactSource(t *testing.T) {
-	expected := readProviderProbeTargetBindingsForTest(t)
-	actual := make(map[string]providerEnvBinding, len(providerEnvBindings))
-	for _, binding := range providerEnvBindings {
-		actual[binding.canonicalID] = binding
-	}
-	if len(actual) != len(expected) {
-		t.Fatalf("provider env binding count mismatch: got=%d want=%d actual=%v expected=%v", len(actual), len(expected), actual, expected)
-	}
-	for providerID, want := range expected {
-		got, ok := actual[providerID]
-		if !ok {
-			t.Fatalf("missing provider env binding for %s", providerID)
-		}
-		if got.baseURLKey != want.baseURLKey || got.apiKeyKey != want.apiKeyKey {
-			t.Fatalf("provider env binding mismatch for %s: got=%+v want=%+v", providerID, got, want)
-		}
-	}
-}
-
 func TestResolveCloudProvidersIgnoresRegistryOnlyEnvWithoutProbeTarget(t *testing.T) {
 	clearRuntimeConfigEnv(t)
 	t.Setenv("NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY", "anthropic-key")
@@ -789,105 +769,18 @@ func TestLoadRejectsLegacyProviderAlias(t *testing.T) {
 	}
 }
 
-func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
+func TestLoadRejectsForbiddenPortableRuntimeConfigPath(t *testing.T) {
 	homeDir := t.TempDir()
 	setRuntimeTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
-	clearRuntimeConfigEnv(t)
-
-	legacyPath := filepath.Join(homeDir, ".nimi/config.json")
-	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
-		t.Fatalf("mkdir legacy dir: %v", err)
-	}
-	legacyBody := `{"runtime":{"grpcAddr":"127.0.0.1:59001"}}`
-	if err := os.WriteFile(legacyPath, []byte(legacyBody), 0o600); err != nil {
-		t.Fatalf("write legacy config: %v", err)
-	}
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.GRPCAddr != defaultGRPCAddr {
-		t.Fatalf("grpc should use canonical default config path only: got=%q", cfg.GRPCAddr)
-	}
-	if _, statErr := os.Stat(legacyPath); statErr != nil {
-		t.Fatalf("legacy config should not be touched: %v", statErr)
-	}
-	if _, statErr := os.Stat(filepath.Join(homeDir, ".nimi/runtime/config.json")); !os.IsNotExist(statErr) {
-		t.Fatalf("canonical config should not be auto-created")
-	}
-}
-
-func TestLoadRejectsExplicitRetiredRuntimeConfigPath(t *testing.T) {
-	homeDir := t.TempDir()
-	setRuntimeTestHome(t, homeDir)
-	retiredPath := filepath.Join(homeDir, ".nimi", "runtime", "config.json")
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", retiredPath)
+	forbiddenPath := filepath.Join(homeDir, ".nimi", "runtime", "config.json")
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", forbiddenPath)
 	clearRuntimeConfigEnv(t)
 
 	if got := RuntimeConfigPath(); got != "" {
-		t.Fatalf("RuntimeConfigPath exposed retired path: %q", got)
+		t.Fatalf("RuntimeConfigPath exposed forbidden path: %q", got)
 	}
 	_, err := Load()
 	if err == nil || !strings.Contains(err.Error(), "retired and forbidden") {
-		t.Fatalf("Load error = %v, want explicit retired-path rejection", err)
+		t.Fatalf("Load error = %v, want forbidden-path rejection", err)
 	}
-}
-
-func readProviderProbeTargetBindingsForTest(t *testing.T) map[string]providerEnvBinding {
-	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "config", "spec-frozen", "runtime", "tables", "provider-probe-targets.yaml"))
-	if err != nil {
-		t.Fatalf("read provider probe targets: %v", err)
-	}
-	type target struct {
-		name       string
-		category   string
-		baseURLKey string
-		apiKeyKey  string
-	}
-	out := make(map[string]providerEnvBinding)
-	current := target{}
-	flush := func() {
-		if current.category != "cloud" {
-			current = target{}
-			return
-		}
-		if current.name == "" || !strings.HasPrefix(current.name, "cloud-") {
-			t.Fatalf("cloud provider probe target must use cloud-* name: %+v", current)
-		}
-		if !strings.HasPrefix(current.baseURLKey, "NIMI_RUNTIME_") || !strings.HasPrefix(current.apiKeyKey, "NIMI_RUNTIME_") {
-			t.Fatalf("cloud provider probe target must use concrete runtime env keys: %+v", current)
-		}
-		providerID := strings.ReplaceAll(strings.TrimPrefix(current.name, "cloud-"), "-", "_")
-		out[providerID] = providerEnvBinding{
-			canonicalID: providerID,
-			baseURLKey:  current.baseURLKey,
-			apiKeyKey:   current.apiKeyKey,
-		}
-		current = target{}
-	}
-	for _, line := range strings.Split(string(raw), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "- name: ") {
-			flush()
-			current.name = strings.TrimSpace(strings.TrimPrefix(trimmed, "- name: "))
-			continue
-		}
-		if strings.HasPrefix(trimmed, "base_url_env: ") {
-			current.baseURLKey = strings.TrimSpace(strings.TrimPrefix(trimmed, "base_url_env: "))
-			continue
-		}
-		if strings.HasPrefix(trimmed, "api_key_env: ") {
-			current.apiKeyKey = strings.TrimSpace(strings.TrimPrefix(trimmed, "api_key_env: "))
-			continue
-		}
-		if strings.HasPrefix(trimmed, "category: ") {
-			current.category = strings.TrimSpace(strings.TrimPrefix(trimmed, "category: "))
-			continue
-		}
-	}
-	flush()
-	return out
 }

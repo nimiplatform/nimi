@@ -8,10 +8,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -453,8 +453,8 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeFailsCloseWhenLegacyLocalS
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.InvalidArgument)
 	}
-	if !strings.Contains(st.Message(), runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String()) {
-		t.Fatalf("reason code mismatch: got=%q want message containing=%q", st.Message(), runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("reason code mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 }
 
@@ -697,9 +697,8 @@ func TestExecuteScenarioTextGenerateCloudTargetRefRequiresRemoteCatalogID(t *tes
 	if err == nil {
 		t.Fatal("expected missing remote model catalog id error")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED) {
-		t.Fatalf("reason mismatch: got %q", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED {
+		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED)
 	}
 }
 
@@ -779,9 +778,8 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 	if err == nil {
 		t.Fatal("expected stale remote model catalog id error")
 	}
-	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE) {
-		t.Fatalf("reason mismatch: got %q", st.Message())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE {
+		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 	}
 }
 
@@ -835,8 +833,8 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeRejectsMissingResolvedBind
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.InvalidArgument)
 	}
-	if st.Message() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String() {
-		t.Fatalf("reason code mismatch: got=%q want=%q", st.Message(), runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("reason code mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 }
 

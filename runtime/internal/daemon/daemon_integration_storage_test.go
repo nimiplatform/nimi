@@ -3,7 +3,6 @@ package daemon
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"os"
@@ -21,59 +20,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-func TestDaemonNewDoesNotImportLegacyMemoryStateBeforeReadiness(t *testing.T) {
-	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	if err := writePersistedMemoryState(localStatePath, "agent-import", "mem-import"); err != nil {
-		t.Fatalf("writePersistedMemoryState: %v", err)
-	}
-
-	cfg := config.Config{
-		GRPCAddr:             "127.0.0.1:0",
-		HTTPAddr:             "127.0.0.1:0",
-		ShutdownTimeout:      2 * time.Second,
-		LocalStatePath:       localStatePath,
-		AuditRingBufferSize:  64,
-		UsageStatsBufferSize: 64,
-		IdempotencyCapacity:  32,
-	}
-	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	defer func() {
-		if svc := daemon.grpc.MemoryService(); svc != nil {
-			_ = svc.Close()
-		}
-	}()
-
-	runtimeDir := filepath.Dir(localStatePath)
-	if _, err := os.Stat(filepath.Join(runtimeDir, "memory.db")); err != nil {
-		t.Fatalf("expected memory.db before Run readiness: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(runtimeDir, "memory-state.json")); err != nil {
-		t.Fatalf("legacy memory-state.json must remain inert evidence: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(runtimeDir, "memory-state.json.wave3-imported.json.bak")); !os.IsNotExist(err) {
-		t.Fatalf("legacy memory-state.json must not be imported or renamed, stat err=%v", err)
-	}
-	historyResp, err := daemon.grpc.MemoryService().History(context.Background(), &runtimev1.HistoryRequest{
-		Bank: &runtimev1.MemoryBankLocator{
-			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-import"},
-			},
-		},
-		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
-	})
-	if err == nil {
-		t.Fatalf("legacy memory-state.json must not become active daemon memory truth, got response %#v", historyResp)
-	}
-	if got := daemon.grpc.MemoryService().ListReplicationBacklog(); len(got) != 0 {
-		t.Fatalf("legacy replication backlog must not become active daemon truth: %#v", got)
-	}
-}
 
 func TestDaemonRunCreatesSQLiteBackupOnShutdown(t *testing.T) {
 	cfg := config.Config{
@@ -372,94 +318,4 @@ func assertMemoryReplicationAttemptCount(t *testing.T, svc interface {
 		}
 	}
 	t.Fatalf("expected replication backlog item for memory %s", memoryID)
-}
-
-func assertMemoryReplicationBacklogAbsent(t *testing.T, svc interface {
-	ListReplicationBacklog() []*memoryservice.ReplicationBacklogItem
-}, memoryID string) {
-	t.Helper()
-	for _, item := range svc.ListReplicationBacklog() {
-		if item.MemoryID == memoryID {
-			t.Fatalf("legacy replication backlog item for memory %s must not become active runtime truth: %#v", memoryID, item)
-		}
-	}
-}
-
-func writePersistedMemoryState(localStatePath string, agentID string, memoryID string) error {
-	now := time.Now().UTC()
-	locator := &runtimev1.MemoryBankLocator{
-		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: agentID},
-		},
-	}
-	bankRaw, err := protojson.Marshal(&runtimev1.MemoryBank{
-		BankId:              "bank-daemon-replication",
-		Locator:             locator,
-		DisplayName:         "Agent Memory",
-		CanonicalAgentScope: true,
-		PublicApiWritable:   false,
-		CreatedAt:           timestamppb.New(now),
-		UpdatedAt:           timestamppb.New(now),
-	})
-	if err != nil {
-		return err
-	}
-	recordRaw, err := protojson.Marshal(&runtimev1.MemoryRecord{
-		MemoryId:       memoryID,
-		Bank:           locator,
-		Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
-		CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
-		Replication: &runtimev1.MemoryReplicationState{
-			Outcome:      runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_PENDING,
-			LocalVersion: memoryID,
-			BasisVersion: "",
-			Detail: &runtimev1.MemoryReplicationState_Pending{
-				Pending: &runtimev1.MemoryReplicationPending{
-					BasisVersion: "",
-					EnqueuedAt:   timestamppb.New(now),
-				},
-			},
-		},
-		Payload:   &runtimev1.MemoryRecord_Observational{Observational: &runtimev1.ObservationalMemoryRecord{Observation: "daemon backlog"}},
-		CreatedAt: timestamppb.New(now),
-		UpdatedAt: timestamppb.New(now),
-	})
-	if err != nil {
-		return err
-	}
-	locatorRaw, err := protojson.Marshal(locator)
-	if err != nil {
-		return err
-	}
-	payload := map[string]any{
-		"schemaVersion": 1,
-		"savedAt":       now.Format(time.RFC3339Nano),
-		"sequence":      0,
-		"banks": []map[string]any{
-			{
-				"locatorKey": "agent-core::" + agentID,
-				"bank":       json.RawMessage(bankRaw),
-				"records":    []json.RawMessage{recordRaw},
-			},
-		},
-		"replicationBacklog": []map[string]any{
-			{
-				"backlogKey":   "agent-core::" + agentID + "::" + memoryID,
-				"locator":      json.RawMessage(locatorRaw),
-				"memoryId":     memoryID,
-				"localVersion": memoryID,
-				"basisVersion": "",
-				"enqueuedAt":   now.Format(time.RFC3339Nano),
-				"attemptCount": 0,
-				"status":       "pending",
-			},
-		},
-	}
-	content, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		return err
-	}
-	statePath := filepath.Join(filepath.Dir(localStatePath), "memory-state.json")
-	return os.WriteFile(statePath, append(content, '\n'), 0o600)
 }

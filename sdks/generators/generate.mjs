@@ -68,7 +68,7 @@ function main() {
   writeSharedArtifacts(runtime, realm, errorCodes, exportsManifest);
   writeRuntimeRealmCarrier(realm);
   writeLanguageArtifacts(runtime, publicSdkRealm, errorCodes, exportsManifest);
-  writeConformanceFixtures(runtime, publicSdkRealm, errorCodes, exportsManifest);
+  writeConformanceFixtures(runtime, publicSdkRealm);
 
   const action = checkMode ? 'checked' : 'generated';
   process.stdout.write(action + ' sdks core manifests: mode=' + (realmOnly ? 'realm-only' : 'full') + ', runtime=' + runtime.method_ids.length + ' methods, realm=' + realm.operations.length + ' operations, public_realm=' + publicSdkRealm.operations.length + ' operations (' + realm.source_state + ')\n');

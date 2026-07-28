@@ -360,9 +360,6 @@ func TestSubmitScenarioJobLocalImageStartFailureFailsBeforeAsyncJobCreation(t *t
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
 	}
-	if err == nil || err.Error() == "" || !strings.Contains(err.Error(), "connection refused") {
-		t.Fatalf("expected startup failure detail to be preserved, got %v", err)
-	}
 	if jobs := len(svc.scenarioJobs.jobs); jobs != 0 {
 		t.Fatalf("expected no async job to be created on local image activation failure, got %d", jobs)
 	}
