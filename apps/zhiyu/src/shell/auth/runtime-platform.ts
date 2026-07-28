@@ -130,13 +130,21 @@ function unavailableFromError(mode: RuntimeAuthMode, error: unknown): RuntimePla
   const reasonCode = normalizeText(record.reasonCode)
     || normalizeText(record.code)
     || ReasonCode.RUNTIME_UNAVAILABLE;
+  const actionHint = normalizeText(record.actionHint ?? record.action_hint);
+  const hasActionHint = Object.hasOwn(record, 'actionHint') || Object.hasOwn(record, 'action_hint');
   return {
     status: 'action-required',
     mode,
     reasonCode,
-    actionHint: 'start_external_runtime_daemon',
+    actionHint: actionHint || (hasActionHint ? undefined : fallbackActionHint(reasonCode)),
     message: error instanceof Error ? error.message : 'Zhiyu Runtime account setup is required.',
   };
+}
+
+function fallbackActionHint(reasonCode: string): string {
+  return reasonCode === 'electron-standard-capability-not-in-host-set'
+    ? 'use_command_admitted_by_electron_standard_shell_capability_set'
+    : 'start_external_runtime_daemon';
 }
 
 function normalizeClientIdPrefix(value: string): string {
