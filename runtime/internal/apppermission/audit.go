@@ -50,21 +50,39 @@ type OperationUseAudit struct {
 }
 
 func (emitter *AuditEmitter) EmitDecisionTransition(_ context.Context, binding AuditBinding) error {
-	return emitter.emit(permissionDecisionAuditOperation, binding, "", "")
+	return emitter.emit(permissionDecisionAuditOperation, binding, "", "", false)
+}
+
+// EmitPendingRequestTransition records the selector-free prompt-to-pending
+// boundary. A selector digest cannot exist until the owner chooses a resource.
+func (emitter *AuditEmitter) EmitPendingRequestTransition(_ context.Context, binding AuditBinding) error {
+	if binding.SelectorDigest != "" || binding.OldPosture != PosturePrompt || binding.NewPosture != PosturePending || binding.Trigger != "app_request" {
+		return fmt.Errorf("permission pending-request audit binding is invalid")
+	}
+	return emitter.emit(permissionDecisionAuditOperation, binding, "", "", true)
+}
+
+// EmitPendingRequestDenial records an owner denial without inventing a
+// selector for a resource the owner did not choose.
+func (emitter *AuditEmitter) EmitPendingRequestDenial(_ context.Context, binding AuditBinding) error {
+	if binding.SelectorDigest != "" || binding.OldPosture != PosturePending || binding.NewPosture != PostureDenied || binding.Trigger != "owner_deny" {
+		return fmt.Errorf("permission pending-request denial audit binding is invalid")
+	}
+	return emitter.emit(permissionDecisionAuditOperation, binding, "", "", true)
 }
 
 func (emitter *AuditEmitter) EmitOperationUse(_ context.Context, input OperationUseAudit) error {
 	if !exactAuditText(input.ProtectedOperation) || !exactAuditText(input.ProtectedResourceID) {
 		return fmt.Errorf("protected operation and resource identity are required")
 	}
-	return emitter.emit(permissionOperationUseAuditAction, input.Binding, input.ProtectedOperation, input.ProtectedResourceID)
+	return emitter.emit(permissionOperationUseAuditAction, input.Binding, input.ProtectedOperation, input.ProtectedResourceID, false)
 }
 
-func (emitter *AuditEmitter) emit(action string, binding AuditBinding, protectedOperation string, protectedResourceID string) error {
+func (emitter *AuditEmitter) emit(action string, binding AuditBinding, protectedOperation string, protectedResourceID string, selectorPending bool) error {
 	if emitter == nil || emitter.sink == nil {
 		return fmt.Errorf("permission audit sink is unavailable")
 	}
-	if err := validateAuditBinding(binding); err != nil {
+	if err := validateAuditBinding(binding, selectorPending); err != nil {
 		return err
 	}
 	fields := map[string]any{
@@ -72,12 +90,14 @@ func (emitter *AuditEmitter) emit(action string, binding AuditBinding, protected
 		"local_app_principal_id": binding.LocalAppPrincipalID,
 		"display_app_id":         binding.DisplayAppID,
 		"permission_id":          binding.PermissionID,
-		"selector_digest":        binding.SelectorDigest,
 		"old_posture":            string(binding.OldPosture),
 		"new_posture":            string(binding.NewPosture),
 		"trigger":                binding.Trigger,
 		"timestamp":              binding.Timestamp.Format(time.RFC3339Nano),
 		"owner_revision":         strconv.FormatUint(binding.OwnerRevision, 10),
+	}
+	if !selectorPending {
+		fields["selector_digest"] = binding.SelectorDigest
 	}
 	if protectedOperation != "" {
 		fields["protected_operation_id"] = protectedOperation
@@ -102,18 +122,20 @@ func (emitter *AuditEmitter) emit(action string, binding AuditBinding, protected
 	return nil
 }
 
-func validateAuditBinding(binding AuditBinding) error {
+func validateAuditBinding(binding AuditBinding, selectorPending bool) error {
 	for name, value := range map[string]string{
-		"owner subject":   binding.OwnerSubjectID,
-		"app principal":   binding.LocalAppPrincipalID,
-		"display app id":  binding.DisplayAppID,
-		"permission id":   binding.PermissionID,
-		"selector digest": binding.SelectorDigest,
-		"trigger":         binding.Trigger,
+		"owner subject":  binding.OwnerSubjectID,
+		"app principal":  binding.LocalAppPrincipalID,
+		"display app id": binding.DisplayAppID,
+		"permission id":  binding.PermissionID,
+		"trigger":        binding.Trigger,
 	} {
 		if !exactAuditText(value) {
 			return fmt.Errorf("permission audit %s is invalid", name)
 		}
+	}
+	if !selectorPending && !exactAuditText(binding.SelectorDigest) {
+		return fmt.Errorf("permission audit selector digest is invalid")
 	}
 	if !validPublicPosture(binding.OldPosture) || !validPublicPosture(binding.NewPosture) {
 		return fmt.Errorf("permission audit posture is invalid")

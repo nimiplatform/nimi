@@ -129,6 +129,8 @@ type ProvenanceInvalidationFact struct {
 	RecordedAt              time.Time
 }
 
+const MaxPermissionRequestReasonBytes = 240
+
 type PermissionGrantState string
 
 const (
@@ -162,6 +164,60 @@ type PermissionGrant struct {
 type CreatePermissionGrantInput struct {
 	Key       PermissionGrantKey
 	ExpiresAt *time.Time
+}
+
+// PermissionRequest is the selector-free durable app request that precedes an
+// owner decision. Selector authority does not exist until owner approval.
+type PermissionRequest struct {
+	LocalOSUserAnchor   string
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+	DisplayAppID        string
+	Reason              string
+	Revision            uint64
+	RequestedAt         time.Time
+	CreatedAt           time.Time
+}
+
+type CreatePermissionRequestInput struct {
+	LocalOSUserAnchor   string
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+	DisplayAppID        string
+	Reason              string
+}
+
+type RefreshPermissionRequestInput struct {
+	LocalOSUserAnchor   string
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+	DisplayAppID        string
+	Reason              string
+	ExpectedRevision    uint64
+}
+
+type PermissionRequestDecision struct {
+	LocalOSUserAnchor   string
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+	State               PermissionGrantState
+	OwnerSelectorDigest string
+	Revision            uint64
+	DecidedAt           time.Time
+}
+
+type DecidePermissionRequestInput struct {
+	LocalOSUserAnchor   string
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+	ExpectedRevision    uint64
+	State               PermissionGrantState
+	OwnerSelectorDigest string
 }
 
 type TransitionPermissionGrantInput struct {

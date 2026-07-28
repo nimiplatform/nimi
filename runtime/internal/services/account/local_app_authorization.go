@@ -72,8 +72,14 @@ type AccountAuthorityRevoker interface {
 	RevokeAccountAuthority(context.Context, string) error
 }
 
+type LocalAgentOwnerProjection struct {
+	LocalAgentID string
+	DisplayName  string
+}
+
 type LocalAgentOwnershipResolver interface {
 	OwnsActiveLocalAgent(context.Context, string, string) (bool, error)
+	ProjectOwnedLocalAgent(context.Context, string, string) (LocalAgentOwnerProjection, error)
 }
 
 // LocalAppCallerDecision is an immutable per-call origin/account decision.

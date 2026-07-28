@@ -104,6 +104,29 @@ func (store *AgentSelectorHandleStore) Resolve(ctx context.Context, input Resolv
 	return resolved, nil
 }
 
+func (store *AgentSelectorHandleStore) ResolveByDigest(ctx context.Context, accountID, localAppPrincipalID, permissionID, ownerSelectorDigest string) (AgentSelectorHandle, error) {
+	if store == nil || store.kernel == nil {
+		return AgentSelectorHandle{}, fmt.Errorf("%w: Agent selector handle store", ErrInvalidArgument)
+	}
+	for name, value := range map[string]string{"account_id": accountID, "local_app_principal_id": localAppPrincipalID, "permission_id": permissionID, "owner_selector_digest": ownerSelectorDigest} {
+		if err := requireExactText(name, value); err != nil {
+			return AgentSelectorHandle{}, err
+		}
+	}
+	resolved, err := scanAgentSelectorHandle(store.kernel.db.QueryRowContext(ctx, `SELECT handle, local_os_user_anchor,
+		account_id, local_app_principal_id, permission_id, owner_selector_digest, local_agent_id, issued_unix_nano
+		FROM local_app_agent_selector_handles WHERE local_os_user_anchor = ? AND account_id = ?
+		AND local_app_principal_id = ? AND permission_id = ? AND owner_selector_digest = ?
+		ORDER BY issued_unix_nano DESC, handle LIMIT 1`, store.kernel.anchor, accountID, localAppPrincipalID, permissionID, ownerSelectorDigest))
+	if err != nil {
+		return AgentSelectorHandle{}, err
+	}
+	if resolved.OwnerSelectorDigest != agentSelectorDigest(resolved.LocalAgentID) {
+		return AgentSelectorHandle{}, ErrStateConflict
+	}
+	return resolved, nil
+}
+
 func scanAgentSelectorHandle(row interface{ Scan(...any) error }) (AgentSelectorHandle, error) {
 	var handle AgentSelectorHandle
 	var issuedUnixNano int64

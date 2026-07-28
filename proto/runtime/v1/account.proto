@@ -421,12 +421,80 @@ message IssueLocalAppAgentSelectorHandleResponse {
   ReasonCode reason_code = 3;
 }
 
+message LocalAppPermissionPendingRequest {
+  string local_app_principal_id = 1;
+  string display_app_id = 2;
+  string permission_id = 3;
+  string reason = 4;
+  google.protobuf.Timestamp requested_at = 5;
+  uint64 owner_revision = 6;
+}
+
+message ListLocalAppPermissionRequestsRequest {
+  AccountCaller caller = 1;
+}
+
+message ListLocalAppPermissionRequestsResponse {
+  bool accepted = 1;
+  repeated LocalAppPermissionPendingRequest requests = 2;
+  ReasonCode reason_code = 3;
+}
+
+message SubscribeLocalAppPermissionRequestsRequest {
+  AccountCaller caller = 1;
+}
+
+message LocalAppPermissionInboxEvent {
+  uint64 sequence = 1;
+  google.protobuf.Timestamp emitted_at = 2;
+  repeated LocalAppPermissionPendingRequest requests = 3;
+  bool accepted = 4;
+  ReasonCode reason_code = 5;
+}
+
+enum LocalAppPermissionOwnerPosture {
+  LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED = 0;
+  LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING = 1;
+  LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED = 2;
+  LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED = 3;
+  LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED = 4;
+  LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED = 5;
+}
+
+message LocalAppPermissionSelectedAgent {
+  string local_agent_id = 1;
+  string display_name = 2;
+}
+
+message LocalAppPermissionOwnerProjection {
+  string local_app_principal_id = 1;
+  string display_app_id = 2;
+  string permission_id = 3;
+  LocalAppPermissionOwnerPosture posture = 4;
+  repeated LocalAppPermissionSelectedAgent selected_agents = 5;
+  uint64 owner_revision = 6;
+  google.protobuf.Timestamp requested_at = 7;
+  google.protobuf.Timestamp decided_at = 8;
+}
+
+message GetLocalAppPermissionOwnerProjectionRequest {
+  AccountCaller caller = 1;
+  string local_app_principal_id = 2;
+}
+
+message GetLocalAppPermissionOwnerProjectionResponse {
+  bool accepted = 1;
+  repeated LocalAppPermissionOwnerProjection permissions = 2;
+  ReasonCode reason_code = 3;
+}
+
 message DecideLocalAppPermissionRequest {
   AccountCaller caller = 1;
   string local_app_principal_id = 2;
   string permission_id = 3;
   string selector_handle = 4;
   bool approved = 5;
+  uint64 expected_owner_revision = 6;
 }
 
 message DecideLocalAppPermissionResponse {
@@ -464,6 +532,9 @@ service RuntimeAccountService {
   rpc GetLocalAppPermissionStatus(GetLocalAppPermissionStatusRequest) returns (GetLocalAppPermissionStatusResponse);
   rpc RequestLocalAppPermission(RequestLocalAppPermissionRequest) returns (RequestLocalAppPermissionResponse);
   rpc IssueLocalAppAgentSelectorHandle(IssueLocalAppAgentSelectorHandleRequest) returns (IssueLocalAppAgentSelectorHandleResponse);
+  rpc ListLocalAppPermissionRequests(ListLocalAppPermissionRequestsRequest) returns (ListLocalAppPermissionRequestsResponse);
+  rpc SubscribeLocalAppPermissionRequests(SubscribeLocalAppPermissionRequestsRequest) returns (stream LocalAppPermissionInboxEvent);
+  rpc GetLocalAppPermissionOwnerProjection(GetLocalAppPermissionOwnerProjectionRequest) returns (GetLocalAppPermissionOwnerProjectionResponse);
   rpc DecideLocalAppPermission(DecideLocalAppPermissionRequest) returns (DecideLocalAppPermissionResponse);
   rpc RevokeLocalAppPermission(RevokeLocalAppPermissionRequest) returns (RevokeLocalAppPermissionResponse);
 }

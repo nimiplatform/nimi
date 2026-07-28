@@ -14,6 +14,13 @@ func (fixture localAgentOwnershipFixture) OwnsActiveLocalAgent(_ context.Context
 	return accountID == fixture.accountID && localAgentID == fixture.agentID, nil
 }
 
+func (fixture localAgentOwnershipFixture) ProjectOwnedLocalAgent(_ context.Context, accountID string, localAgentID string) (LocalAgentOwnerProjection, error) {
+	if accountID != fixture.accountID || localAgentID != fixture.agentID {
+		return LocalAgentOwnerProjection{}, ErrLocalAppSelectorMismatch
+	}
+	return LocalAgentOwnerProjection{LocalAgentID: localAgentID, DisplayName: "Owned Agent"}, nil
+}
+
 func TestOwnerAgentSelectorHandleRequiresCanonicalAccountOwnership(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	fixture.service.SetLocalAgentOwnershipResolver(localAgentOwnershipFixture{accountID: "acct-1", agentID: "agent-owned"})

@@ -186,6 +186,11 @@ type subscriber struct {
 	ch chan *runtimev1.AccountSessionEvent
 }
 
+type permissionInboxSubscriber struct {
+	id uint64
+	ch chan *runtimev1.LocalAppPermissionInboxEvent
+}
+
 type Service struct {
 	runtimev1.UnimplementedRuntimeAccountServiceServer
 
@@ -212,21 +217,25 @@ type Service struct {
 	nonProductionHarnessMode bool
 	eventRetention           int
 
-	identityMutationMu           sync.Mutex
-	mu                           sync.RWMutex
-	state                        runtimev1.AccountSessionState
-	stateReason                  runtimev1.AccountReasonCode
-	projection                   *runtimev1.AccountProjection
-	material                     AccountMaterial
-	accountGeneration            uint64
-	accountGenerationInvalidated chan struct{}
-	authenticatedRuntimeIdentity bool
-	loginAttempts                map[string]loginAttemptRecord
-	workspaceBindings            map[string]workspaceBindingRecord
-	nextSequence                 uint64
-	events                       []*runtimev1.AccountSessionEvent
-	nextSubscriberID             uint64
-	subscribers                  map[uint64]subscriber
-	refreshTimer                 *time.Timer
-	refreshRetryAttempt          uint8
+	identityMutationMu              sync.Mutex
+	mu                              sync.RWMutex
+	state                           runtimev1.AccountSessionState
+	stateReason                     runtimev1.AccountReasonCode
+	projection                      *runtimev1.AccountProjection
+	material                        AccountMaterial
+	accountGeneration               uint64
+	accountGenerationInvalidated    chan struct{}
+	authenticatedRuntimeIdentity    bool
+	loginAttempts                   map[string]loginAttemptRecord
+	workspaceBindings               map[string]workspaceBindingRecord
+	nextSequence                    uint64
+	events                          []*runtimev1.AccountSessionEvent
+	nextSubscriberID                uint64
+	subscribers                     map[uint64]subscriber
+	permissionInboxMu               sync.Mutex
+	permissionInboxSequence         uint64
+	nextPermissionInboxSubscriberID uint64
+	permissionInboxSubscribers      map[uint64]permissionInboxSubscriber
+	refreshTimer                    *time.Timer
+	refreshRetryAttempt             uint8
 }

@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"errors"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
@@ -21,49 +20,59 @@ func (s *Service) IssueLocalAppAgentSelectorHandle(ctx context.Context, req *run
 }
 
 func (s *Service) DecideLocalAppPermission(ctx context.Context, req *runtimev1.DecideLocalAppPermissionRequest) (*runtimev1.DecideLocalAppPermissionResponse, error) {
-	if req == nil {
+	if req == nil || req.GetExpectedOwnerRevision() == 0 || (req.GetApproved() && req.GetSelectorHandle() == "") || (!req.GetApproved() && req.GetSelectorHandle() != "") {
 		return ownerDecisionResponse(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID), nil
 	}
-	selector, principal, accountID, ok := s.resolveOwnerPermissionSelector(ctx, req.GetCaller(), req.GetLocalAppPrincipalId(), req.GetPermissionId(), req.GetSelectorHandle())
+	if s.permissionAdmitted == nil || !s.permissionAdmitted(req.GetPermissionId()) || !apppermission.IsManifestAllowed(req.GetPermissionId()) {
+		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+	}
+	accountID, ok := s.authorizePermissionOwner(ctx, req.GetCaller())
 	if !ok {
 		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
 	}
-	key := localappkernel.PermissionGrantKey{
-		LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), AccountID: accountID,
-		LocalAppPrincipalID: principal.LocalAppPrincipalID, PermissionID: req.GetPermissionId(), OwnerSelectorDigest: selector.OwnerSelectorDigest,
+	principal, err := s.localAppKernel.Principals().Get(ctx, req.GetLocalAppPrincipalId())
+	if err != nil || principal.State != localappkernel.PrincipalStateActive {
+		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
 	}
-	grant, err := s.localAppKernel.PermissionGrants().Get(ctx, key)
-	if errors.Is(err, localappkernel.ErrNotFound) {
-		pendingBinding := s.permissionAuditBinding(principal, accountID, key, apppermission.PosturePrompt, apppermission.PosturePending, "owner_selection_pending", 1)
-		if err := apppermission.NewAuditEmitter(s.auditStore).EmitDecisionTransition(ctx, pendingBinding); err != nil {
-			return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
-		}
-		grant, err = s.localAppKernel.PermissionGrants().CreatePending(ctx, localappkernel.CreatePermissionGrantInput{Key: key})
-	}
-	if err != nil {
-		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+	pending, err := s.localAppKernel.PermissionGrants().GetPendingRequest(ctx, s.localAppKernel.LocalOSUserAnchor(), accountID, principal.LocalAppPrincipalID, req.GetPermissionId())
+	if err != nil || pending.Revision != req.GetExpectedOwnerRevision() {
+		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
 	}
 	nextState := localappkernel.PermissionGrantStateDenied
 	nextPosture := apppermission.PostureDenied
-	trigger := "owner_deny"
+	selectorDigest := ""
 	if req.GetApproved() {
+		selector, resolvedPrincipal, resolvedAccountID, resolved := s.resolveOwnerPermissionSelector(ctx, req.GetCaller(), req.GetLocalAppPrincipalId(), req.GetPermissionId(), req.GetSelectorHandle())
+		if !resolved || resolvedPrincipal.LocalAppPrincipalID != principal.LocalAppPrincipalID || resolvedAccountID != accountID {
+			return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
+		}
 		nextState = localappkernel.PermissionGrantStateGranted
 		nextPosture = apppermission.PostureGranted
-		trigger = "owner_approve"
+		selectorDigest = selector.OwnerSelectorDigest
 	}
-	oldPosture := permissionGrantPublicPosture(grant.State)
-	binding := s.permissionAuditBinding(principal, accountID, key, oldPosture, nextPosture, trigger, grant.Revision+1)
-	if err := apppermission.NewAuditEmitter(s.auditStore).EmitDecisionTransition(ctx, binding); err != nil {
-		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+	key := localappkernel.PermissionGrantKey{LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), AccountID: accountID,
+		LocalAppPrincipalID: principal.LocalAppPrincipalID, PermissionID: req.GetPermissionId(), OwnerSelectorDigest: selectorDigest}
+	binding := s.permissionAuditBinding(principal, accountID, key, apppermission.PosturePending, nextPosture, "owner_deny", pending.Revision+1)
+	emitter := apppermission.NewAuditEmitter(s.auditStore)
+	if req.GetApproved() {
+		binding.Trigger = "owner_approve"
+		err = emitter.EmitDecisionTransition(ctx, binding)
+	} else {
+		err = emitter.EmitPendingRequestDenial(ctx, binding)
 	}
-	grant, err = s.localAppKernel.PermissionGrants().Transition(ctx, localappkernel.TransitionPermissionGrantInput{
-		Key: key, ExpectedRevision: grant.Revision, State: nextState,
-	})
 	if err != nil {
 		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 	}
+	decision, err := s.localAppKernel.PermissionGrants().DecidePendingRequest(ctx, localappkernel.DecidePermissionRequestInput{
+		LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), AccountID: accountID, LocalAppPrincipalID: principal.LocalAppPrincipalID,
+		PermissionID: req.GetPermissionId(), ExpectedRevision: pending.Revision, State: nextState, OwnerSelectorDigest: selectorDigest,
+	})
+	if err != nil {
+		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
+	}
+	s.publishPermissionInbox(ctx, accountID)
 	return &runtimev1.DecideLocalAppPermissionResponse{
-		Accepted: true, Posture: runtimePermissionPosture(nextPosture), OwnerRevision: grant.Revision, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		Accepted: true, Posture: runtimePermissionPosture(nextPosture), OwnerRevision: decision.Revision, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
 }
 

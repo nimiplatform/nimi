@@ -36,6 +36,7 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		loginAttempts:                make(map[string]loginAttemptRecord),
 		workspaceBindings:            make(map[string]workspaceBindingRecord),
 		subscribers:                  make(map[uint64]subscriber),
+		permissionInboxSubscribers:   make(map[uint64]permissionInboxSubscriber),
 		accountGenerationInvalidated: make(chan struct{}),
 		permissionAdmitted:           apppermission.IsAdmitted,
 	}

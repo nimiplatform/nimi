@@ -206,6 +206,46 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 			sessions_invalidated INTEGER NOT NULL CHECK(sessions_invalidated = 1),
 			recorded_unix_nano INTEGER NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS local_app_permission_requests (
+			local_os_user_anchor TEXT NOT NULL,
+			account_id TEXT NOT NULL,
+			local_app_principal_id TEXT NOT NULL,
+			permission_id TEXT NOT NULL,
+			display_app_id TEXT NOT NULL,
+			reason TEXT NOT NULL,
+			revision INTEGER NOT NULL CHECK(revision > 0),
+			requested_unix_nano INTEGER NOT NULL,
+			created_unix_nano INTEGER NOT NULL,
+			PRIMARY KEY(local_os_user_anchor, account_id, local_app_principal_id, permission_id),
+			FOREIGN KEY(local_os_user_anchor, local_app_principal_id) REFERENCES local_app_principals(local_os_user_anchor, local_app_principal_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS local_app_permission_request_history (
+			local_os_user_anchor TEXT NOT NULL,
+			account_id TEXT NOT NULL,
+			local_app_principal_id TEXT NOT NULL,
+			permission_id TEXT NOT NULL,
+			display_app_id TEXT NOT NULL,
+			reason TEXT NOT NULL,
+			revision INTEGER NOT NULL CHECK(revision > 0),
+			requested_unix_nano INTEGER NOT NULL,
+			PRIMARY KEY(local_os_user_anchor, account_id, local_app_principal_id, permission_id, revision),
+			FOREIGN KEY(local_os_user_anchor, account_id, local_app_principal_id, permission_id)
+				REFERENCES local_app_permission_requests(local_os_user_anchor, account_id, local_app_principal_id, permission_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS local_app_permission_request_decisions (
+			local_os_user_anchor TEXT NOT NULL,
+			account_id TEXT NOT NULL,
+			local_app_principal_id TEXT NOT NULL,
+			permission_id TEXT NOT NULL,
+			state TEXT NOT NULL CHECK(state IN ('granted','denied')),
+			owner_selector_digest TEXT,
+			revision INTEGER NOT NULL CHECK(revision > 1),
+			decided_unix_nano INTEGER NOT NULL,
+			PRIMARY KEY(local_os_user_anchor, account_id, local_app_principal_id, permission_id),
+			FOREIGN KEY(local_os_user_anchor, account_id, local_app_principal_id, permission_id)
+				REFERENCES local_app_permission_requests(local_os_user_anchor, account_id, local_app_principal_id, permission_id),
+			CHECK((state = 'granted' AND owner_selector_digest IS NOT NULL) OR (state = 'denied' AND owner_selector_digest IS NULL))
+		)`,
 		`CREATE TABLE IF NOT EXISTS local_app_permission_grants (
 			local_os_user_anchor TEXT NOT NULL,
 			account_id TEXT NOT NULL,
@@ -269,6 +309,18 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 		`CREATE TRIGGER IF NOT EXISTS local_app_invalidation_fact_immutable_delete
 		BEFORE DELETE ON local_app_provenance_invalidation_facts
 		BEGIN SELECT RAISE(ABORT, 'local app invalidation fact is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS local_app_permission_request_history_immutable_update
+		BEFORE UPDATE ON local_app_permission_request_history
+		BEGIN SELECT RAISE(ABORT, 'local app permission request history is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS local_app_permission_request_history_immutable_delete
+		BEFORE DELETE ON local_app_permission_request_history
+		BEGIN SELECT RAISE(ABORT, 'local app permission request history is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS local_app_permission_request_decision_immutable_update
+		BEFORE UPDATE ON local_app_permission_request_decisions
+		BEGIN SELECT RAISE(ABORT, 'local app permission request decision is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS local_app_permission_request_decision_immutable_delete
+		BEFORE DELETE ON local_app_permission_request_decisions
+		BEGIN SELECT RAISE(ABORT, 'local app permission request decision is immutable'); END`,
 		`CREATE TRIGGER IF NOT EXISTS local_app_permission_grant_history_immutable_update
 		BEFORE UPDATE ON local_app_permission_grant_history
 		BEGIN SELECT RAISE(ABORT, 'local app permission grant history is immutable'); END`,

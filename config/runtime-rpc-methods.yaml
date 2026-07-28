@@ -338,6 +338,15 @@ services:
       - name: IssueLocalAppAgentSelectorHandle
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/IssueLocalAppAgentSelectorHandle
+      - name: ListLocalAppPermissionRequests
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests
+      - name: SubscribeLocalAppPermissionRequests
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests
+      - name: GetLocalAppPermissionOwnerProjection
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection
       - name: DecideLocalAppPermission
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission
