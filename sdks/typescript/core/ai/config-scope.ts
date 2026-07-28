@@ -2,13 +2,15 @@ import type {
   NimiAIConfig,
   NimiAIConfigTargetRef,
   NimiAIProfileValidationResult,
+  NimiAIValidationIssue,
   NimiAIScopeKind,
   NimiAIScopeRef,
   NimiBuiltInChatSurfaceId,
 } from './config-types';
 import {
+  aiValidationIssue,
   aiConfigError,
-  collectForbiddenPayloadErrors,
+  collectForbiddenPayloadIssues,
   isNonEmptyString,
   isRecord,
   normalizeText,
@@ -133,60 +135,76 @@ export function createEmptyNimiAIConfig(scopeRef: NimiAIScopeRef): NimiAIConfig 
   };
 }
 
-export function validateNimiAIConfigTargetRef(value: unknown, path: string): readonly string[] {
-  const errors = collectForbiddenPayloadErrors(value, path);
+export function validateNimiAIConfigTargetRef(value: unknown, path: string): readonly NimiAIValidationIssue[] {
+  const issues = collectForbiddenPayloadIssues(value, path);
   if (!isRecord(value)) {
-    return [`${path} must be a compact AIConfig target ref`];
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', path));
+    return issues;
   }
   if (value.kind === 'profile-slice') {
-    if (!isNonEmptyString(value.sourceProfileId)) errors.push(`${path}.sourceProfileId is required`);
-    if (!isNonEmptyString(value.sliceId)) errors.push(`${path}.sliceId is required`);
+    if (!isNonEmptyString(value.sourceProfileId)) {
+      issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.sourceProfileId`));
+    }
+    if (!isNonEmptyString(value.sliceId)) {
+      issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.sliceId`));
+    }
   } else if (value.kind === 'local-runtime') {
-    if (value.version !== 'v2') errors.push(`${path}.version must be v2`);
+    if (value.version !== 'v2') {
+      issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.version`));
+    }
     const hasProfileBinding = isNonEmptyString(value.profileBindingId);
     const hasReadinessRef = isNonEmptyString(value.readinessRef);
     if (!hasProfileBinding && !hasReadinessRef) {
-      errors.push(`${path} requires profileBindingId or readinessRef`);
+      issues.push(aiValidationIssue('AI_TARGET_REF_BINDING_REQUIRED', path));
     }
     if (hasProfileBinding && hasReadinessRef) {
-      errors.push(`${path} must not contain both profileBindingId and readinessRef`);
+      issues.push(aiValidationIssue('AI_TARGET_REF_BINDING_CONFLICT', path));
     }
     if (isNonEmptyString(value.targetId)) {
-      errors.push(`${path}.targetId is retired; use profileBindingId or readinessRef`);
+      issues.push(aiValidationIssue('AI_FIELD_RETIRED', `${path}.targetId`));
     }
     if (isNonEmptyString(value.profileId)) {
-      errors.push(`${path}.profileId is retired; use profileBindingId or readinessRef`);
+      issues.push(aiValidationIssue('AI_FIELD_RETIRED', `${path}.profileId`));
     }
   } else if (value.kind === 'cloud-connector') {
-    if (!isNonEmptyString(value.connectorId)) errors.push(`${path}.connectorId is required`);
-    if (!isNonEmptyString(value.remoteModelCatalogId)) errors.push(`${path}.remoteModelCatalogId is required`);
-    if (!isNonEmptyString(value.providerModelId)) errors.push(`${path}.providerModelId is required`);
+    if (!isNonEmptyString(value.connectorId)) {
+      issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.connectorId`));
+    }
+    if (!isNonEmptyString(value.remoteModelCatalogId)) {
+      issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.remoteModelCatalogId`));
+    }
+    if (!isNonEmptyString(value.providerModelId)) {
+      issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.providerModelId`));
+    }
   } else {
-    errors.push(`${path}.kind is not an admitted AIConfig compact ref family`);
+    issues.push(aiValidationIssue('AI_TARGET_REF_KIND_UNSUPPORTED', `${path}.kind`));
   }
-  return errors;
+  return issues;
 }
 
 export function validateNimiAIConfig(config: unknown): NimiAIProfileValidationResult {
-  const errors: string[] = [];
+  const issues: NimiAIValidationIssue[] = [];
   if (!isRecord(config)) {
-    return { valid: false, errors: ['config must be a non-null object'] };
+    return {
+      valid: false,
+      issues: [aiValidationIssue('AI_TYPE_INVALID', 'config')],
+    };
   }
   try {
     assertNimiAIScopeRef(config.scopeRef as NimiAIScopeRef);
   } catch {
-    errors.push('scopeRef must be an explicit NimiAIScopeRef');
+    issues.push(aiValidationIssue('AI_SCOPE_REF_INVALID', 'config.scopeRef'));
   }
-  errors.push(...collectForbiddenPayloadErrors(config, 'config'));
+  issues.push(...collectForbiddenPayloadIssues(config, 'config'));
   const targetRefs = isRecord(config.capabilities)
     ? config.capabilities.targetRefs
     : undefined;
   if (!isRecord(targetRefs)) {
-    errors.push('capabilities.targetRefs must be an object');
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'config.capabilities.targetRefs'));
   } else {
     for (const [capability, targetRef] of Object.entries(targetRefs)) {
-      errors.push(...validateNimiAIConfigTargetRef(targetRef, `capabilities.targetRefs.${capability}`));
+      issues.push(...validateNimiAIConfigTargetRef(targetRef, `config.capabilities.targetRefs.${capability}`));
     }
   }
-  return { valid: errors.length === 0, errors };
+  return { valid: issues.length === 0, issues };
 }

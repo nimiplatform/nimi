@@ -781,15 +781,11 @@ service RuntimeAgentService {
   rpc ListPendingHooks(ListPendingHooksRequest) returns (ListPendingHooksResponse);
   rpc CancelHook(CancelHookRequest) returns (CancelHookResponse);
   rpc ListDelegatedProviderProfiles(ListDelegatedProviderProfilesRequest) returns (ListDelegatedProviderProfilesResponse);
-  rpc UpsertDelegatedProviderProfile(UpsertDelegatedProviderProfileRequest) returns (UpsertDelegatedProviderProfileResponse);
-  rpc SetDelegatedProviderState(SetDelegatedProviderStateRequest) returns (SetDelegatedProviderStateResponse);
   rpc ListDelegatedApprovalRequests(ListDelegatedApprovalRequestsRequest) returns (ListDelegatedApprovalRequestsResponse);
   rpc SubmitDelegatedApprovalDecision(SubmitDelegatedApprovalDecisionRequest) returns (SubmitDelegatedApprovalDecisionResponse);
   rpc ListDelegatedDiagnostics(ListDelegatedDiagnosticsRequest) returns (ListDelegatedDiagnosticsResponse);
   rpc GetDelegatedReplayTrace(GetDelegatedReplayTraceRequest) returns (GetDelegatedReplayTraceResponse);
   rpc GetDelegatedControlSurfaceSnapshot(GetDelegatedControlSurfaceSnapshotRequest) returns (GetDelegatedControlSurfaceSnapshotResponse);
-  rpc ExecuteDelegatedCapability(ExecuteDelegatedCapabilityRequest) returns (ExecuteDelegatedCapabilityResponse);
-  rpc ResumeDelegatedCapability(ResumeDelegatedCapabilityRequest) returns (ResumeDelegatedCapabilityResponse);
   rpc QueryAgentMemory(QueryAgentMemoryRequest) returns (QueryAgentMemoryResponse);
   rpc WriteAgentMemory(WriteAgentMemoryRequest) returns (WriteAgentMemoryResponse);
   rpc GetAgentCanonicalMemoryBankStatus(GetAgentCanonicalMemoryBankStatusRequest) returns (GetAgentCanonicalMemoryBankStatusResponse);

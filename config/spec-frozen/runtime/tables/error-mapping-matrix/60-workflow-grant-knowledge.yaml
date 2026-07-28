@@ -2,10 +2,6 @@ table_family: owner_matrix
 owner: runtime
 matrix_id: runtime_error_mapping_matrix
 rows:
-  - WF_DAG_INVALID
-  - WF_NODE_CONFIG_MISMATCH
-  - WF_TIMEOUT
-  - WF_TASK_NOT_FOUND
   - PAGE_TOKEN_INVALID
   - KNOWLEDGE_BANK_ALREADY_EXISTS
   - KNOWLEDGE_BANK_NOT_FOUND
@@ -24,26 +20,6 @@ rows:
   - KNOWLEDGE_GRAPH_DEPTH_INVALID
   - KNOWLEDGE_INGEST_TASK_NOT_FOUND
 mappings:
-  - reason_code: WF_DAG_INVALID
-    grpc_code: INVALID_ARGUMENT
-    surface: workflow_submit
-    exit_shape: grpc_status
-    source_rule: K-WF-010
-  - reason_code: WF_NODE_CONFIG_MISMATCH
-    grpc_code: INVALID_ARGUMENT
-    surface: workflow_submit
-    exit_shape: grpc_status
-    source_rule: K-WF-002
-  - reason_code: WF_TIMEOUT
-    grpc_code: DEADLINE_EXCEEDED
-    surface: workflow_execute
-    exit_shape: grpc_status
-    source_rule: K-WF-003
-  - reason_code: WF_TASK_NOT_FOUND
-    grpc_code: NOT_FOUND
-    surface: workflow_query
-    exit_shape: grpc_status
-    source_rule: K-WF-003
   - reason_code: PAGE_TOKEN_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: list_rpc_page_token_validation

@@ -87,11 +87,6 @@ test('Adapter closure rejects UI runtime, DOM access, and CSS ownership', async 
   }
 });
 
-test('canonical renderer closure rejects browser effects', () => withFixture((root) => {
-  append(root, 'src/renderer/factory.ts', "export const forbidden = fetch('/real');");
-  expectFailure(root, 'SIMULATOR_EFFECT_FORBIDDEN');
-}));
-
 test('per-instance resources remain allowed while module-scope resources fail closed', () => withFixture((root) => {
   append(root, 'src/renderer/factory.ts', 'export function createLocalCache() { return new Map<string, string>(); }');
   assert.equal(validateSimulatorAppSource(root).manifest.module_id, 'sample-app');

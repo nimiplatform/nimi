@@ -156,5 +156,3 @@ func CheckModelHealthGRPC(grpcAddr string, timeout time.Duration, req *runtimev1
 	}
 	return resp, nil
 }
-
-// SubmitWorkflowGRPC calls RuntimeWorkflowService.SubmitWorkflow over gRPC.

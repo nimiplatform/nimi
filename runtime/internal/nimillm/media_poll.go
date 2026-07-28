@@ -156,9 +156,6 @@ func providerTaskFailedError(statusText string, payload map[string]any) error {
 		metadata["provider_task_status"] = status
 	}
 	providerMessage := normalizeProviderErrorMessage(ProviderTaskFailureMessage(payload))
-	if providerMessage != "" {
-		metadata["provider_message"] = providerMessage
-	}
 	if IsContentFilterMessage(strings.ToLower(providerMessage)) {
 		return grpcerr.WithReasonCodeOptions(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED, grpcerr.ReasonOptions{
 			ActionHint: "revise_prompt_or_policy_sensitive_inputs",

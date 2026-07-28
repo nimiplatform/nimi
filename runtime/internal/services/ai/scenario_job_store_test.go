@@ -459,15 +459,16 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 			Payload:   payload,
 		}},
 	})
-	if err == nil {
-		if resp == nil || resp.GetJob() == nil || strings.TrimSpace(resp.GetJob().GetJobId()) == "" {
-			t.Fatalf("expected submit response with job, got %#v", resp)
-		}
-		// SubmitScenarioJob deliberately returns before the async execution path
-		// completes. Wait for that path before inspecting the shared resolver so
-		// this test cannot leak a writer into the following test.
-		waitScenarioJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if err != nil {
+		t.Fatalf("submit scenario job: %v", err)
 	}
+	if resp == nil || resp.GetJob() == nil || strings.TrimSpace(resp.GetJob().GetJobId()) == "" {
+		t.Fatalf("expected submit response with job, got %#v", resp)
+	}
+	// SubmitScenarioJob deliberately returns before the async execution path
+	// completes. Wait for that path before inspecting the shared resolver so
+	// this test cannot leak a writer into the following test.
+	waitScenarioJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
 	resolver, _ := svc.localImageProfile.(*fakeLocalImageProfileResolver)
 	if resolver == nil || resolver.resolveProfileCalls < 1 {
 		t.Fatalf("expected managed image profile to be resolved during submit, got resolver=%#v", resolver)
@@ -477,9 +478,6 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 	}
 	if svc.localModel.(*fakeLocalModelLister).startCalls != 1 {
 		t.Fatalf("expected submit path to start installed image asset once, got %d", svc.localModel.(*fakeLocalModelLister).startCalls)
-	}
-	if err != nil && strings.Contains(err.Error(), "supply_profile_entries") {
-		t.Fatalf("submit path should not drop image profile extensions, got %v", err)
 	}
 }
 
@@ -604,12 +602,15 @@ func TestSubmitScenarioJobFailurePersistsStructuredReasonMetadata(t *testing.T) 
 	if job.GetReasonMetadata() == nil {
 		t.Fatal("expected structured reason metadata on failed scenario job")
 	}
-	providerMessage, _ := job.GetReasonMetadata().AsMap()["provider_message"].(string)
-	if providerMessage == "" {
-		t.Fatalf("expected provider_message in reason metadata, got %v", job.GetReasonMetadata().AsMap())
+	metadata := job.GetReasonMetadata().AsMap()
+	if got := metadata["action_hint"]; got != "check_provider_endpoint_or_local_runtime_health" {
+		t.Fatalf("unexpected action_hint: %#v", got)
 	}
-	if !strings.Contains(providerMessage, "EOF") && !strings.Contains(providerMessage, "connection") {
-		t.Fatalf("expected transport failure detail in provider_message, got %q", providerMessage)
+	if _, exists := metadata["retryable"]; exists {
+		t.Fatalf("unexpected retryable metadata: %#v", metadata)
+	}
+	if _, exists := metadata["provider_message"]; exists {
+		t.Fatalf("provider body must not be projected into scenario job metadata: %#v", metadata)
 	}
 }
 

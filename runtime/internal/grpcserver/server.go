@@ -37,7 +37,6 @@ import (
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	runtimecontrolservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimecontrol"
-	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	"google.golang.org/grpc"
 	grpcHealth "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -543,8 +542,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
 
-	runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger)) // Phase 2 Draft
-	modelSvc := modelservice.New(logger, modelRegistry)                            // Phase 2 Draft
+	modelSvc := modelservice.New(logger, modelRegistry) // Phase 2 Draft
 	modelSvc.SetPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc) // Phase 2 Draft
 	localSvc, err := localservice.NewWithProductControlDataRoot(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity, cfg.LocalModelsPath, cfg.DataRootRef)

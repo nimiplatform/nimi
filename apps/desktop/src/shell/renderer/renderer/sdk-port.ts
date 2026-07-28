@@ -2,7 +2,7 @@ import type {
   NimiDesktopAccountProductRuntimeClient,
   NimiDesktopMachineProductRuntimeClient,
   NimiDesktopRuntimeAgentPurposeClient,
-  NimiHostRuntimeAgentDelegatedCapabilityClient,
+  NimiHostRuntimeAgentDelegatedControlClient,
   NimiHostRuntimeAgentPresentationProfileClient,
   NimiRuntimeAccountCaller,
   NimiRuntimeAgentScopeRunner,
@@ -59,7 +59,7 @@ export interface DesktopRendererSdkPort {
   hostRuntimeAgent():
     DesktopHostRuntimeAgentClient
     & NimiHostRuntimeAgentPresentationProfileClient
-    & NimiHostRuntimeAgentDelegatedCapabilityClient;
+    & NimiHostRuntimeAgentDelegatedControlClient;
   accountRuntime(): DesktopAccountRuntime;
   runtimeRouteAccess(): DesktopRuntimeRouteAccess;
   loadRouteOptions(

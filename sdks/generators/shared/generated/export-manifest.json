@@ -36,7 +36,6 @@
     "proto/runtime/v1/runtime_service_control.proto",
     "proto/runtime/v1/runtime_target_identity.proto",
     "proto/runtime/v1/voice.proto",
-    "proto/runtime/v1/workflow.proto",
     "config/realm-openapi-source.json",
     "config/realm-openapi/api-nimi.yaml",
     "config/sdks-error-codes.yaml"

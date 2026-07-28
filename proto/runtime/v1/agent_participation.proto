@@ -39,10 +39,11 @@ enum ParticipationTranscriptOwner {
 // K-AGCORE-065 identity_source axis. SANDBOX_PROJECTION and NPC_WORLD_ACTOR
 // are not aliases (K-AGCORE-065, sandbox_projection_npc_alias: forbidden).
 enum ParticipationIdentitySource {
+  reserved 3;
+  reserved "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY";
   PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED = 0;
   PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT = 1;
   PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT = 2;
-  PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY = 3;
   PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION = 4;
   PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR = 5;
 }
@@ -154,11 +155,12 @@ enum ParticipationVerdictDecision {
 }
 
 // External payload protocol family for external_agent_entry context.
-// Closed to the two admitted identity-source protocol families
-// (K-AGCORE-065, K-AGCORE-079); K-DELEG remains reference-only boundary.
+// Reserved for a future owner-admitted external-entry protocol family
+// (K-AGCORE-065, K-AGCORE-079); K-DELEG remains a reference-only boundary.
 enum ParticipationExternalProtocolKind {
+  reserved 1;
+  reserved "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP";
   PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED = 0;
-  PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP = 1;
   PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A = 2;
 }
 

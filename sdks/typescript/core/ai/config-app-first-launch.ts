@@ -6,7 +6,7 @@ import type {
   NimiAIProfile,
   NimiAIScopeRef,
 } from './config-types';
-import { aiConfigError } from './config-internal';
+import { aiConfigError, formatNimiAIValidationIssues } from './config-internal';
 import {
   areNimiAIScopeRefsEqual,
   assertNimiAppAIScopeRef,
@@ -156,7 +156,7 @@ function assertValidFirstLaunchProfile(profile: NimiAIProfile, label: string): v
   if (!validation.valid) {
     throw aiConfigError(
       'SDK_AI_CONFIG_INIT_PROFILE_UNRESOLVED',
-      `${label} is schema-invalid: ${validation.errors.join('; ')}`,
+      `${label} is schema-invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
       'resolve_a_schema_valid_ai_profile',
     );
   }

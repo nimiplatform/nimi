@@ -58,8 +58,6 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob":                        true,
 	"/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs":                      true,
 	"/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents":                true,
-	"/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow":                        true,
-	"/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents":            true,
 	"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors":                    true,
 	"/nimi.runtime.v1.RuntimeConnectorService/GetConnector":                      true,
 	"/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels":               true,

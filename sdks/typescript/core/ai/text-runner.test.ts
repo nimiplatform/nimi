@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { textPart } from '../contracts';
 import { createNimiMockModel, userTextMessage } from '../testing';
+import { isNimiError } from '../../types';
 import {
   runNimiTextGenerate,
   runNimiTextTurn,
@@ -110,6 +111,12 @@ test('Nimi text response reports stream failures without pseudo-success', async 
         messages: [userTextMessage('stream')],
       },
     }),
-    /runtime failed/,
+    (error: unknown) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal(error.code, 'RUNTIME_FAILED');
+      assert.equal(error.reasonCode, 'RUNTIME_FAILED');
+      assert.equal(error.actionHint, 'check_ai_text_error');
+      return true;
+    },
   );
 });

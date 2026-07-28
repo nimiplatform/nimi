@@ -198,5 +198,5 @@ func (s *Service) loadDelegatedControlStateFromDB() error {
 	s.delegatedProviderProfiles = profiles
 	s.delegatedApprovalRequests = approvals
 	s.delegatedPausedRequests = pausedRequests
-	return s.rebuildDelegatedGatewayLocked()
+	return nil
 }

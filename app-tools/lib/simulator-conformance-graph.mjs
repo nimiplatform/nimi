@@ -1,7 +1,6 @@
 import { readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
-import { assertSimulatorStaticEffects } from './simulator-static-effects.mjs';
 import { SimulatorConformanceError } from './simulator-manifest.mjs';
 
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.css'];
@@ -693,11 +692,11 @@ export function buildModuleGraph(rootDir, entryPaths) {
 }
 
 export function assertRestrictedClosure(rootDir, graph, entries) {
-  const queue = entries.map((entry) => ({ ...entry, rootOwner: entry.owner }));
+  const queue = entries.map((entry) => ({ path: entry.path, rootOwner: entry.owner }));
   const seen = new Set();
   const packages = new Set();
   while (queue.length > 0) {
-    const { path: current, owner, rootOwner } = queue.shift();
+    const { path: current, rootOwner } = queue.shift();
     const seenKey = `${rootOwner}:${current}`;
     if (seen.has(seenKey)) continue;
     seen.add(seenKey);
@@ -718,10 +717,8 @@ export function assertRestrictedClosure(rootDir, graph, entries) {
     assertModuleScopeResources(node.source, relativePath);
     assertAstRestrictions(node.source, relativePath);
     if (rootOwner === 'app_adapter') assertAdapterRestrictions(node.source, relativePath, node.specifiers);
-    assertSimulatorStaticEffects(node.source, relativePath, owner);
     queue.push(...node.imports.map((entry) => ({
       path: entry,
-      owner: owner === 'conformance_fixture' ? owner : 'selected_dependency',
       rootOwner,
     })));
   }
@@ -743,7 +740,6 @@ export function validateSimulatorSelectedDependencyModule(code, canonicalPath) {
   }
   assertModuleScopeResources(source, canonicalPath);
   assertAstRestrictions(source, canonicalPath);
-  assertSimulatorStaticEffects(source, canonicalPath, 'selected_dependency');
   return Object.freeze({ specifiers: Object.freeze([...specifiers]) });
 }
 

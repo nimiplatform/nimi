@@ -12,7 +12,7 @@ values:
   - nimicoding.runtime-rpc-auth-posture.identity-access.v1
   - nimicoding.runtime-rpc-auth-posture.agent-ai-cognition.v1
   - nimicoding.runtime-rpc-auth-posture.local-connector-model.v1
-  - nimicoding.runtime-rpc-auth-posture.audit-artifact-workflow.v1
+  - nimicoding.runtime-rpc-auth-posture.audit-artifact.v1
 posture_enum:
   - value: anonymous_read
     meaning: Handler does not require authenticated identity for any branch. No subject_user_id lookup.
@@ -92,7 +92,7 @@ method_shards:
       - RuntimeDevelopmentService
   - path: ./runtime-rpc-auth-posture/agent-ai-cognition.yaml
     id: nimicoding.runtime-rpc-auth-posture.agent-ai-cognition.v1
-    method_count: 107
+    method_count: 103
     services:
       - RuntimeAgentService
       - RuntimeAiService
@@ -105,10 +105,9 @@ method_shards:
       - RuntimeLocalService
       - RuntimeConnectorService
       - RuntimeModelService
-  - path: ./runtime-rpc-auth-posture/audit-artifact-workflow.yaml
-    id: nimicoding.runtime-rpc-auth-posture.audit-artifact-workflow.v1
-    method_count: 14
+  - path: ./runtime-rpc-auth-posture/audit-artifact.yaml
+    id: nimicoding.runtime-rpc-auth-posture.audit-artifact.v1
+    method_count: 10
     services:
       - RuntimeAuditService
       - RuntimeArtifactService
-      - RuntimeWorkflowService

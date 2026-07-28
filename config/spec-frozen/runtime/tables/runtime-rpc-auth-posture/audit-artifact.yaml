@@ -1,15 +1,14 @@
-id: nimicoding.runtime-rpc-auth-posture.audit-artifact-workflow.v1
+id: nimicoding.runtime-rpc-auth-posture.audit-artifact.v1
 kind: runtime-rpc-auth-posture-shard
 parent: nimicoding.runtime-rpc-auth-posture.v1
 version: 1
 generated: false
 table_family: protocol_surface
 owner: runtime
-protocol_id: runtime_audit_artifact_workflow
+protocol_id: runtime_audit_artifact
 surfaces:
   - RuntimeAuditService
   - RuntimeArtifactService
-  - RuntimeWorkflowService
   - methods_1
   - methods_2
   - methods_3
@@ -20,15 +19,10 @@ surfaces:
   - methods_8
   - methods_9
   - methods_10
-  - methods_11
-  - methods_12
-  - methods_13
-  - methods_14
-description: Audit, artifact, and workflow posture entries.
+description: Audit and artifact posture entries.
 services:
   - RuntimeAuditService
   - RuntimeArtifactService
-  - RuntimeWorkflowService
 methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
     posture: protected_or_scoped_binding_read
@@ -94,33 +88,3 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow
-    posture: anonymous_read
-    rationale: subject_user_id taken from request body; no JWT validation in handler
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow
-    posture: mixed
-    rationale: authorizeWorkflowTask enforces subject match only when JWT present per K-AUTH-002
-      divergence pattern
-    kernel_refs:
-      - K-AUTH-001
-      - K-AUTH-002
-      - K-AUTH-006
-  - method_id: /nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow
-    posture: mixed
-    rationale: authorizeWorkflowTask enforces subject match only when JWT present per K-AUTH-002
-      divergence pattern
-    kernel_refs:
-      - K-AUTH-001
-      - K-AUTH-002
-      - K-AUTH-006
-  - method_id: /nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents
-    posture: mixed
-    rationale: authorizeWorkflowTask enforces subject match only when JWT present per K-AUTH-002
-      divergence pattern
-    kernel_refs:
-      - K-AUTH-001
-      - K-AUTH-002
-      - K-AUTH-006

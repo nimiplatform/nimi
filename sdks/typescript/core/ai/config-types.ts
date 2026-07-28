@@ -149,9 +149,27 @@ export interface NimiAIConfigSetupProjection {
   readonly actionRefs: readonly string[];
 }
 
+export type NimiAIValidationIssueCode =
+  | 'AI_FIELD_FORBIDDEN'
+  | 'AI_FIELD_REQUIRED'
+  | 'AI_FIELD_RETIRED'
+  | 'AI_PORTABLE_REF_REQUIRED'
+  | 'AI_SCOPE_REF_INVALID'
+  | 'AI_TARGET_REF_BINDING_CONFLICT'
+  | 'AI_TARGET_REF_BINDING_REQUIRED'
+  | 'AI_TARGET_REF_KIND_UNSUPPORTED'
+  | 'AI_TYPE_INVALID'
+  | 'AI_VALUE_INVALID';
+
+export interface NimiAIValidationIssue {
+  readonly code: NimiAIValidationIssueCode;
+  readonly path: string;
+  readonly metadata?: NimiJsonObject;
+}
+
 export interface NimiAIProfileValidationResult {
   readonly valid: boolean;
-  readonly errors: readonly string[];
+  readonly issues: readonly NimiAIValidationIssue[];
 }
 
 export interface NimiAIConfigFieldDiff {

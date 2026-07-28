@@ -138,6 +138,9 @@ jobs:
           }
           NODE
 
+      - name: Build app-tools
+        run: pnpm --filter @nimiplatform/app-tools build
+
       - name: Nimi-app CLI smoke and scaffold dependency alignment
         run: |
           set -euo pipefail
@@ -181,7 +184,7 @@ jobs:
           NODE
 
       - name: Test app-tools
-        run: node --test app-tools/test/*.test.mjs
+        run: pnpm --filter @nimiplatform/app-tools test && pnpm --filter @nimiplatform/app-tools test:full
 
       - name: Check duplicate app-tools npm version
         run: |

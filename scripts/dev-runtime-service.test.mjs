@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -94,17 +93,4 @@ test('post-update status fails closed on signature, build record, or candidate m
       (error) => error.reasonCode === 'dev-runtime-service-update-unhealthy',
     );
   }
-});
-
-test('UAC launcher invokes the current installer without environment overrides', () => {
-  const source = readFileSync(new URL('./dev-runtime-service.mjs', import.meta.url), 'utf8');
-  const outerLauncher = source.slice(
-    source.indexOf('const outerCommand'),
-    source.indexOf('try {', source.indexOf('const outerCommand')),
-  );
-  assert.doesNotMatch(outerLauncher, /RedirectStandard(?:Output|Error)/u);
-  assert.doesNotMatch(source, /--development-data-root|['"]-DevelopmentDataRoot['"]/u);
-  assert.match(source, /\$output = & '\$\{powerShellLiteral\(powershellPath\)\}' .* -Mode Install -Json 2> /u);
-  assert.match(source, /Start-Process -FilePath '\$\{powerShellLiteral\(powershellPath\)\}' -Verb RunAs/u);
-  assert.match(source, /WriteAllText.*\$raw.*UTF8Encoding/u);
 });

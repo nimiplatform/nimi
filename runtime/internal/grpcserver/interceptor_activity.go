@@ -100,8 +100,7 @@ func classifyRPCMethod(fullMethod string, isStream bool) (string, rpcShutdownDis
 		return "mode_d_subscription", rpcShutdownCancel
 	case "/nimi.runtime.v1.RuntimeAiService/StreamScenario":
 		return "mode_a_execution_stream", rpcShutdownCancel
-	case "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
-		"/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents":
+	case "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents":
 		return "mode_b_state_stream", rpcShutdownCancel
 	case "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents":
 		return "realtime_read_stream", rpcShutdownCancel

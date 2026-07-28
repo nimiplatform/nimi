@@ -89,7 +89,7 @@ function runGoBehavior() {
       'test',
       './coregenerated',
       '-run',
-      '^TestTypedRuntimeClientsPreserveRequestsAndTransportBehavior$',
+      '^(TestGeneratedRuntimeOptionalScalarAndEnumPresence|TestTypedRuntimeClientsPreserveRequestsAndTransportBehavior|TestSourceMaterializationPacketV3SemanticPayloadDiscriminatorFailsClosed)$',
     ], {
       cwd: dir,
       stdio: 'inherit',

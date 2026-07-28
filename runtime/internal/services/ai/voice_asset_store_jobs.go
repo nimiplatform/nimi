@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -212,6 +213,7 @@ func (s *voiceAssetStore) completeJob(jobID string, providerJobID string, provid
 		record.job.ProviderJobId = strings.TrimSpace(providerJobID)
 		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 		record.job.ReasonDetail = ""
+		record.job.ReasonMetadata = nil
 		record.job.Usage = usage
 		asset := s.assets[record.assetID]
 		if asset != nil {
@@ -225,10 +227,11 @@ func (s *voiceAssetStore) completeJob(jobID string, providerJobID string, provid
 	})
 }
 
-func (s *voiceAssetStore) failJob(jobID string, reasonCode runtimev1.ReasonCode, detail string) bool {
+func (s *voiceAssetStore) failJob(jobID string, reasonCode runtimev1.ReasonCode, detail string, reasonMetadata *structpb.Struct) bool {
 	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, func(record *voiceScenarioJobRecord) {
 		record.job.ReasonCode = reasonCode
 		record.job.ReasonDetail = strings.TrimSpace(detail)
+		record.job.ReasonMetadata = reasonMetadata
 		asset := s.assets[record.assetID]
 		if asset != nil {
 			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
@@ -237,10 +240,11 @@ func (s *voiceAssetStore) failJob(jobID string, reasonCode runtimev1.ReasonCode,
 	})
 }
 
-func (s *voiceAssetStore) timeoutJob(jobID string, reasonCode runtimev1.ReasonCode, detail string) bool {
+func (s *voiceAssetStore) timeoutJob(jobID string, reasonCode runtimev1.ReasonCode, detail string, reasonMetadata *structpb.Struct) bool {
 	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT, func(record *voiceScenarioJobRecord) {
 		record.job.ReasonCode = reasonCode
 		record.job.ReasonDetail = strings.TrimSpace(detail)
+		record.job.ReasonMetadata = reasonMetadata
 		asset := s.assets[record.assetID]
 		if asset != nil {
 			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED

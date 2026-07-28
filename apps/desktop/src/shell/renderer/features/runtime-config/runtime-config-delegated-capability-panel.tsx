@@ -2,8 +2,6 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DelegatedApprovalRequestState,
-  DelegatedProviderState,
-  EffectClass,
   type DelegatedControlSurfaceSnapshot,
   type DelegatedDiagnostic,
   type DelegatedReplayTrace,
@@ -12,37 +10,12 @@ import { ScrollArea, Surface, cn } from '@nimiplatform/kit/ui';
 import { Button, Input } from './runtime-config-primitives';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
-  createDesktopDelegatedCapabilityService,
-  type DelegatedProviderProfileDraft,
+  createDesktopDelegatedControlService,
 } from './runtime-config-delegated-capability-service';
 
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
 const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
 const TOKEN_PANEL_CARD = 'rounded-2xl';
-
-const DEFAULT_PROVIDER_DRAFT: DelegatedProviderProfileDraft = {
-  localAgentRef: '',
-  ownerUserId: '',
-  runtimeSourceRef: '',
-  providerProfileId: '',
-  displayName: '',
-  transportRef: '',
-  credentialRef: '',
-  command: '',
-  args: '',
-  toolName: '',
-  inputSchemaDigest: '',
-  // K-DELEG-006: effect_class is required on upsert and UNSPECIFIED fails
-  // closed at Runtime, so the empty form draft must be explicitly classified
-  // by the operator before submission.
-  effectClass: EffectClass.UNSPECIFIED,
-};
-
-function stateLabel(value: unknown): string {
-  if (typeof value !== 'number') return 'unknown';
-  const label = (DelegatedProviderState as unknown as { [key: number]: string })[value];
-  return String(label || 'unknown').replace(/^DELEGATED_PROVIDER_STATE_/, '').toLowerCase();
-}
 
 function approvalStateLabel(value: unknown): string {
   if (typeof value !== 'number') return 'unknown';
@@ -72,13 +45,12 @@ export function DelegatedCapabilityControlPanel() {
   const [runtimeSourceRef, setRuntimeSourceRef] = useState('');
   const [subjectUserId, setSubjectUserId] = useState('');
   const [conversationAnchorId, setConversationAnchorId] = useState('');
-  const [providerDraft, setProviderDraft] = useState<DelegatedProviderProfileDraft>(DEFAULT_PROVIDER_DRAFT);
   const [snapshot, setSnapshot] = useState<DelegatedControlSurfaceSnapshot | undefined>();
   const [replayTrace, setReplayTrace] = useState<DelegatedReplayTrace | undefined>();
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const service = useMemo(() => createDesktopDelegatedCapabilityService({
+  const service = useMemo(() => createDesktopDelegatedControlService({
     getRuntime: bindings.sdk.hostRuntimeAgent,
     getSubjectUserId: async () => subjectUserId,
     withScopes: bindings.sdk.withRuntimeProtectedScopes,
@@ -95,14 +67,6 @@ export function DelegatedCapabilityControlPanel() {
       && identityInput.runtimeSourceRef
       && subjectUserId.trim(),
   );
-  const canSaveProvider = Boolean(
-    canCall
-      && providerDraft.providerProfileId.trim()
-      && providerDraft.displayName.trim()
-      && providerDraft.transportRef.trim()
-      && providerDraft.command.trim()
-      && providerDraft.toolName.trim(),
-  );
   const pendingApprovals = (snapshot?.approvalRequests || []).filter((approval) => isPendingApproval(approval.state));
 
   const refreshSnapshot = async () => {
@@ -114,35 +78,6 @@ export function DelegatedCapabilityControlPanel() {
       setReplayTrace(undefined);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_CAPABILITY_REFRESH_FAILED'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const saveProvider = async () => {
-    setBusy(true);
-    setErrorMessage('');
-    try {
-      await service.upsertProviderProfile({
-        ...providerDraft,
-        ...identityInput,
-      });
-      await refreshSnapshot();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_PROVIDER_SAVE_FAILED'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const setProviderEnabled = async (providerProfileId: string, enabled: boolean) => {
-    setBusy(true);
-    setErrorMessage('');
-    try {
-      await service.setProviderEnabled({ ...identityInput, providerProfileId, enabled });
-      await refreshSnapshot();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_PROVIDER_STATE_FAILED'));
     } finally {
       setBusy(false);
     }
@@ -223,52 +158,12 @@ export function DelegatedCapabilityControlPanel() {
           </div>
         ) : null}
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="rounded-xl border border-[var(--nimi-border-subtle)] p-4">
-            <div className="grid gap-3">
-              <Input label={t('runtimeConfig.delegation.providerProfileId', { defaultValue: 'Provider Profile ID' })} value={providerDraft.providerProfileId} onChange={(value) => setProviderDraft((draft) => ({ ...draft, providerProfileId: value }))} disabled={busy} />
-              <Input label={t('runtimeConfig.delegation.displayName', { defaultValue: 'Display Name' })} value={providerDraft.displayName} onChange={(value) => setProviderDraft((draft) => ({ ...draft, displayName: value }))} disabled={busy} />
-              <Input label={t('runtimeConfig.delegation.transportRef', { defaultValue: 'Transport Ref' })} value={providerDraft.transportRef} onChange={(value) => setProviderDraft((draft) => ({ ...draft, transportRef: value }))} disabled={busy} />
-              <Input label={t('runtimeConfig.delegation.credentialRef', { defaultValue: 'Credential Ref' })} value={providerDraft.credentialRef} onChange={(value) => setProviderDraft((draft) => ({ ...draft, credentialRef: value }))} placeholder="connector://..." disabled={busy} />
-              <Input label={t('runtimeConfig.delegation.command', { defaultValue: 'Command' })} value={providerDraft.command} onChange={(value) => setProviderDraft((draft) => ({ ...draft, command: value }))} disabled={busy} />
-              <Input label={t('runtimeConfig.delegation.args', { defaultValue: 'Args' })} value={providerDraft.args} onChange={(value) => setProviderDraft((draft) => ({ ...draft, args: value }))} disabled={busy} />
-              <Input label={t('runtimeConfig.delegation.toolName', { defaultValue: 'Tool Name' })} value={providerDraft.toolName} onChange={(value) => setProviderDraft((draft) => ({ ...draft, toolName: value }))} disabled={busy} />
-              <Input label={t('runtimeConfig.delegation.schemaDigest', { defaultValue: 'Input Schema Digest' })} value={providerDraft.inputSchemaDigest} onChange={(value) => setProviderDraft((draft) => ({ ...draft, inputSchemaDigest: value }))} placeholder="sha256:..." disabled={busy} />
-              <Button variant="primary" size="sm" onClick={() => void saveProvider()} disabled={!canSaveProvider || busy}>
-                {t('runtimeConfig.delegation.saveProvider', { defaultValue: 'Save provider' })}
-              </Button>
-            </div>
-          </div>
-
+        <div className="mt-5">
           <div className="space-y-4">
             <MetricRow
-              providers={snapshot?.providerProfiles?.length || 0}
               approvals={pendingApprovals.length}
               diagnostics={snapshot?.diagnostics?.length || 0}
             />
-            <div className="space-y-2">
-              {(snapshot?.providerProfiles || []).map((profile) => (
-                <div key={profile.providerProfileId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-2">
-                  <div className="min-w-0">
-                    <div className={cn('truncate text-sm font-medium', TOKEN_TEXT_PRIMARY)}>{profile.displayName || profile.providerProfileId}</div>
-                    <div className={cn('truncate text-xs', TOKEN_TEXT_MUTED)}>{profile.providerProfileId} - {stateLabel(profile.state)}</div>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => void setProviderEnabled(
-                      profile.providerProfileId,
-                      profile.state !== DelegatedProviderState.READY,
-                    )}
-                    disabled={busy}
-                  >
-                    {profile.state === DelegatedProviderState.READY
-                      ? t('runtimeConfig.delegation.disable', { defaultValue: 'Disable' })
-                      : t('runtimeConfig.delegation.enable', { defaultValue: 'Enable' })}
-                  </Button>
-                </div>
-              ))}
-            </div>
             <div className="space-y-2">
               {(snapshot?.approvalRequests || []).map((approval) => (
                 <div key={approval.approvalRequestId} className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-2">
@@ -349,12 +244,11 @@ export function DelegatedCapabilityControlPanel() {
   );
 }
 
-function MetricRow({ providers, approvals, diagnostics }: { providers: number; approvals: number; diagnostics: number }) {
+function MetricRow({ approvals, diagnostics }: { approvals: number; diagnostics: number }) {
   const { t } = useTranslation();
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-2 gap-2">
       {[
-        [t('runtimeConfig.delegation.providers', { defaultValue: 'Providers' }), providers],
         [t('runtimeConfig.delegation.pending', { defaultValue: 'Pending' }), approvals],
         [t('runtimeConfig.delegation.diagnostics', { defaultValue: 'Diagnostics' }), diagnostics],
       ].map(([label, value]) => (

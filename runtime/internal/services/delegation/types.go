@@ -6,17 +6,6 @@ import (
 )
 
 const (
-	ProviderKindMCPToolProvider = "MCP_TOOL_PROVIDER"
-	TransportKindStdioCommand   = "stdio_command"
-
-	ProviderStateRegistered  = "REGISTERED"
-	ProviderStateDiscovering = "DISCOVERING"
-	ProviderStateReady       = "READY"
-	ProviderStateDegraded    = "DEGRADED"
-	ProviderStateDisabled    = "DISABLED"
-	ProviderStateQuarantined = "QUARANTINED"
-	ProviderStateRemoved     = "REMOVED"
-
 	FirewallStateNotEvaluated          = "not_evaluated"
 	FirewallVerdictAcceptedObservation = "ACCEPTED_OBSERVATION"
 	FirewallVerdictAcceptedSuggestion  = "ACCEPTED_SUGGESTION"
@@ -49,28 +38,12 @@ const (
 	ReasonProviderDrifted       = "DELEG_PROVIDER_DRIFTED"
 	ReasonApprovalRequired      = "DELEG_APPROVAL_REQUIRED"
 	ReasonStreamTerminalError   = "DELEG_STREAM_TERMINAL_ERROR"
-	// Admitted runtime_delegation_reason_codes table codes (delegation-reason-codes.yaml)
-	// that gateway/MCP adapter failures map onto per K-DELEG-114.
+	// Admitted Runtime delegation reason codes.
 	ReasonProviderNotFound     = "DELEG_PROVIDER_NOT_FOUND"
 	ReasonProviderBlocked      = "DELEG_PROVIDER_BLOCKED"
 	ReasonCapabilityNotAllowed = "DELEG_CAPABILITY_NOT_ALLOWED"
 	ReasonRequestSchemaInvalid = "DELEG_REQUEST_SCHEMA_INVALID"
 	ReasonProviderTimeout      = "DELEG_PROVIDER_TIMEOUT"
-	// Adapter-level gateway diagnostic codes. NOT admitted reason codes: they are
-	// mapped onto the table codes above before entering any governed reason_code
-	// (K-DELEG-114) and otherwise remain gateway evidence detail only.
-	ReasonGatewayProviderInvalid       = "DELEG_GATEWAY_PROVIDER_INVALID"
-	ReasonGatewayProviderUnavailable   = "DELEG_GATEWAY_PROVIDER_UNAVAILABLE"
-	ReasonGatewayTransportInvalid      = "DELEG_GATEWAY_TRANSPORT_INVALID"
-	ReasonGatewayMCPConnectFailed      = "DELEG_GATEWAY_MCP_CONNECT_FAILED"
-	ReasonGatewayMCPDiscoveryFailed    = "DELEG_GATEWAY_MCP_DISCOVERY_FAILED"
-	ReasonGatewayMCPToolNotAllowlisted = "DELEG_GATEWAY_MCP_TOOL_NOT_ALLOWLISTED"
-	ReasonGatewayMCPArgumentsInvalid   = "DELEG_GATEWAY_MCP_ARGUMENTS_INVALID"
-	ReasonGatewayMCPCredentialBlocked  = "DELEG_GATEWAY_MCP_CREDENTIAL_BLOCKED"
-	ReasonGatewayMCPToolCallFailed     = "DELEG_GATEWAY_MCP_TOOL_CALL_FAILED"
-	ReasonGatewayMCPResultInvalid      = "DELEG_GATEWAY_MCP_RESULT_INVALID"
-	ReasonGatewayMCPTimeout            = "DELEG_GATEWAY_MCP_TIMEOUT"
-
 	// K-DELEG-007 effect classification (mirrors proto EffectClass without the
 	// wire enum prefix). Empty string means unclassified and is treated
 	// fail-closed by approval-requirement derivation.
@@ -101,32 +74,6 @@ const (
 	ApprovalRequirementPolicyBlocked = "POLICY_BLOCKED"
 )
 
-type ProviderProfile struct {
-	ID                string
-	Name              string
-	ProviderKind      string
-	TransportKind     string
-	State             string
-	Command           string
-	Args              []string
-	AllowedTools      []ToolAllowlistEntry
-	Timeout           time.Duration
-	TerminateDuration time.Duration
-}
-
-type ToolAllowlistEntry struct {
-	Name              string
-	InputSchemaDigest string
-}
-
-type ToolDescriptor struct {
-	Name              string
-	Title             string
-	Description       string
-	InputSchemaDigest string
-	Allowed           bool
-}
-
 type ToolCallRequest struct {
 	ProviderID string
 	ToolName   string
@@ -146,7 +93,7 @@ type QuarantinedEvidence struct {
 	ActionAdmitted        bool
 	ToolError             bool
 	InputSchemaDigest     string
-	RawMCPResult          json.RawMessage
+	RawProviderResult     json.RawMessage
 	StartedAt             time.Time
 	CompletedAt           time.Time
 	Duration              time.Duration
@@ -154,7 +101,7 @@ type QuarantinedEvidence struct {
 	ProtocolAdapterSource string
 }
 
-type mcpToolCallEvidencePayload struct {
+type delegatedEvidencePayload struct {
 	Content           json.RawMessage `json:"content,omitempty"`
 	StructuredContent json.RawMessage `json:"structured_content,omitempty"`
 	IsError           bool            `json:"is_error,omitempty"`

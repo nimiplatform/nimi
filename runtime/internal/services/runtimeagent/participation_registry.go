@@ -144,23 +144,17 @@ var participationProfileRegistry = []participationProfileRow{
 		posture:              participationPostureFutureConsumerOnly,
 	},
 	{
-		// K-AGCORE-079 external_agent_entry: gateway verdict required; the
-		// per-identity-source boundary is the K-AGCORE-089 matrix below.
-		kind:            runtimev1.ParticipationProfileKind_PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY,
-		sourceRule:      "K-AGCORE-079",
-		transcriptOwner: runtimev1.ParticipationTranscriptOwner_PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN,
-		identitySource:  runtimev1.ParticipationIdentitySource_PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT,
-		additionalIdentitySources: []runtimev1.ParticipationIdentitySource{
-			runtimev1.ParticipationIdentitySource_PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY,
-		},
-		executionOwner:     runtimev1.ParticipationExecutionOwner_PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY,
-		memoryReadScope:    runtimev1.ParticipationMemoryReadScope_PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ,
-		memoryWriteDefault: runtimev1.ParticipationMemoryWriteDefault_PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE,
-		capabilityScope:    runtimev1.ParticipationCapabilityScope_PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED,
-		inputTrust:         runtimev1.ParticipationInputTrust_PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD,
-		additionalInputTrust: []runtimev1.ParticipationInputTrust{
-			runtimev1.ParticipationInputTrust_PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD,
-		},
+		// Deferred A2A-only external entry seam. It remains unavailable for
+		// production claims until separately admitted.
+		kind:                 runtimev1.ParticipationProfileKind_PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY,
+		sourceRule:           "K-AGCORE-079",
+		transcriptOwner:      runtimev1.ParticipationTranscriptOwner_PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN,
+		identitySource:       runtimev1.ParticipationIdentitySource_PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT,
+		executionOwner:       runtimev1.ParticipationExecutionOwner_PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY,
+		memoryReadScope:      runtimev1.ParticipationMemoryReadScope_PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ,
+		memoryWriteDefault:   runtimev1.ParticipationMemoryWriteDefault_PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE,
+		capabilityScope:      runtimev1.ParticipationCapabilityScope_PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED,
+		inputTrust:           runtimev1.ParticipationInputTrust_PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD,
 		outputDestination:    runtimev1.ParticipationOutputDestination_PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE,
 		promotionPosture:     runtimev1.ParticipationPromotionPosture_PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED,
 		executionConcurrency: runtimev1.ParticipationExecutionConcurrency_PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE,
@@ -346,23 +340,6 @@ type participationExternalBoundaryRow struct {
 // participationExternalBoundaryRegistry mirrors
 // agent-participation-external-entry-boundaries.yaml boundary_entries:.
 var participationExternalBoundaryRegistry = []participationExternalBoundaryRow{
-	{
-		// K-AGCORE-090 MCP_BACKED_AI_CAPABILITY: admitted only as delegated
-		// gateway evidence (K-DELEG-100..119 owns adapter/protocol authority).
-		identitySource: runtimev1.ParticipationIdentitySource_PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY,
-		sourceRule:     "K-AGCORE-090",
-		inputTrust:     runtimev1.ParticipationInputTrust_PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD,
-		protocolKind:   runtimev1.ParticipationExternalProtocolKind_PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP,
-		requiredContextBlocks: []string{
-			participationBlockExternalParticipantIdentityRef,
-			participationBlockExternalPayloadRef,
-			participationBlockGatewayVerdictRef,
-			participationBlockDomainContextRef,
-			participationBlockToolOrCapabilityProjection,
-		},
-		productionClaimAllowed: true,
-		productionClaimScope:   "mcp_delegated_adapter_only",
-	},
 	{
 		// K-AGCORE-091 EXTERNAL_A2A_AGENT: future-seam only
 		// (K-DELEG-120..129); production claim forbidden.

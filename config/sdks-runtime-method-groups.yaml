@@ -15,7 +15,6 @@ entries:
   - RuntimeAuthService
   - RuntimeExternalAgentService
   - RuntimeAccountService
-  - RuntimeWorkflowService
   - RuntimeAuditService
   - RuntimeModelService
   - RuntimeCognitionService
@@ -253,21 +252,6 @@ groups:
       - RevokeLocalDevelopmentAuthorization
       - EndLocalDevelopmentRun
     source_rule: S-RUNTIME-109
-  - group: workflow_service_projection
-    service: RuntimeWorkflowService
-    phase: 2
-    status: deferred
-    note: >
-      Runtime implementation complete (~4.2K LOC): DAG executor, AI/media
-      node orchestration, event streaming. Not exposed through SDK/Desktop
-      consumption layers. Deferred per pre-launch audit 2026-03-18.
-    source_kernel_table: config/runtime-rpc-methods.yaml
-    methods:
-      - SubmitWorkflow
-      - GetWorkflow
-      - CancelWorkflow
-      - SubscribeWorkflowEvents
-    source_rule: S-SURFACE-002
   - group: health_monitoring_projection
     service: RuntimeAuditService
     phase: 1
@@ -449,29 +433,6 @@ groups:
       - RequestMemoryEmbeddingRuntimeCutover
       - SubscribeMemoryEvents
     source_rule: S-SURFACE-002
-  - group: agent_participation_projection
-    service: RuntimeAgentService
-    phase: 1
-    status: active
-    note: >
-      Runtime Agent Participation typed projection family
-      (S-RUNTIME-211 through S-RUNTIME-220). SDK exposes
-      runtime.agentParticipation.* as typed clients for the K-AGCORE-061
-      through K-AGCORE-088 participation contracts. Projection only: no
-      prompt construction, no provider/model selection, no verdict
-      decisions, no domain commits. Canonical 1:1 Agent Chat remains on
-      runtime.agent.*; participation output stays candidate-first with
-      direct domain commit forbidden.
-    source_kernel_table: config/runtime-rpc-methods.yaml
-    methods:
-      - DescribeParticipationProfiles
-      - DescribeParticipationContextBlocks
-      - ValidateParticipation
-      - ExecuteParticipation
-      - GetParticipationCandidate
-      - GetParticipationVerdicts
-      - ListParticipationAuditEvents
-      - GetParticipationReplay
   - group: agent_service_projection
     service: RuntimeAgentService
     phase: 1
@@ -514,15 +475,11 @@ groups:
       - ListAvatarDebugProbeResults
       - GetAvatarDebugReplay
       - ListDelegatedProviderProfiles
-      - UpsertDelegatedProviderProfile
-      - SetDelegatedProviderState
       - ListDelegatedApprovalRequests
       - SubmitDelegatedApprovalDecision
       - ListDelegatedDiagnostics
       - GetDelegatedReplayTrace
       - GetDelegatedControlSurfaceSnapshot
-      - ExecuteDelegatedCapability
-      - ResumeDelegatedCapability
       - GetAgentState
       - UpdateAgentState
       - SetAgentPresentationProfile

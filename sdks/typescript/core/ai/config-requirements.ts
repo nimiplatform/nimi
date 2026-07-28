@@ -2,12 +2,15 @@ import type {
   NimiAICapabilityRequirementDeclaration,
   NimiAICapabilityRequirementSlice,
   NimiAIRuntimeActivationConsumerRef,
+  NimiAIValidationIssue,
   NimiAIScopeRef,
 } from './config-types';
 import { areNimiAIScopeRefsEqual, assertNimiAIScopeRef } from './config-scope';
 import {
+  aiValidationIssue,
   aiConfigError,
-  collectForbiddenPayloadErrors,
+  collectForbiddenPayloadIssues,
+  formatNimiAIValidationIssues,
   isNonEmptyString,
   requireNonEmptyText,
 } from './config-internal';
@@ -20,7 +23,7 @@ export interface NimiAIRequirementSliceSelection {
 export function assertNimiAICapabilityRequirementDeclaration(
   declaration: NimiAICapabilityRequirementDeclaration,
 ): void {
-  const errors = collectForbiddenPayloadErrors(declaration, 'requirementDeclaration');
+  const issues = collectForbiddenPayloadIssues(declaration, 'requirementDeclaration');
   requireNonEmptyText(declaration.requirementId, 'requirementId is required', 'provide_ai_requirement_id');
   assertNimiAIScopeRef(declaration.scopeRef);
   requireNonEmptyText(declaration.setupProjectionPolicy, 'setupProjectionPolicy is required', 'provide_setup_projection_policy');
@@ -28,39 +31,52 @@ export function assertNimiAICapabilityRequirementDeclaration(
     throw aiConfigError('SDK_AI_REQUIREMENT_INVALID', 'requiredSlices must be an array', 'provide_required_ai_slices');
   }
   if (declaration.requiredSlices.length === 0) {
-    errors.push('requiredSlices must include at least one slice');
+    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', 'requirementDeclaration.requiredSlices'));
   }
   if (declaration.optionalSlices !== undefined && !Array.isArray(declaration.optionalSlices)) {
-    errors.push('optionalSlices must be an array when provided');
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'requirementDeclaration.optionalSlices'));
   }
   for (const [index, slice] of declaration.requiredSlices.entries()) {
-    errors.push(...validateRequirementSlice(slice, `requiredSlices[${index}]`));
+    issues.push(...validateRequirementSlice(slice, `requirementDeclaration.requiredSlices[${index}]`));
     if (slice.readinessPolicy !== 'required') {
-      errors.push(`requiredSlices[${index}].readinessPolicy must be required`);
+      issues.push(aiValidationIssue(
+        'AI_VALUE_INVALID',
+        `requirementDeclaration.requiredSlices[${index}].readinessPolicy`,
+      ));
     }
   }
   if (Array.isArray(declaration.optionalSlices)) {
     for (const [index, slice] of declaration.optionalSlices.entries()) {
-      errors.push(...validateRequirementSlice(slice, `optionalSlices[${index}]`));
+      issues.push(...validateRequirementSlice(slice, `requirementDeclaration.optionalSlices[${index}]`));
       if (slice.readinessPolicy !== 'optional') {
-        errors.push(`optionalSlices[${index}].readinessPolicy must be optional`);
+        issues.push(aiValidationIssue(
+          'AI_VALUE_INVALID',
+          `requirementDeclaration.optionalSlices[${index}].readinessPolicy`,
+        ));
       }
     }
   }
-  validateOptionalTextArray(declaration.editableFields, 'editableFields', errors);
-  validateOptionalTextArray(declaration.readinessProjectionRefs, 'readinessProjectionRefs', errors);
+  validateOptionalTextArray(declaration.editableFields, 'requirementDeclaration.editableFields', issues);
+  validateOptionalTextArray(
+    declaration.readinessProjectionRefs,
+    'requirementDeclaration.readinessProjectionRefs',
+    issues,
+  );
   if (declaration.runtimeActivationConsumers !== undefined && !Array.isArray(declaration.runtimeActivationConsumers)) {
-    errors.push('runtimeActivationConsumers must be an array when provided');
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'requirementDeclaration.runtimeActivationConsumers'));
   }
   if (Array.isArray(declaration.runtimeActivationConsumers)) {
     for (const [index, consumer] of declaration.runtimeActivationConsumers.entries()) {
-      errors.push(...validateRuntimeActivationConsumer(consumer, `runtimeActivationConsumers[${index}]`));
+      issues.push(...validateRuntimeActivationConsumer(
+        consumer,
+        `requirementDeclaration.runtimeActivationConsumers[${index}]`,
+      ));
     }
   }
-  if (errors.length > 0) {
+  if (issues.length > 0) {
     throw aiConfigError(
       'SDK_AI_REQUIREMENT_INVALID',
-      `AI capability requirement declaration is invalid: ${errors.join('; ')}`,
+      `AI capability requirement declaration is invalid: ${formatNimiAIValidationIssues(issues)}`,
       'fix_ai_requirement_declaration',
     );
   }
@@ -110,56 +126,70 @@ export function listNimiAIRequirementSlices(
   return { required, optional };
 }
 
-function validateRequirementSlice(slice: NimiAICapabilityRequirementSlice, path: string): string[] {
-  const errors = collectForbiddenPayloadErrors(slice, path);
+function validateRequirementSlice(
+  slice: NimiAICapabilityRequirementSlice,
+  path: string,
+): NimiAIValidationIssue[] {
+  const issues = collectForbiddenPayloadIssues(slice, path);
   if (!slice || typeof slice !== 'object') {
-    errors.push(`${path} must be an object`);
-    return errors;
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', path));
+    return issues;
   }
-  if (!isNonEmptyString(slice.requirementSliceId)) errors.push(`${path}.requirementSliceId is required`);
-  if (!isNonEmptyString(slice.capability)) errors.push(`${path}.capability is required`);
-  if (!isNonEmptyString(slice.profileSliceRef)) errors.push(`${path}.profileSliceRef is required`);
+  if (!isNonEmptyString(slice.requirementSliceId)) {
+    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.requirementSliceId`));
+  }
+  if (!isNonEmptyString(slice.capability)) {
+    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.capability`));
+  }
+  if (!isNonEmptyString(slice.profileSliceRef)) {
+    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.profileSliceRef`));
+  }
   if (slice.readinessPolicy !== 'required' && slice.readinessPolicy !== 'optional') {
-    errors.push(`${path}.readinessPolicy is invalid`);
+    issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.readinessPolicy`));
   }
-  validateOptionalTextArray(slice.editableFieldRefs, `${path}.editableFieldRefs`, errors);
+  validateOptionalTextArray(slice.editableFieldRefs, `${path}.editableFieldRefs`, issues);
   if (slice.runtimeDescriptorRef !== undefined && !isNonEmptyString(slice.runtimeDescriptorRef)) {
-    errors.push(`${path}.runtimeDescriptorRef must be a non-empty string when provided`);
+    issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.runtimeDescriptorRef`));
   }
-  return errors;
+  return issues;
 }
 
 function validateRuntimeActivationConsumer(
   consumer: NimiAIRuntimeActivationConsumerRef,
   path: string,
-): string[] {
-  const errors = collectForbiddenPayloadErrors(consumer, path);
+): NimiAIValidationIssue[] {
+  const issues = collectForbiddenPayloadIssues(consumer, path);
   if (!consumer || typeof consumer !== 'object') {
-    return [`${path} must be an object`];
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', path));
+    return issues;
   }
   if (!isNonEmptyString(consumer.consumerId)) {
-    errors.push(`${path}.consumerId is required`);
+    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.consumerId`));
   }
   if (consumer.consumerScope !== undefined && !isNonEmptyString(consumer.consumerScope)) {
-    errors.push(`${path}.consumerScope must be a non-empty string when provided`);
+    issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.consumerScope`));
   }
   if (consumer.requirementSliceId !== undefined && !isNonEmptyString(consumer.requirementSliceId)) {
-    errors.push(`${path}.requirementSliceId must be a non-empty string when provided`);
+    issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.requirementSliceId`));
   }
-  return errors;
+  return issues;
 }
 
-function validateOptionalTextArray(value: readonly unknown[] | undefined, path: string, errors: string[]): void {
+function validateOptionalTextArray(
+  value: readonly unknown[] | undefined,
+  path: string,
+  issues: NimiAIValidationIssue[],
+): void {
   if (value === undefined) {
     return;
   }
   if (!Array.isArray(value)) {
-    errors.push(`${path} must be an array when provided`);
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', path));
     return;
   }
   value.forEach((item, index) => {
     if (!isNonEmptyString(item)) {
-      errors.push(`${path}[${index}] must be a non-empty string`);
+      issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}[${index}]`));
     }
   });
 }

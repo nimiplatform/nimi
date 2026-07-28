@@ -17,10 +17,6 @@ const outputFiles = [
 ];
 
 const STATIC_DENIED_METHOD_IDS = Object.freeze([
-  '/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow',
-  '/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow',
-  '/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow',
-  '/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents',
   '/nimi.runtime.v1.RuntimeModelService/ListModels',
   '/nimi.runtime.v1.RuntimeModelService/PullModel',
   '/nimi.runtime.v1.RuntimeModelService/RemoveModel',

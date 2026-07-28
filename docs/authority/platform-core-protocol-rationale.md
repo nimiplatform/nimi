@@ -1,6 +1,6 @@
 # Platform Core Protocol - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/platform/core-protocol.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/platform/core-protocol.authority.yaml`。下文保留的 `Contract`、`Authority`、`MUST` 和旧 Rule ID 标题均为历史标签，不能覆盖或扩展 canonical authority。
 
 ---
 
@@ -354,7 +354,7 @@ AI 调用标准协议：discover → dry-run → verify → commit → audit。`
 
 ## Scope
 
-定义 `AIScopeRef` — AI 配置作用域的 canonical identity contract。本契约为跨 desktop / web / future surface 的 AI config keying 提供稳定唯一标识。
+本节说明 canonical authority 中的 `AIScopeRef` identity；它不在 docs 中另行定义跨 desktop / web / future surface 的产品合同。
 
 ## P-AISC-001 — AIScopeRef Identity
 
@@ -497,7 +497,7 @@ app-launch scope 不得复用 `P-AISC-006` 的 built-in chat feature scope
 # Capability Catalog Contract — P-CAPCAT-*
 
 > Canonical cross-layer identity authority for the model capability catalog consumed by Nimi
-> apps. The catalog is spec-resident and is the single source for `CanonicalCapabilityId`
+> apps. Canonical Platform authority is the single product source for `CanonicalCapabilityId`
 > values referenced by `AIConfig.capabilities` (D-AIPC-003, D-AIPC-010),
 > `ConversationCapabilitySelectionStore` keys (D-LLM-015..021), `AppModelConfigSurface`
 > consumers, and runtime route registry lookups. Codegen output lives in the
@@ -507,8 +507,9 @@ app-launch scope 不得复用 `P-AISC-006` 的 built-in chat feature scope
 
 ## P-CAPCAT-001 — Canonical Capability Identity Authority
 
-- `config/platform-canonical-capability-catalog.yaml` is the single
-  authoritative enumeration of `CanonicalCapabilityId` values admitted by Nimi apps.
+- `.nimi/spec/platform/core-protocol.authority.yaml` owns
+  `CanonicalCapabilityId` admission. `config/platform-canonical-capability-catalog.yaml`
+  is its managed consumer projection and generator input, not parallel product authority.
 - Every row declares one capability with fields `capabilityId`, `section`, `editorKind`,
   `sourceRef`, `i18nKeys`, and `runtimeEvidenceClass`; no app, kit module, or runtime
   surface may admit a `CanonicalCapabilityId` that is not present in this table as either
@@ -818,9 +819,9 @@ factory `AIProfile` 必须在 `privacy_posture` 与 `routing_policy` 之间形�
   capability slice；local readiness 缺失必须投影为 fail-closed
   `setup_required` / `repair_required` / `unsupported`，不得静默 fallback
   到 cloud。
-- `routing_policy=cloud-first | local-first | hybrid-explicit` 是 typed
-  authoritative 路由声明；运行时 routing decision 与 spend 计量必须按此
-  evaluate。
+- `routing_policy=cloud-first | local-first | hybrid-explicit` 是 canonical
+  authority 投影出的 typed 路由输入；运行时 routing decision 与 spend
+  计量按该输入 evaluate。
 
 `MUST NOT`:
 
@@ -1110,7 +1111,7 @@ persistence read path 继续落在 Truth / World State / World History / Chat �
 
 ## P-ARCH-004 — Runtime 职责边界
 
-`MUST`: Runtime 是独立本地后台进程。职责域：AI 推理（全模态）、AI 路由（local/cloud）、进程管理、模型管理、Workflow DAG、GPU 仲裁、本地数据层、知识库、Credential Plane、MCP Server、审计（本地）、App 间通信、App 授权网关，以及 cognition / agent-core overlap 的 runtime-facing bridge surface。
+`MUST`: Runtime 是独立本地后台进程，负责 Local / Cloud AI consume、显式路由、进程与模型管理、本地 Text / STT / TTS、Token / Quota / Budget、Credential custody、LocalAgent 物化与生命周期、Conversation、运行期 Memory / Knowledge、LocalAgent 状态、voice 与 events、本地审计、App 授权，以及通往独立 Realm 与 Cognition authority 的受限 bridge。通用 Workflow、MCP 与 World Evolution 均不是当前 Runtime 核心职责或 readiness 前置。
 
 ## P-ARCH-005 — No-Legacy 执行口径
 
@@ -1118,7 +1119,7 @@ persistence read path 继续落在 Truth / World State / World History / Chat �
 
 ## P-ARCH-010 — V1 执行栈冻结
 
-`MUST`: 本地模型面：llama + media + sidecar。远程模型面：nimiLLM。路由面：local | cloud 显式路由，不允许静默 fallback。凭证面：cloud 只经 Runtime-owned connector/provider custody 解析，调用方不注入 credential。编排面：Workflow DAG 独立能力。实现语言固定 Go。
+`MUST`: 本地模型面：llama + media + sidecar。远程模型面：nimiLLM。路由面：local | cloud 显式路由，不允许静默 fallback。凭证面：cloud 只经 Runtime-owned connector/provider custody 解析，调用方不注入 credential。通用 Workflow 仍是 deferred non-core capability，没有当前 DAG 或执行合同。Runtime 实现语言固定 Go。
 
 ## P-ARCH-011 — Credential Plane 双平面
 
@@ -1216,11 +1217,11 @@ existing Desktop kernel hosted-shell 合同（`D-HOME-*`、`D-SHELL-*` 等）
 - 在 app / narrative consumer 各自重写 tick loop、replay semantics、checkpoint semantics、或 shared execution authority
 - 让 `kit/**`、apps、或 narrative-engine 吸入 write authority、commit authorization authority、或 canonical truth ownership
 
-## P-ARCH-028 — Workflow Surface 非 World Evolution Engine Truth
+## P-ARCH-028 — Workflow 与 World Evolution 保持 Deferred
 
-`MUST NOT`: 现有 Runtime workflow DAG / task / node / output event surface 不得在 Platform placement text 中被提升为 World Evolution Engine 的 semantic owner、canonical naming source、或 stable event truth。
+`MUST NOT`: Platform placement text 不得把 Workflow DAG、task、node、output event 或 MCP 提升为当前 Runtime 核心能力，也不得将其描述为 World Evolution Engine 的 semantic owner、canonical naming source 或 stable event truth。
 
-`MAY`: 现有 workflow/output event surface 仅可被视为 runtime-local partial reuse 候选，用于后续 Runtime contract 评估 stream shape、status vocabulary、或 adapter seams；其是否可复用以及复用到何处，必须由 Runtime kernel 后续合同显式决定。
+`MUST`: Workflow、MCP 与 World Evolution 保持 unavailable、non-core 且不阻塞 readiness，直到各自的独立 owner authority 明确准入产品合同与执行边界。
 
 ## P-ARCH-029 — Consumer API Contract Home
 
@@ -1273,7 +1274,7 @@ Boundary rules:
 
 # Desktop Open Intent Contract
 
-> Authority: Platform Kernel
+> Historical owner label: Platform Kernel
 
 ## Scope
 

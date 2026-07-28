@@ -183,14 +183,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "EnableAutonomyResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
-    "service": "RuntimeAgentService",
-    "method": "ExecuteDelegatedCapability",
-    "kind": "unary",
-    "requestType": "ExecuteDelegatedCapabilityRequest",
-    "responseType": "ExecuteDelegatedCapabilityResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
     "service": "RuntimeAgentService",
     "method": "ExecuteParticipation",
@@ -487,14 +479,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveAvatarLiveInstanceBindingResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
-    "service": "RuntimeAgentService",
-    "method": "ResumeDelegatedCapability",
-    "kind": "unary",
-    "requestType": "ResumeDelegatedCapabilityRequest",
-    "responseType": "ResumeDelegatedCapabilityResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "service": "RuntimeAgentService",
     "method": "SetAgentPresentationProfile",
@@ -509,14 +493,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "SetAutonomyConfigRequest",
     "responseType": "SetAutonomyConfigResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
-    "service": "RuntimeAgentService",
-    "method": "SetDelegatedProviderState",
-    "kind": "unary",
-    "requestType": "SetDelegatedProviderStateRequest",
-    "responseType": "SetDelegatedProviderStateResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
@@ -573,14 +549,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "UpdateAgentStateRequest",
     "responseType": "UpdateAgentStateResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
-    "service": "RuntimeAgentService",
-    "method": "UpsertDelegatedProviderProfile",
-    "kind": "unary",
-    "requestType": "UpsertDelegatedProviderProfileRequest",
-    "responseType": "UpsertDelegatedProviderProfileResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
@@ -2085,38 +2053,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RequestRuntimeRestartRequest",
     "responseType": "RequestRuntimeRestartResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
-    "service": "RuntimeWorkflowService",
-    "method": "CancelWorkflow",
-    "kind": "unary",
-    "requestType": "CancelWorkflowRequest",
-    "responseType": "Ack"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-    "service": "RuntimeWorkflowService",
-    "method": "GetWorkflow",
-    "kind": "unary",
-    "requestType": "GetWorkflowRequest",
-    "responseType": "GetWorkflowResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
-    "service": "RuntimeWorkflowService",
-    "method": "SubmitWorkflow",
-    "kind": "unary",
-    "requestType": "SubmitWorkflowRequest",
-    "responseType": "SubmitWorkflowResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
-    "service": "RuntimeWorkflowService",
-    "method": "SubscribeWorkflowEvents",
-    "kind": "server_stream",
-    "requestType": "SubscribeWorkflowEventsRequest",
-    "responseType": "WorkflowEvent"
   }
 ] as const;
 

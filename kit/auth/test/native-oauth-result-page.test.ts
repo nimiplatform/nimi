@@ -1,71 +1,51 @@
-import fs from 'node:fs';
-import crypto from 'node:crypto';
-import path from 'node:path';
 import { expect, test } from 'vitest';
 import { renderDesktopOAuthResultPage } from '../src/logic/native-oauth-result-page.js';
 
-const source = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/logic/native-oauth-result-page.ts'),
-  'utf8',
-);
-const template = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/logic/native-oauth-result-page.template.html'),
-  'utf8',
-);
-const shellTemplate = fs.readFileSync(
-  path.join(import.meta.dirname, '../../shell/tauri/src/native-oauth-result-page.template.html'),
-  'utf8',
-);
-const copyDistAssetsScript = fs.readFileSync(
-  path.join(import.meta.dirname, '../../scripts/copy-dist-assets.mjs'),
-  'utf8',
-);
-const currentDesktopLogoPng = fs.readFileSync(
-  path.join(import.meta.dirname, '../../../apps/desktop/src/shell/renderer/assets/logo.png'),
-);
-const kitOAuthLogoPng = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/logic/native-oauth-result-logo.png'),
-);
-
-function sha256(value: Buffer | string): string {
-  return crypto.createHash('sha256').update(value).digest('hex');
+function renderedAutoCloseMs(value: unknown): number {
+  const page = renderDesktopOAuthResultPage({
+    status: 'success',
+    autoCloseMs: value as number,
+  });
+  const match = page.match(/setTimeout\(function\(\)\{window\.close\(\);\}, (\d+)\);/u);
+  expect(match).not.toBeNull();
+  return Number(match?.[1]);
 }
 
-function extractLogoDataUri(page: string): string {
-  const match = page.match(/<img class="logo" src="(data:image\/png;base64,[^"]+)"/u);
-  if (!match) {
-    throw new Error('OAuth result page logo data URI not found');
+test('desktop OAuth result page renders the fixed completion disclosure without template residue', () => {
+  const page = renderDesktopOAuthResultPage({ status: 'success' });
+  expect(page).toContain('<title>OAuth Complete - Nimi</title>');
+  expect(page).toContain('<h1>Authentication Complete!</h1>');
+  expect(page).toContain('<p>You have successfully signed in to Nimi.</p>');
+  expect(page).not.toMatch(/__[A-Z][A-Z0-9_]+__/u);
+});
+
+test('desktop OAuth result page normalizes the public auto-close value into bounded output', () => {
+  for (const [value, expected] of [
+    [undefined, 3000],
+    [Number.NaN, 3000],
+    [Number.POSITIVE_INFINITY, 3000],
+    [-1, 3000],
+    [0, 3000],
+    [3456.6, 3457],
+    [30_001, 30_000],
+  ] as const) {
+    expect(renderedAutoCloseMs(value)).toBe(expected);
   }
-  return match[1];
-}
-
-function maxLineBytes(value: string): number {
-  return Math.max(...value.split(/\r?\n/).map((line) => Buffer.byteLength(line, 'utf8')));
-}
-
-function averageLineBytes(value: string): number {
-  const lines = value.split(/\r?\n/);
-  return Buffer.byteLength(value, 'utf8') / lines.length;
-}
-
-test('desktop OAuth result page escapes interpolated text fields', () => {
-  expect(source).toMatch(/function escapeHtml\(value: string\): string/);
-  expect(source).toMatch(/replace\('__PAGE_TITLE__', escapeHtml\(input\.pageTitle\)\)/);
-  expect(source).toMatch(/replace\('__HEADING__', escapeHtml\(input\.heading\)\)/);
-  expect(source).toMatch(/replace\('__MESSAGE_PRIMARY__', escapeHtml\(input\.messagePrimary\)\)/);
 });
 
-test('desktop OAuth result page normalizes auto-close timer before script injection', () => {
-  expect(source).toMatch(/function normalizeAutoCloseMs\(value: unknown\): number/);
-  expect(source).toMatch(/const autoCloseMs = normalizeAutoCloseMs\(input\.autoCloseMs\)/);
-  expect(source).toMatch(/setTimeout\(function\(\)\{window\.close\(\);\}, \$\{autoCloseMs\}\);/);
+test('desktop OAuth result page rejects script-shaped auto-close input from rendered output', () => {
+  const injection = '0);globalThis.compromised=true;//';
+  const page = renderDesktopOAuthResultPage({
+    status: 'success',
+    autoCloseMs: injection as unknown as number,
+  });
+  expect(renderedAutoCloseMs(injection)).toBe(3000);
+  expect(page).not.toContain(injection);
+  expect(page).not.toContain('globalThis.compromised');
 });
 
-test('desktop OAuth result page keeps success visible for at least three seconds', () => {
-  const page = renderDesktopOAuthResultPage({ status: 'success', autoCloseMs: 0 });
-  expect(page).toContain('setTimeout(function(){window.close();}, 3000);');
-});
-
-test('kit dist asset copy keeps the native OAuth result template publishable', () => {
-  expect(copyDistAssetsScript).toContain("'.html'");
+test('desktop OAuth error result does not schedule automatic window close', () => {
+  const page = renderDesktopOAuthResultPage({ status: 'error', autoCloseMs: 5_000 });
+  expect(page).toContain('<title>OAuth Failed - Nimi</title>');
+  expect(page).not.toContain('setTimeout(');
 });

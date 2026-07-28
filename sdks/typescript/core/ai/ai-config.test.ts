@@ -47,7 +47,17 @@ import {
   versionNimiAIConfig,
   type NimiAIHostStorage,
   type NimiAIProfile,
+  type NimiAIValidationIssue,
+  type NimiAIValidationIssueCode,
 } from './index';
+
+function assertValidationIssue(
+  issues: readonly NimiAIValidationIssue[],
+  code: NimiAIValidationIssueCode,
+  path: string,
+): void {
+  assert.equal(issues.some((issue) => issue.code === code && issue.path === path), true);
+}
 
 function createMemoryStorage(): NimiAIHostStorage & { readonly values: Map<string, string> } {
   const values = new Map<string, string>();
@@ -219,15 +229,14 @@ test('AIConfig runtime binding resolver fails closed for unavailable targets', (
     profileOrigin: null,
   };
 
-  assert.deepEqual(resolveNimiAIConfigRuntimeBinding({
+  const missingBinding = resolveNimiAIConfigRuntimeBinding({
     config: base,
     capabilityId: 'text.generate',
     bindingCapabilityId: null,
-  }), {
-    ok: false,
-    reason: 'binding-capability-missing',
-    message: 'Capability text.generate does not have an AIConfig runtime binding path.',
   });
+  assert.equal(missingBinding.ok, false);
+  if (missingBinding.ok) throw new Error('expected missing binding capability failure');
+  assert.equal(missingBinding.reason, 'binding-capability-missing');
 
   assert.equal(resolveNimiAIConfigRuntimeBinding({
     config: base,
@@ -284,21 +293,20 @@ test('AIConfig text generation params coercion accepts strings and fails invalid
     timeoutMs: 120000,
   });
 
-  assert.deepEqual(coerceNimiAITextGenerationParams({ maxTokens: '1.5' }), {
-    ok: false,
-    field: 'maxTokens',
-    message: 'AIConfig selectedParams.maxTokens must be a positive integer.',
-  });
-  assert.deepEqual(coerceNimiAITextGenerationParams({ temperature: 'hot' }), {
-    ok: false,
-    field: 'temperature',
-    message: 'AIConfig selectedParams.temperature must be a finite number.',
-  });
-  assert.deepEqual(coerceNimiAITextGenerationParams({ stopSequences: 'END' }), {
-    ok: false,
-    field: 'stopSequences',
-    message: 'AIConfig selectedParams.stopSequences must be a string array.',
-  });
+  const invalidMaxTokens = coerceNimiAITextGenerationParams({ maxTokens: '1.5' });
+  assert.equal(invalidMaxTokens.ok, false);
+  if (invalidMaxTokens.ok) throw new Error('expected maxTokens coercion failure');
+  assert.equal(invalidMaxTokens.field, 'maxTokens');
+
+  const invalidTemperature = coerceNimiAITextGenerationParams({ temperature: 'hot' });
+  assert.equal(invalidTemperature.ok, false);
+  if (invalidTemperature.ok) throw new Error('expected temperature coercion failure');
+  assert.equal(invalidTemperature.field, 'temperature');
+
+  const invalidStopSequences = coerceNimiAITextGenerationParams({ stopSequences: 'END' });
+  assert.equal(invalidStopSequences.ok, false);
+  if (invalidStopSequences.ok) throw new Error('expected stopSequences coercion failure');
+  assert.equal(invalidStopSequences.field, 'stopSequences');
 });
 
 test('Nimi AI scope and target validation fail closed across admitted families', () => {
@@ -327,37 +335,37 @@ test('Nimi AI scope and target validation fail closed across admitted families',
     sourceProfileId: 'profile-1',
     sliceId: 'slice-1',
   }, 'target'), []);
-  assert.match(validateNimiAIConfigTargetRef({
+  assertValidationIssue(validateNimiAIConfigTargetRef({
     kind: 'profile-slice',
     sliceId: '',
-  }, 'target').join('\n'), /sourceProfileId is required/u);
-  assert.match(validateNimiAIConfigTargetRef({
+  }, 'target'), 'AI_FIELD_REQUIRED', 'target.sourceProfileId');
+  assertValidationIssue(validateNimiAIConfigTargetRef({
     kind: 'local-runtime',
-  }, 'target').join('\n'), /requires profileBindingId or readinessRef/u);
-  assert.match(validateNimiAIConfigTargetRef({
+  }, 'target'), 'AI_TARGET_REF_BINDING_REQUIRED', 'target');
+  assertValidationIssue(validateNimiAIConfigTargetRef({
     kind: 'local-runtime',
     version: 'v2',
     targetId: 'legacy-target',
     profileId: 'legacy-profile',
-  }, 'target').join('\n'), /targetId is retired/u);
-  assert.match(validateNimiAIConfigTargetRef({
+  }, 'target'), 'AI_FIELD_RETIRED', 'target.targetId');
+  assertValidationIssue(validateNimiAIConfigTargetRef({
     kind: 'cloud-connector',
     connectorId: 'connector-1',
     providerModelId: 'model-1',
-  }, 'target').join('\n'), /remoteModelCatalogId is required/u);
-  assert.match(validateNimiAIConfigTargetRef({
+  }, 'target'), 'AI_FIELD_REQUIRED', 'target.remoteModelCatalogId');
+  assertValidationIssue(validateNimiAIConfigTargetRef({
     kind: 'unsupported',
-  }, 'target').join('\n'), /not an admitted AIConfig compact ref/u);
+  }, 'target'), 'AI_TARGET_REF_KIND_UNSUPPORTED', 'target.kind');
 
   assert.deepEqual(validateNimiAIConfig(null), {
     valid: false,
-    errors: ['config must be a non-null object'],
+    issues: [{ code: 'AI_TYPE_INVALID', path: 'config' }],
   });
-  assert.match(validateNimiAIConfig({
+  assertValidationIssue(validateNimiAIConfig({
     scopeRef: SCOPE,
     capabilities: { targetRefs: [] },
-  }).errors.join('\n'), /capabilities\.targetRefs must be an object/u);
-  assert.match(validateNimiAIConfig({
+  }).issues, 'AI_TYPE_INVALID', 'config.capabilities.targetRefs');
+  assertValidationIssue(validateNimiAIConfig({
     scopeRef: SCOPE,
     capabilities: {
       targetRefs: {
@@ -370,8 +378,8 @@ test('Nimi AI scope and target validation fail closed across admitted families',
         },
       },
     },
-  }).errors.join('\n'), /secret is forbidden/u);
-  assert.match(validateNimiAIConfig({
+  }).issues, 'AI_FIELD_FORBIDDEN', 'config.capabilities.targetRefs.text.generate.secret');
+  assertValidationIssue(validateNimiAIConfig({
     scopeRef: SCOPE,
     capabilities: {
       targetRefs: {
@@ -389,7 +397,7 @@ test('Nimi AI scope and target validation fail closed across admitted families',
         },
       },
     },
-  }).errors.join('\n'), /runtimeBaselineRef is forbidden/u);
+  }).issues, 'AI_FIELD_FORBIDDEN', 'config.capabilities.targetRefs.text.generate.runtime.runtimeBaselineRef');
 });
 
 test('Nimi AI profile validation rejects hidden Runtime/private payloads', () => {
@@ -403,8 +411,16 @@ test('Nimi AI profile validation rejects hidden Runtime/private payloads', () =>
   });
 
   assert.equal(validation.valid, false);
-  assert.match(validation.errors.join('\n'), /binding is forbidden/);
-  assert.match(validation.errors.join('\n'), /secret is forbidden/);
+  assertValidationIssue(
+    validation.issues,
+    'AI_FIELD_FORBIDDEN',
+    'profile.capabilities.text.generate.binding',
+  );
+  assertValidationIssue(
+    validation.issues,
+    'AI_FIELD_FORBIDDEN',
+    'profile.capabilities.text.generate.binding.secret',
+  );
 });
 
 test('Nimi AI profile parsing and runtime descriptor projection cover failure boundaries', () => {

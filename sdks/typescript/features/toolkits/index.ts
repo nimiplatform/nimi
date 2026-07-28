@@ -258,25 +258,6 @@ export function createNimiFileDescriptorTool(input: {
   };
 }
 
-export function createNimiMcpTool(input: {
-  readonly name: string;
-  readonly description: string;
-  readonly serverId: string;
-  readonly inputSchema?: NimiJsonObject;
-}): NimiFunctionTool {
-  return {
-    type: 'function',
-    name: input.name,
-    description: input.description,
-    inputSchema: input.inputSchema ?? {},
-    visibility: 'model',
-    adapterMetadata: {
-      kind: 'mcp',
-      serverId: input.serverId,
-    },
-  };
-}
-
 export function createNimiConstantToolResult(value: NimiJsonValue): () => NimiJsonValue {
   return () => value;
 }

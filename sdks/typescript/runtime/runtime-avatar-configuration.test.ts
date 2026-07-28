@@ -108,7 +108,17 @@ test('validation rejects every enum escape and missing required field', () => {
 test('external sidecar manifest source requires the opaque manifest ref pattern', () => {
   assert.throws(
     () => validateAvatarConfigurationRecord(validRecord({ live2dAdapterManifestSource: 'external_sidecar_manifest' })),
-    /live2dAdapterManifestRef is required/,
+    (error: unknown) => {
+      const nimiError = error as {
+        readonly code?: string;
+        readonly reasonCode?: string;
+        readonly actionHint?: string;
+      };
+      assert.equal(nimiError.code, 'SDK_AVATAR_CONFIGURATION_RECORD_INVALID');
+      assert.equal(nimiError.reasonCode, 'SDK_AVATAR_CONFIGURATION_RECORD_INVALID');
+      assert.equal(nimiError.actionHint, 'provide_live2d_adapter_manifest_ref');
+      return true;
+    },
   );
   assert.throws(
     () =>
@@ -118,7 +128,17 @@ test('external sidecar manifest source requires the opaque manifest ref pattern'
           live2dAdapterManifestRef: '/abs/path/manifest.json',
         }),
       ),
-    /opaque control-ref pattern/,
+    (error: unknown) => {
+      const nimiError = error as {
+        readonly code?: string;
+        readonly reasonCode?: string;
+        readonly actionHint?: string;
+      };
+      assert.equal(nimiError.code, 'SDK_AVATAR_CONFIGURATION_RECORD_INVALID');
+      assert.equal(nimiError.reasonCode, 'SDK_AVATAR_CONFIGURATION_RECORD_INVALID');
+      assert.equal(nimiError.actionHint, 'use_opaque_live2d_adapter_manifest_ref');
+      return true;
+    },
   );
   validateAvatarConfigurationRecord(
     validRecord({
@@ -148,7 +168,17 @@ test('optional refs must be strings when present, and manifest-ref pattern holds
   // A present manifest ref with source 'none' must still satisfy the opaque pattern.
   assert.throws(
     () => validateAvatarConfigurationRecord(validRecord({ live2dAdapterManifestRef: '/abs/path/manifest.json' })),
-    /opaque control-ref pattern/,
+    (error: unknown) => {
+      const nimiError = error as {
+        readonly code?: string;
+        readonly reasonCode?: string;
+        readonly actionHint?: string;
+      };
+      assert.equal(nimiError.code, 'SDK_AVATAR_CONFIGURATION_RECORD_INVALID');
+      assert.equal(nimiError.reasonCode, 'SDK_AVATAR_CONFIGURATION_RECORD_INVALID');
+      assert.equal(nimiError.actionHint, 'use_opaque_live2d_adapter_manifest_ref');
+      return true;
+    },
   );
   // A valid opaque ref with source 'none' is accepted.
   validateAvatarConfigurationRecord(validRecord({ live2dAdapterManifestRef: 'live2d_adapter_0123456789ab' }));

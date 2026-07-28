@@ -189,9 +189,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 				"error", cause,
 			}
 			if metadata, ok := grpcerr.ExtractReasonMetadata(cause); ok {
-				if providerMessage := strings.TrimSpace(metadata["provider_message"]); providerMessage != "" {
-					logArgs = append(logArgs, "provider_message", providerMessage)
-				}
 				if actionHint := strings.TrimSpace(metadata["action_hint"]); actionHint != "" {
 					logArgs = append(logArgs, "action_hint", actionHint)
 				}

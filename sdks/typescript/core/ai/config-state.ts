@@ -13,6 +13,7 @@ import { areNimiAIScopeRefsEqual, assertNimiAIScopeRef, validateNimiAIConfig } f
 import {
   aiConfigError,
   diffJson,
+  formatNimiAIValidationIssues,
   requireNonEmptyText,
   stableHash,
   stableJson,
@@ -114,7 +115,11 @@ export function parseStoredNimiAIConfig(raw: string, scopeRef: NimiAIScopeRef): 
   }
   const validation = validateNimiAIConfig(parsed);
   if (!validation.valid) {
-    throw aiConfigError('SDK_AI_CONFIG_INVALID', `Stored AIConfig is invalid: ${validation.errors.join('; ')}`, 'repair_ai_config_store');
+    throw aiConfigError(
+      'SDK_AI_CONFIG_INVALID',
+      `Stored AIConfig is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
+      'repair_ai_config_store',
+    );
   }
   return parsed;
 }

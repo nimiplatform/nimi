@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -27,6 +28,13 @@ func extractErrorInfoMetadata(err error) map[string]string {
 		return info.GetMetadata()
 	}
 	return nil
+}
+
+func assertProviderMessageAbsent(t *testing.T, metadata map[string]string) {
+	t.Helper()
+	if _, exists := metadata["provider_message"]; exists {
+		t.Fatalf("provider body must not be projected into error metadata: %#v", metadata)
+	}
 }
 
 func TestMapProviderHTTPError_ProviderAuthFailed(t *testing.T) {
@@ -79,12 +87,10 @@ func TestMapProviderHTTPError_BadRequestQuotaExceededMapsRateLimited(t *testing.
 		t.Fatalf("expected AI_PROVIDER_RATE_LIMITED, got %v", reason)
 	}
 	metadata := extractErrorInfoMetadata(err)
-	if metadata["action_hint"] != "replenish_provider_balance_or_skip_live_test" {
+	if metadata["action_hint"] != "replenish_provider_balance_or_adjust_quota" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
-	if metadata["provider_message"] != "You exceeded your current quota, please check your plan and billing details" {
-		t.Fatalf("unexpected provider_message: %q", metadata["provider_message"])
-	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_BadRequestLocationUnsupportedMapsEndpointForbidden(t *testing.T) {
@@ -109,9 +115,7 @@ func TestMapProviderHTTPError_BadRequestLocationUnsupportedMapsEndpointForbidden
 	if metadata["action_hint"] != "use_supported_provider_region_or_connector" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
-	if metadata["provider_message"] != "User location is not supported for the API use." {
-		t.Fatalf("unexpected provider_message: %q", metadata["provider_message"])
-	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_BadRequestInferenceLimitMapsRateLimited(t *testing.T) {
@@ -133,12 +137,10 @@ func TestMapProviderHTTPError_BadRequestInferenceLimitMapsRateLimited(t *testing
 		t.Fatalf("expected AI_PROVIDER_RATE_LIMITED, got %v", reason)
 	}
 	metadata := extractErrorInfoMetadata(err)
-	if metadata["action_hint"] != "replenish_provider_balance_or_skip_live_test" {
+	if metadata["action_hint"] != "replenish_provider_balance_or_adjust_quota" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
-	if got := metadata["provider_message"]; !strings.Contains(got, "set inference limit") || !strings.Contains(got, "model service has been paused") {
-		t.Fatalf("unexpected provider_message: %q", got)
-	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_BadRequestAPIKeyInvalidMapsAuthFailed(t *testing.T) {
@@ -158,16 +160,11 @@ func TestMapProviderHTTPError_BadRequestAPIKeyInvalidMapsAuthFailed(t *testing.T
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
 	}
-	if strings.Contains(strings.ToLower(st.Message()), "api key not valid") {
-		t.Fatalf("provider detail leaked in status message: %q", st.Message())
-	}
 	metadata := extractErrorInfoMetadata(err)
 	if metadata["action_hint"] != "refresh_provider_api_key_or_reconnect_connector" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
-	if metadata["provider_message"] != "API key not valid. Please pass a valid API key." {
-		t.Fatalf("unexpected provider_message: %q", metadata["provider_message"])
-	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_ServiceUnavailableVoiceOptionFailureMapsMediaOptionUnsupported(t *testing.T) {
@@ -192,12 +189,10 @@ func TestMapProviderHTTPError_ServiceUnavailableVoiceOptionFailureMapsMediaOptio
 	if metadata["action_hint"] != "adjust_tts_voice_or_audio_options" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
-	if !strings.Contains(metadata["provider_message"], "requires an explicit admitted voice_ref") {
-		t.Fatalf("expected provider_message to keep voice_ref detail, got %q", metadata["provider_message"])
-	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
-func TestMapProviderHTTPError_ServiceUnavailableKeepsProviderDetail(t *testing.T) {
+func TestMapProviderHTTPError_ServiceUnavailableUsesStructuredRecoveryMetadata(t *testing.T) {
 	err := MapProviderHTTPError(503, map[string]any{
 		"detail": map[string]any{
 			"message": "local supervised speech synthesis failed: speech driver process unavailable",
@@ -216,9 +211,10 @@ func TestMapProviderHTTPError_ServiceUnavailableKeepsProviderDetail(t *testing.T
 		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v", reason)
 	}
 	metadata := extractErrorInfoMetadata(err)
-	if !strings.Contains(metadata["provider_message"], "speech driver process unavailable") {
-		t.Fatalf("expected provider_message to keep service detail, got %q", metadata["provider_message"])
+	if metadata["action_hint"] != "check_provider_endpoint_or_local_runtime_health" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_ProviderInternal(t *testing.T) {
@@ -297,9 +293,7 @@ func TestMapProviderHTTPError_BadRequestModelNotFound(t *testing.T) {
 	if metadata["action_hint"] != "switch_model_or_refresh_connector_models" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
-	if strings.Contains(strings.ToLower(st.Message()), "qwen-tts-2025-05-22") {
-		t.Fatalf("provider internals leaked in status message: %q", st.Message())
-	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_BadRequestMarketAppNotActivated(t *testing.T) {
@@ -323,9 +317,7 @@ func TestMapProviderHTTPError_BadRequestMarketAppNotActivated(t *testing.T) {
 	if metadata["action_hint"] != "activate_provider_market_app_or_switch_model" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
-	if metadata["provider_message"] == "" {
-		t.Fatal("expected provider message metadata")
-	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_BadRequestModalityNotSupported(t *testing.T) {
@@ -414,16 +406,14 @@ func TestMapProviderHTTPError_BadRequestPlanGateFromDetailMessage(t *testing.T) 
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
 	}
-	if strings.Contains(strings.ToLower(st.Message()), "paid plan") {
-		t.Fatalf("provider detail leaked in status message: %q", st.Message())
-	}
 	metadata := extractErrorInfoMetadata(err)
 	if metadata["action_hint"] != "upgrade_provider_plan_or_use_supported_capability" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
-func TestMapProviderHTTPError_ForbiddenPreservesNestedDetailMessage(t *testing.T) {
+func TestMapProviderHTTPError_ForbiddenDropsProviderBody(t *testing.T) {
 	err := MapProviderHTTPError(403, map[string]any{
 		"detail": map[string]any{
 			"message": "API voice creation is only available on a paid plan.",
@@ -440,9 +430,11 @@ func TestMapProviderHTTPError_ForbiddenPreservesNestedDetailMessage(t *testing.T
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
 	}
-	if st.Message() != "provider authentication failed" {
-		t.Fatalf("unexpected status message: %q", st.Message())
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "refresh_provider_api_key_or_reconnect_connector" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_PaymentRequiredInsufficientBalance(t *testing.T) {
@@ -460,13 +452,11 @@ func TestMapProviderHTTPError_PaymentRequiredInsufficientBalance(t *testing.T) {
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
 		t.Fatalf("expected AI_PROVIDER_RATE_LIMITED, got %v", reason)
 	}
-	if strings.Contains(st.Message(), "Invalid api key or insufficient balance") {
-		t.Fatalf("unexpected status message: %q", st.Message())
-	}
 	metadata := extractErrorInfoMetadata(err)
-	if metadata["action_hint"] != "replenish_provider_balance_or_skip_live_test" {
+	if metadata["action_hint"] != "replenish_provider_balance_or_adjust_quota" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderHTTPError_Timeout(t *testing.T) {
@@ -486,7 +476,7 @@ func TestMapProviderHTTPError_Timeout(t *testing.T) {
 	}
 }
 
-func TestMapProviderHTTPError_ModelNotFoundIncludesProviderMessage(t *testing.T) {
+func TestMapProviderHTTPError_ModelNotFoundUsesStructuredRecoveryMetadata(t *testing.T) {
 	err := MapProviderHTTPError(404, map[string]any{
 		"error": map[string]any{
 			"message": "model qwen3-tts-instruct-flash-2026-01-26 not found for this endpoint",
@@ -503,13 +493,11 @@ func TestMapProviderHTTPError_ModelNotFoundIncludesProviderMessage(t *testing.T)
 	if !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
 		t.Fatalf("expected AI_MODEL_NOT_FOUND, got %v", reason)
 	}
-	if st.Message() == "" {
-		t.Fatal("expected provider message in status message")
-	}
 	metadata := extractErrorInfoMetadata(err)
 	if metadata["action_hint"] != "switch_model_or_refresh_connector_models" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderRequestError_DeadlineExceeded(t *testing.T) {
@@ -536,7 +524,7 @@ func TestMapProviderRequestError_NetworkTimeout(t *testing.T) {
 }
 
 func TestMapProviderRequestError_GRPCDeadlineExceeded(t *testing.T) {
-	err := MapProviderRequestError(status.Error(codes.DeadlineExceeded, "generate managed media image: rpc error: code = DeadlineExceeded desc = context deadline exceeded"))
+	err := MapProviderRequestError(status.Error(codes.DeadlineExceeded, "provider-timeout-marker"))
 	st, ok := status.FromError(err)
 	if !ok {
 		t.Fatal("expected gRPC status error")
@@ -549,20 +537,58 @@ func TestMapProviderRequestError_GRPCDeadlineExceeded(t *testing.T) {
 		t.Fatalf("expected AI_PROVIDER_TIMEOUT, got %v", reason)
 	}
 	metadata := extractErrorInfoMetadata(err)
-	if !strings.Contains(metadata["provider_message"], "DeadlineExceeded") {
-		t.Fatalf("expected provider_message to keep backend timeout detail, got %q", metadata["provider_message"])
+	if metadata["action_hint"] != "retry_or_check_provider_endpoint" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
+	assertProviderMessageAbsent(t, metadata)
 }
 
 func TestMapProviderRequestError_GenericNetwork(t *testing.T) {
-	err := MapProviderRequestError(&net.DNSError{Err: "connection refused"})
+	err := MapProviderRequestError(&net.DNSError{Err: "provider-network-marker"})
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
 		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v", reason)
 	}
 	metadata := extractErrorInfoMetadata(err)
-	if !strings.Contains(metadata["provider_message"], "connection refused") {
-		t.Fatalf("expected provider_message to include connection detail, got %q", metadata["provider_message"])
+	if metadata["action_hint"] != "check_provider_endpoint_or_local_runtime_health" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	assertProviderMessageAbsent(t, metadata)
+}
+
+func TestMapProviderRequestError_DropsCredentialBearingProviderMessage(t *testing.T) {
+	const secret = "provider-secret-value"
+	err := MapProviderRequestError(errors.New("dial failed: https://provider.invalid/v1?api_key=" + secret))
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v (ok=%v)", reason, ok)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if _, exists := metadata["provider_message"]; exists {
+		t.Fatalf("credential-bearing provider_message must be dropped: %#v", metadata)
+	}
+	if strings.Contains(err.Error(), secret) {
+		t.Fatalf("credential leaked through mapped error: %v", err)
+	}
+}
+
+func TestMapProviderHTTPError_DropsAuthorizationBearingProviderMessage(t *testing.T) {
+	const secret = "provider-secret-value"
+	err := MapProviderHTTPError(500, map[string]any{
+		"error": map[string]any{
+			"message": "Authorization: Bearer " + secret,
+		},
+	})
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
+		t.Fatalf("expected AI_PROVIDER_INTERNAL, got %v (ok=%v)", reason, ok)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if _, exists := metadata["provider_message"]; exists {
+		t.Fatalf("authorization-bearing provider_message must be dropped: %#v", metadata)
+	}
+	if strings.Contains(err.Error(), secret) {
+		t.Fatalf("credential leaked through mapped error: %v", err)
 	}
 }
 
@@ -582,29 +608,29 @@ func TestProviderErrorMessage_DetailFallbacks(t *testing.T) {
 			name: "detail message map",
 			payload: map[string]any{
 				"detail": map[string]any{
-					"message": "provider detail message",
+					"message": "provider-detail-marker-map",
 				},
 			},
-			want: "provider detail message",
+			want: "provider-detail-marker-map",
 		},
 		{
 			name: "detail msg map",
 			payload: map[string]any{
 				"detail": map[string]any{
-					"msg": "provider detail msg",
+					"msg": "provider-detail-marker-msg",
 				},
 			},
-			want: "provider detail msg",
+			want: "provider-detail-marker-msg",
 		},
 		{
 			name: "detail array message",
 			payload: map[string]any{
 				"detail": []any{
-					map[string]any{"message": "first array detail"},
-					map[string]any{"message": "second array detail"},
+					map[string]any{"message": "provider-detail-marker-first"},
+					map[string]any{"message": "provider-detail-marker-second"},
 				},
 			},
-			want: "first array detail",
+			want: "provider-detail-marker-first",
 		},
 	}
 

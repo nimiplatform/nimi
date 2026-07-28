@@ -87,7 +87,6 @@ type Service struct {
 	delegatedMu                              sync.RWMutex
 	delegatedGateway                         delegatedCapabilityGateway
 	delegatedFirewall                        delegatedOutputFirewall
-	delegatedTransportFactory                delegation.TransportFactory
 	delegatedProviderProfiles                map[string]*runtimev1.DelegatedProviderProfile
 	delegatedApprovalRequests                map[string]*runtimev1.DelegatedApprovalRequest
 	delegatedPausedRequests                  map[string]*runtimeAgentPausedDelegatedCapabilityRequest
@@ -180,10 +179,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if memorySvc == nil {
 		return nil, fmt.Errorf("memory service is required")
 	}
-	delegatedGateway, err := delegation.NewGateway(nil)
-	if err != nil {
-		return nil, err
-	}
 	delegatedFirewall, err := delegation.NewFirewall(delegation.FirewallPolicy{})
 	if err != nil {
 		return nil, err
@@ -224,7 +219,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		sourceMaterializationNow:                 func() time.Time { return time.Now().UTC() },
 		voiceAssetResolver:                       rejectingVoiceAssetResolver{},
 		aiBridge:                                 newRuntimePrivateAIBridge(),
-		delegatedGateway:                         delegatedGateway,
 		delegatedFirewall:                        delegatedFirewall,
 		agents:                                   make(map[string]*agentEntry),
 		events:                                   make([]*runtimev1.AgentEvent, 0, maxEventLogSize),

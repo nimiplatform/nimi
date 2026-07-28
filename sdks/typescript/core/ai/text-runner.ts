@@ -18,6 +18,7 @@ import {
   type NimiStructuredOutputParseSuccess,
   type NimiStructuredOutputRepairRequest,
 } from '../../features/evaluation';
+import { createNimiError } from '../../types';
 import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from './index';
 
 export interface NimiTextRuntime {
@@ -458,9 +459,13 @@ function isNimiTextErrorLike(value: unknown): value is NimiTextErrorLike {
 }
 
 function toError(error: NimiTextError): Error {
-  const next = new Error(error.message);
-  next.name = error.code;
-  return next;
+  return createNimiError({
+    message: error.message,
+    code: error.code,
+    reasonCode: error.code,
+    actionHint: 'check_ai_text_error',
+    source: 'sdk',
+  });
 }
 
 function isAbortLikeError(error: unknown): boolean {

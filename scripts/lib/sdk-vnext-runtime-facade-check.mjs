@@ -11,7 +11,7 @@ export const RUNTIME_FACADE_PATHS = Object.freeze({
     'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/identity-access.yaml',
     'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml',
     'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
-    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
+    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/audit-artifact.yaml',
   ]),
 });
 
@@ -31,7 +31,7 @@ export const GROUP_TO_FACADE_ARRAYS = Object.freeze([
   { groups: ['artifact_service_projection'], arrays: ['RUNTIME_ARTIFACT_METHODS'] },
   { groups: ['memory_service_projection'], arrays: ['RUNTIME_MEMORY_METHODS'] },
   {
-    groups: ['agent_service_projection', 'agent_participation_projection'],
+    groups: ['agent_service_projection'],
     arrays: ['RUNTIME_AGENT_METHODS', 'RUNTIME_ROOT_AGENT_FACADE_METHODS'],
   },
 ]);
@@ -40,7 +40,6 @@ const ROOT_AGENT_FACADE_ARRAY = 'RUNTIME_ROOT_AGENT_FACADE_METHODS';
 const GENERATED_AGENT_ARRAY = 'RUNTIME_AGENT_METHODS';
 
 const DEFERRED_GROUPS = Object.freeze([
-  'workflow_service_projection',
   'model_service_projection',
 ]);
 

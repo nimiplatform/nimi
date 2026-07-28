@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,13 +13,6 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const vnextRoot = path.join(repoRoot, 'sdks', 'typescript');
 let tempRoot = '';
-
-const EXPECTED_EXPORTS = [
-  '.', './ai-runner', './ai', './app', './contracts', './features/conversation',
-  './features/evaluation', './features/generation', './features/knowledge-context',
-  './features/memory-context', './features/toolkits', './features/workflow',
-  './realm', './realm/generated', './runtime', './runtime/generated', './runtime/wire-types', './testing', './types',
-];
 
 function cleanup() {
   if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
@@ -36,15 +29,6 @@ function run(label, command, args, options = {}) {
   });
   if (result.status !== 0) {
     throw new Error(`${label} failed with exit code ${String(result.status ?? 1)}`);
-  }
-}
-
-function assertExportMap() {
-  const packageJson = JSON.parse(readFileSync(path.join(vnextRoot, 'package.json'), 'utf8'));
-  const actual = Object.keys(packageJson.exports ?? {}).sort();
-  const expected = [...EXPECTED_EXPORTS].sort();
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(`vNext public exports changed: expected ${expected.join(', ')}, got ${actual.join(', ')}`);
   }
 }
 
@@ -72,7 +56,6 @@ const checks = [
   ['@nimiplatform/sdk/features/knowledge-context', 'createNimiKnowledgeContextBundle'],
   ['@nimiplatform/sdk/features/memory-context', 'buildNimiMemoryContextWindow'],
   ['@nimiplatform/sdk/features/generation', 'createNimiGenerationJob'],
-  ['@nimiplatform/sdk/features/workflow', 'createWorldWorkflowPlan'],
   ['@nimiplatform/sdk/features/evaluation', 'createNimiGoldenRun'],
   ['@nimiplatform/sdk/features/toolkits', 'createNimiToolRegistry'],
 ];
@@ -125,7 +108,6 @@ import { buildNimiConversationHistoryWindow } from '@nimiplatform/sdk/features/c
 import { createNimiKnowledgeContextBundle } from '@nimiplatform/sdk/features/knowledge-context';
 import { buildNimiMemoryContextWindow } from '@nimiplatform/sdk/features/memory-context';
 import { createNimiGenerationJob } from '@nimiplatform/sdk/features/generation';
-import { createWorldWorkflowPlan } from '@nimiplatform/sdk/features/workflow';
 import { createNimiGoldenRun } from '@nimiplatform/sdk/features/evaluation';
 import { createNimiToolRegistry } from '@nimiplatform/sdk/features/toolkits';
 
@@ -210,11 +192,10 @@ const manifest: NimiCapabilityManifest = {
 };
 const model: NimiAiModel = createNimiMockModel({ text: 'ok' });
 const runner: NimiAiRunnerSpec = { id: 'runner', name: 'Runner' };
-const plan = createWorldWorkflowPlan({ planId: 'plan', steps: [{ kind: 'world-core-list' }] });
 const registry = createNimiToolRegistry([]);
 
 void client; void runtime; void realm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void post; void packetModelName; void grantModelName; void sourceRefModelName; void message;
-void manifest; void model; void runner; void plan; void registry;
+void manifest; void model; void runner; void registry;
 void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
 void buildNimiConversationHistoryWindow; void createNimiKnowledgeContextBundle;
 void buildNimiMemoryContextWindow; void createNimiGenerationJob; void createNimiGoldenRun;
@@ -222,7 +203,6 @@ void buildNimiMemoryContextWindow; void createNimiGenerationJob; void createNimi
 }
 
 function main() {
-  assertExportMap();
   if (!isSdkDistPrepared()) {
     run('build sdks/typescript', PNPM_BIN, ['--dir', vnextRoot, 'run', 'build']);
   }

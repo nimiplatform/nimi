@@ -4,11 +4,9 @@ import test from 'node:test';
 import {
   NIMI_RUNTIME_AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
   buildNimiRuntimeAgentConsumeContext,
-  buildNimiRuntimeAgentDelegatedProviderProfileFromDraft,
   buildNimiRuntimeAgentResolvedOutputText,
   buildNimiRuntimeAgentSnapshotRecoveryEvents,
   cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
-  createNimiHostRuntimeAgentDelegatedCapabilitySurface,
   createNimiHostRuntimeAgentMemorySurface,
   createNimiRuntimeAgentConsumeClient,
   isNimiRuntimeAgentProjectionEvent,

@@ -1,33 +1,12 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   createRuntimeBuildRecord,
   validateRuntimeBuildRecord,
 } from './lib/runtime-build-record.mjs';
 
-const buildRuntimeSource = readFileSync(new URL('./build-runtime.mjs', import.meta.url), 'utf8');
-const goTestSignerSource = readFileSync(new URL('./windows-go-test-exec-signer.ps1', import.meta.url), 'utf8');
-
-test('build-runtime uses the unified Windows dev signing helper only', () => {
-  assert.match(buildRuntimeSource, /windows-dev-signing\.mjs/);
-  assert.match(buildRuntimeSource, /signWindowsDevFiles\(\[outputPath\]/);
-  assert.doesNotMatch(buildRuntimeSource, /New-SelfSignedCertificate/);
-  assert.doesNotMatch(buildRuntimeSource, /TrustedPublisher/);
-  assert.doesNotMatch(buildRuntimeSource, /certutil\.exe/);
-});
-
-test('build-runtime signs only the current runtime binary', () => {
-  assert.match(buildRuntimeSource, /signWindowsDevFiles\(\[outputPath\]/);
-  assert.doesNotMatch(buildRuntimeSource, /nimi-dev\.exe/);
-  assert.doesNotMatch(buildRuntimeSource, /signTargets/);
-});
-
-test('build-runtime emits a source-bound production candidate record', () => {
-  assert.match(buildRuntimeSource, /captureRuntimeBuildSource\(repoRoot, \{ pathspecs: WINDOWS_RUNTIME_BUILD_SOURCE_PATHS \}\)/);
-  assert.match(buildRuntimeSource, /assertRuntimeBuildSourceUnchanged\(buildSource, repoRoot, \{ pathspecs: WINDOWS_RUNTIME_BUILD_SOURCE_PATHS \}\)/);
-  assert.match(buildRuntimeSource, /nimi-build-record\.json/);
+test('runtime build record binds the candidate to its source and binary', () => {
   const source = {
     repositoryId: 'nimi',
     headCommit: '1'.repeat(40),
@@ -57,21 +36,4 @@ test('build-runtime emits a source-bound production candidate record', () => {
   const tampered = structuredClone(record);
   tampered.runtime.binarySha256 = '7'.repeat(64);
   assert.throws(() => validateRuntimeBuildRecord(tampered), /candidate id does not recompute/u);
-});
-
-test('build-runtime reports a running Windows runtime binary before signing', () => {
-  assert.match(buildRuntimeSource, /findWindowsRuntimeBinaryOwners/);
-  assert.match(buildRuntimeSource, /Get-CimInstance Win32_Process/);
-  assert.match(buildRuntimeSource, /assertWindowsRuntimeBinaryNotRunning\(outputPath\)/);
-  assert.match(buildRuntimeSource, /cannot rebuild runtime binary/);
-  assert.match(buildRuntimeSource, /Stop the running runtime first/);
-  assert.match(buildRuntimeSource, /pnpm dev:runtime/);
-});
-
-test('windows go test signer shares the runtime development signing helper', () => {
-  assert.match(goTestSignerSource, /windows-dev-signing\.ps1/);
-  assert.match(goTestSignerSource, /-Mode Sign/);
-  assert.match(goTestSignerSource, /-Json \| Out-Null/);
-  assert.doesNotMatch(goTestSignerSource, /Nimi Local Go Test Code Signing/);
-  assert.doesNotMatch(goTestSignerSource, /New-SelfSignedCertificate/);
 });

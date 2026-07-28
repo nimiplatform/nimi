@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,10 +15,12 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 const liveSmokeMatrixAppID = "nimi.live-smoke.matrix"
@@ -745,46 +746,51 @@ func resolveLiveVoiceCloneText(providerToken string) string {
 	return ""
 }
 
-func maybeSkipFishAudioBalanceBlocked(t *testing.T, providerID string, err error, detail string) {
+func liveProviderFailure(err error, job *runtimev1.ScenarioJob) (runtimev1.ReasonCode, string, string) {
+	if job != nil {
+		actionHint := ""
+		if metadata := job.GetReasonMetadata(); metadata != nil {
+			actionHint = strings.TrimSpace(metadata.GetFields()["action_hint"].GetStringValue())
+		}
+		return job.GetReasonCode(), actionHint, strings.TrimSpace(job.GetReasonDetail())
+	}
+	if err == nil {
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", ""
+	}
+	reasonCode, _ := grpcerr.ExtractReasonCode(err)
+	metadata, _ := grpcerr.ExtractReasonMetadata(err)
+	return reasonCode, strings.TrimSpace(metadata["action_hint"]), strings.TrimSpace(status.Convert(err).Message())
+}
+
+func maybeSkipFishAudioBalanceBlocked(t *testing.T, providerID string, err error, job *runtimev1.ScenarioJob) {
 	t.Helper()
 	if !strings.EqualFold(strings.TrimSpace(providerID), "fish_audio") {
 		return
 	}
-	message := strings.ToLower(strings.TrimSpace(detail))
-	if err != nil {
-		message = strings.TrimSpace(message + " " + strings.ToLower(err.Error()))
-	}
-	if strings.Contains(message, "insufficient balance") || strings.Contains(message, "insufficient credits") {
-		if err != nil {
-			t.Skipf("fish_audio live smoke skipped due to provider balance block: %v", err)
-		}
-		t.Skipf("fish_audio live smoke skipped due to provider balance block: %s", strings.TrimSpace(detail))
+	reasonCode, actionHint, detail := liveProviderFailure(err, job)
+	if reasonCode == runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+		t.Skipf(
+			"fish_audio live smoke skipped due to typed provider balance block: reason=%s action_hint=%s detail=%s",
+			reasonCode.String(),
+			actionHint,
+			detail,
+		)
 	}
 }
 
-func maybeSkipStepFunQuotaBlocked(t *testing.T, providerID string, err error, detail string) {
+func maybeSkipStepFunQuotaBlocked(t *testing.T, providerID string, err error, job *runtimev1.ScenarioJob) {
 	t.Helper()
 	if !strings.EqualFold(strings.TrimSpace(providerID), "stepfun") {
 		return
 	}
-	message := strings.ToLower(strings.TrimSpace(detail))
-	if err != nil {
-		message = strings.TrimSpace(message + " " + strings.ToLower(err.Error()))
-	}
-	// 'stepfun' live smoke treats quota and rate-limit responses as skip-worthy provider blocks.
-	if strings.Contains(message, "quota_exceeded") ||
-		strings.Contains(message, "exceeded your current quota") ||
-		strings.Contains(message, "billing details") ||
-		strings.Contains(message, "insufficient balance") ||
-		strings.Contains(message, "available balance") ||
-		strings.Contains(message, "resourceexhausted") ||
-		strings.Contains(message, "resource exhausted") ||
-		strings.Contains(message, "ai_provider_rate_limited") ||
-		strings.Contains(message, "replenish_provider_balance_or_skip_live_test") {
-		if err != nil {
-			t.Skipf("stepfun live smoke skipped due to provider quota block: %v", err)
-		}
-		t.Skipf("stepfun live smoke skipped due to provider quota block: %s", strings.TrimSpace(detail))
+	reasonCode, actionHint, detail := liveProviderFailure(err, job)
+	if reasonCode == runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+		t.Skipf(
+			"stepfun live smoke skipped due to typed provider quota block: reason=%s action_hint=%s detail=%s",
+			reasonCode.String(),
+			actionHint,
+			detail,
+		)
 	}
 }
 
@@ -832,10 +838,7 @@ func maybeSkipFishAudioBalancePreflight(t *testing.T, svc *Service, providerID s
 	}
 	var responsePayload map[string]any
 	_ = json.NewDecoder(response.Body).Decode(&responsePayload)
-	message := strings.ToLower(strings.TrimSpace(nimillm.ProviderErrorMessage(responsePayload)))
-	if strings.Contains(message, "insufficient balance") || strings.Contains(message, "insufficient credits") {
-		t.Skipf("fish_audio live smoke skipped due to provider balance block: %s", strings.TrimSpace(nimillm.ProviderErrorMessage(responsePayload)))
-	}
+	maybeSkipFishAudioBalanceBlocked(t, providerID, nimillm.MapProviderHTTPError(response.StatusCode, responsePayload), nil)
 }
 
 func runLiveSmokeGenerateForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord) {
@@ -848,7 +851,7 @@ func runLiveSmokeGenerateForProvider(t *testing.T, providerID string, record pro
 		harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 45_000),
 	)
 	if err != nil {
-		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
+		maybeSkipStepFunQuotaBlocked(t, providerID, err, nil)
 		t.Fatalf("live generate failed: %v", err)
 	}
 	if strings.TrimSpace(text) == "" {
@@ -946,8 +949,8 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		Spec:          spec,
 	})
 	if err != nil {
-		maybeSkipFishAudioBalanceBlocked(t, providerID, err, "")
-		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
+		maybeSkipFishAudioBalanceBlocked(t, providerID, err, nil)
+		maybeSkipStepFunQuotaBlocked(t, providerID, err, nil)
 		t.Fatalf("submit scenario job failed: %v", err)
 	}
 	if liveSmokeShouldOnlyVerifyAsyncAcceptance(providerID, scenarioType) {
@@ -964,8 +967,8 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 	}
 	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
-		maybeSkipStepFunQuotaBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
+		maybeSkipFishAudioBalanceBlocked(t, providerID, nil, job)
+		maybeSkipStepFunQuotaBlocked(t, providerID, nil, job)
 		t.Fatalf(
 			"scenario job status not completed: %s reason=%s detail=%s metadata=%v",
 			job.GetStatus().String(),

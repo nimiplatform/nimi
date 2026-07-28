@@ -44,7 +44,6 @@ operation_schema:
     - realm_base_policy
     - response_max_bytes
     - credential_response_policy
-    - consumer_refs
     - source_rule
   authorization_profile_values:
     - protected_desktop_source_readiness
@@ -79,8 +78,6 @@ operations:
     path_template: /api/realm/core/persona-characters/by-id/{personaCharacterId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_getPersonaCharacter/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_getPersonaCharacter/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_getWorldCharacter
@@ -89,8 +86,6 @@ operations:
     path_template: /api/realm/core/world-characters/by-id/{characterId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_getWorldEntity
@@ -99,8 +94,6 @@ operations:
     path_template: /api/realm/core/world-entities/{entityId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldEntity/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldEntity/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts
 
   - <<: *desktop_and_bundled_avatar_source_read
     operation_id: WorldCoreController_listPersonaCharacters
@@ -109,9 +102,6 @@ operations:
     path_template: /api/realm/core/persona-characters
     request_schema_ref: realm-openapi://operation/WorldCoreController_listPersonaCharacters/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_listPersonaCharacters/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/explore/data/realm-explore-data.ts
-      - apps/avatar/src/shell/renderer/app-shell/app-bootstrap.ts
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_discoverPersonaCharacters
@@ -120,8 +110,6 @@ operations:
     path_template: /api/realm/core/persona-characters/discovery
     request_schema_ref: realm-openapi://operation/WorldCoreController_discoverPersonaCharacters/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_discoverPersonaCharacters/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/explore/data/realm-explore-data.ts
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_listWorldRelationships
@@ -130,8 +118,6 @@ operations:
     path_template: /api/realm/core/worlds/{worldId}/relationships
     request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldRelationships/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_listWorldRelationships/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_getWorld
@@ -140,8 +126,6 @@ operations:
     path_template: /api/world/by-id/{worldId}
     request_schema_ref: realm-openapi://operation/WorldPublicController_getWorld/request
     response_schema_ref: realm-openapi://operation/WorldPublicController_getWorld/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/world/data/realm-world-data.ts
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_getWorldDetailWithCharacters
@@ -150,9 +134,6 @@ operations:
     path_template: /api/world/by-id/{worldId}/detail-with-characters
     request_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/request
     response_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/world/data/realm-world-data.ts
-      - apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_listWorlds
@@ -161,8 +142,6 @@ operations:
     path_template: /api/world
     request_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/request
     response_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/response
-    consumer_refs:
-      - apps/desktop/src/shell/renderer/features/world/data/realm-world-data.ts
 
 forbidden_operation_classes:
   - every_realm_operation_not_listed_in_operations

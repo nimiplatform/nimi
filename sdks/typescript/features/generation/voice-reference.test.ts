@@ -5,7 +5,7 @@ import {
   requireNimiRuntimeVoiceReferenceForLocalTts,
   toNimiRuntimeVoiceReferenceFromInput,
 } from './index';
-import { isNimiError } from '../../types';
+import { isNimiError, ReasonCode } from '../../types';
 
 test('voice reference parser accepts ordinary public preset and asset references', () => {
   assert.deepEqual(
@@ -26,15 +26,33 @@ test('voice reference parser treats default and blank object refs as no explicit
 test('voice reference parser rejects provider handles and unprefixed strings on ordinary SDK input', () => {
   assert.throws(
     () => toNimiRuntimeVoiceReferenceFromInput('provider_voice_ref:alice'),
-    /provider_voice_ref is not accepted/u,
+    (error) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal(error.code, 'SDK_GENERATION_PROVIDER_VOICE_REF_FORBIDDEN');
+      assert.equal(error.reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+      assert.equal(error.actionHint, 'bind_runtime_voice_asset');
+      return true;
+    },
   );
   assert.throws(
     () => toNimiRuntimeVoiceReferenceFromInput('alice'),
-    /preset_voice_id or voice_asset_id/u,
+    (error) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal(error.code, 'SDK_GENERATION_VOICE_REFERENCE_KIND_UNSUPPORTED');
+      assert.equal(error.reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+      assert.equal(error.actionHint, 'use_preset_or_voice_asset_reference');
+      return true;
+    },
   );
   assert.throws(
     () => toNimiRuntimeVoiceReferenceFromInput({ providerVoiceRef: 'alice' }),
-    /provider_voice_ref is not accepted/u,
+    (error) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal(error.code, 'SDK_GENERATION_PROVIDER_VOICE_REF_FORBIDDEN');
+      assert.equal(error.reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+      assert.equal(error.actionHint, 'bind_runtime_voice_asset');
+      return true;
+    },
   );
 });
 
@@ -51,9 +69,8 @@ test('local TTS requires an explicit admitted voice reference', () => {
     (error) => {
       assert.equal(isNimiError(error), true);
       assert.equal(error.code, 'SDK_GENERATION_LOCAL_TTS_VOICE_REFERENCE_REQUIRED');
+      assert.equal(error.reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
       assert.equal(error.actionHint, 'select_admitted_voice_reference');
-      assert.match(error.message, /explicit admitted Voice reference/u);
-      assert.match(error.message, /preset_voice_id or voice_asset_id/u);
       return true;
     },
   );

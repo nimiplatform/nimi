@@ -231,7 +231,8 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 	}
 }
 
-func TestPollProviderTaskForArtifactFailedStatusIncludesProviderMessage(t *testing.T) {
+func TestPollProviderTaskForArtifactFailedStatusUsesStructuredReason(t *testing.T) {
+	const providerMessage = "opaque-provider-body-marker"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-failed-1" {
 			http.NotFound(w, r)
@@ -242,7 +243,7 @@ func TestPollProviderTaskForArtifactFailedStatusIncludesProviderMessage(t *testi
 			"id":     "task-failed-1",
 			"status": "failed",
 			"error": map[string]any{
-				"message": "duration must be between 4 and 15 seconds",
+				"message": providerMessage,
 			},
 		})
 	}))
@@ -270,12 +271,22 @@ func TestPollProviderTaskForArtifactFailedStatusIncludesProviderMessage(t *testi
 	if providerJobID != "task-failed-1" {
 		t.Fatalf("unexpected providerJobID: %q", providerJobID)
 	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v (ok=%v)", reason, ok)
+	}
 	metadata, ok := grpcerr.ExtractReasonMetadata(err)
 	if !ok {
 		t.Fatalf("expected reason metadata, got err=%v", err)
 	}
-	if got := metadata["provider_message"]; !strings.Contains(got, "duration must be between 4 and 15 seconds") {
-		t.Fatalf("expected provider failure detail in metadata, got=%q", got)
+	if got := metadata["provider_task_status"]; got != "failed" {
+		t.Fatalf("expected provider task status metadata, got=%q", got)
+	}
+	if got := metadata["action_hint"]; got != "check_provider_endpoint_or_live_task_status" {
+		t.Fatalf("expected structured action hint, got=%q", got)
+	}
+	if _, exists := metadata["provider_message"]; exists {
+		t.Fatalf("provider body must not be projected into reason metadata: %#v", metadata)
 	}
 }
 

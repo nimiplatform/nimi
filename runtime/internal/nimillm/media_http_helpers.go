@@ -183,7 +183,7 @@ func providerHTTPErrorFromResponse(response *http.Response, targetURL string) (m
 		} else {
 			payload = map[string]any{"message": string(raw)}
 		}
-		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL, "body", normalizeProviderErrorMessage(string(raw)))
+		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL)
 	}
 	return payload, MapProviderHTTPError(response.StatusCode, payload)
 }

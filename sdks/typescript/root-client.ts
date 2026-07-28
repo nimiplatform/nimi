@@ -52,11 +52,6 @@ import {
   type NimiRuntimeMemoryAiContextProviderOptions,
   type NimiRuntimeMemoryContextClientOptions,
 } from './features/memory-context';
-import {
-  executeWorldWorkflowPlan,
-  type WorldWorkflowPlan,
-} from './features/workflow';
-
 export interface NimiDirectClientConfig {
   readonly appId?: string;
   readonly runtime?: Runtime | RuntimeOptions;
@@ -153,9 +148,6 @@ export interface NimiClientFeatureSurface {
   };
   memory: {
     createRuntimeContextClient(options: NimiClientMemoryOptions): ReturnType<typeof createNimiRuntimeMemoryContextClient>;
-  };
-  world: {
-    execute(plan: WorldWorkflowPlan, realm?: Realm): ReturnType<typeof executeWorldWorkflowPlan>;
   };
 }
 
@@ -338,11 +330,6 @@ function createFeatureSurface(client: NimiClient): NimiClientFeatureSurface {
             appId: resolveAppId(client, options.context?.appId, 'provide_memory_context_app_id'),
           },
         });
-      },
-    },
-    world: {
-      execute(plan, realm) {
-        return executeWorldWorkflowPlan(realm ?? client.requireRealm(), plan);
       },
     },
   };

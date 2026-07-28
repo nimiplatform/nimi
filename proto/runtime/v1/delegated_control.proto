@@ -7,8 +7,9 @@ import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 
 enum DelegatedProviderKind {
+  reserved 1;
+  reserved "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER";
   DELEGATED_PROVIDER_KIND_UNSPECIFIED = 0;
-  DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER = 1;
   DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM = 2;
   DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER = 3;
   DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER = 4;
@@ -34,8 +35,9 @@ enum DelegatedProviderState {
 }
 
 enum DelegatedTransportKind {
+  reserved 1;
+  reserved "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND";
   DELEGATED_TRANSPORT_KIND_UNSPECIFIED = 0;
-  DELEGATED_TRANSPORT_KIND_STDIO_COMMAND = 1;
 }
 
 enum DelegatedApprovalMode {
@@ -66,9 +68,8 @@ enum DelegatedApprovalDecision {
   DELEGATED_APPROVAL_DECISION_EXPIRED = 5;
 }
 
-// EffectClass enumerates the K-DELEG-007 effect classification consumed by the
-// K-DELEG-091 approval request. Values mirror the effect_classes table in
-// delegation-provider-profiles.yaml (source_rule K-DELEG-007).
+// EffectClass enumerates the approval-gating classification owned by
+// rule.nimi.runtime.delegation.r007.
 enum EffectClass {
   EFFECT_CLASS_UNSPECIFIED = 0;
   EFFECT_CLASS_READ_ONLY = 1;
@@ -114,18 +115,13 @@ enum DelegatedTraceStageKind {
 message DelegatedToolAllowlistEntry {
   string tool_name = 1;
   string input_schema_digest = 2;
-  // K-DELEG-006 capability-descriptor classification declared at profile
-  // registration. effect_class is required on write (upsert fails closed on
-  // UNSPECIFIED); records persisted before this field derive as UNSPECIFIED
-  // and force approval-required handling instead of silently passing.
   EffectClass effect_class = 3;
-  // Expected sensitivity of the capability's output (K-DELEG-068). Optional
-  // on write; UNSPECIFIED derives conservatively as UNKNOWN_SENSITIVE for
-  // approval-requirement purposes.
   SensitivityClass expected_sensitivity_class = 4;
 }
 
 message DelegatedProviderProfile {
+  reserved 14, 15;
+  reserved "command", "args";
   string provider_profile_id = 1;
   string display_name = 2;
   DelegatedProviderKind provider_kind = 3;
@@ -139,8 +135,6 @@ message DelegatedProviderProfile {
   string transport_ref = 11;
   DelegatedProviderTrustTier trust_tier = 12;
   string lifecycle_reason_code = 13;
-  string command = 14;
-  repeated string args = 15;
 }
 
 message DelegatedControlSurfaceSnapshot {
@@ -160,28 +154,6 @@ message ListDelegatedProviderProfilesRequest {
 
 message ListDelegatedProviderProfilesResponse {
   repeated DelegatedProviderProfile provider_profiles = 1;
-}
-
-message UpsertDelegatedProviderProfileRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
-  DelegatedProviderProfile provider_profile = 3;
-}
-
-message UpsertDelegatedProviderProfileResponse {
-  DelegatedProviderProfile provider_profile = 1;
-}
-
-message SetDelegatedProviderStateRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
-  string provider_profile_id = 3;
-  DelegatedProviderState state = 4;
-  string lifecycle_reason_code = 5;
-}
-
-message SetDelegatedProviderStateResponse {
-  DelegatedProviderProfile provider_profile = 1;
 }
 
 message DelegatedApprovalRequest {
@@ -304,41 +276,4 @@ message GetDelegatedControlSurfaceSnapshotRequest {
 
 message GetDelegatedControlSurfaceSnapshotResponse {
   DelegatedControlSurfaceSnapshot snapshot = 1;
-}
-
-message ExecuteDelegatedCapabilityRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
-  string conversation_anchor_id = 3;
-  string turn_id = 4;
-  string stream_id = 5;
-  string request_id = 6;
-  string provider_profile_id = 7;
-  string capability_id = 8;
-  string tool_name = 9;
-  google.protobuf.Struct arguments = 10;
-  string descriptor_hash = 11;
-  string protocol_revision = 12;
-  string output_kind = 13;
-  bool requires_approval = 14;
-}
-
-message ExecuteDelegatedCapabilityResponse {
-  DelegatedDiagnostic diagnostic = 1;
-  DelegatedReplayTrace replay_trace = 2;
-  google.protobuf.Struct model_output = 3;
-  DelegatedApprovalRequest approval_request = 4;
-}
-
-message ResumeDelegatedCapabilityRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
-  string approval_request_id = 3;
-}
-
-message ResumeDelegatedCapabilityResponse {
-  DelegatedDiagnostic diagnostic = 1;
-  DelegatedReplayTrace replay_trace = 2;
-  google.protobuf.Struct model_output = 3;
-  DelegatedApprovalRequest approval_request = 4;
 }

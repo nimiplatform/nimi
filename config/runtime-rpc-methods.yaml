@@ -14,7 +14,6 @@ surfaces:
   - RuntimeServiceControlService
   - RuntimeExternalAgentService
   - RuntimeAccountService
-  - RuntimeWorkflowService
   - RuntimeAuditService
   - RuntimeModelService
   - RuntimeCognitionService
@@ -352,17 +351,6 @@ services:
         authority_status: blocked_pending_separate_authority
         transport_disposition: deny_all
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding
-  - name: RuntimeWorkflowService
-    source_rule: K-WF-003
-    methods:
-      - name: SubmitWorkflow
-        type: unary
-      - name: GetWorkflow
-        type: unary
-      - name: CancelWorkflow
-        type: unary
-      - name: SubscribeWorkflowEvents
-        type: server_stream
   - name: RuntimeAuditService
     source_rule: K-AUDIT-013
     methods:
@@ -603,10 +591,6 @@ services:
         type: unary
       - name: ListDelegatedProviderProfiles
         type: unary
-      - name: UpsertDelegatedProviderProfile
-        type: unary
-      - name: SetDelegatedProviderState
-        type: unary
       - name: ListDelegatedApprovalRequests
         type: unary
       - name: SubmitDelegatedApprovalDecision
@@ -616,10 +600,6 @@ services:
       - name: GetDelegatedReplayTrace
         type: unary
       - name: GetDelegatedControlSurfaceSnapshot
-        type: unary
-      - name: ExecuteDelegatedCapability
-        type: unary
-      - name: ResumeDelegatedCapability
         type: unary
       - name: GetAgentState
         type: unary

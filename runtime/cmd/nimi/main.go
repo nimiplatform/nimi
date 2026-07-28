@@ -58,8 +58,6 @@ func main() {
 		exitIfCommandError("app", runRuntimeApp(args[2:]))
 	case "audit":
 		exitIfCommandError("audit", runRuntimeAudit(args[2:]))
-	case "workflow":
-		exitIfCommandError("workflow", runRuntimeWorkflow(args[2:]))
 	case "health":
 		exitIfCommandError("health", runRuntimeHealth(args[2:]))
 	case "providers":
@@ -532,27 +530,6 @@ func runRuntimeAudit(args []string) error {
 		return runRuntimeAuditExport(args[1:])
 	default:
 		printRuntimeAuditUsage()
-		return flag.ErrHelp
-	}
-}
-
-func runRuntimeWorkflow(args []string) error {
-	if len(args) == 0 {
-		printRuntimeWorkflowUsage()
-		return flag.ErrHelp
-	}
-
-	switch args[0] {
-	case "submit":
-		return runRuntimeWorkflowSubmit(args[1:])
-	case "get":
-		return runRuntimeWorkflowGet(args[1:])
-	case "cancel":
-		return runRuntimeWorkflowCancel(args[1:])
-	case "watch":
-		return runRuntimeWorkflowWatch(args[1:])
-	default:
-		printRuntimeWorkflowUsage()
 		return flag.ErrHelp
 	}
 }

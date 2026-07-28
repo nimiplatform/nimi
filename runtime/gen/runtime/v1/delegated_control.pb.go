@@ -28,7 +28,6 @@ type DelegatedProviderKind int32
 
 const (
 	DelegatedProviderKind_DELEGATED_PROVIDER_KIND_UNSPECIFIED              DelegatedProviderKind = 0
-	DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER        DelegatedProviderKind = 1
 	DelegatedProviderKind_DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM        DelegatedProviderKind = 2
 	DelegatedProviderKind_DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER  DelegatedProviderKind = 3
 	DelegatedProviderKind_DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER DelegatedProviderKind = 4
@@ -38,14 +37,12 @@ const (
 var (
 	DelegatedProviderKind_name = map[int32]string{
 		0: "DELEGATED_PROVIDER_KIND_UNSPECIFIED",
-		1: "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER",
 		2: "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM",
 		3: "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER",
 		4: "DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER",
 	}
 	DelegatedProviderKind_value = map[string]int32{
 		"DELEGATED_PROVIDER_KIND_UNSPECIFIED":              0,
-		"DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER":        1,
 		"DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM":        2,
 		"DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER":  3,
 		"DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER": 4,
@@ -201,19 +198,16 @@ func (DelegatedProviderState) EnumDescriptor() ([]byte, []int) {
 type DelegatedTransportKind int32
 
 const (
-	DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_UNSPECIFIED   DelegatedTransportKind = 0
-	DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND DelegatedTransportKind = 1
+	DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_UNSPECIFIED DelegatedTransportKind = 0
 )
 
 // Enum value maps for DelegatedTransportKind.
 var (
 	DelegatedTransportKind_name = map[int32]string{
 		0: "DELEGATED_TRANSPORT_KIND_UNSPECIFIED",
-		1: "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND",
 	}
 	DelegatedTransportKind_value = map[string]int32{
-		"DELEGATED_TRANSPORT_KIND_UNSPECIFIED":   0,
-		"DELEGATED_TRANSPORT_KIND_STDIO_COMMAND": 1,
+		"DELEGATED_TRANSPORT_KIND_UNSPECIFIED": 0,
 	}
 )
 
@@ -415,9 +409,8 @@ func (DelegatedApprovalDecision) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{6}
 }
 
-// EffectClass enumerates the K-DELEG-007 effect classification consumed by the
-// K-DELEG-091 approval request. Values mirror the effect_classes table in
-// delegation-provider-profiles.yaml (source_rule K-DELEG-007).
+// EffectClass enumerates the approval-gating classification owned by
+// rule.nimi.runtime.delegation.r007.
 type EffectClass int32
 
 const (
@@ -661,18 +654,11 @@ func (DelegatedTraceStageKind) EnumDescriptor() ([]byte, []int) {
 }
 
 type DelegatedToolAllowlistEntry struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ToolName          string                 `protobuf:"bytes,1,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
-	InputSchemaDigest string                 `protobuf:"bytes,2,opt,name=input_schema_digest,json=inputSchemaDigest,proto3" json:"input_schema_digest,omitempty"`
-	// K-DELEG-006 capability-descriptor classification declared at profile
-	// registration. effect_class is required on write (upsert fails closed on
-	// UNSPECIFIED); records persisted before this field derive as UNSPECIFIED
-	// and force approval-required handling instead of silently passing.
-	EffectClass EffectClass `protobuf:"varint,3,opt,name=effect_class,json=effectClass,proto3,enum=nimi.runtime.v1.EffectClass" json:"effect_class,omitempty"`
-	// Expected sensitivity of the capability's output (K-DELEG-068). Optional
-	// on write; UNSPECIFIED derives conservatively as UNKNOWN_SENSITIVE for
-	// approval-requirement purposes.
-	ExpectedSensitivityClass SensitivityClass `protobuf:"varint,4,opt,name=expected_sensitivity_class,json=expectedSensitivityClass,proto3,enum=nimi.runtime.v1.SensitivityClass" json:"expected_sensitivity_class,omitempty"`
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	ToolName                 string                 `protobuf:"bytes,1,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
+	InputSchemaDigest        string                 `protobuf:"bytes,2,opt,name=input_schema_digest,json=inputSchemaDigest,proto3" json:"input_schema_digest,omitempty"`
+	EffectClass              EffectClass            `protobuf:"varint,3,opt,name=effect_class,json=effectClass,proto3,enum=nimi.runtime.v1.EffectClass" json:"effect_class,omitempty"`
+	ExpectedSensitivityClass SensitivityClass       `protobuf:"varint,4,opt,name=expected_sensitivity_class,json=expectedSensitivityClass,proto3,enum=nimi.runtime.v1.SensitivityClass" json:"expected_sensitivity_class,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -750,8 +736,6 @@ type DelegatedProviderProfile struct {
 	TransportRef        string                         `protobuf:"bytes,11,opt,name=transport_ref,json=transportRef,proto3" json:"transport_ref,omitempty"`
 	TrustTier           DelegatedProviderTrustTier     `protobuf:"varint,12,opt,name=trust_tier,json=trustTier,proto3,enum=nimi.runtime.v1.DelegatedProviderTrustTier" json:"trust_tier,omitempty"`
 	LifecycleReasonCode string                         `protobuf:"bytes,13,opt,name=lifecycle_reason_code,json=lifecycleReasonCode,proto3" json:"lifecycle_reason_code,omitempty"`
-	Command             string                         `protobuf:"bytes,14,opt,name=command,proto3" json:"command,omitempty"`
-	Args                []string                       `protobuf:"bytes,15,rep,name=args,proto3" json:"args,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -875,20 +859,6 @@ func (x *DelegatedProviderProfile) GetLifecycleReasonCode() string {
 		return x.LifecycleReasonCode
 	}
 	return ""
-}
-
-func (x *DelegatedProviderProfile) GetCommand() string {
-	if x != nil {
-		return x.Command
-	}
-	return ""
-}
-
-func (x *DelegatedProviderProfile) GetArgs() []string {
-	if x != nil {
-		return x.Args
-	}
-	return nil
 }
 
 type DelegatedControlSurfaceSnapshot struct {
@@ -1079,230 +1049,6 @@ func (x *ListDelegatedProviderProfilesResponse) GetProviderProfiles() []*Delegat
 	return nil
 }
 
-type UpsertDelegatedProviderProfileRequest struct {
-	state           protoimpl.MessageState    `protogen:"open.v1"`
-	Context         *AgentRequestContext      `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	AgentId         string                    `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	ProviderProfile *DelegatedProviderProfile `protobuf:"bytes,3,opt,name=provider_profile,json=providerProfile,proto3" json:"provider_profile,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *UpsertDelegatedProviderProfileRequest) Reset() {
-	*x = UpsertDelegatedProviderProfileRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpsertDelegatedProviderProfileRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpsertDelegatedProviderProfileRequest) ProtoMessage() {}
-
-func (x *UpsertDelegatedProviderProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpsertDelegatedProviderProfileRequest.ProtoReflect.Descriptor instead.
-func (*UpsertDelegatedProviderProfileRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UpsertDelegatedProviderProfileRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *UpsertDelegatedProviderProfileRequest) GetAgentId() string {
-	if x != nil {
-		return x.AgentId
-	}
-	return ""
-}
-
-func (x *UpsertDelegatedProviderProfileRequest) GetProviderProfile() *DelegatedProviderProfile {
-	if x != nil {
-		return x.ProviderProfile
-	}
-	return nil
-}
-
-type UpsertDelegatedProviderProfileResponse struct {
-	state           protoimpl.MessageState    `protogen:"open.v1"`
-	ProviderProfile *DelegatedProviderProfile `protobuf:"bytes,1,opt,name=provider_profile,json=providerProfile,proto3" json:"provider_profile,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *UpsertDelegatedProviderProfileResponse) Reset() {
-	*x = UpsertDelegatedProviderProfileResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpsertDelegatedProviderProfileResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpsertDelegatedProviderProfileResponse) ProtoMessage() {}
-
-func (x *UpsertDelegatedProviderProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpsertDelegatedProviderProfileResponse.ProtoReflect.Descriptor instead.
-func (*UpsertDelegatedProviderProfileResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *UpsertDelegatedProviderProfileResponse) GetProviderProfile() *DelegatedProviderProfile {
-	if x != nil {
-		return x.ProviderProfile
-	}
-	return nil
-}
-
-type SetDelegatedProviderStateRequest struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Context             *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	AgentId             string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	ProviderProfileId   string                 `protobuf:"bytes,3,opt,name=provider_profile_id,json=providerProfileId,proto3" json:"provider_profile_id,omitempty"`
-	State               DelegatedProviderState `protobuf:"varint,4,opt,name=state,proto3,enum=nimi.runtime.v1.DelegatedProviderState" json:"state,omitempty"`
-	LifecycleReasonCode string                 `protobuf:"bytes,5,opt,name=lifecycle_reason_code,json=lifecycleReasonCode,proto3" json:"lifecycle_reason_code,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *SetDelegatedProviderStateRequest) Reset() {
-	*x = SetDelegatedProviderStateRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetDelegatedProviderStateRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetDelegatedProviderStateRequest) ProtoMessage() {}
-
-func (x *SetDelegatedProviderStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetDelegatedProviderStateRequest.ProtoReflect.Descriptor instead.
-func (*SetDelegatedProviderStateRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *SetDelegatedProviderStateRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *SetDelegatedProviderStateRequest) GetAgentId() string {
-	if x != nil {
-		return x.AgentId
-	}
-	return ""
-}
-
-func (x *SetDelegatedProviderStateRequest) GetProviderProfileId() string {
-	if x != nil {
-		return x.ProviderProfileId
-	}
-	return ""
-}
-
-func (x *SetDelegatedProviderStateRequest) GetState() DelegatedProviderState {
-	if x != nil {
-		return x.State
-	}
-	return DelegatedProviderState_DELEGATED_PROVIDER_STATE_UNSPECIFIED
-}
-
-func (x *SetDelegatedProviderStateRequest) GetLifecycleReasonCode() string {
-	if x != nil {
-		return x.LifecycleReasonCode
-	}
-	return ""
-}
-
-type SetDelegatedProviderStateResponse struct {
-	state           protoimpl.MessageState    `protogen:"open.v1"`
-	ProviderProfile *DelegatedProviderProfile `protobuf:"bytes,1,opt,name=provider_profile,json=providerProfile,proto3" json:"provider_profile,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *SetDelegatedProviderStateResponse) Reset() {
-	*x = SetDelegatedProviderStateResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetDelegatedProviderStateResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetDelegatedProviderStateResponse) ProtoMessage() {}
-
-func (x *SetDelegatedProviderStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetDelegatedProviderStateResponse.ProtoReflect.Descriptor instead.
-func (*SetDelegatedProviderStateResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *SetDelegatedProviderStateResponse) GetProviderProfile() *DelegatedProviderProfile {
-	if x != nil {
-		return x.ProviderProfile
-	}
-	return nil
-}
-
 type DelegatedApprovalRequest struct {
 	state                protoimpl.MessageState        `protogen:"open.v1"`
 	ApprovalRequestId    string                        `protobuf:"bytes,1,opt,name=approval_request_id,json=approvalRequestId,proto3" json:"approval_request_id,omitempty"`
@@ -1334,7 +1080,7 @@ type DelegatedApprovalRequest struct {
 
 func (x *DelegatedApprovalRequest) Reset() {
 	*x = DelegatedApprovalRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[9]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1346,7 +1092,7 @@ func (x *DelegatedApprovalRequest) String() string {
 func (*DelegatedApprovalRequest) ProtoMessage() {}
 
 func (x *DelegatedApprovalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[9]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1359,7 +1105,7 @@ func (x *DelegatedApprovalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DelegatedApprovalRequest.ProtoReflect.Descriptor instead.
 func (*DelegatedApprovalRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DelegatedApprovalRequest) GetApprovalRequestId() string {
@@ -1506,7 +1252,7 @@ type ListDelegatedApprovalRequestsRequest struct {
 
 func (x *ListDelegatedApprovalRequestsRequest) Reset() {
 	*x = ListDelegatedApprovalRequestsRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[10]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1518,7 +1264,7 @@ func (x *ListDelegatedApprovalRequestsRequest) String() string {
 func (*ListDelegatedApprovalRequestsRequest) ProtoMessage() {}
 
 func (x *ListDelegatedApprovalRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[10]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1531,7 +1277,7 @@ func (x *ListDelegatedApprovalRequestsRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ListDelegatedApprovalRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListDelegatedApprovalRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListDelegatedApprovalRequestsRequest) GetContext() *AgentRequestContext {
@@ -1564,7 +1310,7 @@ type ListDelegatedApprovalRequestsResponse struct {
 
 func (x *ListDelegatedApprovalRequestsResponse) Reset() {
 	*x = ListDelegatedApprovalRequestsResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[11]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1576,7 +1322,7 @@ func (x *ListDelegatedApprovalRequestsResponse) String() string {
 func (*ListDelegatedApprovalRequestsResponse) ProtoMessage() {}
 
 func (x *ListDelegatedApprovalRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[11]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1589,7 +1335,7 @@ func (x *ListDelegatedApprovalRequestsResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use ListDelegatedApprovalRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListDelegatedApprovalRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListDelegatedApprovalRequestsResponse) GetApprovalRequests() []*DelegatedApprovalRequest {
@@ -1612,7 +1358,7 @@ type SubmitDelegatedApprovalDecisionRequest struct {
 
 func (x *SubmitDelegatedApprovalDecisionRequest) Reset() {
 	*x = SubmitDelegatedApprovalDecisionRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[12]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1624,7 +1370,7 @@ func (x *SubmitDelegatedApprovalDecisionRequest) String() string {
 func (*SubmitDelegatedApprovalDecisionRequest) ProtoMessage() {}
 
 func (x *SubmitDelegatedApprovalDecisionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[12]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1637,7 +1383,7 @@ func (x *SubmitDelegatedApprovalDecisionRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use SubmitDelegatedApprovalDecisionRequest.ProtoReflect.Descriptor instead.
 func (*SubmitDelegatedApprovalDecisionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SubmitDelegatedApprovalDecisionRequest) GetContext() *AgentRequestContext {
@@ -1684,7 +1430,7 @@ type SubmitDelegatedApprovalDecisionResponse struct {
 
 func (x *SubmitDelegatedApprovalDecisionResponse) Reset() {
 	*x = SubmitDelegatedApprovalDecisionResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[13]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1696,7 +1442,7 @@ func (x *SubmitDelegatedApprovalDecisionResponse) String() string {
 func (*SubmitDelegatedApprovalDecisionResponse) ProtoMessage() {}
 
 func (x *SubmitDelegatedApprovalDecisionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[13]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1709,7 +1455,7 @@ func (x *SubmitDelegatedApprovalDecisionResponse) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use SubmitDelegatedApprovalDecisionResponse.ProtoReflect.Descriptor instead.
 func (*SubmitDelegatedApprovalDecisionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SubmitDelegatedApprovalDecisionResponse) GetApprovalRequest() *DelegatedApprovalRequest {
@@ -1740,7 +1486,7 @@ type DelegatedDiagnostic struct {
 
 func (x *DelegatedDiagnostic) Reset() {
 	*x = DelegatedDiagnostic{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[14]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1752,7 +1498,7 @@ func (x *DelegatedDiagnostic) String() string {
 func (*DelegatedDiagnostic) ProtoMessage() {}
 
 func (x *DelegatedDiagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[14]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1765,7 +1511,7 @@ func (x *DelegatedDiagnostic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DelegatedDiagnostic.ProtoReflect.Descriptor instead.
 func (*DelegatedDiagnostic) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DelegatedDiagnostic) GetDiagnosticId() string {
@@ -1873,7 +1619,7 @@ type DelegatedReplayTraceStage struct {
 
 func (x *DelegatedReplayTraceStage) Reset() {
 	*x = DelegatedReplayTraceStage{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[15]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1885,7 +1631,7 @@ func (x *DelegatedReplayTraceStage) String() string {
 func (*DelegatedReplayTraceStage) ProtoMessage() {}
 
 func (x *DelegatedReplayTraceStage) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[15]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1898,7 +1644,7 @@ func (x *DelegatedReplayTraceStage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DelegatedReplayTraceStage.ProtoReflect.Descriptor instead.
 func (*DelegatedReplayTraceStage) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DelegatedReplayTraceStage) GetKind() DelegatedTraceStageKind {
@@ -1965,7 +1711,7 @@ type DelegatedReplayTrace struct {
 
 func (x *DelegatedReplayTrace) Reset() {
 	*x = DelegatedReplayTrace{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[16]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1977,7 +1723,7 @@ func (x *DelegatedReplayTrace) String() string {
 func (*DelegatedReplayTrace) ProtoMessage() {}
 
 func (x *DelegatedReplayTrace) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[16]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1990,7 +1736,7 @@ func (x *DelegatedReplayTrace) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DelegatedReplayTrace.ProtoReflect.Descriptor instead.
 func (*DelegatedReplayTrace) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DelegatedReplayTrace) GetReplayId() string {
@@ -2102,7 +1848,7 @@ type ListDelegatedDiagnosticsRequest struct {
 
 func (x *ListDelegatedDiagnosticsRequest) Reset() {
 	*x = ListDelegatedDiagnosticsRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[17]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2114,7 +1860,7 @@ func (x *ListDelegatedDiagnosticsRequest) String() string {
 func (*ListDelegatedDiagnosticsRequest) ProtoMessage() {}
 
 func (x *ListDelegatedDiagnosticsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[17]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2127,7 +1873,7 @@ func (x *ListDelegatedDiagnosticsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDelegatedDiagnosticsRequest.ProtoReflect.Descriptor instead.
 func (*ListDelegatedDiagnosticsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListDelegatedDiagnosticsRequest) GetContext() *AgentRequestContext {
@@ -2160,7 +1906,7 @@ type ListDelegatedDiagnosticsResponse struct {
 
 func (x *ListDelegatedDiagnosticsResponse) Reset() {
 	*x = ListDelegatedDiagnosticsResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[18]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2172,7 +1918,7 @@ func (x *ListDelegatedDiagnosticsResponse) String() string {
 func (*ListDelegatedDiagnosticsResponse) ProtoMessage() {}
 
 func (x *ListDelegatedDiagnosticsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[18]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2185,7 +1931,7 @@ func (x *ListDelegatedDiagnosticsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDelegatedDiagnosticsResponse.ProtoReflect.Descriptor instead.
 func (*ListDelegatedDiagnosticsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListDelegatedDiagnosticsResponse) GetDiagnostics() []*DelegatedDiagnostic {
@@ -2208,7 +1954,7 @@ type GetDelegatedReplayTraceRequest struct {
 
 func (x *GetDelegatedReplayTraceRequest) Reset() {
 	*x = GetDelegatedReplayTraceRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[19]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2220,7 +1966,7 @@ func (x *GetDelegatedReplayTraceRequest) String() string {
 func (*GetDelegatedReplayTraceRequest) ProtoMessage() {}
 
 func (x *GetDelegatedReplayTraceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[19]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2233,7 +1979,7 @@ func (x *GetDelegatedReplayTraceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDelegatedReplayTraceRequest.ProtoReflect.Descriptor instead.
 func (*GetDelegatedReplayTraceRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetDelegatedReplayTraceRequest) GetContext() *AgentRequestContext {
@@ -2280,7 +2026,7 @@ type GetDelegatedReplayTraceResponse struct {
 
 func (x *GetDelegatedReplayTraceResponse) Reset() {
 	*x = GetDelegatedReplayTraceResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[20]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2292,7 +2038,7 @@ func (x *GetDelegatedReplayTraceResponse) String() string {
 func (*GetDelegatedReplayTraceResponse) ProtoMessage() {}
 
 func (x *GetDelegatedReplayTraceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[20]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2305,7 +2051,7 @@ func (x *GetDelegatedReplayTraceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDelegatedReplayTraceResponse.ProtoReflect.Descriptor instead.
 func (*GetDelegatedReplayTraceResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetDelegatedReplayTraceResponse) GetTrace() *DelegatedReplayTrace {
@@ -2326,7 +2072,7 @@ type GetDelegatedControlSurfaceSnapshotRequest struct {
 
 func (x *GetDelegatedControlSurfaceSnapshotRequest) Reset() {
 	*x = GetDelegatedControlSurfaceSnapshotRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[21]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2338,7 +2084,7 @@ func (x *GetDelegatedControlSurfaceSnapshotRequest) String() string {
 func (*GetDelegatedControlSurfaceSnapshotRequest) ProtoMessage() {}
 
 func (x *GetDelegatedControlSurfaceSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[21]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2351,7 +2097,7 @@ func (x *GetDelegatedControlSurfaceSnapshotRequest) ProtoReflect() protoreflect.
 
 // Deprecated: Use GetDelegatedControlSurfaceSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetDelegatedControlSurfaceSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetDelegatedControlSurfaceSnapshotRequest) GetContext() *AgentRequestContext {
@@ -2384,7 +2130,7 @@ type GetDelegatedControlSurfaceSnapshotResponse struct {
 
 func (x *GetDelegatedControlSurfaceSnapshotResponse) Reset() {
 	*x = GetDelegatedControlSurfaceSnapshotResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[22]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2396,7 +2142,7 @@ func (x *GetDelegatedControlSurfaceSnapshotResponse) String() string {
 func (*GetDelegatedControlSurfaceSnapshotResponse) ProtoMessage() {}
 
 func (x *GetDelegatedControlSurfaceSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[22]
+	mi := &file_runtime_v1_delegated_control_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2409,356 +2155,12 @@ func (x *GetDelegatedControlSurfaceSnapshotResponse) ProtoReflect() protoreflect
 
 // Deprecated: Use GetDelegatedControlSurfaceSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetDelegatedControlSurfaceSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetDelegatedControlSurfaceSnapshotResponse) GetSnapshot() *DelegatedControlSurfaceSnapshot {
 	if x != nil {
 		return x.Snapshot
-	}
-	return nil
-}
-
-type ExecuteDelegatedCapabilityRequest struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Context              *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	AgentId              string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	ConversationAnchorId string                 `protobuf:"bytes,3,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
-	TurnId               string                 `protobuf:"bytes,4,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`
-	StreamId             string                 `protobuf:"bytes,5,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
-	RequestId            string                 `protobuf:"bytes,6,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	ProviderProfileId    string                 `protobuf:"bytes,7,opt,name=provider_profile_id,json=providerProfileId,proto3" json:"provider_profile_id,omitempty"`
-	CapabilityId         string                 `protobuf:"bytes,8,opt,name=capability_id,json=capabilityId,proto3" json:"capability_id,omitempty"`
-	ToolName             string                 `protobuf:"bytes,9,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
-	Arguments            *structpb.Struct       `protobuf:"bytes,10,opt,name=arguments,proto3" json:"arguments,omitempty"`
-	DescriptorHash       string                 `protobuf:"bytes,11,opt,name=descriptor_hash,json=descriptorHash,proto3" json:"descriptor_hash,omitempty"`
-	ProtocolRevision     string                 `protobuf:"bytes,12,opt,name=protocol_revision,json=protocolRevision,proto3" json:"protocol_revision,omitempty"`
-	OutputKind           string                 `protobuf:"bytes,13,opt,name=output_kind,json=outputKind,proto3" json:"output_kind,omitempty"`
-	RequiresApproval     bool                   `protobuf:"varint,14,opt,name=requires_approval,json=requiresApproval,proto3" json:"requires_approval,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) Reset() {
-	*x = ExecuteDelegatedCapabilityRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExecuteDelegatedCapabilityRequest) ProtoMessage() {}
-
-func (x *ExecuteDelegatedCapabilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExecuteDelegatedCapabilityRequest.ProtoReflect.Descriptor instead.
-func (*ExecuteDelegatedCapabilityRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetAgentId() string {
-	if x != nil {
-		return x.AgentId
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetConversationAnchorId() string {
-	if x != nil {
-		return x.ConversationAnchorId
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetTurnId() string {
-	if x != nil {
-		return x.TurnId
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetStreamId() string {
-	if x != nil {
-		return x.StreamId
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetProviderProfileId() string {
-	if x != nil {
-		return x.ProviderProfileId
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetCapabilityId() string {
-	if x != nil {
-		return x.CapabilityId
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetToolName() string {
-	if x != nil {
-		return x.ToolName
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetArguments() *structpb.Struct {
-	if x != nil {
-		return x.Arguments
-	}
-	return nil
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetDescriptorHash() string {
-	if x != nil {
-		return x.DescriptorHash
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetProtocolRevision() string {
-	if x != nil {
-		return x.ProtocolRevision
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetOutputKind() string {
-	if x != nil {
-		return x.OutputKind
-	}
-	return ""
-}
-
-func (x *ExecuteDelegatedCapabilityRequest) GetRequiresApproval() bool {
-	if x != nil {
-		return x.RequiresApproval
-	}
-	return false
-}
-
-type ExecuteDelegatedCapabilityResponse struct {
-	state           protoimpl.MessageState    `protogen:"open.v1"`
-	Diagnostic      *DelegatedDiagnostic      `protobuf:"bytes,1,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
-	ReplayTrace     *DelegatedReplayTrace     `protobuf:"bytes,2,opt,name=replay_trace,json=replayTrace,proto3" json:"replay_trace,omitempty"`
-	ModelOutput     *structpb.Struct          `protobuf:"bytes,3,opt,name=model_output,json=modelOutput,proto3" json:"model_output,omitempty"`
-	ApprovalRequest *DelegatedApprovalRequest `protobuf:"bytes,4,opt,name=approval_request,json=approvalRequest,proto3" json:"approval_request,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ExecuteDelegatedCapabilityResponse) Reset() {
-	*x = ExecuteDelegatedCapabilityResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExecuteDelegatedCapabilityResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExecuteDelegatedCapabilityResponse) ProtoMessage() {}
-
-func (x *ExecuteDelegatedCapabilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExecuteDelegatedCapabilityResponse.ProtoReflect.Descriptor instead.
-func (*ExecuteDelegatedCapabilityResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *ExecuteDelegatedCapabilityResponse) GetDiagnostic() *DelegatedDiagnostic {
-	if x != nil {
-		return x.Diagnostic
-	}
-	return nil
-}
-
-func (x *ExecuteDelegatedCapabilityResponse) GetReplayTrace() *DelegatedReplayTrace {
-	if x != nil {
-		return x.ReplayTrace
-	}
-	return nil
-}
-
-func (x *ExecuteDelegatedCapabilityResponse) GetModelOutput() *structpb.Struct {
-	if x != nil {
-		return x.ModelOutput
-	}
-	return nil
-}
-
-func (x *ExecuteDelegatedCapabilityResponse) GetApprovalRequest() *DelegatedApprovalRequest {
-	if x != nil {
-		return x.ApprovalRequest
-	}
-	return nil
-}
-
-type ResumeDelegatedCapabilityRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Context           *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	AgentId           string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	ApprovalRequestId string                 `protobuf:"bytes,3,opt,name=approval_request_id,json=approvalRequestId,proto3" json:"approval_request_id,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *ResumeDelegatedCapabilityRequest) Reset() {
-	*x = ResumeDelegatedCapabilityRequest{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResumeDelegatedCapabilityRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResumeDelegatedCapabilityRequest) ProtoMessage() {}
-
-func (x *ResumeDelegatedCapabilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ResumeDelegatedCapabilityRequest.ProtoReflect.Descriptor instead.
-func (*ResumeDelegatedCapabilityRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *ResumeDelegatedCapabilityRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *ResumeDelegatedCapabilityRequest) GetAgentId() string {
-	if x != nil {
-		return x.AgentId
-	}
-	return ""
-}
-
-func (x *ResumeDelegatedCapabilityRequest) GetApprovalRequestId() string {
-	if x != nil {
-		return x.ApprovalRequestId
-	}
-	return ""
-}
-
-type ResumeDelegatedCapabilityResponse struct {
-	state           protoimpl.MessageState    `protogen:"open.v1"`
-	Diagnostic      *DelegatedDiagnostic      `protobuf:"bytes,1,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
-	ReplayTrace     *DelegatedReplayTrace     `protobuf:"bytes,2,opt,name=replay_trace,json=replayTrace,proto3" json:"replay_trace,omitempty"`
-	ModelOutput     *structpb.Struct          `protobuf:"bytes,3,opt,name=model_output,json=modelOutput,proto3" json:"model_output,omitempty"`
-	ApprovalRequest *DelegatedApprovalRequest `protobuf:"bytes,4,opt,name=approval_request,json=approvalRequest,proto3" json:"approval_request,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ResumeDelegatedCapabilityResponse) Reset() {
-	*x = ResumeDelegatedCapabilityResponse{}
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResumeDelegatedCapabilityResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResumeDelegatedCapabilityResponse) ProtoMessage() {}
-
-func (x *ResumeDelegatedCapabilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_delegated_control_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ResumeDelegatedCapabilityResponse.ProtoReflect.Descriptor instead.
-func (*ResumeDelegatedCapabilityResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *ResumeDelegatedCapabilityResponse) GetDiagnostic() *DelegatedDiagnostic {
-	if x != nil {
-		return x.Diagnostic
-	}
-	return nil
-}
-
-func (x *ResumeDelegatedCapabilityResponse) GetReplayTrace() *DelegatedReplayTrace {
-	if x != nil {
-		return x.ReplayTrace
-	}
-	return nil
-}
-
-func (x *ResumeDelegatedCapabilityResponse) GetModelOutput() *structpb.Struct {
-	if x != nil {
-		return x.ModelOutput
-	}
-	return nil
-}
-
-func (x *ResumeDelegatedCapabilityResponse) GetApprovalRequest() *DelegatedApprovalRequest {
-	if x != nil {
-		return x.ApprovalRequest
 	}
 	return nil
 }
@@ -2772,7 +2174,7 @@ const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"\ttool_name\x18\x01 \x01(\tR\btoolName\x12.\n" +
 	"\x13input_schema_digest\x18\x02 \x01(\tR\x11inputSchemaDigest\x12?\n" +
 	"\feffect_class\x18\x03 \x01(\x0e2\x1c.nimi.runtime.v1.EffectClassR\veffectClass\x12_\n" +
-	"\x1aexpected_sensitivity_class\x18\x04 \x01(\x0e2!.nimi.runtime.v1.SensitivityClassR\x18expectedSensitivityClass\"\xc1\x06\n" +
+	"\x1aexpected_sensitivity_class\x18\x04 \x01(\x0e2!.nimi.runtime.v1.SensitivityClassR\x18expectedSensitivityClass\"\xae\x06\n" +
 	"\x18DelegatedProviderProfile\x12.\n" +
 	"\x13provider_profile_id\x18\x01 \x01(\tR\x11providerProfileId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12K\n" +
@@ -2790,9 +2192,7 @@ const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"\rtransport_ref\x18\v \x01(\tR\ftransportRef\x12J\n" +
 	"\n" +
 	"trust_tier\x18\f \x01(\x0e2+.nimi.runtime.v1.DelegatedProviderTrustTierR\ttrustTier\x122\n" +
-	"\x15lifecycle_reason_code\x18\r \x01(\tR\x13lifecycleReasonCode\x12\x18\n" +
-	"\acommand\x18\x0e \x01(\tR\acommand\x12\x12\n" +
-	"\x04args\x18\x0f \x03(\tR\x04args\"\xf4\x03\n" +
+	"\x15lifecycle_reason_code\x18\r \x01(\tR\x13lifecycleReasonCodeJ\x04\b\x0e\x10\x0fJ\x04\b\x0f\x10\x10R\acommandR\x04args\"\xf4\x03\n" +
 	"\x1fDelegatedControlSurfaceSnapshot\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x124\n" +
 	"\x16conversation_anchor_id\x18\x02 \x01(\tR\x14conversationAnchorId\x12K\n" +
@@ -2806,21 +2206,7 @@ const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\"\x7f\n" +
 	"%ListDelegatedProviderProfilesResponse\x12V\n" +
-	"\x11provider_profiles\x18\x01 \x03(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x10providerProfiles\"\xd8\x01\n" +
-	"%UpsertDelegatedProviderProfileRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
-	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12T\n" +
-	"\x10provider_profile\x18\x03 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"~\n" +
-	"&UpsertDelegatedProviderProfileResponse\x12T\n" +
-	"\x10provider_profile\x18\x01 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"\xa0\x02\n" +
-	" SetDelegatedProviderStateRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
-	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12.\n" +
-	"\x13provider_profile_id\x18\x03 \x01(\tR\x11providerProfileId\x12=\n" +
-	"\x05state\x18\x04 \x01(\x0e2'.nimi.runtime.v1.DelegatedProviderStateR\x05state\x122\n" +
-	"\x15lifecycle_reason_code\x18\x05 \x01(\tR\x13lifecycleReasonCode\"y\n" +
-	"!SetDelegatedProviderStateResponse\x12T\n" +
-	"\x10provider_profile\x18\x01 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"\xae\a\n" +
+	"\x11provider_profiles\x18\x01 \x03(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x10providerProfiles\"\xae\a\n" +
 	"\x18DelegatedApprovalRequest\x12.\n" +
 	"\x13approval_request_id\x18\x01 \x01(\tR\x11approvalRequestId\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
@@ -2925,49 +2311,12 @@ const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
 	"\x16conversation_anchor_id\x18\x03 \x01(\tR\x14conversationAnchorId\"z\n" +
 	"*GetDelegatedControlSurfaceSnapshotResponse\x12L\n" +
-	"\bsnapshot\x18\x01 \x01(\v20.nimi.runtime.v1.DelegatedControlSurfaceSnapshotR\bsnapshot\"\xd6\x04\n" +
-	"!ExecuteDelegatedCapabilityRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
-	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
-	"\x16conversation_anchor_id\x18\x03 \x01(\tR\x14conversationAnchorId\x12\x17\n" +
-	"\aturn_id\x18\x04 \x01(\tR\x06turnId\x12\x1b\n" +
-	"\tstream_id\x18\x05 \x01(\tR\bstreamId\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\x06 \x01(\tR\trequestId\x12.\n" +
-	"\x13provider_profile_id\x18\a \x01(\tR\x11providerProfileId\x12#\n" +
-	"\rcapability_id\x18\b \x01(\tR\fcapabilityId\x12\x1b\n" +
-	"\ttool_name\x18\t \x01(\tR\btoolName\x125\n" +
-	"\targuments\x18\n" +
-	" \x01(\v2\x17.google.protobuf.StructR\targuments\x12'\n" +
-	"\x0fdescriptor_hash\x18\v \x01(\tR\x0edescriptorHash\x12+\n" +
-	"\x11protocol_revision\x18\f \x01(\tR\x10protocolRevision\x12\x1f\n" +
-	"\voutput_kind\x18\r \x01(\tR\n" +
-	"outputKind\x12+\n" +
-	"\x11requires_approval\x18\x0e \x01(\bR\x10requiresApproval\"\xc6\x02\n" +
-	"\"ExecuteDelegatedCapabilityResponse\x12D\n" +
-	"\n" +
-	"diagnostic\x18\x01 \x01(\v2$.nimi.runtime.v1.DelegatedDiagnosticR\n" +
-	"diagnostic\x12H\n" +
-	"\freplay_trace\x18\x02 \x01(\v2%.nimi.runtime.v1.DelegatedReplayTraceR\vreplayTrace\x12:\n" +
-	"\fmodel_output\x18\x03 \x01(\v2\x17.google.protobuf.StructR\vmodelOutput\x12T\n" +
-	"\x10approval_request\x18\x04 \x01(\v2).nimi.runtime.v1.DelegatedApprovalRequestR\x0fapprovalRequest\"\xad\x01\n" +
-	" ResumeDelegatedCapabilityRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
-	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12.\n" +
-	"\x13approval_request_id\x18\x03 \x01(\tR\x11approvalRequestId\"\xc5\x02\n" +
-	"!ResumeDelegatedCapabilityResponse\x12D\n" +
-	"\n" +
-	"diagnostic\x18\x01 \x01(\v2$.nimi.runtime.v1.DelegatedDiagnosticR\n" +
-	"diagnostic\x12H\n" +
-	"\freplay_trace\x18\x02 \x01(\v2%.nimi.runtime.v1.DelegatedReplayTraceR\vreplayTrace\x12:\n" +
-	"\fmodel_output\x18\x03 \x01(\v2\x17.google.protobuf.StructR\vmodelOutput\x12T\n" +
-	"\x10approval_request\x18\x04 \x01(\v2).nimi.runtime.v1.DelegatedApprovalRequestR\x0fapprovalRequest*\x89\x02\n" +
+	"\bsnapshot\x18\x01 \x01(\v20.nimi.runtime.v1.DelegatedControlSurfaceSnapshotR\bsnapshot*\x8b\x02\n" +
 	"\x15DelegatedProviderKind\x12'\n" +
 	"#DELEGATED_PROVIDER_KIND_UNSPECIFIED\x10\x00\x12-\n" +
-	")DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER\x10\x01\x12-\n" +
 	")DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM\x10\x02\x123\n" +
 	"/DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER\x10\x03\x124\n" +
-	"0DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER\x10\x04*\x90\x02\n" +
+	"0DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER\x10\x04\"\x04\b\x01\x10\x01*)DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER*\x90\x02\n" +
 	"\x1aDelegatedProviderTrustTier\x12-\n" +
 	")DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED\x10\x00\x122\n" +
 	".DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL\x10\x01\x125\n" +
@@ -2982,10 +2331,9 @@ const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"!DELEGATED_PROVIDER_STATE_DEGRADED\x10\x04\x12%\n" +
 	"!DELEGATED_PROVIDER_STATE_DISABLED\x10\x05\x12(\n" +
 	"$DELEGATED_PROVIDER_STATE_QUARANTINED\x10\x06\x12$\n" +
-	" DELEGATED_PROVIDER_STATE_REMOVED\x10\a*n\n" +
+	" DELEGATED_PROVIDER_STATE_REMOVED\x10\a*p\n" +
 	"\x16DelegatedTransportKind\x12(\n" +
-	"$DELEGATED_TRANSPORT_KIND_UNSPECIFIED\x10\x00\x12*\n" +
-	"&DELEGATED_TRANSPORT_KIND_STDIO_COMMAND\x10\x01*\xbc\x01\n" +
+	"$DELEGATED_TRANSPORT_KIND_UNSPECIFIED\x10\x00\"\x04\b\x01\x10\x01*&DELEGATED_TRANSPORT_KIND_STDIO_COMMAND*\xbc\x01\n" +
 	"\x15DelegatedApprovalMode\x12'\n" +
 	"#DELEGATED_APPROVAL_MODE_UNSPECIFIED\x10\x00\x12*\n" +
 	"&DELEGATED_APPROVAL_MODE_RUNTIME_POLICY\x10\x01\x12(\n" +
@@ -3050,7 +2398,7 @@ func file_runtime_v1_delegated_control_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_delegated_control_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
-var file_runtime_v1_delegated_control_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_runtime_v1_delegated_control_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_runtime_v1_delegated_control_proto_goTypes = []any{
 	(DelegatedProviderKind)(0),                         // 0: nimi.runtime.v1.DelegatedProviderKind
 	(DelegatedProviderTrustTier)(0),                    // 1: nimi.runtime.v1.DelegatedProviderTrustTier
@@ -3068,32 +2416,24 @@ var file_runtime_v1_delegated_control_proto_goTypes = []any{
 	(*DelegatedControlSurfaceSnapshot)(nil),            // 13: nimi.runtime.v1.DelegatedControlSurfaceSnapshot
 	(*ListDelegatedProviderProfilesRequest)(nil),       // 14: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
 	(*ListDelegatedProviderProfilesResponse)(nil),      // 15: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
-	(*UpsertDelegatedProviderProfileRequest)(nil),      // 16: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
-	(*UpsertDelegatedProviderProfileResponse)(nil),     // 17: nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
-	(*SetDelegatedProviderStateRequest)(nil),           // 18: nimi.runtime.v1.SetDelegatedProviderStateRequest
-	(*SetDelegatedProviderStateResponse)(nil),          // 19: nimi.runtime.v1.SetDelegatedProviderStateResponse
-	(*DelegatedApprovalRequest)(nil),                   // 20: nimi.runtime.v1.DelegatedApprovalRequest
-	(*ListDelegatedApprovalRequestsRequest)(nil),       // 21: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
-	(*ListDelegatedApprovalRequestsResponse)(nil),      // 22: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
-	(*SubmitDelegatedApprovalDecisionRequest)(nil),     // 23: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
-	(*SubmitDelegatedApprovalDecisionResponse)(nil),    // 24: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
-	(*DelegatedDiagnostic)(nil),                        // 25: nimi.runtime.v1.DelegatedDiagnostic
-	(*DelegatedReplayTraceStage)(nil),                  // 26: nimi.runtime.v1.DelegatedReplayTraceStage
-	(*DelegatedReplayTrace)(nil),                       // 27: nimi.runtime.v1.DelegatedReplayTrace
-	(*ListDelegatedDiagnosticsRequest)(nil),            // 28: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
-	(*ListDelegatedDiagnosticsResponse)(nil),           // 29: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
-	(*GetDelegatedReplayTraceRequest)(nil),             // 30: nimi.runtime.v1.GetDelegatedReplayTraceRequest
-	(*GetDelegatedReplayTraceResponse)(nil),            // 31: nimi.runtime.v1.GetDelegatedReplayTraceResponse
-	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),  // 32: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
-	(*GetDelegatedControlSurfaceSnapshotResponse)(nil), // 33: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
-	(*ExecuteDelegatedCapabilityRequest)(nil),          // 34: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
-	(*ExecuteDelegatedCapabilityResponse)(nil),         // 35: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
-	(*ResumeDelegatedCapabilityRequest)(nil),           // 36: nimi.runtime.v1.ResumeDelegatedCapabilityRequest
-	(*ResumeDelegatedCapabilityResponse)(nil),          // 37: nimi.runtime.v1.ResumeDelegatedCapabilityResponse
-	(*durationpb.Duration)(nil),                        // 38: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),                      // 39: google.protobuf.Timestamp
-	(*AgentRequestContext)(nil),                        // 40: nimi.runtime.v1.AgentRequestContext
-	(*structpb.Struct)(nil),                            // 41: google.protobuf.Struct
+	(*DelegatedApprovalRequest)(nil),                   // 16: nimi.runtime.v1.DelegatedApprovalRequest
+	(*ListDelegatedApprovalRequestsRequest)(nil),       // 17: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
+	(*ListDelegatedApprovalRequestsResponse)(nil),      // 18: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
+	(*SubmitDelegatedApprovalDecisionRequest)(nil),     // 19: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
+	(*SubmitDelegatedApprovalDecisionResponse)(nil),    // 20: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
+	(*DelegatedDiagnostic)(nil),                        // 21: nimi.runtime.v1.DelegatedDiagnostic
+	(*DelegatedReplayTraceStage)(nil),                  // 22: nimi.runtime.v1.DelegatedReplayTraceStage
+	(*DelegatedReplayTrace)(nil),                       // 23: nimi.runtime.v1.DelegatedReplayTrace
+	(*ListDelegatedDiagnosticsRequest)(nil),            // 24: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
+	(*ListDelegatedDiagnosticsResponse)(nil),           // 25: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
+	(*GetDelegatedReplayTraceRequest)(nil),             // 26: nimi.runtime.v1.GetDelegatedReplayTraceRequest
+	(*GetDelegatedReplayTraceResponse)(nil),            // 27: nimi.runtime.v1.GetDelegatedReplayTraceResponse
+	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),  // 28: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
+	(*GetDelegatedControlSurfaceSnapshotResponse)(nil), // 29: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
+	(*durationpb.Duration)(nil),                        // 30: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),                      // 31: google.protobuf.Timestamp
+	(*AgentRequestContext)(nil),                        // 32: nimi.runtime.v1.AgentRequestContext
+	(*structpb.Struct)(nil),                            // 33: google.protobuf.Struct
 }
 var file_runtime_v1_delegated_control_proto_depIdxs = []int32{
 	7,  // 0: nimi.runtime.v1.DelegatedToolAllowlistEntry.effect_class:type_name -> nimi.runtime.v1.EffectClass
@@ -3102,63 +2442,46 @@ var file_runtime_v1_delegated_control_proto_depIdxs = []int32{
 	3,  // 3: nimi.runtime.v1.DelegatedProviderProfile.transport_kind:type_name -> nimi.runtime.v1.DelegatedTransportKind
 	2,  // 4: nimi.runtime.v1.DelegatedProviderProfile.state:type_name -> nimi.runtime.v1.DelegatedProviderState
 	11, // 5: nimi.runtime.v1.DelegatedProviderProfile.allowed_tools:type_name -> nimi.runtime.v1.DelegatedToolAllowlistEntry
-	38, // 6: nimi.runtime.v1.DelegatedProviderProfile.timeout:type_name -> google.protobuf.Duration
-	39, // 7: nimi.runtime.v1.DelegatedProviderProfile.created_at:type_name -> google.protobuf.Timestamp
-	39, // 8: nimi.runtime.v1.DelegatedProviderProfile.updated_at:type_name -> google.protobuf.Timestamp
+	30, // 6: nimi.runtime.v1.DelegatedProviderProfile.timeout:type_name -> google.protobuf.Duration
+	31, // 7: nimi.runtime.v1.DelegatedProviderProfile.created_at:type_name -> google.protobuf.Timestamp
+	31, // 8: nimi.runtime.v1.DelegatedProviderProfile.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 9: nimi.runtime.v1.DelegatedProviderProfile.trust_tier:type_name -> nimi.runtime.v1.DelegatedProviderTrustTier
 	4,  // 10: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.approval_mode:type_name -> nimi.runtime.v1.DelegatedApprovalMode
 	12, // 11: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.provider_profiles:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	20, // 12: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.approval_requests:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	25, // 13: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.diagnostics:type_name -> nimi.runtime.v1.DelegatedDiagnostic
-	39, // 14: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.observed_at:type_name -> google.protobuf.Timestamp
-	40, // 15: nimi.runtime.v1.ListDelegatedProviderProfilesRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	16, // 12: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.approval_requests:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
+	21, // 13: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.diagnostics:type_name -> nimi.runtime.v1.DelegatedDiagnostic
+	31, // 14: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.observed_at:type_name -> google.protobuf.Timestamp
+	32, // 15: nimi.runtime.v1.ListDelegatedProviderProfilesRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	12, // 16: nimi.runtime.v1.ListDelegatedProviderProfilesResponse.provider_profiles:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	40, // 17: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	12, // 18: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	12, // 19: nimi.runtime.v1.UpsertDelegatedProviderProfileResponse.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	40, // 20: nimi.runtime.v1.SetDelegatedProviderStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	2,  // 21: nimi.runtime.v1.SetDelegatedProviderStateRequest.state:type_name -> nimi.runtime.v1.DelegatedProviderState
-	12, // 22: nimi.runtime.v1.SetDelegatedProviderStateResponse.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	5,  // 23: nimi.runtime.v1.DelegatedApprovalRequest.state:type_name -> nimi.runtime.v1.DelegatedApprovalRequestState
-	41, // 24: nimi.runtime.v1.DelegatedApprovalRequest.detail:type_name -> google.protobuf.Struct
-	39, // 25: nimi.runtime.v1.DelegatedApprovalRequest.created_at:type_name -> google.protobuf.Timestamp
-	39, // 26: nimi.runtime.v1.DelegatedApprovalRequest.updated_at:type_name -> google.protobuf.Timestamp
-	39, // 27: nimi.runtime.v1.DelegatedApprovalRequest.expires_at:type_name -> google.protobuf.Timestamp
-	7,  // 28: nimi.runtime.v1.DelegatedApprovalRequest.effect_class:type_name -> nimi.runtime.v1.EffectClass
-	8,  // 29: nimi.runtime.v1.DelegatedApprovalRequest.sensitivity_class:type_name -> nimi.runtime.v1.SensitivityClass
-	40, // 30: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	20, // 31: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse.approval_requests:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	40, // 32: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	6,  // 33: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest.decision:type_name -> nimi.runtime.v1.DelegatedApprovalDecision
-	20, // 34: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	39, // 35: nimi.runtime.v1.DelegatedDiagnostic.observed_at:type_name -> google.protobuf.Timestamp
-	10, // 36: nimi.runtime.v1.DelegatedReplayTraceStage.kind:type_name -> nimi.runtime.v1.DelegatedTraceStageKind
-	39, // 37: nimi.runtime.v1.DelegatedReplayTraceStage.observed_at:type_name -> google.protobuf.Timestamp
-	9,  // 38: nimi.runtime.v1.DelegatedReplayTrace.outcome:type_name -> nimi.runtime.v1.DelegatedReplayOutcome
-	26, // 39: nimi.runtime.v1.DelegatedReplayTrace.stages:type_name -> nimi.runtime.v1.DelegatedReplayTraceStage
-	39, // 40: nimi.runtime.v1.DelegatedReplayTrace.observed_at:type_name -> google.protobuf.Timestamp
-	40, // 41: nimi.runtime.v1.ListDelegatedDiagnosticsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	25, // 42: nimi.runtime.v1.ListDelegatedDiagnosticsResponse.diagnostics:type_name -> nimi.runtime.v1.DelegatedDiagnostic
-	40, // 43: nimi.runtime.v1.GetDelegatedReplayTraceRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	27, // 44: nimi.runtime.v1.GetDelegatedReplayTraceResponse.trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
-	40, // 45: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	13, // 46: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.DelegatedControlSurfaceSnapshot
-	40, // 47: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	41, // 48: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest.arguments:type_name -> google.protobuf.Struct
-	25, // 49: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.diagnostic:type_name -> nimi.runtime.v1.DelegatedDiagnostic
-	27, // 50: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.replay_trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
-	41, // 51: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.model_output:type_name -> google.protobuf.Struct
-	20, // 52: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	40, // 53: nimi.runtime.v1.ResumeDelegatedCapabilityRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	25, // 54: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.diagnostic:type_name -> nimi.runtime.v1.DelegatedDiagnostic
-	27, // 55: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.replay_trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
-	41, // 56: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.model_output:type_name -> google.protobuf.Struct
-	20, // 57: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	58, // [58:58] is the sub-list for method output_type
-	58, // [58:58] is the sub-list for method input_type
-	58, // [58:58] is the sub-list for extension type_name
-	58, // [58:58] is the sub-list for extension extendee
-	0,  // [0:58] is the sub-list for field type_name
+	5,  // 17: nimi.runtime.v1.DelegatedApprovalRequest.state:type_name -> nimi.runtime.v1.DelegatedApprovalRequestState
+	33, // 18: nimi.runtime.v1.DelegatedApprovalRequest.detail:type_name -> google.protobuf.Struct
+	31, // 19: nimi.runtime.v1.DelegatedApprovalRequest.created_at:type_name -> google.protobuf.Timestamp
+	31, // 20: nimi.runtime.v1.DelegatedApprovalRequest.updated_at:type_name -> google.protobuf.Timestamp
+	31, // 21: nimi.runtime.v1.DelegatedApprovalRequest.expires_at:type_name -> google.protobuf.Timestamp
+	7,  // 22: nimi.runtime.v1.DelegatedApprovalRequest.effect_class:type_name -> nimi.runtime.v1.EffectClass
+	8,  // 23: nimi.runtime.v1.DelegatedApprovalRequest.sensitivity_class:type_name -> nimi.runtime.v1.SensitivityClass
+	32, // 24: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	16, // 25: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse.approval_requests:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
+	32, // 26: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	6,  // 27: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest.decision:type_name -> nimi.runtime.v1.DelegatedApprovalDecision
+	16, // 28: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
+	31, // 29: nimi.runtime.v1.DelegatedDiagnostic.observed_at:type_name -> google.protobuf.Timestamp
+	10, // 30: nimi.runtime.v1.DelegatedReplayTraceStage.kind:type_name -> nimi.runtime.v1.DelegatedTraceStageKind
+	31, // 31: nimi.runtime.v1.DelegatedReplayTraceStage.observed_at:type_name -> google.protobuf.Timestamp
+	9,  // 32: nimi.runtime.v1.DelegatedReplayTrace.outcome:type_name -> nimi.runtime.v1.DelegatedReplayOutcome
+	22, // 33: nimi.runtime.v1.DelegatedReplayTrace.stages:type_name -> nimi.runtime.v1.DelegatedReplayTraceStage
+	31, // 34: nimi.runtime.v1.DelegatedReplayTrace.observed_at:type_name -> google.protobuf.Timestamp
+	32, // 35: nimi.runtime.v1.ListDelegatedDiagnosticsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	21, // 36: nimi.runtime.v1.ListDelegatedDiagnosticsResponse.diagnostics:type_name -> nimi.runtime.v1.DelegatedDiagnostic
+	32, // 37: nimi.runtime.v1.GetDelegatedReplayTraceRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	23, // 38: nimi.runtime.v1.GetDelegatedReplayTraceResponse.trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
+	32, // 39: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	13, // 40: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.DelegatedControlSurfaceSnapshot
+	41, // [41:41] is the sub-list for method output_type
+	41, // [41:41] is the sub-list for method input_type
+	41, // [41:41] is the sub-list for extension type_name
+	41, // [41:41] is the sub-list for extension extendee
+	0,  // [0:41] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_delegated_control_proto_init() }
@@ -3173,7 +2496,7 @@ func file_runtime_v1_delegated_control_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_delegated_control_proto_rawDesc), len(file_runtime_v1_delegated_control_proto_rawDesc)),
 			NumEnums:      11,
-			NumMessages:   27,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

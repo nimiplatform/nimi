@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"strconv"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -480,40 +481,11 @@ func reasonCodeFromMediaError(err error) runtimev1.ReasonCode {
 }
 
 func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode) string {
+	if detail := stableScenarioJobReasonDetail(reasonCode); detail != "" {
+		return detail
+	}
 	if err == nil {
-		return ""
-	}
-	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
-		if detail := scenarioJobReasonDetailFromMetadata(metadata, reasonCode); detail != "" {
-			return detail
-		}
-	}
-	switch reasonCode {
-	case runtimev1.ReasonCode_ACTION_EXECUTED:
-		return "request canceled"
-	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED:
-		return "local speech preflight is blocked on this host"
-	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED:
-		return "explicit download confirmation is required before local speech setup can continue"
-	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED:
-		return "local speech environment initialization failed"
-	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED:
-		return "local speech host startup or probe failed"
-	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED:
-		return "required local speech capability must be downloaded"
-	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED:
-		return "local speech bundle is degraded and needs repair"
-	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
-		return "provider request timed out"
-	case runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED:
-		return "provider rate limit reached"
-	case runtimev1.ReasonCode_AI_MODEL_NOT_FOUND:
-		return "requested model not found"
-	case runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED:
-		return "requested route is unsupported"
-	case runtimev1.ReasonCode_AI_INPUT_INVALID,
-		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED:
-		return "provider rejected request parameters"
+		return "provider request failed"
 	}
 	st, ok := status.FromError(err)
 	if !ok {
@@ -537,6 +509,46 @@ func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode)
 	}
 }
 
+func stableScenarioJobReasonDetail(reasonCode runtimev1.ReasonCode) string {
+	switch reasonCode {
+	case runtimev1.ReasonCode_ACTION_EXECUTED:
+		return "request canceled"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED:
+		return "local speech preflight is blocked on this host"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED:
+		return "explicit download confirmation is required before local speech setup can continue"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED:
+		return "local speech environment initialization failed"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED:
+		return "local speech host startup or probe failed"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED:
+		return "required local speech capability must be downloaded"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED:
+		return "local speech bundle is degraded and needs repair"
+	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+		return "provider request timed out"
+	case runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED:
+		return "provider rate limit reached"
+	case runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		runtimev1.ReasonCode_AI_PROVIDER_INTERNAL:
+		return "provider request failed"
+	case runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED:
+		return "provider authentication failed"
+	case runtimev1.ReasonCode_AI_MODEL_NOT_FOUND:
+		return "requested model not found"
+	case runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED:
+		return "requested route is unsupported"
+	case runtimev1.ReasonCode_AI_INPUT_INVALID,
+		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED:
+		return "provider rejected request parameters"
+	case runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED:
+		return "voice workflow is unsupported"
+	case runtimev1.ReasonCode_AI_OUTPUT_INVALID:
+		return "provider returned invalid output"
+	}
+	return ""
+}
+
 func scenarioJobReasonMetadata(err error, reasonCode runtimev1.ReasonCode) *structpb.Struct {
 	if err == nil {
 		return nil
@@ -556,13 +568,16 @@ func scenarioJobReasonMetadata(err error, reasonCode runtimev1.ReasonCode) *stru
 	return out
 }
 
-func scenarioJobReasonMetadataValues(metadata map[string]string, reasonCode runtimev1.ReasonCode) map[string]any {
+func scenarioJobReasonMetadataValues(metadata map[string]string, _ runtimev1.ReasonCode) map[string]any {
 	if len(metadata) == 0 {
 		return nil
 	}
 	values := map[string]any{}
-	if providerMessage := scenarioJobReasonDetailFromMetadata(metadata, reasonCode); providerMessage != "" {
-		values["provider_message"] = providerMessage
+	if actionHint := safeScenarioReasonMetadataToken(metadata["action_hint"], 120); actionHint != "" {
+		values["action_hint"] = actionHint
+	}
+	if retryable, err := strconv.ParseBool(strings.TrimSpace(metadata["retryable"])); err == nil {
+		values["retryable"] = retryable
 	}
 	if len(values) == 0 {
 		return nil
@@ -570,45 +585,21 @@ func scenarioJobReasonMetadataValues(metadata map[string]string, reasonCode runt
 	return values
 }
 
-func scenarioJobReasonDetailFromMetadata(metadata map[string]string, reasonCode runtimev1.ReasonCode) string {
-	if len(metadata) == 0 {
+func safeScenarioReasonMetadataToken(input string, maxLen int) string {
+	value := strings.TrimSpace(input)
+	if value == "" || len(value) > maxLen {
 		return ""
 	}
-	providerMessage := sanitizeScenarioProviderDetail(metadata["provider_message"])
-	if providerMessage == "" {
+	for _, r := range value {
+		if (r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') ||
+			r == '_' || r == '-' || r == '.' {
+			continue
+		}
 		return ""
 	}
-	switch reasonCode {
-	case runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
-		runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
-		runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
-		runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED,
-		runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-		runtimev1.ReasonCode_AI_INPUT_INVALID,
-		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
-		runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED,
-		runtimev1.ReasonCode_AI_MODEL_NOT_FOUND:
-		return providerMessage
-	default:
-		return ""
-	}
-}
-
-func sanitizeScenarioProviderDetail(input string) string {
-	normalized := strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(input, "\n", " "), "\t", " "))
-	if normalized == "" {
-		return ""
-	}
-	lowered := strings.ToLower(normalized)
-	if strings.Contains(lowered, "x-nimi-provider-api-key") ||
-		strings.Contains(lowered, "provider_api_key") ||
-		strings.Contains(lowered, "\"providerapikey\"") {
-		return "[REDACTED_PROVIDER_API_KEY]"
-	}
-	if len(normalized) > 240 {
-		return strings.TrimSpace(normalized[:240]) + "..."
-	}
-	return normalized
+	return value
 }
 
 func resolveScenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {

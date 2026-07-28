@@ -249,13 +249,6 @@ export enum MemoryReplicationOutcome {
   INVALIDATED = 4,
 }
 
-export enum MergeStrategy {
-  UNSPECIFIED = 0,
-  ALL = 1,
-  ANY = 2,
-  N_OF_M = 3,
-}
-
 export enum ModelCatalogProviderSource {
   UNSPECIFIED = 0,
   BUILTIN = 1,

@@ -1,7 +1,4 @@
 import { act } from 'react';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -32,16 +29,10 @@ import {
   }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 function flush() {
   return new Promise((resolve) => {
     setTimeout(resolve, 0);
   });
-}
-
-function readChatSource(fileName: string): string {
-  return readFileSync(path.join(__dirname, '..', 'src', 'components', fileName), 'utf8');
 }
 
 let root: Root | null = null;

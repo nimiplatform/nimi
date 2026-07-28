@@ -20,7 +20,6 @@ import { createNimiFixtureModel, createNonStreamingFixtureModel } from './mastra
 import './mastra.context.test';
 import './mastra.conformance.test';
 import './mastra.embedding-voice.test';
-import './mastra.runtime-delegated-tools.test';
 
 test('mastra adapter produces a LanguageModelV3 Mastra accepts as a model config', () => {
   // The wrapped Nimi model is a v3 provider model assignable to MastraModelConfig

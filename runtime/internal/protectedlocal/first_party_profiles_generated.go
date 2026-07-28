@@ -246,10 +246,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState":
-			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision":
 			return FirstPartyMethodUnary, true
 		}
@@ -439,8 +435,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/CancelHook", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", Kind: FirstPartyMethodUnary},
 		}
 	case "bundled_avatar_v1":

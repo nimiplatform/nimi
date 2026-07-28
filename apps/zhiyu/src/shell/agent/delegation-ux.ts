@@ -8,10 +8,8 @@ import {
   delegationUnavailable,
   loadReplayTraceOrNull,
   normalizeDelegationError,
-  outputFirewallFromDiagnostic,
   primaryDiagnostic,
   projectDelegationStatus,
-  stateFromProjection,
   stringOr,
 } from './delegation-ux-projection';
 import {
@@ -19,13 +17,11 @@ import {
   DELEGATION_READ_SCOPE,
   DELEGATION_WRITE_SCOPE,
   type DelegationControlSurface,
-  type DelegationDiagnostic,
   type DelegationIdentity,
   type ZhiyuDelegationUxProbeOptions,
 } from './delegation-ux-types';
 
 export type {
-  ZhiyuDelegationApprovedResumer,
   ZhiyuDelegationApprovalSubmitter,
   ZhiyuDelegationReplayLoader,
   ZhiyuDelegationSnapshotReader,
@@ -109,28 +105,9 @@ export async function submitZhiyuRuntimeDelegationApproval(
       decision: input.decision,
       decisionReason: 'zhiyu_delegation_review',
     });
-    let resumedDiagnostic: DelegationDiagnostic | null = null;
-    if (input.decision === 'approve') {
-      const resumed = await surface.resumeApprovedCapability({
-        ...identity,
-        approvalRequestId,
-      });
-      resumedDiagnostic = resumed?.diagnostic ?? null;
-    }
     const status = await probeZhiyuRuntimeDelegationUx(input.conversation, options);
     return {
       ...status,
-      ...(resumedDiagnostic && status.outputFirewall.state === 'not_projected'
-        ? {
-          outputFirewall: outputFirewallFromDiagnostic(resumedDiagnostic),
-          state: stateFromProjection(
-            status.candidateIntent,
-            outputFirewallFromDiagnostic(resumedDiagnostic),
-            status.diagnosticCount,
-            status.providerCount,
-          ),
-        }
-        : {}),
       lastDecision: {
         state: input.decision === 'approve' ? 'approved' : 'denied',
         approvalRequestId,
@@ -138,7 +115,7 @@ export async function submitZhiyuRuntimeDelegationApproval(
           ? 'runtime-delegation-approval-approved'
           : 'runtime-delegation-approval-denied',
         message: input.decision === 'approve'
-          ? 'Runtime accepted the delegated approval and resumed the approved request.'
+          ? 'Runtime recorded a delegated approval decision.'
           : 'Runtime recorded a delegated approval rejection.',
       },
     };
@@ -172,12 +149,11 @@ async function resolveDelegationSurface(
 ): Promise<DelegationControlSurface> {
   if (
     options.loadSnapshot
-    && (mode === 'read' || (options.submitApprovalDecision && options.resumeApprovedCapability))
+    && (mode === 'read' || options.submitApprovalDecision)
   ) {
     return {
       loadSnapshot: options.loadSnapshot,
       submitApprovalDecision: options.submitApprovalDecision ?? missingSubmitter,
-      resumeApprovedCapability: options.resumeApprovedCapability ?? missingResumer,
       loadReplayTrace: options.loadReplayTrace ?? missingReplayLoader,
     };
   }
@@ -191,7 +167,7 @@ async function resolveDelegationSurface(
   }
 
   const {
-    createNimiHostRuntimeAgentDelegatedCapabilitySurface,
+    createNimiHostRuntimeAgentDelegatedControlSurface,
   } = await import('@nimiplatform/sdk/runtime');
   const {
     createZhiyuRuntimeAgentBindingScopeRunner,
@@ -216,7 +192,7 @@ async function resolveDelegationSurface(
     });
   }
   const runtime = getZhiyuRuntime();
-  const sdkSurface = (identity: DelegationIdentity) => createNimiHostRuntimeAgentDelegatedCapabilitySurface({
+  const sdkSurface = (identity: DelegationIdentity) => createNimiHostRuntimeAgentDelegatedControlSurface({
     getRuntime: () => ({
       appId: APP_ID,
       auth: runtime.auth,
@@ -229,7 +205,6 @@ async function resolveDelegationSurface(
   return {
     loadSnapshot: async (input) => sdkSurface(input).loadSnapshot({ ...input, scopedBinding }),
     submitApprovalDecision: async (input) => sdkSurface(input).submitApprovalDecision({ ...input, scopedBinding }),
-    resumeApprovedCapability: async (input) => sdkSurface(input).resumeApprovedCapability({ ...input, scopedBinding }),
     loadReplayTrace: async (input) => sdkSurface(input).loadReplayTrace({ ...input, scopedBinding }),
   };
 }
@@ -247,10 +222,6 @@ async function runtimeBridgeAvailable(options: ZhiyuDelegationUxProbeOptions): P
 
 async function missingSubmitter(): Promise<never> {
   throw new Error('Runtime delegation approval submitter is not available.');
-}
-
-async function missingResumer(): Promise<never> {
-  throw new Error('Runtime delegation approved request resumer is not available.');
 }
 
 async function missingReplayLoader(): Promise<null> {

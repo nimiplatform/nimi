@@ -35,8 +35,7 @@
     "proto/runtime/v1/model.proto",
     "proto/runtime/v1/runtime_service_control.proto",
     "proto/runtime/v1/runtime_target_identity.proto",
-    "proto/runtime/v1/voice.proto",
-    "proto/runtime/v1/workflow.proto"
+    "proto/runtime/v1/voice.proto"
   ],
   "provenance": {
     "source_rule": "S-SURFACE-019",
@@ -462,24 +461,6 @@
           "response_stream": false
         },
         {
-          "name": "UpsertDelegatedProviderProfile",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
-          "kind": "unary",
-          "request_type": "UpsertDelegatedProviderProfileRequest",
-          "response_type": "UpsertDelegatedProviderProfileResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "SetDelegatedProviderState",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
-          "kind": "unary",
-          "request_type": "SetDelegatedProviderStateRequest",
-          "response_type": "SetDelegatedProviderStateResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "ListDelegatedApprovalRequests",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
           "kind": "unary",
@@ -521,24 +502,6 @@
           "kind": "unary",
           "request_type": "GetDelegatedControlSurfaceSnapshotRequest",
           "response_type": "GetDelegatedControlSurfaceSnapshotResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ExecuteDelegatedCapability",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
-          "kind": "unary",
-          "request_type": "ExecuteDelegatedCapabilityRequest",
-          "response_type": "ExecuteDelegatedCapabilityResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ResumeDelegatedCapability",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
-          "kind": "unary",
-          "request_type": "ResumeDelegatedCapabilityRequest",
-          "response_type": "ResumeDelegatedCapabilityResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2466,48 +2429,6 @@
           "response_stream": false
         }
       ]
-    },
-    {
-      "name": "RuntimeWorkflowService",
-      "source_file": "proto/runtime/v1/workflow.proto",
-      "methods": [
-        {
-          "name": "SubmitWorkflow",
-          "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
-          "kind": "unary",
-          "request_type": "SubmitWorkflowRequest",
-          "response_type": "SubmitWorkflowResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetWorkflow",
-          "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-          "kind": "unary",
-          "request_type": "GetWorkflowRequest",
-          "response_type": "GetWorkflowResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "CancelWorkflow",
-          "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
-          "kind": "unary",
-          "request_type": "CancelWorkflowRequest",
-          "response_type": "Ack",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "SubscribeWorkflowEvents",
-          "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
-          "kind": "server_stream",
-          "request_type": "SubscribeWorkflowEventsRequest",
-          "response_type": "WorkflowEvent",
-          "request_stream": false,
-          "response_stream": true
-        }
-      ]
     }
   ],
   "method_ids": [
@@ -2532,7 +2453,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
-    "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
     "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
@@ -2570,10 +2490,8 @@
     "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
     "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
-    "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
     "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
-    "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
@@ -2581,7 +2499,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
-    "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
     "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
@@ -2769,11 +2686,7 @@
     "/nimi.runtime.v1.RuntimeModelService/ListModels",
     "/nimi.runtime.v1.RuntimeModelService/PullModel",
     "/nimi.runtime.v1.RuntimeModelService/RemoveModel",
-    "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
-    "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
-    "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-    "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
-    "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents"
+    "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
   ],
   "codec_maps": [
     {
@@ -2943,14 +2856,6 @@
       "kind": "unary",
       "request_type": "EnableAutonomyRequest",
       "response_type": "EnableAutonomyResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
-      "service": "RuntimeAgentService",
-      "method": "ExecuteDelegatedCapability",
-      "kind": "unary",
-      "request_type": "ExecuteDelegatedCapabilityRequest",
-      "response_type": "ExecuteDelegatedCapabilityResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
@@ -3249,14 +3154,6 @@
       "response_type": "ResolveAvatarLiveInstanceBindingResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
-      "service": "RuntimeAgentService",
-      "method": "ResumeDelegatedCapability",
-      "kind": "unary",
-      "request_type": "ResumeDelegatedCapabilityRequest",
-      "response_type": "ResumeDelegatedCapabilityResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
       "service": "RuntimeAgentService",
       "method": "SetAgentPresentationProfile",
@@ -3271,14 +3168,6 @@
       "kind": "unary",
       "request_type": "SetAutonomyConfigRequest",
       "response_type": "SetAutonomyConfigResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
-      "service": "RuntimeAgentService",
-      "method": "SetDelegatedProviderState",
-      "kind": "unary",
-      "request_type": "SetDelegatedProviderStateRequest",
-      "response_type": "SetDelegatedProviderStateResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
@@ -3335,14 +3224,6 @@
       "kind": "unary",
       "request_type": "UpdateAgentStateRequest",
       "response_type": "UpdateAgentStateResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
-      "service": "RuntimeAgentService",
-      "method": "UpsertDelegatedProviderProfile",
-      "kind": "unary",
-      "request_type": "UpsertDelegatedProviderProfileRequest",
-      "response_type": "UpsertDelegatedProviderProfileResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
@@ -4847,38 +4728,6 @@
       "kind": "unary",
       "request_type": "RequestRuntimeRestartRequest",
       "response_type": "RequestRuntimeRestartResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
-      "service": "RuntimeWorkflowService",
-      "method": "CancelWorkflow",
-      "kind": "unary",
-      "request_type": "CancelWorkflowRequest",
-      "response_type": "Ack"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-      "service": "RuntimeWorkflowService",
-      "method": "GetWorkflow",
-      "kind": "unary",
-      "request_type": "GetWorkflowRequest",
-      "response_type": "GetWorkflowResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
-      "service": "RuntimeWorkflowService",
-      "method": "SubmitWorkflow",
-      "kind": "unary",
-      "request_type": "SubmitWorkflowRequest",
-      "response_type": "SubmitWorkflowResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
-      "service": "RuntimeWorkflowService",
-      "method": "SubscribeWorkflowEvents",
-      "kind": "server_stream",
-      "request_type": "SubscribeWorkflowEventsRequest",
-      "response_type": "WorkflowEvent"
     }
   ],
   "contract_maps": [
@@ -5051,14 +4900,6 @@
       "response_type": "EnableAutonomyResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
-      "service": "RuntimeAgentService",
-      "method": "ExecuteDelegatedCapability",
-      "kind": "unary",
-      "request_type": "ExecuteDelegatedCapabilityRequest",
-      "response_type": "ExecuteDelegatedCapabilityResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
       "service": "RuntimeAgentService",
       "method": "ExecuteParticipation",
@@ -5355,14 +5196,6 @@
       "response_type": "ResolveAvatarLiveInstanceBindingResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
-      "service": "RuntimeAgentService",
-      "method": "ResumeDelegatedCapability",
-      "kind": "unary",
-      "request_type": "ResumeDelegatedCapabilityRequest",
-      "response_type": "ResumeDelegatedCapabilityResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
       "service": "RuntimeAgentService",
       "method": "SetAgentPresentationProfile",
@@ -5377,14 +5210,6 @@
       "kind": "unary",
       "request_type": "SetAutonomyConfigRequest",
       "response_type": "SetAutonomyConfigResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
-      "service": "RuntimeAgentService",
-      "method": "SetDelegatedProviderState",
-      "kind": "unary",
-      "request_type": "SetDelegatedProviderStateRequest",
-      "response_type": "SetDelegatedProviderStateResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
@@ -5441,14 +5266,6 @@
       "kind": "unary",
       "request_type": "UpdateAgentStateRequest",
       "response_type": "UpdateAgentStateResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
-      "service": "RuntimeAgentService",
-      "method": "UpsertDelegatedProviderProfile",
-      "kind": "unary",
-      "request_type": "UpsertDelegatedProviderProfileRequest",
-      "response_type": "UpsertDelegatedProviderProfileResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
@@ -6953,38 +6770,6 @@
       "kind": "unary",
       "request_type": "RequestRuntimeRestartRequest",
       "response_type": "RequestRuntimeRestartResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
-      "service": "RuntimeWorkflowService",
-      "method": "CancelWorkflow",
-      "kind": "unary",
-      "request_type": "CancelWorkflowRequest",
-      "response_type": "Ack"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-      "service": "RuntimeWorkflowService",
-      "method": "GetWorkflow",
-      "kind": "unary",
-      "request_type": "GetWorkflowRequest",
-      "response_type": "GetWorkflowResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
-      "service": "RuntimeWorkflowService",
-      "method": "SubmitWorkflow",
-      "kind": "unary",
-      "request_type": "SubmitWorkflowRequest",
-      "response_type": "SubmitWorkflowResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
-      "service": "RuntimeWorkflowService",
-      "method": "SubscribeWorkflowEvents",
-      "kind": "server_stream",
-      "request_type": "SubscribeWorkflowEventsRequest",
-      "response_type": "WorkflowEvent"
     }
   ],
   "schema_types": {
@@ -7040,15 +6825,6 @@
       "AgentTurnContextSummary",
       "AgentTurnContextTruncationSummary",
       "AgentVoiceStreamEvent",
-      "AiEmbedNodeConfig",
-      "AiGenerateNodeConfig",
-      "AiImageNodeConfig",
-      "AiStreamNodeConfig",
-      "AiSttNodeConfig",
-      "AiTtsCreateVoiceNodeConfig",
-      "AiTtsNodeConfig",
-      "AiTtsSynthesizeNodeConfig",
-      "AiVideoNodeConfig",
       "AppInstallJob",
       "AppInstallJobEvent",
       "AppInstallStorageProjection",
@@ -7079,7 +6855,6 @@
       "BeginLoginResponse",
       "BindLocalAppProcessRequest",
       "BindLocalAppProcessResponse",
-      "BranchNodeConfig",
       "CancelCompanionParticipationRequest",
       "CancelCompanionParticipationResponse",
       "CancelHookRequest",
@@ -7090,7 +6865,6 @@
       "CancelLocalTransferResponse",
       "CancelScenarioJobRequest",
       "CancelScenarioJobResponse",
-      "CancelWorkflowRequest",
       "CanonicalMemoryCandidate",
       "CanonicalMemoryRejection",
       "CanonicalMemoryView",
@@ -7187,8 +6961,6 @@
       "ErrorInfo",
       "EvaluateLocalDevelopmentProjectRequest",
       "EvaluateLocalDevelopmentProjectResponse",
-      "ExecuteDelegatedCapabilityRequest",
-      "ExecuteDelegatedCapabilityResponse",
       "ExecuteLocalStateCutoverRequest",
       "ExecuteLocalStateCutoverResponse",
       "ExecuteParticipationRequest",
@@ -7210,7 +6982,6 @@
       "ExternalAgentTokenRecord",
       "ExternalParticipantIdentityRefBlock",
       "ExternalPayloadRefBlock",
-      "ExtractNodeConfig",
       "GatewayVerdictRefBlock",
       "GetAccountAppInventoryRequest",
       "GetAccountAppInventoryResponse",
@@ -7290,8 +7061,6 @@
       "GetScenarioJobResponse",
       "GetVoiceAssetRequest",
       "GetVoiceAssetResponse",
-      "GetWorkflowRequest",
-      "GetWorkflowResponse",
       "HealthRepairAppRequest",
       "HealthRepairAppResponse",
       "HistoryRequest",
@@ -7512,7 +7281,6 @@
       "MemoryReplicationState",
       "MemoryReplicationSynced",
       "MemoryRequestContext",
-      "MergeNodeConfig",
       "MintFirstRunExecutionEvidenceRequest",
       "MintFirstRunExecutionEvidenceResponse",
       "MintRuntimeBaselineReadinessRequest",
@@ -7523,7 +7291,6 @@
       "MusicGenerateResult",
       "MusicGenerateScenarioSpec",
       "NarrativeRecallHit",
-      "NoopNodeConfig",
       "ObservationalMemoryRecord",
       "OpenCompanionParticipationReplayRequest",
       "OpenCompanionParticipationReplayResponse",
@@ -7657,8 +7424,6 @@
       "ResolveRuntimeBaselineReadinessResponse",
       "ResourceSelectors",
       "ResponseFormat",
-      "ResumeDelegatedCapabilityRequest",
-      "ResumeDelegatedCapabilityResponse",
       "ResumeLocalTransferRequest",
       "ResumeLocalTransferResponse",
       "RetainRequest",
@@ -7715,7 +7480,6 @@
       "SchedulingTargetJudgement",
       "ScopedAppBindingRelation",
       "ScopedRuntimeBindingAttachment",
-      "ScriptNodeConfig",
       "SearchCatalogModelsRequest",
       "SearchCatalogModelsResponse",
       "SearchHybridRequest",
@@ -7730,8 +7494,6 @@
       "SetAgentPresentationProfileResponse",
       "SetAutonomyConfigRequest",
       "SetAutonomyConfigResponse",
-      "SetDelegatedProviderStateRequest",
-      "SetDelegatedProviderStateResponse",
       "SetDeveloperModeRequest",
       "SetDeveloperModeResponse",
       "SetProductControlFirstRunInstallLevelRequest",
@@ -7764,8 +7526,6 @@
       "SubmitDelegatedApprovalDecisionResponse",
       "SubmitScenarioJobRequest",
       "SubmitScenarioJobResponse",
-      "SubmitWorkflowRequest",
-      "SubmitWorkflowResponse",
       "SubscribeAIProviderHealthEventsRequest",
       "SubscribeAccountSessionEventsRequest",
       "SubscribeAgentEventsRequest",
@@ -7775,10 +7535,8 @@
       "SubscribeRuntimeAgentAIConfigReadinessRequest",
       "SubscribeRuntimeHealthEventsRequest",
       "SubscribeScenarioJobEventsRequest",
-      "SubscribeWorkflowEventsRequest",
       "SwitchAccountRequest",
       "SwitchAccountResponse",
-      "TemplateNodeConfig",
       "TerminateAgentRequest",
       "TerminateAgentResponse",
       "TestConnectorRequest",
@@ -7812,8 +7570,6 @@
       "UploadArtifactResponse",
       "UpsertCatalogModelOverlayRequest",
       "UpsertCatalogModelOverlayResponse",
-      "UpsertDelegatedProviderProfileRequest",
-      "UpsertDelegatedProviderProfileResponse",
       "UpsertModelCatalogProviderRequest",
       "UpsertModelCatalogProviderResponse",
       "UpsertRuntimeAgentAIConfigRequest",
@@ -7843,11 +7599,6 @@
       "WarmLocalAssetResponse",
       "WatchAppInstallJobEventsRequest",
       "WatchLocalTransfersRequest",
-      "WorkflowDefinition",
-      "WorkflowEdge",
-      "WorkflowEvent",
-      "WorkflowNode",
-      "WorkflowNodeStatus",
       "WorkspaceBindingAttachment",
       "WorkspaceBindingRelation",
       "WorkspaceMembershipProjection",
@@ -7992,7 +7743,6 @@
       "MemoryMigrationPolicy",
       "MemoryRecordKind",
       "MemoryReplicationOutcome",
-      "MergeStrategy",
       "Modal",
       "ModelCatalogProviderSource",
       "ModelHealthStatus",
@@ -8048,11 +7798,6 @@
       "VoicePlaybackState",
       "VoiceReferenceKind",
       "VoiceWorkflowType",
-      "WorkflowEventType",
-      "WorkflowExecutionMode",
-      "WorkflowNodeType",
-      "WorkflowResumeStrategy",
-      "WorkflowStatus",
       "WorkspaceBindingPurpose",
       "WorkspaceBindingState",
       "WorkspaceMembershipState",
@@ -10644,171 +10389,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "AiEmbedNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "fallback",
-            "type": "FallbackPolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "inputs",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "AiGenerateNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "modal",
-            "type": "Modal",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "system_prompt",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "tools",
-            "type": "ToolSpec",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "temperature",
-            "type": "float",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "top_p",
-            "type": "float",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "max_tokens",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "fallback",
-            "type": "FallbackPolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "prompt",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "AiImageNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "fallback",
-            "type": "FallbackPolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "prompt",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
         "name": "AIProviderHealthEvent",
         "fields": [
           {
@@ -10972,413 +10552,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
-      },
-      {
-        "name": "AiStreamNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "modal",
-            "type": "Modal",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "system_prompt",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "tools",
-            "type": "ToolSpec",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "temperature",
-            "type": "float",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "top_p",
-            "type": "float",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "max_tokens",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "fallback",
-            "type": "FallbackPolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "prompt",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "AiSttNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "mime_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "fallback",
-            "type": "FallbackPolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "audio_bytes",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "AiTtsCreateVoiceNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "target_model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "workflow_type",
-            "type": "VoiceWorkflowType",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "connector_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "preferred_name",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "reference_audio_uri",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "reference_audio_mime",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "instruction_text",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "preview_text",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "language",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "text",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "extensions",
-            "type": "ScenarioExtension",
-            "repeated": true,
-            "optional": false,
-            "number": 20
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "AiTtsNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "fallback",
-            "type": "FallbackPolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "text",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "AiTtsSynthesizeNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "target_model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "text",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "voice_ref",
-            "type": "VoiceReference",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "connector_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "audio_format",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "sample_rate_hz",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "speed",
-            "type": "float",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "pitch",
-            "type": "float",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "volume",
-            "type": "float",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "emotion",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "extensions",
-            "type": "ScenarioExtension",
-            "repeated": true,
-            "optional": false,
-            "number": 20
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "AiVideoNodeConfig",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "fallback",
-            "type": "FallbackPolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "prompt",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
       },
       {
         "name": "AppendInferenceAuditRequest",
@@ -12975,33 +12148,6 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
-        "name": "BranchNodeConfig",
-        "fields": [
-          {
-            "name": "condition",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "true_target",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "false_target",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
         "name": "CancelCompanionParticipationRequest",
         "fields": [
           {
@@ -13228,19 +12374,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "CancelWorkflowRequest",
-        "fields": [
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
       },
       {
         "name": "CanonicalMemoryCandidate",
@@ -15687,20 +14820,6 @@
             "repeated": false,
             "optional": false,
             "number": 13
-          },
-          {
-            "name": "command",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          },
-          {
-            "name": "args",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 15
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
@@ -16630,144 +15749,6 @@
         "source_file": "proto/runtime/v1/development.proto"
       },
       {
-        "name": "ExecuteDelegatedCapabilityRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "turn_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "provider_profile_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "capability_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "tool_name",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "arguments",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "descriptor_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "protocol_revision",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "output_kind",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "requires_approval",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          }
-        ],
-        "source_file": "proto/runtime/v1/delegated_control.proto"
-      },
-      {
-        "name": "ExecuteDelegatedCapabilityResponse",
-        "fields": [
-          {
-            "name": "diagnostic",
-            "type": "DelegatedDiagnostic",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "replay_trace",
-            "type": "DelegatedReplayTrace",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "model_output",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "approval_request",
-            "type": "DelegatedApprovalRequest",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/delegated_control.proto"
-      },
-      {
         "name": "ExecuteLocalStateCutoverRequest",
         "fields": [
           {
@@ -17612,26 +16593,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_participation.proto"
-      },
-      {
-        "name": "ExtractNodeConfig",
-        "fields": [
-          {
-            "name": "json_path",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "source_input",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
       },
       {
         "name": "GatewayVerdictRefBlock",
@@ -19192,60 +18153,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
-      },
-      {
-        "name": "GetWorkflowRequest",
-        "fields": [
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "GetWorkflowResponse",
-        "fields": [
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "status",
-            "type": "WorkflowStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "nodes",
-            "type": "WorkflowNodeStatus",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "output",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
       },
       {
         "name": "HealthRepairAppRequest",
@@ -28625,26 +27532,6 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
-        "name": "MergeNodeConfig",
-        "fields": [
-          {
-            "name": "strategy",
-            "type": "MergeStrategy",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "min_completed",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
         "name": "MintFirstRunExecutionEvidenceRequest",
         "fields": [
           {
@@ -29242,11 +28129,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "NoopNodeConfig",
-        "fields": [],
-        "source_file": "proto/runtime/v1/workflow.proto"
       },
       {
         "name": "ObservationalMemoryRecord",
@@ -33733,67 +32615,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "ResumeDelegatedCapabilityRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "approval_request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/delegated_control.proto"
-      },
-      {
-        "name": "ResumeDelegatedCapabilityResponse",
-        "fields": [
-          {
-            "name": "diagnostic",
-            "type": "DelegatedDiagnostic",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "replay_trace",
-            "type": "DelegatedReplayTrace",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "model_output",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "approval_request",
-            "type": "DelegatedApprovalRequest",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/delegated_control.proto"
-      },
-      {
         "name": "ResumeLocalTransferRequest",
         "fields": [
           {
@@ -35900,40 +34721,6 @@
         "source_file": "proto/runtime/v1/common.proto"
       },
       {
-        "name": "ScriptNodeConfig",
-        "fields": [
-          {
-            "name": "runtime",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "memory_limit_bytes",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
         "name": "SearchCatalogModelsRequest",
         "fields": [
           {
@@ -36380,60 +35167,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "SetDelegatedProviderStateRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "provider_profile_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "state",
-            "type": "DelegatedProviderState",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "lifecycle_reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/delegated_control.proto"
-      },
-      {
-        "name": "SetDelegatedProviderStateResponse",
-        "fields": [
-          {
-            "name": "provider_profile",
-            "type": "DelegatedProviderProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/delegated_control.proto"
       },
       {
         "name": "SetDeveloperModeRequest",
@@ -37301,67 +36034,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "SubmitWorkflowRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "subject_user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "definition",
-            "type": "WorkflowDefinition",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "SubmitWorkflowResponse",
-        "fields": [
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
         "name": "SubscribeAccountSessionEventsRequest",
         "fields": [
           {
@@ -37582,19 +36254,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "SubscribeWorkflowEventsRequest",
-        "fields": [
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
         "name": "SwitchAccountRequest",
         "fields": [
           {
@@ -37661,26 +36320,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "TemplateNodeConfig",
-        "fields": [
-          {
-            "name": "template",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "output_mime_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
       },
       {
         "name": "TerminateAgentRequest",
@@ -38728,46 +37367,6 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
-        "name": "UpsertDelegatedProviderProfileRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "provider_profile",
-            "type": "DelegatedProviderProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/delegated_control.proto"
-      },
-      {
-        "name": "UpsertDelegatedProviderProfileResponse",
-        "fields": [
-          {
-            "name": "provider_profile",
-            "type": "DelegatedProviderProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/delegated_control.proto"
-      },
-      {
         "name": "UpsertModelCatalogProviderRequest",
         "fields": [
           {
@@ -39773,365 +38372,6 @@
         "name": "WatchLocalTransfersRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "WorkflowDefinition",
-        "fields": [
-          {
-            "name": "workflow_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "nodes",
-            "type": "WorkflowNode",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "edges",
-            "type": "WorkflowEdge",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "WorkflowEdge",
-        "fields": [
-          {
-            "name": "from_node_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "from_output",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "to_node_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "to_input",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "WorkflowEvent",
-        "fields": [
-          {
-            "name": "event_type",
-            "type": "WorkflowEventType",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "sequence",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "trace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "timestamp",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "node_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "progress_percent",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "payload",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "WorkflowNode",
-        "fields": [
-          {
-            "name": "node_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "node_type",
-            "type": "WorkflowNodeType",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "depends_on",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "retry_max_attempts",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "retry_backoff",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "execution_mode",
-            "type": "WorkflowExecutionMode",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "resume_strategy",
-            "type": "WorkflowResumeStrategy",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "callback_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "ai_generate_config",
-            "type": "AiGenerateNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "ai_stream_config",
-            "type": "AiStreamNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "ai_embed_config",
-            "type": "AiEmbedNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "ai_image_config",
-            "type": "AiImageNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "ai_video_config",
-            "type": "AiVideoNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          },
-          {
-            "name": "ai_tts_config",
-            "type": "AiTtsNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 15
-          },
-          {
-            "name": "ai_stt_config",
-            "type": "AiSttNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 16
-          },
-          {
-            "name": "ai_tts_create_voice_config",
-            "type": "AiTtsCreateVoiceNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 17
-          },
-          {
-            "name": "ai_tts_synthesize_config",
-            "type": "AiTtsSynthesizeNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 18
-          },
-          {
-            "name": "extract_config",
-            "type": "ExtractNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 20
-          },
-          {
-            "name": "template_config",
-            "type": "TemplateNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 21
-          },
-          {
-            "name": "script_config",
-            "type": "ScriptNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 22
-          },
-          {
-            "name": "branch_config",
-            "type": "BranchNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 30
-          },
-          {
-            "name": "merge_config",
-            "type": "MergeNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 31
-          },
-          {
-            "name": "noop_config",
-            "type": "NoopNodeConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 32
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "WorkflowNodeStatus",
-        "fields": [
-          {
-            "name": "node_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "status",
-            "type": "WorkflowStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "attempt",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "provider_job_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "next_poll_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "retry_count",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "last_error",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
       },
       {
         "name": "WorkspaceBindingAttachment",
@@ -41547,7 +39787,6 @@
         "name": "DelegatedProviderKind",
         "values": [
           "DELEGATED_PROVIDER_KIND_UNSPECIFIED",
-          "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER",
           "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM",
           "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER",
           "DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER"
@@ -41607,8 +39846,7 @@
       {
         "name": "DelegatedTransportKind",
         "values": [
-          "DELEGATED_TRANSPORT_KIND_UNSPECIFIED",
-          "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND"
+          "DELEGATED_TRANSPORT_KIND_UNSPECIFIED"
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
       },
@@ -42072,16 +40310,6 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
-        "name": "MergeStrategy",
-        "values": [
-          "MERGE_STRATEGY_UNSPECIFIED",
-          "MERGE_STRATEGY_ALL",
-          "MERGE_STRATEGY_ANY",
-          "MERGE_STRATEGY_N_OF_M"
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
         "name": "Modal",
         "values": [
           "MODAL_UNSPECIFIED",
@@ -42170,7 +40398,6 @@
         "name": "ParticipationExternalProtocolKind",
         "values": [
           "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED",
-          "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP",
           "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A"
         ],
         "source_file": "proto/runtime/v1/agent_participation.proto"
@@ -42181,7 +40408,6 @@
           "PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED",
           "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT",
           "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT",
-          "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY",
           "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION",
           "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR"
         ],
@@ -42477,10 +40703,6 @@
           "AI_VOICE_JOB_NOT_FOUND",
           "AI_VOICE_JOB_NOT_CANCELLABLE",
           "AI_MODULE_CONFIG_INVALID",
-          "WF_DAG_INVALID",
-          "WF_NODE_CONFIG_MISMATCH",
-          "WF_TIMEOUT",
-          "WF_TASK_NOT_FOUND",
           "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID",
           "APP_MODE_DOMAIN_FORBIDDEN",
           "APP_MODE_SCOPE_FORBIDDEN",
@@ -42943,79 +41165,6 @@
           "VOICE_WORKFLOW_TYPE_VOICE_DESIGN"
         ],
         "source_file": "proto/runtime/v1/voice.proto"
-      },
-      {
-        "name": "WorkflowEventType",
-        "values": [
-          "WORKFLOW_EVENT_TYPE_UNSPECIFIED",
-          "WORKFLOW_EVENT_STARTED",
-          "WORKFLOW_EVENT_NODE_STARTED",
-          "WORKFLOW_EVENT_NODE_PROGRESS",
-          "WORKFLOW_EVENT_NODE_COMPLETED",
-          "WORKFLOW_EVENT_NODE_SKIPPED",
-          "WORKFLOW_EVENT_COMPLETED",
-          "WORKFLOW_EVENT_FAILED",
-          "WORKFLOW_EVENT_CANCELED",
-          "WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED",
-          "WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING",
-          "WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED",
-          "WORKFLOW_EVENT_NODE_EXTERNAL_FAILED"
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "WorkflowExecutionMode",
-        "values": [
-          "WORKFLOW_EXECUTION_MODE_UNSPECIFIED",
-          "WORKFLOW_EXECUTION_MODE_INLINE",
-          "WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC"
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "WorkflowNodeType",
-        "values": [
-          "WORKFLOW_NODE_TYPE_UNSPECIFIED",
-          "WORKFLOW_NODE_AI_GENERATE",
-          "WORKFLOW_NODE_AI_STREAM",
-          "WORKFLOW_NODE_AI_EMBED",
-          "WORKFLOW_NODE_AI_IMAGE",
-          "WORKFLOW_NODE_AI_VIDEO",
-          "WORKFLOW_NODE_AI_TTS",
-          "WORKFLOW_NODE_AI_STT",
-          "WORKFLOW_NODE_AI_TTS_CREATE_VOICE",
-          "WORKFLOW_NODE_AI_TTS_SYNTHESIZE",
-          "WORKFLOW_NODE_TRANSFORM_EXTRACT",
-          "WORKFLOW_NODE_TRANSFORM_TEMPLATE",
-          "WORKFLOW_NODE_TRANSFORM_SCRIPT",
-          "WORKFLOW_NODE_CONTROL_BRANCH",
-          "WORKFLOW_NODE_CONTROL_MERGE",
-          "WORKFLOW_NODE_CONTROL_NOOP"
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "WorkflowResumeStrategy",
-        "values": [
-          "WORKFLOW_RESUME_STRATEGY_UNSPECIFIED",
-          "WORKFLOW_RESUME_STRATEGY_AUTO",
-          "WORKFLOW_RESUME_STRATEGY_MANUAL"
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "WorkflowStatus",
-        "values": [
-          "WORKFLOW_STATUS_UNSPECIFIED",
-          "WORKFLOW_STATUS_ACCEPTED",
-          "WORKFLOW_STATUS_QUEUED",
-          "WORKFLOW_STATUS_RUNNING",
-          "WORKFLOW_STATUS_COMPLETED",
-          "WORKFLOW_STATUS_FAILED",
-          "WORKFLOW_STATUS_CANCELED",
-          "WORKFLOW_STATUS_SKIPPED"
-        ],
-        "source_file": "proto/runtime/v1/workflow.proto"
       },
       {
         "name": "WorkspaceBindingPurpose",

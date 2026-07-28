@@ -1,13 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SimulatorShellView, SIMULATOR_STATUS_TEXT } from '../../src/shell/ui.tsx';
-
-const simulatorRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 function renderShell(overrides = {}) {
   return renderToStaticMarkup(h(SimulatorShellView, {
@@ -99,12 +94,4 @@ test('full-window route retains disclosure and exposes a deterministic exit cont
   assert.ok(markup.includes('data-full-window-instance="1:instance:1"'));
   assert.ok(markup.includes('Exit full window'));
   assert.ok(markup.includes('desktop full window'));
-});
-
-test('the Simulator owns exactly one React root and App surfaces render as portals', () => {
-  const mountSource = readFileSync(path.join(simulatorRoot, 'src/shell/mount.ts'), 'utf8');
-  const surfaceSource = readFileSync(path.join(simulatorRoot, 'src/shell/browser-surface-host.tsx'), 'utf8');
-  assert.equal(mountSource.match(/\bcreateRoot\s*\(/gu)?.length, 1);
-  assert.equal(surfaceSource.match(/\bcreateRoot\s*\(/gu)?.length ?? 0, 0);
-  assert.match(surfaceSource, /\bcreatePortal\s*\(/u);
 });

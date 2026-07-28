@@ -1096,7 +1096,6 @@ impl Default for DelegatedApprovalRequestState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DelegatedProviderKind {
     DELEGATEDPROVIDERKINDUNSPECIFIED,
-    DELEGATEDPROVIDERKINDMCPTOOLPROVIDER,
     DELEGATEDPROVIDERKINDREMOTEAGENTSEAM,
     DELEGATEDPROVIDERKINDRUNTIMENATIVEPROVIDER,
     DELEGATEDPROVIDERKINDCONTROLLEDTESTPROVIDER,
@@ -1177,7 +1176,6 @@ impl Default for DelegatedTraceStageKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DelegatedTransportKind {
     DELEGATEDTRANSPORTKINDUNSPECIFIED,
-    DELEGATEDTRANSPORTKINDSTDIOCOMMAND,
 }
 
 impl Default for DelegatedTransportKind {
@@ -1826,20 +1824,6 @@ impl Default for MemoryReplicationOutcome {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum MergeStrategy {
-    MERGESTRATEGYUNSPECIFIED,
-    MERGESTRATEGYALL,
-    MERGESTRATEGYANY,
-    MERGESTRATEGYNOFM,
-}
-
-impl Default for MergeStrategy {
-    fn default() -> Self {
-        Self::MERGESTRATEGYUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Modal {
     MODALUNSPECIFIED,
     MODALTEXT,
@@ -1955,7 +1939,6 @@ impl Default for ParticipationExecutionOwner {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParticipationExternalProtocolKind {
     PARTICIPATIONEXTERNALPROTOCOLKINDUNSPECIFIED,
-    PARTICIPATIONEXTERNALPROTOCOLKINDMCP,
     PARTICIPATIONEXTERNALPROTOCOLKINDA2A,
 }
 
@@ -1970,7 +1953,6 @@ pub enum ParticipationIdentitySource {
     PARTICIPATIONIDENTITYSOURCEUNSPECIFIED,
     PARTICIPATIONIDENTITYSOURCEUSEROWNEDNIMIAGENT,
     PARTICIPATIONIDENTITYSOURCEEXTERNALA2AAGENT,
-    PARTICIPATIONIDENTITYSOURCEMCPBACKEDAICAPABILITY,
     PARTICIPATIONIDENTITYSOURCESANDBOXPROJECTION,
     PARTICIPATIONIDENTITYSOURCENPCWORLDACTOR,
 }
@@ -2330,10 +2312,6 @@ pub enum ReasonCode {
     AIVOICEJOBNOTFOUND,
     AIVOICEJOBNOTCANCELLABLE,
     AIMODULECONFIGINVALID,
-    WFDAGINVALID,
-    WFNODECONFIGMISMATCH,
-    WFTIMEOUT,
-    WFTASKNOTFOUND,
     AIMEMORYEMBEDDINGTARGETREFINVALID,
     APPMODEDOMAINFORBIDDEN,
     APPMODESCOPEFORBIDDEN,
@@ -2919,99 +2897,6 @@ pub enum VoiceWorkflowType {
 impl Default for VoiceWorkflowType {
     fn default() -> Self {
         Self::VOICEWORKFLOWTYPEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorkflowEventType {
-    WORKFLOWEVENTTYPEUNSPECIFIED,
-    WORKFLOWEVENTSTARTED,
-    WORKFLOWEVENTNODESTARTED,
-    WORKFLOWEVENTNODEPROGRESS,
-    WORKFLOWEVENTNODECOMPLETED,
-    WORKFLOWEVENTNODESKIPPED,
-    WORKFLOWEVENTCOMPLETED,
-    WORKFLOWEVENTFAILED,
-    WORKFLOWEVENTCANCELED,
-    WORKFLOWEVENTNODEEXTERNALSUBMITTED,
-    WORKFLOWEVENTNODEEXTERNALRUNNING,
-    WORKFLOWEVENTNODEEXTERNALCOMPLETED,
-    WORKFLOWEVENTNODEEXTERNALFAILED,
-}
-
-impl Default for WorkflowEventType {
-    fn default() -> Self {
-        Self::WORKFLOWEVENTTYPEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorkflowExecutionMode {
-    WORKFLOWEXECUTIONMODEUNSPECIFIED,
-    WORKFLOWEXECUTIONMODEINLINE,
-    WORKFLOWEXECUTIONMODEEXTERNALASYNC,
-}
-
-impl Default for WorkflowExecutionMode {
-    fn default() -> Self {
-        Self::WORKFLOWEXECUTIONMODEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorkflowNodeType {
-    WORKFLOWNODETYPEUNSPECIFIED,
-    WORKFLOWNODEAIGENERATE,
-    WORKFLOWNODEAISTREAM,
-    WORKFLOWNODEAIEMBED,
-    WORKFLOWNODEAIIMAGE,
-    WORKFLOWNODEAIVIDEO,
-    WORKFLOWNODEAITTS,
-    WORKFLOWNODEAISTT,
-    WORKFLOWNODEAITTSCREATEVOICE,
-    WORKFLOWNODEAITTSSYNTHESIZE,
-    WORKFLOWNODETRANSFORMEXTRACT,
-    WORKFLOWNODETRANSFORMTEMPLATE,
-    WORKFLOWNODETRANSFORMSCRIPT,
-    WORKFLOWNODECONTROLBRANCH,
-    WORKFLOWNODECONTROLMERGE,
-    WORKFLOWNODECONTROLNOOP,
-}
-
-impl Default for WorkflowNodeType {
-    fn default() -> Self {
-        Self::WORKFLOWNODETYPEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorkflowResumeStrategy {
-    WORKFLOWRESUMESTRATEGYUNSPECIFIED,
-    WORKFLOWRESUMESTRATEGYAUTO,
-    WORKFLOWRESUMESTRATEGYMANUAL,
-}
-
-impl Default for WorkflowResumeStrategy {
-    fn default() -> Self {
-        Self::WORKFLOWRESUMESTRATEGYUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorkflowStatus {
-    WORKFLOWSTATUSUNSPECIFIED,
-    WORKFLOWSTATUSACCEPTED,
-    WORKFLOWSTATUSQUEUED,
-    WORKFLOWSTATUSRUNNING,
-    WORKFLOWSTATUSCOMPLETED,
-    WORKFLOWSTATUSFAILED,
-    WORKFLOWSTATUSCANCELED,
-    WORKFLOWSTATUSSKIPPED,
-}
-
-impl Default for WorkflowStatus {
-    fn default() -> Self {
-        Self::WORKFLOWSTATUSUNSPECIFIED
     }
 }
 
@@ -5139,412 +5024,6 @@ impl AgentVoiceStreamEvent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiEmbedNodeConfig {
-    pub model_id: Option<String>,
-    pub route_policy: Option<RoutePolicy>,
-    pub fallback: Option<FallbackPolicy>,
-    pub timeout_ms: Option<i32>,
-    pub inputs: Vec<String>,
-}
-
-impl AiEmbedNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.fallback { pairs.push(format!("fallback={:?}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        for value in &self.inputs { pairs.push(format!("inputs={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["route_policy", "fallback"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.inputs = parse_repeated_string(raw, "inputs");
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiGenerateNodeConfig {
-    pub model_id: Option<String>,
-    pub modal: Option<Modal>,
-    pub system_prompt: Option<String>,
-    pub tools: Vec<Box<ToolSpec>>,
-    pub temperature: Option<f32>,
-    pub top_p: Option<f32>,
-    pub max_tokens: Option<i32>,
-    pub route_policy: Option<RoutePolicy>,
-    pub fallback: Option<FallbackPolicy>,
-    pub timeout_ms: Option<i32>,
-    pub prompt: Option<String>,
-}
-
-impl AiGenerateNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.modal { pairs.push(format!("modal={:?}", value)); }
-        if let Some(value) = &self.system_prompt { pairs.push(format!("system_prompt={}", value)); }
-        if !self.tools.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode tools"); }
-        if let Some(value) = &self.temperature { pairs.push(format!("temperature={}", value)); }
-        if let Some(value) = &self.top_p { pairs.push(format!("top_p={}", value)); }
-        if let Some(value) = &self.max_tokens { pairs.push(format!("max_tokens={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.fallback { pairs.push(format!("fallback={:?}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.prompt { pairs.push(format!("prompt={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["modal", "tools", "route_policy", "fallback"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.system_prompt = pairs.get("system_prompt").cloned();
-        out.temperature = pairs.get("temperature").and_then(|value| value.parse().ok());
-        out.top_p = pairs.get("top_p").and_then(|value| value.parse().ok());
-        out.max_tokens = pairs.get("max_tokens").and_then(|value| value.parse().ok());
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.prompt = pairs.get("prompt").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiImageNodeConfig {
-    pub model_id: Option<String>,
-    pub route_policy: Option<RoutePolicy>,
-    pub fallback: Option<FallbackPolicy>,
-    pub timeout_ms: Option<i32>,
-    pub prompt: Option<String>,
-}
-
-impl AiImageNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.fallback { pairs.push(format!("fallback={:?}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.prompt { pairs.push(format!("prompt={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["route_policy", "fallback"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.prompt = pairs.get("prompt").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiStreamNodeConfig {
-    pub model_id: Option<String>,
-    pub modal: Option<Modal>,
-    pub system_prompt: Option<String>,
-    pub tools: Vec<Box<ToolSpec>>,
-    pub temperature: Option<f32>,
-    pub top_p: Option<f32>,
-    pub max_tokens: Option<i32>,
-    pub route_policy: Option<RoutePolicy>,
-    pub fallback: Option<FallbackPolicy>,
-    pub timeout_ms: Option<i32>,
-    pub prompt: Option<String>,
-}
-
-impl AiStreamNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.modal { pairs.push(format!("modal={:?}", value)); }
-        if let Some(value) = &self.system_prompt { pairs.push(format!("system_prompt={}", value)); }
-        if !self.tools.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode tools"); }
-        if let Some(value) = &self.temperature { pairs.push(format!("temperature={}", value)); }
-        if let Some(value) = &self.top_p { pairs.push(format!("top_p={}", value)); }
-        if let Some(value) = &self.max_tokens { pairs.push(format!("max_tokens={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.fallback { pairs.push(format!("fallback={:?}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.prompt { pairs.push(format!("prompt={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["modal", "tools", "route_policy", "fallback"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.system_prompt = pairs.get("system_prompt").cloned();
-        out.temperature = pairs.get("temperature").and_then(|value| value.parse().ok());
-        out.top_p = pairs.get("top_p").and_then(|value| value.parse().ok());
-        out.max_tokens = pairs.get("max_tokens").and_then(|value| value.parse().ok());
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.prompt = pairs.get("prompt").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiSttNodeConfig {
-    pub model_id: Option<String>,
-    pub mime_type: Option<String>,
-    pub route_policy: Option<RoutePolicy>,
-    pub fallback: Option<FallbackPolicy>,
-    pub timeout_ms: Option<i32>,
-    pub audio_bytes: Option<Vec<u8>>,
-}
-
-impl AiSttNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.fallback { pairs.push(format!("fallback={:?}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if self.audio_bytes.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode audio_bytes"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["route_policy", "fallback", "audio_bytes"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.mime_type = pairs.get("mime_type").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiTtsCreateVoiceNodeConfig {
-    pub model_id: Option<String>,
-    pub target_model_id: Option<String>,
-    pub workflow_type: Option<VoiceWorkflowType>,
-    pub connector_id: Option<String>,
-    pub timeout_ms: Option<i32>,
-    pub preferred_name: Option<String>,
-    pub reference_audio_uri: Option<String>,
-    pub reference_audio_mime: Option<String>,
-    pub instruction_text: Option<String>,
-    pub preview_text: Option<String>,
-    pub language: Option<String>,
-    pub text: Option<String>,
-    pub extensions: Vec<Box<ScenarioExtension>>,
-}
-
-impl AiTtsCreateVoiceNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.target_model_id { pairs.push(format!("target_model_id={}", value)); }
-        if let Some(value) = &self.workflow_type { pairs.push(format!("workflow_type={:?}", value)); }
-        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.preferred_name { pairs.push(format!("preferred_name={}", value)); }
-        if let Some(value) = &self.reference_audio_uri { pairs.push(format!("reference_audio_uri={}", value)); }
-        if let Some(value) = &self.reference_audio_mime { pairs.push(format!("reference_audio_mime={}", value)); }
-        if let Some(value) = &self.instruction_text { pairs.push(format!("instruction_text={}", value)); }
-        if let Some(value) = &self.preview_text { pairs.push(format!("preview_text={}", value)); }
-        if let Some(value) = &self.language { pairs.push(format!("language={}", value)); }
-        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
-        if !self.extensions.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode extensions"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["workflow_type", "extensions"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.target_model_id = pairs.get("target_model_id").cloned();
-        out.connector_id = pairs.get("connector_id").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.preferred_name = pairs.get("preferred_name").cloned();
-        out.reference_audio_uri = pairs.get("reference_audio_uri").cloned();
-        out.reference_audio_mime = pairs.get("reference_audio_mime").cloned();
-        out.instruction_text = pairs.get("instruction_text").cloned();
-        out.preview_text = pairs.get("preview_text").cloned();
-        out.language = pairs.get("language").cloned();
-        out.text = pairs.get("text").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiTtsNodeConfig {
-    pub model_id: Option<String>,
-    pub route_policy: Option<RoutePolicy>,
-    pub fallback: Option<FallbackPolicy>,
-    pub timeout_ms: Option<i32>,
-    pub text: Option<String>,
-}
-
-impl AiTtsNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.fallback { pairs.push(format!("fallback={:?}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["route_policy", "fallback"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.text = pairs.get("text").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiTtsSynthesizeNodeConfig {
-    pub model_id: Option<String>,
-    pub target_model_id: Option<String>,
-    pub text: Option<String>,
-    pub voice_ref: Option<Box<VoiceReference>>,
-    pub connector_id: Option<String>,
-    pub timeout_ms: Option<i32>,
-    pub audio_format: Option<String>,
-    pub sample_rate_hz: Option<i32>,
-    pub speed: Option<f32>,
-    pub pitch: Option<f32>,
-    pub volume: Option<f32>,
-    pub emotion: Option<String>,
-    pub extensions: Vec<Box<ScenarioExtension>>,
-}
-
-impl AiTtsSynthesizeNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.target_model_id { pairs.push(format!("target_model_id={}", value)); }
-        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
-        if self.voice_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_ref"); }
-        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.audio_format { pairs.push(format!("audio_format={}", value)); }
-        if let Some(value) = &self.sample_rate_hz { pairs.push(format!("sample_rate_hz={}", value)); }
-        if let Some(value) = &self.speed { pairs.push(format!("speed={}", value)); }
-        if let Some(value) = &self.pitch { pairs.push(format!("pitch={}", value)); }
-        if let Some(value) = &self.volume { pairs.push(format!("volume={}", value)); }
-        if let Some(value) = &self.emotion { pairs.push(format!("emotion={}", value)); }
-        if !self.extensions.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode extensions"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["voice_ref", "extensions"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.target_model_id = pairs.get("target_model_id").cloned();
-        out.text = pairs.get("text").cloned();
-        out.connector_id = pairs.get("connector_id").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.audio_format = pairs.get("audio_format").cloned();
-        out.sample_rate_hz = pairs.get("sample_rate_hz").and_then(|value| value.parse().ok());
-        out.speed = pairs.get("speed").and_then(|value| value.parse().ok());
-        out.pitch = pairs.get("pitch").and_then(|value| value.parse().ok());
-        out.volume = pairs.get("volume").and_then(|value| value.parse().ok());
-        out.emotion = pairs.get("emotion").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AiVideoNodeConfig {
-    pub model_id: Option<String>,
-    pub route_policy: Option<RoutePolicy>,
-    pub fallback: Option<FallbackPolicy>,
-    pub timeout_ms: Option<i32>,
-    pub prompt: Option<String>,
-}
-
-impl AiVideoNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.fallback { pairs.push(format!("fallback={:?}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.prompt { pairs.push(format!("prompt={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["route_policy", "fallback"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.model_id = pairs.get("model_id").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.prompt = pairs.get("prompt").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppInstallJob {
     pub job_id: Option<String>,
     pub app_id: Option<String>,
@@ -6788,33 +6267,6 @@ impl BindLocalAppProcessResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct BranchNodeConfig {
-    pub condition: Option<String>,
-    pub true_target: Option<String>,
-    pub false_target: Option<String>,
-}
-
-impl BranchNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.condition { pairs.push(format!("condition={}", value)); }
-        if let Some(value) = &self.true_target { pairs.push(format!("true_target={}", value)); }
-        if let Some(value) = &self.false_target { pairs.push(format!("false_target={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.condition = pairs.get("condition").cloned();
-        out.true_target = pairs.get("true_target").cloned();
-        out.false_target = pairs.get("false_target").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CancelCompanionParticipationRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -7099,27 +6551,6 @@ impl CancelScenarioJobResponse {
         }
 
 
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CancelWorkflowRequest {
-    pub task_id: Option<String>,
-}
-
-impl CancelWorkflowRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.task_id { pairs.push(format!("task_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.task_id = pairs.get("task_id").cloned();
         out
     }
 }
@@ -9135,8 +8566,6 @@ pub struct DelegatedProviderProfile {
     pub transport_ref: Option<String>,
     pub trust_tier: Option<DelegatedProviderTrustTier>,
     pub lifecycle_reason_code: Option<String>,
-    pub command: Option<String>,
-    pub args: Vec<String>,
 }
 
 impl DelegatedProviderProfile {
@@ -9155,8 +8584,6 @@ impl DelegatedProviderProfile {
         if let Some(value) = &self.transport_ref { pairs.push(format!("transport_ref={}", value)); }
         if let Some(value) = &self.trust_tier { pairs.push(format!("trust_tier={:?}", value)); }
         if let Some(value) = &self.lifecycle_reason_code { pairs.push(format!("lifecycle_reason_code={}", value)); }
-        if let Some(value) = &self.command { pairs.push(format!("command={}", value)); }
-        for value in &self.args { pairs.push(format!("args={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -9177,8 +8604,6 @@ impl DelegatedProviderProfile {
         out.updated_at = pairs.get("updated_at").cloned();
         out.transport_ref = pairs.get("transport_ref").cloned();
         out.lifecycle_reason_code = pairs.get("lifecycle_reason_code").cloned();
-        out.command = pairs.get("command").cloned();
-        out.args = parse_repeated_string(raw, "args");
         out
     }
 }
@@ -10378,104 +9803,6 @@ impl EvaluateLocalDevelopmentProjectResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExecuteDelegatedCapabilityRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub stream_id: Option<String>,
-    pub request_id: Option<String>,
-    pub provider_profile_id: Option<String>,
-    pub capability_id: Option<String>,
-    pub tool_name: Option<String>,
-    pub arguments: Option<BTreeMap<String, String>>,
-    pub descriptor_hash: Option<String>,
-    pub protocol_revision: Option<String>,
-    pub output_kind: Option<String>,
-    pub requires_approval: Option<bool>,
-}
-
-impl ExecuteDelegatedCapabilityRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
-        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
-        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
-        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
-        if let Some(value) = &self.stream_id { pairs.push(format!("stream_id={}", value)); }
-        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
-        if let Some(value) = &self.provider_profile_id { pairs.push(format!("provider_profile_id={}", value)); }
-        if let Some(value) = &self.capability_id { pairs.push(format!("capability_id={}", value)); }
-        if let Some(value) = &self.tool_name { pairs.push(format!("tool_name={}", value)); }
-        if self.arguments.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode arguments"); }
-        if let Some(value) = &self.descriptor_hash { pairs.push(format!("descriptor_hash={}", value)); }
-        if let Some(value) = &self.protocol_revision { pairs.push(format!("protocol_revision={}", value)); }
-        if let Some(value) = &self.output_kind { pairs.push(format!("output_kind={}", value)); }
-        if let Some(value) = &self.requires_approval { pairs.push(format!("requires_approval={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["context", "arguments"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.agent_id = pairs.get("agent_id").cloned();
-        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
-        out.turn_id = pairs.get("turn_id").cloned();
-        out.stream_id = pairs.get("stream_id").cloned();
-        out.request_id = pairs.get("request_id").cloned();
-        out.provider_profile_id = pairs.get("provider_profile_id").cloned();
-        out.capability_id = pairs.get("capability_id").cloned();
-        out.tool_name = pairs.get("tool_name").cloned();
-        out.descriptor_hash = pairs.get("descriptor_hash").cloned();
-        out.protocol_revision = pairs.get("protocol_revision").cloned();
-        out.output_kind = pairs.get("output_kind").cloned();
-        out.requires_approval = pairs.get("requires_approval").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExecuteDelegatedCapabilityResponse {
-    pub diagnostic: Option<Box<DelegatedDiagnostic>>,
-    pub replay_trace: Option<Box<DelegatedReplayTrace>>,
-    pub model_output: Option<BTreeMap<String, String>>,
-    pub approval_request: Option<Box<DelegatedApprovalRequest>>,
-}
-
-impl ExecuteDelegatedCapabilityResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.diagnostic.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode diagnostic"); }
-        if self.replay_trace.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode replay_trace"); }
-        if self.model_output.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode model_output"); }
-        if self.approval_request.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode approval_request"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["diagnostic", "replay_trace", "model_output", "approval_request"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ExecuteLocalStateCutoverRequest {
     pub nimi_data_dir: Option<String>,
     pub plan_id: Option<String>,
@@ -11210,30 +10537,6 @@ impl ExternalPayloadRefBlock {
         }
 
         out.payload_ref = pairs.get("payload_ref").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExtractNodeConfig {
-    pub json_path: Option<String>,
-    pub source_input: Option<String>,
-}
-
-impl ExtractNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.json_path { pairs.push(format!("json_path={}", value)); }
-        if let Some(value) = &self.source_input { pairs.push(format!("source_input={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.json_path = pairs.get("json_path").cloned();
-        out.source_input = pairs.get("source_input").cloned();
         out
     }
 }
@@ -13461,61 +12764,6 @@ impl GetVoiceAssetResponse {
         }
 
 
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetWorkflowRequest {
-    pub task_id: Option<String>,
-}
-
-impl GetWorkflowRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.task_id { pairs.push(format!("task_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.task_id = pairs.get("task_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetWorkflowResponse {
-    pub task_id: Option<String>,
-    pub status: Option<WorkflowStatus>,
-    pub nodes: Vec<Box<WorkflowNodeStatus>>,
-    pub output: Option<BTreeMap<String, String>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl GetWorkflowResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.task_id { pairs.push(format!("task_id={}", value)); }
-        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
-        if !self.nodes.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode nodes"); }
-        if self.output.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode output"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["status", "nodes", "output", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.task_id = pairs.get("task_id").cloned();
         out
     }
 }
@@ -21552,34 +20800,6 @@ impl MemoryRequestContext {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct MergeNodeConfig {
-    pub strategy: Option<MergeStrategy>,
-    pub min_completed: Option<i32>,
-}
-
-impl MergeNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.strategy { pairs.push(format!("strategy={:?}", value)); }
-        if let Some(value) = &self.min_completed { pairs.push(format!("min_completed={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["strategy"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.min_completed = pairs.get("min_completed").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MintFirstRunExecutionEvidenceRequest {
     pub runtime_baseline_ref: Option<String>,
     pub selected_local_factory_ai_profile_ref: Option<String>,
@@ -22014,24 +21234,6 @@ impl NarrativeRecallHit {
         out.is_stale = pairs.get("is_stale").and_then(|value| value.parse().ok());
         out.relevance_score = pairs.get("relevance_score").and_then(|value| value.parse().ok());
         out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct NoopNodeConfig {
-
-}
-
-impl NoopNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
     }
 }
 
@@ -26432,72 +25634,6 @@ impl ResponseFormat {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResumeDelegatedCapabilityRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub approval_request_id: Option<String>,
-}
-
-impl ResumeDelegatedCapabilityRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
-        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
-        if let Some(value) = &self.approval_request_id { pairs.push(format!("approval_request_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["context"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.agent_id = pairs.get("agent_id").cloned();
-        out.approval_request_id = pairs.get("approval_request_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResumeDelegatedCapabilityResponse {
-    pub diagnostic: Option<Box<DelegatedDiagnostic>>,
-    pub replay_trace: Option<Box<DelegatedReplayTrace>>,
-    pub model_output: Option<BTreeMap<String, String>>,
-    pub approval_request: Option<Box<DelegatedApprovalRequest>>,
-}
-
-impl ResumeDelegatedCapabilityResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.diagnostic.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode diagnostic"); }
-        if self.replay_trace.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode replay_trace"); }
-        if self.model_output.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode model_output"); }
-        if self.approval_request.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode approval_request"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["diagnostic", "replay_trace", "model_output", "approval_request"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResumeLocalTransferRequest {
     pub install_session_id: Option<String>,
 }
@@ -28414,36 +27550,6 @@ impl ScopedRuntimeBindingAttachment {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ScriptNodeConfig {
-    pub runtime: Option<String>,
-    pub code: Option<String>,
-    pub timeout_ms: Option<i32>,
-    pub memory_limit_bytes: Option<i64>,
-}
-
-impl ScriptNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.runtime { pairs.push(format!("runtime={}", value)); }
-        if let Some(value) = &self.code { pairs.push(format!("code={}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.memory_limit_bytes { pairs.push(format!("memory_limit_bytes={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.runtime = pairs.get("runtime").cloned();
-        out.code = pairs.get("code").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.memory_limit_bytes = pairs.get("memory_limit_bytes").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SearchCatalogModelsRequest {
     pub query: Option<String>,
     pub capability: Option<String>,
@@ -28883,71 +27989,6 @@ impl SetAutonomyConfigResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["autonomy"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SetDelegatedProviderStateRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub provider_profile_id: Option<String>,
-    pub state: Option<DelegatedProviderState>,
-    pub lifecycle_reason_code: Option<String>,
-}
-
-impl SetDelegatedProviderStateRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
-        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
-        if let Some(value) = &self.provider_profile_id { pairs.push(format!("provider_profile_id={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.lifecycle_reason_code { pairs.push(format!("lifecycle_reason_code={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["context", "state"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.agent_id = pairs.get("agent_id").cloned();
-        out.provider_profile_id = pairs.get("provider_profile_id").cloned();
-        out.lifecycle_reason_code = pairs.get("lifecycle_reason_code").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SetDelegatedProviderStateResponse {
-    pub provider_profile: Option<Box<DelegatedProviderProfile>>,
-}
-
-impl SetDelegatedProviderStateResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.provider_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_profile"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["provider_profile"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -29941,71 +28982,6 @@ impl SubmitScenarioJobResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubmitWorkflowRequest {
-    pub app_id: Option<String>,
-    pub subject_user_id: Option<String>,
-    pub definition: Option<Box<WorkflowDefinition>>,
-    pub timeout_ms: Option<i32>,
-}
-
-impl SubmitWorkflowRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
-        if self.definition.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode definition"); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["definition"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.subject_user_id = pairs.get("subject_user_id").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubmitWorkflowResponse {
-    pub task_id: Option<String>,
-    pub accepted: Option<bool>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl SubmitWorkflowResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.task_id { pairs.push(format!("task_id={}", value)); }
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.task_id = pairs.get("task_id").cloned();
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubscribeAIProviderHealthEventsRequest {
 
 }
@@ -30265,27 +29241,6 @@ impl SubscribeScenarioJobEventsRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubscribeWorkflowEventsRequest {
-    pub task_id: Option<String>,
-}
-
-impl SubscribeWorkflowEventsRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.task_id { pairs.push(format!("task_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.task_id = pairs.get("task_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SwitchAccountRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub reason: Option<String>,
@@ -30346,30 +29301,6 @@ impl SwitchAccountResponse {
 
         out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
         out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TemplateNodeConfig {
-    pub template: Option<String>,
-    pub output_mime_type: Option<String>,
-}
-
-impl TemplateNodeConfig {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.template { pairs.push(format!("template={}", value)); }
-        if let Some(value) = &self.output_mime_type { pairs.push(format!("output_mime_type={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.template = pairs.get("template").cloned();
-        out.output_mime_type = pairs.get("output_mime_type").cloned();
         out
     }
 }
@@ -31448,65 +30379,6 @@ impl UpsertCatalogModelOverlayResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpsertDelegatedProviderProfileRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub provider_profile: Option<Box<DelegatedProviderProfile>>,
-}
-
-impl UpsertDelegatedProviderProfileRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
-        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
-        if self.provider_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_profile"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["context", "provider_profile"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.agent_id = pairs.get("agent_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpsertDelegatedProviderProfileResponse {
-    pub provider_profile: Option<Box<DelegatedProviderProfile>>,
-}
-
-impl UpsertDelegatedProviderProfileResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.provider_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_profile"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["provider_profile"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpsertModelCatalogProviderRequest {
     pub provider: Option<String>,
     pub yaml: Option<String>,
@@ -32444,233 +31316,6 @@ impl WatchLocalTransfersRequest {
             panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
         }
         Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorkflowDefinition {
-    pub workflow_type: Option<String>,
-    pub nodes: Vec<Box<WorkflowNode>>,
-    pub edges: Vec<Box<WorkflowEdge>>,
-}
-
-impl WorkflowDefinition {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.workflow_type { pairs.push(format!("workflow_type={}", value)); }
-        if !self.nodes.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode nodes"); }
-        if !self.edges.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode edges"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["nodes", "edges"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.workflow_type = pairs.get("workflow_type").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorkflowEdge {
-    pub from_node_id: Option<String>,
-    pub from_output: Option<String>,
-    pub to_node_id: Option<String>,
-    pub to_input: Option<String>,
-}
-
-impl WorkflowEdge {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.from_node_id { pairs.push(format!("from_node_id={}", value)); }
-        if let Some(value) = &self.from_output { pairs.push(format!("from_output={}", value)); }
-        if let Some(value) = &self.to_node_id { pairs.push(format!("to_node_id={}", value)); }
-        if let Some(value) = &self.to_input { pairs.push(format!("to_input={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.from_node_id = pairs.get("from_node_id").cloned();
-        out.from_output = pairs.get("from_output").cloned();
-        out.to_node_id = pairs.get("to_node_id").cloned();
-        out.to_input = pairs.get("to_input").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorkflowEvent {
-    pub event_type: Option<WorkflowEventType>,
-    pub sequence: Option<u64>,
-    pub task_id: Option<String>,
-    pub trace_id: Option<String>,
-    pub timestamp: Option<String>,
-    pub node_id: Option<String>,
-    pub progress_percent: Option<i32>,
-    pub reason_code: Option<ReasonCode>,
-    pub payload: Option<BTreeMap<String, String>>,
-}
-
-impl WorkflowEvent {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.event_type { pairs.push(format!("event_type={:?}", value)); }
-        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
-        if let Some(value) = &self.task_id { pairs.push(format!("task_id={}", value)); }
-        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
-        if let Some(value) = &self.timestamp { pairs.push(format!("timestamp={}", value)); }
-        if let Some(value) = &self.node_id { pairs.push(format!("node_id={}", value)); }
-        if let Some(value) = &self.progress_percent { pairs.push(format!("progress_percent={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if self.payload.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode payload"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["event_type", "reason_code", "payload"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
-        out.task_id = pairs.get("task_id").cloned();
-        out.trace_id = pairs.get("trace_id").cloned();
-        out.timestamp = pairs.get("timestamp").cloned();
-        out.node_id = pairs.get("node_id").cloned();
-        out.progress_percent = pairs.get("progress_percent").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorkflowNode {
-    pub node_id: Option<String>,
-    pub node_type: Option<WorkflowNodeType>,
-    pub depends_on: Vec<String>,
-    pub retry_max_attempts: Option<i32>,
-    pub retry_backoff: Option<String>,
-    pub execution_mode: Option<WorkflowExecutionMode>,
-    pub resume_strategy: Option<WorkflowResumeStrategy>,
-    pub callback_ref: Option<String>,
-    pub ai_generate_config: Option<Box<AiGenerateNodeConfig>>,
-    pub ai_stream_config: Option<Box<AiStreamNodeConfig>>,
-    pub ai_embed_config: Option<Box<AiEmbedNodeConfig>>,
-    pub ai_image_config: Option<Box<AiImageNodeConfig>>,
-    pub ai_video_config: Option<Box<AiVideoNodeConfig>>,
-    pub ai_tts_config: Option<Box<AiTtsNodeConfig>>,
-    pub ai_stt_config: Option<Box<AiSttNodeConfig>>,
-    pub ai_tts_create_voice_config: Option<Box<AiTtsCreateVoiceNodeConfig>>,
-    pub ai_tts_synthesize_config: Option<Box<AiTtsSynthesizeNodeConfig>>,
-    pub extract_config: Option<Box<ExtractNodeConfig>>,
-    pub template_config: Option<Box<TemplateNodeConfig>>,
-    pub script_config: Option<Box<ScriptNodeConfig>>,
-    pub branch_config: Option<Box<BranchNodeConfig>>,
-    pub merge_config: Option<Box<MergeNodeConfig>>,
-    pub noop_config: Option<Box<NoopNodeConfig>>,
-}
-
-impl WorkflowNode {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.node_id { pairs.push(format!("node_id={}", value)); }
-        if let Some(value) = &self.node_type { pairs.push(format!("node_type={:?}", value)); }
-        for value in &self.depends_on { pairs.push(format!("depends_on={}", value)); }
-        if let Some(value) = &self.retry_max_attempts { pairs.push(format!("retry_max_attempts={}", value)); }
-        if let Some(value) = &self.retry_backoff { pairs.push(format!("retry_backoff={}", value)); }
-        if let Some(value) = &self.execution_mode { pairs.push(format!("execution_mode={:?}", value)); }
-        if let Some(value) = &self.resume_strategy { pairs.push(format!("resume_strategy={:?}", value)); }
-        if let Some(value) = &self.callback_ref { pairs.push(format!("callback_ref={}", value)); }
-        if self.ai_generate_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_generate_config"); }
-        if self.ai_stream_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_stream_config"); }
-        if self.ai_embed_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_embed_config"); }
-        if self.ai_image_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_image_config"); }
-        if self.ai_video_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_video_config"); }
-        if self.ai_tts_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_tts_config"); }
-        if self.ai_stt_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_stt_config"); }
-        if self.ai_tts_create_voice_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_tts_create_voice_config"); }
-        if self.ai_tts_synthesize_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ai_tts_synthesize_config"); }
-        if self.extract_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode extract_config"); }
-        if self.template_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode template_config"); }
-        if self.script_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode script_config"); }
-        if self.branch_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode branch_config"); }
-        if self.merge_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode merge_config"); }
-        if self.noop_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode noop_config"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["node_type", "execution_mode", "resume_strategy", "ai_generate_config", "ai_stream_config", "ai_embed_config", "ai_image_config", "ai_video_config", "ai_tts_config", "ai_stt_config", "ai_tts_create_voice_config", "ai_tts_synthesize_config", "extract_config", "template_config", "script_config", "branch_config", "merge_config", "noop_config"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.node_id = pairs.get("node_id").cloned();
-        out.depends_on = parse_repeated_string(raw, "depends_on");
-        out.retry_max_attempts = pairs.get("retry_max_attempts").and_then(|value| value.parse().ok());
-        out.retry_backoff = pairs.get("retry_backoff").cloned();
-        out.callback_ref = pairs.get("callback_ref").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorkflowNodeStatus {
-    pub node_id: Option<String>,
-    pub status: Option<WorkflowStatus>,
-    pub attempt: Option<i32>,
-    pub reason: Option<String>,
-    pub provider_job_id: Option<String>,
-    pub next_poll_at: Option<String>,
-    pub retry_count: Option<i32>,
-    pub last_error: Option<String>,
-}
-
-impl WorkflowNodeStatus {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.node_id { pairs.push(format!("node_id={}", value)); }
-        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
-        if let Some(value) = &self.attempt { pairs.push(format!("attempt={}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        if let Some(value) = &self.provider_job_id { pairs.push(format!("provider_job_id={}", value)); }
-        if let Some(value) = &self.next_poll_at { pairs.push(format!("next_poll_at={}", value)); }
-        if let Some(value) = &self.retry_count { pairs.push(format!("retry_count={}", value)); }
-        if let Some(value) = &self.last_error { pairs.push(format!("last_error={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["status"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.node_id = pairs.get("node_id").cloned();
-        out.attempt = pairs.get("attempt").and_then(|value| value.parse().ok());
-        out.reason = pairs.get("reason").cloned();
-        out.provider_job_id = pairs.get("provider_job_id").cloned();
-        out.next_poll_at = pairs.get("next_poll_at").cloned();
-        out.retry_count = pairs.get("retry_count").and_then(|value| value.parse().ok());
-        out.last_error = pairs.get("last_error").cloned();
-        out
     }
 }
 
@@ -33663,60 +32308,6 @@ impl From<Vec<u8>> for AgentVoiceStreamEvent {
     }
 }
 
-impl From<Vec<u8>> for AiEmbedNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AiGenerateNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AiImageNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AiStreamNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AiSttNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AiTtsCreateVoiceNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AiTtsNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AiTtsSynthesizeNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AiVideoNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for AppInstallJob {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33897,12 +32488,6 @@ impl From<Vec<u8>> for BindLocalAppProcessResponse {
     }
 }
 
-impl From<Vec<u8>> for BranchNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for CancelCompanionParticipationRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33958,12 +32543,6 @@ impl From<Vec<u8>> for CancelScenarioJobRequest {
 }
 
 impl From<Vec<u8>> for CancelScenarioJobResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for CancelWorkflowRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34545,18 +33124,6 @@ impl From<Vec<u8>> for EvaluateLocalDevelopmentProjectResponse {
     }
 }
 
-impl From<Vec<u8>> for ExecuteDelegatedCapabilityRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ExecuteDelegatedCapabilityResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ExecuteLocalStateCutoverRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34678,12 +33245,6 @@ impl From<Vec<u8>> for ExternalParticipantIdentityRefBlock {
 }
 
 impl From<Vec<u8>> for ExternalPayloadRefBlock {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ExtractNodeConfig {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35158,18 +33719,6 @@ impl From<Vec<u8>> for GetVoiceAssetRequest {
 }
 
 impl From<Vec<u8>> for GetVoiceAssetResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetWorkflowRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetWorkflowResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36495,12 +35044,6 @@ impl From<Vec<u8>> for MemoryRequestContext {
     }
 }
 
-impl From<Vec<u8>> for MergeNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for MintFirstRunExecutionEvidenceRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36556,12 +35099,6 @@ impl From<Vec<u8>> for MusicGenerateScenarioSpec {
 }
 
 impl From<Vec<u8>> for NarrativeRecallHit {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for NoopNodeConfig {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37365,18 +35902,6 @@ impl From<Vec<u8>> for ResponseFormat {
     }
 }
 
-impl From<Vec<u8>> for ResumeDelegatedCapabilityRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ResumeDelegatedCapabilityResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ResumeLocalTransferRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -37713,12 +36238,6 @@ impl From<Vec<u8>> for ScopedRuntimeBindingAttachment {
     }
 }
 
-impl From<Vec<u8>> for ScriptNodeConfig {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for SearchCatalogModelsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -37798,18 +36317,6 @@ impl From<Vec<u8>> for SetAutonomyConfigRequest {
 }
 
 impl From<Vec<u8>> for SetAutonomyConfigResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for SetDelegatedProviderStateRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for SetDelegatedProviderStateResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -38007,18 +36514,6 @@ impl From<Vec<u8>> for SubmitScenarioJobResponse {
     }
 }
 
-impl From<Vec<u8>> for SubmitWorkflowRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for SubmitWorkflowResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for SubscribeAIProviderHealthEventsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -38073,12 +36568,6 @@ impl From<Vec<u8>> for SubscribeScenarioJobEventsRequest {
     }
 }
 
-impl From<Vec<u8>> for SubscribeWorkflowEventsRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for SwitchAccountRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -38086,12 +36575,6 @@ impl From<Vec<u8>> for SwitchAccountRequest {
 }
 
 impl From<Vec<u8>> for SwitchAccountResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for TemplateNodeConfig {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -38295,18 +36778,6 @@ impl From<Vec<u8>> for UpsertCatalogModelOverlayResponse {
     }
 }
 
-impl From<Vec<u8>> for UpsertDelegatedProviderProfileRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for UpsertDelegatedProviderProfileResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for UpsertModelCatalogProviderRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -38476,36 +36947,6 @@ impl From<Vec<u8>> for WatchAppInstallJobEventsRequest {
 }
 
 impl From<Vec<u8>> for WatchLocalTransfersRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for WorkflowDefinition {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for WorkflowEdge {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for WorkflowEvent {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for WorkflowNode {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for WorkflowNodeStatus {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -38865,16 +37306,6 @@ where
             timeout,
         })?;
         Ok(EnableAutonomyResponse::from_transport(&raw))
-    }
-
-    pub fn execute_delegated_capability(&self, request: ExecuteDelegatedCapabilityRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteDelegatedCapabilityResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ExecuteDelegatedCapabilityResponse::from_transport(&raw))
     }
 
     pub fn execute_participation(&self, request: ExecuteParticipationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteParticipationResponse, T::Error> {
@@ -39247,16 +37678,6 @@ where
         Ok(ResolveAvatarLiveInstanceBindingResponse::from_transport(&raw))
     }
 
-    pub fn resume_delegated_capability(&self, request: ResumeDelegatedCapabilityRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResumeDelegatedCapabilityResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ResumeDelegatedCapabilityResponse::from_transport(&raw))
-    }
-
     pub fn set_agent_presentation_profile(&self, request: SetAgentPresentationProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetAgentPresentationProfileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile".to_string(),
@@ -39275,16 +37696,6 @@ where
             timeout,
         })?;
         Ok(SetAutonomyConfigResponse::from_transport(&raw))
-    }
-
-    pub fn set_delegated_provider_state(&self, request: SetDelegatedProviderStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetDelegatedProviderStateResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(SetDelegatedProviderStateResponse::from_transport(&raw))
     }
 
     pub fn submit_avatar_debug_probe_result(&self, request: SubmitAvatarDebugProbeResultRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitAvatarDebugProbeResultResponse, T::Error> {
@@ -39364,16 +37775,6 @@ where
             timeout,
         })?;
         Ok(UpdateAgentStateResponse::from_transport(&raw))
-    }
-
-    pub fn upsert_delegated_provider_profile(&self, request: UpsertDelegatedProviderProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpsertDelegatedProviderProfileResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(UpsertDelegatedProviderProfileResponse::from_transport(&raw))
     }
 
     pub fn upsert_runtime_agent_aiconfig(&self, request: UpsertRuntimeAgentAIConfigRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpsertRuntimeAgentAIConfigResponse, T::Error> {
@@ -41278,49 +39679,6 @@ where
             timeout,
         })?;
         Ok(RequestRuntimeRestartResponse::from_transport(&raw))
-    }
-
-    pub fn cancel_workflow(&self, request: CancelWorkflowRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(Ack::from_transport(&raw))
-    }
-
-    pub fn get_workflow(&self, request: GetWorkflowRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetWorkflowResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(GetWorkflowResponse::from_transport(&raw))
-    }
-
-    pub fn submit_workflow(&self, request: SubmitWorkflowRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitWorkflowResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(SubmitWorkflowResponse::from_transport(&raw))
-    }
-
-    pub fn subscribe_workflow_events(&self, request: SubscribeWorkflowEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, WorkflowEvent>, T::Error>
-    where
-        T::Stream: CoreTypedStream,
-    {
-        let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 }
 

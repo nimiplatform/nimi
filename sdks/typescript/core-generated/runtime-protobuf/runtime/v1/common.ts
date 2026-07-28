@@ -635,24 +635,8 @@ export enum ReasonCode {
      */
     AI_MODULE_CONFIG_INVALID = 430,
     /**
-     * WORKFLOW family (440+)
+     * MEMORY family (444+)
      *
-     * @generated from protobuf enum value: WF_DAG_INVALID = 440;
-     */
-    WF_DAG_INVALID = 440,
-    /**
-     * @generated from protobuf enum value: WF_NODE_CONFIG_MISMATCH = 441;
-     */
-    WF_NODE_CONFIG_MISMATCH = 441,
-    /**
-     * @generated from protobuf enum value: WF_TIMEOUT = 442;
-     */
-    WF_TIMEOUT = 442,
-    /**
-     * @generated from protobuf enum value: WF_TASK_NOT_FOUND = 443;
-     */
-    WF_TASK_NOT_FOUND = 443,
-    /**
      * @generated from protobuf enum value: AI_MEMORY_EMBEDDING_TARGET_REF_INVALID = 444;
      */
     AI_MEMORY_EMBEDDING_TARGET_REF_INVALID = 444,

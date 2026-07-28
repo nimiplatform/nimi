@@ -64,7 +64,6 @@ import {
   createNimiArtifactTool,
   createNimiExternalExecutionTool,
   createNimiFileDescriptorTool,
-  createNimiMcpTool,
 } from './toolkits';
 
 test('conversation feature builds history windows and UI-friendly stream events', () => {
@@ -778,21 +777,19 @@ test('evaluation feature checks golden event order and adapter parity', () => {
   }).failureReason, 'invalid-json');
 });
 
-test('toolkits feature creates approval external artifact file and MCP tools', async () => {
+test('toolkits feature creates approval external artifact and file tools', async () => {
   const tools = [
     createNimiApprovalTool({ name: 'approve', description: 'Approve work' }),
     createNimiExternalExecutionTool({ name: 'run', description: 'Run work' }),
     createNimiArtifactTool({ name: 'artifact', description: 'Create artifact', artifactKind: 'image' }),
     createNimiFileDescriptorTool({ name: 'file', description: 'Describe file' }),
-    createNimiMcpTool({ name: 'mcp', description: 'Call MCP', serverId: 'server-1' }),
   ];
 
   assert.deepEqual(
     tools.map((tool) => tool.name),
-    ['approve', 'run', 'artifact', 'file', 'mcp'],
+    ['approve', 'run', 'artifact', 'file'],
   );
   assert.equal(tools[0]?.policy, 'approval-required');
-  assert.equal((tools[4]?.adapterMetadata as { serverId: string }).serverId, 'server-1');
 
   const registry = createNimiToolRegistry([
     {

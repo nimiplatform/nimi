@@ -93,11 +93,6 @@
       "import": "./dist/features/generation/index.js",
       "default": "./dist/features/generation/index.js"
     },
-    "./features/workflow": {
-      "types": "./dist/features/workflow/index.d.ts",
-      "import": "./dist/features/workflow/index.js",
-      "default": "./dist/features/workflow/index.js"
-    },
     "./features/evaluation": {
       "types": "./dist/features/evaluation/index.d.ts",
       "import": "./dist/features/evaluation/index.js",

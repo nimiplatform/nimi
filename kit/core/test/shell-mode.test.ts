@@ -1,8 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
-const source = readFileSync(resolve(import.meta.dirname, '../src/shell-mode.ts'), 'utf8');
 
 type ShellModeModule = typeof import('../src/shell-mode.js');
 

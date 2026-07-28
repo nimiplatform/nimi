@@ -68,22 +68,6 @@ export {
   type NimiMastraGenerateTarget,
   type NimiMastraStreamTarget,
 } from './context';
-export {
-  createNimiMastraRuntimeDelegatedToolBinding,
-  createNimiMastraRuntimeDelegatedTool,
-  resumeNimiMastraRuntimeDelegatedTool,
-  NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_APPROVAL_REQUIRED_CODE,
-  NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_ERROR_CODE,
-  NimiMastraRuntimeDelegatedToolApprovalRequiredError,
-  NimiMastraRuntimeDelegatedToolError,
-  type NimiMastraRuntimeDelegatedToolBinding,
-  type NimiMastraRuntimeDelegatedToolBindingOptions,
-  type NimiMastraRuntimeDelegatedToolOptions,
-  type NimiMastraRuntimeDelegatedToolResumeOptions,
-  type NimiMastraRuntimeDelegatedToolValue,
-  type NimiMastraRuntimeTurnBinding,
-} from './runtime-delegated-tools';
-
 /**
  * The Nimi-backed Mastra model.
  *

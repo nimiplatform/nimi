@@ -29,7 +29,6 @@ export enum DelegatedApprovalRequestState {
 
 export enum DelegatedProviderKind {
   UNSPECIFIED = 0,
-  MCP_TOOL_PROVIDER = 1,
   REMOTE_AGENT_SEAM = 2,
   RUNTIME_NATIVE_PROVIDER = 3,
   CONTROLLED_TEST_PROVIDER = 4,
@@ -75,5 +74,4 @@ export enum DelegatedTraceStageKind {
 
 export enum DelegatedTransportKind {
   UNSPECIFIED = 0,
-  STDIO_COMMAND = 1,
 }

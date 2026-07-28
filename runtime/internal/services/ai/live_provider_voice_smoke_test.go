@@ -3,7 +3,6 @@
 package ai
 
 import (
-	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -412,8 +411,8 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		Spec:          spec,
 	})
 	if err != nil {
-		maybeSkipFishAudioBalanceBlocked(t, providerID, err, "")
-		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
+		maybeSkipFishAudioBalanceBlocked(t, providerID, err, nil)
+		maybeSkipStepFunQuotaBlocked(t, providerID, err, nil)
 		t.Fatalf("submit voice workflow failed: %v", err)
 	}
 	if submitResp.GetAsset() == nil || strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId()) == "" {
@@ -433,8 +432,8 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 	}()
 	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
-		maybeSkipStepFunQuotaBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
+		maybeSkipFishAudioBalanceBlocked(t, providerID, nil, job)
+		maybeSkipStepFunQuotaBlocked(t, providerID, nil, job)
 		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
 	if strings.EqualFold(strings.TrimSpace(providerID), "mimo") {
@@ -464,14 +463,14 @@ func runLiveSmokeSpeechSynthesizeWithVoiceAsset(t *testing.T, harness liveSmokeP
 		},
 	})
 	if err != nil {
-		maybeSkipFishAudioBalanceBlocked(t, providerID, err, "")
-		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
+		maybeSkipFishAudioBalanceBlocked(t, providerID, err, nil)
+		maybeSkipStepFunQuotaBlocked(t, providerID, err, nil)
 		t.Fatalf("submit speech synth via voice asset failed: %v", err)
 	}
 	synthJob := waitLiveSmokeScenarioJob(t, svc, synthResp.GetJob().GetJobId())
 	if synthJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(synthJob.GetReasonDetail()), synthJob.GetReasonDetail())
-		maybeSkipStepFunQuotaBlocked(t, providerID, errors.New(synthJob.GetReasonDetail()), synthJob.GetReasonDetail())
+		maybeSkipFishAudioBalanceBlocked(t, providerID, nil, synthJob)
+		maybeSkipStepFunQuotaBlocked(t, providerID, nil, synthJob)
 		t.Fatalf("voice asset synth job status not completed: %s reason=%s detail=%s", synthJob.GetStatus().String(), synthJob.GetReasonCode().String(), synthJob.GetReasonDetail())
 	}
 	artifactsResp, err := svc.GetScenarioArtifacts(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioArtifactsRequest{

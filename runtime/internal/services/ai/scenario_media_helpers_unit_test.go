@@ -3,6 +3,7 @@ package ai
 import (
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -47,15 +48,16 @@ func TestScenarioModalFromType(t *testing.T) {
 	}
 }
 
-func TestSanitizeScenarioJobReasonDetail_PreservesSafeProviderMetadataForUnavailable(t *testing.T) {
+func TestSanitizeScenarioJobReasonDetail_DropsProviderBodyForUnavailable(t *testing.T) {
+	const providerMarker = "provider-body-marker"
 	err := grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 		Message: "provider request failed",
 		Metadata: map[string]string{
-			"provider_message": "dial tcp 127.0.0.1:8321: connect: connection refused",
+			"provider_message": providerMarker,
 		},
 	})
-	if got := sanitizeScenarioJobReasonDetail(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE); got != "dial tcp 127.0.0.1:8321: connect: connection refused" {
-		t.Fatalf("unexpected provider detail: %q", got)
+	if got := sanitizeScenarioJobReasonDetail(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE); got == "" || strings.Contains(got, providerMarker) {
+		t.Fatalf("provider body leaked through stable reason detail: %q", got)
 	}
 }
 
@@ -68,38 +70,75 @@ func TestSanitizeScenarioJobReasonDetail_LocalSpeechReasonsUseBundleAwareMessage
 	}
 }
 
-func TestScenarioJobReasonMetadata_PreservesSafeProviderMetadataForUnavailable(t *testing.T) {
+func TestScenarioJobReasonMetadata_DropsProviderBodyWithoutStructuredRecoveryMetadata(t *testing.T) {
 	err := grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 		Message: "provider request failed",
 		Metadata: map[string]string{
-			"provider_message": "dial tcp 127.0.0.1:8321: connect: connection refused",
+			"provider_message": "provider-body-marker",
 		},
 	})
 	out := scenarioJobReasonMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	if out == nil {
-		t.Fatal("expected structured scenario job reason metadata")
+		t.Fatal("expected structured recovery metadata")
 	}
-	if got := out.AsMap()["provider_message"]; got != "dial tcp 127.0.0.1:8321: connect: connection refused" {
-		t.Fatalf("unexpected structured provider detail: %#v", got)
+	values := out.AsMap()
+	if got := values["action_hint"]; got != "inspect_reason_code_and_retry_with_corrected_request" {
+		t.Fatalf("unexpected action_hint: %#v", got)
+	}
+	if _, exists := values["retryable"]; exists {
+		t.Fatalf("unexpected retryable metadata: %#v", values)
+	}
+	if _, exists := values["provider_message"]; exists {
+		t.Fatalf("provider body must not be projected into scenario job metadata: %#v", values)
 	}
 }
 
-func TestScenarioJobReasonMetadata_PreservesProviderMetadataForRateLimited(t *testing.T) {
+func TestScenarioJobReasonMetadata_DropsProviderBodyForRateLimited(t *testing.T) {
+	const providerMarker = "provider-body-marker"
 	err := grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, grpcerr.ReasonOptions{
 		Message: "provider task failed",
 		Metadata: map[string]string{
-			"provider_message": "model service has been paused by Safe Experience Mode",
+			"provider_message": providerMarker,
 		},
 	})
-	if got := sanitizeScenarioJobReasonDetail(err, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED); got != "model service has been paused by Safe Experience Mode" {
-		t.Fatalf("unexpected provider detail: %q", got)
+	if got := sanitizeScenarioJobReasonDetail(err, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED); got == "" || strings.Contains(got, providerMarker) {
+		t.Fatalf("provider body leaked through stable reason detail: %q", got)
 	}
 	out := scenarioJobReasonMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
 	if out == nil {
-		t.Fatal("expected structured scenario job reason metadata")
+		t.Fatal("expected structured recovery metadata")
 	}
-	if got := out.AsMap()["provider_message"]; got != "model service has been paused by Safe Experience Mode" {
-		t.Fatalf("unexpected structured provider detail: %#v", got)
+	values := out.AsMap()
+	if got := values["action_hint"]; got != "inspect_reason_code_and_retry_with_corrected_request" {
+		t.Fatalf("unexpected action_hint: %#v", got)
+	}
+	if _, exists := values["retryable"]; exists {
+		t.Fatalf("unexpected retryable metadata: %#v", values)
+	}
+	if _, exists := values["provider_message"]; exists {
+		t.Fatalf("provider body must not be projected into scenario job metadata: %#v", values)
+	}
+}
+
+func TestScenarioJobReasonMetadata_DropsCredentialBearingProviderMessage(t *testing.T) {
+	const secret = "provider-secret-value"
+	err := grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+		ActionHint: "check_provider_endpoint",
+		Message:    "provider request failed",
+		Metadata: map[string]string{
+			"provider_message": "https://provider.invalid/v1?api_key=" + secret,
+		},
+	})
+	out := scenarioJobReasonMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	if out == nil {
+		t.Fatal("expected safe structured recovery metadata")
+	}
+	values := out.AsMap()
+	if _, exists := values["provider_message"]; exists {
+		t.Fatalf("credential-bearing provider_message must be dropped: %#v", values)
+	}
+	if got := values["action_hint"]; got != "check_provider_endpoint" {
+		t.Fatalf("expected safe action_hint, got %#v", got)
 	}
 }
 
@@ -456,11 +495,13 @@ func TestReasonCodeFromMediaErrorAndVoiceRef(t *testing.T) {
 	if got := reasonCodeFromMediaError(status.Error(codes.Canceled, "cancel")); got != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("unexpected canceled reason: %v", got)
 	}
-	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.InvalidArgument, "https://secret.invalid/path?api_key=abc"), runtimev1.ReasonCode_AI_INPUT_INVALID); got != "provider rejected request parameters" {
-		t.Fatalf("unexpected sanitized invalid-argument detail: %q", got)
+	const credentialMarker = "provider-secret-marker"
+	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.InvalidArgument, "https://secret.invalid/path?api_key="+credentialMarker), runtimev1.ReasonCode_AI_INPUT_INVALID); got == "" || strings.Contains(got, credentialMarker) {
+		t.Fatalf("credential marker leaked through reason detail: %q", got)
 	}
-	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.ResourceExhausted, "token quota exceeded"), runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED); got != "provider rate limit reached" {
-		t.Fatalf("unexpected sanitized rate-limit detail: %q", got)
+	const providerMarker = "provider-rate-marker"
+	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.ResourceExhausted, providerMarker), runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED); got == "" || strings.Contains(got, providerMarker) {
+		t.Fatalf("provider marker leaked through rate-limit reason detail: %q", got)
 	}
 
 	spec := &runtimev1.SpeechSynthesizeScenarioSpec{VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF, Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: "voice-1"}}}

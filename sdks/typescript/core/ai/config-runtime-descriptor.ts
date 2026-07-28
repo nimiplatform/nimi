@@ -19,7 +19,12 @@ import type {
   NimiRuntimeProfileDescriptorWire,
 } from './config-types';
 import { validateNimiAIProfile } from './config-profile';
-import { aiConfigError, collectForbiddenPayloadErrors, requireNonEmptyText } from './config-internal';
+import {
+  aiConfigError,
+  collectForbiddenPayloadIssues,
+  formatNimiAIValidationIssues,
+  requireNonEmptyText,
+} from './config-internal';
 import { assertNimiAICapabilityRequirementDeclaration } from './config-requirements';
 
 export function formNimiRuntimeProfileDescriptor(input: {
@@ -31,7 +36,11 @@ export function formNimiRuntimeProfileDescriptor(input: {
 }): NimiRuntimeProfileDescriptor {
   const validation = validateNimiAIProfile(input.profile);
   if (!validation.valid) {
-    throw aiConfigError('SDK_AI_PROFILE_INVALID', `AI profile is invalid: ${validation.errors.join('; ')}`, 'fix_ai_profile_contract');
+    throw aiConfigError(
+      'SDK_AI_PROFILE_INVALID',
+      `AI profile is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
+      'fix_ai_profile_contract',
+    );
   }
   const descriptorId = requireNonEmptyText(input.descriptorId, 'runtime descriptorId is required', 'provide_runtime_descriptor_id');
   const sourceProfileDigest = requireNonEmptyText(
@@ -361,11 +370,11 @@ function toManualWire(
 }
 
 function assertDescriptorPortable(descriptor: NimiRuntimeProfileDescriptor): void {
-  const errors = collectForbiddenPayloadErrors(descriptor, 'runtimeDescriptor');
-  if (errors.length > 0) {
+  const issues = collectForbiddenPayloadIssues(descriptor, 'runtimeDescriptor');
+  if (issues.length > 0) {
     throw aiConfigError(
       'SDK_AI_RUNTIME_DESCRIPTOR_INVALID',
-      `runtime descriptor contains forbidden Runtime evidence: ${errors.join('; ')}`,
+      `runtime descriptor contains forbidden Runtime evidence: ${formatNimiAIValidationIssues(issues)}`,
       'remove_runtime_evidence_from_descriptor',
     );
   }

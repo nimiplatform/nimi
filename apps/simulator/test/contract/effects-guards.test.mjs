@@ -176,7 +176,7 @@ test('inherited browser descriptors are intercepted at their defining prototype'
   assert.equal(calls, 0);
 });
 
-test('unavailable and browser-unforgeable surfaces are left to static and CSP enforcement', () => {
+test('unavailable and browser-unforgeable surfaces remain outside runtime patching', () => {
   const originalFetch = () => 'native';
   const target = {};
   Object.defineProperty(target, 'fetch', {
@@ -247,7 +247,7 @@ test('runtime scope is synchronous and does not become ambient async attribution
   const handle = installSimulatorEffectGuards({ catalog, target });
   await handle.withScope({ owner: 'canonical-renderer', phase: 'callback' }, async () => {
     await Promise.resolve();
-    target.fetch('/statically-forbidden-source');
+    target.fetch('/unscoped-async-callback');
   });
   assert.equal(calls.fetch, 1);
 });

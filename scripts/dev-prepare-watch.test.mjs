@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -47,16 +46,4 @@ test('freshness is fail-closed for missing stamps, missing dist and newer source
     workspaceSurfaceBuildDiagnostic('sdk', { state: 'fresh' }, snapshot),
     null,
   );
-});
-
-test('watcher never substitutes direct TypeScript or Vite watch output for canonical dist', async () => {
-  const source = await readFile(new URL('./dev-prepare-watch.mjs', import.meta.url), 'utf8');
-  const zhiyuPackage = JSON.parse(await readFile(new URL('../apps/zhiyu/package.json', import.meta.url), 'utf8'));
-  const zhiyuBuild = await readFile(new URL('../apps/zhiyu/scripts/run-electron-build.mjs', import.meta.url), 'utf8');
-  assert.match(source, /canonicalSurfaceBuildCommand/u);
-  assert.doesNotMatch(source, /tsc(?:\.cmd)?['" ]*,?\s*\[[^\]]*--watch|vite(?:\.cmd)?['" ]*,?\s*\[[^\]]*--watch/u);
-  assert.doesNotMatch(source, /build --watch/u);
-  assert.equal(zhiyuPackage.scripts['build:electron'], 'node scripts/run-electron-build.mjs');
-  assert.doesNotMatch(zhiyuBuild, /build:sdk|build:kit|prepare:workspace-surfaces/u);
-  assert.match(zhiyuBuild, /SDK\/Kit dist freshness is not proven/u);
 });

@@ -154,7 +154,6 @@ export default defineConfig(({ mode }) => {
         { find: '@nimiplatform/sdk/features/knowledge-context', replacement: path.join(sdkVNextDist, 'features/knowledge-context/index.js') },
         { find: '@nimiplatform/sdk/features/memory-context', replacement: path.join(sdkVNextDist, 'features/memory-context/index.js') },
         { find: '@nimiplatform/sdk/features/generation', replacement: path.join(sdkVNextDist, 'features/generation/index.js') },
-        { find: '@nimiplatform/sdk/features/workflow', replacement: path.join(sdkVNextDist, 'features/workflow/index.js') },
         { find: '@nimiplatform/sdk/features/evaluation', replacement: path.join(sdkVNextDist, 'features/evaluation/index.js') },
         { find: '@nimiplatform/sdk/features/toolkits', replacement: path.join(sdkVNextDist, 'features/toolkits/index.js') },
         { find: '@nimiplatform/sdk', replacement: path.join(sdkVNextDist, 'index.js') },

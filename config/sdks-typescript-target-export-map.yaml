@@ -51,12 +51,9 @@ entries:
   - id: features-generation
     owner: sdks/typescript/features/generation
     semantics: Media generation job and artifact helpers.
-  - id: features-workflow
-    owner: sdks/typescript/features/workflow
-    semantics: Workflow events, checkpoints, graph handoff, and migration proof coverage.
   - id: features-evaluation
     owner: sdks/typescript/features/evaluation
     semantics: Golden runs, adapter parity, and trace assertions.
   - id: features-toolkits
     owner: sdks/typescript/features/toolkits
-    semantics: Approval, external execution, artifact, file, and MCP tool helpers.
+    semantics: Approval, external execution, artifact, and file tool helpers.

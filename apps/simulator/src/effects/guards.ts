@@ -5,13 +5,11 @@
  *
  * Authority: P-SIM-018; tables/simulator-browser-effects.yaml.
  *
- * Guards are semantic containment, not a hostile-code sandbox: reviewed
- * source checks, CSP, and these guards jointly own the
- * no-real-effects boundary. The runtime scope is intentionally synchronous:
- * framework code (React/scheduler) runs unscoped and passes through, while
- * module evaluation, Promise continuations, and React callbacks are checked
- * through the authority-derived static source closure rather than a false ambient
- * async context.
+ * Guards are semantic containment, not a hostile-code sandbox: the closed
+ * selected-source boundary, typed host ports, CSP, and these guards jointly
+ * own the no-real-effects boundary. The runtime scope is intentionally
+ * synchronous; framework code (React/scheduler) runs unscoped and passes
+ * through instead of relying on a false ambient async attribution model.
  */
 
 export type SimulatorEffectOwner =
@@ -258,8 +256,9 @@ function guardedDescriptor(
 /**
  * Resolves and validates the complete catalog before mutating any browser
  * descriptor. Only interceptable surfaces are patched. Missing APIs and
- * browser-unforgeable descriptors remain governed by static checks and CSP;
- * an installation failure rolls back every prior mutation before returning.
+ * browser-unforgeable descriptors remain subject to the selected-source
+ * boundary and CSP; an installation failure rolls back every prior mutation
+ * before returning.
  */
 export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptions): SimulatorGuardHandle {
   const { catalog, target } = options;
@@ -345,8 +344,7 @@ export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptio
     privileged: Object.freeze(privileged),
     withScope(scope, run) {
       // Deliberately do not retain scope across a returned Promise. Browser JS
-      // has no trustworthy ambient async owner context; static source checks
-      // owns those continuations and module evaluation.
+      // has no trustworthy ambient async owner context.
       scopeStack.push(scope);
       try {
         return run();

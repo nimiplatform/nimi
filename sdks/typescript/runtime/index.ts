@@ -188,7 +188,6 @@ export * from './runtime-agent-presentation';
 export * from './runtime-agent-lifecycle';
 export * from './runtime-agent-delegated';
 export * from './runtime-agent-ai-config';
-export * from './runtime-agent-participation';
 export * from './runtime-agent-group-message';
 export * from './runtime-agent-inspect';
 export * from './scenario-jobs';

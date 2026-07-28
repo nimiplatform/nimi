@@ -54,7 +54,6 @@ export enum ParticipationExecutionOwner {
 
 export enum ParticipationExternalProtocolKind {
   UNSPECIFIED = 0,
-  MCP = 1,
   A2A = 2,
 }
 
@@ -62,7 +61,6 @@ export enum ParticipationIdentitySource {
   UNSPECIFIED = 0,
   USER_OWNED_NIMI_AGENT = 1,
   EXTERNAL_A2A_AGENT = 2,
-  MCP_BACKED_AI_CAPABILITY = 3,
   SANDBOX_PROJECTION = 4,
   NPC_WORLD_ACTOR = 5,
 }

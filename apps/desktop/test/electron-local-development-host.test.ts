@@ -29,14 +29,6 @@ const macosLocalAppHost = '/Applications/Nimi.app/Contents/Frameworks/Nimi Local
 const evaluationId = '11'.repeat(32);
 const authorizationId = '22'.repeat(32);
 
-test('local-development shutdown is reentrant-safe without force-closing the HTTP server', async () => {
-  const source = await readFile(path.join(repoRoot, 'apps', 'desktop', 'src-electron', 'local-development-host.ts'), 'utf8');
-  assert.doesNotMatch(source, /closeAllConnections\(\)/u);
-  assert.match(source, /this\.shutdownPromise \?\?= this\.performShutdown\(\)/u);
-  assert.match(source, /server\.closeIdleConnections\(\)/u);
-  assert.match(source, /local-development-supervisor-http-shutdown-timeout/u);
-});
-
 function authoritySummary() {
   return {
     developerMode: {

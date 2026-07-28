@@ -675,14 +675,6 @@ profiles:
         kind: unary
         intent_refs:
           - delegated_control_surface
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile
-        kind: unary
-        intent_refs:
-          - delegated_control_surface
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState
-        kind: unary
-        intent_refs:
-          - delegated_control_surface
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision
         kind: unary
         intent_refs:

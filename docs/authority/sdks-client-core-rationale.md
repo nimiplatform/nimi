@@ -29,7 +29,6 @@ The vNext TypeScript `@nimiplatform/sdk` package public subpaths are fixed to:
 - `@nimiplatform/sdk/features/knowledge-context`
 - `@nimiplatform/sdk/features/memory-context`
 - `@nimiplatform/sdk/features/generation`
-- `@nimiplatform/sdk/features/workflow`
 - `@nimiplatform/sdk/features/evaluation`
 - `@nimiplatform/sdk/features/toolkits`
 
@@ -279,26 +278,11 @@ Forbidden placement:
 
 ## S-SURFACE-014 World Domain Feature Placement
 
-The old `@nimiplatform/sdk/world` subpath is not part of the vNext public
-subpath set. World-facing developer workflows are exposed through admitted
-Realm helpers, root composition, and `@nimiplatform/sdk/features/workflow`
-without creating a separate world package root.
-
-Placement rules:
-
-- world feature helpers may compose Realm and Runtime-facing surfaces without
-  re-owning their semantic homes
-- workflow helpers must remain feature-level developer ergonomics, not Runtime
-  RPC parity or a renamed `world-evolution-engine` publication path
-- removed world subpath imports must fail closed rather than forward to
-  `features/workflow`
-
-Forbidden interpretations:
-
-- treating a world feature helper as provider-native request authority
-- treating a world feature helper as renderer-driver API publication
-- treating a world feature helper as the semantic owner of `K-WEV`
-  execution-evidence surfaces
+This historical placement proposal is retired. Current canonical authority
+keeps general Workflow and World Evolution deferred, so the SDK publishes no
+`@nimiplatform/sdk/world`, `@nimiplatform/sdk/features/workflow`, or root-client
+workflow convenience surface. Admitted Realm world reads remain available only
+through their existing Realm-owned typed methods.
 
 ## S-SURFACE-015 SDK Developer Experience Layer
 

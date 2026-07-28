@@ -1,5 +1,10 @@
 import { createNimiError, ReasonCode } from '../../types';
-import type { NimiAIConfigFieldDiff, NimiAIHostStorage } from './config-types';
+import type {
+  NimiAIConfigFieldDiff,
+  NimiAIHostStorage,
+  NimiAIValidationIssue,
+  NimiAIValidationIssueCode,
+} from './config-types';
 
 const FORBIDDEN_AI_CONFIG_FIELD_NAMES = new Set([
   'RuntimeRouteBinding',
@@ -93,27 +98,42 @@ export function createHostStorageAccess(
   };
 }
 
-export function collectForbiddenPayloadErrors(value: unknown, path: string): string[] {
-  const errors: string[] = [];
+export function aiValidationIssue(
+  code: NimiAIValidationIssueCode,
+  path: string,
+): NimiAIValidationIssue {
+  return { code, path };
+}
+
+export function formatNimiAIValidationIssue(issue: NimiAIValidationIssue): string {
+  return `${issue.code}:${issue.path}`;
+}
+
+export function formatNimiAIValidationIssues(issues: readonly NimiAIValidationIssue[]): string {
+  return issues.map(formatNimiAIValidationIssue).join('; ');
+}
+
+export function collectForbiddenPayloadIssues(value: unknown, path: string): NimiAIValidationIssue[] {
+  const issues: NimiAIValidationIssue[] = [];
   if (containsPathLikeValue(value)) {
-    errors.push(`${path} must be a portable non-path logical ref`);
+    issues.push(aiValidationIssue('AI_PORTABLE_REF_REQUIRED', path));
   }
   if (Array.isArray(value)) {
     value.forEach((item, index) => {
-      errors.push(...collectForbiddenPayloadErrors(item, `${path}[${index}]`));
+      issues.push(...collectForbiddenPayloadIssues(item, `${path}[${index}]`));
     });
-    return errors;
+    return issues;
   }
   if (!isRecord(value)) {
-    return errors;
+    return issues;
   }
   for (const [key, child] of Object.entries(value)) {
     if (FORBIDDEN_AI_CONFIG_FIELD_NAMES.has(key)) {
-      errors.push(`${path}.${key} is forbidden in AIProfile/AIConfig compact refs`);
+      issues.push(aiValidationIssue('AI_FIELD_FORBIDDEN', `${path}.${key}`));
     }
-    errors.push(...collectForbiddenPayloadErrors(child, `${path}.${key}`));
+    issues.push(...collectForbiddenPayloadIssues(child, `${path}.${key}`));
   }
-  return errors;
+  return issues;
 }
 
 export function containsPathLikeValue(value: unknown): boolean {

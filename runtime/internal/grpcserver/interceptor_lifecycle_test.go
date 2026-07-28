@@ -240,8 +240,6 @@ func TestUnaryLifecycleInterceptorAllowsConnectorAndEngineReadsWhenStopping(t *t
 		"/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders",
 		"/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels",
 		"/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail",
-		"/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-		"/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
 		"/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
 		"/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
 		"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",

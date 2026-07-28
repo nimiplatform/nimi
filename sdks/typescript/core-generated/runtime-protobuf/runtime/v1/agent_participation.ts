@@ -1031,10 +1031,6 @@ export enum ParticipationIdentitySource {
      */
     EXTERNAL_A2A_AGENT = 2,
     /**
-     * @generated from protobuf enum value: PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY = 3;
-     */
-    MCP_BACKED_AI_CAPABILITY = 3,
-    /**
      * @generated from protobuf enum value: PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION = 4;
      */
     SANDBOX_PROJECTION = 4,
@@ -1366,8 +1362,8 @@ export enum ParticipationVerdictDecision {
 }
 /**
  * External payload protocol family for external_agent_entry context.
- * Closed to the two admitted identity-source protocol families
- * (K-AGCORE-065, K-AGCORE-079); K-DELEG remains reference-only boundary.
+ * Reserved for a future owner-admitted external-entry protocol family
+ * (K-AGCORE-065, K-AGCORE-079); K-DELEG remains a reference-only boundary.
  *
  * @generated from protobuf enum nimi.runtime.v1.ParticipationExternalProtocolKind
  */
@@ -1376,10 +1372,6 @@ export enum ParticipationExternalProtocolKind {
      * @generated from protobuf enum value: PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP = 1;
-     */
-    MCP = 1,
     /**
      * @generated from protobuf enum value: PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A = 2;
      */

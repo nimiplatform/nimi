@@ -3,13 +3,10 @@ import { Agent } from '@mastra/core/agent';
 import type { NimiAiContextProvider } from '@nimiplatform/sdk';
 import type { NimiAiModel, NimiRuntimeEmbeddingSurface } from '@nimiplatform/sdk/ai';
 import type { NimiRuntimeGenerationHeadInput } from '@nimiplatform/sdk/features/generation';
-import type { NimiRuntimeAgentDelegatedCapabilitySurface } from '@nimiplatform/sdk/runtime';
 import {
   createNimiMastraEmbeddingModel,
   createNimiMastraContextBridge,
   createNimiMastraModel,
-  createNimiMastraRuntimeDelegatedToolBinding,
-  createNimiMastraRuntimeDelegatedTool,
   createNimiMastraVoice,
   generateWithNimiMastraContext,
   type NimiMastraVoiceRuntime,
@@ -61,27 +58,6 @@ export async function runMastraAgentWithNimiRuntimeContextExample(
     { contextBridge },
   );
   return result.text;
-}
-
-export function createMastraRuntimeOwnedSearchTool(
-  runtime: NimiRuntimeAgentDelegatedCapabilitySurface,
-) {
-  return createNimiMastraRuntimeDelegatedTool({
-    id: 'runtimeSearch',
-    description: 'Search through a Nimi Runtime delegated provider.',
-    binding: createNimiMastraRuntimeDelegatedToolBinding({
-      runtime,
-      ownerUserId: 'owner-1',
-      runtimeSourceRef: 'runtime-source:example-agent',
-      localAgentRef: 'local-agent:owner-1:agent-1',
-      conversationAnchorId: 'anchor-1',
-      turnId: 'turn-1',
-      providerProfileId: 'search-provider',
-      capabilityId: 'search.query',
-      descriptorHash: 'sha256:search-provider-descriptor',
-      outputKind: 'observation',
-    }),
-  });
 }
 
 // Use this embedder anywhere Mastra expects a MastraEmbeddingModel / AI SDK

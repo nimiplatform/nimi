@@ -145,10 +145,23 @@ test('Runtime-backed embedding client fails closed when cloud model diverges fro
 
   await assert.rejects(
     () => embedding.embedText({ values: ['hello'] }),
-    (error: unknown) => (
-      (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID
-      && /cloud model\.modelId must match targetRef\.providerModelId/u.test((error as { message?: string }).message || '')
-    ),
+    (error: unknown) => {
+      const nimiError = error as {
+        readonly reasonCode?: string;
+        readonly actionHint?: string;
+        readonly details?: {
+          readonly modelId?: string;
+          readonly providerModelId?: string;
+        };
+      };
+      assert.equal(nimiError.reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+      assert.equal(nimiError.actionHint, 'call_runtime_ai_with_resolved_cloud_provider_model_id');
+      assert.deepEqual(nimiError.details, {
+        modelId: 'legacy-embedding-alias',
+        providerModelId: 'text-embedding-3-large',
+      });
+      return true;
+    },
   );
   assert.equal(executed, false);
 });

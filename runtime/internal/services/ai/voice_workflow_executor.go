@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // voiceWorkflowExecutionResult captures the output from a voice workflow adapter.
@@ -23,6 +24,21 @@ type voiceWorkflowExecutionResult struct {
 	ProviderVoiceRef string
 	Metadata         map[string]any
 	Usage            *runtimev1.UsageStats
+}
+
+func voiceWorkflowFailureMetadata(err error, reasonCode runtimev1.ReasonCode, contextValues map[string]any) *structpb.Struct {
+	values := map[string]any{
+		"failure_stage": "voice_workflow_execution",
+	}
+	if metadata := scenarioJobReasonMetadata(err, reasonCode); metadata != nil {
+		for key, value := range metadata.AsMap() {
+			values[key] = value
+		}
+	}
+	for key, value := range contextValues {
+		values[key] = value
+	}
+	return structFromMap(values)
 }
 
 const maxVoiceWorkflowReferenceAudioBytes = 20 * 1024 * 1024
@@ -163,19 +179,34 @@ func (s *Service) executeVoiceWorkflowJob(
 			if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 				reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
 			}
-			s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode))
+			s.voiceAssets.failJob(
+				jobID,
+				reasonCode,
+				sanitizeScenarioJobReasonDetail(err, reasonCode),
+				voiceWorkflowFailureMetadata(err, reasonCode, nil),
+			)
 			return
 		}
-		detail := "local voice workflow engine not available"
-		if family := strings.TrimSpace(resolution.WorkflowFamily); family != "" {
-			detail = "local voice workflow family admitted in control plane but execution plane not materialized: " + family
-		}
-		s.voiceAssets.failJob(jobID, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, detail)
+		s.voiceAssets.failJob(
+			jobID,
+			runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED,
+			stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED),
+			voiceWorkflowFailureMetadata(nil, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, map[string]any{
+				"workflow_family": strings.TrimSpace(resolution.WorkflowFamily),
+			}),
+		)
 		return
 	}
 
 	if !nimillm.SupportsVoiceWorkflowProvider(provider) {
-		s.voiceAssets.failJob(jobID, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, "voice workflow adapter unavailable for provider: "+provider)
+		s.voiceAssets.failJob(
+			jobID,
+			runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED,
+			stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED),
+			voiceWorkflowFailureMetadata(nil, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, map[string]any{
+				"provider": provider,
+			}),
+		)
 		return
 	}
 
@@ -183,22 +214,42 @@ func (s *Service) executeVoiceWorkflowJob(
 	result, err := executeVoiceWorkflowViaNimillm(ctx, provider, req, resolution, cfg)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			s.voiceAssets.timeoutJob(jobID, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "voice workflow timeout")
+			s.voiceAssets.timeoutJob(
+				jobID,
+				runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+				stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT),
+				voiceWorkflowFailureMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, nil),
+			)
 			return
 		}
 		if errors.Is(err, context.Canceled) {
-			s.voiceAssets.failJob(jobID, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, "voice workflow canceled")
+			s.voiceAssets.failJob(
+				jobID,
+				runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+				stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_PROVIDER_INTERNAL),
+				voiceWorkflowFailureMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, nil),
+			)
 			return
 		}
 		reasonCode := reasonCodeFromMediaError(err)
 		if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 			reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
 		}
-		s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode))
+		s.voiceAssets.failJob(
+			jobID,
+			reasonCode,
+			sanitizeScenarioJobReasonDetail(err, reasonCode),
+			voiceWorkflowFailureMetadata(err, reasonCode, nil),
+		)
 		return
 	}
 	if strings.TrimSpace(result.ProviderVoiceRef) == "" {
-		s.voiceAssets.failJob(jobID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "adapter returned empty provider_voice_ref")
+		s.voiceAssets.failJob(
+			jobID,
+			runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_OUTPUT_INVALID),
+			voiceWorkflowFailureMetadata(nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID, nil),
+		)
 		return
 	}
 	if result.Metadata == nil {

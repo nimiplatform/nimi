@@ -293,10 +293,17 @@ test('Runtime-backed Nimi AI maps numeric stream failure reason codes to names',
 
   await assert.rejects(
     collectNimiTextStream(events),
-    (error: unknown) => (
-      (error as { reasonCode?: string; message?: string }).reasonCode === ReasonCode.AI_MODEL_NOT_FOUND
-      && /retry stream request/u.test((error as { message?: string }).message || '')
-    ),
+    (error: unknown) => {
+      const nimiError = error as {
+        readonly code?: string;
+        readonly reasonCode?: string;
+        readonly actionHint?: string;
+      };
+      assert.equal(nimiError.code, ReasonCode.AI_MODEL_NOT_FOUND);
+      assert.equal(nimiError.reasonCode, ReasonCode.AI_MODEL_NOT_FOUND);
+      assert.equal(nimiError.actionHint, 'check_ai_stream_event');
+      return true;
+    },
   );
 });
 

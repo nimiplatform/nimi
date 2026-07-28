@@ -324,7 +324,15 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   assert.equal(artifactReads[0]?.artifactId, 'artifact-audio-1');
   await assert.rejects(
     () => module.replayFinalArtifact({ artifactId: 'artifact-text-1' }),
-    /must be audio/,
+    (error: unknown) => {
+      const nimiError = error as {
+        readonly reasonCode?: string;
+        readonly actionHint?: string;
+      };
+      assert.equal(nimiError.reasonCode, SdkReasonCode.AI_INPUT_INVALID);
+      assert.equal(nimiError.actionHint, 'validate_runtime_voice_final_artifact_mime');
+      return true;
+    },
   );
   const interrupt = await module.interruptPlayback({
     ownerUserId: OWNER_USER_ID,

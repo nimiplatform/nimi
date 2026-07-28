@@ -8,7 +8,7 @@ import {
   type NimiDesktopMachineProductRuntimeClient,
   type NimiDesktopRuntimeAgentPurposeClient,
   type NimiDesktopRuntimeAiScenarioJobClient,
-  type NimiHostRuntimeAgentDelegatedCapabilityClient,
+  type NimiHostRuntimeAgentDelegatedControlClient,
   type NimiHostRuntimeAgentLifecycleClient,
   type NimiHostRuntimeAgentPresentationProfileClient,
   type NimiRuntimeAccountCaller,
@@ -338,11 +338,11 @@ export function getDesktopRuntimeAgentTurnsRuntime(): NimiRuntimeAgentTurnsRunti
 export function getDesktopHostRuntimeAgentClient():
   DesktopHostRuntimeAgentClient &
   NimiHostRuntimeAgentPresentationProfileClient &
-  NimiHostRuntimeAgentDelegatedCapabilityClient;
+  NimiHostRuntimeAgentDelegatedControlClient;
 export function getDesktopHostRuntimeAgentClient():
   DesktopLifecycleCompatibleHostRuntimeAgentClient &
   NimiHostRuntimeAgentPresentationProfileClient &
-  NimiHostRuntimeAgentDelegatedCapabilityClient;
+  NimiHostRuntimeAgentDelegatedControlClient;
 export function getDesktopHostRuntimeAgentClient() {
   const session = getDesktopRuntimeRealmSession();
   return {
@@ -351,7 +351,7 @@ export function getDesktopHostRuntimeAgentClient() {
     agent: session.runtimeClients.agentPurpose,
   } as DesktopLifecycleCompatibleHostRuntimeAgentClient
     & NimiHostRuntimeAgentPresentationProfileClient
-    & NimiHostRuntimeAgentDelegatedCapabilityClient;
+    & NimiHostRuntimeAgentDelegatedControlClient;
 }
 
 export function createDesktopRuntimeAgentDiscoverySurface(

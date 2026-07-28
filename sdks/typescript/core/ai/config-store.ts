@@ -35,6 +35,7 @@ import {
   aiConfigError,
   cloneJson,
   createHostStorageAccess,
+  formatNimiAIValidationIssues,
   normalizeText,
   readJsonArray,
   requireNonEmptyText,
@@ -90,7 +91,7 @@ export function createNimiAIConfigStore(options: NimiAIConfigStoreOptions = {}):
       if (!validation.valid) {
         throw aiConfigError(
           'SDK_AI_CONFIG_INVALID',
-          `AIConfig is invalid: ${validation.errors.join('; ')}`,
+          `AIConfig is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
           'fix_ai_config_contract',
         );
       }
@@ -159,7 +160,7 @@ export function createNimiAIHostSurface(options: CreateNimiAIHostSurfaceOptions)
     if (!validation.valid) {
       throw aiConfigError(
         'SDK_AI_PROFILE_INVALID',
-        `AI profile ${profile.profileId || '<unknown>'} is invalid: ${validation.errors.join('; ')}`,
+        `AI profile ${profile.profileId || '<unknown>'} is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
         'fix_ai_profile_catalog',
       );
     }

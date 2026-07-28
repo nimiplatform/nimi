@@ -6,7 +6,7 @@ import (
 )
 
 func printUsage() {
-	fmt.Fprintln(os.Stderr, "Nimi - AI Runtime\n\nUsage: nimi <command> [options]\n\nQuick Start:\n  serve       Start the runtime daemon in the foreground\n  start       Start the runtime daemon in the background\n  doctor      Check environment health\n  version     Show version info\n  run         Generate text from a model\n\nModel Management:\n  model       List, pull, remove, and check models\n\nCloud Setup:\n  provider    Configure and test cloud providers\n\nRuntime Ops:\n  status      Show runtime process status\n  stop        Stop the runtime daemon\n  logs        Read background runtime logs\n  health      Runtime health details\n  providers   Provider health snapshots\n\nAdvanced/Admin:\n  ai          Advanced AI operations\n  workflow    Workflow engine\n  knowledge   Knowledge banks, pages, search, and ingest\n  app         Inter-app messaging\n  audit       Audit events and usage\n  config      Runtime configuration\n\nAuthor tooling:\n  pnpm dlx @nimiplatform/app-tools nimi-app  App author scaffolding\n\nRun 'nimi <command> --help' for details.")
+	fmt.Fprintln(os.Stderr, "Nimi - AI Runtime\n\nUsage: nimi <command> [options]\n\nQuick Start:\n  serve       Start the runtime daemon in the foreground\n  start       Start the runtime daemon in the background\n  doctor      Check environment health\n  version     Show version info\n  run         Generate text from a model\n\nModel Management:\n  model       List, pull, remove, and check models\n\nCloud Setup:\n  provider    Configure and test cloud providers\n\nRuntime Ops:\n  status      Show runtime process status\n  stop        Stop the runtime daemon\n  logs        Read background runtime logs\n  health      Runtime health details\n  providers   Provider health snapshots\n\nAdvanced/Admin:\n  ai          Advanced AI operations\n  knowledge   Knowledge banks, pages, search, and ingest\n  app         Inter-app messaging\n  audit       Audit events and usage\n  config      Runtime configuration\n\nAuthor tooling:\n  pnpm dlx @nimiplatform/app-tools nimi-app  App author scaffolding\n\nRun 'nimi <command> --help' for details.")
 }
 
 func printRuntimeAIUsage() {
@@ -31,10 +31,6 @@ func printRuntimeAppUsage() {
 
 func printRuntimeAuditUsage() {
 	fmt.Fprintln(os.Stderr, "Usage:\n  nimi audit events [--grpc-addr --timeout --app-id --subject-user-id --domain --reason-code --from-time --to-time --page-size --page-token --filter-caller-kind --filter-caller-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi audit usage [--grpc-addr --timeout --app-id --subject-user-id --filter-caller-kind --filter-caller-id --capability --model-id --window minute|hour|day --from-time --to-time --page-size --page-token --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi audit export [--grpc-addr --timeout --app-id --subject-user-id --format --from-time --to-time --compress --output --json --caller-kind --caller-id --surface-id --trace-id]")
-}
-
-func printRuntimeWorkflowUsage() {
-	fmt.Fprintln(os.Stderr, "Usage:\n  nimi workflow submit [--grpc-addr --timeout --app-id --subject-user-id --definition-file --timeout-ms --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi workflow get [--grpc-addr --timeout --app-id --task-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi workflow cancel [--grpc-addr --timeout --app-id --task-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi workflow watch [--grpc-addr --timeout --app-id --task-id --json --caller-kind --caller-id --surface-id --trace-id]")
 }
 
 func printRuntimeConfigUsage() {

@@ -50,15 +50,11 @@ const (
 	RuntimeAgentService_ListPendingHooks_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
 	RuntimeAgentService_CancelHook_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
 	RuntimeAgentService_ListDelegatedProviderProfiles_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles"
-	RuntimeAgentService_UpsertDelegatedProviderProfile_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile"
-	RuntimeAgentService_SetDelegatedProviderState_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState"
 	RuntimeAgentService_ListDelegatedApprovalRequests_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests"
 	RuntimeAgentService_SubmitDelegatedApprovalDecision_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision"
 	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
 	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
 	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
-	RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability"
-	RuntimeAgentService_ResumeDelegatedCapability_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability"
 	RuntimeAgentService_QueryAgentMemory_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
 	RuntimeAgentService_WriteAgentMemory_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
 	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
@@ -119,15 +115,11 @@ type RuntimeAgentServiceClient interface {
 	ListPendingHooks(ctx context.Context, in *ListPendingHooksRequest, opts ...grpc.CallOption) (*ListPendingHooksResponse, error)
 	CancelHook(ctx context.Context, in *CancelHookRequest, opts ...grpc.CallOption) (*CancelHookResponse, error)
 	ListDelegatedProviderProfiles(ctx context.Context, in *ListDelegatedProviderProfilesRequest, opts ...grpc.CallOption) (*ListDelegatedProviderProfilesResponse, error)
-	UpsertDelegatedProviderProfile(ctx context.Context, in *UpsertDelegatedProviderProfileRequest, opts ...grpc.CallOption) (*UpsertDelegatedProviderProfileResponse, error)
-	SetDelegatedProviderState(ctx context.Context, in *SetDelegatedProviderStateRequest, opts ...grpc.CallOption) (*SetDelegatedProviderStateResponse, error)
 	ListDelegatedApprovalRequests(ctx context.Context, in *ListDelegatedApprovalRequestsRequest, opts ...grpc.CallOption) (*ListDelegatedApprovalRequestsResponse, error)
 	SubmitDelegatedApprovalDecision(ctx context.Context, in *SubmitDelegatedApprovalDecisionRequest, opts ...grpc.CallOption) (*SubmitDelegatedApprovalDecisionResponse, error)
 	ListDelegatedDiagnostics(ctx context.Context, in *ListDelegatedDiagnosticsRequest, opts ...grpc.CallOption) (*ListDelegatedDiagnosticsResponse, error)
 	GetDelegatedReplayTrace(ctx context.Context, in *GetDelegatedReplayTraceRequest, opts ...grpc.CallOption) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(ctx context.Context, in *GetDelegatedControlSurfaceSnapshotRequest, opts ...grpc.CallOption) (*GetDelegatedControlSurfaceSnapshotResponse, error)
-	ExecuteDelegatedCapability(ctx context.Context, in *ExecuteDelegatedCapabilityRequest, opts ...grpc.CallOption) (*ExecuteDelegatedCapabilityResponse, error)
-	ResumeDelegatedCapability(ctx context.Context, in *ResumeDelegatedCapabilityRequest, opts ...grpc.CallOption) (*ResumeDelegatedCapabilityResponse, error)
 	QueryAgentMemory(ctx context.Context, in *QueryAgentMemoryRequest, opts ...grpc.CallOption) (*QueryAgentMemoryResponse, error)
 	WriteAgentMemory(ctx context.Context, in *WriteAgentMemoryRequest, opts ...grpc.CallOption) (*WriteAgentMemoryResponse, error)
 	GetAgentCanonicalMemoryBankStatus(ctx context.Context, in *GetAgentCanonicalMemoryBankStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryBankStatusResponse, error)
@@ -470,26 +462,6 @@ func (c *runtimeAgentServiceClient) ListDelegatedProviderProfiles(ctx context.Co
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) UpsertDelegatedProviderProfile(ctx context.Context, in *UpsertDelegatedProviderProfileRequest, opts ...grpc.CallOption) (*UpsertDelegatedProviderProfileResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpsertDelegatedProviderProfileResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_UpsertDelegatedProviderProfile_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) SetDelegatedProviderState(ctx context.Context, in *SetDelegatedProviderStateRequest, opts ...grpc.CallOption) (*SetDelegatedProviderStateResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SetDelegatedProviderStateResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_SetDelegatedProviderState_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAgentServiceClient) ListDelegatedApprovalRequests(ctx context.Context, in *ListDelegatedApprovalRequestsRequest, opts ...grpc.CallOption) (*ListDelegatedApprovalRequestsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListDelegatedApprovalRequestsResponse)
@@ -534,26 +506,6 @@ func (c *runtimeAgentServiceClient) GetDelegatedControlSurfaceSnapshot(ctx conte
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetDelegatedControlSurfaceSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) ExecuteDelegatedCapability(ctx context.Context, in *ExecuteDelegatedCapabilityRequest, opts ...grpc.CallOption) (*ExecuteDelegatedCapabilityResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExecuteDelegatedCapabilityResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) ResumeDelegatedCapability(ctx context.Context, in *ResumeDelegatedCapabilityRequest, opts ...grpc.CallOption) (*ResumeDelegatedCapabilityResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResumeDelegatedCapabilityResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_ResumeDelegatedCapability_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -825,15 +777,11 @@ type RuntimeAgentServiceServer interface {
 	ListPendingHooks(context.Context, *ListPendingHooksRequest) (*ListPendingHooksResponse, error)
 	CancelHook(context.Context, *CancelHookRequest) (*CancelHookResponse, error)
 	ListDelegatedProviderProfiles(context.Context, *ListDelegatedProviderProfilesRequest) (*ListDelegatedProviderProfilesResponse, error)
-	UpsertDelegatedProviderProfile(context.Context, *UpsertDelegatedProviderProfileRequest) (*UpsertDelegatedProviderProfileResponse, error)
-	SetDelegatedProviderState(context.Context, *SetDelegatedProviderStateRequest) (*SetDelegatedProviderStateResponse, error)
 	ListDelegatedApprovalRequests(context.Context, *ListDelegatedApprovalRequestsRequest) (*ListDelegatedApprovalRequestsResponse, error)
 	SubmitDelegatedApprovalDecision(context.Context, *SubmitDelegatedApprovalDecisionRequest) (*SubmitDelegatedApprovalDecisionResponse, error)
 	ListDelegatedDiagnostics(context.Context, *ListDelegatedDiagnosticsRequest) (*ListDelegatedDiagnosticsResponse, error)
 	GetDelegatedReplayTrace(context.Context, *GetDelegatedReplayTraceRequest) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error)
-	ExecuteDelegatedCapability(context.Context, *ExecuteDelegatedCapabilityRequest) (*ExecuteDelegatedCapabilityResponse, error)
-	ResumeDelegatedCapability(context.Context, *ResumeDelegatedCapabilityRequest) (*ResumeDelegatedCapabilityResponse, error)
 	QueryAgentMemory(context.Context, *QueryAgentMemoryRequest) (*QueryAgentMemoryResponse, error)
 	WriteAgentMemory(context.Context, *WriteAgentMemoryRequest) (*WriteAgentMemoryResponse, error)
 	GetAgentCanonicalMemoryBankStatus(context.Context, *GetAgentCanonicalMemoryBankStatusRequest) (*GetAgentCanonicalMemoryBankStatusResponse, error)
@@ -958,12 +906,6 @@ func (UnimplementedRuntimeAgentServiceServer) CancelHook(context.Context, *Cance
 func (UnimplementedRuntimeAgentServiceServer) ListDelegatedProviderProfiles(context.Context, *ListDelegatedProviderProfilesRequest) (*ListDelegatedProviderProfilesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListDelegatedProviderProfiles not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) UpsertDelegatedProviderProfile(context.Context, *UpsertDelegatedProviderProfileRequest) (*UpsertDelegatedProviderProfileResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpsertDelegatedProviderProfile not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) SetDelegatedProviderState(context.Context, *SetDelegatedProviderStateRequest) (*SetDelegatedProviderStateResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SetDelegatedProviderState not implemented")
-}
 func (UnimplementedRuntimeAgentServiceServer) ListDelegatedApprovalRequests(context.Context, *ListDelegatedApprovalRequestsRequest) (*ListDelegatedApprovalRequestsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListDelegatedApprovalRequests not implemented")
 }
@@ -978,12 +920,6 @@ func (UnimplementedRuntimeAgentServiceServer) GetDelegatedReplayTrace(context.Co
 }
 func (UnimplementedRuntimeAgentServiceServer) GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDelegatedControlSurfaceSnapshot not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) ExecuteDelegatedCapability(context.Context, *ExecuteDelegatedCapabilityRequest) (*ExecuteDelegatedCapabilityResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ExecuteDelegatedCapability not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) ResumeDelegatedCapability(context.Context, *ResumeDelegatedCapabilityRequest) (*ResumeDelegatedCapabilityResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResumeDelegatedCapability not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) QueryAgentMemory(context.Context, *QueryAgentMemoryRequest) (*QueryAgentMemoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueryAgentMemory not implemented")
@@ -1623,42 +1559,6 @@ func _RuntimeAgentService_ListDelegatedProviderProfiles_Handler(srv interface{},
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_UpsertDelegatedProviderProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpsertDelegatedProviderProfileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).UpsertDelegatedProviderProfile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_UpsertDelegatedProviderProfile_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).UpsertDelegatedProviderProfile(ctx, req.(*UpsertDelegatedProviderProfileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_SetDelegatedProviderState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetDelegatedProviderStateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).SetDelegatedProviderState(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_SetDelegatedProviderState_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).SetDelegatedProviderState(ctx, req.(*SetDelegatedProviderStateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeAgentService_ListDelegatedApprovalRequests_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListDelegatedApprovalRequestsRequest)
 	if err := dec(in); err != nil {
@@ -1745,42 +1645,6 @@ func _RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_Handler(srv interfa
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetDelegatedControlSurfaceSnapshot(ctx, req.(*GetDelegatedControlSurfaceSnapshotRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_ExecuteDelegatedCapability_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ExecuteDelegatedCapabilityRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).ExecuteDelegatedCapability(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).ExecuteDelegatedCapability(ctx, req.(*ExecuteDelegatedCapabilityRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_ResumeDelegatedCapability_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResumeDelegatedCapabilityRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).ResumeDelegatedCapability(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_ResumeDelegatedCapability_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).ResumeDelegatedCapability(ctx, req.(*ResumeDelegatedCapabilityRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2256,14 +2120,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_ListDelegatedProviderProfiles_Handler,
 		},
 		{
-			MethodName: "UpsertDelegatedProviderProfile",
-			Handler:    _RuntimeAgentService_UpsertDelegatedProviderProfile_Handler,
-		},
-		{
-			MethodName: "SetDelegatedProviderState",
-			Handler:    _RuntimeAgentService_SetDelegatedProviderState_Handler,
-		},
-		{
 			MethodName: "ListDelegatedApprovalRequests",
 			Handler:    _RuntimeAgentService_ListDelegatedApprovalRequests_Handler,
 		},
@@ -2282,14 +2138,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDelegatedControlSurfaceSnapshot",
 			Handler:    _RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_Handler,
-		},
-		{
-			MethodName: "ExecuteDelegatedCapability",
-			Handler:    _RuntimeAgentService_ExecuteDelegatedCapability_Handler,
-		},
-		{
-			MethodName: "ResumeDelegatedCapability",
-			Handler:    _RuntimeAgentService_ResumeDelegatedCapability_Handler,
 		},
 		{
 			MethodName: "QueryAgentMemory",

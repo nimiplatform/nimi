@@ -278,16 +278,9 @@ func (s *Service) ExecuteParticipation(_ context.Context, req *runtimev1.Execute
 		case "future_consumer_only":
 			refusal = participationRefusalNotConsumable
 		case "gateway_verdict_required":
-			// K-AGCORE-079: external entry demands gateway verdict evidence and
-			// an admitted entry boundary; production claim is currently scoped
-			// to the MCP delegated adapter path only.
-			if !participationHasBlockKind(admission.blockKinds, "gateway_verdict_ref") {
-				refusal = participationRefusalGatewayVerdictMiss
-			} else if boundary, ok := participationExternalBoundaryRowByIdentity(admission.row.identitySource); !ok || !boundary.productionClaimAllowed {
-				refusal = participationRefusalEntryNotAdmitted
-			} else {
-				refusal = participationRefusalEngineNotBound
-			}
+			// External entry remains a future seam. A gateway-shaped reference
+			// cannot activate it without separately admitted owner authority.
+			refusal = participationRefusalEntryNotAdmitted
 		case "candidate_first_realm_commit":
 			// K-AGCORE-076 blocks carry no Realm identity evidence
 			// (owner/runtime-source/local-agent refs with subject verification),

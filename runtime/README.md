@@ -6,7 +6,7 @@ It owns:
 - local and cloud execution
 - streaming and health
 - model lifecycle
-- workflow, knowledge, app messaging, and audit
+- knowledge, app messaging, and audit
 
 ## Released Binary First
 
@@ -60,7 +60,6 @@ Advanced runtime groups:
 - `knowledge`
 - `app`
 - `audit`
-- `workflow`
 - `health`
 - `providers`
 - `config`
@@ -105,7 +104,6 @@ validates its `dataRoot.path` and retains only derived verification state.
 Registered public runtime gRPC services currently include:
 - `RuntimeAiService` — local and cloud AI execution, streaming, multimodal
 - `RuntimeAiRealtimeService` — duplex realtime text/audio session surface
-- `RuntimeWorkflowService` — workflow DAG orchestration
 - `RuntimeModelService` — model lifecycle, listing, routing
 - `RuntimeLocalService` — local execution, supervision, provider health
 - `RuntimeAgentService` — live agent execution, hook lifecycle, canonical review

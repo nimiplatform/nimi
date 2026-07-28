@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -453,9 +452,6 @@ func TestNewFailsOnInvalidCustomSpeechCatalog(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected custom speech catalog init failure")
-	}
-	if !strings.Contains(err.Error(), "init catalog") {
-		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

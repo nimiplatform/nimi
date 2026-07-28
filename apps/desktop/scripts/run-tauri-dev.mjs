@@ -29,7 +29,6 @@ const REQUIRED_SDK_DIST_FILES = [
   'features/knowledge-context/index.js',
   'features/memory-context/index.js',
   'features/generation/index.js',
-  'features/workflow/index.js',
   'features/evaluation/index.js',
   'features/toolkits/index.js',
 ];

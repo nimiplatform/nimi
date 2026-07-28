@@ -108,8 +108,6 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'cancelHook'
     | 'getDelegatedControlSurfaceSnapshot'
     | 'getDelegatedReplayTrace'
-    | 'upsertDelegatedProviderProfile'
-    | 'setDelegatedProviderState'
     | 'submitDelegatedApprovalDecision'>;
   readonly apps: Pick<NimiRuntimeAppLifecycleClient, 'accountInventory' | 'packageReadiness'>;
   readonly connectors: Pick<DesktopAccountProductRuntimeMethods,
@@ -245,8 +243,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     cancelHook: protectedAgent(runtime.agents.cancelHook),
     getDelegatedControlSurfaceSnapshot: protectedAgent(runtime.agents.getDelegatedControlSurfaceSnapshot),
     getDelegatedReplayTrace: protectedAgent(runtime.agents.getDelegatedReplayTrace),
-    upsertDelegatedProviderProfile: protectedAgent(runtime.agents.upsertDelegatedProviderProfile),
-    setDelegatedProviderState: protectedAgent(runtime.agents.setDelegatedProviderState),
     submitDelegatedApprovalDecision: protectedAgent(runtime.agents.submitDelegatedApprovalDecision),
   });
   const agentPurpose: NimiDesktopRuntimeAgentPurposeClient = Object.freeze({

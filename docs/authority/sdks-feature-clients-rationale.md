@@ -2109,7 +2109,8 @@ compatibility shim may be created to bridge archived old SDK source and
 
 # TypeScript vNext Contract
 
-Status: active product authority.
+Status: retired rationale; canonical authority is
+`.nimi/spec/sdks/feature-clients.authority.yaml`.
 
 `sdks/typescript` is the next major implementation target for
 `@nimiplatform/sdk`.
@@ -2124,12 +2125,10 @@ Public source-root targets:
 - `features/knowledge-context`
 - `features/memory-context`
 - `features/generation`
-- `features/workflow`
 - `features/evaluation`
 - `features/toolkits`
 - `adapters/vercel-ai`
 - `adapters/openai-compatible`
-- `adapters/mcp`
 - `adapters/mastra`
 - `adapters/langgraph`
 - `adapters/llamaindex`

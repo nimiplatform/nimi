@@ -1,6 +1,6 @@
 # Runtime Agent Participation - Rationale
 
-> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/agent-participation.authority.yaml`。
+> 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/runtime/agent-participation.authority.yaml`。下文保留的 `Contract`、`Authority`、`MUST` 和旧 Rule ID 标题均为历史标签，不能覆盖或扩展 canonical authority。
 
 ---
 
@@ -701,8 +701,10 @@ The admitted runtime-owned stable projection families are:
 - `runtime.agent.proactive.delivered`
 - `runtime.agent.proactive.suppressed`
 
-Family-specific envelope requirements are pinned in
-`tables/runtime-agent-event-projection.yaml`:
+The family-specific envelope requirements below are historical examples. The
+retired `runtime-agent-event-projection` table is not a generation source;
+current envelopes are admitted only by canonical Runtime authority and the
+generated protocol:
 
 - `runtime.agent.turn.*` requires `agent_id`, `conversation_anchor_id`,
   `turn_id`, and `stream_id`
@@ -751,19 +753,20 @@ Fixed rules:
   Avatar may map admitted `runtime.agent.presentation.activity_requested`
   activity ids and admitted `runtime.agent.state.*` state to backend routes,
   but it must not consume raw `apml.*` parser diagnostics as product input
-- family-specific envelopes and detail payloads for these admitted projection
-  families are pinned in
-  `tables/runtime-agent-event-projection.yaml`
-- `PostureProjection` is the canonical schema alias for
-  `runtime.agent.state.posture_changed.detail.current_posture`
+- family-specific envelopes and detail payloads for admitted projection
+  families come from canonical Runtime authority and generated protocol source,
+  not this rationale or a retired table
+- `PostureProjection` was the historical schema alias for
+  `runtime.agent.state.posture_changed.detail.current_posture`; current schema
+  admission comes only from canonical Runtime authority
 - `runtime.agent.turn.post_turn.detail.hook_intent` is only a turn-close
   indication; the canonical hook lifecycle seam remains `runtime.agent.hook.*`
 - `runtime.agent.proactive.*` is the app-facing projection family for
   `proactive_interruptibility_v1`; it must not be treated as a broad event bus,
   OS notification delivery promise, or app scheduler admission
-- `tables/runtime-agent-event-projection.yaml` is the stable projection payload
-  schema SSOT; breaking changes must pass runtime consistency and runtime
-  derived-doc checks before admission
+- this historical prose and its retired table references are not schema input;
+  current event projections come from canonical authority and their generated
+  protocol source
 
 ## K-AGCORE-038 Current Emotion Projection
 
@@ -773,9 +776,8 @@ persistent `AgentPresentationProfile` truth and not as renderer-local truth.
 Fixed rules:
 
 - current emotion must project through `AgentStateProjection.current_emotion`
-- current emotion ids are exactly the `emotion` category (core plus extended)
-  admitted by `tables/agent-activity-ontology.yaml`; Runtime must not substitute
-  downstream Avatar cue names such as `joy`, `calm`, `focus`, or `concerned`
+- current emotion ids, when admitted by canonical Runtime authority, must not be
+  expanded from this historical prose or from a retired ontology table
 - public change notification must use `runtime.agent.state.emotion_changed`
 - emotion is durable-until-replace runtime state and must not be collapsed into
   posture or persistent presentation profile fields
@@ -808,15 +810,14 @@ Fixed rules:
 
 ## K-AGCORE-049 Agent Activity Ontology Projection Boundary
 
-Runtime owns the app-facing `runtime.agent.presentation.activity_requested`
-activity ontology for first-party projection. The active value space is pinned
-in `tables/agent-activity-ontology.yaml`.
+This historical section described the app-facing
+`runtime.agent.presentation.activity_requested` projection. It does not define
+an active ontology or restore a retired table.
 
 Fixed rules:
 
 - activity category is exactly one of `emotion`, `interaction`, or `state`
-- core and extended activity ids are admitted only through
-  `tables/agent-activity-ontology.yaml`
+- activity ids are admitted only through current canonical Runtime authority
 - public runtime chat output that proposes an unknown activity id must fail
   closed before durable turn commit rather than being projected as a free-form
   renderer cue
@@ -831,8 +832,8 @@ Fixed rules:
   and mapping confidence labels are downstream projection facts only; they are
   not runtime activity ids, public APML tags, or runtime-owned presentation
   payload names unless a later runtime packet admits them
-- historical activity ontology documents are evidence only; the active
-  runtime SSOT is this rule plus `tables/agent-activity-ontology.yaml`
+- historical activity ontology documents and retired table names are evidence
+  only and cannot generate or admit current Runtime values
 
 ## K-AGCORE-050 Agent Event Owner Map And Broad Bus Deferral
 
@@ -841,9 +842,8 @@ than the historical platform event design.
 
 Active owner map:
 
-- Runtime owns the admitted Layer A public projection families listed in
-  K-AGCORE-037, K-AGCORE-042, K-AGCORE-143, and
-  `tables/runtime-agent-event-projection.yaml`
+- Runtime owns only Layer A public projection families admitted by current
+  canonical Runtime authority and generated protocol source
 - APML parser events remain runtime-internal diagnostics and must not be exposed
   as durable app-facing `apml.*` product events
 - Desktop owns only chat shell bridge / handoff semantics under
@@ -878,10 +878,9 @@ Live2D companion voice/lipsync branch.
 
 This rule admits the branch that was previously candidate-only in the closed
 2026-04-20 design. It does not make closed `PresentationStream`,
-`TimelineMarker`, or `voice.level` shapes active API truth by name; the exact
-voice/lipsync projection schema lives only in
-`tables/runtime-agent-event-projection.yaml` before runtime implementation can
-claim support.
+`TimelineMarker`, or `voice.level` shapes active API truth by name; an exact
+voice/lipsync projection schema requires canonical Runtime admission and
+generated protocol support before implementation can claim it.
 
 Fixed rules:
 
@@ -1075,8 +1074,8 @@ from local UI state.
 
 ## K-AGCORE-058 Runtime Agent Event Projection Extension
 
-Any app-facing avatar debug projection family must be pinned in
-`tables/runtime-agent-event-projection.yaml`.
+Any app-facing avatar debug projection family must be admitted by canonical
+Runtime authority and the generated protocol.
 
 Admitted app-facing family names:
 
@@ -1255,7 +1254,7 @@ Runtime does not own:
 
 Room orchestration extends, but does not reopen, Runtime Agent Participation.
 
-The parent contract remains authoritative for:
+Canonical Runtime participation authority retains ownership of:
 
 - participation prompt assembly and output candidates
 - participation profile and axis registries
@@ -1347,9 +1346,9 @@ exhaustion decisions.
 
 Room orchestration status uses existing `runtime.agent.*` projection authority.
 
-Status projection must extend
-`tables/runtime-agent-event-projection.yaml` and must not create a public
-`runtime.orchestration.*` status namespace.
+Status projection must be admitted by canonical Runtime authority and the
+generated protocol and must not create a public `runtime.orchestration.*`
+status namespace.
 
 Allowed room status facts are projection facts only:
 
@@ -1367,21 +1366,14 @@ UI state truth.
 
 ## K-AGCORE-114 External Participant Room Admission
 
-External participants may enter a room only through Runtime gateway verdict
-posture.
+External-agent entry is not a current Runtime participation capability. MCP-
+backed participants and A2A participants remain unavailable future seams and
+cannot be admitted by a type, registry row, protocol payload, gateway verdict,
+fixture, or consumer projection.
 
-Required authority references:
-
-- `delegated-capability-gateway-contract.md`
-- `delegated-output-firewall-contract.md`
-- `delegated-mcp-adapter-contract.md`
-- `delegated-a2a-future-seam-contract.md`
-- `tables/agent-participation-external-entry-boundaries.yaml`
-
-Protocol-native MCP/A2A readiness, remote agent state, tool availability, or
-provider metadata is evidence only. It cannot admit a participant into a room
-without Runtime gateway verdict, firewall posture when protocol execution
-occurs, credential custody evidence, and audit lineage.
+Any future external-participant design requires separate owner and security
+authority before it may define identity, transport, admission, execution,
+credential, firewall, audit, or product-consumer semantics.
 
 ## K-AGCORE-115 Commit-Race Handoff Boundary
 
@@ -1469,7 +1461,9 @@ Matrix closure requires all of the following:
 
 Runtime Agent AI Config authority, revision, readiness, turn admission, action projection, event seam, and bootstrap seeding authority.
 
-This file is a semantic split from `runtime-agent-service-contract.md`; Rule IDs and rule text remain authoritative under Runtime kernel.
+This section preserves a historical semantic split from
+`runtime-agent-service-contract.md`; its Rule IDs and prose are non-authoritative
+unless repeated by `.nimi/spec/runtime/agent-participation.authority.yaml`.
 
 ## K-AGCORE-144 Runtime Agent AI Config Authority Home
 
@@ -1667,7 +1661,9 @@ Fixed rules:
 
 Runtime Agent app-facing reactive chat consume and scoped binding attachment authority.
 
-This file is a semantic split from `runtime-agent-service-contract.md`; Rule IDs and rule text remain authoritative under Runtime kernel.
+This section preserves a historical semantic split from
+`runtime-agent-service-contract.md`; its Rule IDs and prose are non-authoritative
+unless repeated by `.nimi/spec/runtime/agent-participation.authority.yaml`.
 
 ## K-AGCORE-032 App-Facing Reactive Chat Consume Seam
 
@@ -1784,7 +1780,9 @@ Fixed rules:
 
 Runtime Agent Life Track, autonomy cadence, mutation event, delegation, and turn/stream boundary authority.
 
-This file is a semantic split from `runtime-agent-service-contract.md`; Rule IDs and rule text remain authoritative under Runtime kernel.
+This section preserves a historical semantic split from
+`runtime-agent-service-contract.md`; its Rule IDs and prose are non-authoritative
+unless repeated by `.nimi/spec/runtime/agent-participation.authority.yaml`.
 
 ## K-AGCORE-011 WORLD_SHARED Runtime Admission Boundary
 
@@ -1807,7 +1805,9 @@ Fixed rules:
 - due-hook execution must emit outcomes and events through the same committed hook store and committed event log path used by public read surfaces
 - the loop must be startable and stoppable with daemon lifecycle so shutdown does not leave hidden background execution running
 - when runtime has not yet admitted a concrete Life Track executor, due hooks must fail closed with an explicit terminal rejection or failure outcome rather than silent retention or pseudo-success
-- host-owned trigger admission remains authoritative; non-admitted trigger timing must not be synthesized into immediate execution inside the loop
+- host-owned trigger admission follows current canonical authority;
+  non-admitted trigger timing must not be synthesized into immediate execution
+  inside the loop
 
 ## K-AGCORE-013 Runtime-Private Life Turn Executor
 
@@ -2099,18 +2099,9 @@ Transcript owner does not imply execution owner.
 
 ## K-AGCORE-065 Identity Source Axis
 
-`identity_source` identifies the owner and meaning of the participant identity.
-
-Fixed values:
-
-- `USER_OWNED_NIMI_AGENT`
-- `EXTERNAL_A2A_AGENT`
-- `MCP_BACKED_AI_CAPABILITY`
-- `SANDBOX_PROJECTION`
-- `NPC_WORLD_ACTOR`
-
-`SANDBOX_PROJECTION` is an admitted Nimi/user agent projected into a scenario
-role. `NPC_WORLD_ACTOR` is domain-owned actor truth. They are not aliases.
+The former advanced-participation identity-source matrix is deferred and is not
+a current Runtime product contract. In particular,
+`MCP_BACKED_AI_CAPABILITY` is not an admitted participant identity.
 
 ## K-AGCORE-066 Execution Owner Axis
 
@@ -2554,22 +2545,12 @@ Every external-entry boundary row must declare:
 - promotion posture
 - production-claim posture
 
-## K-AGCORE-090 MCP-Backed AI Capability Entry
+## K-AGCORE-090 Deferred MCP-Backed Participation
 
-`MCP_BACKED_AI_CAPABILITY` is admitted only as delegated gateway evidence for
-the `external_agent_entry` participation profile.
-
-Fixed posture:
-
-- `K-DELEG-100..119` owns MCP adapter/protocol authority
-- MCP wire objects, tool schemas, tool output, and provider metadata are not
-  Runtime participation semantic authority
-- Runtime participation may consume only typed gateway verdict, delegated
-  firewall verdict, credential custody reference, audit lineage, and typed
-  output candidate references
-- pre-firewall MCP output consumption is forbidden
-- Nimi memory, cognition, canonical chat, Realm GROUP, and product-domain writes
-  are forbidden by default
+MCP-backed participation is unavailable. Runtime exposes no current MCP-backed
+participant identity, external-entry admission, tool availability, execution,
+promotion, or production-claim posture. A gateway or firewall type cannot
+activate this deferred product surface.
 
 ## K-AGCORE-091 Future A2A External Agent Entry
 
@@ -2629,7 +2610,7 @@ Pre-verdict consumption is forbidden. Missing verdicts fail closed.
 External-entry alignment must be audited with negative gates for:
 
 - production A2A claims
-- direct MCP clients outside Runtime delegated adapter paths
+- direct MCP clients or Runtime MCP adapter activation
 - direct A2A clients outside a future admitted Runtime adapter
 - raw protocol payload public participation fields
 - `K-DELEG-*` rule redefinition in participation authority
@@ -2728,20 +2709,11 @@ Fixed posture:
 
 ## K-AGCORE-079 External Agent Entry Profile
 
-`external_agent_entry` represents an external A2A/MCP participant normalized
-through Runtime boundary.
-
-It requires:
-
-- external identity reference
-- gateway verdict reference
-- domain context reference
-- no Nimi private memory read by default
-- `WRITE_NONE` memory write default
-- external-gateway-limited capability scope
-
-A2A and MCP protocol payloads remain non-authoritative. `K-DELEG-*` owns the
-gateway/protocol boundary and is not modified by this contract.
+`external_agent_entry` is a deferred profile name only. Runtime admits no
+current A2A or MCP participant, external-entry identity, gateway protocol, or
+participation capability through this profile. Any future admission requires a
+separately decided owner and canonical contract; until then the profile remains
+unavailable and does not affect ordinary LocalAgent readiness.
 
 ## K-AGCORE-080 Debug Or Probe Profile
 
@@ -3075,33 +3047,24 @@ package gates remain required before RLA5 closeout.
 
 # Avatar External Entry Consumer Contract
 
-> Authority: Avatar Kernel
+> Historical owner label: Avatar Kernel
 
 ## Scope
 
-This contract owns only how Avatar consumes a Runtime-admitted external-entry
-presentation projection.
+Avatar has no current external-entry participation projection. External-agent
+entry, MCP-backed participation, and A2A participation remain deferred and
+unavailable.
 
-It does not own external principal identity, gateway verdicts, firewall
+A future Avatar consumer may render only a separately admitted Runtime
+projection. It cannot own external principal identity, gateway or firewall
 verdicts, credential custody, consent posture, protocol adapters, provider/model
 routing, audit lineage, or domain writeback.
 
 ## Upstream Authority
 
-Avatar external-entry consumption is downstream of:
-
-- `.nimi/spec/runtime/agent-participation.authority.yaml`
-  `K-AGCORE-079..094`
-- `.nimi/spec/runtime/agent-participation.authority.yaml`
-- `.nimi/spec/runtime/delegation.authority.yaml`
-  `K-DELEG-100..119`
-- `.nimi/spec/runtime/delegation.authority.yaml`
-  `K-DELEG-120..129`
-- `.nimi/spec/runtime/agent-participation.authority.yaml`
-  `K-AGCORE-049..051`
-
-Avatar must inherit the external-entry boundary matrix. It must not reinterpret
-the matrix locally.
+Any future Avatar external-entry consumption is downstream of separately
+admitted Runtime participation and delegation authority. Avatar must inherit
+that boundary without defining a local identity, protocol, or admission matrix.
 
 ## Consumer Shape
 
@@ -3168,8 +3131,8 @@ fallback driver, localhost state path, fixture carrier, or static success state.
 # Wake And Local Audio Lifecycle Contract
 
 > App: `@nimiplatform/avatar`
-> Authority: Avatar kernel contract
-> Status: Active owner-boundary authority
+> Historical owner label: Avatar kernel contract
+> Historical status label: active owner boundary
 > Related contracts:
 > - [App shell contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 > - [Avatar event contract](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)

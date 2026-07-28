@@ -43,8 +43,8 @@ const CLASSIFICATION_MAP = {
   forbidden: 'forbidden',
 };
 
-// Abstract catalog surfaces name coordination concepts, not concrete browser
-// objects; they are statically enforced and need no runtime wrapper.
+// Abstract catalog surfaces name coordination concepts rather than concrete,
+// interceptable browser objects, so they have no runtime wrapper.
 const ABSTRACT_SURFACES = new Set([
   'portal_into_assigned_overlay_root',
   'global_aria_state',

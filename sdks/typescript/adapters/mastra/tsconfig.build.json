@@ -18,7 +18,6 @@
     "manifest.ts",
     "mappers.ts",
     "raw-metadata.ts",
-    "runtime-delegated-tools.ts",
     "voice.ts"
   ]
 }

@@ -7,9 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -19,7 +16,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"gopkg.in/yaml.v3"
 )
 
 func TestExtractBearerTokenMissingHeader(t *testing.T) {
@@ -246,246 +242,22 @@ func TestAuthenticateMapsRevocationRateLimitToRetryableUnavailable(t *testing.T)
 	}
 }
 
-// =============================================================================
-// Posture-consumer test. Loads the canonical spec table index at
-// nimi/config/spec-frozen/runtime/tables/runtime-rpc-auth-posture.yaml plus its
-// method shards as READ-ONLY YAML fixtures, asserts table shape sanity, and
-// confirms the runtime authn interceptor's K-AUTHN-001 pass-through behavior
-// on sample method ids of every posture (anonymous_read AND
-// authenticated_required).
-//
-// Important semantic clarification (per K-AUTHN-001 + K-AUTH separation):
-// the AuthN interceptor permits anonymous requests for ALL methods — header
-// absent → pass-through with nil identity. The POSTURE table classifies which
-// methods downstream layers (SDK, app) should treat as anonymous-allowed. This
-// test confirms the table can be CONSUMED as a fixture, NOT that the runtime
-// ENFORCES the posture (it doesn't — AuthZ enforces).
-// =============================================================================
-
-type runtimeRPCAuthPostureMethodEntry struct {
-	MethodID  string   `yaml:"method_id"`
-	Posture   string   `yaml:"posture"`
-	Rationale string   `yaml:"rationale"`
-	KernelRef []string `yaml:"kernel_refs"`
-}
-
-type runtimeRPCAuthPostureTable struct {
-	ID                      string                             `yaml:"id"`
-	Kind                    string                             `yaml:"kind"`
-	Version                 int                                `yaml:"version"`
-	PostureDecisionDoctrine string                             `yaml:"posture_decision_doctrine"`
-	Methods                 []runtimeRPCAuthPostureMethodEntry `yaml:"methods"`
-}
-
-type runtimeRPCAuthPostureIndex struct {
-	ID                      string                             `yaml:"id"`
-	Kind                    string                             `yaml:"kind"`
-	Version                 int                                `yaml:"version"`
-	PostureDecisionDoctrine string                             `yaml:"posture_decision_doctrine"`
-	MethodShards            []runtimeRPCAuthPostureShard       `yaml:"method_shards"`
-	InlineMethods           []runtimeRPCAuthPostureMethodEntry `yaml:"methods"`
-}
-
-type runtimeRPCAuthPostureShard struct {
-	Path        string   `yaml:"path"`
-	ID          string   `yaml:"id"`
-	MethodCount int      `yaml:"method_count"`
-	Services    []string `yaml:"services"`
-}
-
-type runtimeRPCAuthPostureShardFile struct {
-	ID      string                             `yaml:"id"`
-	Kind    string                             `yaml:"kind"`
-	Parent  string                             `yaml:"parent"`
-	Version int                                `yaml:"version"`
-	Methods []runtimeRPCAuthPostureMethodEntry `yaml:"methods"`
-}
-
-// loadPostureTableFixture reads the runtime RPC auth posture index and method
-// shards from disk by locating the repository root from this source file. The
-// YAML files are treated as read-only fixtures; the test does not write to them.
-func loadPostureTableFixture(t *testing.T) *runtimeRPCAuthPostureTable {
-	t.Helper()
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed")
-	}
-	tablePath := findPostureTableFixture(t, thisFile)
-	raw, err := os.ReadFile(tablePath)
-	if err != nil {
-		t.Fatalf("read posture table fixture %s: %v", tablePath, err)
-	}
-	var rootShape map[string]any
-	if err := yaml.Unmarshal(raw, &rootShape); err != nil {
-		t.Fatalf("unmarshal posture table fixture root shape: %v", err)
-	}
-	if _, ok := rootShape["methods"]; ok {
-		t.Fatalf("posture table index %s must not contain inline methods", tablePath)
-	}
-	var index runtimeRPCAuthPostureIndex
-	if err := yaml.Unmarshal(raw, &index); err != nil {
-		t.Fatalf("unmarshal posture table fixture index: %v", err)
-	}
-	if len(index.InlineMethods) != 0 {
-		t.Fatalf("posture table index %s must not expose inline methods", tablePath)
-	}
-	if len(index.MethodShards) == 0 {
-		t.Fatalf("posture table index %s must declare method_shards", tablePath)
-	}
-	table := runtimeRPCAuthPostureTable{
-		ID:                      index.ID,
-		Kind:                    index.Kind,
-		Version:                 index.Version,
-		PostureDecisionDoctrine: index.PostureDecisionDoctrine,
-	}
-	seenMethods := map[string]string{}
-	for _, shardRef := range index.MethodShards {
-		if strings.TrimSpace(shardRef.Path) == "" {
-			t.Fatalf("posture table index %s contains empty shard path", tablePath)
-		}
-		cleanShardRef := filepath.Clean(shardRef.Path)
-		if filepath.IsAbs(cleanShardRef) || cleanShardRef == ".." || strings.HasPrefix(cleanShardRef, ".."+string(os.PathSeparator)) {
-			t.Fatalf("posture table index %s contains invalid shard path %q", tablePath, shardRef.Path)
-		}
-		shardPath := filepath.Join(filepath.Dir(tablePath), cleanShardRef)
-		shardRaw, err := os.ReadFile(shardPath)
-		if err != nil {
-			t.Fatalf("read posture table shard %s: %v", shardPath, err)
-		}
-		var shard runtimeRPCAuthPostureShardFile
-		if err := yaml.Unmarshal(shardRaw, &shard); err != nil {
-			t.Fatalf("unmarshal posture table shard %s: %v", shardPath, err)
-		}
-		if shard.Kind != "runtime-rpc-auth-posture-shard" {
-			t.Fatalf("posture table shard %s has kind %q", shardPath, shard.Kind)
-		}
-		if shard.Parent != index.ID {
-			t.Fatalf("posture table shard %s parent %q does not match index %q", shardPath, shard.Parent, index.ID)
-		}
-		if shardRef.ID != "" && shard.ID != shardRef.ID {
-			t.Fatalf("posture table shard %s id %q does not match index ref %q", shardPath, shard.ID, shardRef.ID)
-		}
-		if shardRef.MethodCount != 0 && len(shard.Methods) != shardRef.MethodCount {
-			t.Fatalf("posture table shard %s method_count=%d, loaded=%d", shardPath, shardRef.MethodCount, len(shard.Methods))
-		}
-		for _, entry := range shard.Methods {
-			if previousShard, exists := seenMethods[entry.MethodID]; exists {
-				t.Fatalf("posture table method %s appears in both %s and %s", entry.MethodID, previousShard, shardPath)
-			}
-			seenMethods[entry.MethodID] = shardPath
-		}
-		table.Methods = append(table.Methods, shard.Methods...)
-	}
-	return &table
-}
-
-func findPostureTableFixture(t *testing.T, sourceFile string) string {
-	t.Helper()
-	const relativePath = "config/spec-frozen/runtime/tables/runtime-rpc-auth-posture.yaml"
-	current := filepath.Dir(sourceFile)
-	for {
-		candidate := filepath.Join(current, filepath.FromSlash(relativePath))
-		info, err := os.Stat(candidate)
-		if err == nil {
-			if info.IsDir() {
-				t.Fatalf("posture table fixture is a directory: %s", candidate)
-			}
-			return candidate
-		}
-		if !os.IsNotExist(err) {
-			t.Fatalf("inspect posture table fixture %s: %v", candidate, err)
-		}
-		parent := filepath.Dir(current)
-		if parent == current {
-			t.Fatalf("locate %s upward from %s", relativePath, sourceFile)
-		}
-		current = parent
-	}
-}
-
-// TestInterceptorPermitsAnonymousOnAnonymousReadMethods asserts that for at
-// least 3 sample method ids classified `anonymous_read` in the Wave 0 table,
-// an inbound gRPC call WITHOUT an Authorization header reaches the handler
-// with nil Identity. This is the K-AUTHN-001 contract: the interceptor permits
-// anonymous; SDK Wave 2 ensures Bearer is never injected for these methods.
-func TestInterceptorPermitsAnonymousOnAnonymousReadMethods(t *testing.T) {
-	table := loadPostureTableFixture(t)
-
-	// Pick 3 well-known anonymous_read methods drawn from the live-failure
-	// anchors of the originating 2026-05-10 incident plus a connector catalog
-	// example. These ids must exist in the table with posture=anonymous_read.
-	wantSamples := []string{
-		"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
-		"/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
-		"/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
-	}
-	for _, methodID := range wantSamples {
-		assertPostureClassification(t, table, methodID, "anonymous_read")
-	}
-
-	v, err := NewValidator("", "", "")
+func TestAuthenticatePermitsMissingAuthorization(t *testing.T) {
+	validator, err := NewValidator("", "", "")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	for _, methodID := range wantSamples {
-		// No Authorization header → anonymous → pass-through with nil identity.
-		ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs())
-		nextCtx, authErr := authenticate(ctx, v, methodID)
-		if authErr != nil {
-			t.Fatalf("authenticate(%s) returned error for anonymous request: %v", methodID, authErr)
-		}
-		if id := IdentityFromContext(nextCtx); id != nil {
-			t.Fatalf("expected nil identity for anonymous request on %s, got %+v", methodID, id)
-		}
+	nextCtx, authErr := authenticate(
+		context.Background(),
+		validator,
+		"/runtime.v1.RuntimeAuditService/GetRuntimeHealth",
+	)
+	if authErr != nil {
+		t.Fatalf("authenticate returned error for missing Authorization: %v", authErr)
 	}
-}
-
-// TestInterceptorPermitsAnonymousOnAuthenticatedRequiredMethods asserts that
-// for a sample method id classified `authenticated_required` in the Wave 0
-// table, the AuthN interceptor STILL permits anonymous requests (K-AUTHN-001
-// + K-AUTH separation). The interceptor does not enforce posture; AuthZ at
-// the handler enforces. The Wave 0 table classifies the method as
-// authenticated_required so SDK consumers know to attach Bearer; the
-// interceptor itself is posture-agnostic.
-func TestInterceptorPermitsAnonymousOnAuthenticatedRequiredMethods(t *testing.T) {
-	table := loadPostureTableFixture(t)
-
-	wantSamples := []string{
-		"/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
+	if identity := IdentityFromContext(nextCtx); identity != nil {
+		t.Fatalf("expected nil identity for missing Authorization, got %+v", identity)
 	}
-	for _, methodID := range wantSamples {
-		assertPostureClassification(t, table, methodID, "authenticated_required")
-	}
-
-	v, err := NewValidator("", "", "")
-	if err != nil {
-		t.Fatalf("NewValidator: %v", err)
-	}
-	for _, methodID := range wantSamples {
-		ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs())
-		nextCtx, authErr := authenticate(ctx, v, methodID)
-		if authErr != nil {
-			t.Fatalf("authenticate(%s) returned error for anonymous request: %v", methodID, authErr)
-		}
-		if id := IdentityFromContext(nextCtx); id != nil {
-			t.Fatalf("expected nil identity for anonymous request on %s, got %+v", methodID, id)
-		}
-	}
-}
-
-// assertPostureClassification fails the test if methodID is missing from the
-// table or has a different posture than expected.
-func assertPostureClassification(t *testing.T, table *runtimeRPCAuthPostureTable, methodID, expected string) {
-	t.Helper()
-	for _, entry := range table.Methods {
-		if entry.MethodID == methodID {
-			if entry.Posture != expected {
-				t.Fatalf("method %s expected posture=%q, table has %q", methodID, expected, entry.Posture)
-			}
-			return
-		}
-	}
-	t.Fatalf("method %s not found in posture table fixture", methodID)
 }
 
 func TestAuthenticateLogsValidationFailure(t *testing.T) {

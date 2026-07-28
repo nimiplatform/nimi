@@ -18,7 +18,7 @@ import type { AIProviderHealthEvent, AuditExportChunk, ExportAuditEventsRequest,
 import type { OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
 import type { Ack } from "./runtime-protobuf/runtime/v1/common";
 import type { CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
-import type { ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse, GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, ResumeDelegatedCapabilityRequest, ResumeDelegatedCapabilityResponse, SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse, UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
+import type { GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
 import type { DecideLocalDevelopmentProjectRequest, DecideLocalDevelopmentProjectResponse, EndLocalDevelopmentRunRequest, EndLocalDevelopmentRunResponse, EvaluateLocalDevelopmentProjectRequest, EvaluateLocalDevelopmentProjectResponse, GetDeveloperModeStatusRequest, GetDeveloperModeStatusResponse, GetLocalDevelopmentAuthoritySummaryRequest, GetLocalDevelopmentAuthoritySummaryResponse, ListLocalDevelopmentAuthorizationsRequest, ListLocalDevelopmentAuthorizationsResponse, RevokeLocalDevelopmentAuthorizationRequest, RevokeLocalDevelopmentAuthorizationResponse, SetDeveloperModeRequest, SetDeveloperModeResponse } from "./runtime-protobuf/runtime/v1/development";
 import type { ExternalAgentGatewayStatusRequest, ExternalAgentGatewayStatusResponse, ExternalAgentIssueTokenRequest, ExternalAgentIssueTokenResponse, ExternalAgentListTokensRequest, ExternalAgentListTokensResponse, ExternalAgentRevokeTokenRequest } from "./runtime-protobuf/runtime/v1/external_agent";
 import type { AddLinkRequest, AddLinkResponse, CreateKnowledgeBankRequest, CreateKnowledgeBankResponse, DeleteKnowledgeBankRequest, DeleteKnowledgeBankResponse, DeletePageRequest, DeletePageResponse, GetIngestTaskRequest, GetIngestTaskResponse, GetKnowledgeBankRequest, GetKnowledgeBankResponse, GetPageRequest, GetPageResponse, IngestDocumentRequest, IngestDocumentResponse, ListBacklinksRequest, ListBacklinksResponse, ListKnowledgeBanksRequest, ListKnowledgeBanksResponse, ListLinksRequest, ListLinksResponse, ListPagesRequest, ListPagesResponse, PutPageRequest, PutPageResponse, RemoveLinkRequest, RemoveLinkResponse, SearchHybridRequest, SearchHybridResponse, SearchKeywordRequest, SearchKeywordResponse, TraverseGraphRequest, TraverseGraphResponse } from "./runtime-protobuf/runtime/v1/knowledge";
@@ -28,7 +28,6 @@ import type { CreateBankRequest, CreateBankResponse, DeleteBankRequest, DeleteBa
 import type { CheckModelHealthRequest, CheckModelHealthResponse, ListModelsRequest, ListModelsResponse, PullModelRequest, PullModelResponse, RemoveModelRequest } from "./runtime-protobuf/runtime/v1/model";
 import type { RequestRuntimeRestartRequest, RequestRuntimeRestartResponse } from "./runtime-protobuf/runtime/v1/runtime_service_control";
 import type { DeleteVoiceAssetRequest, DeleteVoiceAssetResponse, GetVoiceAssetRequest, GetVoiceAssetResponse, ListPresetVoicesRequest, ListPresetVoicesResponse, ListVoiceAssetsRequest, ListVoiceAssetsResponse } from "./runtime-protobuf/runtime/v1/voice";
-import type { CancelWorkflowRequest, GetWorkflowRequest, GetWorkflowResponse, SubmitWorkflowRequest, SubmitWorkflowResponse, SubscribeWorkflowEventsRequest, WorkflowEvent } from "./runtime-protobuf/runtime/v1/workflow";
 
 export interface RuntimeTypedCallOptions {
   readonly metadata?: CoreMetadata;
@@ -54,7 +53,7 @@ export type { AIProviderHealthEvent, AIProviderHealthSnapshot, AIProviderSubHeal
 export type { AppModeManifest, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
 export type { Ack, ConsentRef, ErrorInfo, ResourceSelectors, ScopedRuntimeBindingAttachment, UsageStats, WorkspaceBindingAttachment } from "./runtime-protobuf/runtime/v1/common";
 export type { CatalogModelDetail, CatalogModelInput, CatalogModelSummary, CatalogModelWorkflowBinding, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogStringListEntry, CatalogVideoGenerationCapability, CatalogVideoGenerationOutputs, CatalogVoiceEntry, CatalogWorkflowModel, Connector, ConnectorModelDescriptor, CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, ModelCatalogProviderEntry, ProviderCatalogEntry, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
-export type { DelegatedApprovalRequest, DelegatedControlSurfaceSnapshot, DelegatedDiagnostic, DelegatedProviderProfile, DelegatedReplayTrace, DelegatedReplayTraceStage, DelegatedToolAllowlistEntry, ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse, GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, ResumeDelegatedCapabilityRequest, ResumeDelegatedCapabilityResponse, SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse, UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
+export type { DelegatedApprovalRequest, DelegatedControlSurfaceSnapshot, DelegatedDiagnostic, DelegatedProviderProfile, DelegatedReplayTrace, DelegatedReplayTraceStage, DelegatedToolAllowlistEntry, GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
 export type { DecideLocalDevelopmentProjectRequest, DecideLocalDevelopmentProjectResponse, EndLocalDevelopmentRunRequest, EndLocalDevelopmentRunResponse, EvaluateLocalDevelopmentProjectRequest, EvaluateLocalDevelopmentProjectResponse, GetDeveloperModeStatusRequest, GetDeveloperModeStatusResponse, GetLocalDevelopmentAuthoritySummaryRequest, GetLocalDevelopmentAuthoritySummaryResponse, ListLocalDevelopmentAuthorizationsRequest, ListLocalDevelopmentAuthorizationsResponse, LocalDevelopmentAuthorizationProjection, LocalDevelopmentDeveloperModeSummary, LocalDevelopmentPermissionRequirement, LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentProjectProjection, RevokeLocalDevelopmentAuthorizationRequest, RevokeLocalDevelopmentAuthorizationResponse, SetDeveloperModeRequest, SetDeveloperModeResponse } from "./runtime-protobuf/runtime/v1/development";
 export type { ExternalAgentActionScope, ExternalAgentGatewayStatusRequest, ExternalAgentGatewayStatusResponse, ExternalAgentIssueTokenRequest, ExternalAgentIssueTokenResponse, ExternalAgentListTokensRequest, ExternalAgentListTokensResponse, ExternalAgentRevokeTokenRequest, ExternalAgentTokenRecord } from "./runtime-protobuf/runtime/v1/external_agent";
 export type { AddLinkRequest, AddLinkResponse, CreateKnowledgeBankRequest, CreateKnowledgeBankResponse, DeleteKnowledgeBankRequest, DeleteKnowledgeBankResponse, DeletePageRequest, DeletePageResponse, GetIngestTaskRequest, GetIngestTaskResponse, GetKnowledgeBankRequest, GetKnowledgeBankResponse, GetPageRequest, GetPageResponse, IngestDocumentRequest, IngestDocumentResponse, KnowledgeAppPrivateOwner, KnowledgeBank, KnowledgeBankLocator, KnowledgeBankOwnerFilter, KnowledgeGraphEdge, KnowledgeGraphNode, KnowledgeIngestTask, KnowledgeKeywordHit, KnowledgeLink, KnowledgePage, KnowledgeRequestContext, KnowledgeWorkspacePrivateOwner, ListBacklinksRequest, ListBacklinksResponse, ListKnowledgeBanksRequest, ListKnowledgeBanksResponse, ListLinksRequest, ListLinksResponse, ListPagesRequest, ListPagesResponse, PublicKnowledgeBankLocator, PutPageRequest, PutPageResponse, RemoveLinkRequest, RemoveLinkResponse, SearchHybridRequest, SearchHybridResponse, SearchKeywordRequest, SearchKeywordResponse, TraverseGraphRequest, TraverseGraphResponse } from "./runtime-protobuf/runtime/v1/knowledge";
@@ -69,7 +68,6 @@ export type { CheckModelHealthRequest, CheckModelHealthResponse, ListModelsReque
 export type { RequestRuntimeRestartRequest, RequestRuntimeRestartResponse } from "./runtime-protobuf/runtime/v1/runtime_service_control";
 export type { RuntimeDurableCloudTargetRef, RuntimeDurableLocalTargetRef, RuntimeDurableTargetRef, RuntimeResolvedCloudExecutionBinding, RuntimeResolvedExecutionBinding, RuntimeResolvedLocalExecutionBinding } from "./runtime-protobuf/runtime/v1/runtime_target_identity";
 export type { DeleteVoiceAssetRequest, DeleteVoiceAssetResponse, GetVoiceAssetRequest, GetVoiceAssetResponse, ListPresetVoicesRequest, ListPresetVoicesResponse, ListVoiceAssetsRequest, ListVoiceAssetsResponse, VoiceAsset, VoicePresetDescriptor, VoiceReference, VoiceT2VInput, VoiceV2VInput } from "./runtime-protobuf/runtime/v1/voice";
-export type { AiEmbedNodeConfig, AiGenerateNodeConfig, AiImageNodeConfig, AiStreamNodeConfig, AiSttNodeConfig, AiTtsCreateVoiceNodeConfig, AiTtsNodeConfig, AiTtsSynthesizeNodeConfig, AiVideoNodeConfig, BranchNodeConfig, CancelWorkflowRequest, ExtractNodeConfig, GetWorkflowRequest, GetWorkflowResponse, MergeNodeConfig, NoopNodeConfig, ScriptNodeConfig, SubmitWorkflowRequest, SubmitWorkflowResponse, SubscribeWorkflowEventsRequest, TemplateNodeConfig, WorkflowDefinition, WorkflowEdge, WorkflowEvent, WorkflowNode, WorkflowNodeStatus } from "./runtime-protobuf/runtime/v1/workflow";
 
 export { AccountCallerMode, AccountEventType, AccountReasonCode, AccountSessionDeliveryKind, AccountSessionState, LocalAppPermissionPosture, PresenceVerificationMethod, PresenceVerificationState, ScopedAppBindingPurpose, ScopedAppBindingState, WorkspaceBindingPurpose, WorkspaceBindingState, WorkspaceMembershipState } from "./runtime-protobuf/runtime/v1/account";
 export { CompanionParticipationStatus, CompanionParticipationSurfaceKind, CompanionParticipationTriggerSource } from "./runtime-protobuf/runtime/v1/agent_companion";
@@ -96,7 +94,6 @@ export { LocalHostSupportClass, LocalRecommendationBaseline, LocalRecommendation
 export { MemoryBankScope, MemoryCanonicalClass, MemoryDistanceMetric, MemoryEventType, MemoryMigrationPolicy, MemoryRecordKind, MemoryReplicationOutcome } from "./runtime-protobuf/runtime/v1/memory";
 export { ModelHealthStatus, ModelStatus } from "./runtime-protobuf/runtime/v1/model";
 export { VoiceAssetPersistence, VoiceAssetStatus, VoiceOutputMode, VoicePlaybackState, VoiceReferenceKind, VoiceWorkflowType } from "./runtime-protobuf/runtime/v1/voice";
-export { MergeStrategy, WorkflowEventType, WorkflowExecutionMode, WorkflowNodeType, WorkflowResumeStrategy, WorkflowStatus } from "./runtime-protobuf/runtime/v1/workflow";
 
 export class RuntimeTypedClient {
   constructor(private readonly core: CoreClient) {}
@@ -324,17 +321,6 @@ export class RuntimeTypedClient {
   async enableAutonomy(request: EnableAutonomyRequest, options: RuntimeTypedCallOptions = {}): Promise<EnableAutonomyResponse> {
     return this.core.unary<EnableAutonomyResponse, EnableAutonomyRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async executeDelegatedCapability(request: ExecuteDelegatedCapabilityRequest, options: RuntimeTypedCallOptions = {}): Promise<ExecuteDelegatedCapabilityResponse> {
-    return this.core.unary<ExecuteDelegatedCapabilityResponse, ExecuteDelegatedCapabilityRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -750,17 +736,6 @@ export class RuntimeTypedClient {
     });
   }
 
-  async resumeDelegatedCapability(request: ResumeDelegatedCapabilityRequest, options: RuntimeTypedCallOptions = {}): Promise<ResumeDelegatedCapabilityResponse> {
-    return this.core.unary<ResumeDelegatedCapabilityResponse, ResumeDelegatedCapabilityRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async setAgentPresentationProfile(request: SetAgentPresentationProfileRequest, options: RuntimeTypedCallOptions = {}): Promise<SetAgentPresentationProfileResponse> {
     return this.core.unary<SetAgentPresentationProfileResponse, SetAgentPresentationProfileRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
@@ -775,17 +750,6 @@ export class RuntimeTypedClient {
   async setAutonomyConfig(request: SetAutonomyConfigRequest, options: RuntimeTypedCallOptions = {}): Promise<SetAutonomyConfigResponse> {
     return this.core.unary<SetAutonomyConfigResponse, SetAutonomyConfigRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async setDelegatedProviderState(request: SetDelegatedProviderStateRequest, options: RuntimeTypedCallOptions = {}): Promise<SetDelegatedProviderStateResponse> {
-    return this.core.unary<SetDelegatedProviderStateResponse, SetDelegatedProviderStateRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -863,17 +827,6 @@ export class RuntimeTypedClient {
   async updateAgentState(request: UpdateAgentStateRequest, options: RuntimeTypedCallOptions = {}): Promise<UpdateAgentStateResponse> {
     return this.core.unary<UpdateAgentStateResponse, UpdateAgentStateRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async upsertDelegatedProviderProfile(request: UpsertDelegatedProviderProfileRequest, options: RuntimeTypedCallOptions = {}): Promise<UpsertDelegatedProviderProfileResponse> {
-    return this.core.unary<UpsertDelegatedProviderProfileResponse, UpsertDelegatedProviderProfileRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -2937,50 +2890,6 @@ export class RuntimeTypedClient {
   async requestRuntimeRestart(request: RequestRuntimeRestartRequest, options: RuntimeTypedCallOptions = {}): Promise<RequestRuntimeRestartResponse> {
     return this.core.unary<RequestRuntimeRestartResponse, RequestRuntimeRestartRequest>({
       methodId: "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async cancelWorkflow(request: CancelWorkflowRequest, options: RuntimeTypedCallOptions = {}): Promise<Ack> {
-    return this.core.unary<Ack, CancelWorkflowRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getWorkflow(request: GetWorkflowRequest, options: RuntimeTypedCallOptions = {}): Promise<GetWorkflowResponse> {
-    return this.core.unary<GetWorkflowResponse, GetWorkflowRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async submitWorkflow(request: SubmitWorkflowRequest, options: RuntimeTypedCallOptions = {}): Promise<SubmitWorkflowResponse> {
-    return this.core.unary<SubmitWorkflowResponse, SubmitWorkflowRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  subscribeWorkflowEvents(request: SubscribeWorkflowEventsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<WorkflowEvent> {
-    return this.core.serverStream<WorkflowEvent, SubscribeWorkflowEventsRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

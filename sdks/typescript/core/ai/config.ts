@@ -5,6 +5,10 @@ export * from './config-app-first-launch';
 export * from './config-runtime-descriptor';
 export * from './config-image-family-contracts';
 export {
+  formatNimiAIValidationIssue,
+  formatNimiAIValidationIssues,
+} from './config-internal';
+export {
   createNimiAIConfigEvidence,
   createNimiAISnapshotExecutionId,
   createNimiAISnapshotRecord,

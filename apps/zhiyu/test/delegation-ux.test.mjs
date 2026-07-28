@@ -251,10 +251,6 @@ test('submits Runtime-owned deny decision without resuming delegated execution',
         approvalRequest: pendingApproval({ state: 3, reasonCode: 'user_rejected' }),
       };
     },
-    resumeApprovedCapability: async () => {
-      calls.push({ method: 'resume' });
-      throw new Error('not expected');
-    },
     loadSnapshot: async () => snapshot({
       approvalRequests: [pendingApproval({ state: 3, reasonCode: 'user_rejected' })],
     }),
@@ -270,7 +266,7 @@ test('submits Runtime-owned deny decision without resuming delegated execution',
   assert.equal(status.retryState, 'retry_available');
 });
 
-test('approves through Runtime and resumes the approved delegated request', async () => {
+test('approves through Runtime without exposing a delegated execution resume path', async () => {
   const { submitZhiyuRuntimeDelegationApproval } = await loadModule();
   const calls = [];
   const status = await submitZhiyuRuntimeDelegationApproval({
@@ -282,13 +278,6 @@ test('approves through Runtime and resumes the approved delegated request', asyn
       calls.push({ method: 'submit', input });
       return {
         approvalRequest: pendingApproval({ state: 2, reasonCode: 'approved_once' }),
-      };
-    },
-    resumeApprovedCapability: async (input) => {
-      calls.push({ method: 'resume', input });
-      return {
-        diagnostic: diagnostic(),
-        output: { text: 'runtime-owned result' },
       };
     },
     loadSnapshot: async () => snapshot({
@@ -307,8 +296,7 @@ test('approves through Runtime and resumes the approved delegated request', asyn
     },
   });
 
-  assert.deepEqual(calls.map((call) => call.method), ['submit', 'resume', 'replay']);
-  assert.equal(calls[1].input.approvalRequestId, 'approval-1');
+  assert.deepEqual(calls.map((call) => call.method), ['submit', 'replay']);
   assert.equal(status.state, 'diagnostic');
   assert.equal(status.lastDecision.state, 'approved');
   assert.equal(status.outputFirewall.state, 'accepted');

@@ -707,7 +707,6 @@ type DelegatedProviderKind string
 
 const (
 	DELEGATEDPROVIDERKINDUNSPECIFIED DelegatedProviderKind = "DELEGATED_PROVIDER_KIND_UNSPECIFIED"
-	DELEGATEDPROVIDERKINDMCPTOOLPROVIDER DelegatedProviderKind = "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER"
 	DELEGATEDPROVIDERKINDREMOTEAGENTSEAM DelegatedProviderKind = "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM"
 	DELEGATEDPROVIDERKINDRUNTIMENATIVEPROVIDER DelegatedProviderKind = "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER"
 	DELEGATEDPROVIDERKINDCONTROLLEDTESTPROVIDER DelegatedProviderKind = "DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER"
@@ -763,7 +762,6 @@ type DelegatedTransportKind string
 
 const (
 	DELEGATEDTRANSPORTKINDUNSPECIFIED DelegatedTransportKind = "DELEGATED_TRANSPORT_KIND_UNSPECIFIED"
-	DELEGATEDTRANSPORTKINDSTDIOCOMMAND DelegatedTransportKind = "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND"
 )
 
 type DeveloperModeState string
@@ -1180,15 +1178,6 @@ const (
 	MEMORYREPLICATIONOUTCOMEINVALIDATED MemoryReplicationOutcome = "MEMORY_REPLICATION_OUTCOME_INVALIDATED"
 )
 
-type MergeStrategy string
-
-const (
-	MERGESTRATEGYUNSPECIFIED MergeStrategy = "MERGE_STRATEGY_UNSPECIFIED"
-	MERGESTRATEGYALL MergeStrategy = "MERGE_STRATEGY_ALL"
-	MERGESTRATEGYANY MergeStrategy = "MERGE_STRATEGY_ANY"
-	MERGESTRATEGYNOFM MergeStrategy = "MERGE_STRATEGY_N_OF_M"
-)
-
 type Modal string
 
 const (
@@ -1271,7 +1260,6 @@ type ParticipationExternalProtocolKind string
 
 const (
 	PARTICIPATIONEXTERNALPROTOCOLKINDUNSPECIFIED ParticipationExternalProtocolKind = "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED"
-	PARTICIPATIONEXTERNALPROTOCOLKINDMCP ParticipationExternalProtocolKind = "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP"
 	PARTICIPATIONEXTERNALPROTOCOLKINDA2A ParticipationExternalProtocolKind = "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A"
 )
 
@@ -1281,7 +1269,6 @@ const (
 	PARTICIPATIONIDENTITYSOURCEUNSPECIFIED ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED"
 	PARTICIPATIONIDENTITYSOURCEUSEROWNEDNIMIAGENT ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT"
 	PARTICIPATIONIDENTITYSOURCEEXTERNALA2AAGENT ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT"
-	PARTICIPATIONIDENTITYSOURCEMCPBACKEDAICAPABILITY ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY"
 	PARTICIPATIONIDENTITYSOURCESANDBOXPROJECTION ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION"
 	PARTICIPATIONIDENTITYSOURCENPCWORLDACTOR ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR"
 )
@@ -1561,10 +1548,6 @@ const (
 	AIVOICEJOBNOTFOUND ReasonCode = "AI_VOICE_JOB_NOT_FOUND"
 	AIVOICEJOBNOTCANCELLABLE ReasonCode = "AI_VOICE_JOB_NOT_CANCELLABLE"
 	AIMODULECONFIGINVALID ReasonCode = "AI_MODULE_CONFIG_INVALID"
-	WFDAGINVALID ReasonCode = "WF_DAG_INVALID"
-	WFNODECONFIGMISMATCH ReasonCode = "WF_NODE_CONFIG_MISMATCH"
-	WFTIMEOUT ReasonCode = "WF_TIMEOUT"
-	WFTASKNOTFOUND ReasonCode = "WF_TASK_NOT_FOUND"
 	AIMEMORYEMBEDDINGTARGETREFINVALID ReasonCode = "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
 	APPMODEDOMAINFORBIDDEN ReasonCode = "APP_MODE_DOMAIN_FORBIDDEN"
 	APPMODESCOPEFORBIDDEN ReasonCode = "APP_MODE_SCOPE_FORBIDDEN"
@@ -1995,74 +1978,6 @@ const (
 	VOICEWORKFLOWTYPEUNSPECIFIED VoiceWorkflowType = "VOICE_WORKFLOW_TYPE_UNSPECIFIED"
 	VOICEWORKFLOWTYPEVOICECLONE VoiceWorkflowType = "VOICE_WORKFLOW_TYPE_VOICE_CLONE"
 	VOICEWORKFLOWTYPEVOICEDESIGN VoiceWorkflowType = "VOICE_WORKFLOW_TYPE_VOICE_DESIGN"
-)
-
-type WorkflowEventType string
-
-const (
-	WORKFLOWEVENTTYPEUNSPECIFIED WorkflowEventType = "WORKFLOW_EVENT_TYPE_UNSPECIFIED"
-	WORKFLOWEVENTSTARTED WorkflowEventType = "WORKFLOW_EVENT_STARTED"
-	WORKFLOWEVENTNODESTARTED WorkflowEventType = "WORKFLOW_EVENT_NODE_STARTED"
-	WORKFLOWEVENTNODEPROGRESS WorkflowEventType = "WORKFLOW_EVENT_NODE_PROGRESS"
-	WORKFLOWEVENTNODECOMPLETED WorkflowEventType = "WORKFLOW_EVENT_NODE_COMPLETED"
-	WORKFLOWEVENTNODESKIPPED WorkflowEventType = "WORKFLOW_EVENT_NODE_SKIPPED"
-	WORKFLOWEVENTCOMPLETED WorkflowEventType = "WORKFLOW_EVENT_COMPLETED"
-	WORKFLOWEVENTFAILED WorkflowEventType = "WORKFLOW_EVENT_FAILED"
-	WORKFLOWEVENTCANCELED WorkflowEventType = "WORKFLOW_EVENT_CANCELED"
-	WORKFLOWEVENTNODEEXTERNALSUBMITTED WorkflowEventType = "WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED"
-	WORKFLOWEVENTNODEEXTERNALRUNNING WorkflowEventType = "WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING"
-	WORKFLOWEVENTNODEEXTERNALCOMPLETED WorkflowEventType = "WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED"
-	WORKFLOWEVENTNODEEXTERNALFAILED WorkflowEventType = "WORKFLOW_EVENT_NODE_EXTERNAL_FAILED"
-)
-
-type WorkflowExecutionMode string
-
-const (
-	WORKFLOWEXECUTIONMODEUNSPECIFIED WorkflowExecutionMode = "WORKFLOW_EXECUTION_MODE_UNSPECIFIED"
-	WORKFLOWEXECUTIONMODEINLINE WorkflowExecutionMode = "WORKFLOW_EXECUTION_MODE_INLINE"
-	WORKFLOWEXECUTIONMODEEXTERNALASYNC WorkflowExecutionMode = "WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC"
-)
-
-type WorkflowNodeType string
-
-const (
-	WORKFLOWNODETYPEUNSPECIFIED WorkflowNodeType = "WORKFLOW_NODE_TYPE_UNSPECIFIED"
-	WORKFLOWNODEAIGENERATE WorkflowNodeType = "WORKFLOW_NODE_AI_GENERATE"
-	WORKFLOWNODEAISTREAM WorkflowNodeType = "WORKFLOW_NODE_AI_STREAM"
-	WORKFLOWNODEAIEMBED WorkflowNodeType = "WORKFLOW_NODE_AI_EMBED"
-	WORKFLOWNODEAIIMAGE WorkflowNodeType = "WORKFLOW_NODE_AI_IMAGE"
-	WORKFLOWNODEAIVIDEO WorkflowNodeType = "WORKFLOW_NODE_AI_VIDEO"
-	WORKFLOWNODEAITTS WorkflowNodeType = "WORKFLOW_NODE_AI_TTS"
-	WORKFLOWNODEAISTT WorkflowNodeType = "WORKFLOW_NODE_AI_STT"
-	WORKFLOWNODEAITTSCREATEVOICE WorkflowNodeType = "WORKFLOW_NODE_AI_TTS_CREATE_VOICE"
-	WORKFLOWNODEAITTSSYNTHESIZE WorkflowNodeType = "WORKFLOW_NODE_AI_TTS_SYNTHESIZE"
-	WORKFLOWNODETRANSFORMEXTRACT WorkflowNodeType = "WORKFLOW_NODE_TRANSFORM_EXTRACT"
-	WORKFLOWNODETRANSFORMTEMPLATE WorkflowNodeType = "WORKFLOW_NODE_TRANSFORM_TEMPLATE"
-	WORKFLOWNODETRANSFORMSCRIPT WorkflowNodeType = "WORKFLOW_NODE_TRANSFORM_SCRIPT"
-	WORKFLOWNODECONTROLBRANCH WorkflowNodeType = "WORKFLOW_NODE_CONTROL_BRANCH"
-	WORKFLOWNODECONTROLMERGE WorkflowNodeType = "WORKFLOW_NODE_CONTROL_MERGE"
-	WORKFLOWNODECONTROLNOOP WorkflowNodeType = "WORKFLOW_NODE_CONTROL_NOOP"
-)
-
-type WorkflowResumeStrategy string
-
-const (
-	WORKFLOWRESUMESTRATEGYUNSPECIFIED WorkflowResumeStrategy = "WORKFLOW_RESUME_STRATEGY_UNSPECIFIED"
-	WORKFLOWRESUMESTRATEGYAUTO WorkflowResumeStrategy = "WORKFLOW_RESUME_STRATEGY_AUTO"
-	WORKFLOWRESUMESTRATEGYMANUAL WorkflowResumeStrategy = "WORKFLOW_RESUME_STRATEGY_MANUAL"
-)
-
-type WorkflowStatus string
-
-const (
-	WORKFLOWSTATUSUNSPECIFIED WorkflowStatus = "WORKFLOW_STATUS_UNSPECIFIED"
-	WORKFLOWSTATUSACCEPTED WorkflowStatus = "WORKFLOW_STATUS_ACCEPTED"
-	WORKFLOWSTATUSQUEUED WorkflowStatus = "WORKFLOW_STATUS_QUEUED"
-	WORKFLOWSTATUSRUNNING WorkflowStatus = "WORKFLOW_STATUS_RUNNING"
-	WORKFLOWSTATUSCOMPLETED WorkflowStatus = "WORKFLOW_STATUS_COMPLETED"
-	WORKFLOWSTATUSFAILED WorkflowStatus = "WORKFLOW_STATUS_FAILED"
-	WORKFLOWSTATUSCANCELED WorkflowStatus = "WORKFLOW_STATUS_CANCELED"
-	WORKFLOWSTATUSSKIPPED WorkflowStatus = "WORKFLOW_STATUS_SKIPPED"
 )
 
 type WorkspaceBindingPurpose string
@@ -2612,107 +2527,6 @@ type AgentVoiceStreamEvent struct {
 	ReplayTruncated bool `json:"replay_truncated,omitempty"`
 }
 
-type AiEmbedNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	Fallback FallbackPolicy `json:"fallback,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	Inputs []string `json:"inputs,omitempty"`
-}
-
-type AiGenerateNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	Modal Modal `json:"modal,omitempty"`
-	SystemPrompt string `json:"system_prompt,omitempty"`
-	Tools []ToolSpec `json:"tools,omitempty"`
-	Temperature float32 `json:"temperature,omitempty"`
-	TopP float32 `json:"top_p,omitempty"`
-	MaxTokens int32 `json:"max_tokens,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	Fallback FallbackPolicy `json:"fallback,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	Prompt string `json:"prompt,omitempty"`
-}
-
-type AiImageNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	Fallback FallbackPolicy `json:"fallback,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	Prompt string `json:"prompt,omitempty"`
-}
-
-type AiStreamNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	Modal Modal `json:"modal,omitempty"`
-	SystemPrompt string `json:"system_prompt,omitempty"`
-	Tools []ToolSpec `json:"tools,omitempty"`
-	Temperature float32 `json:"temperature,omitempty"`
-	TopP float32 `json:"top_p,omitempty"`
-	MaxTokens int32 `json:"max_tokens,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	Fallback FallbackPolicy `json:"fallback,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	Prompt string `json:"prompt,omitempty"`
-}
-
-type AiSttNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	MimeType string `json:"mime_type,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	Fallback FallbackPolicy `json:"fallback,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	AudioBytes []byte `json:"audio_bytes,omitempty"`
-}
-
-type AiTtsCreateVoiceNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	TargetModelId string `json:"target_model_id,omitempty"`
-	WorkflowType VoiceWorkflowType `json:"workflow_type,omitempty"`
-	ConnectorId string `json:"connector_id,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	PreferredName string `json:"preferred_name,omitempty"`
-	ReferenceAudioUri string `json:"reference_audio_uri,omitempty"`
-	ReferenceAudioMime string `json:"reference_audio_mime,omitempty"`
-	InstructionText string `json:"instruction_text,omitempty"`
-	PreviewText string `json:"preview_text,omitempty"`
-	Language string `json:"language,omitempty"`
-	Text string `json:"text,omitempty"`
-	Extensions []ScenarioExtension `json:"extensions,omitempty"`
-}
-
-type AiTtsNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	Fallback FallbackPolicy `json:"fallback,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	Text string `json:"text,omitempty"`
-}
-
-type AiTtsSynthesizeNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	TargetModelId string `json:"target_model_id,omitempty"`
-	Text string `json:"text,omitempty"`
-	VoiceRef *VoiceReference `json:"voice_ref,omitempty"`
-	ConnectorId string `json:"connector_id,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	AudioFormat string `json:"audio_format,omitempty"`
-	SampleRateHz int32 `json:"sample_rate_hz,omitempty"`
-	Speed float32 `json:"speed,omitempty"`
-	Pitch float32 `json:"pitch,omitempty"`
-	Volume float32 `json:"volume,omitempty"`
-	Emotion string `json:"emotion,omitempty"`
-	Extensions []ScenarioExtension `json:"extensions,omitempty"`
-}
-
-type AiVideoNodeConfig struct {
-	ModelId string `json:"model_id,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	Fallback FallbackPolicy `json:"fallback,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	Prompt string `json:"prompt,omitempty"`
-}
-
 type AppInstallJob struct {
 	JobId string `json:"job_id,omitempty"`
 	AppId string `json:"app_id,omitempty"`
@@ -3005,12 +2819,6 @@ type BindLocalAppProcessResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
-type BranchNodeConfig struct {
-	Condition string `json:"condition,omitempty"`
-	TrueTarget string `json:"true_target,omitempty"`
-	FalseTarget string `json:"false_target,omitempty"`
-}
-
 type CancelCompanionParticipationRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -3063,10 +2871,6 @@ type CancelScenarioJobRequest struct {
 
 type CancelScenarioJobResponse struct {
 	Job *ScenarioJob `json:"job,omitempty"`
-}
-
-type CancelWorkflowRequest struct {
-	TaskId string `json:"task_id,omitempty"`
 }
 
 type CanonicalMemoryCandidate struct {
@@ -3539,8 +3343,6 @@ type DelegatedProviderProfile struct {
 	TransportRef string `json:"transport_ref,omitempty"`
 	TrustTier DelegatedProviderTrustTier `json:"trust_tier,omitempty"`
 	LifecycleReasonCode string `json:"lifecycle_reason_code,omitempty"`
-	Command string `json:"command,omitempty"`
-	Args []string `json:"args,omitempty"`
 }
 
 type DelegatedReplayTrace struct {
@@ -3763,30 +3565,6 @@ type EvaluateLocalDevelopmentProjectResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
-type ExecuteDelegatedCapabilityRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-	TurnId string `json:"turn_id,omitempty"`
-	StreamId string `json:"stream_id,omitempty"`
-	RequestId string `json:"request_id,omitempty"`
-	ProviderProfileId string `json:"provider_profile_id,omitempty"`
-	CapabilityId string `json:"capability_id,omitempty"`
-	ToolName string `json:"tool_name,omitempty"`
-	Arguments map[string]any `json:"arguments,omitempty"`
-	DescriptorHash string `json:"descriptor_hash,omitempty"`
-	ProtocolRevision string `json:"protocol_revision,omitempty"`
-	OutputKind string `json:"output_kind,omitempty"`
-	RequiresApproval bool `json:"requires_approval,omitempty"`
-}
-
-type ExecuteDelegatedCapabilityResponse struct {
-	Diagnostic *DelegatedDiagnostic `json:"diagnostic,omitempty"`
-	ReplayTrace *DelegatedReplayTrace `json:"replay_trace,omitempty"`
-	ModelOutput map[string]any `json:"model_output,omitempty"`
-	ApprovalRequest *DelegatedApprovalRequest `json:"approval_request,omitempty"`
-}
-
 type ExecuteLocalStateCutoverRequest struct {
 	NimiDataDir string `json:"nimi_data_dir,omitempty"`
 	PlanId string `json:"plan_id,omitempty"`
@@ -3952,11 +3730,6 @@ type ExternalParticipantIdentityRefBlock struct {
 type ExternalPayloadRefBlock struct {
 	PayloadRef string `json:"payload_ref,omitempty"`
 	ProtocolKind ParticipationExternalProtocolKind `json:"protocol_kind,omitempty"`
-}
-
-type ExtractNodeConfig struct {
-	JsonPath string `json:"json_path,omitempty"`
-	SourceInput string `json:"source_input,omitempty"`
 }
 
 type GatewayVerdictRefBlock struct {
@@ -4356,18 +4129,6 @@ type GetVoiceAssetRequest struct {
 
 type GetVoiceAssetResponse struct {
 	Asset *VoiceAsset `json:"asset,omitempty"`
-}
-
-type GetWorkflowRequest struct {
-	TaskId string `json:"task_id,omitempty"`
-}
-
-type GetWorkflowResponse struct {
-	TaskId string `json:"task_id,omitempty"`
-	Status WorkflowStatus `json:"status,omitempty"`
-	Nodes []WorkflowNodeStatus `json:"nodes,omitempty"`
-	Output map[string]any `json:"output,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type HealthRepairAppRequest struct {
@@ -6189,11 +5950,6 @@ type MemoryRequestContext struct {
 	SubjectUserId string `json:"subject_user_id,omitempty"`
 }
 
-type MergeNodeConfig struct {
-	Strategy MergeStrategy `json:"strategy,omitempty"`
-	MinCompleted int32 `json:"min_completed,omitempty"`
-}
-
 type MintFirstRunExecutionEvidenceRequest struct {
 	RuntimeBaselineRef string `json:"runtime_baseline_ref,omitempty"`
 	SelectedLocalFactoryAiProfileRef string `json:"selected_local_factory_ai_profile_ref,omitempty"`
@@ -6299,10 +6055,6 @@ type NarrativeRecallHit struct {
 	SourceMemoryIds []string `json:"source_memory_ids,omitempty"`
 	IsStale bool `json:"is_stale,omitempty"`
 	RelevanceScore float64 `json:"relevance_score,omitempty"`
-}
-
-type NoopNodeConfig struct {
-
 }
 
 type ObservationalMemoryRecord struct {
@@ -7236,19 +6988,6 @@ type ResponseFormat struct {
 	Strict bool `json:"strict,omitempty"`
 }
 
-type ResumeDelegatedCapabilityRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	ApprovalRequestId string `json:"approval_request_id,omitempty"`
-}
-
-type ResumeDelegatedCapabilityResponse struct {
-	Diagnostic *DelegatedDiagnostic `json:"diagnostic,omitempty"`
-	ReplayTrace *DelegatedReplayTrace `json:"replay_trace,omitempty"`
-	ModelOutput map[string]any `json:"model_output,omitempty"`
-	ApprovalRequest *DelegatedApprovalRequest `json:"approval_request,omitempty"`
-}
-
 type ResumeLocalTransferRequest struct {
 	InstallSessionId string `json:"install_session_id,omitempty"`
 }
@@ -7671,13 +7410,6 @@ type ScopedRuntimeBindingAttachment struct {
 	WorldId string `json:"world_id,omitempty"`
 }
 
-type ScriptNodeConfig struct {
-	Runtime string `json:"runtime,omitempty"`
-	Code string `json:"code,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	MemoryLimitBytes int64 `json:"memory_limit_bytes,omitempty"`
-}
-
 type SearchCatalogModelsRequest struct {
 	Query string `json:"query,omitempty"`
 	Capability string `json:"capability,omitempty"`
@@ -7770,18 +7502,6 @@ type SetAutonomyConfigRequest struct {
 
 type SetAutonomyConfigResponse struct {
 	Autonomy *AgentAutonomyState `json:"autonomy,omitempty"`
-}
-
-type SetDelegatedProviderStateRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	ProviderProfileId string `json:"provider_profile_id,omitempty"`
-	State DelegatedProviderState `json:"state,omitempty"`
-	LifecycleReasonCode string `json:"lifecycle_reason_code,omitempty"`
-}
-
-type SetDelegatedProviderStateResponse struct {
-	ProviderProfile *DelegatedProviderProfile `json:"provider_profile,omitempty"`
 }
 
 type SetDeveloperModeRequest struct {
@@ -7976,19 +7696,6 @@ type SubmitScenarioJobResponse struct {
 	Asset *VoiceAsset `json:"asset,omitempty"`
 }
 
-type SubmitWorkflowRequest struct {
-	AppId string `json:"app_id,omitempty"`
-	SubjectUserId string `json:"subject_user_id,omitempty"`
-	Definition *WorkflowDefinition `json:"definition,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-}
-
-type SubmitWorkflowResponse struct {
-	TaskId string `json:"task_id,omitempty"`
-	Accepted bool `json:"accepted,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type SubscribeAIProviderHealthEventsRequest struct {
 
 }
@@ -8042,10 +7749,6 @@ type SubscribeScenarioJobEventsRequest struct {
 	JobId string `json:"job_id,omitempty"`
 }
 
-type SubscribeWorkflowEventsRequest struct {
-	TaskId string `json:"task_id,omitempty"`
-}
-
 type SwitchAccountRequest struct {
 	Caller *AccountCaller `json:"caller,omitempty"`
 	Reason string `json:"reason,omitempty"`
@@ -8058,11 +7761,6 @@ type SwitchAccountResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
 	ProductionInert bool `json:"production_inert,omitempty"`
-}
-
-type TemplateNodeConfig struct {
-	Template string `json:"template,omitempty"`
-	OutputMimeType string `json:"output_mime_type,omitempty"`
 }
 
 type TerminateAgentRequest struct {
@@ -8285,16 +7983,6 @@ type UpsertCatalogModelOverlayResponse struct {
 	Warnings []CatalogOverlayWarning `json:"warnings,omitempty"`
 }
 
-type UpsertDelegatedProviderProfileRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	ProviderProfile *DelegatedProviderProfile `json:"provider_profile,omitempty"`
-}
-
-type UpsertDelegatedProviderProfileResponse struct {
-	ProviderProfile *DelegatedProviderProfile `json:"provider_profile,omitempty"`
-}
-
 type UpsertModelCatalogProviderRequest struct {
 	Provider string `json:"provider,omitempty"`
 	Yaml string `json:"yaml,omitempty"`
@@ -8500,68 +8188,6 @@ type WatchAppInstallJobEventsRequest struct {
 
 type WatchLocalTransfersRequest struct {
 
-}
-
-type WorkflowDefinition struct {
-	WorkflowType string `json:"workflow_type,omitempty"`
-	Nodes []WorkflowNode `json:"nodes,omitempty"`
-	Edges []WorkflowEdge `json:"edges,omitempty"`
-}
-
-type WorkflowEdge struct {
-	FromNodeId string `json:"from_node_id,omitempty"`
-	FromOutput string `json:"from_output,omitempty"`
-	ToNodeId string `json:"to_node_id,omitempty"`
-	ToInput string `json:"to_input,omitempty"`
-}
-
-type WorkflowEvent struct {
-	EventType WorkflowEventType `json:"event_type,omitempty"`
-	Sequence uint64 `json:"sequence,omitempty"`
-	TaskId string `json:"task_id,omitempty"`
-	TraceId string `json:"trace_id,omitempty"`
-	Timestamp string `json:"timestamp,omitempty"`
-	NodeId string `json:"node_id,omitempty"`
-	ProgressPercent int32 `json:"progress_percent,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-}
-
-type WorkflowNode struct {
-	NodeId string `json:"node_id,omitempty"`
-	NodeType WorkflowNodeType `json:"node_type,omitempty"`
-	DependsOn []string `json:"depends_on,omitempty"`
-	RetryMaxAttempts int32 `json:"retry_max_attempts,omitempty"`
-	RetryBackoff string `json:"retry_backoff,omitempty"`
-	ExecutionMode WorkflowExecutionMode `json:"execution_mode,omitempty"`
-	ResumeStrategy WorkflowResumeStrategy `json:"resume_strategy,omitempty"`
-	CallbackRef string `json:"callback_ref,omitempty"`
-	AiGenerateConfig *AiGenerateNodeConfig `json:"ai_generate_config,omitempty"`
-	AiStreamConfig *AiStreamNodeConfig `json:"ai_stream_config,omitempty"`
-	AiEmbedConfig *AiEmbedNodeConfig `json:"ai_embed_config,omitempty"`
-	AiImageConfig *AiImageNodeConfig `json:"ai_image_config,omitempty"`
-	AiVideoConfig *AiVideoNodeConfig `json:"ai_video_config,omitempty"`
-	AiTtsConfig *AiTtsNodeConfig `json:"ai_tts_config,omitempty"`
-	AiSttConfig *AiSttNodeConfig `json:"ai_stt_config,omitempty"`
-	AiTtsCreateVoiceConfig *AiTtsCreateVoiceNodeConfig `json:"ai_tts_create_voice_config,omitempty"`
-	AiTtsSynthesizeConfig *AiTtsSynthesizeNodeConfig `json:"ai_tts_synthesize_config,omitempty"`
-	ExtractConfig *ExtractNodeConfig `json:"extract_config,omitempty"`
-	TemplateConfig *TemplateNodeConfig `json:"template_config,omitempty"`
-	ScriptConfig *ScriptNodeConfig `json:"script_config,omitempty"`
-	BranchConfig *BranchNodeConfig `json:"branch_config,omitempty"`
-	MergeConfig *MergeNodeConfig `json:"merge_config,omitempty"`
-	NoopConfig *NoopNodeConfig `json:"noop_config,omitempty"`
-}
-
-type WorkflowNodeStatus struct {
-	NodeId string `json:"node_id,omitempty"`
-	Status WorkflowStatus `json:"status,omitempty"`
-	Attempt int32 `json:"attempt,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	ProviderJobId string `json:"provider_job_id,omitempty"`
-	NextPollAt string `json:"next_poll_at,omitempty"`
-	RetryCount int32 `json:"retry_count,omitempty"`
-	LastError string `json:"last_error,omitempty"`
 }
 
 type WorkspaceBindingAttachment struct {
@@ -8977,14 +8603,6 @@ func (c RuntimeTypedClient) EnableAutonomy(ctx context.Context, request EnableAu
 	return decodeRuntimeTypedResponse[EnableAutonomyResponse](raw, "EnableAutonomyResponse")
 }
 
-func (c RuntimeTypedClient) ExecuteDelegatedCapability(ctx context.Context, request ExecuteDelegatedCapabilityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteDelegatedCapabilityResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability", request, metadata, timeoutMS)
-	if err != nil {
-		return ExecuteDelegatedCapabilityResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ExecuteDelegatedCapabilityResponse](raw, "ExecuteDelegatedCapabilityResponse")
-}
-
 func (c RuntimeTypedClient) ExecuteParticipation(ctx context.Context, request ExecuteParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteParticipationResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation", request, metadata, timeoutMS)
 	if err != nil {
@@ -9281,14 +8899,6 @@ func (c RuntimeTypedClient) ResolveAvatarLiveInstanceBinding(ctx context.Context
 	return decodeRuntimeTypedResponse[ResolveAvatarLiveInstanceBindingResponse](raw, "ResolveAvatarLiveInstanceBindingResponse")
 }
 
-func (c RuntimeTypedClient) ResumeDelegatedCapability(ctx context.Context, request ResumeDelegatedCapabilityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResumeDelegatedCapabilityResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability", request, metadata, timeoutMS)
-	if err != nil {
-		return ResumeDelegatedCapabilityResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ResumeDelegatedCapabilityResponse](raw, "ResumeDelegatedCapabilityResponse")
-}
-
 func (c RuntimeTypedClient) SetAgentPresentationProfile(ctx context.Context, request SetAgentPresentationProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetAgentPresentationProfileResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", request, metadata, timeoutMS)
 	if err != nil {
@@ -9303,14 +8913,6 @@ func (c RuntimeTypedClient) SetAutonomyConfig(ctx context.Context, request SetAu
 		return SetAutonomyConfigResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SetAutonomyConfigResponse](raw, "SetAutonomyConfigResponse")
-}
-
-func (c RuntimeTypedClient) SetDelegatedProviderState(ctx context.Context, request SetDelegatedProviderStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetDelegatedProviderStateResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState", request, metadata, timeoutMS)
-	if err != nil {
-		return SetDelegatedProviderStateResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[SetDelegatedProviderStateResponse](raw, "SetDelegatedProviderStateResponse")
 }
 
 func (c RuntimeTypedClient) SubmitAvatarDebugProbeResult(ctx context.Context, request SubmitAvatarDebugProbeResultRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitAvatarDebugProbeResultResponse, error) {
@@ -9367,14 +8969,6 @@ func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request Update
 		return UpdateAgentStateResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UpdateAgentStateResponse](raw, "UpdateAgentStateResponse")
-}
-
-func (c RuntimeTypedClient) UpsertDelegatedProviderProfile(ctx context.Context, request UpsertDelegatedProviderProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertDelegatedProviderProfileResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", request, metadata, timeoutMS)
-	if err != nil {
-		return UpsertDelegatedProviderProfileResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[UpsertDelegatedProviderProfileResponse](raw, "UpsertDelegatedProviderProfileResponse")
 }
 
 func (c RuntimeTypedClient) UpsertRuntimeAgentAIConfig(ctx context.Context, request UpsertRuntimeAgentAIConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertRuntimeAgentAIConfigResponse, error) {
@@ -10875,38 +10469,6 @@ func (c RuntimeTypedClient) RequestRuntimeRestart(ctx context.Context, request R
 		return RequestRuntimeRestartResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RequestRuntimeRestartResponse](raw, "RequestRuntimeRestartResponse")
-}
-
-func (c RuntimeTypedClient) CancelWorkflow(ctx context.Context, request CancelWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow", request, metadata, timeoutMS)
-	if err != nil {
-		return Ack{}, err
-	}
-	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
-}
-
-func (c RuntimeTypedClient) GetWorkflow(ctx context.Context, request GetWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetWorkflowResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow", request, metadata, timeoutMS)
-	if err != nil {
-		return GetWorkflowResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetWorkflowResponse](raw, "GetWorkflowResponse")
-}
-
-func (c RuntimeTypedClient) SubmitWorkflow(ctx context.Context, request SubmitWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitWorkflowResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow", request, metadata, timeoutMS)
-	if err != nil {
-		return SubmitWorkflowResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[SubmitWorkflowResponse](raw, "SubmitWorkflowResponse")
-}
-
-func (c RuntimeTypedClient) SubscribeWorkflowEvents(ctx context.Context, request SubscribeWorkflowEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[WorkflowEvent], error) {
-	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents", request, metadata, timeoutMS)
-	if err != nil {
-		return nil, err
-	}
-	return &RuntimeTypedStream[WorkflowEvent]{reader: reader}, nil
 }
 
 type AccountRelationType string

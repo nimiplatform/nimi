@@ -13,6 +13,7 @@ import type {
   NimiAIProfile,
   NimiAIProfileParseOptions,
   NimiAIProfileValidationResult,
+  NimiAIValidationIssue,
   NimiAIProfileCapabilityIntent,
   NimiAIProfilePreviewResult,
   NimiAIScopeRef,
@@ -20,9 +21,12 @@ import type {
 import { assertNimiAIScopeRef, createEmptyNimiAIConfig, validateNimiAIConfigTargetRef } from './config-scope';
 import { diffNimiAIConfigs, versionNimiAIConfig } from './config-state';
 import {
+  aiValidationIssue,
   aiConfigError,
   asAIRecord,
-  collectForbiddenPayloadErrors,
+  collectForbiddenPayloadIssues,
+  formatNimiAIValidationIssue,
+  formatNimiAIValidationIssues,
   isNonEmptyString,
   isRecord,
   normalizeText,
@@ -48,52 +52,62 @@ interface NimiAIProfileRequirementApplyEvaluation {
 }
 
 export function validateNimiAIProfile(profile: unknown): NimiAIProfileValidationResult {
-  const errors: string[] = [];
+  const issues: NimiAIValidationIssue[] = [];
   if (!isRecord(profile)) {
-    return { valid: false, errors: ['profile must be a non-null object'] };
+    return {
+      valid: false,
+      issues: [aiValidationIssue('AI_TYPE_INVALID', 'profile')],
+    };
   }
-  if (!isNonEmptyString(profile.profileId)) errors.push('profileId is required');
-  if (!isNonEmptyString(profile.title)) errors.push('title is required');
+  if (!isNonEmptyString(profile.profileId)) {
+    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', 'profile.profileId'));
+  }
+  if (!isNonEmptyString(profile.title)) {
+    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', 'profile.title'));
+  }
   if (profile.description !== undefined && typeof profile.description !== 'string') {
-    errors.push('description must be a string');
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'profile.description'));
   }
   if (profile.tags !== undefined && !Array.isArray(profile.tags)) {
-    errors.push('tags must be an array when provided');
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'profile.tags'));
   }
   if (!isRecord(profile.capabilities)) {
-    errors.push('capabilities must be a non-null object');
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'profile.capabilities'));
   }
-  errors.push(...collectForbiddenPayloadErrors(profile, 'profile'));
+  issues.push(...collectForbiddenPayloadIssues(profile, 'profile'));
   if (isRecord(profile.capabilities)) {
     for (const [capability, intent] of Object.entries(profile.capabilities)) {
       if (intent === undefined || intent === null) {
         continue;
       }
       if (!isRecord(intent)) {
-        errors.push(`capabilities.${capability} must be an object when provided`);
+        issues.push(aiValidationIssue('AI_TYPE_INVALID', `profile.capabilities.${capability}`));
         continue;
       }
       if (intent.targetRef !== undefined && intent.targetRef !== null) {
-        errors.push(...validateNimiAIConfigTargetRef(intent.targetRef, `capabilities.${capability}.targetRef`));
+        issues.push(...validateNimiAIConfigTargetRef(
+          intent.targetRef,
+          `profile.capabilities.${capability}.targetRef`,
+        ));
       }
       if (intent.readinessPolicy !== undefined
         && intent.readinessPolicy !== 'required'
         && intent.readinessPolicy !== 'optional') {
-        errors.push(`capabilities.${capability}.readinessPolicy is invalid`);
+        issues.push(aiValidationIssue('AI_VALUE_INVALID', `profile.capabilities.${capability}.readinessPolicy`));
       }
       if (intent.contractState !== undefined
         && intent.contractState !== 'declared'
         && intent.contractState !== 'proposed'
         && intent.contractState !== 'unsupported') {
-        errors.push(`capabilities.${capability}.contractState is invalid`);
+        issues.push(aiValidationIssue('AI_VALUE_INVALID', `profile.capabilities.${capability}.contractState`));
       }
-      errors.push(...validateRuntimeDescriptorSliceInput(
+      issues.push(...validateRuntimeDescriptorSliceInput(
         intent.runtimeDescriptor,
-        `capabilities.${capability}.runtimeDescriptor`,
+        `profile.capabilities.${capability}.runtimeDescriptor`,
       ));
     }
   }
-  return { valid: errors.length === 0, errors };
+  return { valid: issues.length === 0, issues };
 }
 
 export function parseNimiAIProfile(value: unknown, options: NimiAIProfileParseOptions = {}): NimiAIProfile {
@@ -122,7 +136,7 @@ export function parseNimiAIProfile(value: unknown, options: NimiAIProfileParseOp
   if (!validation.valid) {
     throw aiConfigError(
       'SDK_AI_PROFILE_INVALID',
-      `${label} is invalid: ${validation.errors.join('; ')}`,
+      `${label} is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
       'fix_ai_profile_contract',
     );
   }
@@ -290,7 +304,7 @@ export function applyNimiAIProfileToConfig(input: {
   if (!validation.valid) {
     throw aiConfigError(
       'SDK_AI_PROFILE_INVALID',
-      `AI profile is invalid: ${validation.errors.join('; ')}`,
+      `AI profile is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
       'fix_ai_profile_contract',
     );
   }
@@ -343,7 +357,7 @@ export function previewNimiAIProfileApply(input: {
       outcome: 'invalid_profile',
       diff: diffNimiAIConfigs(input.before, null),
       baseVersion: versionNimiAIConfig(input.before ?? createEmptyNimiAIConfig(input.scopeRef)),
-      probeWarnings: validation.errors,
+      probeWarnings: validation.issues.map(formatNimiAIValidationIssue),
     };
   }
   const projection = projectNimiAIProfileApply({
@@ -422,61 +436,62 @@ function addReadyRequirementSlice(
   readySlices.push({ requirementId, slice, intent: { ...intent, targetRef } });
 }
 
-function validateRuntimeDescriptorSliceInput(slice: unknown, path: string): readonly string[] {
-  const errors = collectForbiddenPayloadErrors(slice, path);
+function validateRuntimeDescriptorSliceInput(slice: unknown, path: string): readonly NimiAIValidationIssue[] {
+  const issues = collectForbiddenPayloadIssues(slice, path);
   if (!slice) {
-    return errors;
+    return issues;
   }
   if (!isRecord(slice)) {
-    return [`${path} must be an object`];
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', path));
+    return issues;
   }
   if (slice.executionMode !== undefined && slice.executionMode !== 'local' && slice.executionMode !== 'cloud_connector') {
-    errors.push(`${path}.executionMode is invalid`);
+    issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.executionMode`));
   }
   if (slice.contractState !== undefined
     && slice.contractState !== 'declared'
     && slice.contractState !== 'proposed'
     && slice.contractState !== 'unsupported') {
-    errors.push(`${path}.contractState is invalid`);
+    issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.contractState`));
   }
   if (slice.assetRefs !== undefined && !Array.isArray(slice.assetRefs)) {
-    errors.push(`${path}.assetRefs must be an array when provided`);
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', `${path}.assetRefs`));
   }
   if (Array.isArray(slice.assetRefs)) {
     slice.assetRefs.forEach((assetRef, index) => {
       if (!isNonEmptyString(assetRef)) {
-        errors.push(`${path}.assetRefs[${index}] is required`);
+        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.assetRefs[${index}]`));
       }
     });
   }
   if (slice.orderedCompanionOccurrences !== undefined && !Array.isArray(slice.orderedCompanionOccurrences)) {
-    errors.push(`${path}.orderedCompanionOccurrences must be an array when provided`);
+    issues.push(aiValidationIssue('AI_TYPE_INVALID', `${path}.orderedCompanionOccurrences`));
   }
   if (Array.isArray(slice.orderedCompanionOccurrences)) {
     slice.orderedCompanionOccurrences.forEach((occurrence, index) => {
       if (!isRecord(occurrence)) {
-        errors.push(`${path}.orderedCompanionOccurrences[${index}] must be an object`);
+        issues.push(aiValidationIssue('AI_TYPE_INVALID', `${path}.orderedCompanionOccurrences[${index}]`));
         return;
       }
       if (!isNonEmptyString(occurrence.occurrenceId)) {
-        errors.push(`${path}.orderedCompanionOccurrences[${index}].occurrenceId is required`);
+        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].occurrenceId`));
       }
       if (typeof occurrence.order !== 'number' || !Number.isInteger(occurrence.order) || occurrence.order < 0) {
-        errors.push(`${path}.orderedCompanionOccurrences[${index}].order is invalid`);
+        issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.orderedCompanionOccurrences[${index}].order`));
       }
       if (!isNonEmptyString(occurrence.role)) {
-        errors.push(`${path}.orderedCompanionOccurrences[${index}].role is required`);
+        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].role`));
       }
       if (!isNonEmptyString(occurrence.engineSlot)) {
-        errors.push(`${path}.orderedCompanionOccurrences[${index}].engineSlot is required`);
+        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].engineSlot`));
       }
       if (!isNonEmptyString(occurrence.assetBindingRef)) {
-        errors.push(`${path}.orderedCompanionOccurrences[${index}].assetBindingRef is required`);
+        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].assetBindingRef`));
       }
       if (typeof occurrence.required !== 'boolean') {
-        errors.push(`${path}.orderedCompanionOccurrences[${index}].required is required`);
+        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].required`));
       }
     });
   }
-  return errors;
+  return issues;
 }

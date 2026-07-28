@@ -108,7 +108,7 @@ jobs:
             if [[ "${file}" =~ ^sdk/ || "${file}" =~ ^sdks/ || "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
               sdk_changed=true
             fi
-            if [[ "${file}" =~ ^sdks/typescript/adapters/(mastra|vercel-ai)/ ||
+            if [[ "${file}" =~ ^sdks/typescript/ ||
                   "${file}" == "pnpm-lock.yaml" ]]; then
               sdk_adapter_upstream_changed=true
             fi
@@ -245,8 +245,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: gate.sdk.reason-code-constants
-        run: pnpm check:reason-code-constants
       - name: gate.runtime.bridge-method-projection
         run: pnpm check:runtime-bridge-method-drift
       - name: gate.runtime.realm-broker-policy

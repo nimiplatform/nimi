@@ -200,11 +200,11 @@ func normalizeRuntimeAgentDelegatedCapabilityRequest(req runtimeAgentDelegatedCa
 	req.CapabilityID = strings.TrimSpace(req.CapabilityID)
 	req.ToolName = strings.TrimSpace(req.ToolName)
 	req.DescriptorHash = strings.TrimSpace(req.DescriptorHash)
-	req.ProtocolName = firstNonEmpty(strings.TrimSpace(req.ProtocolName), "mcp")
+	req.ProtocolName = strings.TrimSpace(req.ProtocolName)
 	req.ProtocolRevision = strings.TrimSpace(req.ProtocolRevision)
 	req.OutputKind = firstNonEmpty(strings.TrimSpace(req.OutputKind), delegation.OutputKindObservation)
-	if req.ProviderID == "" || req.CapabilityID == "" || req.ToolName == "" || req.DescriptorHash == "" {
-		return req, fmt.Errorf("delegated capability request requires provider, capability, tool, and descriptor hash")
+	if req.ProviderID == "" || req.CapabilityID == "" || req.ToolName == "" || req.DescriptorHash == "" || req.ProtocolName == "" {
+		return req, fmt.Errorf("delegated capability request requires provider, capability, tool, descriptor hash, and protocol")
 	}
 	return req, nil
 }

@@ -292,7 +292,6 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
 		"/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog",
 		"/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
-		"/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
 	}
 	for _, method := range readMethods {
 		if isWriteMethod(method) {
@@ -329,7 +328,6 @@ func generatedRuntimeFullMethods() []string {
 		runtimev1.RuntimeConnectorService_ServiceDesc,
 		runtimev1.RuntimeLocalService_ServiceDesc,
 		runtimev1.RuntimeModelService_ServiceDesc,
-		runtimev1.RuntimeWorkflowService_ServiceDesc,
 	}
 	methods := make([]string, 0)
 	for _, desc := range descs {

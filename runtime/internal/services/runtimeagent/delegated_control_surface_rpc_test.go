@@ -11,7 +11,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -31,16 +30,6 @@ func TestM1DelegatedControlOwnershipAndAuditMatrix(t *testing.T) {
 			t.Fatalf("wrong-owner delegated call did not fail closed: %v", err)
 		}
 	}
-	profile := func() *runtimev1.DelegatedProviderProfile {
-		return &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "m1-provider", DisplayName: "M1 Provider",
-			ProviderKind:  runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind: runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			TrustTier:     runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools:  []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "read", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
-			TransportRef:  "runtime-transport://m1",
-		}
-	}
 
 	t.Run("GetDelegatedControlSurfaceSnapshot", func(t *testing.T) {
 		_, err := svc.GetDelegatedControlSurfaceSnapshot(callContext, &runtimev1.GetDelegatedControlSurfaceSnapshotRequest{Context: selector(), AgentId: "agent-other"})
@@ -48,22 +37,6 @@ func TestM1DelegatedControlOwnershipAndAuditMatrix(t *testing.T) {
 		response, err := svc.GetDelegatedControlSurfaceSnapshot(callContext, &runtimev1.GetDelegatedControlSurfaceSnapshotRequest{Context: selector(), AgentId: "agent-1"})
 		if err != nil || response.GetSnapshot().GetAgentId() != "agent-1" {
 			t.Fatalf("current owner snapshot=%+v err=%v", response, err)
-		}
-	})
-	t.Run("UpsertDelegatedProviderProfile", func(t *testing.T) {
-		_, err := svc.UpsertDelegatedProviderProfile(callContext, &runtimev1.UpsertDelegatedProviderProfileRequest{Context: selector(), AgentId: "agent-other", ProviderProfile: profile()})
-		assertWrongOwner(t, err)
-		response, err := svc.UpsertDelegatedProviderProfile(callContext, &runtimev1.UpsertDelegatedProviderProfileRequest{Context: selector(), AgentId: "agent-1", ProviderProfile: profile()})
-		if err != nil || response.GetProviderProfile().GetProviderProfileId() != "m1-provider" {
-			t.Fatalf("current owner upsert=%+v err=%v", response, err)
-		}
-	})
-	t.Run("SetDelegatedProviderState", func(t *testing.T) {
-		_, err := svc.SetDelegatedProviderState(callContext, &runtimev1.SetDelegatedProviderStateRequest{Context: selector(), AgentId: "agent-other", ProviderProfileId: "m1-provider", State: runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED, LifecycleReasonCode: "m1"})
-		assertWrongOwner(t, err)
-		response, err := svc.SetDelegatedProviderState(callContext, &runtimev1.SetDelegatedProviderStateRequest{Context: selector(), AgentId: "agent-1", ProviderProfileId: "m1-provider", State: runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED, LifecycleReasonCode: "m1"})
-		if err != nil || response.GetProviderProfile().GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED {
-			t.Fatalf("current owner state=%+v err=%v", response, err)
 		}
 	})
 	t.Run("GetDelegatedReplayTrace", func(t *testing.T) {
@@ -85,220 +58,6 @@ func TestM1DelegatedControlOwnershipAndAuditMatrix(t *testing.T) {
 	})
 }
 
-func TestDelegatedProviderProfilesAreRuntimeOwned(t *testing.T) {
-	svc := testDelegatedControlSurfaceService()
-	ctx := testDelegatedControlContext()
-
-	upserted, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: ctx,
-		AgentId: "agent-1",
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "calendar-mcp",
-			DisplayName:       "Calendar MCP",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
-				ToolName:          "calendar_lookup",
-				EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
-				InputSchemaDigest: "sha256:calendar",
-			}},
-			CredentialRef: "connector://calendar/oauth",
-			Timeout:       durationpb.New(5_000_000_000),
-			TransportRef:  "runtime-transport://calendar-mcp",
-		},
-	})
-	if err != nil {
-		t.Fatalf("upsert delegated provider profile: %v", err)
-	}
-	if upserted.GetProviderProfile().GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED {
-		t.Fatalf("expected registered default state, got %+v", upserted.GetProviderProfile())
-	}
-
-	listed, err := svc.ListDelegatedProviderProfiles(context.Background(), &runtimev1.ListDelegatedProviderProfilesRequest{
-		Context: ctx,
-		AgentId: "agent-1",
-	})
-	if err != nil {
-		t.Fatalf("list delegated provider profiles: %v", err)
-	}
-	if len(listed.GetProviderProfiles()) != 1 || listed.GetProviderProfiles()[0].GetCredentialRef() != "connector://calendar/oauth" {
-		t.Fatalf("provider profile list mismatch: %+v", listed.GetProviderProfiles())
-	}
-
-	disabled, err := svc.SetDelegatedProviderState(context.Background(), &runtimev1.SetDelegatedProviderStateRequest{
-		Context:             ctx,
-		AgentId:             "agent-1",
-		ProviderProfileId:   "calendar-mcp",
-		State:               runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED,
-		LifecycleReasonCode: "provider_disabled_by_policy",
-	})
-	if err != nil {
-		t.Fatalf("disable delegated provider profile: %v", err)
-	}
-	if disabled.GetProviderProfile().GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED {
-		t.Fatalf("expected disabled provider profile, got %+v", disabled.GetProviderProfile())
-	}
-	if disabled.GetProviderProfile().GetLifecycleReasonCode() != "provider_disabled_by_policy" {
-		t.Fatalf("expected lifecycle reason custody, got %+v", disabled.GetProviderProfile())
-	}
-}
-
-func TestDelegatedProviderProfileRequiresTrustTier(t *testing.T) {
-	svc := testDelegatedControlSurfaceService()
-	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: testDelegatedControlContext(),
-		AgentId: "agent-1",
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "calendar-mcp",
-			DisplayName:       "Calendar MCP",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
-			TransportRef:      "runtime-transport://calendar-mcp",
-		},
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected missing trust tier to fail closed, got %v", err)
-	}
-}
-
-func TestDelegatedProviderProfileRejectsRawCredentialMaterial(t *testing.T) {
-	svc := testDelegatedControlSurfaceService()
-	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: testDelegatedControlContext(),
-		AgentId: "agent-1",
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "calendar-mcp",
-			DisplayName:       "Calendar MCP",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
-			CredentialRef:     "connector://calendar?token=secret",
-			TransportRef:      "runtime-transport://calendar-mcp",
-		},
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected raw credential material rejection, got %v", err)
-	}
-}
-
-func TestDelegatedProviderStateReadyRequiresRunnableProfile(t *testing.T) {
-	svc := testDelegatedControlSurfaceService()
-	ctx := testDelegatedControlContext()
-	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: ctx,
-		AgentId: "agent-1",
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "calendar-mcp",
-			DisplayName:       "Calendar MCP",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
-			TransportRef:      "runtime-transport://calendar-mcp",
-		},
-	})
-	if err != nil {
-		t.Fatalf("upsert registered delegated provider: %v", err)
-	}
-
-	_, err = svc.SetDelegatedProviderState(context.Background(), &runtimev1.SetDelegatedProviderStateRequest{
-		Context:           ctx,
-		AgentId:           "agent-1",
-		ProviderProfileId: "calendar-mcp",
-		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected READY without command to fail closed, got %v", err)
-	}
-	listed, err := svc.ListDelegatedProviderProfiles(context.Background(), &runtimev1.ListDelegatedProviderProfilesRequest{
-		Context: ctx,
-		AgentId: "agent-1",
-	})
-	if err != nil {
-		t.Fatalf("list delegated provider profiles: %v", err)
-	}
-	if got := listed.GetProviderProfiles()[0].GetState(); got != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED {
-		t.Fatalf("failed READY transition mutated provider state: %s", got)
-	}
-}
-
-func TestBlockedDelegatedProviderCannotBecomeReady(t *testing.T) {
-	svc := testDelegatedControlSurfaceService()
-	ctx := testDelegatedControlContext()
-	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: ctx,
-		AgentId: "agent-1",
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "calendar-mcp",
-			DisplayName:       "Calendar MCP",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_BLOCKED,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
-			TransportRef:      "runtime-transport://calendar-mcp",
-			Command:           "calendar-mcp",
-		},
-	})
-	if err != nil {
-		t.Fatalf("upsert blocked delegated provider: %v", err)
-	}
-
-	_, err = svc.SetDelegatedProviderState(context.Background(), &runtimev1.SetDelegatedProviderStateRequest{
-		Context:           ctx,
-		AgentId:           "agent-1",
-		ProviderProfileId: "calendar-mcp",
-		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected blocked READY transition to fail closed, got %v", err)
-	}
-}
-
-func TestDelegatedProviderStateRequiresLifecycleReason(t *testing.T) {
-	svc := testDelegatedControlSurfaceService()
-	ctx := testDelegatedControlContext()
-	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: ctx,
-		AgentId: "agent-1",
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "calendar-mcp",
-			DisplayName:       "Calendar MCP",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
-			TransportRef:      "runtime-transport://calendar-mcp",
-			Command:           "calendar-mcp",
-		},
-	})
-	if err != nil {
-		t.Fatalf("upsert delegated provider: %v", err)
-	}
-
-	_, err = svc.SetDelegatedProviderState(context.Background(), &runtimev1.SetDelegatedProviderStateRequest{
-		Context:           ctx,
-		AgentId:           "agent-1",
-		ProviderProfileId: "calendar-mcp",
-		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_QUARANTINED,
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected missing lifecycle reason to fail closed, got %v", err)
-	}
-	listed, err := svc.ListDelegatedProviderProfiles(context.Background(), &runtimev1.ListDelegatedProviderProfilesRequest{
-		Context: ctx,
-		AgentId: "agent-1",
-	})
-	if err != nil {
-		t.Fatalf("list delegated provider profiles: %v", err)
-	}
-	if got := listed.GetProviderProfiles()[0].GetState(); got != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED {
-		t.Fatalf("failed quarantined transition mutated provider state: %s", got)
-	}
-}
-
 func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
@@ -310,11 +69,11 @@ func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 		DelegationResultID:   "deleg-result-1",
 		ConversationAnchorID: "anchor-1",
 		TurnID:               "turn-1",
-		ProviderID:           "calendar-mcp",
+		ProviderID:           "calendar-provider",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
 		DescriptorHash:       "sha256:calendar",
-		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-mcp", "calendar.read", "calendar_lookup", "sha256:calendar"),
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-provider", "calendar.read", "calendar_lookup", "sha256:calendar"),
 		ApprovalPrincipalID:  "user-1",
 		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
 		GatewayEvidenceID:    "evidence-1",
@@ -405,11 +164,11 @@ func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
 		DelegationResultID:   "deleg-result-expiry-persist",
 		ConversationAnchorID: "anchor-expiry-persist",
 		TurnID:               "turn-expiry-persist",
-		ProviderID:           "calendar-mcp",
+		ProviderID:           "calendar-provider",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
 		DescriptorHash:       "sha256:calendar",
-		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-mcp", "calendar.read", "calendar_lookup", "sha256:calendar"),
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-provider", "calendar.read", "calendar_lookup", "sha256:calendar"),
 		ApprovalPrincipalID:  "user-1",
 		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
 		GatewayEvidenceID:    "evidence-expiry-persist",
@@ -502,7 +261,7 @@ func TestDelegatedReplayTraceReconstructsRuntimeOwnedLineage(t *testing.T) {
 		DelegationResultID:   "deleg-result-1",
 		ConversationAnchorID: "anchor-1",
 		TurnID:               "turn-1",
-		ProviderID:           "calendar-mcp",
+		ProviderID:           "calendar-provider",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
 		GatewayEvidenceID:    "evidence-1",
@@ -543,11 +302,11 @@ func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *tes
 		DelegationResultID:   "deleg-result-1",
 		ConversationAnchorID: "anchor-1",
 		TurnID:               "turn-1",
-		ProviderID:           "calendar-mcp",
+		ProviderID:           "calendar-provider",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
 		DescriptorHash:       "sha256:calendar",
-		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-mcp", "calendar.read", "calendar_lookup", "sha256:calendar"),
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-provider", "calendar.read", "calendar_lookup", "sha256:calendar"),
 		ApprovalPrincipalID:  "user-1",
 		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
 		GatewayEvidenceID:    "evidence-1",
@@ -610,7 +369,7 @@ func TestDelegatedReplayTraceMarksSensitiveOutputPartialRedacted(t *testing.T) {
 		DelegationResultID:       "deleg-result-1",
 		ConversationAnchorID:     "anchor-1",
 		TurnID:                   "turn-1",
-		ProviderID:               "calendar-mcp",
+		ProviderID:               "calendar-provider",
 		CapabilityID:             "calendar.read",
 		ToolName:                 "calendar_lookup",
 		GatewayEvidenceID:        "evidence-1",
@@ -647,7 +406,7 @@ func TestDelegatedReplayTraceRequiresRuntimeAuditRecord(t *testing.T) {
 		DelegationResultID:   "deleg-result-1",
 		ConversationAnchorID: "anchor-1",
 		TurnID:               "turn-1",
-		ProviderID:           "calendar-mcp",
+		ProviderID:           "calendar-provider",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
 		GatewayEvidenceID:    "evidence-1",
@@ -684,7 +443,7 @@ func TestDelegatedReplayTraceFailsClosedOnMissingJoinKeys(t *testing.T) {
 		AgentID:              "agent-1",
 		ConversationAnchorID: "anchor-1",
 		TurnID:               "turn-1",
-		ProviderID:           "calendar-mcp",
+		ProviderID:           "calendar-provider",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
 		GatewayEvidenceID:    "evidence-1",
@@ -711,7 +470,7 @@ func TestDelegatedReplayTraceFailsClosedOnMissingFinalDisposition(t *testing.T) 
 		DelegationRequestID: "deleg-request-1",
 		DelegationResultID:  "deleg-result-1",
 		TurnID:              "turn-1",
-		ProviderID:          "calendar-mcp",
+		ProviderID:          "calendar-provider",
 		CapabilityID:        "calendar.read",
 		ToolName:            "calendar_lookup",
 		GatewayEvidenceID:   "evidence-1",
@@ -735,7 +494,7 @@ func TestDelegatedReplayTraceIncludesApprovalState(t *testing.T) {
 		DelegationResultID:   "deleg-result-1",
 		ConversationAnchorID: "anchor-1",
 		TurnID:               "turn-1",
-		ProviderID:           "calendar-mcp",
+		ProviderID:           "calendar-provider",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
 		GatewayEvidenceID:    "evidence-1",
@@ -799,32 +558,22 @@ func upsertDelegatedApprovalTestProfile(t *testing.T, svc *Service, descriptorHa
 	upsertDelegatedApprovalTestProfileForAgent(t, svc, testDelegatedControlContext(), "agent-1", descriptorHash)
 }
 
-func upsertDelegatedApprovalTestProfileForAgent(t *testing.T, svc *Service, ctx *runtimev1.AgentRequestContext, agentID string, descriptorHash string) {
+func upsertDelegatedApprovalTestProfileForAgent(t *testing.T, svc *Service, _ *runtimev1.AgentRequestContext, agentID string, descriptorHash string) {
 	t.Helper()
-	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: ctx,
-		AgentId: agentID,
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "calendar-mcp",
-			DisplayName:       "Calendar MCP",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
-			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
-				ToolName:          "calendar_lookup",
-				EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
-				InputSchemaDigest: descriptorHash,
-			}},
-			TransportRef:        "runtime-transport://calendar-mcp",
-			Command:             "calendar-mcp",
-			LifecycleReasonCode: "",
-			CredentialRef:       "connector://calendar/oauth",
-			Timeout:             durationpb.New(5_000_000_000),
-		},
-	})
-	if err != nil {
-		t.Fatalf("upsert delegated approval test profile: %v", err)
+	svc.delegatedMu.Lock()
+	defer svc.delegatedMu.Unlock()
+	svc.ensureDelegatedControlStoresLocked()
+	svc.delegatedProviderProfiles[delegatedProviderProfileKey(agentID, "calendar-provider")] = &runtimev1.DelegatedProviderProfile{
+		ProviderProfileId: "calendar-provider",
+		DisplayName:       "Controlled calendar provider",
+		ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER,
+		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+		TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
+		AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
+			ToolName:          "calendar_lookup",
+			EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
+			InputSchemaDigest: descriptorHash,
+		}},
 	}
 }
 
@@ -837,11 +586,11 @@ func recordDelegatedApprovalDecisionForTest(t *testing.T, svc *Service) {
 		DelegationResultID:   "deleg-result-1",
 		ConversationAnchorID: "anchor-1",
 		TurnID:               "turn-1",
-		ProviderID:           "calendar-mcp",
+		ProviderID:           "calendar-provider",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
 		DescriptorHash:       "sha256:calendar",
-		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-mcp", "calendar.read", "calendar_lookup", "sha256:calendar"),
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-provider", "calendar.read", "calendar_lookup", "sha256:calendar"),
 		ApprovalPrincipalID:  "user-1",
 		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
 		GatewayEvidenceID:    "evidence-1",

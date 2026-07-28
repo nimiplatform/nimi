@@ -11,10 +11,6 @@ entries:
     name: OpenAI-compatible
     owner: sdks/typescript/adapters/openai-compatible
     semantics: Strict Chat Completions-compatible migration bridge.
-  - id: mcp
-    name: MCP
-    owner: sdks/typescript/adapters/mcp
-    semantics: MCP tool/resource adapter; public package name remains owner-gated.
   - id: mastra
     name: Mastra
     owner: sdks/typescript/adapters/mastra

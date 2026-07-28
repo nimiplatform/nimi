@@ -89,11 +89,6 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
       mode: 'runtime-owned',
       note: 'createNimiMastraContextBridge loads Nimi AI context providers (including Runtime memory/knowledge providers) and injects their per-turn material through Mastra Agent.generate()/stream() context without configuring or persisting Mastra Memory.',
     },
-    runtimeDelegatedTools: {
-      support: 'supported',
-      mode: 'runtime-owned',
-      note: 'createNimiMastraRuntimeDelegatedTool lets a Mastra tool call execute through Nimi Runtime ExecuteDelegatedCapability, fail closed with a typed approval-required error carrying the Runtime approval request id, and resume approved execution through Runtime ResumeDelegatedCapability without using Mastra snapshot storage. createNimiMastraRuntimeDelegatedToolBinding centralizes explicit Nimi turn/provider lineage for migration code without inferring Mastra-owned run state.',
-    },
     usage: {
       support: 'supported',
       mode: 'adapter-mapped',
@@ -148,7 +143,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
       support: 'partial',
       mode: 'adapter-mapped',
       gaps: [
-        'Model-level tool-approval-request/response parts are mapped; Mastra native requireToolApproval suspension is verified, but approve/deny resume requires Mastra snapshot storage and is not bound to Nimi Runtime-owned lifecycle state. Use runtimeDelegatedTools for the Nimi Runtime-owned approval/resume path.',
+        'Model-level tool-approval-request/response parts are mapped; Mastra native requireToolApproval suspension is verified, but approve/deny resume requires Mastra snapshot storage and is not bound to a current Nimi Runtime-owned lifecycle surface.',
         'S-AIP-009: persisted approval snapshots live in Mastra storage (cross-process lifetime, not reconstructible from Nimi truth) and are framework-owned-non-canonical; the adapter holds no approval state itself and never writes it into Nimi surfaces.',
       ],
     },

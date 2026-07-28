@@ -26,9 +26,9 @@ const ledger = loadAdapterCapabilityLedger(readFileSync(ledgerPath, 'utf8'));
 
 test('map loader parses the spec table and enforces pending semantics', () => {
   const ids = frameworks.map((framework) => framework.id).sort();
-  assert.deepEqual(ids, ['langgraph', 'llamaindex', 'mastra', 'mcp', 'openai-compatible', 'vercel-ai']);
+  assert.deepEqual(ids, ['langgraph', 'llamaindex', 'mastra', 'openai-compatible', 'vercel-ai']);
   const pending = frameworks.filter((framework) => framework.status === 'pending-upstream-binding');
-  assert.deepEqual(pending.map((framework) => framework.id).sort(), ['langgraph', 'llamaindex', 'mcp']);
+  assert.deepEqual(pending.map((framework) => framework.id).sort(), ['langgraph', 'llamaindex']);
   for (const framework of pending) {
     assert.equal(framework.apiEntries.length, 0);
   }

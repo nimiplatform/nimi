@@ -66,13 +66,6 @@ Runtime/Cognition owner surfaces.
   AI context providers, including Runtime memory/knowledge providers, and
   injects their per-turn material through Mastra `Agent.generate()`/`stream()`
   `context` without configuring or persisting Mastra Memory.
-- **Nimi Runtime delegated tools**: `createNimiMastraRuntimeDelegatedTool` lets
-  Mastra call a tool whose execution, approval-required pause, approval request id,
-  and approved resume are owned by Nimi Runtime
-  (`ExecuteDelegatedCapability` / `ResumeDelegatedCapability`), without using
-  Mastra snapshot storage. `createNimiMastraRuntimeDelegatedToolBinding` provides
-  an explicit Nimi turn/provider lineage binding for migration code; it does not
-  infer or persist Mastra run state.
 - **Mastra Memory compatibility**: a memory-enabled agent threads prior-turn
   context into the model across turns (verified with `MockMemory`); this does not
   bind Mastra memory to Nimi Runtime/Cognition canonical memory.
@@ -126,8 +119,7 @@ are not blurred into the supported set.
 
 | Cluster | Manifest capability | Status | Notes |
 |---|---|---|---|
-| Runtime-owned delegated tool approval/resume | `runtimeDelegatedTools` | supported | `createNimiMastraRuntimeDelegatedTool` executes through Nimi Runtime delegated capability owner surfaces. Approval-required returns a typed fail-closed error carrying the Runtime approval request id; `resumeNimiMastraRuntimeDelegatedTool` resumes through Runtime. Mastra snapshot storage is not used. |
-| `requireToolApproval` human-in-the-loop | `toolApproval` (partial) | partial | Model-level tool-approval-request/response parts are mapped in `mappers.ts`; Mastra native `requireToolApproval` suspension before execution is verified. Approve/deny resume requires Mastra snapshot storage (`AGENT_RESUME_NO_SNAPSHOT_FOUND` without it) and is not bound to Nimi Runtime-owned lifecycle state; use `runtimeDelegatedTools` for the Nimi-owned path. |
+| `requireToolApproval` human-in-the-loop | `toolApproval` (partial) | partial | Model-level tool-approval-request/response parts are mapped in `mappers.ts`; Mastra native `requireToolApproval` suspension before execution is verified. Approve/deny resume requires Mastra snapshot storage (`AGENT_RESUME_NO_SNAPSHOT_FOUND` without it) and is not bound to a current Nimi Runtime-owned lifecycle surface. |
 | tool suspend / resume | `toolSuspendResume` (partial) | partial | Model tool-calls are mapped; Mastra `createTool` suspend/resume orchestration (suspendSchema/resumeSchema pause + resume) is not yet exercised through Nimi. |
 | structured-output repair retry | `structuredOutputRepair` (partial) | partial | No-object failure is verified fail-closed; Mastra's repair retry path (fixing malformed JSON) is not yet exhaustively exercised. |
 | reasoning / providerMetadata / providerOptions / multimodal acceptance | `reasoning`, `providerMetadata`, `providerOptions`, `multimodalInput` (partial) | partial | Mapped by the adapter; end-to-end surfacing/acceptance is Runtime-route-dependent. |

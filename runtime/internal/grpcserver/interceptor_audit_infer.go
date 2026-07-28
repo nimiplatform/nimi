@@ -57,10 +57,6 @@ func inferReasonCodeFromResponse(resp any) (runtimev1.ReasonCode, bool) {
 		return reasonCodeFromAppInstallJob(value.GetJob())
 	case *runtimev1.HealthRepairAppResponse:
 		return reasonCodeFromAppInstallJob(value.GetJob())
-	case *runtimev1.SubmitWorkflowResponse:
-		return value.GetReasonCode(), true
-	case *runtimev1.GetWorkflowResponse:
-		return value.GetReasonCode(), true
 	case *runtimev1.PullModelResponse:
 		return value.GetReasonCode(), true
 	case *runtimev1.CheckModelHealthResponse:

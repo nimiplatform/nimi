@@ -240,16 +240,6 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.agent.delegation.read",
 		},
 		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
-			request:    &runtimev1.UpsertDelegatedProviderProfileRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.delegation.write",
-		},
-		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
-			request:    &runtimev1.SetDelegatedProviderStateRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.delegation.write",
-		},
-		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
 			request:    &runtimev1.ListDelegatedApprovalRequestsRequest{AgentId: "agent-alpha"},
 			capability: "runtime.agent.delegation.read",
@@ -273,16 +263,6 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			method:     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
 			request:    &runtimev1.GetDelegatedControlSurfaceSnapshotRequest{AgentId: "agent-alpha"},
 			capability: "runtime.agent.delegation.read",
-		},
-		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
-			request:    &runtimev1.ExecuteDelegatedCapabilityRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.delegation.write",
-		},
-		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
-			request:    &runtimev1.ResumeDelegatedCapabilityRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.delegation.write",
 		},
 		{
 			method: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",

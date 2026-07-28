@@ -394,8 +394,20 @@ func TestExecuteVoiceWorkflowJobLocalQwenFailCloseUsesFamilySpecificDetail(t *te
 	if !ok {
 		t.Fatalf("expected stored job")
 	}
-	if got := storedJob.GetReasonDetail(); !strings.Contains(got, "execution plane not materialized: qwen3_tts") {
-		t.Fatalf("reason detail mismatch: %q", got)
+	if storedJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+		t.Fatalf("job status=%s, want FAILED", storedJob.GetStatus().String())
+	}
+	if storedJob.GetReasonCode() != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
+		t.Fatalf("reason code=%s, want AI_VOICE_WORKFLOW_UNSUPPORTED", storedJob.GetReasonCode().String())
+	}
+	if strings.TrimSpace(storedJob.GetReasonDetail()) == "" {
+		t.Fatal("expected stable non-empty reason detail")
+	}
+	if got := storedJob.GetReasonMetadata().GetFields()["workflow_family"].GetStringValue(); got != "qwen3_tts" {
+		t.Fatalf("workflow_family metadata=%q, want qwen3_tts", got)
+	}
+	if got := storedJob.GetReasonMetadata().GetFields()["failure_stage"].GetStringValue(); got != "voice_workflow_execution" {
+		t.Fatalf("failure_stage metadata=%q, want voice_workflow_execution", got)
 	}
 	storedAsset, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
 	if !ok {

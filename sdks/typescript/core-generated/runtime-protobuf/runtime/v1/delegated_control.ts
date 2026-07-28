@@ -28,19 +28,10 @@ export interface DelegatedToolAllowlistEntry {
      */
     inputSchemaDigest: string;
     /**
-     * K-DELEG-006 capability-descriptor classification declared at profile
-     * registration. effect_class is required on write (upsert fails closed on
-     * UNSPECIFIED); records persisted before this field derive as UNSPECIFIED
-     * and force approval-required handling instead of silently passing.
-     *
      * @generated from protobuf field: nimi.runtime.v1.EffectClass effect_class = 3
      */
     effectClass: EffectClass;
     /**
-     * Expected sensitivity of the capability's output (K-DELEG-068). Optional
-     * on write; UNSPECIFIED derives conservatively as UNKNOWN_SENSITIVE for
-     * approval-requirement purposes.
-     *
      * @generated from protobuf field: nimi.runtime.v1.SensitivityClass expected_sensitivity_class = 4
      */
     expectedSensitivityClass: SensitivityClass;
@@ -101,14 +92,6 @@ export interface DelegatedProviderProfile {
      * @generated from protobuf field: string lifecycle_reason_code = 13
      */
     lifecycleReasonCode: string;
-    /**
-     * @generated from protobuf field: string command = 14
-     */
-    command: string;
-    /**
-     * @generated from protobuf field: repeated string args = 15
-     */
-    args: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.DelegatedControlSurfaceSnapshot
@@ -164,66 +147,6 @@ export interface ListDelegatedProviderProfilesResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.DelegatedProviderProfile provider_profiles = 1
      */
     providerProfiles: DelegatedProviderProfile[];
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
- */
-export interface UpsertDelegatedProviderProfileRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedProviderProfile provider_profile = 3
-     */
-    providerProfile?: DelegatedProviderProfile;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
- */
-export interface UpsertDelegatedProviderProfileResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedProviderProfile provider_profile = 1
-     */
-    providerProfile?: DelegatedProviderProfile;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.SetDelegatedProviderStateRequest
- */
-export interface SetDelegatedProviderStateRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
-     * @generated from protobuf field: string provider_profile_id = 3
-     */
-    providerProfileId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedProviderState state = 4
-     */
-    state: DelegatedProviderState;
-    /**
-     * @generated from protobuf field: string lifecycle_reason_code = 5
-     */
-    lifecycleReasonCode: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.SetDelegatedProviderStateResponse
- */
-export interface SetDelegatedProviderStateResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedProviderProfile provider_profile = 1
-     */
-    providerProfile?: DelegatedProviderProfile;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.DelegatedApprovalRequest
@@ -605,126 +528,6 @@ export interface GetDelegatedControlSurfaceSnapshotResponse {
     snapshot?: DelegatedControlSurfaceSnapshot;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
- */
-export interface ExecuteDelegatedCapabilityRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
-     * @generated from protobuf field: string conversation_anchor_id = 3
-     */
-    conversationAnchorId: string;
-    /**
-     * @generated from protobuf field: string turn_id = 4
-     */
-    turnId: string;
-    /**
-     * @generated from protobuf field: string stream_id = 5
-     */
-    streamId: string;
-    /**
-     * @generated from protobuf field: string request_id = 6
-     */
-    requestId: string;
-    /**
-     * @generated from protobuf field: string provider_profile_id = 7
-     */
-    providerProfileId: string;
-    /**
-     * @generated from protobuf field: string capability_id = 8
-     */
-    capabilityId: string;
-    /**
-     * @generated from protobuf field: string tool_name = 9
-     */
-    toolName: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct arguments = 10
-     */
-    arguments?: Struct;
-    /**
-     * @generated from protobuf field: string descriptor_hash = 11
-     */
-    descriptorHash: string;
-    /**
-     * @generated from protobuf field: string protocol_revision = 12
-     */
-    protocolRevision: string;
-    /**
-     * @generated from protobuf field: string output_kind = 13
-     */
-    outputKind: string;
-    /**
-     * @generated from protobuf field: bool requires_approval = 14
-     */
-    requiresApproval: boolean;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
- */
-export interface ExecuteDelegatedCapabilityResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedDiagnostic diagnostic = 1
-     */
-    diagnostic?: DelegatedDiagnostic;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedReplayTrace replay_trace = 2
-     */
-    replayTrace?: DelegatedReplayTrace;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct model_output = 3
-     */
-    modelOutput?: Struct;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedApprovalRequest approval_request = 4
-     */
-    approvalRequest?: DelegatedApprovalRequest;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ResumeDelegatedCapabilityRequest
- */
-export interface ResumeDelegatedCapabilityRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
-     * @generated from protobuf field: string approval_request_id = 3
-     */
-    approvalRequestId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ResumeDelegatedCapabilityResponse
- */
-export interface ResumeDelegatedCapabilityResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedDiagnostic diagnostic = 1
-     */
-    diagnostic?: DelegatedDiagnostic;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedReplayTrace replay_trace = 2
-     */
-    replayTrace?: DelegatedReplayTrace;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct model_output = 3
-     */
-    modelOutput?: Struct;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.DelegatedApprovalRequest approval_request = 4
-     */
-    approvalRequest?: DelegatedApprovalRequest;
-}
-/**
  * @generated from protobuf enum nimi.runtime.v1.DelegatedProviderKind
  */
 export enum DelegatedProviderKind {
@@ -732,10 +535,6 @@ export enum DelegatedProviderKind {
      * @generated from protobuf enum value: DELEGATED_PROVIDER_KIND_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER = 1;
-     */
-    MCP_TOOL_PROVIDER = 1,
     /**
      * @generated from protobuf enum value: DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM = 2;
      */
@@ -818,11 +617,7 @@ export enum DelegatedTransportKind {
     /**
      * @generated from protobuf enum value: DELEGATED_TRANSPORT_KIND_UNSPECIFIED = 0;
      */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: DELEGATED_TRANSPORT_KIND_STDIO_COMMAND = 1;
-     */
-    STDIO_COMMAND = 1
+    UNSPECIFIED = 0
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.DelegatedApprovalMode
@@ -908,9 +703,8 @@ export enum DelegatedApprovalDecision {
     EXPIRED = 5
 }
 /**
- * EffectClass enumerates the K-DELEG-007 effect classification consumed by the
- * K-DELEG-091 approval request. Values mirror the effect_classes table in
- * delegation-provider-profiles.yaml (source_rule K-DELEG-007).
+ * EffectClass enumerates the approval-gating classification owned by
+ * rule.nimi.runtime.delegation.r007.
  *
  * @generated from protobuf enum nimi.runtime.v1.EffectClass
  */
@@ -1127,9 +921,7 @@ class DelegatedProviderProfile$Type extends MessageType<DelegatedProviderProfile
             { no: 10, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 11, name: "transport_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "trust_tier", kind: "enum", T: () => ["nimi.runtime.v1.DelegatedProviderTrustTier", DelegatedProviderTrustTier, "DELEGATED_PROVIDER_TRUST_TIER_"] },
-            { no: 13, name: "lifecycle_reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 14, name: "command", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 15, name: "args", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 13, name: "lifecycle_reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<DelegatedProviderProfile>): DelegatedProviderProfile {
@@ -1144,8 +936,6 @@ class DelegatedProviderProfile$Type extends MessageType<DelegatedProviderProfile
         message.transportRef = "";
         message.trustTier = 0;
         message.lifecycleReasonCode = "";
-        message.command = "";
-        message.args = [];
         if (value !== undefined)
             reflectionMergePartial<DelegatedProviderProfile>(this, message, value);
         return message;
@@ -1193,12 +983,6 @@ class DelegatedProviderProfile$Type extends MessageType<DelegatedProviderProfile
                     break;
                 case /* string lifecycle_reason_code */ 13:
                     message.lifecycleReasonCode = reader.string();
-                    break;
-                case /* string command */ 14:
-                    message.command = reader.string();
-                    break;
-                case /* repeated string args */ 15:
-                    message.args.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1251,12 +1035,6 @@ class DelegatedProviderProfile$Type extends MessageType<DelegatedProviderProfile
         /* string lifecycle_reason_code = 13; */
         if (message.lifecycleReasonCode !== "")
             writer.tag(13, WireType.LengthDelimited).string(message.lifecycleReasonCode);
-        /* string command = 14; */
-        if (message.command !== "")
-            writer.tag(14, WireType.LengthDelimited).string(message.command);
-        /* repeated string args = 15; */
-        for (let i = 0; i < message.args.length; i++)
-            writer.tag(15, WireType.LengthDelimited).string(message.args[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1462,237 +1240,6 @@ class ListDelegatedProviderProfilesResponse$Type extends MessageType<ListDelegat
  * @generated MessageType for protobuf message nimi.runtime.v1.ListDelegatedProviderProfilesResponse
  */
 export const ListDelegatedProviderProfilesResponse = new ListDelegatedProviderProfilesResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UpsertDelegatedProviderProfileRequest$Type extends MessageType<UpsertDelegatedProviderProfileRequest> {
-    constructor() {
-        super("nimi.runtime.v1.UpsertDelegatedProviderProfileRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "provider_profile", kind: "message", T: () => DelegatedProviderProfile }
-        ]);
-    }
-    create(value?: PartialMessage<UpsertDelegatedProviderProfileRequest>): UpsertDelegatedProviderProfileRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
-        if (value !== undefined)
-            reflectionMergePartial<UpsertDelegatedProviderProfileRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertDelegatedProviderProfileRequest): UpsertDelegatedProviderProfileRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.DelegatedProviderProfile provider_profile */ 3:
-                    message.providerProfile = DelegatedProviderProfile.internalBinaryRead(reader, reader.uint32(), options, message.providerProfile);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UpsertDelegatedProviderProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* nimi.runtime.v1.DelegatedProviderProfile provider_profile = 3; */
-        if (message.providerProfile)
-            DelegatedProviderProfile.internalBinaryWrite(message.providerProfile, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
- */
-export const UpsertDelegatedProviderProfileRequest = new UpsertDelegatedProviderProfileRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UpsertDelegatedProviderProfileResponse$Type extends MessageType<UpsertDelegatedProviderProfileResponse> {
-    constructor() {
-        super("nimi.runtime.v1.UpsertDelegatedProviderProfileResponse", [
-            { no: 1, name: "provider_profile", kind: "message", T: () => DelegatedProviderProfile }
-        ]);
-    }
-    create(value?: PartialMessage<UpsertDelegatedProviderProfileResponse>): UpsertDelegatedProviderProfileResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<UpsertDelegatedProviderProfileResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertDelegatedProviderProfileResponse): UpsertDelegatedProviderProfileResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.DelegatedProviderProfile provider_profile */ 1:
-                    message.providerProfile = DelegatedProviderProfile.internalBinaryRead(reader, reader.uint32(), options, message.providerProfile);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UpsertDelegatedProviderProfileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.DelegatedProviderProfile provider_profile = 1; */
-        if (message.providerProfile)
-            DelegatedProviderProfile.internalBinaryWrite(message.providerProfile, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
- */
-export const UpsertDelegatedProviderProfileResponse = new UpsertDelegatedProviderProfileResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SetDelegatedProviderStateRequest$Type extends MessageType<SetDelegatedProviderStateRequest> {
-    constructor() {
-        super("nimi.runtime.v1.SetDelegatedProviderStateRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "provider_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.DelegatedProviderState", DelegatedProviderState, "DELEGATED_PROVIDER_STATE_"] },
-            { no: 5, name: "lifecycle_reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<SetDelegatedProviderStateRequest>): SetDelegatedProviderStateRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
-        message.providerProfileId = "";
-        message.state = 0;
-        message.lifecycleReasonCode = "";
-        if (value !== undefined)
-            reflectionMergePartial<SetDelegatedProviderStateRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetDelegatedProviderStateRequest): SetDelegatedProviderStateRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
-                case /* string provider_profile_id */ 3:
-                    message.providerProfileId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.DelegatedProviderState state */ 4:
-                    message.state = reader.int32();
-                    break;
-                case /* string lifecycle_reason_code */ 5:
-                    message.lifecycleReasonCode = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SetDelegatedProviderStateRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* string provider_profile_id = 3; */
-        if (message.providerProfileId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.providerProfileId);
-        /* nimi.runtime.v1.DelegatedProviderState state = 4; */
-        if (message.state !== 0)
-            writer.tag(4, WireType.Varint).int32(message.state);
-        /* string lifecycle_reason_code = 5; */
-        if (message.lifecycleReasonCode !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.lifecycleReasonCode);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SetDelegatedProviderStateRequest
- */
-export const SetDelegatedProviderStateRequest = new SetDelegatedProviderStateRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SetDelegatedProviderStateResponse$Type extends MessageType<SetDelegatedProviderStateResponse> {
-    constructor() {
-        super("nimi.runtime.v1.SetDelegatedProviderStateResponse", [
-            { no: 1, name: "provider_profile", kind: "message", T: () => DelegatedProviderProfile }
-        ]);
-    }
-    create(value?: PartialMessage<SetDelegatedProviderStateResponse>): SetDelegatedProviderStateResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<SetDelegatedProviderStateResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetDelegatedProviderStateResponse): SetDelegatedProviderStateResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.DelegatedProviderProfile provider_profile */ 1:
-                    message.providerProfile = DelegatedProviderProfile.internalBinaryRead(reader, reader.uint32(), options, message.providerProfile);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SetDelegatedProviderStateResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.DelegatedProviderProfile provider_profile = 1; */
-        if (message.providerProfile)
-            DelegatedProviderProfile.internalBinaryWrite(message.providerProfile, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SetDelegatedProviderStateResponse
- */
-export const SetDelegatedProviderStateResponse = new SetDelegatedProviderStateResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest> {
     constructor() {
@@ -2832,348 +2379,3 @@ class GetDelegatedControlSurfaceSnapshotResponse$Type extends MessageType<GetDel
  * @generated MessageType for protobuf message nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
  */
 export const GetDelegatedControlSurfaceSnapshotResponse = new GetDelegatedControlSurfaceSnapshotResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ExecuteDelegatedCapabilityRequest$Type extends MessageType<ExecuteDelegatedCapabilityRequest> {
-    constructor() {
-        super("nimi.runtime.v1.ExecuteDelegatedCapabilityRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "provider_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "capability_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "tool_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "arguments", kind: "message", T: () => Struct },
-            { no: 11, name: "descriptor_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "protocol_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 13, name: "output_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 14, name: "requires_approval", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ExecuteDelegatedCapabilityRequest>): ExecuteDelegatedCapabilityRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
-        message.conversationAnchorId = "";
-        message.turnId = "";
-        message.streamId = "";
-        message.requestId = "";
-        message.providerProfileId = "";
-        message.capabilityId = "";
-        message.toolName = "";
-        message.descriptorHash = "";
-        message.protocolRevision = "";
-        message.outputKind = "";
-        message.requiresApproval = false;
-        if (value !== undefined)
-            reflectionMergePartial<ExecuteDelegatedCapabilityRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecuteDelegatedCapabilityRequest): ExecuteDelegatedCapabilityRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
-                case /* string conversation_anchor_id */ 3:
-                    message.conversationAnchorId = reader.string();
-                    break;
-                case /* string turn_id */ 4:
-                    message.turnId = reader.string();
-                    break;
-                case /* string stream_id */ 5:
-                    message.streamId = reader.string();
-                    break;
-                case /* string request_id */ 6:
-                    message.requestId = reader.string();
-                    break;
-                case /* string provider_profile_id */ 7:
-                    message.providerProfileId = reader.string();
-                    break;
-                case /* string capability_id */ 8:
-                    message.capabilityId = reader.string();
-                    break;
-                case /* string tool_name */ 9:
-                    message.toolName = reader.string();
-                    break;
-                case /* google.protobuf.Struct arguments */ 10:
-                    message.arguments = Struct.internalBinaryRead(reader, reader.uint32(), options, message.arguments);
-                    break;
-                case /* string descriptor_hash */ 11:
-                    message.descriptorHash = reader.string();
-                    break;
-                case /* string protocol_revision */ 12:
-                    message.protocolRevision = reader.string();
-                    break;
-                case /* string output_kind */ 13:
-                    message.outputKind = reader.string();
-                    break;
-                case /* bool requires_approval */ 14:
-                    message.requiresApproval = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ExecuteDelegatedCapabilityRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* string conversation_anchor_id = 3; */
-        if (message.conversationAnchorId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
-        /* string turn_id = 4; */
-        if (message.turnId !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.turnId);
-        /* string stream_id = 5; */
-        if (message.streamId !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.streamId);
-        /* string request_id = 6; */
-        if (message.requestId !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.requestId);
-        /* string provider_profile_id = 7; */
-        if (message.providerProfileId !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.providerProfileId);
-        /* string capability_id = 8; */
-        if (message.capabilityId !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.capabilityId);
-        /* string tool_name = 9; */
-        if (message.toolName !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.toolName);
-        /* google.protobuf.Struct arguments = 10; */
-        if (message.arguments)
-            Struct.internalBinaryWrite(message.arguments, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        /* string descriptor_hash = 11; */
-        if (message.descriptorHash !== "")
-            writer.tag(11, WireType.LengthDelimited).string(message.descriptorHash);
-        /* string protocol_revision = 12; */
-        if (message.protocolRevision !== "")
-            writer.tag(12, WireType.LengthDelimited).string(message.protocolRevision);
-        /* string output_kind = 13; */
-        if (message.outputKind !== "")
-            writer.tag(13, WireType.LengthDelimited).string(message.outputKind);
-        /* bool requires_approval = 14; */
-        if (message.requiresApproval !== false)
-            writer.tag(14, WireType.Varint).bool(message.requiresApproval);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
- */
-export const ExecuteDelegatedCapabilityRequest = new ExecuteDelegatedCapabilityRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ExecuteDelegatedCapabilityResponse$Type extends MessageType<ExecuteDelegatedCapabilityResponse> {
-    constructor() {
-        super("nimi.runtime.v1.ExecuteDelegatedCapabilityResponse", [
-            { no: 1, name: "diagnostic", kind: "message", T: () => DelegatedDiagnostic },
-            { no: 2, name: "replay_trace", kind: "message", T: () => DelegatedReplayTrace },
-            { no: 3, name: "model_output", kind: "message", T: () => Struct },
-            { no: 4, name: "approval_request", kind: "message", T: () => DelegatedApprovalRequest }
-        ]);
-    }
-    create(value?: PartialMessage<ExecuteDelegatedCapabilityResponse>): ExecuteDelegatedCapabilityResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<ExecuteDelegatedCapabilityResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecuteDelegatedCapabilityResponse): ExecuteDelegatedCapabilityResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.DelegatedDiagnostic diagnostic */ 1:
-                    message.diagnostic = DelegatedDiagnostic.internalBinaryRead(reader, reader.uint32(), options, message.diagnostic);
-                    break;
-                case /* nimi.runtime.v1.DelegatedReplayTrace replay_trace */ 2:
-                    message.replayTrace = DelegatedReplayTrace.internalBinaryRead(reader, reader.uint32(), options, message.replayTrace);
-                    break;
-                case /* google.protobuf.Struct model_output */ 3:
-                    message.modelOutput = Struct.internalBinaryRead(reader, reader.uint32(), options, message.modelOutput);
-                    break;
-                case /* nimi.runtime.v1.DelegatedApprovalRequest approval_request */ 4:
-                    message.approvalRequest = DelegatedApprovalRequest.internalBinaryRead(reader, reader.uint32(), options, message.approvalRequest);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ExecuteDelegatedCapabilityResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.DelegatedDiagnostic diagnostic = 1; */
-        if (message.diagnostic)
-            DelegatedDiagnostic.internalBinaryWrite(message.diagnostic, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.DelegatedReplayTrace replay_trace = 2; */
-        if (message.replayTrace)
-            DelegatedReplayTrace.internalBinaryWrite(message.replayTrace, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Struct model_output = 3; */
-        if (message.modelOutput)
-            Struct.internalBinaryWrite(message.modelOutput, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.DelegatedApprovalRequest approval_request = 4; */
-        if (message.approvalRequest)
-            DelegatedApprovalRequest.internalBinaryWrite(message.approvalRequest, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
- */
-export const ExecuteDelegatedCapabilityResponse = new ExecuteDelegatedCapabilityResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ResumeDelegatedCapabilityRequest$Type extends MessageType<ResumeDelegatedCapabilityRequest> {
-    constructor() {
-        super("nimi.runtime.v1.ResumeDelegatedCapabilityRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "approval_request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ResumeDelegatedCapabilityRequest>): ResumeDelegatedCapabilityRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
-        message.approvalRequestId = "";
-        if (value !== undefined)
-            reflectionMergePartial<ResumeDelegatedCapabilityRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResumeDelegatedCapabilityRequest): ResumeDelegatedCapabilityRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
-                case /* string approval_request_id */ 3:
-                    message.approvalRequestId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ResumeDelegatedCapabilityRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* string approval_request_id = 3; */
-        if (message.approvalRequestId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.approvalRequestId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ResumeDelegatedCapabilityRequest
- */
-export const ResumeDelegatedCapabilityRequest = new ResumeDelegatedCapabilityRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ResumeDelegatedCapabilityResponse$Type extends MessageType<ResumeDelegatedCapabilityResponse> {
-    constructor() {
-        super("nimi.runtime.v1.ResumeDelegatedCapabilityResponse", [
-            { no: 1, name: "diagnostic", kind: "message", T: () => DelegatedDiagnostic },
-            { no: 2, name: "replay_trace", kind: "message", T: () => DelegatedReplayTrace },
-            { no: 3, name: "model_output", kind: "message", T: () => Struct },
-            { no: 4, name: "approval_request", kind: "message", T: () => DelegatedApprovalRequest }
-        ]);
-    }
-    create(value?: PartialMessage<ResumeDelegatedCapabilityResponse>): ResumeDelegatedCapabilityResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<ResumeDelegatedCapabilityResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResumeDelegatedCapabilityResponse): ResumeDelegatedCapabilityResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.DelegatedDiagnostic diagnostic */ 1:
-                    message.diagnostic = DelegatedDiagnostic.internalBinaryRead(reader, reader.uint32(), options, message.diagnostic);
-                    break;
-                case /* nimi.runtime.v1.DelegatedReplayTrace replay_trace */ 2:
-                    message.replayTrace = DelegatedReplayTrace.internalBinaryRead(reader, reader.uint32(), options, message.replayTrace);
-                    break;
-                case /* google.protobuf.Struct model_output */ 3:
-                    message.modelOutput = Struct.internalBinaryRead(reader, reader.uint32(), options, message.modelOutput);
-                    break;
-                case /* nimi.runtime.v1.DelegatedApprovalRequest approval_request */ 4:
-                    message.approvalRequest = DelegatedApprovalRequest.internalBinaryRead(reader, reader.uint32(), options, message.approvalRequest);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ResumeDelegatedCapabilityResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.DelegatedDiagnostic diagnostic = 1; */
-        if (message.diagnostic)
-            DelegatedDiagnostic.internalBinaryWrite(message.diagnostic, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.DelegatedReplayTrace replay_trace = 2; */
-        if (message.replayTrace)
-            DelegatedReplayTrace.internalBinaryWrite(message.replayTrace, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Struct model_output = 3; */
-        if (message.modelOutput)
-            Struct.internalBinaryWrite(message.modelOutput, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.DelegatedApprovalRequest approval_request = 4; */
-        if (message.approvalRequest)
-            DelegatedApprovalRequest.internalBinaryWrite(message.approvalRequest, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ResumeDelegatedCapabilityResponse
- */
-export const ResumeDelegatedCapabilityResponse = new ResumeDelegatedCapabilityResponse$Type();

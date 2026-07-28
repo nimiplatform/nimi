@@ -122,8 +122,6 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAgentService/CancelHook": { kind: "unary", intentRefs: ["account_agent_state_control"] },
       "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot": { kind: "unary", intentRefs: ["delegated_control_surface"] },
       "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace": { kind: "unary", intentRefs: ["delegated_control_surface"] },
-      "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile": { kind: "unary", intentRefs: ["delegated_control_surface"] },
-      "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState": { kind: "unary", intentRefs: ["delegated_control_surface"] },
       "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision": { kind: "unary", intentRefs: ["delegated_control_surface"] },
     },
   },

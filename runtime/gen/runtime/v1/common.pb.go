@@ -146,11 +146,7 @@ const (
 	ReasonCode_AI_VOICE_JOB_NOT_CANCELLABLE   ReasonCode = 427
 	// MODULE family (430+)
 	ReasonCode_AI_MODULE_CONFIG_INVALID ReasonCode = 430
-	// WORKFLOW family (440+)
-	ReasonCode_WF_DAG_INVALID                         ReasonCode = 440
-	ReasonCode_WF_NODE_CONFIG_MISMATCH                ReasonCode = 441
-	ReasonCode_WF_TIMEOUT                             ReasonCode = 442
-	ReasonCode_WF_TASK_NOT_FOUND                      ReasonCode = 443
+	// MEMORY family (444+)
 	ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID ReasonCode = 444
 	// APP_AUTH family (500+)
 	ReasonCode_APP_MODE_DOMAIN_FORBIDDEN     ReasonCode = 500
@@ -411,10 +407,6 @@ var (
 		426: "AI_VOICE_JOB_NOT_FOUND",
 		427: "AI_VOICE_JOB_NOT_CANCELLABLE",
 		430: "AI_MODULE_CONFIG_INVALID",
-		440: "WF_DAG_INVALID",
-		441: "WF_NODE_CONFIG_MISMATCH",
-		442: "WF_TIMEOUT",
-		443: "WF_TASK_NOT_FOUND",
 		444: "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID",
 		500: "APP_MODE_DOMAIN_FORBIDDEN",
 		501: "APP_MODE_SCOPE_FORBIDDEN",
@@ -646,10 +638,6 @@ var (
 		"AI_VOICE_JOB_NOT_FOUND":                               426,
 		"AI_VOICE_JOB_NOT_CANCELLABLE":                         427,
 		"AI_MODULE_CONFIG_INVALID":                             430,
-		"WF_DAG_INVALID":                                       440,
-		"WF_NODE_CONFIG_MISMATCH":                              441,
-		"WF_TIMEOUT":                                           442,
-		"WF_TASK_NOT_FOUND":                                    443,
 		"AI_MEMORY_EMBEDDING_TARGET_REF_INVALID":               444,
 		"APP_MODE_DOMAIN_FORBIDDEN":                            500,
 		"APP_MODE_SCOPE_FORBIDDEN":                             501,
@@ -1485,7 +1473,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xbf>\n" +
+	"actionHint*\xb3>\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1590,12 +1578,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1eAI_VOICE_TARGET_MODEL_MISMATCH\x10\xa9\x03\x12\x1b\n" +
 	"\x16AI_VOICE_JOB_NOT_FOUND\x10\xaa\x03\x12!\n" +
 	"\x1cAI_VOICE_JOB_NOT_CANCELLABLE\x10\xab\x03\x12\x1d\n" +
-	"\x18AI_MODULE_CONFIG_INVALID\x10\xae\x03\x12\x13\n" +
-	"\x0eWF_DAG_INVALID\x10\xb8\x03\x12\x1c\n" +
-	"\x17WF_NODE_CONFIG_MISMATCH\x10\xb9\x03\x12\x0f\n" +
-	"\n" +
-	"WF_TIMEOUT\x10\xba\x03\x12\x16\n" +
-	"\x11WF_TASK_NOT_FOUND\x10\xbb\x03\x12+\n" +
+	"\x18AI_MODULE_CONFIG_INVALID\x10\xae\x03\x12+\n" +
 	"&AI_MEMORY_EMBEDDING_TARGET_REF_INVALID\x10\xbc\x03\x12\x1e\n" +
 	"\x19APP_MODE_DOMAIN_FORBIDDEN\x10\xf4\x03\x12\x1d\n" +
 	"\x18APP_MODE_SCOPE_FORBIDDEN\x10\xf5\x03\x12\x1e\n" +
@@ -1721,7 +1704,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x12REALM_RATE_LIMITED\x10\x98\x05\x12\x1b\n" +
 	"\x16REALM_REQUEST_REJECTED\x10\x99\x05\x12\x1b\n" +
 	"\x16REALM_CONTRACT_INVALID\x10\x9a\x05\x12\x1b\n" +
-	"\x16REALM_OPERATION_FAILED\x10\x9b\x05\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\xa9\x01\n" +
+	"\x16REALM_OPERATION_FAILED\x10\x9b\x05\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
+	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

@@ -56,9 +56,12 @@ jobs:
       - name: gate.proto.baseline-exists
         run: test -s runtime/proto/runtime-v1.baseline.binpb
 
-      - name: Runtime tests, vet, and build
+      - name: Runtime tests
+        run: pnpm test:runtime:go
+
+      - name: Runtime vet and build
         working-directory: runtime
-        run: go test ./... && go vet ./... && go build ./...
+        run: go vet ./... && go build ./...
       - name: gate.runtime.golangci-lint
         run: pnpm check:runtime-golangci-lint
       - name: gate.runtime.govulncheck

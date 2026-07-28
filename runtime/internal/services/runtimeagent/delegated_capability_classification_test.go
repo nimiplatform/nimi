@@ -1,18 +1,15 @@
 package runtimeagent
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
 
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 )
 
 func TestDeriveDelegatedToolClassificationFromDeclaredDescriptor(t *testing.T) {
@@ -133,112 +130,5 @@ func TestValidateDelegatedApprovalResumeRejectsUnclassifiedEffect(t *testing.T) 
 	matching.EffectClass = runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY
 	if err := svc.validateDelegatedApprovalResumeLocked(ctx, "agent-1", matching, time.Now()); err != nil {
 		t.Fatalf("matching resolved effect must pass, got %v", err)
-	}
-}
-
-func TestUpsertDelegatedProviderProfileRejectsUnclassifiedTool(t *testing.T) {
-	svc := testDelegatedControlSurfaceService()
-	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: testDelegatedControlContext(),
-		AgentId: "agent-1",
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "provider-unclassified",
-			DisplayName:       "Unclassified provider",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "tool_without_effect"}},
-			TransportRef:      "runtime-transport://unclassified",
-		},
-	})
-	if err == nil || !strings.Contains(err.Error(), "effect_class is required") {
-		t.Fatalf("expected K-DELEG-006 effect_class rejection, got %v", err)
-	}
-}
-
-func TestPreinvokeApprovalRequestCarriesKDeleg091Classification(t *testing.T) {
-	svc := testDelegatedControlSurfaceService()
-	svc.chatAnchors = map[string]*publicChatAnchorState{
-		"anchor-1": {
-			ConversationAnchorID: "anchor-1",
-			AgentID:              "agent-1",
-			CallerAppID:          "nimi.desktop",
-			SubjectUserID:        "user-1",
-			ThreadID:             "thread-1",
-		},
-	}
-	if _, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: testDelegatedControlContext(),
-		AgentId: "agent-1",
-		ProviderProfile: &runtimev1.DelegatedProviderProfile{
-			ProviderProfileId: "provider-1",
-			DisplayName:       "Calendar provider",
-			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
-			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
-			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
-			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
-				ToolName:                 "calendar_write",
-				EffectClass:              runtimev1.EffectClass_EFFECT_CLASS_EXTERNAL_SIDE_EFFECT,
-				ExpectedSensitivityClass: runtimev1.SensitivityClass_SENSITIVITY_CLASS_USER_PRIVATE,
-				InputSchemaDigest:        "sha256:descriptor",
-			}},
-			TransportRef: "runtime-transport://calendar-provider",
-			Command:      "calendar-provider",
-			Timeout:      durationpb.New(time.Second),
-		},
-	}); err != nil {
-		t.Fatalf("upsert delegated provider profile: %v", err)
-	}
-	args, err := structpb.NewStruct(map[string]any{"title": "standup"})
-	if err != nil {
-		t.Fatalf("build args: %v", err)
-	}
-	if _, err := svc.ExecuteDelegatedCapability(context.Background(), &runtimev1.ExecuteDelegatedCapabilityRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
-		TurnId:               "turn-1",
-		StreamId:             "stream-1",
-		RequestId:            "request-1",
-		ProviderProfileId:    "provider-1",
-		CapabilityId:         "calendar.write",
-		ToolName:             "calendar_write",
-		Arguments:            args,
-		DescriptorHash:       "sha256:descriptor",
-		ProtocolRevision:     "2025-06-18",
-		OutputKind:           delegation.OutputKindObservation,
-		RequiresApproval:     true,
-	}); err != nil {
-		t.Fatalf("ExecuteDelegatedCapability approval request: %v", err)
-	}
-	list, err := svc.ListDelegatedApprovalRequests(context.Background(), &runtimev1.ListDelegatedApprovalRequestsRequest{
-		Context: testDelegatedControlContext(),
-		AgentId: "agent-1",
-	})
-	if err != nil {
-		t.Fatalf("ListDelegatedApprovalRequests: %v", err)
-	}
-	if len(list.GetApprovalRequests()) != 1 {
-		t.Fatalf("expected one approval request, got %d", len(list.GetApprovalRequests()))
-	}
-	approval := list.GetApprovalRequests()[0]
-	if approval.GetEffectClass() != runtimev1.EffectClass_EFFECT_CLASS_EXTERNAL_SIDE_EFFECT {
-		t.Fatalf("approval effect_class missing declared classification: %v", approval.GetEffectClass())
-	}
-	if approval.GetSensitivityClass() != runtimev1.SensitivityClass_SENSITIVITY_CLASS_USER_PRIVATE {
-		t.Fatalf("approval sensitivity_class missing declared classification: %v", approval.GetSensitivityClass())
-	}
-	wantSummaryRef := "delegated-approval:" + approval.GetApprovalRequestId() + "#summary"
-	if approval.GetSummaryRef() != wantSummaryRef {
-		t.Fatalf("approval summary_ref mismatch: got %q want %q", approval.GetSummaryRef(), wantSummaryRef)
-	}
-	detail := approval.GetDetail().AsMap()
-	summary, _ := detail["summary"].(string)
-	if !strings.Contains(summary, "tool=calendar_write") || !strings.Contains(summary, "effect=EFFECT_CLASS_EXTERNAL_SIDE_EFFECT") {
-		t.Fatalf("approval detail summary incomplete: %q", summary)
-	}
-	if basis, _ := detail["classification_basis"].(string); basis != delegatedClassificationBasisDeclared {
-		t.Fatalf("classification_basis must record declared_expected, got %q", basis)
 	}
 }

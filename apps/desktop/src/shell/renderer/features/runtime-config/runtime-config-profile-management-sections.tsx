@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@nimiplatform/kit/ui';
 import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
-import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
+import { formatNimiAIValidationIssues, validateNimiAIProfile } from '@nimiplatform/sdk/ai';
 
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useAccountProfileLibrary } from './runtime-config-profile-library-context.js';
@@ -204,7 +204,7 @@ export function ProfileLibraryActions(props: {
         if (result.valid) {
           candidates.push(items[index] as NimiAIProfile);
         } else {
-          errors.push(`Item ${index}: ${result.errors.join(', ')}`);
+          errors.push(`Item ${index}: ${formatNimiAIValidationIssues(result.issues)}`);
         }
       }
       if (candidates.length === 0) {

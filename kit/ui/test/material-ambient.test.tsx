@@ -1,10 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
 import { AmbientBackground, Surface } from '../src/index.js';
-
-const stylesCss = fs.readFileSync(path.join(import.meta.dirname, '../src/styles.css'), 'utf8');
 
 test('Surface without material prop defaults to solid (emits solid marker, no glass class)', () => {
   const html = renderToStaticMarkup(<Surface tone="card">plain</Surface>);

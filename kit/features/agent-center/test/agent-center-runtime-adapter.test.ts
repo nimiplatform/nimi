@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import path from 'node:path';
 
 import { createRuntimeAgentCenterAdapter } from '../src/runtime.js';
 import type { AgentCenterRuntimeAdapter } from '../src/types.js';
@@ -8,17 +6,6 @@ import type {
   NimiRuntimeAgentAutonomyConfigInput,
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
-
-function collectSourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const full = path.join(dir, entry);
-    const stat = statSync(full);
-    if (stat.isDirectory()) {
-      return collectSourceFiles(full);
-    }
-    return /\.(ts|tsx)$/u.test(entry) ? [full] : [];
-  });
-}
 
 describe('Agent Center Runtime adapter', () => {
   it('loads Runtime Agent AI Config, inspect, memory, and bounded source/context through typed adapters', async () => {

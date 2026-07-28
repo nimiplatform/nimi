@@ -84,7 +84,8 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 		t.Fatalf("submit should create timeout job and asset")
 	}
 
-	if !store.timeoutJob(timeoutJob.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "timed out") {
+	timeoutMetadata := structFromMap(map[string]any{"failure_stage": "voice_workflow_execution"})
+	if !store.timeoutJob(timeoutJob.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "timed out", timeoutMetadata) {
 		t.Fatalf("timeoutJob should succeed")
 	}
 
@@ -94,6 +95,9 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 	}
 	if timedOutJob.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
 		t.Fatalf("expected provider timeout reason code, got %v", timedOutJob.GetReasonCode())
+	}
+	if got := timedOutJob.GetReasonMetadata().GetFields()["failure_stage"].GetStringValue(); got != "voice_workflow_execution" {
+		t.Fatalf("expected typed timeout failure metadata, got %q", got)
 	}
 
 	timedOutAsset, ok := store.getAsset(timeoutAsset.GetVoiceAssetId())

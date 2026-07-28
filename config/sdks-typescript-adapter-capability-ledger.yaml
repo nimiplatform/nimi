@@ -187,40 +187,6 @@ surfaces:
       - capability: runtimeRestBypass
         support: unsupported
         mode: owner-gated
-  - id: mcp
-    source_root: sdks/typescript/adapters/mcp
-    minimum_capability_level: L2
-    implementation_level: L2
-    release_target_level: L2
-    release_target_status: implemented
-    implementation_status: implemented
-    manifest: sdks/typescript/adapters/mcp/index.ts
-    test: sdks/typescript/adapters/mcp/mcp.test.ts
-    example: sdks/typescript/adapters/mcp/mcp.example.ts
-    unsupported_behavior: throw
-    production_core_binding: Converts explicit Nimi tools and run events to structural MCP tool and notification shapes; approval and external execution remain owner-gated L3 semantics.
-    capability_claims:
-      - capability: mcp.tools.list
-        support: supported
-        mode: adapter-mapped
-      - capability: mcp.tools.call.auto
-        support: supported
-        mode: adapter-mapped
-      - capability: mcp.runEvents
-        support: supported
-        mode: adapter-mapped
-      - capability: mcp.resources
-        support: unsupported
-        mode: adapter-mapped
-      - capability: approval
-        support: unsupported
-        mode: owner-gated
-      - capability: externalExecution
-        support: unsupported
-        mode: owner-gated
-      - capability: workflowCheckpoint
-        support: not-applicable
-        mode: out-of-domain
   - id: mastra
     source_root: sdks/typescript/adapters/mastra
     minimum_capability_level: L2
@@ -233,7 +199,7 @@ surfaces:
     example: sdks/typescript/adapters/mastra/mastra.example.ts
     unsupported_behavior: throw
     release_blocker: none
-    production_core_binding: Self-owned Mastra migration adapter suite. Mastra's text model boundary is the AI SDK provider LanguageModelV3 admitted by MastraModelConfig (Mastra @ai-sdk/provider-v6 alias), so this adapter owns its own Nimi -> LanguageModelV3 mapping (sdks/typescript/adapters/mastra/mappers.ts, raw-metadata.ts) with no sibling-adapter dependency; Runtime-backed non-text surfaces are exposed separately through createNimiMastraEmbeddingModel (AI SDK EmbeddingModelV3 over Runtime TEXT_EMBED) and createNimiMastraVoice (Mastra speak/listen/getSpeakers over Runtime speech synthesis, speech transcription, voice catalog, artifact bytes, and caller-supplied Runtime Scenario idempotency keys). Validated by a conformance suite driving the real @mastra/core Agent/createTool/structuredOutput public API where those surfaces call the model (generate, stream, tool definition/execution/result-propagation, multi-step, structured output, sources, reasoning, abort, onFinish/onStepFinish callbacks, requireToolApproval suspension plus fail-closed resume without snapshot storage, structured-output no-object fail-closed, dynamic model resolution, raw chunks, file input, Runtime-routed provider), a Nimi Runtime context bridge test that injects Runtime memory/knowledge provider material through Mastra context without configuring Mastra Memory, Runtime-owned delegated tool tests proving createNimiMastraRuntimeDelegatedTool executes through Runtime ExecuteDelegatedCapability, embedding/voice tests proving Runtime-owned RAG embedding and STT/TTS adapter surfaces, split upstream-compat suites, typed-error tests asserting NimiMastraUnsupportedFeatureError and NimiMastraVoiceUnsupportedFeatureError behavior, and package-boundary tests asserting no vercel-ai import/dependency/dist copy. Mastra-owned orchestration is supported only when it drives repeated model calls or consumes explicit Runtime-backed helper surfaces. Memory, workflows, and agent networks are compatibility-only until bound to Nimi Runtime/Cognition owner surfaces; this adapter must not persist or canonize Mastra-owned memory/workflow/vector/voice state as Nimi truth. Partial/pending clusters tracked in UPSTREAM_COMPAT.md and marked partial in the claims are Mastra native requireToolApproval approve/deny snapshot ownership (toolApproval), tool suspend/resume orchestration (toolSuspendResume), structured-output repair exhaustiveness (structuredOutputRepair), reasoning/providerMetadata/providerOptions/multimodal route-dependence, Mastra Memory writeback/thread lifecycle, Mastra realtime voice, and Nimi-owned workflow/agent-network bridging; telemetry is out-of-domain. Capability support describes Mastra target-library LLM interface coverage plus per-turn Runtime-owned context injection, Runtime-owned delegated tool execution/approval resume, Runtime-owned embedding, and Runtime-owned non-realtime voice with caller-supplied speech submit idempotency, without claiming complete Nimi-owned agent lifecycle/memory persistence. L4 admission per S-AIP-009 — every durable framework-state cluster (Mastra Memory threads, workflow run/suspend/checkpoint state, agent-network shared state, persisted approval/suspend snapshots) is classified by lifetime and reconstructibility in the manifest gap notes as framework-owned-non-canonical; the adapter holds no durable state itself and Nimi-owned context integration flows through the per-turn bridge and Runtime-owned embedding only.
+    production_core_binding: Self-owned Mastra migration adapter suite. Mastra's text model boundary is the AI SDK provider LanguageModelV3 admitted by MastraModelConfig (Mastra @ai-sdk/provider-v6 alias), so this adapter owns its own Nimi -> LanguageModelV3 mapping (sdks/typescript/adapters/mastra/mappers.ts, raw-metadata.ts) with no sibling-adapter dependency; Runtime-backed non-text surfaces are exposed separately through createNimiMastraEmbeddingModel (AI SDK EmbeddingModelV3 over Runtime TEXT_EMBED) and createNimiMastraVoice (Mastra speak/listen/getSpeakers over Runtime speech synthesis, speech transcription, voice catalog, artifact bytes, and caller-supplied Runtime Scenario idempotency keys). Validated by a conformance suite driving the real @mastra/core Agent/createTool/structuredOutput public API where those surfaces call the model (generate, stream, tool definition/execution/result-propagation, multi-step, structured output, sources, reasoning, abort, onFinish/onStepFinish callbacks, requireToolApproval suspension plus fail-closed resume without snapshot storage, structured-output no-object fail-closed, dynamic model resolution, raw chunks, file input, Runtime-routed provider), a Nimi Runtime context bridge test that injects Runtime memory/knowledge provider material through Mastra context without configuring Mastra Memory, embedding/voice tests proving Runtime-owned RAG embedding and STT/TTS adapter surfaces, split upstream-compat suites, typed-error tests asserting NimiMastraUnsupportedFeatureError and NimiMastraVoiceUnsupportedFeatureError behavior, and package-boundary tests asserting no vercel-ai import/dependency/dist copy. Mastra-owned orchestration is supported only when it drives repeated model calls or consumes explicit Runtime-backed helper surfaces. Memory, workflows, and agent networks are compatibility-only until bound to Nimi Runtime/Cognition owner surfaces; this adapter must not persist or canonize Mastra-owned memory/workflow/vector/voice state as Nimi truth. Partial/pending clusters tracked in UPSTREAM_COMPAT.md and marked partial in the claims are Mastra native requireToolApproval approve/deny snapshot ownership (toolApproval), tool suspend/resume orchestration (toolSuspendResume), structured-output repair exhaustiveness (structuredOutputRepair), reasoning/providerMetadata/providerOptions/multimodal route-dependence, Mastra Memory writeback/thread lifecycle, Mastra realtime voice, and Nimi-owned workflow/agent-network bridging; telemetry is out-of-domain. Capability support describes Mastra target-library LLM interface coverage plus per-turn Runtime-owned context injection, Runtime-owned embedding, and Runtime-owned non-realtime voice with caller-supplied speech submit idempotency, without claiming complete Nimi-owned agent lifecycle/memory persistence. L4 admission per S-AIP-009 — every durable framework-state cluster (Mastra Memory threads, workflow run/suspend/checkpoint state, agent-network shared state, persisted approval/suspend snapshots) is classified by lifetime and reconstructibility in the manifest gap notes as framework-owned-non-canonical; the adapter holds no durable state itself and Nimi-owned context integration flows through the per-turn bridge and Runtime-owned embedding only.
     capability_claims:
       - capability: model.config
         support: supported
@@ -272,9 +238,6 @@ surfaces:
         support: supported
         mode: framework-owned
       - capability: runtimeContext
-        support: supported
-        mode: runtime-owned
-      - capability: runtimeDelegatedTools
         support: supported
         mode: runtime-owned
       - capability: usage

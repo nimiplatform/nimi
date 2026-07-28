@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
-import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
+import { formatNimiAIValidationIssues, validateNimiAIProfile } from '@nimiplatform/sdk/ai';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { AccountProfileLibraryPanel } from './runtime-config-profile-library-panel.js';
 import {
@@ -79,7 +79,7 @@ function buildProfileFromEditorDraft(draft: ProfileEditorDraft): NimiAIProfile {
   } as unknown as NimiAIProfile;
   const validation = validateNimiAIProfile(nextProfile);
   if (!validation.valid) {
-    throw new Error(validation.errors.join(', '));
+    throw new Error(formatNimiAIValidationIssues(validation.issues));
   }
   return nextProfile;
 }

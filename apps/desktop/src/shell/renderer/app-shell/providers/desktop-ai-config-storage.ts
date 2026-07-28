@@ -16,6 +16,7 @@ import {
   areNimiAIScopeRefsEqual,
   createNimiAIConfigStore,
   encodeNimiAIScopeRef,
+  formatNimiAIValidationIssues,
   parseNimiAIScopeRefKey,
   validateNimiAIConfig,
 } from '@nimiplatform/sdk/ai';
@@ -113,7 +114,7 @@ function storedConfigInvalidReason(raw: string, scopeRef: NimiAIScopeRef): strin
   }
   const validation = validateNimiAIConfig(parsed);
   if (!validation.valid) {
-    return validation.errors.join('; ');
+    return formatNimiAIValidationIssues(validation.issues);
   }
   const config = parsed as NimiAIConfig;
   if (!areNimiAIScopeRefsEqual(config.scopeRef, scopeRef)) {

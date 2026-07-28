@@ -184,14 +184,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "EnableAutonomyResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
-        service: "RuntimeAgentService",
-        method: "ExecuteDelegatedCapability",
-        kind: "unary",
-        request_type: "ExecuteDelegatedCapabilityRequest",
-        response_type: "ExecuteDelegatedCapabilityResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
         service: "RuntimeAgentService",
         method: "ExecuteParticipation",
@@ -488,14 +480,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveAvatarLiveInstanceBindingResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
-        service: "RuntimeAgentService",
-        method: "ResumeDelegatedCapability",
-        kind: "unary",
-        request_type: "ResumeDelegatedCapabilityRequest",
-        response_type: "ResumeDelegatedCapabilityResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
         service: "RuntimeAgentService",
         method: "SetAgentPresentationProfile",
@@ -510,14 +494,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "SetAutonomyConfigRequest",
         response_type: "SetAutonomyConfigResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
-        service: "RuntimeAgentService",
-        method: "SetDelegatedProviderState",
-        kind: "unary",
-        request_type: "SetDelegatedProviderStateRequest",
-        response_type: "SetDelegatedProviderStateResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
@@ -574,14 +550,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "UpdateAgentStateRequest",
         response_type: "UpdateAgentStateResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
-        service: "RuntimeAgentService",
-        method: "UpsertDelegatedProviderProfile",
-        kind: "unary",
-        request_type: "UpsertDelegatedProviderProfileRequest",
-        response_type: "UpsertDelegatedProviderProfileResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
@@ -2086,38 +2054,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "RequestRuntimeRestartRequest",
         response_type: "RequestRuntimeRestartResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
-        service: "RuntimeWorkflowService",
-        method: "CancelWorkflow",
-        kind: "unary",
-        request_type: "CancelWorkflowRequest",
-        response_type: "Ack",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-        service: "RuntimeWorkflowService",
-        method: "GetWorkflow",
-        kind: "unary",
-        request_type: "GetWorkflowRequest",
-        response_type: "GetWorkflowResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
-        service: "RuntimeWorkflowService",
-        method: "SubmitWorkflow",
-        kind: "unary",
-        request_type: "SubmitWorkflowRequest",
-        response_type: "SubmitWorkflowResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
-        service: "RuntimeWorkflowService",
-        method: "SubscribeWorkflowEvents",
-        kind: "server_stream",
-        request_type: "SubscribeWorkflowEventsRequest",
-        response_type: "WorkflowEvent",
     },
 ];
 

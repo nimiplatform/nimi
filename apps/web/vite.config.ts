@@ -241,10 +241,6 @@ export default defineConfig(({ mode }) => {
           replacement: path.join(sdkVNextDist, 'features/generation/index.js'),
         },
         {
-          find: '@nimiplatform/sdk/features/workflow',
-          replacement: path.join(sdkVNextDist, 'features/workflow/index.js'),
-        },
-        {
           find: '@nimiplatform/sdk/features/evaluation',
           replacement: path.join(sdkVNextDist, 'features/evaluation/index.js'),
         },

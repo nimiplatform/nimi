@@ -288,7 +288,7 @@ jobs:
         run: node scripts/check-kit-package-dist.mjs
 
       - name: Test kit
-        run: pnpm --filter @nimiplatform/kit test
+        run: pnpm --filter @nimiplatform/kit test && pnpm --filter @nimiplatform/kit test:full
 
       - name: Check duplicate kit npm version
         run: |

@@ -11,23 +11,16 @@ import {
   CompanionParticipationTriggerSource,
   ConversationAnchorStatus,
   DelegatedApprovalDecision,
-  DelegatedProviderKind,
-  DelegatedProviderState,
-  DelegatedProviderTrustTier,
-  DelegatedTransportKind,
-  EffectClass,
   HookAdmissionState,
   NIMI_RUNTIME_AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-  SensitivityClass,
   asyncEvents,
   buildNimiRuntimeAgentConsumeContext,
-  buildNimiRuntimeAgentDelegatedProviderProfileFromDraft,
   buildNimiRuntimeAgentResolvedOutputText,
   buildNimiRuntimeAgentSnapshotRecoveryEvents,
   cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
   collectAsyncIterable,
   consumeContext,
-  createNimiHostRuntimeAgentDelegatedCapabilitySurface,
+  createNimiHostRuntimeAgentDelegatedControlSurface,
   createNimiHostRuntimeAgentMemorySurface,
   createNimiRuntimeAgentConsumeClient,
   createUnexpectedRuntimeAgentConsumeRuntime,
@@ -47,7 +40,6 @@ import {
   recoverNimiRuntimeAgentTerminalSnapshot,
   summarizeNimiRuntimeAgentProjectionEvent,
   summarizeNimiRuntimeAgentTimeline,
-  toNimiRuntimeProtoStruct,
   type AppMessageEvent,
   type NimiRuntimeAgentConsumeEvent,
   type NimiRuntimeAgentConsumeRuntime,
@@ -287,71 +279,31 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
   );
 });
 
-test('Runtime Agent delegated helpers build scoped provider, approval, and replay envelopes', async () => {
+
+test('Runtime Agent delegated control scopes snapshot, approval, and replay projections', async () => {
   const delegatedIdentity = {
     ownerUserId: consumeContext.ownerUserId,
     runtimeSourceRef: consumeContext.runtimeSourceRef,
     localAgentRef: consumeContext.localAgentRef,
     scopedBinding: {
-      bindingId: 'binding-delegation-1', bindingHandle: 'binding:binding-delegation-1',
-      runtimeAppId: 'nimi.avatar', appInstanceId: 'nimi.avatar.local-first-party',
+      bindingId: 'binding-delegation-1',
+      bindingHandle: 'binding:binding-delegation-1',
+      runtimeAppId: 'nimi.avatar',
+      appInstanceId: 'nimi.avatar.local-first-party',
       windowId: 'window-1',
-      avatarInstanceId: '', worldId: '',
-      agentId: consumeContext.localAgentRef, conversationAnchorId: 'anchor-1',
+      avatarInstanceId: '',
+      worldId: '',
+      agentId: consumeContext.localAgentRef,
+      conversationAnchorId: 'anchor-1',
     },
   };
-  assert.deepEqual(buildNimiRuntimeAgentDelegatedProviderProfileFromDraft({
-    ...delegatedIdentity,
-    providerProfileId: 'provider-1',
-    displayName: '',
-    transportRef: 'stdio:provider-1',
-    credentialRef: 'credential-1',
-    command: 'node',
-    args: 'server.js --stdio',
-    toolName: 'search',
-    inputSchemaDigest: 'sha256:abc',
-    effectClass: EffectClass.READ_ONLY,
-    expectedSensitivityClass: SensitivityClass.NONE,
-  }), {
-    providerProfileId: 'provider-1',
-    displayName: 'provider-1',
-    providerKind: DelegatedProviderKind.MCP_TOOL_PROVIDER,
-    transportKind: DelegatedTransportKind.STDIO_COMMAND,
-    state: DelegatedProviderState.READY,
-    allowedTools: [{
-      toolName: 'search',
-      inputSchemaDigest: 'sha256:abc',
-      effectClass: EffectClass.READ_ONLY,
-      expectedSensitivityClass: SensitivityClass.NONE,
-    }],
-    credentialRef: 'credential-1',
-    transportRef: 'stdio:provider-1',
-    trustTier: DelegatedProviderTrustTier.USER_ADDED_REVIEWED,
-    lifecycleReasonCode: '',
-    command: 'node',
-    args: ['server.js', '--stdio'],
-  });
-  assert.throws(
-    () => buildNimiRuntimeAgentDelegatedProviderProfileFromDraft({
-      ...delegatedIdentity,
-      providerProfileId: 'provider-1',
-      displayName: '',
-      transportRef: 'stdio:provider-1',
-      credentialRef: '',
-      command: '',
-      args: '',
-      toolName: 'search',
-      inputSchemaDigest: '',
-    }),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_DELEGATED_INPUT_INVALID');
-      return true;
-    },
-  );
-
-  const calls: Array<{ readonly scopes?: readonly string[]; readonly method?: string; readonly request?: unknown; readonly options?: unknown }> = [];
-  const surface = createNimiHostRuntimeAgentDelegatedCapabilitySurface({
-    disabledProviderReasonCode: 'disabled_for_test',
+  const calls: Array<{
+    readonly scopes?: readonly string[];
+    readonly method?: string;
+    readonly request?: unknown;
+    readonly options?: unknown;
+  }> = [];
+  const surface = createNimiHostRuntimeAgentDelegatedControlSurface({
     getSubjectUserId: () => 'owner-1',
     withScopes: async (scopes, operation) => {
       calls.push({ scopes });
@@ -365,31 +317,9 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
         },
       },
       agent: {
-        async executeDelegatedCapability(request, options) {
-          calls.push({ method: 'execute', request, options });
-          return { modelOutput: toNimiRuntimeProtoStruct({ text: 'runtime-owned result' }) };
-        },
-        async resumeDelegatedCapability(request, options) {
-          calls.push({ method: 'resume', request, options });
-          return { modelOutput: toNimiRuntimeProtoStruct({ text: 'resumed result' }) };
-        },
         async getDelegatedControlSurfaceSnapshot(request, options) {
           calls.push({ method: 'snapshot', request, options });
-          return { snapshot: { providerProfiles: [] } };
-        },
-        async upsertDelegatedProviderProfile(request, options) {
-          calls.push({ method: 'upsert', request, options });
-          return { providerProfile: request.providerProfile };
-        },
-        async setDelegatedProviderState(request, options) {
-          calls.push({ method: 'state', request, options });
-          return {
-            providerProfile: {
-              providerProfileId: request.providerProfileId,
-              state: request.state,
-              lifecycleReasonCode: request.lifecycleReasonCode,
-            },
-          };
+          return { snapshot: { approvalRequests: [], diagnostics: [] } };
         },
         async submitDelegatedApprovalDecision(request, options) {
           calls.push({ method: 'approval', request, options });
@@ -397,7 +327,7 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
         },
         async getDelegatedReplayTrace(request, options) {
           calls.push({ method: 'replay', request, options });
-          return { trace: { decisionId: request.decisionId } };
+          return { trace: { replayId: 'replay-1' } };
         },
       },
     }),
@@ -406,94 +336,31 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
   assert.deepEqual(await surface.loadSnapshot({
     ...delegatedIdentity,
     conversationAnchorId: 'anchor-1',
-  }), { providerProfiles: [] });
-  assert.equal((await surface.upsertProviderProfile({
-    ...delegatedIdentity,
-    providerProfileId: 'provider-1',
-    displayName: 'Provider One',
-    transportRef: 'stdio:provider-1',
-    credentialRef: 'credential-1',
-    command: 'node',
-    args: 'server.js --stdio',
-    toolName: 'search',
-    inputSchemaDigest: 'sha256:abc',
-  }))?.displayName, 'Provider One');
-  assert.equal((await surface.setProviderEnabled({
-    ...delegatedIdentity,
-    providerProfileId: 'provider-1',
-    enabled: false,
-  }))?.state, DelegatedProviderState.DISABLED);
+  }), { approvalRequests: [], diagnostics: [] });
   assert.equal((await surface.submitApprovalDecision({
     ...delegatedIdentity,
     approvalRequestId: 'approval-1',
     decision: 'approve',
     decisionReason: 'approved by user',
   })).approvalRequest, undefined);
-  assert.deepEqual((await surface.executeCapability({
-    ...delegatedIdentity,
-    conversationAnchorId: 'anchor-1',
-    turnId: 'turn-1',
-    streamId: 'stream-1',
-    requestId: 'request-1',
-    providerProfileId: 'provider-1',
-    capabilityId: 'calendar.lookup',
-    toolName: 'search',
-    arguments: { query: 'hello' },
-    descriptorHash: 'sha256:abc',
-    protocolRevision: 'v1',
-    outputKind: 'observation',
-    requiresApproval: true,
-  })).output, { text: 'runtime-owned result' });
-  assert.deepEqual((await surface.resumeApprovedCapability({
-    ...delegatedIdentity,
-    approvalRequestId: 'approval-1',
-  })).output, { text: 'resumed result' });
   assert.deepEqual(await surface.loadReplayTrace({
     ...delegatedIdentity,
     decisionId: 'decision-1',
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
-  }), { decisionId: 'decision-1' });
+  }), { replayId: 'replay-1' });
 
   assert.deepEqual(calls.filter((call) => call.scopes).map((call) => call.scopes), [
     ['runtime.agent.delegation.read'],
     ['runtime.agent.delegation.write'],
-    ['runtime.agent.delegation.write'],
-    ['runtime.agent.delegation.write'],
-    ['runtime.agent.delegation.write'],
-    ['runtime.agent.delegation.write'],
     ['runtime.agent.delegation.read'],
   ]);
-  const stateCall = calls.find((call) => call.method === 'state') as { readonly request?: { readonly state?: number; readonly lifecycleReasonCode?: string } };
-  assert.equal(stateCall.request?.state, DelegatedProviderState.DISABLED);
-  assert.equal(stateCall.request?.lifecycleReasonCode, 'disabled_for_test');
-  assert.deepEqual((calls.find((call) => call.method === 'snapshot') as { readonly request?: { readonly context?: { readonly scopedBinding?: unknown } } }).request?.context?.scopedBinding, delegatedIdentity.scopedBinding);
-  const approvalCall = calls.find((call) => call.method === 'approval') as { readonly request?: { readonly decision?: number; readonly decisionReason?: string } };
-  assert.equal(approvalCall.request?.decision, DelegatedApprovalDecision.APPROVED_ONCE);
-  assert.equal(approvalCall.request?.decisionReason, 'approved by user');
-  const executeCall = calls.find((call) => call.method === 'execute') as {
-    readonly request?: {
-      readonly conversationAnchorId?: string;
-      readonly turnId?: string;
-      readonly providerProfileId?: string;
-      readonly capabilityId?: string;
-      readonly toolName?: string;
-      readonly arguments?: unknown;
-      readonly descriptorHash?: string;
-      readonly requiresApproval?: boolean;
-    };
+  const approvalCall = calls.find((call) => call.method === 'approval') as {
+    readonly request?: { readonly decision?: number };
   };
-  assert.equal(executeCall.request?.conversationAnchorId, 'anchor-1');
-  assert.equal(executeCall.request?.turnId, 'turn-1');
-  assert.equal(executeCall.request?.providerProfileId, 'provider-1');
-  assert.equal(executeCall.request?.capabilityId, 'calendar.lookup');
-  assert.equal(executeCall.request?.toolName, 'search');
-  assert.deepEqual(executeCall.request?.arguments, toNimiRuntimeProtoStruct({ query: 'hello' }));
-  assert.equal(executeCall.request?.descriptorHash, 'sha256:abc');
-  assert.equal(executeCall.request?.requiresApproval, true);
-  const resumeCall = calls.find((call) => call.method === 'resume') as { readonly request?: { readonly approvalRequestId?: string } };
-  assert.equal(resumeCall.request?.approvalRequestId, 'approval-1');
-  const replayCall = calls.find((call) => call.method === 'replay') as { readonly request?: { readonly conversationAnchorId?: string; readonly turnId?: string } };
-  assert.equal(replayCall.request?.conversationAnchorId, 'anchor-1');
-  assert.equal(replayCall.request?.turnId, 'turn-1');
+  assert.equal(approvalCall.request?.decision, DelegatedApprovalDecision.APPROVED_ONCE);
+  const snapshotCall = calls.find((call) => call.method === 'snapshot') as {
+    readonly request?: { readonly context?: { readonly scopedBinding?: unknown } };
+  };
+  assert.deepEqual(snapshotCall.request?.context?.scopedBinding, delegatedIdentity.scopedBinding);
 });

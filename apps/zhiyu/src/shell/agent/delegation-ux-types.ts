@@ -97,15 +97,6 @@ export type ZhiyuDelegationApprovalSubmitter = (
   },
 ) => Promise<{ readonly approvalRequest?: DelegationApprovalRequest | null } | void>;
 
-export type ZhiyuDelegationApprovedResumer = (
-  input: DelegationIdentity & {
-    readonly approvalRequestId: string;
-  },
-) => Promise<{
-  readonly diagnostic?: DelegationDiagnostic | null;
-  readonly output?: unknown;
-} | void>;
-
 export type ZhiyuDelegationReplayLoader = (
   input: DelegationIdentity & {
     readonly decisionId: string;
@@ -118,14 +109,12 @@ export interface ZhiyuDelegationUxProbeOptions {
   readonly hasRuntimeBridge?: () => Promise<boolean>;
   readonly loadSnapshot?: ZhiyuDelegationSnapshotReader;
   readonly submitApprovalDecision?: ZhiyuDelegationApprovalSubmitter;
-  readonly resumeApprovedCapability?: ZhiyuDelegationApprovedResumer;
   readonly loadReplayTrace?: ZhiyuDelegationReplayLoader;
 }
 
 export type DelegationControlSurface = {
   readonly loadSnapshot: ZhiyuDelegationSnapshotReader;
   readonly submitApprovalDecision: ZhiyuDelegationApprovalSubmitter;
-  readonly resumeApprovedCapability: ZhiyuDelegationApprovedResumer;
   readonly loadReplayTrace: ZhiyuDelegationReplayLoader;
 };
 

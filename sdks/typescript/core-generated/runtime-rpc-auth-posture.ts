@@ -25,7 +25,6 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles": "blocked_pending_authority",
   "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy": "anonymous_read",
-  "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation": "blocked_pending_authority",
   "/nimi.runtime.v1.RuntimeAgentService/GetAgent": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus": "protected_or_scoped_binding_read",
@@ -63,10 +62,8 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation": "protected_or_scoped_binding_write",
   "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding": "protected_or_scoped_binding_read",
-  "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile": "authenticated_required",
   "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig": "anonymous_read",
-  "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult": "protected_or_scoped_binding_write",
   "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents": "anonymous_read",
@@ -74,7 +71,6 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness": "protected_or_scoped_binding_read",
   "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState": "anonymous_read",
-  "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig": "protected_or_scoped_binding_write",
   "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation": "blocked_pending_authority",
   "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory": "anonymous_read",
@@ -263,10 +259,6 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeModelService/PullModel": "anonymous_read",
   "/nimi.runtime.v1.RuntimeModelService/RemoveModel": "anonymous_read",
   "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart": "protected_origin_required",
-  "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow": "mixed",
-  "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow": "mixed",
-  "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow": "anonymous_read",
-  "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents": "mixed",
 };
 
 export function runtimeRpcAuthPosture(methodId: string): RuntimeRpcAuthPosture | null {

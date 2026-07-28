@@ -21,13 +21,12 @@
     "./simulator-css-profile": "./lib/simulator-css-profile.mjs"
   },
   "scripts": {
-    "build": "node scripts/generate-simulator-effect-policy.mjs --check && node scripts/sync-app-source.mjs --apply",
+    "build": "node scripts/sync-app-source.mjs --apply",
     "sync:app-source": "node scripts/sync-app-source.mjs --apply",
-    "prepack": "node scripts/generate-simulator-effect-policy.mjs --check && node scripts/sync-app-source.mjs --apply",
-    "prepublishOnly": "node scripts/generate-simulator-effect-policy.mjs --check && node scripts/sync-app-source.mjs --apply",
-    "check:simulator-effect-policy": "node scripts/generate-simulator-effect-policy.mjs --check",
-    "test": "node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-effect-policy.test.mjs test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(standalone scaffold|tester-reference scaffold|default starter AGENTS|app id |generated package.json|generated app installs|generated app grants|workspace-app scaffold|cli standalone scaffold|create accepts|create rejects|unsupported app scaffold|unknown create flags|dev accepts|create may target|doctor fails closed on managed drift|doctor audits an existing submitted app|generated scaffold mechanically|default profiles generate)\" test/app-scaffold.test.mjs",
-    "test:full": "pnpm run check:simulator-effect-policy && node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(update regenerates|update rejects|scaffold omissions|doctor fails closed on a missing scaffold lock|doctor fails closed on provider/model hardcoding|doctor fails closed on app-owned Realm permission grant shortcuts|doctor fails closed on installed-app custody bypasses|doctor requires official Desktop-supervised development scripts|doctor fails closed on legacy, reserved, and authority-bearing permission requirements|update fails closed on unsupported locks and classification conflicts|app source resolves from the live reference app)\" test/app-scaffold.test.mjs"
+    "prepack": "node scripts/sync-app-source.mjs --apply",
+    "prepublishOnly": "node scripts/sync-app-source.mjs --apply",
+    "test": "node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(standalone scaffold|tester-reference scaffold|default starter AGENTS|app id |generated package.json|generated app installs|generated app grants|workspace-app scaffold|cli standalone scaffold|create accepts|create rejects|unsupported app scaffold|unknown create flags|dev accepts|create may target|doctor fails closed on managed drift|doctor audits an existing submitted app|generated scaffold mechanically|default profiles generate)\" test/app-scaffold.test.mjs",
+    "test:full": "node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(update regenerates|update rejects|scaffold omissions|doctor fails closed on a missing scaffold lock|doctor fails closed on provider/model hardcoding|doctor fails closed on app-owned Realm permission grant shortcuts|doctor fails closed on installed-app custody bypasses|doctor requires official Desktop-supervised development scripts|doctor fails closed on legacy, reserved, and authority-bearing permission requirements|update fails closed on unsupported locks and classification conflicts|app source resolves from the live reference app)\" test/app-scaffold.test.mjs"
   },
   "files": [
     "bin",

@@ -304,16 +304,6 @@ frameworks:
         capabilities:
           - { capability: completionsApi }
         note: Bridged as unsupported by the adapter; the doctor reports the gap.
-  - id: mcp
-    upstream_package: '@modelcontextprotocol/sdk'
-    status: pending-upstream-binding
-    note: >-
-      Direction mismatch: the SDK mcp adapter serves nimi tools as MCP shapes
-      (server direction); an external MCP-client app's consumption calls
-      (Client.listTools/callTool) migrate to the Runtime delegated MCP gateway
-      (K-DELEG-100..119), not to this adapter. Assessment activates when the
-      delegated-gateway migration surface is admitted into this map.
-    api_entries: []
   - id: langgraph
     upstream_package: '@langchain/langgraph'
     status: pending-upstream-binding

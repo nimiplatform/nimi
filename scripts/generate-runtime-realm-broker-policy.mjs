@@ -23,7 +23,6 @@ const requiredFields = [
   'realm_base_policy',
   'response_max_bytes',
   'credential_response_policy',
-  'consumer_refs',
   'source_rule',
 ];
 
@@ -109,10 +108,6 @@ function renderPolicy(operations) {
     if (!Array.isArray(callerModes) || callerModes.length !== expectedCallerModes.length
       || expectedCallerModes.some((mode, index) => callerModes[index] !== mode)) {
       fail(`${operation.operation_id} has an invalid protected caller-mode set`);
-    }
-    const consumerRefs = operation.consumer_refs;
-    if (!Array.isArray(consumerRefs) || consumerRefs.length === 0 || consumerRefs.some((ref) => !String(ref || '').trim())) {
-      fail(`${operation.operation_id} must declare non-empty consumer_refs`);
     }
     const projected = operation.__openapi;
     const pathParameters = projected.parameters.filter((parameter) => parameter.location === 'path');

@@ -38,7 +38,7 @@ var (
 // classifySensitiveData returns the highest sensitivity class detected across
 // the payload's string tokens. No match is NONE; the caller decides how NONE
 // interacts with effect class and trust tier.
-func classifySensitiveData(payload mcpToolCallEvidencePayload) string {
+func classifySensitiveData(payload delegatedEvidencePayload) string {
 	highest := SensitivityClassNone
 	for _, text := range jsonStringTokens(payload.Content, payload.StructuredContent) {
 		normalized := strings.Join(strings.Fields(text), " ")

@@ -1,17 +1,9 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   getShellBridgeUserMessageProjection,
   parseShellBridgeJsonPayload,
   toShellBridgeNimiError,
 } from '../src/bridge/index.js';
-
-const repoRoot = resolve(import.meta.dirname, '../../../..');
-
-function readRepo(path: string): string {
-  return readFileSync(resolve(repoRoot, path), 'utf8');
-}
 
 describe('shell bridge structured error normalization', () => {
   it('normalizes structured bridge payloads through the Kit bridge API', () => {

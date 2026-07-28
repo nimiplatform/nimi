@@ -95,7 +95,7 @@ func (f *Firewall) Evaluate(ctx context.Context, input FirewallInput) (*Firewall
 	if input.Evidence.ToolError {
 		return f.reject(base, FirewallVerdictRejected, ReasonFirewallQuarantined, nil), nil
 	}
-	payload, err := decodeEvidencePayload(input.Evidence.RawMCPResult)
+	payload, err := decodeEvidencePayload(input.Evidence.RawProviderResult)
 	if err != nil {
 		return f.reject(base, FirewallVerdictSchemaInvalid, ReasonFirewallSchemaInvalid, nil), nil
 	}
@@ -219,7 +219,7 @@ func (f *Firewall) provenanceMatches(input FirewallInput) bool {
 	return true
 }
 
-func (f *Firewall) detectThreats(payload mcpToolCallEvidencePayload) []ThreatIndicator {
+func (f *Firewall) detectThreats(payload delegatedEvidencePayload) []ThreatIndicator {
 	var indicators []ThreatIndicator
 	for _, text := range jsonStringTokens(payload.Content, payload.StructuredContent) {
 		normalized := strings.Join(strings.Fields(text), " ")
@@ -239,8 +239,8 @@ func (f *Firewall) detectThreats(payload mcpToolCallEvidencePayload) []ThreatInd
 	return indicators
 }
 
-func decodeEvidencePayload(raw json.RawMessage) (mcpToolCallEvidencePayload, error) {
-	var payload mcpToolCallEvidencePayload
+func decodeEvidencePayload(raw json.RawMessage) (delegatedEvidencePayload, error) {
+	var payload delegatedEvidencePayload
 	if len(raw) == 0 {
 		return payload, errors.New("empty delegated evidence payload")
 	}
@@ -256,7 +256,7 @@ func decodeEvidencePayload(raw json.RawMessage) (mcpToolCallEvidencePayload, err
 	return payload, nil
 }
 
-func normalizeEvidencePayload(payload mcpToolCallEvidencePayload) (json.RawMessage, error) {
+func normalizeEvidencePayload(payload delegatedEvidencePayload) (json.RawMessage, error) {
 	normalized := struct {
 		Content           json.RawMessage `json:"content,omitempty"`
 		StructuredContent json.RawMessage `json:"structured_content,omitempty"`

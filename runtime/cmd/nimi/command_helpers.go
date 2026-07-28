@@ -245,48 +245,6 @@ func extractScenarioStreamTextDelta(delta *runtimev1.ScenarioStreamDelta) string
 	return ""
 }
 
-func workflowEventJSON(event *runtimev1.WorkflowEvent) map[string]any {
-	payload := map[string]any{
-		"event_type": event.GetEventType().String(),
-		"sequence":   event.GetSequence(),
-		"task_id":    event.GetTaskId(),
-		"trace_id":   event.GetTraceId(),
-		"timestamp":  "",
-		"node_id":    event.GetNodeId(),
-		"progress":   event.GetProgressPercent(),
-		"reason":     event.GetReasonCode().String(),
-		"payload":    map[string]any{},
-	}
-	if ts := event.GetTimestamp(); ts != nil {
-		payload["timestamp"] = ts.AsTime().UTC().Format(time.RFC3339Nano)
-	}
-	if data := event.GetPayload(); data != nil {
-		payload["payload"] = data.AsMap()
-	}
-	return payload
-}
-
-func workflowEventLine(event *runtimev1.WorkflowEvent) string {
-	timestamp := ""
-	if ts := event.GetTimestamp(); ts != nil {
-		timestamp = ts.AsTime().UTC().Format(time.RFC3339Nano)
-	}
-	nodeID := strings.TrimSpace(event.GetNodeId())
-	if nodeID == "" {
-		nodeID = "-"
-	}
-	return fmt.Sprintf(
-		"ts=%s seq=%d type=%s task=%s node=%s progress=%d reason=%s",
-		timestamp,
-		event.GetSequence(),
-		event.GetEventType().String(),
-		event.GetTaskId(),
-		nodeID,
-		event.GetProgressPercent(),
-		event.GetReasonCode().String(),
-	)
-}
-
 func appMessageEventJSON(event *runtimev1.AppMessageEvent) map[string]any {
 	payload := map[string]any{
 		"event_type":   event.GetEventType().String(),
@@ -324,37 +282,6 @@ func appMessageEventLine(event *runtimev1.AppMessageEvent) string {
 		event.GetMessageType(),
 		event.GetReasonCode().String(),
 	)
-}
-
-func loadWorkflowDefinitionFile(path string) (*runtimev1.WorkflowDefinition, error) {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return nil, fmt.Errorf("definition file path is required")
-	}
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read workflow definition file %s: %w", path, err)
-	}
-
-	definition := &runtimev1.WorkflowDefinition{}
-	if err := protojson.Unmarshal(raw, definition); err != nil {
-		return nil, fmt.Errorf("parse workflow definition file %s: %w", path, err)
-	}
-	if strings.TrimSpace(definition.GetWorkflowType()) == "" {
-		return nil, fmt.Errorf("workflow_type is required in definition file")
-	}
-	if len(definition.GetNodes()) == 0 {
-		return nil, fmt.Errorf("nodes is required in definition file")
-	}
-	for index, node := range definition.GetNodes() {
-		if strings.TrimSpace(node.GetNodeId()) == "" || node.GetNodeType() == runtimev1.WorkflowNodeType_WORKFLOW_NODE_TYPE_UNSPECIFIED {
-			return nil, fmt.Errorf("nodes[%d] must include node_id and node_type", index)
-		}
-		if node.GetTypeConfig() == nil {
-			return nil, fmt.Errorf("nodes[%d] must include typed config for node_type", index)
-		}
-	}
-	return definition, nil
 }
 
 func loadStructFile(path string, label string) (*structpb.Struct, error) {

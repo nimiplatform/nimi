@@ -8,7 +8,7 @@ use crate::core_generated::typed_clients::{
     RealmCheckHandleOperationRequest, RealmTypedClient, RuntimeTypedClient,
     SubscribeAccountSessionEventsRequest,
 };
-use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
+use crate::types::{CoreErrorShape, CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
 
 #[derive(Clone)]
 struct FakeStream {
@@ -32,15 +32,16 @@ struct FakeTransport;
 
 impl CoreTransport for FakeTransport {
     type Stream = FakeStream;
-    type Error = String;
+    type Error = CoreErrorShape;
 
     fn unary(&self, request: CoreUnaryRequest) -> Result<Vec<u8>, Self::Error> {
         let body = String::from_utf8_lossy(&request.body);
         if body.contains("redirect_uri=force-error") {
-            return Err(
-                "SDK_RUNTIME_METHOD_UNAVAILABLE: typed conformance error: fixture=typed-core"
-                    .to_string(),
-            );
+            return Err(CoreErrorShape {
+                code: "SDK_RUNTIME_METHOD_UNAVAILABLE".to_string(),
+                message: "typed conformance error".to_string(),
+                details: Some(b"fixture=typed-core".to_vec()),
+            });
         }
         if request.method_id == "checkHandle" {
             assert_eq!(
@@ -190,7 +191,6 @@ fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
             None,
         )
         .expect_err("typed structured error");
-    assert!(error.contains("SDK_RUNTIME_METHOD_UNAVAILABLE"));
-    assert!(error.contains("typed conformance error"));
-    assert!(error.contains("fixture=typed-core"));
+    assert_eq!(error.code, "SDK_RUNTIME_METHOD_UNAVAILABLE");
+    assert_eq!(error.details.as_deref(), Some(b"fixture=typed-core".as_slice()));
 }

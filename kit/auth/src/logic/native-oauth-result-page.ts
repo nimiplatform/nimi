@@ -115,6 +115,6 @@ function renderTemplate(input: {
     .replace('__MESSAGE_ANIMATION__', escapeHtml(input.messageAnimation))
     .replace('__MESSAGE_SECONDARY_BLOCK__', input.messageSecondaryBlock)
     .replace('__ACTION_BLOCK__', input.actionBlock)
-    .replace('__ACTION_ANIMATION__', escapeHtml(input.actionAnimation))
+    .replaceAll('__ACTION_ANIMATION__', escapeHtml(input.actionAnimation))
     .replace('__AUTO_CLOSE_SCRIPT__', input.autoCloseScript);
 }
