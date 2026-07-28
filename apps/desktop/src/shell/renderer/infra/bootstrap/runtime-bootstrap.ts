@@ -27,12 +27,7 @@ import {
   bindDesktopConversationCapabilityRouteRuntime,
   clearDesktopConversationCapabilityRouteRuntime,
 } from './runtime-bootstrap-conversation-route-runtime';
-import {
-  countPendingChatOutboxEntries,
-  createDesktopRealmChatService,
-  flushPendingChatOutbox,
-} from '../../features/chat/data/realm-human-chat-data';
-import { productionDesktopOfflinePort } from '../../features/social/data/production-social-offline-port.js';
+
 import {
   runtimeDaemonUnavailable,
   syncDesktopRuntimeBootstrapConfig,
@@ -45,11 +40,7 @@ import {
   type DesktopRuntimeTransport,
 } from '../sdk/desktop-nimi-client-session';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
-import {
-  countPendingSocialMutations,
-  flushPendingSocialMutations,
-} from '../../features/social/data/offline-social-outbox.js';
-import { callRealmApi, emitRealmDataError } from '../realm/realm-api.js';
+
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
@@ -98,18 +89,7 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
         logEvent: logRendererEvent,
       });
     },
-    hasPendingRealmRecoveryWork: async () => (
-      await countPendingChatOutboxEntries(productionDesktopOfflinePort)
-    ) > 0 || (await countPendingSocialMutations()) > 0,
-    flushChatOutbox: async () => {
-      await flushPendingChatOutbox(
-        undefined,
-        createDesktopRealmChatService(callRealmApi),
-        undefined,
-        productionDesktopOfflinePort,
-      );
-    },
-    flushSocialOutbox: async () => flushPendingSocialMutations(callRealmApi, emitRealmDataError),
+    hasPendingRealmRecoveryWork: async () => false,
     invalidateRealmQueries: async () => {
       await lifecycle.invalidateQueries([
         ['chats'],

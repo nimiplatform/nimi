@@ -60,7 +60,7 @@ async function flushAsyncWork(): Promise<void> {
 }
 
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
-  test('realm_reconnect flushes outboxes and invalidates queries', async () => {
+  test('realm_reconnect revalidates queries without durable mutation replay', async () => {
     const timer = new FakeTimer();
     const coordinator = new OfflineCoordinator({ timer });
     const effects: string[] = [];
@@ -83,8 +83,8 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.equal(timer.nextDelay(), 1000);
 
     await timer.runNext();
-    assert.ok(effects.includes('flushChatOutbox'));
-    assert.ok(effects.includes('flushSocialOutbox'));
+    assert.ok(!effects.includes('flushChatOutbox'));
+    assert.ok(!effects.includes('flushSocialOutbox'));
     assert.ok(effects.includes('invalidateQueries'));
     assert.ok(!effects.includes('rebootstrapRuntime'));
   });

@@ -5,7 +5,11 @@ import {
   describeCharacterPrimaryAction,
   resolveCharacterSourceState,
 } from '../src/shell/renderer/features/explore/character-source-materialization.js';
-import { toSourceContactLaunchTarget } from '../src/shell/renderer/features/relationship/source-contact-launch-target.js';
+import {
+  materializeSourceContactLaunchTarget,
+  toSourceContactLaunchTarget,
+} from '../src/shell/renderer/features/relationship/source-contact-launch-target.js';
+import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 
 const SOURCE_HASH = 'a'.repeat(64);
 const WORLD_SOURCE_REF = {
@@ -133,6 +137,64 @@ test('source contact launch target fails closed and requires Runtime-owned local
       localAgentRef: 'agent-1',
     }, 'user-1');
   }, /requires Runtime-owned localAgentRef/);
+});
+
+test('source contact launch target re-reads a committed LocalAgent by canonical sourceRef only', async () => {
+  const discoveryInputs: unknown[] = [];
+  let discoveryCall = 0;
+  const sdk = {
+    accountProduct: () => ({
+      materializeRealmSource: async () => ({
+        localAgentRef: 'local-agent:opaque-materialized',
+        idempotentReplay: false,
+        reasonCode: 1,
+      }),
+    }),
+    runtimeAgentDiscovery: () => ({
+      discoverLocalAgentsBySource: async (input: unknown) => {
+        discoveryInputs.push(input);
+        discoveryCall += 1;
+        if (discoveryCall === 1) return [];
+        return [{
+          localAgentRef: 'local-agent:opaque-materialized',
+          ownerUserId: 'user-1',
+          runtimeSourceRef: 'runtime-source:canonical-materialized',
+          displayName: 'Archivist',
+          sourceKind: 'worldCharacter',
+          sourceWorldId: 'oasis',
+          sourceWorldName: null,
+          sourceId: 'character-1',
+          sourceHash: SOURCE_HASH,
+          sourceSchemaVersion: 'v3',
+          snapshotHash: 'snapshot-1',
+          worldContentHash: 'world-content-1',
+          materializationContextHash: 'context-1',
+          capturedAt: null,
+          sourceContextStatus: null,
+          agent: {},
+        }];
+      },
+    }),
+  } as unknown as DesktopRendererSdkPort;
+
+  const target = await materializeSourceContactLaunchTarget({
+    id: 'character-1',
+    displayName: 'Archivist',
+    handle: 'archivist',
+    avatarUrl: null,
+    bio: 'ordinary source contact',
+    isSource: true,
+    worldId: 'oasis',
+    sourceKind: 'worldCharacter',
+    sourceId: 'character-1',
+    sourceHash: SOURCE_HASH,
+    sourceRef: WORLD_SOURCE_REF,
+    runtimeSourceRef: 'runtime-source:stale-realm-projection',
+  }, 'user-1', testTranslate, sdk);
+
+  assert.equal(target.localAgentRef, 'local-agent:opaque-materialized');
+  assert.equal(target.runtimeSourceRef, 'runtime-source:canonical-materialized');
+  assert.deepEqual(discoveryInputs[1], { ownerUserId: 'user-1', sourceRef: WORLD_SOURCE_REF });
 });
 
 test('Realm source state distinguishes packet availability from Runtime-owned LocalAgent discovery', () => {

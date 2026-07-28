@@ -5,3 +5,4 @@
 @import "@nimiplatform/kit/ui/themes/nimi-density-compact.css";
 @import "@nimiplatform/kit/auth/styles.css";
 @import "tailwindcss" source(none);
+@source "./**/*.{ts,tsx}";

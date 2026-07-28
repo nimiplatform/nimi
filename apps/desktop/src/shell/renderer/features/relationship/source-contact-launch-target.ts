@@ -136,7 +136,15 @@ export async function materializeSourceContactLaunchTarget(
     return discovered;
   }
   const materialized = await materializeCharacterSourceLocalAgent(source, t, sdk);
-  const discoveredAfterCommit = await discoverCharacterSourceLocalAgents(source, ownerUserId, sdk);
+  const sourceRef = resolveCharacterSourceRefV3(source);
+  if (!sourceRef) {
+    throw new Error('source conversation launch requires hash-bearing sourceRef');
+  }
+  const discoveredAfterCommit = await discoverCharacterSourceLocalAgents(
+    { sourceRef },
+    ownerUserId,
+    sdk,
+  );
   const materializedAgent = discoveredAfterCommit.find(
     (agent) => agent.localAgentRef === materialized.localAgentRef,
   );

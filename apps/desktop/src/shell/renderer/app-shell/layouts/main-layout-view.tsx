@@ -16,6 +16,7 @@ import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '../../features/home/home-feed-controls';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
+import { shouldHideMainLayoutPrimaryRail } from './main-layout-primary-rail';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import {
   MainLayoutSettingsMenu,
@@ -133,11 +134,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   if (runtimeActive) runtimeEverMountedRef.current = true;
   const runtimeEverMounted = runtimeEverMountedRef.current;
 
-  const immersiveRoute = props.activeTab === 'source-detail'
-    || props.activeTab === 'gift-inbox';
-  const hidePrimaryRail = immersiveRoute
-    || (props.activeTab === 'profile' && Boolean(selectedProfileId))
-    || profileDetailOverlayOpen;
+  const hidePrimaryRail = shouldHideMainLayoutPrimaryRail({
+    activeTab: props.activeTab,
+    selectedProfileId,
+    profileDetailOverlayOpen,
+  });
   const windowFocused = useWindowFocused(
     bindings.app.projection.windowFocused(),
     bindings.app.events.subscribeWindowFocus,

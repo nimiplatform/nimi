@@ -141,6 +141,7 @@ export async function likePost(
   now: () => number,
   postId: string,
 ): Promise<void> {
+  void now;
   try {
     await callApi(
       (realm) => likeNimiRealmPost(realm, emitRealmDataError, postId),
@@ -148,13 +149,7 @@ export async function likePost(
     );
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      await offline.queueSocialMutation({
-        kind: 'post-like',
-        payload: { postId },
-        now,
-      });
       offline.markRealmUnreachable();
-      return;
     }
     throw error;
   }
@@ -167,6 +162,7 @@ export async function unlikePost(
   now: () => number,
   postId: string,
 ): Promise<void> {
+  void now;
   try {
     await callApi(
       (realm) => unlikeNimiRealmPost(realm, emitRealmDataError, postId),
@@ -174,13 +170,7 @@ export async function unlikePost(
     );
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      await offline.queueSocialMutation({
-        kind: 'post-unlike',
-        payload: { postId },
-        now,
-      });
       offline.markRealmUnreachable();
-      return;
     }
     throw error;
   }

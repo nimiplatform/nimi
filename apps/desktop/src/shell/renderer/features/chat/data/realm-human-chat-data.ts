@@ -1,5 +1,6 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
 import {
+  buildRealmChatOutboxMessageInput,
   countPendingRealmChatOutboxEntries,
   createRealmChatService,
   filterRealmDirectHumanChats,
@@ -7,7 +8,6 @@ import {
   listRealmChatMessages,
   markRealmChatRead,
   normalizeRealmChatLimit,
-  sendRealmChatTextMessageWithOutbox,
   startRealmChatWithTarget,
   syncRealmChatEvents,
   type RealmChatOutboxStore,
@@ -349,23 +349,16 @@ export async function sendChatMessage(
   emitChatError: DesktopChatErrorEmitter = emitNoop,
   offline?: DesktopRendererOfflinePort,
 ) {
-  const offlinePort = requireOffline(offline);
   const clientMessageId = String(options.clientMessageId || '').trim() || createClientMessageId();
   try {
-    const result = await sendRealmChatTextMessageWithOutbox({
-      chatId,
-      content,
-      options: { ...options, clientMessageId },
-      service,
-      outbox: await getDesktopRealmChatOutboxStore(offlinePort),
-      createClientMessageId,
-      isOfflineError: isRealmOfflineError,
-      describeError: (error, fallback) => getErrorMessage(error, fallback),
-      failureMessage: '发送消息失败',
-      onOffline: (error) => markRealmOffline(error, offlinePort),
-    });
-    return result.kind === 'sent' ? result.message : result.placeholder;
+    return await service.sendMessage(chatId, buildRealmChatOutboxMessageInput(content, {
+      ...options,
+      clientMessageId,
+    }, clientMessageId));
   } catch (error) {
+    if (offline && isRealmOfflineError(error)) {
+      offline.markRealmUnreachable();
+    }
     emitChatError('send-message', error, { chatId });
     throw error;
   }

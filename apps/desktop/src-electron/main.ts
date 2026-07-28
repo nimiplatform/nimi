@@ -147,6 +147,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     registeredRuntimeBridge = registerNimiElectronRuntimeBridge({
       appId: APP_ID,
       runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
+      runtimeDeploymentProfile: ELECTRON_DEVELOPMENT_BUILD ? 'local-development' : 'production',
       allowedOrigins: allowedRendererOrigins(),
       allowedRendererUrls: allowedRendererUrls(),
       ipcMain,

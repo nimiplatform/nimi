@@ -13,22 +13,22 @@ test('current-user authorization denial is an expected deferred bootstrap state'
   }), 'warn');
 });
 
-test('current-user source-readiness admission gap is an expected deferred bootstrap state', () => {
+test('current-user product admission gaps are configuration errors', () => {
   assert.equal(resolveRealmDataErrorLogLevel({
     action: 'load-current-user',
     reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED',
     realmOffline: false,
     runtimeOffline: false,
-  }), 'warn');
+  }), 'error');
 });
 
-test('source-readiness admission gaps remain warnings for deferred Realm projections', () => {
+test('product admission gaps remain errors for Realm projections', () => {
   assert.equal(resolveRealmDataErrorLogLevel({
     action: 'load-social-snapshot',
     reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED',
     realmOffline: false,
     runtimeOffline: false,
-  }), 'warn');
+  }), 'error');
 });
 
 test('authorization denial outside the current-user bootstrap probe remains an error', () => {

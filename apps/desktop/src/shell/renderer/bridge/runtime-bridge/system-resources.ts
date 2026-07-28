@@ -1,4 +1,3 @@
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
   parseSystemResourceSnapshot,
@@ -6,9 +5,6 @@ import {
 } from './types';
 
 export async function getSystemResourceSnapshot(): Promise<SystemResourceSnapshot> {
-  if (!hasTauriInvoke()) {
-    throw new Error('TAURI_RUNTIME_UNAVAILABLE');
-  }
   return invokeChecked(
     'get_system_resource_snapshot',
     {},

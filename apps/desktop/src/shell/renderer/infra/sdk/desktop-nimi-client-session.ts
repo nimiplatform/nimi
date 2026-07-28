@@ -1,4 +1,4 @@
-import { createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport } from '@nimiplatform/sdk/app';
+import { createRuntimeAccountMediatedDesktopProductRealmTransport } from '@nimiplatform/sdk/app';
 import {
   createNimiDesktopFirstPartyRuntimeClients,
   createNimiDesktopShellRuntimeAccountCaller,
@@ -114,7 +114,7 @@ export async function configureDesktopRuntimeRealmSession(
   });
   const accountRuntime = createDesktopProtectedAccountRuntime(runtimeClients.auth);
   const realm = new Realm({
-    transport: createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({
+    transport: createRuntimeAccountMediatedDesktopProductRealmTransport({
       runtime: accountRuntime,
       accountCaller,
     }),

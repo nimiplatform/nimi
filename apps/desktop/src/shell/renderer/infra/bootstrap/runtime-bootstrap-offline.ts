@@ -7,8 +7,10 @@ export type OfflineCoordinatorBindingsInput = {
   probeRealmReachability: () => Promise<boolean>;
   probeRuntimeReachability: () => Promise<boolean>;
   hasPendingRealmRecoveryWork: () => Promise<boolean>;
-  flushChatOutbox: () => Promise<void>;
-  flushSocialOutbox: () => Promise<void>;
+  // Retained as optional input compatibility only. Reconnect never auto-replays
+  // durable mutations; product retry remains explicit user intent.
+  flushChatOutbox?: () => Promise<void>;
+  flushSocialOutbox?: () => Promise<void>;
   invalidateRealmQueries: () => Promise<unknown>;
   rebootstrapRuntime: () => Promise<void>;
 };
@@ -28,10 +30,6 @@ export function attachOfflineCoordinatorBindings(input: OfflineCoordinatorBindin
     }
   });
   const unsubscribeRealmReconnect = input.coordinator.subscribeRealmReconnect(async () => {
-    await Promise.allSettled([
-      input.flushChatOutbox(),
-      input.flushSocialOutbox(),
-    ]);
     await input.invalidateRealmQueries();
   });
 

@@ -8,6 +8,7 @@ import {
   requireWindowsDevSignedFiles,
   requireWindowsDevSigningIdentity,
 } from '../../../scripts/lib/windows-dev-signing.mjs';
+import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   resolveDesktopDevObservationArguments,
   resolvePersistentDesktopDevProfile,
@@ -19,7 +20,6 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(currentDir, '..');
 const avatarRoot = path.resolve(appRoot, '../avatar');
 const workspaceRoot = path.resolve(appRoot, '../..');
-const sdkDistRoot = path.join(workspaceRoot, 'sdks', 'typescript', 'dist');
 const rendererUrl = process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL || 'http://127.0.0.1:1420';
 const bundledAvatarRendererUrl = process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL
   || 'http://127.0.0.1:1427';
@@ -42,25 +42,6 @@ const SIGNAL_EXIT_CODES = new Map([
   ['SIGTERM', 143],
   ['SIGHUP', 129],
 ]);
-const REQUIRED_SDK_DIST_FILES = [
-  'index.js',
-  'runtime/index.js',
-  'runtime/generated.js',
-  'realm/index.js',
-  'realm/generated.js',
-  'types/index.js',
-  'core/ai/index.js',
-  'core/app/index.js',
-  'core/contracts/index.js',
-  'core/testing/index.js',
-  'features/conversation/index.js',
-  'features/knowledge-context/index.js',
-  'features/memory-context/index.js',
-  'features/generation/index.js',
-  'features/evaluation/index.js',
-  'features/toolkits/index.js',
-];
-
 for (const signal of SIGNAL_EXIT_CODES.keys()) {
   process.on(signal, () => {
     void shutdownFromSignal(signal);
@@ -75,7 +56,7 @@ if (process.platform === 'darwin') {
 
 async function runWindowsDesktopDev() {
   try {
-    ensureSdkDistForDesktopDev();
+    await buildElectronHostForDesktopDev();
     const signingIdentity = requireWindowsDevSigningIdentity({ cwd: workspaceRoot });
     requireWindowsDevSignedFiles([electronBin], signingIdentity.certificateSha256, { cwd: workspaceRoot });
     mkdirSync(localAssetRoot, { recursive: true });
@@ -121,7 +102,7 @@ async function runWindowsDesktopDev() {
 
 async function runMacOSDesktopDev() {
   try {
-    ensureSdkDistForDesktopDev();
+    await buildElectronHostForDesktopDev();
     const electronBin = resolveSignedDesktopDevCarrier({
       platform: process.platform,
       architecture: process.arch,
@@ -171,35 +152,26 @@ function quoteCmdArg(value) {
   return `"${raw.replaceAll('"', '\\"')}"`;
 }
 
-function isSdkDistReadyForDesktopDev() {
-  if (process.env.NIMI_DESKTOP_DEV_REBUILD_SDK === '1') {
-    return false;
-  }
-  return REQUIRED_SDK_DIST_FILES.every((relativePath) =>
-    existsSync(path.join(sdkDistRoot, ...relativePath.split('/'))));
-}
-
-function ensureSdkDistForDesktopDev() {
-  if (isSdkDistReadyForDesktopDev()) {
-    return;
-  }
-  const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-  const pnpmArgs = ['--dir', workspaceRoot, '--filter', '@nimiplatform/sdk', 'build'];
-  const buildCommand = process.platform === 'win32' ? 'cmd.exe' : pnpmBin;
-  const buildArgs = process.platform === 'win32'
-    ? ['/d', '/s', '/c', [pnpmBin, ...pnpmArgs].map(quoteCmdArg).join(' ')]
-    : pnpmArgs;
-  const result = spawnSync(buildCommand, buildArgs, {
-    cwd: workspaceRoot,
-    env: process.env,
-    stdio: 'inherit',
+async function buildElectronHostForDesktopDev() {
+  await withSdkDistLock('desktop Electron dev host build', () => {
+    const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+    const pnpmArgs = ['--dir', appRoot, 'run', 'build:electron'];
+    const buildCommand = process.platform === 'win32' ? 'cmd.exe' : pnpmBin;
+    const buildArgs = process.platform === 'win32'
+      ? ['/d', '/s', '/c', [pnpmBin, ...pnpmArgs].map(quoteCmdArg).join(' ')]
+      : pnpmArgs;
+    const result = spawnSync(buildCommand, buildArgs, {
+      cwd: workspaceRoot,
+      env: process.env,
+      stdio: 'inherit',
+    });
+    if (result.error) {
+      throw new Error(`[run-electron-dev] failed to build Electron host: ${result.error.message}`);
+    }
+    if (result.status !== 0) {
+      throw new Error(`[run-electron-dev] Electron host build failed with status ${result.status ?? 'unknown'}`);
+    }
   });
-  if (result.error) {
-    throw new Error(`[run-electron-dev] failed to start SDK dist build: ${result.error.message}`);
-  }
-  if (result.status !== 0) {
-    throw new Error(`[run-electron-dev] SDK dist build failed with status ${result.status ?? 'unknown'}`);
-  }
 }
 
 function spawnRenderer() {

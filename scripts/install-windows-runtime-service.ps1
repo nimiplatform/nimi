@@ -4,6 +4,9 @@ param(
 
   [string] $BinaryPath = '',
 
+  [ValidateSet('production', 'local-development')]
+  [string] $DeploymentProfile = 'production',
+
   [switch] $Json
 )
 
@@ -17,6 +20,11 @@ $ExpectedServiceSid = 'S-1-5-80-152272774-1324336204-4147968316-71209937-3548791
 $ExpectedSignerSubject = 'CN=Nimi Local Development Code Signing'
 $InstallRoot = Join-Path $env:ProgramFiles 'Nimi\Runtime'
 $StateRoot = Join-Path $env:ProgramData 'Nimi\Runtime\Protected'
+$RuntimeInstallationState = Join-Path $StateRoot 'runtime\installation.json'
+$DeploymentRealmOrigins = @{
+  production = 'https://realm.nimi.ai'
+  'local-development' = 'http://127.0.0.1:3002'
+}
 $DesktopPipeName = 'nimi-runtime-protected-v1'
 $LocalAppPipeName = 'nimi-runtime-local-app-v1'
 $ExpectedAppIdentityProjectionSha256 = '__BUILD_APP_IDENTITY_PROJECTION_SHA256__'
@@ -340,6 +348,23 @@ function Set-StateRootAcl {
   Set-Acl -LiteralPath $StateRoot -AclObject $security
 }
 
+function Set-RuntimeInstallationStateAcl {
+  if (-not (Test-Path -LiteralPath $RuntimeInstallationState -PathType Leaf)) {
+    return
+  }
+  $account = [Security.Principal.NTAccount]::new($ServiceAccount)
+  $security = [Security.AccessControl.FileSecurity]::new()
+  $security.SetAccessRuleProtection($true, $false)
+  $security.SetOwner($account)
+  $rule = [Security.AccessControl.FileSystemAccessRule]::new(
+    $account,
+    [Security.AccessControl.FileSystemRights]::FullControl,
+    [Security.AccessControl.AccessControlType]::Allow
+  )
+  [void] $security.AddAccessRule($rule)
+  Set-Acl -LiteralPath $RuntimeInstallationState -AclObject $security
+}
+
 function Grant-InstallerStateAccess {
   $ownershipChanged = $false
   try {
@@ -368,6 +393,88 @@ function Grant-InstallerStateAccess {
     }
     throw $failure
   }
+}
+
+function Grant-InstallerRuntimeInstallationStateAccess {
+  if (-not (Test-Path -LiteralPath $RuntimeInstallationState -PathType Leaf)) {
+    return $false
+  }
+  $takeOwnership = Invoke-NativeCommand -FilePath 'takeown.exe' -Arguments @('/F', $RuntimeInstallationState, '/A')
+  if ($takeOwnership.ExitCode -ne 0) {
+    throw "Unable to take temporary installer ownership of the Runtime installation state.`n$($takeOwnership.StdOut)`n$($takeOwnership.StdErr)"
+  }
+  $grant = Invoke-NativeCommand -FilePath 'icacls.exe' -Arguments @($RuntimeInstallationState, '/grant:r', '*S-1-5-32-544:F')
+  if ($grant.ExitCode -ne 0) {
+    throw "Unable to acquire temporary installer access to the Runtime installation state.`n$($grant.StdOut)`n$($grant.StdErr)"
+  }
+  return $true
+}
+
+function Write-RuntimeInstallationState {
+  param([Parameter(Mandatory = $true)] [string] $Raw)
+  $stream = [IO.FileStream]::new(
+    $RuntimeInstallationState,
+    [IO.FileMode]::Create,
+    [IO.FileAccess]::Write,
+    [IO.FileShare]::None
+  )
+  try {
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes($Raw)
+    $stream.Write($bytes, 0, $bytes.Length)
+    $stream.Flush($true)
+  } finally {
+    $stream.Dispose()
+  }
+}
+
+function Set-RuntimeDeploymentProfile {
+  if (-not (Test-Path -LiteralPath $RuntimeInstallationState -PathType Leaf)) {
+    if ($DeploymentProfile -eq 'production') {
+      return $false
+    }
+    throw 'Installed Runtime state is missing; initialize the fixed production service before selecting local-development.'
+  }
+
+  $raw = Get-Content -LiteralPath $RuntimeInstallationState -Raw -Encoding UTF8
+  $state = $raw | ConvertFrom-Json
+  $keys = @($state.PSObject.Properties.Name | Sort-Object)
+  $schemaVersion = [int] $state.schemaVersion
+  if ($schemaVersion -eq 1) {
+    if (($keys -join ',') -ne 'runtimeId,schemaVersion') {
+      throw 'Windows Runtime installation state schema v1 contains unexpected fields.'
+    }
+  } elseif ($schemaVersion -eq 2) {
+    if (($keys -join ',') -ne 'deploymentProfile,realmOrigin,runtimeId,schemaVersion') {
+      throw 'Windows Runtime installation state schema v2 contains unexpected fields.'
+    }
+    $currentProfile = [string] $state.deploymentProfile
+    if (-not $DeploymentRealmOrigins.ContainsKey($currentProfile) -or
+        [string] $state.realmOrigin -ne $DeploymentRealmOrigins[$currentProfile]) {
+      throw 'Windows Runtime installation state contains an invalid deployment profile and Realm origin binding.'
+    }
+  } else {
+    throw 'Windows Runtime installation state schemaVersion must be 1 or 2.'
+  }
+
+  $runtimeId = [string] $state.runtimeId
+  if ($runtimeId -cnotmatch '^[0-9A-HJKMNP-TV-Z]{26}$') {
+    throw 'Windows Runtime installation state runtimeId is invalid.'
+  }
+  $realmOrigin = $DeploymentRealmOrigins[$DeploymentProfile]
+  if ($schemaVersion -eq 2 -and
+      [string] $state.deploymentProfile -eq $DeploymentProfile -and
+      [string] $state.realmOrigin -eq $realmOrigin) {
+    return $false
+  }
+
+  $updated = [ordered]@{
+    schemaVersion = 2
+    runtimeId = $runtimeId
+    deploymentProfile = $DeploymentProfile
+    realmOrigin = $realmOrigin
+  }
+  Write-RuntimeInstallationState -Raw (($updated | ConvertTo-Json -Compress) + [Environment]::NewLine)
+  return $true
 }
 
 function Get-Status {
@@ -436,6 +543,9 @@ function Install-Service {
   $createdService = $false
   $mutatedService = $false
   $installerStateAccess = $false
+  $installationStateAccess = $false
+  $deploymentStateChanged = $false
+  $previousInstallationState = $null
 
   try {
     Grant-InstallerStateAccess
@@ -445,6 +555,11 @@ function Install-Service {
       Stop-Service -Name $ServiceName -ErrorAction Stop
       Wait-ServiceState -Expected 'Stopped'
     }
+    $installationStateAccess = Grant-InstallerRuntimeInstallationStateAccess
+    if (Test-Path -LiteralPath $RuntimeInstallationState -PathType Leaf) {
+      $previousInstallationState = Get-Content -LiteralPath $RuntimeInstallationState -Raw -Encoding UTF8
+    }
+    $deploymentStateChanged = Set-RuntimeDeploymentProfile
 
     $binaryPathName = "`"$InstalledBinary`" serve"
     if ($null -eq $existing) {
@@ -462,6 +577,7 @@ function Install-Service {
     if ($resolvedSid -ne $ExpectedServiceSid) {
       throw "SCM resolved unexpected service SID: $resolvedSid"
     }
+    Set-RuntimeInstallationStateAcl
     Set-StateRootAcl
     try {
       Start-Service -Name $ServiceName -ErrorAction Stop
@@ -483,6 +599,8 @@ function Install-Service {
     $status['installerSignerCertificateSha256'] = $installerSigner
     $status['stateAclConfiguredBySignedInstaller'] = $true
     $status['atomicVersionRoot'] = $InstalledVersionRoot
+    $status['deploymentProfile'] = $DeploymentProfile
+    $status['realmOrigin'] = $DeploymentRealmOrigins[$DeploymentProfile]
     return $status
   } catch {
     $installFailure = $_
@@ -516,6 +634,18 @@ function Install-Service {
       }
     }
     if ($installerStateAccess) {
+      if ($installationStateAccess) {
+        try {
+          Grant-InstallerStateAccess
+          Grant-InstallerRuntimeInstallationStateAccess
+          if ($deploymentStateChanged -and $null -ne $previousInstallationState) {
+            Write-RuntimeInstallationState -Raw $previousInstallationState
+          }
+          Set-RuntimeInstallationStateAcl
+        } catch {
+          $rollbackFailures.Add("restore Runtime installation state custody: $($_.Exception.Message)")
+        }
+      }
       try {
         Set-StateRootAcl
       } catch {

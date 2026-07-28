@@ -18,6 +18,8 @@ import {
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const installerPath = path.join(repoRoot, 'dist', 'windows-runtime-service-installer', 'install-nimi-runtime.ps1');
+const WINDOWS_DEV_RUNTIME_DEPLOYMENT_PROFILE = 'local-development';
+const WINDOWS_DEV_RUNTIME_REALM_ORIGIN = 'http://127.0.0.1:3002';
 
 export function assertRuntimeServiceInstalled(status) {
   if (status?.status !== 'present') {
@@ -47,6 +49,18 @@ export function assertRuntimeServiceHealthy(status) {
       'NimiRuntime did not reach the required signed fixed-service state after update.',
       'dev-runtime-service-update-unhealthy',
       'inspect_dev_runtime_status_summary',
+      { status },
+    );
+  }
+}
+
+export function assertRuntimeServiceDeploymentProfile(status) {
+  if (status?.deploymentProfile !== WINDOWS_DEV_RUNTIME_DEPLOYMENT_PROFILE
+      || status?.realmOrigin !== WINDOWS_DEV_RUNTIME_REALM_ORIGIN) {
+    throw workflowError(
+      'NimiRuntime installer did not activate the local-development Realm profile.',
+      'dev-runtime-deployment-profile-mismatch',
+      'inspect_dev_runtime_installer_profile',
       { status },
     );
   }
@@ -88,7 +102,8 @@ export async function runDevRuntimeService(input = {}) {
   assertRuntimeServiceInstalled(initial);
   await buildRuntime();
   await buildInstaller();
-  await install();
+  const installedStatus = await install();
+  assertRuntimeServiceDeploymentProfile(installedStatus);
   const finalStatus = await queryStatus();
   assertRuntimeServiceHealthy(finalStatus);
 
@@ -99,6 +114,8 @@ export async function runDevRuntimeService(input = {}) {
     runtimeCandidateId: finalStatus.runtimeCandidateId,
     runtimeBinarySha256: finalStatus.runtimeBinarySha256,
     signatureStatus: finalStatus.signatureStatus,
+    deploymentProfile: installedStatus.deploymentProfile,
+    realmOrigin: installedStatus.realmOrigin,
   };
 }
 
@@ -136,7 +153,7 @@ function installGeneratedRuntimeElevated({ powershellPath } = {}) {
   const innerCommand = [
     `$ErrorActionPreference = 'Stop'`,
     'try {',
-    `$output = & '${powerShellLiteral(powershellPath)}' -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -Json 2> '${powerShellLiteral(stderrPath)}'`,
+    `$output = & '${powerShellLiteral(powershellPath)}' -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -DeploymentProfile '${WINDOWS_DEV_RUNTIME_DEPLOYMENT_PROFILE}' -Json 2> '${powerShellLiteral(stderrPath)}'`,
     '$exitCode = $LASTEXITCODE',
     "if ($exitCode -ne 0) { exit $exitCode }",
     '$raw = ($output | Out-String).Trim()',
@@ -186,11 +203,15 @@ function installGeneratedRuntimeElevated({ powershellPath } = {}) {
 }
 
 function installerArguments(mode) {
-  return [
+  const args = [
     '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installerPath,
     '-Mode', mode,
-    '-Json',
   ];
+  if (mode === 'Install') {
+    args.push('-DeploymentProfile', WINDOWS_DEV_RUNTIME_DEPLOYMENT_PROFILE);
+  }
+  args.push('-Json');
+  return args;
 }
 
 function isAdministrator(powershellPath) {

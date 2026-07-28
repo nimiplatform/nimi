@@ -12,7 +12,7 @@ export function resolveRealmDataErrorLogLevel(input: {
     return 'warn';
   }
   if (input.reasonCode === SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED) {
-    return 'warn';
+    return 'error';
   }
   if (input.action === 'load-current-user'
     && input.reasonCode === ReasonCode.APP_AUTHORIZATION_DENIED) {

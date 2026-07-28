@@ -22,9 +22,9 @@ function createTestOfflinePort() {
 }
 
 describe('desktop human chat behavior', () => {
-  test('failed send queues to outbox with attempts tracking', async () => {
+  test('failed send remains explicit retry and does not enter a durable outbox', async () => {
     const offline = createTestOfflinePort();
-    const result = await sendChatMessage('chat-1', 'hello', {}, {
+    await assert.rejects(() => sendChatMessage('chat-1', 'hello', {}, {
       sendMessage: async () => {
         throw createOfflineError({
           source: 'realm',
@@ -33,13 +33,8 @@ describe('desktop human chat behavior', () => {
           actionHint: 'retry',
         });
       },
-    } as never, undefined, offline);
-    const entries = await offline.getChatOutboxEntries('chat-1');
-    assert.equal(entries.length, 1);
-    assert.equal(entries[0]?.attempts, 1);
-    assert.equal(entries[0]?.status, 'pending');
-    assert.equal(String(result.clientMessageId || '').trim(), entries[0]?.clientMessageId);
-    assert.deepEqual(entries[0]?.body.payload, { content: 'hello' });
+    } as never, undefined, offline), { reasonCode: ReasonCode.REALM_UNAVAILABLE });
+    assert.deepEqual(await offline.getChatOutboxEntries('chat-1'), []);
   });
 
   test('sendChatMessage writes canonical TEXT payload', async () => {

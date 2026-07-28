@@ -12,22 +12,89 @@ surfaces:
   - WorldCoreController_getWorldEntity
   - WorldCoreController_listPersonaCharacters
   - WorldCoreController_listWorldRelationships
+  - WorldPublicController_getCharacterSource
   - WorldPublicController_getWorld
   - WorldPublicController_getWorldDetailWithCharacters
   - WorldPublicController_listWorlds
+  - WorldPublicController_listWorldCharacters
+  - getMe
+  - updateMe
+  - listMyFriendsWithDetails
+  - getMyPendingFriendRequests
+  - getMyBlockedUsers
+  - getUser
+  - addFriend
+  - removeFriend
+  - blockUser
+  - unblockUser
+  - getHomeFeed
+  - getExploreFeed
+  - listLikedPosts
+  - getPost
+  - createPost
+  - deletePost
+  - updatePost
+  - likePost
+  - unlikePost
+  - ReportController_createReport
+  - getChatById
+  - listChats
+  - listMessages
+  - markChatRead
+  - sendMessage
+  - startChat
+  - syncChatEvents
+  - createGroup
+  - listGroups
+  - getGroup
+  - listGroupMessages
+  - sendGroupMessage
+  - markGroupRead
+  - syncGroupEvents
+  - getUnreadCount
+  - listNotifications
+  - markNotificationRead
+  - markNotificationsRead
+  - getMyCreatorEligibility
+  - getMyNotificationSettings
+  - getMySettings
+  - updateMyNotificationSettings
+  - updateMySettings
+  - updatePassword
+  - prepare2Fa
+  - enable2Fa
+  - disable2Fa
+  - requestAccountDeletion
+  - EconomyController_acceptGift
+  - EconomyController_canWithdraw
+  - EconomyController_createSparkCheckout
+  - EconomyController_createWithdrawal
+  - EconomyController_getBalances
+  - EconomyController_getGemHistory
+  - EconomyController_getGiftCatalog
+  - EconomyController_getReceivedGifts
+  - EconomyController_getSentGifts
+  - EconomyController_getSparkHistory
+  - EconomyController_getSparkPackages
+  - EconomyController_getSubscription
+  - EconomyController_getWithdrawalHistory
+  - EconomyController_rejectGift
+  - EconomyController_sendGift
+  - ReviewController_createReview
 source_rule: K-ACCSVC-023
-authority_status: admitted_exact_protected_source_readiness_operations
+authority_status: admitted_exact_protected_desktop_operations
 production_consumption: admitted_exact_rows_only
 generic_proxy: forbidden
 unlisted_operation_disposition: deny_broker_operation_not_admitted
 description: >
   Exact RuntimeAccountService.InvokeRealmUnary admission for protected
-  source-readiness journeys. Every row requires either the verified protected
+  Desktop product journeys. Every row requires either the verified protected
   Desktop account host or the fixed independent bundled Avatar native-host profile,
   plus the current
   authenticated account, Runtime-only Realm bearer custody, the configured
   canonical Realm base, and the row-specific OpenAPI request shape. No other
-  Realm operation is admitted by this table. Packet issuance and all raw
+  Realm operation is admitted by this table. Sensitive account and commerce rows remain
+  separately classified. Packet issuance and all raw
   materialization transport stay outside this protected broker.
 
 operation_schema:
@@ -48,6 +115,9 @@ operation_schema:
   authorization_profile_values:
     - protected_desktop_source_readiness
     - protected_bundled_avatar_source_readiness
+    - protected_desktop_product
+    - protected_desktop_sensitive
+    - protected_desktop_commerce
   credential_response_policy_values:
     - forbidden
 
@@ -70,7 +140,39 @@ policy_templates:
     response_max_bytes: 1048576
     credential_response_policy: forbidden
     source_rule: K-ACCSVC-023
+  desktop_product: &desktop_product
+    authorization_profile: protected_desktop_product
+    allowed_runtime_caller_modes: [ACCOUNT_CALLER_MODE_DESKTOP_SHELL]
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+  desktop_sensitive: &desktop_sensitive
+    authorization_profile: protected_desktop_sensitive
+    allowed_runtime_caller_modes: [ACCOUNT_CALLER_MODE_DESKTOP_SHELL]
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+  desktop_commerce: &desktop_commerce
+    authorization_profile: protected_desktop_commerce
+    allowed_runtime_caller_modes: [ACCOUNT_CALLER_MODE_DESKTOP_SHELL]
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
 operations:
+  - <<: *desktop_source_read
+    operation_id: WorldPublicController_getCharacterSource
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r004
+    http_method: POST
+    path_template: /api/world/character-sources/public-projection
+    request_schema_ref: realm-openapi://operation/WorldPublicController_getCharacterSource/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_getCharacterSource/response
+
   - <<: *desktop_source_read
     operation_id: WorldCoreController_getPersonaCharacter
     authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r007
@@ -143,6 +245,526 @@ operations:
     request_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/request
     response_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/response
 
+  - <<: *desktop_product
+    operation_id: WorldPublicController_listWorldCharacters
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/world/by-id/{worldId}/characters
+    request_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCharacters/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCharacters/response
+
+  - <<: *desktop_product
+    operation_id: getMe
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/me
+    request_schema_ref: realm-openapi://operation/getMe/request
+    response_schema_ref: realm-openapi://operation/getMe/response
+
+  - <<: *desktop_product
+    operation_id: updateMe
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: PATCH
+    path_template: /api/human/me
+    request_schema_ref: realm-openapi://operation/updateMe/request
+    response_schema_ref: realm-openapi://operation/updateMe/response
+
+  - <<: *desktop_product
+    operation_id: listMyFriendsWithDetails
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/me/friends/list
+    request_schema_ref: realm-openapi://operation/listMyFriendsWithDetails/request
+    response_schema_ref: realm-openapi://operation/listMyFriendsWithDetails/response
+
+  - <<: *desktop_product
+    operation_id: getMyPendingFriendRequests
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/me/friends/pending
+    request_schema_ref: realm-openapi://operation/getMyPendingFriendRequests/request
+    response_schema_ref: realm-openapi://operation/getMyPendingFriendRequests/response
+
+  - <<: *desktop_product
+    operation_id: getMyBlockedUsers
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/me/blocks
+    request_schema_ref: realm-openapi://operation/getMyBlockedUsers/request
+    response_schema_ref: realm-openapi://operation/getMyBlockedUsers/response
+
+  - <<: *desktop_product
+    operation_id: getUser
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/accounts/{id}
+    request_schema_ref: realm-openapi://operation/getUser/request
+    response_schema_ref: realm-openapi://operation/getUser/response
+
+  - <<: *desktop_product
+    operation_id: addFriend
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/accounts/{id}/friends
+    request_schema_ref: realm-openapi://operation/addFriend/request
+    response_schema_ref: realm-openapi://operation/addFriend/response
+
+  - <<: *desktop_product
+    operation_id: removeFriend
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: DELETE
+    path_template: /api/human/accounts/{id}/friends
+    request_schema_ref: realm-openapi://operation/removeFriend/request
+    response_schema_ref: realm-openapi://operation/removeFriend/response
+
+  - <<: *desktop_product
+    operation_id: blockUser
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/me/blocks/{id}
+    request_schema_ref: realm-openapi://operation/blockUser/request
+    response_schema_ref: realm-openapi://operation/blockUser/response
+
+  - <<: *desktop_product
+    operation_id: unblockUser
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: DELETE
+    path_template: /api/human/me/blocks/{id}
+    request_schema_ref: realm-openapi://operation/unblockUser/request
+    response_schema_ref: realm-openapi://operation/unblockUser/response
+
+  - <<: *desktop_product
+    operation_id: getHomeFeed
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/world/posts
+    request_schema_ref: realm-openapi://operation/getHomeFeed/request
+    response_schema_ref: realm-openapi://operation/getHomeFeed/response
+
+  - <<: *desktop_product
+    operation_id: getExploreFeed
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/explore
+    request_schema_ref: realm-openapi://operation/getExploreFeed/request
+    response_schema_ref: realm-openapi://operation/getExploreFeed/response
+
+  - <<: *desktop_product
+    operation_id: listLikedPosts
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/world/posts/liked
+    request_schema_ref: realm-openapi://operation/listLikedPosts/request
+    response_schema_ref: realm-openapi://operation/listLikedPosts/response
+
+  - <<: *desktop_product
+    operation_id: getPost
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/world/posts/by-id/{id}
+    request_schema_ref: realm-openapi://operation/getPost/request
+    response_schema_ref: realm-openapi://operation/getPost/response
+
+  - <<: *desktop_product
+    operation_id: createPost
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/world/posts
+    request_schema_ref: realm-openapi://operation/createPost/request
+    response_schema_ref: realm-openapi://operation/createPost/response
+
+  - <<: *desktop_product
+    operation_id: deletePost
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: DELETE
+    path_template: /api/world/posts/by-id/{id}
+    request_schema_ref: realm-openapi://operation/deletePost/request
+    response_schema_ref: realm-openapi://operation/deletePost/response
+
+  - <<: *desktop_product
+    operation_id: updatePost
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: PATCH
+    path_template: /api/world/posts/by-id/{id}
+    request_schema_ref: realm-openapi://operation/updatePost/request
+    response_schema_ref: realm-openapi://operation/updatePost/response
+
+  - <<: *desktop_product
+    operation_id: likePost
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/world/posts/by-id/{postId}/like
+    request_schema_ref: realm-openapi://operation/likePost/request
+    response_schema_ref: realm-openapi://operation/likePost/response
+
+  - <<: *desktop_product
+    operation_id: unlikePost
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: DELETE
+    path_template: /api/world/posts/by-id/{postId}/like
+    request_schema_ref: realm-openapi://operation/unlikePost/request
+    response_schema_ref: realm-openapi://operation/unlikePost/response
+
+  - <<: *desktop_product
+    operation_id: ReportController_createReport
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/reports
+    request_schema_ref: realm-openapi://operation/ReportController_createReport/request
+    response_schema_ref: realm-openapi://operation/ReportController_createReport/response
+
+  - <<: *desktop_product
+    operation_id: getChatById
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/chats/{chatId}
+    request_schema_ref: realm-openapi://operation/getChatById/request
+    response_schema_ref: realm-openapi://operation/getChatById/response
+
+  - <<: *desktop_product
+    operation_id: listChats
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/chats
+    request_schema_ref: realm-openapi://operation/listChats/request
+    response_schema_ref: realm-openapi://operation/listChats/response
+
+  - <<: *desktop_product
+    operation_id: listMessages
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/chats/{chatId}/messages
+    request_schema_ref: realm-openapi://operation/listMessages/request
+    response_schema_ref: realm-openapi://operation/listMessages/response
+
+  - <<: *desktop_product
+    operation_id: markChatRead
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/chats/{chatId}/read
+    request_schema_ref: realm-openapi://operation/markChatRead/request
+    response_schema_ref: realm-openapi://operation/markChatRead/response
+
+  - <<: *desktop_product
+    operation_id: sendMessage
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/chats/{chatId}/messages
+    request_schema_ref: realm-openapi://operation/sendMessage/request
+    response_schema_ref: realm-openapi://operation/sendMessage/response
+
+  - <<: *desktop_product
+    operation_id: startChat
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/chats
+    request_schema_ref: realm-openapi://operation/startChat/request
+    response_schema_ref: realm-openapi://operation/startChat/response
+
+  - <<: *desktop_product
+    operation_id: syncChatEvents
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/chats/{chatId}/sync
+    request_schema_ref: realm-openapi://operation/syncChatEvents/request
+    response_schema_ref: realm-openapi://operation/syncChatEvents/response
+
+  - <<: *desktop_product
+    operation_id: createGroup
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/group-chats
+    request_schema_ref: realm-openapi://operation/createGroup/request
+    response_schema_ref: realm-openapi://operation/createGroup/response
+
+  - <<: *desktop_product
+    operation_id: listGroups
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/group-chats
+    request_schema_ref: realm-openapi://operation/listGroups/request
+    response_schema_ref: realm-openapi://operation/listGroups/response
+
+  - <<: *desktop_product
+    operation_id: getGroup
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/group-chats/{chatId}
+    request_schema_ref: realm-openapi://operation/getGroup/request
+    response_schema_ref: realm-openapi://operation/getGroup/response
+
+  - <<: *desktop_product
+    operation_id: listGroupMessages
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/group-chats/{chatId}/messages
+    request_schema_ref: realm-openapi://operation/listGroupMessages/request
+    response_schema_ref: realm-openapi://operation/listGroupMessages/response
+
+  - <<: *desktop_product
+    operation_id: sendGroupMessage
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/group-chats/{chatId}/messages
+    request_schema_ref: realm-openapi://operation/sendGroupMessage/request
+    response_schema_ref: realm-openapi://operation/sendGroupMessage/response
+
+  - <<: *desktop_product
+    operation_id: markGroupRead
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/group-chats/{chatId}/read
+    request_schema_ref: realm-openapi://operation/markGroupRead/request
+    response_schema_ref: realm-openapi://operation/markGroupRead/response
+
+  - <<: *desktop_product
+    operation_id: syncGroupEvents
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/group-chats/{chatId}/sync
+    request_schema_ref: realm-openapi://operation/syncGroupEvents/request
+    response_schema_ref: realm-openapi://operation/syncGroupEvents/response
+
+  - <<: *desktop_product
+    operation_id: getUnreadCount
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/notifications/unread-count
+    request_schema_ref: realm-openapi://operation/getUnreadCount/request
+    response_schema_ref: realm-openapi://operation/getUnreadCount/response
+
+  - <<: *desktop_product
+    operation_id: listNotifications
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/notifications
+    request_schema_ref: realm-openapi://operation/listNotifications/request
+    response_schema_ref: realm-openapi://operation/listNotifications/response
+
+  - <<: *desktop_product
+    operation_id: markNotificationRead
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/notifications/{notificationId}/read
+    request_schema_ref: realm-openapi://operation/markNotificationRead/request
+    response_schema_ref: realm-openapi://operation/markNotificationRead/response
+
+  - <<: *desktop_product
+    operation_id: markNotificationsRead
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/notifications/read
+    request_schema_ref: realm-openapi://operation/markNotificationsRead/request
+    response_schema_ref: realm-openapi://operation/markNotificationsRead/response
+
+  - <<: *desktop_product
+    operation_id: getMyCreatorEligibility
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/me/creator-eligibility
+    request_schema_ref: realm-openapi://operation/getMyCreatorEligibility/request
+    response_schema_ref: realm-openapi://operation/getMyCreatorEligibility/response
+
+  - <<: *desktop_product
+    operation_id: getMyNotificationSettings
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/me/notification-settings
+    request_schema_ref: realm-openapi://operation/getMyNotificationSettings/request
+    response_schema_ref: realm-openapi://operation/getMyNotificationSettings/response
+
+  - <<: *desktop_product
+    operation_id: getMySettings
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/me/settings
+    request_schema_ref: realm-openapi://operation/getMySettings/request
+    response_schema_ref: realm-openapi://operation/getMySettings/response
+
+  - <<: *desktop_product
+    operation_id: updateMyNotificationSettings
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: PATCH
+    path_template: /api/human/me/notification-settings
+    request_schema_ref: realm-openapi://operation/updateMyNotificationSettings/request
+    response_schema_ref: realm-openapi://operation/updateMyNotificationSettings/response
+
+  - <<: *desktop_product
+    operation_id: updateMySettings
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: PATCH
+    path_template: /api/human/me/settings
+    request_schema_ref: realm-openapi://operation/updateMySettings/request
+    response_schema_ref: realm-openapi://operation/updateMySettings/response
+
+  - <<: *desktop_sensitive
+    operation_id: updatePassword
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r004
+    http_method: PUT
+    path_template: /api/auth/me/password
+    request_schema_ref: realm-openapi://operation/updatePassword/request
+    response_schema_ref: realm-openapi://operation/updatePassword/response
+
+  - <<: *desktop_sensitive
+    operation_id: prepare2Fa
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r004
+    http_method: POST
+    path_template: /api/auth/me/2fa/prepare
+    request_schema_ref: realm-openapi://operation/prepare2Fa/request
+    response_schema_ref: realm-openapi://operation/prepare2Fa/response
+
+  - <<: *desktop_sensitive
+    operation_id: enable2Fa
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r004
+    http_method: POST
+    path_template: /api/auth/me/2fa/enable
+    request_schema_ref: realm-openapi://operation/enable2Fa/request
+    response_schema_ref: realm-openapi://operation/enable2Fa/response
+
+  - <<: *desktop_sensitive
+    operation_id: disable2Fa
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r004
+    http_method: POST
+    path_template: /api/auth/me/2fa/disable
+    request_schema_ref: realm-openapi://operation/disable2Fa/request
+    response_schema_ref: realm-openapi://operation/disable2Fa/response
+
+  - <<: *desktop_sensitive
+    operation_id: requestAccountDeletion
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r004
+    http_method: POST
+    path_template: /api/auth/me/account-deletion
+    request_schema_ref: realm-openapi://operation/requestAccountDeletion/request
+    response_schema_ref: realm-openapi://operation/requestAccountDeletion/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_acceptGift
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/economy/gifts/{id}/accept
+    request_schema_ref: realm-openapi://operation/EconomyController_acceptGift/request
+    response_schema_ref: realm-openapi://operation/EconomyController_acceptGift/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_canWithdraw
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/withdrawals/can-withdraw
+    request_schema_ref: realm-openapi://operation/EconomyController_canWithdraw/request
+    response_schema_ref: realm-openapi://operation/EconomyController_canWithdraw/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_createSparkCheckout
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/economy/spark/checkout
+    request_schema_ref: realm-openapi://operation/EconomyController_createSparkCheckout/request
+    response_schema_ref: realm-openapi://operation/EconomyController_createSparkCheckout/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_createWithdrawal
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/economy/withdrawals/create
+    request_schema_ref: realm-openapi://operation/EconomyController_createWithdrawal/request
+    response_schema_ref: realm-openapi://operation/EconomyController_createWithdrawal/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getBalances
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/balances
+    request_schema_ref: realm-openapi://operation/EconomyController_getBalances/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getBalances/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getGemHistory
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/gem/history
+    request_schema_ref: realm-openapi://operation/EconomyController_getGemHistory/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getGemHistory/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getGiftCatalog
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/gifts/catalog
+    request_schema_ref: realm-openapi://operation/EconomyController_getGiftCatalog/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getGiftCatalog/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getReceivedGifts
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/gifts/received
+    request_schema_ref: realm-openapi://operation/EconomyController_getReceivedGifts/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getReceivedGifts/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getSentGifts
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/gifts/sent
+    request_schema_ref: realm-openapi://operation/EconomyController_getSentGifts/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getSentGifts/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getSparkHistory
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/spark/history
+    request_schema_ref: realm-openapi://operation/EconomyController_getSparkHistory/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getSparkHistory/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getSparkPackages
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/spark/packages
+    request_schema_ref: realm-openapi://operation/EconomyController_getSparkPackages/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getSparkPackages/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getSubscription
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/subscription
+    request_schema_ref: realm-openapi://operation/EconomyController_getSubscription/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getSubscription/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_getWithdrawalHistory
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/economy/withdrawals/history
+    request_schema_ref: realm-openapi://operation/EconomyController_getWithdrawalHistory/request
+    response_schema_ref: realm-openapi://operation/EconomyController_getWithdrawalHistory/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_rejectGift
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/economy/gifts/{giftId}/reject
+    request_schema_ref: realm-openapi://operation/EconomyController_rejectGift/request
+    response_schema_ref: realm-openapi://operation/EconomyController_rejectGift/response
+
+  - <<: *desktop_commerce
+    operation_id: EconomyController_sendGift
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/economy/gifts/send
+    request_schema_ref: realm-openapi://operation/EconomyController_sendGift/request
+    response_schema_ref: realm-openapi://operation/EconomyController_sendGift/response
+
+  - <<: *desktop_commerce
+    operation_id: ReviewController_createReview
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/economy/reviews
+    request_schema_ref: realm-openapi://operation/ReviewController_createReview/request
+    response_schema_ref: realm-openapi://operation/ReviewController_createReview/response
+
 forbidden_operation_classes:
   - every_realm_operation_not_listed_in_operations
   - auth_login_refresh_token_exchange
@@ -151,12 +773,6 @@ forbidden_operation_classes:
   - arbitrary_http_proxy
 
 explicitly_not_admitted:
-  - operation_id: WorldPublicController_listWorldCharacters
-    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r006
-    reason: no_desktop_source_readiness_consumer
-  - operation_id: getExploreFeed
-    authority_ref: realm:spec/realm/feed.authority.yaml#rule.realm.feed.r006
-    reason: social_feed_is_outside_source_readiness_scope
   - operation_id: createImageDirectUpload
     authority_ref: realm:spec/realm/asset.authority.yaml#rule.realm.asset.r103
     reason: response_may_issue_signed_upload_credentials

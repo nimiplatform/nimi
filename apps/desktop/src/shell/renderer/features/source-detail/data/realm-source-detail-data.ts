@@ -194,23 +194,16 @@ async function loadPublicSourceMedia(
   realm: Realm,
   sourceRef: CharacterSourceRefV3,
 ): Promise<JsonObject | null> {
-  const detail = await realm.worldPublic.worldPublicControllerGetWorldDetailWithCharacters({
-    path: { worldId: sourceRef.worldId },
-    query: {},
+  const source = await realm.worldPublic.worldPublicControllerGetCharacterSource({
+    path: {},
+    body: { sourceRef },
   });
-  const sources = asRecord(detail.sources);
-  const sourceRows = [
-    ...(Array.isArray(sources.characters) ? sources.characters : []),
-    ...(Array.isArray(sources.personaCharacters) ? sources.personaCharacters : []),
-  ].map(asRecord);
-  const matched = sourceRows.find((source) => {
-    const rowRef = readCharacterSourceRefV3(source.sourceRef);
-    return rowRef !== null && characterSourceRefKey(rowRef) === characterSourceRefKey(sourceRef);
-  });
-  if (!matched) {
-    return null;
+  const returnedSourceRef = readCharacterSourceRefV3(source.sourceRef);
+  if (!returnedSourceRef
+    || characterSourceRefKey(returnedSourceRef) !== characterSourceRefKey(sourceRef)) {
+    throw new Error('Public Character source projection returned a mismatched sourceRef');
   }
-  return asRecord(matched.media);
+  return asRecord(source.media);
 }
 
 function projectPersonaCharacterProfile(core: JsonObject, publicMedia: JsonObject | null = null): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'portraitUrl' | 'profileCoverUrl' | 'referenceImageUrl' | 'voiceSampleUrl' | 'voiceSample' | 'media' | 'mediaAssets' | 'voiceDesign' | 'bio' | 'archetype' | 'pacing'> {

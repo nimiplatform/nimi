@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  assertRuntimeServiceDeploymentProfile,
   assertRuntimeServiceHealthy,
   assertRuntimeServiceInstalled,
   parseDevRuntimeArguments,
@@ -23,6 +24,8 @@ const healthyStatus = {
   signatureStatus: 'Valid',
   runtimeCandidateId: 'runtime-0123456789abcdef0123456789abcdef',
   runtimeBinarySha256: 'ab'.repeat(32),
+  deploymentProfile: 'local-development',
+  realmOrigin: 'http://127.0.0.1:3002',
 };
 
 test('missing fixed service fails before any build or install mutation', async () => {
@@ -63,7 +66,10 @@ test('current Windows service update builds, installs, and checks the resulting 
     queryInstalled: async () => ({ status: 'present' }),
     buildRuntime: async () => calls.push('build-runtime'),
     buildInstaller: async () => calls.push('build-installer'),
-    install: async () => calls.push('install'),
+    install: async () => {
+      calls.push('install');
+      return healthyStatus;
+    },
     queryStatus: async () => {
       calls.push('status');
       return healthyStatus;
@@ -77,12 +83,15 @@ test('current Windows service update builds, installs, and checks the resulting 
     runtimeCandidateId: healthyStatus.runtimeCandidateId,
     runtimeBinarySha256: healthyStatus.runtimeBinarySha256,
     signatureStatus: 'Valid',
+    deploymentProfile: healthyStatus.deploymentProfile,
+    realmOrigin: healthyStatus.realmOrigin,
   });
 });
 
 test('post-update status fails closed on signature, build record, or candidate mismatch', () => {
   assertRuntimeServiceInstalled(healthyStatus);
   assertRuntimeServiceHealthy(healthyStatus);
+  assertRuntimeServiceDeploymentProfile(healthyStatus);
   for (const status of [
     { ...healthyStatus, signatureStatus: 'UnknownError' },
     { ...healthyStatus, runtimeBuildRecordMatchesCandidate: false },
@@ -93,4 +102,12 @@ test('post-update status fails closed on signature, build record, or candidate m
       (error) => error.reasonCode === 'dev-runtime-service-update-unhealthy',
     );
   }
+  assert.throws(
+    () => assertRuntimeServiceDeploymentProfile({
+      ...healthyStatus,
+      deploymentProfile: 'production',
+      realmOrigin: 'https://realm.nimi.ai',
+    }),
+    (error) => error.reasonCode === 'dev-runtime-deployment-profile-mismatch',
+  );
 });

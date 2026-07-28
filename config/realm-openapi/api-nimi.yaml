@@ -27,6 +27,13 @@ components:
       required:
         - accountId
       type: object
+    AddGroupSourceParticipantInputDto:
+      properties:
+        sourceRef:
+          $ref: '#/components/schemas/GroupSourceRefDto'
+      required:
+        - sourceRef
+      type: object
     AssetDetailDto:
       properties:
         authorId:
@@ -1346,6 +1353,76 @@ components:
           nullable: true
           type: object
       type: object
+    CommitRealmGroupSourceMessageCandidateInputDto:
+      properties:
+        auditLineageRef:
+          type: string
+        body:
+          type: string
+        bodyHash:
+          type: string
+        candidateEvidenceRef:
+          type: string
+        candidateId:
+          type: string
+        candidateKind:
+          enum:
+            - REALM_GROUP_MESSAGE_CANDIDATE
+          type: string
+        commitDisposition:
+          enum:
+            - MESSAGE_CANDIDATE
+            - REFUSAL_CANDIDATE
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        evidenceHash:
+          type: string
+        expectedRuntimeParticipantSlotId:
+          type: string
+        expectedRuntimeSourceRef:
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        idempotencyKey:
+          type: string
+        messageType:
+          enum:
+            - TEXT
+          type: string
+        outputCandidateRef:
+          type: string
+        policyVerdictRef:
+          type: string
+        refusalCode:
+          type: string
+        refusalHash:
+          type: string
+        refusalReason:
+          type: string
+        runtimeTraceRef:
+          type: string
+        triggerEvidence:
+          $ref: '#/components/schemas/GroupSourceTriggerEvidenceDto'
+      required:
+        - candidateId
+        - candidateKind
+        - candidateEvidenceRef
+        - evidenceHash
+        - runtimeTraceRef
+        - expectedRuntimeParticipantSlotId
+        - expectedRuntimeSourceRef
+        - triggerEvidence
+        - outputCandidateRef
+        - auditLineageRef
+        - policyVerdictRef
+        - createdAt
+        - expiresAt
+        - commitDisposition
+        - idempotencyKey
+      type: object
     ConnectDashboardLinkDto:
       properties:
         url:
@@ -1540,6 +1617,44 @@ components:
       required:
         - refreshUrl
         - returnUrl
+      type: object
+    CreateFeedbackDto:
+      properties:
+        appVersion:
+          description: App version
+          example: 1.0.0
+          type: string
+        contactEmail:
+          description: Contact email for follow-up
+          example: user@example.com
+          type: string
+        description:
+          description: Detailed description of the feedback
+          example: The app crashes when I try to send a gift.
+          type: string
+        screenshotUrls:
+          description: List of screenshot URLs
+          example:
+            - https://cdn.nimi.ai/screenshots/123.png
+          items:
+            type: string
+          type: array
+        type:
+          description: Feedback type
+          enum:
+            - BUG
+            - SUGGESTION
+            - PAYMENT_ISSUE
+            - OTHER
+          example: BUG
+          type: string
+        userAgent:
+          description: User agent string
+          example: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ...
+          type: string
+      required:
+        - type
+        - description
       type: object
     CreateGroupInputDto:
       properties:
@@ -3202,15 +3317,34 @@ components:
           type: string
         displayName:
           type: string
+        runtimeParticipantSlot:
+          nullable: true
+          type: string
+        runtimeSourceRef:
+          nullable: true
+          type: string
+        sourceAuthorityAccountId:
+          nullable: true
+          type: string
+        sourceRef:
+          allOf:
+            - $ref: '#/components/schemas/GroupSourceRefDto'
+          nullable: true
+          type: object
         type:
           enum:
             - human
+            - source
           type: string
       required:
         - type
         - accountId
         - displayName
         - avatarUrl
+        - sourceAuthorityAccountId
+        - runtimeParticipantSlot
+        - sourceRef
+        - runtimeSourceRef
       type: object
     GroupMessageViewDto:
       properties:
@@ -3304,9 +3438,24 @@ components:
             - admin
             - member
           type: string
+        runtimeParticipantSlot:
+          nullable: true
+          type: string
+        runtimeSourceRef:
+          nullable: true
+          type: string
+        sourceAuthorityAccountId:
+          nullable: true
+          type: string
+        sourceRef:
+          allOf:
+            - $ref: '#/components/schemas/GroupSourceRefDto'
+          nullable: true
+          type: object
         type:
           enum:
             - human
+            - source
           type: string
       required:
         - accountId
@@ -3315,8 +3464,39 @@ components:
         - displayName
         - handle
         - avatarUrl
+        - sourceAuthorityAccountId
+        - runtimeParticipantSlot
+        - sourceRef
+        - runtimeSourceRef
         - joinedAt
         - isOnline
+      type: object
+    GroupSourceRefDto:
+      properties: {}
+      type: object
+    GroupSourceTriggerEvidenceDto:
+      properties:
+        actorId:
+          type: string
+        chatId:
+          type: string
+        kind:
+          enum:
+            - mention
+            - explicitUserAction
+            - admittedAutomation
+            - productDisabled
+          type: string
+        messageId:
+          type: string
+        triggerRef:
+          type: string
+      required:
+        - kind
+        - triggerRef
+        - actorId
+        - chatId
+        - messageId
       type: object
     HandleAvailabilityDto:
       properties:
@@ -4430,9 +4610,6 @@ components:
         - display_name
         - realm_environment_id
       type: object
-    Object:
-      properties: {}
-      type: object
     PPSlotConfigDto:
       properties:
         slot1:
@@ -4987,6 +5164,22 @@ components:
           type: string
       required:
         - kind
+      type: object
+    RealmGroupMessageCandidateCommitResultDto:
+      properties:
+        candidateId:
+          type: string
+        message:
+          $ref: '#/components/schemas/GroupMessageViewDto'
+        status:
+          enum:
+            - committed
+            - duplicate
+          type: string
+      required:
+        - candidateId
+        - status
+        - message
       type: object
     RealmSourceCapabilitiesDto:
       properties:
@@ -8998,6 +9191,13 @@ components:
         - summary
         - source
       type: object
+    WorldPublicCharacterSourceRequestDto:
+      properties:
+        sourceRef:
+          $ref: '#/components/schemas/CharacterSourceRefV3Dto'
+      required:
+        - sourceRef
+      type: object
     WorldPublicDetailDto:
       properties:
         createdAt:
@@ -12070,6 +12270,83 @@ paths:
       summary: Mark group chat read
       tags:
         - Group Chats
+  /api/human/group-chats/{chatId}/source-message-candidate-commits:
+    post:
+      operationId: commitRealmGroupSourceMessageCandidate
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/CommitRealmGroupSourceMessageCandidateInputDto
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealmGroupMessageCandidateCommitResultDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Commit a Runtime source group message candidate
+      tags:
+        - Group Chats
+  /api/human/group-chats/{chatId}/source-participants:
+    post:
+      operationId: addGroupSourceParticipant
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddGroupSourceParticipantInputDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupParticipantDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Add runtime source participant slot
+      tags:
+        - Group Chats
+  /api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}:
+    delete:
+      operationId: removeGroupSourceParticipant
+      parameters:
+        - in: path
+          name: runtimeParticipantSlotId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Runtime source participant disabled
+      security:
+        - bearer: []
+      summary: Disable runtime source participant slot
+      tags:
+        - Group Chats
   /api/human/group-chats/{chatId}/sync:
     get:
       operationId: syncGroupEvents
@@ -14322,35 +14599,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Object'
-              properties:
-                appVersion:
-                  type: string
-                contactEmail:
-                  format: email
-                  type: string
-                description:
-                  maxLength: 5000
-                  type: string
-                screenshotUrls:
-                  items:
-                    format: uri
-                    type: string
-                  maxItems: 8
-                  type: array
-                type:
-                  enum:
-                    - BUG
-                    - SUGGESTION
-                    - PAYMENT_ISSUE
-                    - OTHER
-                  type: string
-                userAgent:
-                  type: string
-              required:
-                - type
-                - description
-              type: object
+              $ref: '#/components/schemas/CreateFeedbackDto'
         required: true
       responses:
         '201':
@@ -14567,6 +14816,36 @@ paths:
       summary: Get posts scoped to a specific world
       tags:
         - WorldPost
+  /api/world/character-sources/public-projection:
+    post:
+      operationId: WorldPublicController_getCharacterSource
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorldPublicCharacterSourceRequestDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldPublicSourceCardDto'
+          description: ''
+        '400':
+          description: Invalid or mismatched character source identity
+        '403':
+          description: Character source is not publicly readable
+        '404':
+          description: Character source does not exist
+        '422':
+          description: Stored public character projection is invalid
+        '503':
+          description: Realm public character source read is unavailable
+      summary: Get one public character source projection by typed canonical identity
+      tags:
+        - World
   /api/world/posts:
     get:
       operationId: getHomeFeed
