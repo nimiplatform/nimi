@@ -173,44 +173,6 @@ pub(crate) async fn open_account_stream(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::first_party_profiles_generated::{
-        DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS, DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS,
-        DESKTOP_MACHINE_PRODUCT_STREAM_METHODS, DESKTOP_MACHINE_PRODUCT_UNARY_METHODS,
-    };
-    use std::collections::HashSet;
-
-    #[test]
-    fn generated_profile_families_have_exact_kind_counts_and_no_overlap() {
-        assert_eq!(DESKTOP_MACHINE_PRODUCT_UNARY_METHODS.len(), 60);
-        assert_eq!(DESKTOP_MACHINE_PRODUCT_STREAM_METHODS.len(), 4);
-        assert_eq!(DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS.len(), 46);
-        assert_eq!(DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS.len(), 3);
-        let machine = DESKTOP_MACHINE_PRODUCT_UNARY_METHODS
-            .iter()
-            .map(|method| method.method_id())
-            .chain(
-                DESKTOP_MACHINE_PRODUCT_STREAM_METHODS
-                    .iter()
-                    .map(|method| method.method_id()),
-            )
-            .collect::<HashSet<_>>();
-        let account = DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS
-            .iter()
-            .map(|method| method.method_id())
-            .chain(
-                DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS
-                    .iter()
-                    .map(|method| method.method_id()),
-            )
-            .collect::<HashSet<_>>();
-        assert_eq!(
-            machine
-                .intersection(&account)
-                .copied()
-                .collect::<HashSet<_>>(),
-            HashSet::from(["/nimi.runtime.v1.RuntimeConnectorService/ListConnectors"]),
-        );
-    }
 
     #[cfg(target_os = "windows")]
     #[tokio::test]

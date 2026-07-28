@@ -3,10 +3,10 @@ use nimi_shell_protected_local::MacOsUnixSocketCarrier;
 #[cfg(not(target_os = "windows"))]
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
-    FixedRuntimeServiceControl, LinuxLocalAppCarrier, LinuxUnixSocketCarrier, LocalAppReasonCode,
-    MacOsLocalAppCarrier, NimiLocalAppCarrier, NimiProtectedLocalHostCarrier,
-    ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
-    RuntimeServiceState, RuntimeServiceStatus, WindowsNamedPipeCarrier,
+    LinuxLocalAppCarrier, LinuxUnixSocketCarrier, LocalAppReasonCode, MacOsLocalAppCarrier,
+    NimiLocalAppCarrier, NimiProtectedLocalHostCarrier, ProtectedCarrierReasonCode,
+    RuntimeServiceAction, RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
+    WindowsNamedPipeCarrier,
 };
 
 async fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
