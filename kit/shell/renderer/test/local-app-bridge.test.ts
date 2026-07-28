@@ -94,6 +94,61 @@ describe('renderer local-app standard-shell surface', () => {
     });
   });
 
+  it('projects conversation events through a cancellable bounded async subscription', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    let eventHandler: ((event: { payload: unknown }) => void) | undefined;
+    let unlistenCount = 0;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        if ((payload as { payload?: { action?: string } })?.payload?.action === 'cancel') {
+          return { subscriptionId: 'conversation-1', closed: true };
+        }
+        return { subscriptionId: 'conversation-1', eventName: 'local-app-conversation.conversation-1' };
+      },
+      listen: (_eventName: string, handler: (event: { payload: unknown }) => void) => {
+        eventHandler = handler;
+        return () => { unlistenCount += 1; };
+      },
+    };
+    const subscription = await createNimiLocalAppStandardShellSurface().conversation.subscribe({
+      selectedAgentHandle: 'lash_owner_issued',
+      conversationAnchorId: 'anchor-1',
+    });
+    const iterator = subscription.events[Symbol.asyncIterator]();
+    const next = iterator.next();
+    eventHandler?.({
+      payload: {
+        subscriptionId: 'conversation-1',
+        eventType: 'next',
+        event: {
+          eventType: 1,
+          sequence: '1',
+          messageId: 'message-1',
+          messageType: 'runtime.agent.turn.delta',
+          payload: { text: 'hello' },
+          reasonCode: 'ACTION_EXECUTED',
+          traceId: 'trace-1',
+          timestampUnixMs: 123,
+        },
+      },
+    });
+    await expect(next).resolves.toMatchObject({ done: false, value: { sequence: '1' } });
+    await subscription.cancel();
+    await subscription.cancel();
+    expect(unlistenCount).toBe(1);
+    expect(invocations).toEqual([
+      {
+        command: 'nimi.shell.localApp.conversationSubscribe',
+        payload: { payload: { selectedAgentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1' } },
+      },
+      {
+        command: 'nimi.shell.localApp.conversationSubscribe',
+        payload: { payload: { action: 'cancel', subscriptionId: 'conversation-1' } },
+      },
+    ]);
+  });
+
   it('carries bounded app-private storage documents without exposing a path or root', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

@@ -105,11 +105,15 @@ export type {
 } from './floating-window.js';
 export {
   createNimiLocalAppStandardShellSurface,
+  getNimiLocalAppConversationSnapshot,
   getNimiLocalAppPermissionStatus,
   getNimiLocalAppSessionStatus,
+  openNimiLocalAppConversation,
   readNimiLocalAppStorageJson,
   removeNimiLocalAppStorageJson,
   requestNimiLocalAppPermission,
+  sendNimiLocalAppConversationTurn,
+  subscribeNimiLocalAppConversation,
   writeNimiLocalAppStorageJson,
 } from './local-app.js';
 export {
@@ -166,6 +170,8 @@ export type {
   AgentCenterShellHostScope,
 } from './agent-center.js';
 export type {
+  NimiLocalAppConversationScopeInput,
+  NimiLocalAppConversationSubscription,
   NimiLocalAppPermissionRequestInput,
   NimiLocalAppPermissionStatusInput,
   NimiLocalAppSessionStatus,

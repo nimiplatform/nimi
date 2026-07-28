@@ -1,5 +1,16 @@
 import type { JsonValue } from '../../types';
 import {
+  createNimiLocalAppConversationClient,
+  type NimiLocalAppConversationOpenInput,
+  type NimiLocalAppConversationOpenResult,
+  type NimiLocalAppConversationScopeInput,
+  type NimiLocalAppConversationSendInput,
+  type NimiLocalAppConversationSendResult,
+  type NimiLocalAppConversationShell,
+  type NimiLocalAppConversationSnapshot,
+  type NimiLocalAppConversationSubscription,
+} from './local-app-runtime-platform-conversation.js';
+import {
   createNimiAppRuntimeStorageClient,
   type NimiAppRuntimeStorageDocument,
   type NimiAppRuntimeStorageRemoveResult,
@@ -24,6 +35,18 @@ import {
   type PermissionStatus,
 } from './permission-types.js';
 
+export type {
+  NimiLocalAppConversationEvent,
+  NimiLocalAppConversationOpenInput,
+  NimiLocalAppConversationOpenResult,
+  NimiLocalAppConversationScopeInput,
+  NimiLocalAppConversationSendInput,
+  NimiLocalAppConversationSendResult,
+  NimiLocalAppConversationShellSubscription,
+  NimiLocalAppConversationSnapshot,
+  NimiLocalAppConversationSubscription,
+  NimiSelectedAgentHandle,
+} from './local-app-runtime-platform-conversation.js';
 export type {
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
@@ -82,6 +105,7 @@ export type NimiLocalAppStandardShell = {
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<unknown>;
     readonly removeJson: (relativePath: string) => Promise<unknown>;
   };
+  readonly conversation: NimiLocalAppConversationShell;
 };
 
 export type NimiLocalAppClientInput = {
@@ -104,6 +128,12 @@ export type NimiLocalAppClient = {
     ) => Promise<NimiAppRuntimeStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiAppRuntimeStorageRemoveResult>;
   };
+  readonly conversation: {
+    readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
+    readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
+    readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
+    readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
+  };
 };
 
 export function createNimiLocalAppClient(
@@ -111,10 +141,11 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  assertExactKeys(standardShell, ['session', 'permission', 'storage'], 'local-app standardShell');
+  assertExactKeys(standardShell, ['session', 'permission', 'storage', 'conversation'], 'local-app standardShell');
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   assertExactMethodNamespace(standardShell.permission, ['status', 'request'], 'permission');
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
+  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'subscribe', 'snapshot'], 'conversation');
 
   return Object.freeze({
     auth: Object.freeze({
@@ -146,6 +177,7 @@ export function createNimiLocalAppClient(
       },
     }),
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
+    conversation: createNimiLocalAppConversationClient(standardShell.conversation),
   });
 }
 

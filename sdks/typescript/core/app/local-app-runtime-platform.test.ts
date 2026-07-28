@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createNimiClient } from '../../root-client';
-import type { NimiLocalAppClientInput } from './local-app-runtime-platform';
+import type {
+  NimiLocalAppClientInput,
+  NimiSelectedAgentHandle,
+} from './local-app-runtime-platform';
 
 function createLocalAppClient(input: NimiLocalAppClientInput) {
   return createNimiClient({ localApp: input });
@@ -32,13 +35,22 @@ function standardShell(overrides: Record<string, unknown> = {}) {
       writeJson: async (_path: string, value: unknown) => ({ value, sizeBytes: 13 }),
       removeJson: async () => ({ removed: false }),
     },
+    conversation: {
+      open: async () => ({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }),
+      send: async () => ({ messageId: 'message-1' }),
+      subscribe: async () => ({
+        events: { async *[Symbol.asyncIterator]() {} },
+        cancel: async () => undefined,
+      }),
+      snapshot: async () => ({ anchor: { conversationAnchorId: 'anchor-1' } }),
+    },
     ...overrides,
   };
 }
 
-test('local-app client exposes only auth, product permissions, and app-private storage', async () => {
+test('local-app client exposes only admitted typed namespaces', async () => {
   const client = createLocalAppClient({ standardShell: standardShell() });
-  assert.deepEqual(Object.keys(client).sort(), ['auth', 'permissions', 'storage']);
+  assert.deepEqual(Object.keys(client).sort(), ['auth', 'conversation', 'permissions', 'storage']);
   assert.deepEqual(await client.auth.status(), {
     mode: 'local-app',
     state: 'session-bound',
@@ -144,6 +156,91 @@ test('app-private storage rejects path escape and non-JSON values before transpo
     () => client.storage.writeJson('state.json', cyclic as never),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_STORAGE_VALUE_INVALID',
   );
+});
+
+test('conversation namespace preserves opaque selectors and reserved typed failures', async () => {
+  const handle = 'lash_owner_issued' as NimiSelectedAgentHandle;
+  const calls: unknown[] = [];
+  const unavailable = async (input: unknown): Promise<never> => {
+    calls.push(input);
+    throw Object.assign(new Error('reserved'), {
+      reasonCode: 'local-app-operation-unavailable',
+      actionHint: 'continue_without_optional_permission',
+    });
+  };
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      conversation: {
+        open: unavailable,
+        send: unavailable,
+        subscribe: unavailable,
+        snapshot: unavailable,
+      },
+    }),
+  });
+  const operations = [
+    () => client.conversation.open({ selectedAgentHandle: handle, disposition: 'create-new' }),
+    () => client.conversation.send({
+      selectedAgentHandle: handle,
+      conversationAnchorId: 'anchor-1',
+      requestId: 'request-1',
+      text: 'hello',
+    }),
+    () => client.conversation.subscribe({ selectedAgentHandle: handle, conversationAnchorId: 'anchor-1' }),
+    () => client.conversation.snapshot({ selectedAgentHandle: handle, conversationAnchorId: 'anchor-1' }),
+  ];
+  for (const operation of operations) {
+    await assert.rejects(
+      operation,
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'local-app-operation-unavailable',
+    );
+  }
+  assert.equal(JSON.stringify(calls).includes('localAgentId'), false);
+  assert.equal(calls.length, 4);
+});
+
+test('conversation subscription validates events and cancels exactly once', async () => {
+  const handle = 'lash_owner_issued' as NimiSelectedAgentHandle;
+  let cancelCount = 0;
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      conversation: {
+        open: async () => ({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }),
+        send: async () => ({ messageId: 'message-1' }),
+        snapshot: async () => ({ anchor: { conversationAnchorId: 'anchor-1' } }),
+        subscribe: async () => ({
+          events: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                eventType: 1,
+                sequence: '7',
+                messageId: 'message-1',
+                messageType: 'runtime.agent.turn.delta',
+                payload: { text: 'hello' },
+                reasonCode: 'ACTION_EXECUTED',
+                traceId: 'trace-1',
+                timestampUnixMs: 123,
+              };
+            },
+          },
+          cancel: async () => { cancelCount += 1; },
+        }),
+      },
+    }),
+  });
+  assert.deepEqual(await client.conversation.open({ selectedAgentHandle: handle, disposition: 'create-new' }), {
+    conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null,
+  });
+  const subscription = await client.conversation.subscribe({
+    selectedAgentHandle: handle,
+    conversationAnchorId: 'anchor-1',
+  });
+  const events = [];
+  for await (const event of subscription) events.push(event);
+  await subscription.cancel();
+  assert.equal(events.length, 1);
+  assert.equal(events[0]?.sequence, '7');
+  assert.equal(cancelCount, 1);
 });
 
 test('client rejects expanded host namespaces and permission operation selectors', async () => {

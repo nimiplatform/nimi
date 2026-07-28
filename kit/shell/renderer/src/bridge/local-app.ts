@@ -1,5 +1,9 @@
-import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
+import {
+  NIMI_STANDARD_SHELL_COMMANDS,
+  isNimiStandardShellErrorEnvelope,
+} from '@nimiplatform/kit/shell/capabilities';
 import { BridgeError, invokeChecked } from './invoke.js';
+import { listenShell } from './tauri-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
 import type { JsonObject, JsonValue } from './types.js';
 
@@ -41,6 +45,16 @@ export type NimiLocalAppStorageRemoveResult = {
   readonly removed: boolean;
 };
 
+export type NimiLocalAppConversationScopeInput = {
+  readonly selectedAgentHandle: string;
+  readonly conversationAnchorId: string;
+};
+
+export type NimiLocalAppConversationSubscription = {
+  readonly events: AsyncIterable<unknown>;
+  readonly cancel: () => Promise<void>;
+};
+
 export type NimiLocalAppStandardShellSurface = {
   readonly session: {
     readonly status: () => Promise<NimiLocalAppSessionStatus>;
@@ -53,6 +67,18 @@ export type NimiLocalAppStandardShellSurface = {
     readonly readJson: (relativePath: string) => Promise<NimiLocalAppStorageDocument>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<NimiLocalAppStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiLocalAppStorageRemoveResult>;
+  };
+  readonly conversation: {
+    readonly open: (input: {
+      readonly selectedAgentHandle: string;
+      readonly disposition: 'create-or-resume' | 'create-new';
+    }) => Promise<JsonObject>;
+    readonly send: (input: NimiLocalAppConversationScopeInput & {
+      readonly requestId: string;
+      readonly text: string;
+    }) => Promise<JsonObject>;
+    readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
+    readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
   };
 };
 
@@ -67,6 +93,12 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       readJson: readNimiLocalAppStorageJson,
       writeJson: writeNimiLocalAppStorageJson,
       removeJson: removeNimiLocalAppStorageJson,
+    },
+    conversation: {
+      open: openNimiLocalAppConversation,
+      send: sendNimiLocalAppConversationTurn,
+      subscribe: subscribeNimiLocalAppConversation,
+      snapshot: getNimiLocalAppConversationSnapshot,
     },
   };
 }
@@ -94,6 +126,68 @@ export function requestNimiLocalAppPermission(
       permissionId: requiredText(input.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH),
       reason: requiredUtf8Text(input.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
     },
+  );
+}
+
+export function openNimiLocalAppConversation(input: {
+  readonly selectedAgentHandle: string;
+  readonly disposition: 'create-or-resume' | 'create-new';
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'];
+  assertExactInput(input, ['selectedAgentHandle', 'disposition'], command);
+  if (input.disposition !== 'create-or-resume' && input.disposition !== 'create-new') {
+    throw invalidInput(command, 'disposition is invalid');
+  }
+  return invokeLocalAppRecord(command, {
+    selectedAgentHandle: requiredText(input.selectedAgentHandle, 'selectedAgentHandle', command, MAX_IDENTIFIER_LENGTH),
+    disposition: input.disposition,
+  });
+}
+
+export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversationScopeInput & {
+  readonly requestId: string;
+  readonly text: string;
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'];
+  assertExactInput(input, ['selectedAgentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
+  return invokeLocalAppRecord(command, {
+    selectedAgentHandle: requiredText(input.selectedAgentHandle, 'selectedAgentHandle', command, MAX_IDENTIFIER_LENGTH),
+    conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
+    requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
+    text: requiredUtf8Text(input.text, 'text', command, 64 * 1024),
+  });
+}
+
+export async function subscribeNimiLocalAppConversation(
+  input: NimiLocalAppConversationScopeInput,
+): Promise<NimiLocalAppConversationSubscription> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'];
+  const scope = identifiers(input, ['selectedAgentHandle', 'conversationAnchorId'], command);
+  const opened = await invokeChecked(command, { payload: scope }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid payload`);
+    assertProjectionKeys(record, ['subscriptionId', 'eventName'], command, 'conversation subscription');
+    return {
+      subscriptionId: requiredText(record.subscriptionId, 'subscriptionId', command, MAX_IDENTIFIER_LENGTH),
+      eventName: requiredText(record.eventName, 'eventName', command, MAX_IDENTIFIER_LENGTH),
+    };
+  });
+  const subscription = new LocalAppConversationEventSubscription(command, opened.subscriptionId);
+  try {
+    subscription.attach(await listenShell(opened.eventName, ({ payload }) => subscription.accept(payload)));
+  } catch (error) {
+    await subscription.cancel().catch(() => undefined);
+    throw error;
+  }
+  return subscription;
+}
+
+export function getNimiLocalAppConversationSnapshot(
+  input: NimiLocalAppConversationScopeInput,
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'];
+  return invokeLocalAppRecord(
+    command,
+    identifiers(input, ['selectedAgentHandle', 'conversationAnchorId'], command),
   );
 }
 
@@ -134,6 +228,143 @@ export function removeNimiLocalAppStorageJson(relativePath: string): Promise<Nim
     if (typeof record.removed !== 'boolean') throw new Error(`${command}: removed is invalid`);
     return { removed: record.removed };
   });
+}
+
+class LocalAppConversationEventSubscription implements NimiLocalAppConversationSubscription {
+  readonly events: AsyncIterable<unknown> = this;
+  private readonly queued: unknown[] = [];
+  private readonly waiting: Array<{
+    resolve: (result: IteratorResult<unknown>) => void;
+    reject: (error: unknown) => void;
+  }> = [];
+  private unlisten: (() => void) | undefined;
+  private terminalError: unknown;
+  private done = false;
+  private remoteCompleted = false;
+  private cancelPromise: Promise<void> | undefined;
+
+  constructor(
+    private readonly command: string,
+    private readonly subscriptionId: string,
+  ) {}
+
+  attach(unlisten: () => void): void {
+    if (this.done) unlisten();
+    else this.unlisten = unlisten;
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<unknown> {
+    return {
+      next: () => this.next(),
+      return: async () => {
+        await this.cancel();
+        return { done: true, value: undefined };
+      },
+    };
+  }
+
+  cancel(): Promise<void> {
+    if (this.cancelPromise) return this.cancelPromise;
+    if (this.remoteCompleted) {
+      this.cancelPromise = Promise.resolve();
+      return this.cancelPromise;
+    }
+    this.finish();
+    this.cancelPromise = invokeChecked(
+      this.command,
+      { payload: { action: 'cancel', subscriptionId: this.subscriptionId } },
+      (value) => {
+        const record = assertRecord(value, `${this.command} returned invalid cancel payload`);
+        assertProjectionKeys(record, ['subscriptionId', 'closed'], this.command, 'conversation cancel');
+        if (record.subscriptionId !== this.subscriptionId || typeof record.closed !== 'boolean') {
+          throw new Error(`${this.command}: conversation cancel projection is invalid`);
+        }
+      },
+    );
+    return this.cancelPromise;
+  }
+
+  accept(value: unknown): void {
+    if (this.done) return;
+    try {
+      const record = assertRecord(value, `${this.command} emitted invalid payload`);
+      if (record.subscriptionId !== this.subscriptionId) {
+        throw new Error(`${this.command}: subscription binding is invalid`);
+      }
+      if (record.eventType === 'completed') {
+        assertProjectionKeys(record, ['subscriptionId', 'eventType'], this.command, 'conversation completion');
+        this.remoteCompleted = true;
+        this.finish();
+        return;
+      }
+      if (record.eventType === 'error') {
+        assertProjectionKeys(record, ['subscriptionId', 'eventType', 'error'], this.command, 'conversation error');
+        this.fail(parseConversationStreamError(record.error, this.command));
+        return;
+      }
+      if (record.eventType !== 'next') throw new Error(`${this.command}: conversation event type is invalid`);
+      assertProjectionKeys(record, ['subscriptionId', 'eventType', 'event'], this.command, 'conversation event');
+      const event = parseSafeProjection(record.event, this.command);
+      const waiter = this.waiting.shift();
+      if (waiter) waiter.resolve({ done: false, value: event });
+      else if (this.queued.length < 32) this.queued.push(event);
+      else {
+        const error = new BridgeError('Local-app conversation event buffer is exhausted', this.command, {
+          code: 'resource-exhausted',
+          reasonCode: 'renderer-local-app-conversation-buffer-exhausted',
+          actionHint: 'consume_or_cancel_conversation_subscription',
+          source: 'renderer',
+        });
+        this.fail(error);
+        void this.cancel().catch(() => undefined);
+      }
+    } catch (error) {
+      this.fail(error instanceof BridgeError ? error : new BridgeError(
+        error instanceof Error ? error.message : 'Local-app conversation event is invalid',
+        this.command,
+        {
+          code: 'invalid-payload',
+          reasonCode: 'renderer-standard-shell-result-invalid',
+          actionHint: 'inspect_standard_shell_host_result',
+          source: 'renderer',
+        },
+      ));
+    }
+  }
+
+  private next(): Promise<IteratorResult<unknown>> {
+    if (this.queued.length > 0) {
+      return Promise.resolve({ done: false, value: this.queued.shift() });
+    }
+    if (this.terminalError) return Promise.reject(this.terminalError);
+    if (this.done) return Promise.resolve({ done: true, value: undefined });
+    return new Promise((resolve, reject) => this.waiting.push({ resolve, reject }));
+  }
+
+  private finish(): void {
+    if (this.done) return;
+    this.done = true;
+    this.unlisten?.();
+    this.unlisten = undefined;
+    for (const waiter of this.waiting.splice(0)) waiter.resolve({ done: true, value: undefined });
+  }
+
+  private fail(error: unknown): void {
+    if (this.done) return;
+    this.terminalError = error;
+    this.done = true;
+    this.unlisten?.();
+    this.unlisten = undefined;
+    for (const waiter of this.waiting.splice(0)) waiter.reject(error);
+  }
+}
+
+function parseConversationStreamError(value: unknown, command: string): BridgeError {
+  const envelope = assertRecord(value, `${command} emitted invalid error`);
+  if (!isNimiStandardShellErrorEnvelope(envelope)) {
+    throw new Error(`${command}: conversation error envelope is invalid`);
+  }
+  return new BridgeError(envelope.reasonCode, command, envelope);
 }
 
 function invokeLocalAppRecord(command: string, payload: JsonObject): Promise<JsonObject> {
