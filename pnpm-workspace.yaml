@@ -12,7 +12,6 @@ packages:
   - 'nimi-cognition'
   - 'sdks/typescript'
   - 'sdks/typescript/adapters/*'
-  - 'sdks/typescript/doctor'
 overrides:
   fast-uri: 3.1.2
   gh-pages: ^6.3.0

@@ -8,8 +8,8 @@
 // `backends.vrm` — 360 × 720 with `bottom-companion` framing intent
 // (waist-up, narrow tall window).
 //
-// `nominalBounds` on `BackendBranch` is a STATIC field per
-// `backend-branch-contract.md` §2.9; it carries the BOOT placeholder used
+// `nominalBounds` on `BackendBranch` is a static r003 field; it carries the
+// bounded bootstrap fallback used
 // by `embodiment-stage` for the very first window-resize tick. The
 // post-load truth flows through the per-frame `onHitRegionChange` payload
 // (which embodiment-stage maps to `set_size` if the alpha bounding box

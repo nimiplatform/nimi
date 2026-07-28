@@ -19,13 +19,11 @@ required_fields:
   - backend_kind
   - model_fingerprint
   - generated_motion
-  - evidence
 
 backend_kind_enum:
   - vrm
   - live2d
   - nimi2d
-  - future
 
 generated_motion:
   required_fields:
@@ -83,25 +81,14 @@ nimi2d_section:
     - default_outfit_ref
     - live_action_lanes
   rule: >
-    Nimi2D capability profiles consume Nimi2D package evidence. They must not
+    Nimi2D capability profiles consume validated Nimi2D package facts. They must not
     close default generated asset viability, must not claim true viseme below
     tier-2, and must fail closed when package proven_tier does not support the
     requested Avatar live-action lane.
-
-evidence:
-  required_fields:
-    - source
-    - observed_at
-    - validator
-  source_enum:
-    - model_manifest
-    - runtime_probe
-    - static_asset_inspection
-    - human_review
 
 invariants:
   - Avatar capability profiles consume runtime activity ids only as references from generated-motion-routes.yaml.
   - Profiles must not introduce avatar-local APML ids.
   - Missing capability for a route is fail_closed, not idle fallback.
-  - Nimi2D profiles must consume proven_tier and validator evidence from Nimi2D package manifests.
-  - Profile validation must fail on placeholder success, unknown backend_kind, or empty evidence.
+  - Nimi2D profiles must bind to matching package identity, digest, and proven_tier.
+  - Profile validation must fail on placeholder success or unknown backend_kind.

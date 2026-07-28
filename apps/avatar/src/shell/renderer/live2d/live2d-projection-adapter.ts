@@ -1,6 +1,6 @@
-import { activityIdToMotionGroup } from '@nimiplatform/kit/features/avatar/headless';
 import type { Live2DCompatibilityReport } from '@nimiplatform/kit/features/avatar/headless';
 import type { BackendProjection } from '../carrier/backend-branch.js';
+import { activityIdToMotionGroup } from '../nas/activity-naming.js';
 
 export type Live2DProjectionCommandEvent =
   | { kind: 'motion'; group: string; options: { priority: 'low' | 'normal' | 'high' } }

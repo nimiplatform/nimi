@@ -213,7 +213,7 @@ jobs:
       - name: Install script dry-run smoke
         run: pnpm check:install-script-smoke
 
-      - name: Enforce no absolute user-home paths in docs/spec/examples
+      - name: Enforce no absolute user-home paths in docs and examples
         run: pnpm check:no-absolute-user-paths
 
   core-static:
@@ -429,9 +429,6 @@ jobs:
 
       - name: SDK vNext public surface smoke
         run: pnpm check:sdk-vnext-public-surface-smoke
-
-      - name: SDK vNext Runtime facade check
-        run: pnpm check:sdk-vnext-runtime-facade
 
   runtime-quality:
     needs: changes

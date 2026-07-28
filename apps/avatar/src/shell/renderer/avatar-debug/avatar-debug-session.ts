@@ -3,10 +3,10 @@ import type { BackendBranch } from '../carrier/backend-branch.js';
 import {
   isVrmGeneratedRouteId,
   type VrmGeneratedRouteId,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from '../vrm/vrm-generated-motion-contract.js';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 
-export type AvatarDebugBackendKind = 'vrm' | 'live2d' | 'nimi2d' | 'future';
+export type AvatarDebugBackendKind = 'live2d' | 'vrm' | 'nimi2d';
 
 export type AvatarDebugEvidenceKind =
   | 'package_descriptor_resolved'
@@ -212,6 +212,21 @@ function metadataStringList(meta: Record<string, unknown>, key: string): string[
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
 }
 
+function metadataRecord(meta: Record<string, unknown>, key: string): Record<string, unknown> {
+  const value = meta[key];
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function nimi2dLaneSupported(
+  input: AvatarDebugSessionInput,
+  lane: 'expression' | 'speech_mouth' | 'gesture_motion',
+): boolean {
+  return metadataString(metadataRecord(backendMetadata(input), 'live_action_lanes'), lane)
+    === 'supported';
+}
+
 function isAdmittedCapabilityProfileId(value: string | null | undefined): value is string {
   const normalized = optionalString(value);
   if (!normalized) return false;
@@ -304,12 +319,6 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
   if (!ADMITTED_PROBE_KINDS.has(input.runtimeProbe.probeKind)) {
     return { status: 'invalid', reasonCode: 'probe_kind_not_admitted' };
   }
-  if (input.backendKind === 'future') {
-    return { status: 'unsupported', reasonCode: 'future_backend_not_admitted' };
-  }
-  if (input.backendKind === 'nimi2d') {
-    return { status: 'unsupported', reasonCode: 'nimi2d_backend_renderer_not_admitted' };
-  }
 
   const resolverFailure = resolverFailureReason(input);
   if (resolverFailure) {
@@ -338,6 +347,14 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           ? { status: 'passed', reasonCode: null }
           : { status: 'failed', reasonCode: 'vrm_capability_profile_missing' };
       }
+      if (input.backendKind === 'nimi2d') {
+        return hasBackend
+          && hasProfileRef
+          && metadataString(meta, 'capability_profile_ref')
+            === optionalString(input.backendCapabilityProfileRef)
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'failed', reasonCode: 'nimi2d_capability_profile_missing' };
+      }
       return hasBackend
         && hasProfileRef
         && metadataString(meta, 'compatibility_tier')
@@ -346,18 +363,28 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
         : { status: 'unsupported', reasonCode: 'live2d_capability_profile_missing' };
     case AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX:
     case AvatarDebugProbeKind.GENERATED_MOTION:
-      if (input.backendKind !== 'vrm') {
-        return { status: 'unsupported', reasonCode: 'generated_motion_not_supported_by_backend' };
+      if (input.backendKind === 'vrm') {
+        return supportedRoutes.length > 0
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'unsupported', reasonCode: 'generated_motion_route_support_missing' };
       }
-      return supportedRoutes.length > 0
+      if (input.backendKind === 'nimi2d') {
+        return hasBackend && nimi2dLaneSupported(input, 'gesture_motion')
         ? { status: 'passed', reasonCode: null }
         : { status: 'unsupported', reasonCode: 'generated_motion_route_support_missing' };
+      }
+      return { status: 'unsupported', reasonCode: 'generated_motion_not_supported_by_backend' };
     case AvatarDebugProbeKind.EMOTION_EXPRESSION:
       if (input.backendKind === 'vrm') {
         return profile?.expressionManagerPresent === true
           || metadataBoolean(meta, 'expression_manager_present')
           ? { status: 'passed', reasonCode: null }
           : { status: 'unsupported', reasonCode: 'expression_manager_missing' };
+      }
+      if (input.backendKind === 'nimi2d') {
+        return hasBackend && nimi2dLaneSupported(input, 'expression')
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'unsupported', reasonCode: 'expression_lane_missing' };
       }
       return hasBackend
         && metadataString(meta, 'adapter_id')
@@ -372,6 +399,11 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           && live2dLipsyncEvidenceRef(input)
           ? { status: 'passed', reasonCode: null }
           : { status: 'unsupported', reasonCode: 'live2d_lipsync_evidence_missing' };
+      }
+      if (input.backendKind === 'nimi2d') {
+        return hasBackend && nimi2dLaneSupported(input, 'speech_mouth')
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'unsupported', reasonCode: 'lipsync_profile_missing' };
       }
       return hasBackend && metadataBoolean(meta, 'lipsync_profile_present')
         ? { status: 'passed', reasonCode: null }

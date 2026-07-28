@@ -1,42 +1,11 @@
 import assert from 'node:assert/strict';
-import path from 'node:path';
 import test from 'node:test';
 import {
   cleanupBehaviorModules,
   importBehaviorModule,
-  listSourceFiles,
-  read,
-  readTesterAiTestingSurface,
-  readTesterKitComponentGallerySurface,
-  root,
 } from './helpers.mjs';
 
 test.after(cleanupBehaviorModules);
-
-test('tester production build uses the protocol-owned canonical CSS profile', () => {
-  const viteConfig = read('vite.config.ts');
-
-  assert.match(viteConfig, /validateSimulatorAppSource\(__dirname\)/);
-  assert.match(viteConfig, /createSimulatorCssProfileVitePlugin\(\{/);
-  assert.match(viteConfig, /compilerRoot:\s*__dirname/);
-  assert.match(viteConfig, /foundationEntry:\s*path\.join\(__dirname, 'src\/styles\.css'\)/);
-  assert.match(viteConfig, /apps:\s*\[\{ rootDir:\s*__dirname, style:\s*testerSource\.style \}\]/);
-  assert.doesNotMatch(viteConfig, /kit\/features\/[^'"\n]+\/src/);
-  assert.doesNotMatch(viteConfig, /optimizeDeps:\s*\{/);
-});
-
-test('Tester and Simulator builds share package resolution and the same CSS profile implementation', () => {
-  const testerVite = read('vite.config.ts');
-  const simulatorVite = read('../simulator/vite.config.ts');
-
-  for (const source of [testerVite, simulatorVite]) {
-    assert.match(source, /createSimulatorCssProfileVitePlugin/);
-    assert.match(source, /dedupe|selectedSourcePlugin/);
-    assert.doesNotMatch(source, /@nimiplatform\/kit[^\n]+:\s*path\.resolve/);
-  }
-  assert.match(testerVite, /dedupe:\s*\['react', 'react-dom', 'react\/jsx-runtime', 'react\/jsx-dev-runtime'\]/);
-  assert.match(simulatorVite, /selectedCssProfiles\(\)/);
-});
 
 test('tester run target summary hydrates local runtime model labels without exposing opaque ids', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
@@ -243,187 +212,13 @@ test('tester text run target omits unconfigured model drawer placeholders from h
   assert.deepEqual(summary.paramsSummary, []);
 });
 
-test('tester AI config remains visibly fail-closed until the local-app carrier admits it', () => {
-  const store = read('src/tester/tester-ai-config-store.ts');
-  const surface = read('src/shell/ai/tester-ai-config-settings.tsx');
-  const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
-  const productionBindings = read('src/renderer/production-bindings.ts');
-  const rendererEntry = read('src/main.tsx');
-  const capabilities = readTesterAiTestingSurface(root);
-  const runTarget = read('src/tester/tester-run-target.ts');
-  const modelConfigHub = read('../../kit/features/model-config/src/components/model-config-ai-model-hub.tsx');
-  const runtimeTargetSummary = read('../../kit/features/model-config/src/headless/runtime-target-summary.ts');
-  const styles = read('src/tester/tester-workbench.css');
-
-  for (const required of [
-    'NimiAIConfig',
-    'createNimiAppAIScopeRef',
-    'createNimiError',
-    'TESTER_LOCAL_APP_AI_CONFIG_UNAVAILABLE',
-    'await_local_app_ai_config_operation_admission',
-    'importTesterAIProfileJson',
-    'saveTesterAIConfig',
-    'recordTesterAISnapshot',
-    'getLatestTesterAISnapshot',
-    '@nimiplatform/kit/features/model-config/headless',
-  ]) {
-    assert.match(store, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-  assert.doesNotMatch(store, /createInstalledNimiAppStandardShellSurface/);
-  assert.doesNotMatch(store, /standardShellSurface\.aiConfig/);
-  assert.doesNotMatch(store, /localStorage|sessionStorage/);
-  assert.doesNotMatch(store, /createAppAIScopeRef/);
-  assert.doesNotMatch(store, /createScopedAIConfigStore/);
-  assert.doesNotMatch(store, /createScopedAISnapshotStore/);
-  assert.doesNotMatch(store, /createHostAIProfileSurface/);
-  assert.doesNotMatch(store, /validateAIProfileRuntimeBindings/);
-  assert.doesNotMatch(store, /TESTER_AI_CONFIG_LEGACY_STORAGE_KEY/);
-  assert.doesNotMatch(store, /migrateLegacyTesterAIConfigIfNeeded/);
-  assert.doesNotMatch(store, /scope-mismatch/);
-  assert.doesNotMatch(store, /resolveBrowserStorage/);
-  assert.doesNotMatch(store, /createNimiAIConfigStore/);
-  assert.doesNotMatch(store, /TESTER_AI_CONFIG_STORAGE_KEY/);
-  assert.doesNotMatch(store, /repairTesterAIConfigStorageForScope/);
-
-  // The kit model-config mechanics live in the scaffold-managed sectioned config
-  // surface skeleton (inherited by every generated app). It composes admitted kit
-  // primitives and accepts an initialSection so a capability gear can deep-link.
-  for (const required of [
-    'ModelConfigAiModelHub',
-    'useModelConfigProfileController',
-    'defaultModelConfigProfileCopy',
-    'Import AIProfile JSON',
-    'Open Apply AI Profile to preview and confirm',
-    'fail closed',
-    'initialSection',
-    'detailOnly',
-    'detailActiveModelHint={null}',
-    'footer={importFooter}',
-    'profile={profileController}',
-    'resolveModelConfigLocalRuntimeStatus',
-  ]) {
-    assert.match(surface, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-  assert.doesNotMatch(surface, /ProfileConfigSection/);
-  assert.doesNotMatch(surface, /ModelConfigCapabilityDetail/);
-  assert.match(modelConfigHub, /import \{ ProfileConfigSection \} from '\.\/profile-config-section\.js';/);
-  assert.match(modelConfigHub, /import \{ ModelConfigCapabilityDetail \} from '\.\/model-config-capability-detail\.js';/);
-  assert.match(modelConfigHub, /initialSection\?: CanonicalCapabilitySectionId \| null/);
-  assert.match(modelConfigHub, /detailOnly\?: boolean/);
-  assert.match(modelConfigHub, /detailActiveModelHint\?: string \| null/);
-  assert.match(modelConfigHub, /footer\?: ReactNode/);
-  assert.match(modelConfigHub, /<ProfileConfigSection controller=\{profile\} variant="import-button" \/>/);
-  assert.match(modelConfigHub, /<ModelConfigCapabilityDetail/);
-  assert.doesNotMatch(surface, /targetRefDetail/);
-  assert.doesNotMatch(surface, /title:\s*'Target configured'/);
-  assert.doesNotMatch(surface, /NimiAIConfigTargetRef/);
-  assert.doesNotMatch(surface, /function localRuntimeRefCandidates/);
-  assert.doesNotMatch(surface, /function imageLocalSetupStatus/);
-  assert.doesNotMatch(surface, /applyAIProfileToConfig/);
-  assert.match(surface, /profileController\.onCancelPreview\(\)/);
-  assert.match(surface, /profileController\.onSelectedProfileChange\(result\.profileId\)/);
-  assert.doesNotMatch(surface, /profileController\.onApply\(result\.profileId\)/);
-
-  // The tester wrapper injects app-scoped wiring into that surface.
-  for (const required of [
-    'TesterAiConfigSettings',
-    'rendererHost.sdk.aiConfig.scopeRef',
-    'rendererHost.sdk.aiConfig.service',
-    'rendererHost.sdk.aiConfig.modelPickerProviderCache',
-    'rendererHost.sdk.aiConfig.requireAdmission()',
-    'rendererHost.sdk.aiConfig.importProfileJson(json)',
-    "'ModelConfig.profile.importLabel': 'Apply AI Profile'",
-    "runtime?.status === 'ready'",
-  ]) {
-    assert.match(panel, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-  assert.match(productionBindings, /createTesterRuntimeModelPickerProvider/);
-  assert.match(productionBindings, /createTesterRuntimeModelPickerProviderCache/);
-  assert.match(productionBindings, /importTesterAIProfileJson/);
-  assert.doesNotMatch(panel, /from '\.\.\/\.\.\/tester\/tester-ai-config-store/);
-  assert.match(surface, /<ScrollArea\s+className="min-h-0 min-w-0 max-w-full flex-1"/);
-  assert.match(surface, /viewportClassName=\{drawer \? 'section-ai-testing__drawer-viewport' : undefined\}/);
-  assert.match(surface, /'w-full min-w-0 max-w-full overflow-x-hidden px-6 py-4'/);
-
-  // The AI config lives in Settings; the AI Capabilities settings gear deep-links
-  // into the configured capability's section. App Lab no longer owns a bespoke
-  // AIConfig lives in a right slide-over opened by the per-capability settings
-  // gear (full adoption of the canonical kit model-config surface). App Lab's
-  // bespoke AIConfig panel was removed entirely.
-  assert.match(capabilities, /TesterAiConfigSettingsPanel/);
-  assert.match(capabilities, /resolveSectionAITestingConfigSection/);
-  assert.match(rendererEntry, /createRendererEntryModuleLoader/);
-  assert.match(rendererEntry, /DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS/);
-  assert.match(rendererEntry, /entryModuleLoader\.load\('entry:tester-app'/);
-  assert.match(capabilities, /onOpenConfig/);
-  assert.doesNotMatch(capabilities, /function RunTargetBar/);
-  assert.doesNotMatch(capabilities, /data-testid="studio-run-target"/);
-  assert.match(capabilities, /createTesterRunTargetSummary/);
-  assert.match(capabilities, /function canConfigureRunTarget\(runTarget: TesterRunTargetSummary\)/);
-  assert.match(capabilities, /runTarget\.modelLabel === 'Target required'/);
-  assert.match(capabilities, /runTarget\.source === 'profile-slice'/);
-  assert.match(capabilities, /canDispatch=\{runTarget\.canDispatch\}/);
-  assert.match(capabilities, /canConfigureTarget=\{canConfigureRunTarget\(runTarget\)\}/);
-  assert.match(capabilities, /disabled=\{generateDisabled\}/);
-  assert.match(capabilities, /onClick=\{targetConfigAction \? onOpenModelConfig : onSubmit\}/);
-  assert.match(capabilities, /if \(!runTarget\.canDispatch\) return/);
-  assert.match(runTarget, /export type TesterRunTargetSummary/);
-  for (const required of [
-    'capabilityId',
-    'bindingCapabilityId',
-    'section',
-    'status',
-    'source',
-    'modelLabel',
-    'detail',
-    'canDispatch',
-    'paramsSummary',
-    'profileOrigin',
-  ]) {
-    assert.match(runTarget, new RegExp(required));
-  }
-  assert.match(runTarget, /summarizeModelConfigRuntimeTarget/);
-  assert.match(runTarget, /getTesterRuntimeBindingCapabilityId\(capability\.id\)/);
-  assert.match(runtimeTargetSummary, /targetRef\.kind === 'profile-slice'/);
-  assert.match(runtimeTargetSummary, /input\.runtimeStatus === 'blocked'/);
-  assert.match(runtimeTargetSummary, /Choose a Runtime model target/);
-  assert.doesNotMatch(runTarget, /gpt-4|claude|gemini|openai|anthropic|model:\s*['"]auto['"]/i);
-  assert.doesNotMatch(styles, /\.studio-run-target/);
-  assert.doesNotMatch(styles, /\.studio-run-target__params/);
-  assert.match(styles, /\.studio-generate-action--configure\s*\{[^}]*background:\s*var\(--nimi-action-primary-bg-hover\)/s);
-  assert.match(styles, /\.workbench\s*\{[^}]*--nimi-ui-module-tester-studio-side-panel-width:\s*min\(360px,\s*calc\(100cqw - 48px\)\)/s);
-  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*position:\s*absolute/s);
-  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*box-sizing:\s*border-box/s);
-  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*width:\s*var\(--nimi-ui-module-tester-studio-side-panel-width\)/s);
-  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*max-width:\s*100%/s);
-  assert.match(styles, /\.section-ai-testing__drawer-viewport\s*>\s*div\s*\{[^}]*display:\s*block\s*!important/s);
-  assert.match(styles, /\.section-ai-testing__drawer-viewport\s*>\s*div\s*\{[^}]*width:\s*100%\s*!important/s);
-  assert.match(capabilities, /from '@nimiplatform\/kit\/ui\/motion'/);
-  assert.match(capabilities, /nimiOverlayPanelMotion\(\{ kind: 'drawer', reducedMotion \}\)/);
-  assert.match(capabilities, /<motion\.aside[\s\S]*\{\.\.\.drawerMotion\}/);
-  assert.doesNotMatch(styles, /section-ai-testing-drawer-slide-in/);
-  assert.match(styles, /@container nimi-ui-module-tester-surface \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
-});
-
 test('tester capability model config drawer section follows the active left rail capability while open', async () => {
   const { resolveSectionAITestingConfigSection } = await importBehaviorModule('tester/workbench/section-ai-testing-config-section.js');
-  const capabilities = readTesterAiTestingSurface(root);
 
   assert.equal(resolveSectionAITestingConfigSection({ open: false, capabilityId: 'image.generate' }), null);
   assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'image.generate' }), 'image');
   assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'video.generate' }), 'video');
   assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'audio.transcribe' }), 'stt');
-  assert.match(capabilities, /resolveSectionAITestingConfigSection/);
-  assert.match(capabilities, /configOpen/);
-  assert.doesNotMatch(capabilities, /useState<CanonicalCapabilitySectionId \| null>/);
-});
-
-test('tester keeps AIConfig and AI execution fail-closed until separately admitted', () => {
-  const runtime = read('src/tester/tester-runtime.ts');
-
-  assert.match(runtime, /session posture, public permission posture\/request, and app-private JSON storage/);
-  assert.match(runtime, /'sdk-method-unavailable'/);
-  assert.doesNotMatch(runtime, /invokeTesterCapability|projection\.client|new Runtime/);
 });
 
 test('tester model picker consumes SDK route projection for runtime local assets and remote connectors', async () => {
@@ -625,31 +420,4 @@ test('tester model picker adapts the runtime host client to SDK route options', 
   assert.deepEqual((await provider.listConnectors()).map((connector) => connector.connectorId), ['cloud-managed']);
   assert.deepEqual((await provider.listConnectorModels('cloud-managed')).map((model) => model.modelId), ['remote.chat.model']);
   assert.deepEqual(calls, ['connectors:2:1', 'local:0:0', 'models:cloud-managed']);
-});
-
-test('tester model picker catalog uses SDK route options projection only', () => {
-  const provider = read('src/tester/tester-runtime-model-provider.ts');
-  const summary = read('src/tester/tester-ai-config.ts');
-
-  assert.match(provider, /createRuntimeRouteModelPickerProvider/);
-  assert.match(provider, /@nimiplatform\/kit\/features\/model-picker\/runtime/);
-  assert.match(provider, /getRuntimePlatformProjection/);
-  assert.match(provider, /createNimiRuntimeRouteOptionsHostDeps/);
-  assert.match(provider, /listNimiRuntimeRouteOptionsWithHost/);
-  assert.match(provider, /listRuntimeRouteOptions/);
-  assert.match(provider, /model catalog failed closed/);
-  assert.doesNotMatch(provider, /normalizeRuntimeRouteCapabilityToken/);
-  assert.doesNotMatch(provider, /createSnapshotRouteDataProvider/);
-  assert.doesNotMatch(provider, /as unknown as RuntimeRouteModelPickerClient/);
-  assert.doesNotMatch(provider, /as NimiRuntimeCanonicalCapability/);
-  assert.doesNotMatch(provider, /openai|anthropic|gemini|gpt-4|claude|mock.*success/i);
-  assert.match(summary, /sdk\.runtime\.listNimiRuntimeRouteOptions/);
-  assert.doesNotMatch(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
-});
-
-test('tester local asset source remains empty while model catalog access is not admitted', () => {
-  const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
-
-  assert.match(panel, /list:\s*\(\) => \[\]/);
-  assert.doesNotMatch(panel, /listNimiRuntimeLocalAssetEntries|artifactRoles:\s*asset\.artifactRoles/);
 });

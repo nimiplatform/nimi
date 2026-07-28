@@ -2,9 +2,9 @@
 //
 // Runtime registry that maps motion preset id → Three.js AnimationAction
 // and drives crossfaded playback against a single per-VRM AnimationMixer.
-// Implements K-NAV-VRM-003 + K-NAV-VRM-004 from vrm-backend-contract.md.
+// Implements the r058 VRMA interchange path; it is not generated-motion proof.
 //
-// Per-model override semantics (vrm-backend-contract.md §3.3):
+// Per-model interchange override semantics:
 //   `<model_path>/motions/<preset_id>.vrma` shadows the builtin asset
 //   when the same id is present in `perModelOverrides`. Both flow through
 //   the same `loadAnimationOverride` test seam so unit tests can mock

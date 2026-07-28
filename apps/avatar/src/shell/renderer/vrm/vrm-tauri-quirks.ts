@@ -2,8 +2,8 @@
 //
 // Tauri webview (macOS WKWebView) intermittently fails when GLTFLoader's
 // `ImageBitmapLoader` decodes blob-backed VRM textures via
-// `createImageBitmap`. Per vrm-backend-contract.md §6.1 (K-NAV-VRM-007),
-// we set `window.createImageBitmap` to `undefined` so GLTFLoader's
+// `createImageBitmap`. The local r056 loader adapter temporarily sets
+// `window.createImageBitmap` to `undefined` so GLTFLoader's
 // constructor-time check (`createImageBitmap !== undefined`) picks
 // `ImageLoader` (HTMLImageElement-based) instead of `ImageBitmapLoader`.
 //

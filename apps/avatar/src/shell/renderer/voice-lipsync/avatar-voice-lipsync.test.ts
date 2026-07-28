@@ -165,9 +165,8 @@ describe('avatar-voice-lipsync orchestrator hard-cut', () => {
       audioArtifactId: 'artifact-1',
       audioMimeType: 'audio/wav',
     });
-    // Pipeline does NOT emit avatar.speak.start / .end / .lipsync.frame anymore;
-    // those originate from runtime now (or are deprecated in
-    // avatar-event-contract.md).
+    // The local pipeline does not fabricate Runtime speech lifecycle or emit
+    // the per-frame lipsync event retired by rule.nimi.avatar.embodiment.r019.
     expect(driver.emitted).toEqual([]);
   });
 

@@ -92,8 +92,9 @@ export type WindowBoundsRecomputerDeps = {
   applySize: (size: { width: number; height: number }) => void | Promise<void>;
   // Optional evidence sink. When provided, every successful recompute emits
   // `avatar.shell.window-bounds-changed` so the projection layer can record
-  // the trigger + result + the inputs that produced it. Wave 4 evidence;
-  // detail shape matches avatar-event-contract.md §4.
+  // the trigger + result + the inputs that produced it. The detail remains a
+  // bounded Avatar-local observation under rules
+  // rule.nimi.avatar.embodiment.r018 and r019.
   onRecomputed?: (input: {
     trigger: WindowBoundsTrigger;
     width: number;

@@ -17,15 +17,15 @@ description: >
   auto-adapter runtime support proof. Generated motion provider support
   is now governed by generated-motion-routes.yaml,
   backend-capability-profile.schema.yaml, mapping-sidecar.schema.yaml, and
-  generated-motion-provider-contract.md. .vrma remains authoring/interchange
-  evidence only.
+  rules rule.nimi.avatar.embodiment.r026, r027, and r028. .vrma remains
+  authoring/interchange material only.
 
   This table hard-cuts the stale unbacked preset rows. Only `idle_subtle` is admitted as a built-in
   interchange asset because it is the only physical `.vrma` file present with
   concrete license/source metadata. Runtime support for `listen_lean`,
   `nod_yes`, `shake_no`, and `greet_wave` is governed by
-  generated-motion-routes.yaml and generated-motion-provider-contract.md, not
-  this registry.
+  generated-motion-routes.yaml and rule.nimi.avatar.embodiment.r058, not this
+  registry.
 
   Drift checks:
     - every entry MUST have non-placeholder `license` + `source` fields

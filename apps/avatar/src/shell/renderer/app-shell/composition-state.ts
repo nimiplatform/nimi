@@ -1,8 +1,7 @@
-// Surface composition state derivation per app-shell-contract.md section 6
-// (K-NAV-SHELL-COMPOSITION-001..005).
-// The avatar shell renders exactly one of three surfaces at any time:
+// Surface composition state derivation for rules
+// rule.nimi.avatar.embodiment.r021 and r022.
+// The Avatar shell renders exactly one product surface at any time:
 //   - ready:            embodiment-stage
-//   - fixture-active:   same as ready, but driven by VITE_AVATAR_DRIVER=mock fixture data
 //   - loading:          pre-bootstrap-complete; degraded-surface variant=loading
 //   - degraded:*:       typed runtime / account / launch failures
 //   - error:*:          untyped bootstrap failures
@@ -13,7 +12,6 @@ import type { AvatarAppState } from './app-store.js';
 
 export type CompositionState =
   | 'ready'
-  | 'fixture_active'
   | 'loading'
   | 'degraded_reauth_required'
   | 'degraded_cloud_offline'
@@ -22,7 +20,7 @@ export type CompositionState =
   | 'error_bootstrap_fatal'
   | 'relaunch_pending';
 
-export type CompositionVariant = 'live' | 'fixture' | 'loading' | 'degraded' | 'error' | 'relaunch';
+export type CompositionVariant = 'live' | 'loading' | 'degraded' | 'error' | 'relaunch';
 
 export type CompositionDerivation = {
   state: CompositionState;
@@ -137,8 +135,6 @@ function deriveModelDiagnostics(model: AvatarAppState['model']): CompositionMode
 
 export function deriveCompositionState(input: CompositionInput): CompositionDerivation {
   const modelDiagnostics = deriveModelDiagnostics(input.model);
-  const fixtureMode = input.consume.authority === 'fixture' || input.consume.mode === 'mock';
-
   if (input.relaunchPending) {
     return {
       state: 'relaunch_pending',
@@ -188,7 +184,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     };
   }
 
-  if (!fixtureMode && input.runtimeBinding.status !== 'active') {
+  if (input.runtimeBinding.status !== 'active') {
     const reason = readNormalizedString(input.runtimeBinding.reason);
     return {
       state: isExplicitRealmTransportUnavailable(input.runtimeBinding)
@@ -237,22 +233,6 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       retryable: false,
       modelDiagnostics,
       ready: false,
-    };
-  }
-
-  if (fixtureMode) {
-    return {
-      state: 'fixture_active',
-      variant: 'fixture',
-      reason: null,
-      reasonCode: null,
-      accountReasonCode: null,
-      actionHint: null,
-      stage: null,
-      source: null,
-      retryable: null,
-      modelDiagnostics,
-      ready: true,
     };
   }
 

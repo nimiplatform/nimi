@@ -48,11 +48,8 @@ function renderAppearance(
       previewMaterialRef: 'agent-center-avatar-asset:local-agent/live2d-imported',
       previewState: 'ready',
       previewTier: 'avatar_preview_service',
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d:123',
       previewImageRef: '/__nimi/avatar-preview/live2d/123',
-      previewEvidenceRef: 'avatar.carrier.visual:live2d:123',
       previewVisiblePixels: 32,
-      previewSampledPixelChecksum: 123,
       backgroundRef: null,
       backgroundValid: false,
       avatarAutoplay: true,
@@ -83,7 +80,7 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.querySelector('[data-agent-center-appearance-avatar-preview="configured"]')).not.toBeNull();
     expect(node.querySelector('[data-avatar-preview-tier="avatar_preview_service"]')).not.toBeNull();
     expect(node.querySelector('[data-avatar-preview-nonplaceholder="true"]')).not.toBeNull();
-    expect(node.querySelector('[data-avatar-preview-artifact-ref="avatar.carrier.preview-artifact:live2d:123"]')).not.toBeNull();
+    expect(node.querySelector('[data-avatar-preview-visible-pixels="32"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-primary-action="continue"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-secondary-action="change"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-progress="display-checklist"]')).not.toBeNull();
@@ -108,18 +105,15 @@ describe('AgentCenter appearance visual setup surface', () => {
       live2dAdapterManifestSource: 'embedded_creator_manifest',
       previewState: 'unavailable',
       previewTier: null,
-      previewArtifactRef: null,
       previewImageRef: null,
-      previewEvidenceRef: null,
       previewVisiblePixels: null,
-      previewSampledPixelChecksum: null,
-      previewFailureReason: 'avatar_preview_service evidence is missing',
+      previewFailureReason: 'avatar_preview_service output is missing',
     });
 
     expect(node.querySelector('[data-agent-center-appearance-avatar-preview="configured"]')).not.toBeNull();
     expect(node.querySelector('[data-avatar-preview-nonplaceholder="true"]')).toBeNull();
     expect(node.querySelector('[data-avatar-preview-nonplaceholder="false"]')).not.toBeNull();
-    expect(node.textContent).toContain('avatar_preview_service evidence is missing');
+    expect(node.textContent).toContain('avatar_preview_service output is missing');
     expect(node.textContent).not.toContain('Avatar can appear in chat.');
     expect(node.textContent).not.toContain('avatar_preview_service:live2d:');
   });
@@ -129,11 +123,8 @@ describe('AgentCenter appearance visual setup surface', () => {
       live2dAdapterManifestSource: 'embedded_creator_manifest',
       previewState: 'unavailable',
       previewTier: 'avatar_preview_service',
-      previewArtifactRef: null,
       previewImageRef: null,
-      previewEvidenceRef: null,
       previewVisiblePixels: null,
-      previewSampledPixelChecksum: null,
       previewFailureReason: 'Avatar preview service adapter is unavailable.',
     }, { defaultSection: 'overview' });
 

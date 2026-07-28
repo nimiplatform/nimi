@@ -197,11 +197,11 @@ test('fails closed before default Runtime presentation read when Electron bridge
   assert.equal(avatar.projectionRef, null);
 });
 
-test('normalizes Avatar facade read failures without pseudo presence', async () => {
+test('normalizes Runtime presentation read failures without pseudo presence', async () => {
   const { probeZhiyuAvatarPresence } = await loadModule();
-  const error = Object.assign(new Error('Avatar facade read failed.'), {
-    reasonCode: ReasonCode.SDK_AVATAR_CONFIGURATION_RECORD_INVALID,
-    actionHint: 'check_avatar_facade_projection',
+  const error = Object.assign(new Error('Runtime presentation read failed.'), {
+    reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+    actionHint: 'check_runtime_presentation_projection',
     source: 'sdk',
   });
   const avatar = await probeZhiyuAvatarPresence(localAgentReady(), {
@@ -212,8 +212,8 @@ test('normalizes Avatar facade read failures without pseudo presence', async () 
 
   assert.equal(avatar.ready, false);
   assert.equal(avatar.state, 'blocked');
-  assert.equal(avatar.reasonCode, 'SDK_AVATAR_CONFIGURATION_RECORD_INVALID');
-  assert.equal(avatar.actionHint, 'check_avatar_facade_projection');
+  assert.equal(avatar.reasonCode, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
+  assert.equal(avatar.actionHint, 'check_runtime_presentation_projection');
   assert.equal(avatar.source, 'sdk');
   assert.equal(avatar.configurationRef, null);
   assert.equal(avatar.projectionRef, null);

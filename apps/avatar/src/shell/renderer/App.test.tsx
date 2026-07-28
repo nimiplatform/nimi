@@ -1,6 +1,6 @@
-// Wave 1 - App.tsx three-surface integration tests.
-// Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-* the shell renders exactly
-// one of: embodiment-stage under ready / fixture_active, or degraded-surface
+// App.tsx shell composition integration tests.
+// Per rules rule.nimi.avatar.embodiment.r021 and r022, the shell renders one of:
+// embodiment-stage under ready, or degraded-surface
 // under loading / degraded:* / error:* / relaunch-pending.
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -300,7 +300,7 @@ function seedActiveTurnBundle(input: {
   } satisfies AgentDataBundle);
 }
 
-function seedFixtureState(): void {
+function seedMockDriverWithRuntimeBinding(): void {
   useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
   useAvatarStore.getState().setConsumeMode({
     mode: 'mock',
@@ -309,16 +309,16 @@ function seedFixtureState(): void {
     fixturePlaying: true,
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
-  useAvatarStore.getState().setRuntimeConsumeContext({
-    avatarInstanceId: 'fixture-avatar-default',
-    conversationAnchorId: 'fixture-anchor-default',
-    agentId: 'fixture-agent-default',
+  useAvatarStore.getState().setRuntimeBinding({
+    avatarInstanceId: 'avatar-instance-01',
+    conversationAnchorId: 'anchor-01',
+    agentId: 'local-agent:owner-product:agent-product-01',
     worldId: 'world-mock-default',
   });
   useAvatarStore.getState().setDriverStatus('running');
 }
 
-function seedFixtureWithoutRuntimeBinding(): void {
+function seedMockDriverWithoutRuntimeBinding(): void {
   useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
   useAvatarStore.getState().setConsumeMode({
     mode: 'mock',
@@ -438,37 +438,38 @@ describe('App composition state machine', () => {
     expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('ready');
   });
 
-  it('mounts ready surfaces under fixture_active composition', async () => {
+  it('keeps mock driver selection inside the standard ready lifecycle', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
 
     act(() => {
-      seedFixtureState();
+      seedMockDriverWithRuntimeBinding();
     });
 
     await waitFor(() => {
       expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
     });
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('fixture_active');
+    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('ready');
   });
 
-  it('treats explicit fixture mode as ready without active runtime binding', async () => {
+  it('does not let mock driver selection bypass the Runtime binding', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
 
     act(() => {
-      seedFixtureWithoutRuntimeBinding();
+      seedMockDriverWithoutRuntimeBinding();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
+      expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
     });
-    expect(screen.queryByTestId('avatar-degraded-surface')).toBeNull();
+    expect(screen.queryByTestId('avatar-embodiment-stage')).toBeNull();
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('fixture_active');
+    expect(screen.getByTestId('avatar-root').getAttribute('data-composition'))
+      .toBe('degraded_runtime_unavailable');
   });
 
   it('mounts ONLY degraded-surface under degraded:runtime-unavailable', async () => {

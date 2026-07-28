@@ -3,8 +3,7 @@
 // MToon material loader plugin factory with an outline-fallback policy for
 // GPU environments that cannot render outline meshes acceptably (software
 // rasterisers and similar limited-shader paths). Per
-// vrm-backend-contract.md §7 (K-NAV-VRM-008) and apps/avatar AGENTS.md §"VRM
-// Backend Pitfalls", outline is decorative — when the GPU is incompatible
+// rule.nimi.avatar.embodiment.r061, outline is decorative; when the GPU is incompatible
 // we fall back to the base MToon material instead of fail-closing.
 //
 // Algorithm reference: airi `AiriMToonMaterialLoaderPlugin`

@@ -142,15 +142,8 @@ function avatarPreviewAdapter() {
         backendKind: input.backendKind,
         avatarAssetRef: input.avatarAssetRef,
         previewMaterialRef: input.previewMaterialRef,
-        previewArtifactRef: input.backendKind === 'vrm'
-          ? `avatar.vrm.preview-artifact:${input.avatarAssetRef}:123`
-          : `avatar.carrier.preview-artifact:${input.avatarAssetRef}:123`,
         previewImageRef: `/__nimi/avatar-preview/${input.backendKind}/123`,
-        evidenceRef: input.backendKind === 'vrm'
-          ? `avatar.vrm.visual:${input.avatarAssetRef}:123`
-          : `avatar.carrier.visual:${input.avatarAssetRef}:123`,
         visiblePixels: 32,
-        sampledPixelChecksum: 123,
         nonPlaceholder: true as const,
         warnings: ['preview rendered through avatar service'],
       };
@@ -247,7 +240,8 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
       previewState: 'ready',
       previewTier: 'avatar_preview_service',
       previewMaterialRef: expect.stringContaining('vrm_222222222222'),
-      previewArtifactRef: 'avatar.vrm.preview-artifact:vrm_222222222222:123',
+      previewImageRef: '/__nimi/avatar-preview/vrm/123',
+      previewVisiblePixels: 32,
       backgroundRef: 'bg_111111111111',
       backgroundValid: true,
       defaultVoiceReference: 'preset_voice_id:zh-CN',
@@ -255,7 +249,7 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     });
   });
 
-  it('projects Avatar-owned preview service evidence without local placeholder success', async () => {
+  it('projects Avatar-owned renderer output without local placeholder success', async () => {
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account-1',
@@ -282,7 +276,8 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
       previewState: 'ready',
       previewTier: 'avatar_preview_service',
       previewMaterialRef: expect.stringContaining('live2d_111111111111'),
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d_111111111111:123',
+      previewImageRef: '/__nimi/avatar-preview/live2d/123',
+      previewVisiblePixels: 32,
       previewWarnings: ['preview rendered through avatar service'],
     });
   });
@@ -314,40 +309,12 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
       previewMaterialRef: expect.stringContaining('live2d_111111111111'),
       previewState: 'unavailable',
       previewTier: 'avatar_preview_service',
-      previewArtifactRef: null,
+      previewImageRef: null,
       previewFailureReason: 'Avatar preview service adapter is unavailable.',
     });
   });
 
-  it.each([
-    {
-      name: 'normalized material alias',
-      previewArtifactRef: ' agent-center-avatar-asset:account-1:local-agent-ren:live2d_111111111111 ',
-      previewImageRef: '/__nimi/avatar-preview/live2d/alias',
-    },
-    {
-      name: 'foreign-origin blob surface',
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d_111111111111:foreign',
-      previewImageRef: 'blob:https://foreign-origin.example/preview-id',
-    },
-    {
-      name: 'non-Avatar artifact authority',
-      previewArtifactRef: 'shell.preview-artifact:live2d_111111111111:foreign',
-      previewImageRef: '/__nimi/avatar-preview/live2d/foreign-artifact',
-    },
-    {
-      name: 'non-Avatar evidence authority',
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d_111111111111:foreign-evidence',
-      previewImageRef: '/__nimi/avatar-preview/live2d/foreign-evidence',
-      evidenceRef: 'shell.visual:live2d_111111111111:foreign',
-    },
-    {
-      name: 'mismatched backend claim',
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d_111111111111:wrong-backend',
-      previewImageRef: '/__nimi/avatar-preview/live2d/wrong-backend',
-      backendKind: 'vrm' as const,
-    },
-  ])('fails closed for $name', async ({ previewArtifactRef, previewImageRef, evidenceRef, backendKind }) => {
+  it('fails closed for a foreign renderer image', async () => {
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account-1',
@@ -362,14 +329,11 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
           return {
             state: 'ready' as const,
             tier: 'avatar_preview_service' as const,
-            backendKind: backendKind ?? input.backendKind,
+            backendKind: input.backendKind,
             avatarAssetRef: input.avatarAssetRef,
             previewMaterialRef: input.previewMaterialRef,
-            previewArtifactRef,
-            previewImageRef,
-            evidenceRef: evidenceRef ?? 'avatar.carrier.visual:live2d_111111111111:invalid',
+            previewImageRef: 'blob:https://foreign-origin.example/preview-id',
             visiblePixels: 32,
-            sampledPixelChecksum: 123,
             nonPlaceholder: true as const,
           };
         },
@@ -389,11 +353,11 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     await expect(adapter.load()).resolves.toMatchObject({
       status: 'invalid',
       previewState: 'failed',
-      previewArtifactRef: null,
+      previewImageRef: null,
     });
   });
 
-  it('fails closed when Avatar preview evidence does not match selected material', async () => {
+  it('fails closed when Avatar preview output does not match selected material', async () => {
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account-1',
@@ -411,11 +375,8 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
             backendKind: 'vrm' as const,
             avatarAssetRef: 'vrm_other',
             previewMaterialRef: 'agent-center-avatar-asset:other',
-            previewArtifactRef: 'avatar.vrm.preview-artifact:other:123',
-            previewImageRef: 'blob:nimi-avatar-preview-other',
-            evidenceRef: 'avatar_preview_service:vrm:other',
+            previewImageRef: '/__nimi/avatar-preview/vrm/other',
             visiblePixels: 32,
-            sampledPixelChecksum: 123,
             nonPlaceholder: true as const,
           };
         },
@@ -434,8 +395,8 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
 
     await expect(adapter.load()).resolves.toMatchObject({
       previewState: 'failed',
-      previewArtifactRef: null,
-      previewFailureReason: expect.stringMatching(/does not match selected avatar/u),
+      previewImageRef: null,
+      previewFailureReason: expect.any(String),
     });
   });
 

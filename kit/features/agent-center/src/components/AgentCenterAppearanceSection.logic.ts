@@ -23,7 +23,7 @@ export type Live2dEvidenceStatus =
   | 'effect_projection_pending';
 
 export type Live2dEvidenceItem = {
-  readonly id: 'preview_artifact' | 'model_framing' | 'render_policy' | 'expression_inventory' | 'adapter_manifest';
+  readonly id: 'preview_output' | 'model_framing' | 'render_policy' | 'expression_inventory' | 'adapter_manifest';
   readonly label: string;
   readonly detail: string;
   readonly status: Live2dEvidenceStatus;
@@ -116,13 +116,13 @@ const DEFAULT_APPEARANCE_COPY: Required<AgentCenterAppearanceCopy> = {
   live2dStatusPending: 'Pending',
   live2dStatusMissing: 'Missing',
   live2dStatusBlocked: 'Blocked',
-  live2dPreviewArtifactLabel: 'Preview artifact',
+  live2dPreviewOutputLabel: 'Rendered preview',
   live2dModelFramingLabel: 'Model framing',
   live2dRenderPolicyLabel: 'Render policy',
   live2dExpressionInventoryLabel: 'Expression inventory',
   live2dAdapterManifestEvidenceLabel: 'Adapter manifest',
   live2dEvidenceRequired: 'Local asset and backend capability evidence are required.',
-  live2dPreviewReadyDetail: 'Review through Runtime backend or window probe evidence.',
+  live2dPreviewReadyDetail: 'The Avatar renderer produced visible non-placeholder output.',
   live2dCalibrationPendingDetail: 'Calibration ref is projected as evidence; Avatar effect waits for payload/effect projection.',
   live2dEmotionReadyDetail: 'Review through Runtime emotion probe evidence.',
   live2dBackendRequiredDetail: 'Backend capability profile evidence is required.',
@@ -300,11 +300,10 @@ export function buildLive2dEvidenceItems(
   const evidenceRequired = labels.live2dEvidenceRequired;
   return [
     {
-      id: 'preview_artifact',
-      label: labels.live2dPreviewArtifactLabel,
+      id: 'preview_output',
+      label: labels.live2dPreviewOutputLabel,
       detail: previewReady ? labels.live2dPreviewReadyDetail : appearance.previewFailureReason || (launchEvidenceReady ? labels.live2dPreviewReadyDetail : evidenceRequired),
       status: live2dProbeStatus(appearance),
-      evidenceRef: previewReady ? appearance.previewEvidenceRef : null,
     },
     {
       id: 'model_framing',

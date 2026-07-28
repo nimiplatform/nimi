@@ -79,7 +79,7 @@ func actionHintFromStreamError(err error) string {
 			return actionHint
 		}
 	}
-	return "retry stream request"
+	return "retry_or_reopen_stream"
 }
 
 func withTimeout(ctx context.Context, timeoutMS int32, defaultTimeout time.Duration) (context.Context, context.CancelFunc) {

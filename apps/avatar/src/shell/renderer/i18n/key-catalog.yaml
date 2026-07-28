@@ -25,7 +25,7 @@ description: >
 
 namespaces: &avatar_i18n_key_entries
   - id: composer
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-006"
+    spec_anchor: "rule.nimi.avatar.embodiment.r025"
     description: "Transient text composer (text input + send button)."
     keys:
       - key: Avatar.composer.placeholder
@@ -40,7 +40,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/transient-composer/avatar-transient-composer.tsx"
 
   - id: status
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-007"
+    spec_anchor: "rule.nimi.avatar.embodiment.r025"
     description: "Status row (mic toggle, mode label, speaker, settings cog)."
     keys:
       - key: Avatar.status.idle
@@ -85,14 +85,14 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: bubble
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-007/009"
+    spec_anchor: "rule.nimi.avatar.embodiment.r025"
     description: "Assistant bubble (latest message + close affordance)."
     keys:
       - key: Avatar.bubble.close_aria
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: degraded
-    spec_anchor: "app-shell-contract.md §8 K-NAV-SHELL-DEGRADED-*"
+    spec_anchor: "rule.nimi.avatar.embodiment.r022"
     description: "Degraded surface: badge / title / summary / recovery + diagnostics for every composition state."
     keys:
       - key: Avatar.degraded.surface_aria
@@ -274,7 +274,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/creator-capabilities.ts"
 
   - id: settings
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-004/009"
+    spec_anchor: "rule.nimi.avatar.embodiment.r025"
     description: "Shell settings labels used by transient context-menu/settings overlays."
     keys:
       - key: Avatar.settings.popover_aria
@@ -295,7 +295,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
 
   - id: debug_overlay
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-010"
+    spec_anchor: "rule.nimi.avatar.embodiment.r029"
     description: "Transient Avatar debug overlay backed by Runtime-owned avatar debug probes."
     keys:
       - key: Avatar.debug.popover_aria
@@ -354,7 +354,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
 
   - id: appearance_overlay
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-011"
+    spec_anchor: "rule.nimi.avatar.embodiment.r025"
     description: "Transient read-only Avatar appearance overlay for the current visual carrier."
     keys:
       - key: Avatar.appearance.popover_aria
@@ -391,7 +391,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/appearance-overlay/avatar-appearance-overlay.tsx"
 
   - id: context_menu
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-004"
+    spec_anchor: "rule.nimi.avatar.embodiment.r025"
     description: "Avatar-local tool menu opened by right-click on the opaque avatar body."
     keys:
       - key: Avatar.context_menu.aria
@@ -420,7 +420,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
 
   - id: action_radial
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-005"
+    spec_anchor: "rule.nimi.avatar.embodiment.r025"
     description: "Avatar-local character interaction radial opened by 1s press-and-hold on the opaque avatar body."
     keys:
       - key: Avatar.action_radial.aria
@@ -439,7 +439,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/action-radial/avatar-action-radial.tsx"
 
   - id: shell
-    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-OUTPUT-*"
+    spec_anchor: "rule.nimi.avatar.embodiment.r021"
     description: "Shell-wide labels."
     keys:
       - key: Avatar.shell.companion_aria

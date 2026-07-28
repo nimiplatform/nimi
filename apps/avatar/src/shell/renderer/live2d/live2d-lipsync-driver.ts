@@ -69,8 +69,7 @@ export const PARAM_MOUTH_FORM_SILENT = 0;
 export type Live2DLipsyncTickInput = {
   deltaSec: number;
   lipsyncSnapshot: WLipSyncSnapshot | null;
-  /** Whether the loaded model declares `ParamMouthForm` (per
-   *  `live2d-asset-compatibility-contract.md §3.4`). When false the
+  /** Whether the validated Live2D profile declares `ParamMouthForm`. When false the
    *  driver writes `ParamMouthOpenY` only. */
   paramMouthFormSupported: boolean;
   /** Sink for parameter writes; bridges to
@@ -80,8 +79,7 @@ export type Live2DLipsyncTickInput = {
 
 export type Live2DLipsyncTickResult = {
   active: boolean;
-  /** Reason why the frame produced silence; null when active. Surfaces
-   *  the `avatar.lipsync.silent` evidence reason from avatar-event-contract.md. */
+  /** Avatar-local reason why the frame produced silence; null when active. */
   silentReason:
     | 'no_source'
     | 'amp_below'

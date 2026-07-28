@@ -69,7 +69,7 @@ func TestActionHintFromStreamErrorUsesRuntimeMetadata(t *testing.T) {
 }
 
 func TestActionHintFromStreamErrorFallsBackToRetry(t *testing.T) {
-	if got := actionHintFromStreamError(nil); got != "retry stream request" {
+	if got := actionHintFromStreamError(nil); got != "retry_or_reopen_stream" {
 		t.Fatalf("actionHintFromStreamError(nil) = %q, want retry fallback", got)
 	}
 }

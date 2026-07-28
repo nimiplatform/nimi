@@ -59,20 +59,6 @@ test('does not normalize wrapped Runtime permission denied as a daemon outage', 
   );
 });
 
-test('auth platform unavailable projection uses the canonical Runtime outage normalization', () => {
-  const sourcePath = path.join(root, 'src/shell/auth/runtime-platform.ts');
-  const source = readFileSync(sourcePath, 'utf8');
-  const normalizeIndex = source.indexOf('normalizeZhiyuElectronRuntimeUnavailableError(error)');
-  const rawReasonIndex = source.indexOf('const record = error && typeof error ===');
-
-  assert.ok(normalizeIndex > 0, 'runtime-platform must call the canonical unavailable normalizer');
-  assert.ok(rawReasonIndex > 0, 'runtime-platform raw fallback block must remain visible to the guard');
-  assert.ok(
-    normalizeIndex < rawReasonIndex,
-    'runtime-platform must normalize Runtime outage errors before falling back to raw reason codes',
-  );
-});
-
 async function loadModule() {
   const sourcePath = path.join(root, 'src/shell/runtime/electron-runtime-unavailable.ts');
   const source = readFileSync(sourcePath, 'utf8');

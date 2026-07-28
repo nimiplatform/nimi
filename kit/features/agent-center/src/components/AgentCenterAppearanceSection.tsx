@@ -251,11 +251,8 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
       backendKind: appearance.backendKind,
       avatarAssetRef: appearance.avatarAssetRef,
       previewMaterialRef: appearance.previewMaterialRef,
-      previewArtifactRef: appearance.previewArtifactRef,
       previewImageRef: appearance.previewImageRef,
-      previewEvidenceRef: appearance.previewEvidenceRef,
       previewVisiblePixels: appearance.previewVisiblePixels,
-      previewSampledPixelChecksum: appearance.previewSampledPixelChecksum,
       previewFailureReason: appearance.previewFailureReason,
       previewWarnings: appearance.previewWarnings,
     });

@@ -402,11 +402,8 @@ export interface AgentCenterAppearanceProjection {
   readonly previewMaterialRef?: string | null;
   readonly previewState?: 'ready' | 'failed' | 'loading' | 'unavailable' | null;
   readonly previewTier?: 'avatar_preview_service' | string | null;
-  readonly previewArtifactRef?: string | null;
   readonly previewImageRef?: string | null;
-  readonly previewEvidenceRef?: string | null;
   readonly previewVisiblePixels?: number | null;
-  readonly previewSampledPixelChecksum?: number | null;
   readonly previewFailureReason?: string | null;
   readonly previewWarnings?: readonly string[];
   readonly defaultVoiceReference?: string | null;
@@ -455,11 +452,8 @@ export type AgentCenterAvatarPreviewAdapterResult =
       readonly backendKind: 'live2d' | 'vrm';
       readonly avatarAssetRef: string;
       readonly previewMaterialRef: string;
-      readonly previewArtifactRef: string;
       readonly previewImageRef: string;
-      readonly evidenceRef: string;
       readonly visiblePixels: number;
-      readonly sampledPixelChecksum: number;
       readonly nonPlaceholder: true;
       readonly warnings?: readonly string[];
     }
@@ -469,11 +463,8 @@ export type AgentCenterAvatarPreviewAdapterResult =
       readonly backendKind?: 'live2d' | 'vrm' | null;
       readonly avatarAssetRef?: string | null;
       readonly previewMaterialRef?: string | null;
-      readonly previewArtifactRef?: string | null;
       readonly previewImageRef?: string | null;
-      readonly evidenceRef?: string | null;
       readonly visiblePixels?: number | null;
-      readonly sampledPixelChecksum?: number | null;
       readonly nonPlaceholder: false;
       readonly reason: string;
       readonly warnings?: readonly string[];
@@ -600,7 +591,7 @@ export type AgentCenterAppearanceCopy = Partial<{
   readonly live2dStatusPending: string;
   readonly live2dStatusMissing: string;
   readonly live2dStatusBlocked: string;
-  readonly live2dPreviewArtifactLabel: string;
+  readonly live2dPreviewOutputLabel: string;
   readonly live2dModelFramingLabel: string;
   readonly live2dRenderPolicyLabel: string;
   readonly live2dExpressionInventoryLabel: string;

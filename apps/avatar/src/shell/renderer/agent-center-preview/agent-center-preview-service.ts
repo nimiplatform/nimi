@@ -48,11 +48,8 @@ export type AgentCenterAvatarPreviewServiceResolveResult =
       readonly avatarAssetRef: string;
       readonly backendKind: AgentCenterAvatarPreviewBackendKind;
       readonly previewMaterialRef: string;
-      readonly previewArtifactRef: string;
       readonly previewImageRef: string;
-      readonly evidenceRef: string;
       readonly visiblePixels: number;
-      readonly sampledPixelChecksum: number;
       readonly nonPlaceholder: true;
       readonly warnings: readonly string[];
     }
@@ -62,11 +59,8 @@ export type AgentCenterAvatarPreviewServiceResolveResult =
       readonly avatarAssetRef: string | null;
       readonly backendKind: AgentCenterAvatarPreviewBackendKind | null;
       readonly previewMaterialRef: string | null;
-      readonly previewArtifactRef: null;
       readonly previewImageRef: null;
-      readonly evidenceRef: null;
       readonly visiblePixels: null;
-      readonly sampledPixelChecksum: null;
       readonly nonPlaceholder: false;
       readonly reasonCode: AgentCenterAvatarPreviewFailureReasonCode;
       readonly reason: string;
@@ -93,16 +87,6 @@ type RegisteredPreviewSurface = {
 const SERVICE_WARNING_BY_BACKEND = {
   live2d: 'avatar_preview_service:live2d',
   vrm: 'avatar_preview_service:vrm',
-} as const;
-
-const ARTIFACT_NAMESPACE_BY_BACKEND = {
-  live2d: 'avatar.carrier.preview-artifact:',
-  vrm: 'avatar.vrm.preview-artifact:',
-} as const;
-
-const EVIDENCE_NAMESPACE_BY_BACKEND = {
-  live2d: 'avatar.carrier.visual:',
-  vrm: 'avatar.vrm.visual:',
 } as const;
 
 export function createAgentCenterAvatarPreviewService(): AgentCenterAvatarPreviewService {
@@ -225,13 +209,13 @@ function resolveAgentCenterAvatarPreviewService(
           reason: descriptor.validationMessage,
         });
       }
-      if (!isReadyDescriptorValid(descriptor, previewMaterialRef)) {
+      if (!isReadyDescriptorValid(descriptor)) {
         return failedResult({
           avatarAssetRef,
           backendKind,
           previewMaterialRef,
           reasonCode: 'invalid_manifest',
-          reason: 'Live2D preview evidence violates the Avatar owner contract.',
+          reason: 'Live2D preview renderer returned no visible output.',
         });
       }
       return readyResult(avatarAssetRef, previewMaterialRef, surface.previewImageRef, descriptor);
@@ -253,13 +237,13 @@ function resolveAgentCenterAvatarPreviewService(
       });
     }
     if (!isNamespacedOpaqueRef(descriptor.capabilityProfileRef, 'avatar.vrm.capability-profile:')
-      || !isReadyDescriptorValid(descriptor, previewMaterialRef)) {
+      || !isReadyDescriptorValid(descriptor)) {
       return failedResult({
         avatarAssetRef,
         backendKind,
         previewMaterialRef,
         reasonCode: 'invalid_manifest',
-        reason: 'VRM preview evidence violates the Avatar owner contract.',
+        reason: 'VRM preview renderer returned no visible output.',
       });
     }
     return readyResult(avatarAssetRef, previewMaterialRef, surface.previewImageRef, descriptor);
@@ -278,21 +262,10 @@ function resolveAgentCenterAvatarPreviewService(
 
 function isReadyDescriptorValid(
   descriptor: Live2DAgentCenterPreviewDescriptor | VrmAgentCenterPreviewDescriptor,
-  previewMaterialRef: string,
 ): descriptor is Extract<typeof descriptor, { readonly validationStatus: 'valid' }> {
   if (descriptor.validationStatus !== 'valid') return false;
-  return descriptor.previewArtifactRef !== previewMaterialRef
-    && isNamespacedOpaqueRef(
-      descriptor.previewArtifactRef,
-      ARTIFACT_NAMESPACE_BY_BACKEND[descriptor.backendKind],
-    )
-    && isNamespacedOpaqueRef(
-      descriptor.evidenceRef,
-      EVIDENCE_NAMESPACE_BY_BACKEND[descriptor.backendKind],
-    )
-    && Number.isFinite(descriptor.visiblePixels)
-    && descriptor.visiblePixels > 0
-    && Number.isFinite(descriptor.sampledPixelChecksum);
+  return Number.isFinite(descriptor.visiblePixels)
+    && descriptor.visiblePixels > 0;
 }
 
 function readyResult(
@@ -310,11 +283,8 @@ function readyResult(
     avatarAssetRef,
     backendKind: descriptor.backendKind,
     previewMaterialRef,
-    previewArtifactRef: descriptor.previewArtifactRef,
     previewImageRef,
-    evidenceRef: descriptor.evidenceRef,
     visiblePixels: descriptor.visiblePixels,
-    sampledPixelChecksum: descriptor.sampledPixelChecksum,
     nonPlaceholder: true,
     warnings: [SERVICE_WARNING_BY_BACKEND[descriptor.backendKind]],
   };
@@ -330,7 +300,7 @@ function invalidDescriptorResult(
     backendKind,
     previewMaterialRef,
     reasonCode: 'invalid_manifest',
-    reason: 'Avatar preview renderer returned no valid backend evidence descriptor.',
+    reason: 'Avatar preview renderer returned no valid backend output.',
   });
 }
 
@@ -364,11 +334,8 @@ function nonReadyResult(
     avatarAssetRef: input.avatarAssetRef,
     backendKind: input.backendKind,
     previewMaterialRef: input.previewMaterialRef,
-    previewArtifactRef: null,
     previewImageRef: null,
-    evidenceRef: null,
     visiblePixels: null,
-    sampledPixelChecksum: null,
     nonPlaceholder: false,
     reasonCode: input.reasonCode,
     reason: input.reason,

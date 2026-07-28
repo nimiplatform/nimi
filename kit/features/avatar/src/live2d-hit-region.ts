@@ -30,9 +30,8 @@
 import type { BackendHitRegion } from './backend-branch.js';
 import type { Live2DCompatibilityReport } from './live2d-compatibility.js';
 
-/** Alpha-mask threshold: pixels with alpha < 10/255 are treated as
- *  transparent for hit-test purposes. Source: app-shell-contract.md
- *  §2.3.1; airi industrial baseline. */
+/** Local alpha-mask threshold: pixels with alpha < 10/255 are transparent for
+ * hit-test purposes under rule.nimi.avatar.embodiment.r004. */
 export const LIVE2D_ALPHA_MASK_THRESHOLD = 10 / 255;
 
 /** Byte-equivalent of {@link LIVE2D_ALPHA_MASK_THRESHOLD}. Used inside

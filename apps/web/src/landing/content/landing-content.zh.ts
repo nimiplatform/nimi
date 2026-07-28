@@ -218,8 +218,8 @@ export const landingContentZh: LandingContent = {
     runtimeBadges: ['Type-safe SDK', 'Runtime Ready', 'Local-first', 'Agent Context'],
     heroHighlights: [
       {
-        title: '智能体接入',
-        description: '把智能体接入正在运行的世界，共享上下文、身份与清晰的产品边界。',
+        title: 'Realm 与 Runtime 客户端',
+        description: '通过类型化的所有者接口访问 Realm 产品数据与 Runtime 的 LocalAgent 行为。',
       },
       {
         title: '任务与状态同步',
@@ -231,20 +231,6 @@ export const landingContentZh: LandingContent = {
       },
     ],
     tabs: [
-      {
-        id: 'agent-participation',
-        label: '智能体接入',
-        description: '把智能体接到正在运行的世界 —— 一次编写、跨会话与跨应用共享。',
-        docsPath: 'sdk/agent-participation-client',
-        previewMediaId: 'sdk',
-      },
-      {
-        id: 'avatar-control',
-        label: '形象控制',
-        description: '通过单个客户端用多模态输入与脚本化动作驱动有形象的智能体。',
-        docsPath: 'sdk/avatar-control-client',
-        previewMediaId: 'multimodal',
-      },
       {
         id: 'delegation',
         label: '任务委派',
@@ -289,16 +275,6 @@ export const landingContentZh: LandingContent = {
       },
     ],
     capabilityMatrix: [
-      {
-        title: '智能体接入',
-        description: '把智能体接到正在运行的世界 —— 一次编写、跨会话与跨应用共享。',
-        docsPath: 'sdk/agent-participation-client',
-      },
-      {
-        title: '形象控制',
-        description: '通过单个客户端用多模态输入与脚本化动作驱动有形象的智能体。',
-        docsPath: 'sdk/avatar-control-client',
-      },
       {
         title: '任务委派',
         description: '在智能体与人之间交接任务，带强类型上下文交接与审计轨迹。',

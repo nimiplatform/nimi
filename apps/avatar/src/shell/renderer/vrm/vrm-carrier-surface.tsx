@@ -4,8 +4,7 @@
 // lipsync driver, and projection adapter are all wired through the
 // surface useFrame loop.
 //
-// Wiring rules (vrm-backend-contract.md §2.3 + AGENTS.md "VRM Backend
-// Pitfalls"):
+// Wiring follows the r057 resource lifecycle and r062 audio/hit-region rules:
 //
 //   * webglcontextlost  → runtime.notifyContextLost()    (preventDefault
 //                          to allow Three.js to re-acquire the context)
@@ -272,8 +271,8 @@ export function createVrmCarrierSurface(
       input.onCapabilityProfile?.(profile);
     }, [vrm]);
 
-    // Wave 2 chunk 2-E: derive camera framing from the loaded VRM scene
-    // bbox + the bottom-companion default (vrm-backend-contract.md §4).
+    // Derive camera framing from validated VRM scene bounds and the local
+    // framing intent under rule.nimi.avatar.embodiment.r059.
     // The result is fed into <Canvas camera={...}>; recomputed only when
     // the VRM identity, viewport width, or viewport height changes.
     // Hook MUST sit above the early-return so the call order stays

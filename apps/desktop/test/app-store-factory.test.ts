@@ -408,7 +408,6 @@ function createCanonicalBindings(input: {
         commitAIConfig() {},
         persistChatThinkingPreference() {},
         setActiveScopeForMode() {},
-        setGroupLocalAgentParticipationActive() {},
         async reportAuthEntryAction() { return { ok: false as const, disposition: 'unsupported' as const }; },
         applyLocale() {},
         async openWalletCheckout() { return { opened: false }; },

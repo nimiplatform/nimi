@@ -1,11 +1,8 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// THIS IS THE ONLY ALLOWED `model.kind` / `backend.kind` SWITCH SITE in
-// `apps/avatar/src/**`. The static hard-cut grep gate
-// (`kind_branch_outside_factory`) audits this — any new branch must be
-// added here, must update both the discriminated `AvatarModelManifest`
-// union and the `BackendBranch` union, and must keep the exhaustive
-// `_exhaustive: never` check intact (per backend-branch-contract §3.1).
+// This is the Avatar-owned branch selection site required by
+// rule.nimi.avatar.embodiment.r002. The manifest and BackendBranch unions plus
+// the exhaustive `never` check keep the closed live2d | vrm | nimi2d contract.
 
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { BackendAudioConsumer, BackendBranch } from './backend-branch.js';

@@ -29,23 +29,6 @@ export type {
   VrmMotionPresetTable,
 } from './vrm-domain.js';
 export {
-  GENERATED_MOTION_MAX_ROTATION_RAD,
-  isVrmGeneratedRouteId,
-  VRM_GENERATED_ROUTE_IDS,
-} from './vrm-generated-motion.js';
-export type {
-  GeneratedMotionEvidence,
-  GeneratedMotionReasonCode,
-  GeneratedMotionRuntimeSnapshot,
-  PlayGeneratedMotionInput,
-  PlayGeneratedMotionResult,
-  VrmGeneratedMotionProvider,
-  VrmGeneratedMotionProviderInput,
-  VrmGeneratedMotionProviderResult,
-  VrmGeneratedMotionRuntime,
-  VrmGeneratedRouteId,
-} from './vrm-generated-motion.js';
-export {
   ADMITTED_INTERCHANGE_PRESET_IDS,
   computeVrmCameraFraming,
   createVrmEmoteState,

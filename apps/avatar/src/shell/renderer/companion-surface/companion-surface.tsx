@@ -1,6 +1,6 @@
 // Companion Surface: stage-first presence capsule + optional cue/tray.
-// The surface is mounted alongside embodiment-stage for ready/fixture_active,
-// but only the compact presence capsule is visible by default.
+// The surface is mounted alongside embodiment-stage only for the closed
+// `ready` lifecycle state.
 
 import {
   useCallback,
@@ -121,7 +121,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     voice,
     bootstrapReady: Boolean(bootstrapHandle),
     bindingPresent: Boolean(binding),
-    compositionReady: compositionState === 'ready' || compositionState === 'fixture_active',
+    compositionReady: compositionState === 'ready',
   });
   const label = t(presence.labelKey);
   const draftValue = companion.draft ?? '';

@@ -294,42 +294,6 @@ function seedActiveTurnBundle(input: {
   } satisfies AgentDataBundle);
 }
 
-function seedFixtureState(): void {
-  useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
-  useAvatarStore.getState().setConsumeMode({
-    mode: 'mock',
-    authority: 'fixture',
-    fixtureId: 'default',
-    fixturePlaying: true,
-  });
-  useAvatarStore.getState().setLaunchContext(launchContext());
-  useAvatarStore.getState().setRuntimeConsumeContext({
-    avatarInstanceId: 'fixture-avatar-default',
-    conversationAnchorId: 'fixture-anchor-default',
-    agentId: 'fixture-agent-default',
-    worldId: 'world-mock-default',
-  });
-  useAvatarStore.getState().setDriverStatus('running');
-}
-
-function seedFixtureWithoutRuntimeBinding(): void {
-  useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
-  useAvatarStore.getState().setConsumeMode({
-    mode: 'mock',
-    authority: 'fixture',
-    fixtureId: 'default',
-    fixturePlaying: true,
-  });
-  useAvatarStore.getState().setLaunchContext(launchContext());
-  useAvatarStore.getState().setRuntimeConsumeContext({
-    avatarInstanceId: 'fixture-avatar-default',
-    conversationAnchorId: 'fixture-anchor-default',
-    agentId: 'fixture-agent-default',
-    worldId: 'world-mock-default',
-  });
-  useAvatarStore.getState().setDriverStatus('running');
-}
-
 function seedDegradedRuntime(): void {
   useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
   useAvatarStore.getState().setConsumeMode({

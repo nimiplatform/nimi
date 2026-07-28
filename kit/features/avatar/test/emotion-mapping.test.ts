@@ -1,8 +1,5 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  createActivityMappingResolver,
   mapRuntimeAgentEmotionToAvatarCue,
   parseRuntimeAgentEmotionId,
   parseRuntimeAgentEmotionIntensity,
@@ -46,5 +43,4 @@ describe('runtime agent emotion mapping', () => {
     expect(parseRuntimeAgentEmotionIntensity('')).toBeNull();
     expect(() => parseRuntimeAgentEmotionIntensity('extreme')).toThrow(/not admitted/u);
   });
-
 });

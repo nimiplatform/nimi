@@ -11,6 +11,10 @@ Discipline.
 
 ### Changed
 
+- Avatar activity routing and generated-motion contracts are no longer
+  duplicated as public Kit exports. Their concrete execution owner remains the
+  Avatar app. This is a breaking pre-1.0 API cut.
+
 - Standard Apps registry, package, account-inventory and lifecycle projections
   are removed. The current Kit projects only local-development records and the
   factory AI-profile index; retained Platform catalog metadata cannot activate
@@ -186,10 +190,10 @@ Discipline.
   bounded readiness state and their own admitted copy namespace instead.
 - **Breaking (0.x):** Agent Center Shell preview resolution now returns
   `previewMaterialRef` only. Consumers must pass that material to an
-  Avatar-owned `AgentCenterAvatarPreviewAdapter` and require its render
-  artifact, same-origin surface, evidence ref, and pixel proof before showing
-  appearance readiness; migrate off Shell `previewArtifactRef` and
-  `previewImageRef` claims.
+  Avatar-owned `AgentCenterAvatarPreviewAdapter`. Appearance readiness requires
+  the typed ready state, matching material and backend, a controlled preview
+  image, and positive visible pixels. Preview artifact, evidence, and checksum
+  receipts are no longer part of the public result.
 - **Breaking (0.x):** `AgentCenterAppearanceAdapter` no longer exposes
   account-wide `removeAccountResources`. Account teardown must use the
   low-level Shell bridge from an account-scoped orchestrator; per-agent Agent

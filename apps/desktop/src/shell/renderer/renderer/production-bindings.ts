@@ -101,7 +101,6 @@ import {
 } from '../bridge/runtime-bridge/chat-agent-avatar-launcher.js';
 import { listDesktopAvatarLiveInstances } from '../bridge/runtime-bridge/chat-agent-avatar-instance-registry.js';
 import { getDesktopAIConfigService } from '../app-shell/providers/desktop-ai-config-service.js';
-import { setGroupLocalAgentParticipationActive } from '../features/chat/chat-shared-active-ai-config-scope.js';
 import { getProductionConversationCapabilityRouteRuntime } from '../features/chat/production-conversation-route-runtime-state.js';
 import {
   ensureProductAccountDefaultProfile,
@@ -332,7 +331,6 @@ export function createDesktopProductionBindings(
         commitAIConfig: dependencies.commitAIConfig,
         persistChatThinkingPreference: dependencies.persistChatThinkingPreference,
         setActiveScopeForMode: dependencies.setActiveScopeForMode,
-        setGroupLocalAgentParticipationActive,
         async reportAuthEntryAction() {
           return Object.freeze({ ok: false as const, disposition: 'unsupported' as const });
         },

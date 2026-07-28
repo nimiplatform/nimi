@@ -1,7 +1,7 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // 60Hz-capped wrapper around the Tauri `set_ignore_cursor_events` IPC.
-// Per app-shell-contract.md §2.3.1, the underlying IPC must not be invoked more than once
+// The underlying IPC must not be invoked more than once
 // per ~16.67ms (1000/60). Pointer events on macOS can fire at 60-120Hz
 // during drag; calling Tauri once per pointermove would saturate the IPC
 // channel and lag the click-through transition.

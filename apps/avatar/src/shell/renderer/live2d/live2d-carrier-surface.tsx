@@ -13,9 +13,7 @@
 //     mounted cubism canvas to read pixels from). On tier C, fires the
 //     bbox-only fallback exactly once.
 //
-// Spec: backend-branch-contract.md §"BackendSurface lifecycle";
-//       app-shell-contract.md §2.3.1; live2d-render-contract.md
-//       §"Hit Testing".
+// Authority: rule.nimi.avatar.embodiment.r004, r007, and r041.
 
 import { useEffect, useRef } from 'react';
 import type {

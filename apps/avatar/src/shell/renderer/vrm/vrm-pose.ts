@@ -3,18 +3,16 @@
 // Apply a neutral standing idle pose to a freshly-loaded VRM. The default
 // VRM rig comes up in T-pose with arms extended horizontally; without an
 // idle pose write we briefly flash the T-pose before the first motion
-// preset evaluates. Per vrm-backend-contract.md §2.1 step 7, the load
-// sequence is:
+// preset evaluates. The r056 load sequence is:
 //
 //   VRMUtils.rotateVRM0  →  applyIdlePose  →  scene.traverse frustumCulled=false
 //
 // Algorithm: rotate upper arms ≈75° about Z toward the body (+/- π/2.4)
 // so the arms hang naturally, plus a small elbow flex on the lower arms.
 // Bones that are absent on a partial humanoid are skipped silently — a
-// partial idle is acceptable. If `vrm.humanoid` itself is missing, the
-// model lacks a humanoid skeleton entirely and we fail-close (per
-// vrm-backend-contract.md §2.2 Load Failure: "applyIdlePose 抛错 (model
-// 缺少 humanoid bone) → fail-close").
+// partial idle is acceptable. If `vrm.humanoid` itself is missing, the model
+// lacks the humanoid capability required by rule.nimi.avatar.embodiment.r056
+// and loading fails closed.
 
 import type { VRM } from '@pixiv/three-vrm';
 

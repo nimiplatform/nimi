@@ -1,13 +1,7 @@
-// Wave 3 chunk 3-B — vrm-animation-loader tests.
-//
-// Coverage:
+// VRM animation interchange owner behavior:
 //   - loadVrmAnimation returns the first VRMAnimation, null when absent
 //   - loadVrmAnimation wraps loadAsync with the createImageBitmap suspend
 //   - clipFromVRMAnimation delegates to upstream createVRMAnimationClip
-//
-// loadVrmAnimation tests are partially redundant with vrm-loader.test.ts
-// (which exercises the back-compat re-export); kept here so the canonical
-// home of the function is also self-tested.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

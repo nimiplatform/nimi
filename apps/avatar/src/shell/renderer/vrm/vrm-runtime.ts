@@ -3,8 +3,8 @@
 // Pure (non-React) VRM lifecycle state machine. Owning the state machine
 // here (instead of inside the React component) keeps the
 // context-lost retry timing testable without R3F / WebGL and keeps the
-// 1500ms single-retry contract enforceable as a unit test
-// (vrm-backend-contract.md §2.3).
+// bounded 1500ms single recovery attempt testable without R3F / WebGL
+// (rule.nimi.avatar.embodiment.r057).
 //
 // State diagram:
 //
@@ -27,7 +27,7 @@ import type { VRM } from '@pixiv/three-vrm';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import { loadVrmFromManifest } from './vrm-loader.js';
 
-/** WebGL context-lost retry window in ms (vrm-backend-contract.md §2.3). */
+/** Avatar-local WebGL context-lost recovery window in milliseconds. */
 export const VRM_CONTEXT_LOST_RETRY_MS = 1500;
 
 export type VrmLifecycleState =

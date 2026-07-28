@@ -39,12 +39,8 @@ export type AvatarMappingSidecar = {
   confidence: number;
   threshold: number;
   manualConfirmation: AvatarMappingManualConfirmation;
+  sourceKind: AvatarMappingSourceKind;
   targetFields: AvatarMappingTargetField[];
-  evidence: {
-    sourceKind: AvatarMappingSourceKind;
-    sourceFields: string[];
-    rationale: string;
-  };
 };
 
 export type AvatarMappingSupportResult =
@@ -93,6 +89,18 @@ const TARGET_KINDS = new Set<AvatarMappingTargetKind>([
   'parameter_id',
   'manifest_entry',
 ]);
+const SIDECAR_FIELDS = new Set([
+  'sidecar_id',
+  'route_id',
+  'backend_kind',
+  'profile_id',
+  'confidence',
+  'threshold',
+  'manual_confirmation',
+  'source_kind',
+  'target_fields',
+]);
+const TARGET_FIELDS = new Set(['target_kind', 'name', 'role']);
 
 export function parseAvatarMappingSidecarDocument(text: string): AvatarMappingSidecar {
   return normalizeAvatarMappingSidecar(parseYaml(text));
@@ -103,6 +111,7 @@ export function normalizeAvatarMappingSidecar(raw: unknown): AvatarMappingSideca
   if (!isObject(raw)) {
     throw new Error('vrm-mapping-sidecar: top-level value is not an object');
   }
+  assertExactFields(raw, SIDECAR_FIELDS, 'sidecar');
 
   const sidecarId = readRequiredString(raw, 'sidecar_id');
   const routeId = readRequiredString(raw, 'route_id');
@@ -132,8 +141,8 @@ export function normalizeAvatarMappingSidecar(raw: unknown): AvatarMappingSideca
       'manual_confirmation',
       MANUAL_CONFIRMATION_VALUES,
     ),
+    sourceKind: readEnum(raw, 'source_kind', SOURCE_KINDS),
     targetFields: targetFieldsRaw.map((entry, index) => normalizeTargetField(entry, index)),
-    evidence: normalizeEvidence(raw['evidence']),
   };
 }
 
@@ -163,7 +172,7 @@ export function evaluateAvatarMappingSidecarSupport(
     return unsupported('mapping_rejected', evidence);
   }
   if (
-    sidecar.evidence.sourceKind === 'llm_semantic_match' &&
+    sidecar.sourceKind === 'llm_semantic_match' &&
     sidecar.manualConfirmation !== 'confirmed'
   ) {
     return unsupported('mapping_manual_confirmation_required', evidence);
@@ -222,34 +231,13 @@ function normalizeTargetField(raw: unknown, index: number): AvatarMappingTargetF
   if (!isObject(raw)) {
     throw new Error(`vrm-mapping-sidecar: target_fields[${index}] is not an object`);
   }
+  assertExactFields(raw, TARGET_FIELDS, `target_fields[${index}]`);
   const targetKind = readEnum(raw, 'target_kind', TARGET_KINDS);
   const role = raw['role'];
   return {
     targetKind,
     name: readRequiredString(raw, 'name'),
     role: typeof role === 'string' && role.trim().length > 0 ? role.trim() : null,
-  };
-}
-
-function normalizeEvidence(raw: unknown): AvatarMappingSidecar['evidence'] {
-  if (!isObject(raw)) {
-    throw new Error('vrm-mapping-sidecar: evidence is not an object');
-  }
-  const sourceKind = readEnum(raw, 'source_kind', SOURCE_KINDS);
-  const sourceFieldsRaw = raw['source_fields'];
-  if (!Array.isArray(sourceFieldsRaw) || sourceFieldsRaw.length === 0) {
-    throw new Error('vrm-mapping-sidecar: evidence.source_fields must be a non-empty array');
-  }
-  const sourceFields = sourceFieldsRaw.map((value, index) => {
-    if (typeof value !== 'string' || value.trim().length === 0) {
-      throw new Error(`vrm-mapping-sidecar: evidence.source_fields[${index}] is invalid`);
-    }
-    return value.trim();
-  });
-  return {
-    sourceKind,
-    sourceFields,
-    rationale: readRequiredString(raw, 'rationale'),
   };
 }
 
@@ -309,6 +297,18 @@ function assertNoForbiddenFields(value: unknown, path: string[] = []): void {
       throw new Error(`vrm-mapping-sidecar: forbidden field "${location}"`);
     }
     assertNoForbiddenFields(nested, [...path, key]);
+  }
+}
+
+function assertExactFields(
+  value: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
+  label: string,
+): void {
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) {
+      throw new Error(`vrm-mapping-sidecar: ${label} contains unadmitted field "${key}"`);
+    }
   }
 }
 

@@ -7,7 +7,6 @@ import type {
   AgentDataBundle,
   AgentBundleHistory,
   AgentEvent,
-  RuntimePresentationAdmissionEvidence,
 } from '../driver/types.js';
 import { ulid } from '../infra/ids.js';
 
@@ -84,14 +83,6 @@ type BundleActivityCategory = NonNullable<AgentDataBundle['activity']>['category
 type BundleActivityIntensity = NonNullable<AgentDataBundle['activity']>['intensity'];
 type BundleCurrentEmotion = NonNullable<AgentDataBundle['emotion']>['current'];
 
-export type RuntimePresentationAdmissionDetail = RuntimePresentationAdmissionEvidence & {
-  runtime_admission_ref: string;
-  gateway_verdict_ref: string;
-  firewall_verdict_ref: string;
-  audit_ref: string;
-  credential_verdict_ref: string;
-};
-
 export type RuntimePresentationEnvelopeDetail = {
   agent_id: string;
   conversation_anchor_id: string;
@@ -138,76 +129,6 @@ export function requireRuntimeProjectionSource(value: unknown, label: string): E
     return value;
   }
   throw new Error(`avatar sdk driver received malformed ${label} source`);
-}
-
-function readOptionalRef(record: Record<string, unknown>, camelKey: string, snakeKey: string): string {
-  const value = record[camelKey] ?? record[snakeKey];
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-export function readRuntimePresentationAdmissionEvidence(
-  detail: Record<string, unknown>,
-): RuntimePresentationAdmissionDetail | null {
-  const runtimeAdmissionRef = readOptionalRef(detail, 'runtimeAdmissionRef', 'runtime_admission_ref');
-  const gatewayVerdictRef = readOptionalRef(detail, 'gatewayVerdictRef', 'gateway_verdict_ref');
-  const firewallVerdictRef = readOptionalRef(detail, 'firewallVerdictRef', 'firewall_verdict_ref');
-  const auditRef = readOptionalRef(detail, 'auditRef', 'audit_ref');
-  const credentialVerdictRef = readOptionalRef(detail, 'credentialVerdictRef', 'credential_verdict_ref');
-  if (
-    !runtimeAdmissionRef
-    && !gatewayVerdictRef
-    && !firewallVerdictRef
-    && !auditRef
-    && !credentialVerdictRef
-  ) {
-    return null;
-  }
-  if (
-    !runtimeAdmissionRef
-    || !gatewayVerdictRef
-    || !firewallVerdictRef
-    || !auditRef
-    || !credentialVerdictRef
-  ) {
-    throw new Error('avatar sdk driver received incomplete runtime presentation admission evidence');
-  }
-  return {
-    runtimeAdmissionRef,
-    gatewayVerdictRef,
-    firewallVerdictRef,
-    auditRef,
-    credentialVerdictRef,
-    runtime_admission_ref: runtimeAdmissionRef,
-    gateway_verdict_ref: gatewayVerdictRef,
-    firewall_verdict_ref: firewallVerdictRef,
-    audit_ref: auditRef,
-    credential_verdict_ref: credentialVerdictRef,
-  };
-}
-
-export function requireRuntimePresentationAdmissionEvidence(
-  detail: Record<string, unknown>,
-): RuntimePresentationAdmissionDetail {
-  const admission = readRuntimePresentationAdmissionEvidence(detail);
-  if (!admission) {
-    throw new Error('avatar sdk driver received runtime presentation without runtime admission evidence ref');
-  }
-  return admission;
-}
-
-export function admissionEvidenceFields(
-  admission: RuntimePresentationAdmissionDetail | null | undefined,
-): Record<string, string> {
-  if (!admission) {
-    return {};
-  }
-  return {
-    runtime_admission_ref: admission.runtime_admission_ref,
-    gateway_verdict_ref: admission.gateway_verdict_ref,
-    firewall_verdict_ref: admission.firewall_verdict_ref,
-    audit_ref: admission.audit_ref,
-    credential_verdict_ref: admission.credential_verdict_ref,
-  };
 }
 
 function requiredRuntimeText(value: unknown, label: string): string {
@@ -388,7 +309,6 @@ export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
   activityName: string;
   activityCategory: BundleActivityCategory | '';
   activityIntensity: BundleActivityIntensity;
-  admission: RuntimePresentationAdmissionDetail | null;
 } | null {
   const turn = snapshot.lastTurn;
   const turnId = typeof turn?.turnId === 'string' ? turn.turnId.trim() : '';
@@ -417,7 +337,6 @@ export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
   if (!expressionId && !activityName) {
     return null;
   }
-  const admission = readRuntimePresentationAdmissionEvidence(statusCue);
   return {
     turnId,
     streamId,
@@ -425,6 +344,5 @@ export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
     activityName,
     activityCategory: activityCategory as BundleActivityCategory | '',
     activityIntensity: activityIntensity as BundleActivityIntensity,
-    admission,
   };
 }

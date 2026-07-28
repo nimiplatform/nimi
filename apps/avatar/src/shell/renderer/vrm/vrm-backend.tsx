@@ -47,8 +47,8 @@ import type { VrmCapabilityProfile } from './vrm-capability-profile.js';
 
 // Wave 2 chunk 2-E: nominalBounds is the BOOT placeholder used by
 // embodiment-stage for the very first window-resize tick (before VRM
-// scene bbox is known). Per backend-branch-contract.md §2.9 this is a
-// static field; per-frame post-load truth flows through
+// scene bbox is known). Per rule.nimi.avatar.embodiment.r003 this is a
+// static field; post-load bounds flow through
 // onHitRegionChange (carrier surface). VRM_DEFAULT_NOMINAL_BOUNDS is
 // sourced from window-bounds-policy.yaml backends.vrm (360x720 +
 // bottom-companion default bodyCenterY=0.55).

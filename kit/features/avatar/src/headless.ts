@@ -63,16 +63,6 @@ export type {
   AvatarHitTestPoint,
   AvatarHitTestResult,
 } from './avatar-hit-region.js';
-export {
-  __KNOWN_ROUTING_ACTIVITY_IDS__,
-  createActivityMappingResolver,
-} from './avatar-activity-mapping-resolver.js';
-export type {
-  ActivityMappingResolver,
-  ActivityRoutes,
-  Live2DActivityRoute,
-  VrmActivityRoute,
-} from './avatar-activity-mapping-resolver.js';
 export type {
   ActivityFallbackOptions,
   AvatarActivityFallbackBundle,
@@ -167,8 +157,6 @@ export type {
   Live2DNominalBoundsInput,
   Live2DNominalBoundsModel,
 } from './live2d-nominal-bounds.js';
-export { activityIdToMotionGroup } from './avatar-activity-naming.js';
-
 import type {
   AvatarBackendKind,
   AvatarInteractionState,

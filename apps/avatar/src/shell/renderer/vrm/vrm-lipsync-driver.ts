@@ -6,12 +6,10 @@
 // selection blended through an attack/release envelope.
 //
 // Algorithm lineage: airi `composables/vrm/lip-sync` (MIT). Re-implemented
-// under the VRM backend lipsync contract. Constants
-// are exported (testable) and `RUNNER_CAP` is intentionally written as
-// `CAP * 0.5` (NOT a literal 0.35) to preserve the "relative ratio"
-// semantics from airi; the drift gate enforces this calculation form.
+// under the Avatar VRM audio boundary. Constants are exported for the local
+// projection implementation.
 //
-// Coordination contract (vrm-backend-contract.md §6):
+// Coordination under rule.nimi.avatar.embodiment.r062:
 // the surface useFrame loop calls `tick(...)` and immediately forwards
 // the returned `{ active }` flag to `emoteState.setLipsyncActive(active)`
 // so the emote layer suppresses viseme writes during active speech.
@@ -36,9 +34,7 @@ export const RELEASE_RATE = 30;
 /** Maximum weight applied to the winner viseme expression preset.
  *  Caps "smiles too much" / over-saturation effect. */
 export const CAP = 0.7;
-/** Maximum weight applied to the runner-up (second-place) viseme.
- *  Written as `CAP * 0.5` (= 0.35) to preserve the contract's relative
- *  ratio. Do NOT inline 0.35. */
+/** Maximum weight applied to the runner-up (second-place) viseme. */
 export const RUNNER_CAP = CAP * 0.5;
 /** Multiplicative scalar applied to runner-up raw weight before it is
  *  clamped against RUNNER_CAP. Mirrors airi's 0.6 gain. */
@@ -121,9 +117,8 @@ function safeSetValue(
   try {
     expressionManager.setValue(name, weight);
   } catch {
-    // Missing preset on this model — partial degrade is allowed
-    // (vrm-backend-contract.md §F.5 + AGENTS.md pitfall #5). Skip
-    // silently; other presets still flush this frame.
+    // A missing preset degrades this local lane; other available presets still
+    // flush in the same frame.
   }
 }
 

@@ -9,17 +9,17 @@ description: >
   Dynamic window sizing policy for Nimi Avatar.
   Governs how the Tauri window's physical size is derived from the active
   embodiment backend's surface bounds plus the current per-avatar scale,
-  which triggers cause a recompute, and the visible-area + multi-monitor constraints. Rule ids
-  follow K-NAV-SHELL-002 / K-NAV-SHELL-003 / K-NAV-SHELL-005-* admitted in
-  app-shell-contract.md §1.2 / §1.3 / §3.3.
+  which triggers cause a recompute, and the visible-area + multi-monitor
+  constraints described by rules rule.nimi.avatar.embodiment.r073, r074, and
+  r075.
 
 policy: &avatar_window_bounds_policy_surfaces
   initial:
     width_px: 400
     height_px: 600
     reason: >
-      Boot placeholder declared in app-shell-contract K-NAV-SHELL-001. Replaced
-      on the first model_load recompute trigger (no user-visible flash).
+      Bounded bootstrap fallback replaced on the first model_load recompute
+      trigger (no user-visible flash).
 
   recompute_triggers:
     - id: model_load
@@ -51,9 +51,8 @@ policy: &avatar_window_bounds_policy_surfaces
       shape: rect (x, y, width, height)
       nominal_bounds_source: BackendBranch.nominalBounds
       reason: >
-        Authoritative bounds for the current backend's render surface.
-        BackendBranch.nominalBounds (per backend-branch-contract.md
-        §2.2 BackendNominalBounds) is the canonical source for the
+        Validated bounds for the current backend's render surface.
+        BackendBranch.nominalBounds (rule.nimi.avatar.embodiment.r003) is the
         starting envelope; embodiment_projection.getSurfaceBounds() is
         the per-frame refinement (e.g. Live2D alpha bounding box may
         shrink as motion plays).
@@ -94,8 +93,8 @@ policy: &avatar_window_bounds_policy_surfaces
     target_metric: embodiment_bounds_area
     enforcer: nimi_avatar_constrain_window_to_visible_area
     reason: >
-      Per app-shell-contract §3.3: at least 20% of the embodiment_bounds
-      must remain inside the active monitor's work area so the user can
+      Per rule.nimi.avatar.embodiment.r074, at least 20% of the
+      embodiment_bounds must remain inside the active monitor's work area so the user can
       drag the avatar back when it slides off screen. Transient overlays are
       excluded from the ratio so the avatar itself is what stays grabbable.
 
@@ -120,7 +119,7 @@ policy: &avatar_window_bounds_policy_surfaces
         the 400×600 fallback is consumed only at the boot placeholder
         stage before the model loads. Once model3.json `Canvas.Width` /
         `Canvas.Height` parse, embodiment_bounds switches to the model
-        alpha bounding box (per live2d-render-contract.md).
+        validated Live2D alpha bounding box.
     vrm:
       nominal_bounds_default:
         width_px: 360
@@ -133,7 +132,7 @@ policy: &avatar_window_bounds_policy_surfaces
         default `full-body` framing intent. aspect 0.45
         keeps the avatar window narrow on portrait setups. Once
         scene bbox + framing intent compute, embodiment_bounds is set
-        to the framed bbox per vrm-backend-contract.md §4.
+        to the framed bbox per rule.nimi.avatar.embodiment.r059.
 
 constraints:
   - description: >
@@ -149,7 +148,8 @@ constraints:
       Drag region is limited to embodiment-stage hit area
       (avatar-hit-region.ts). Transient overlays and degraded-surface
       pointer-down events MUST NOT trigger window drag — drag rescue must
-      come from the embodiment-stage body region per K-NAV-SHELL-008.
+      come from the embodiment-stage body region per
+      rule.nimi.avatar.embodiment.r075.
   - description: >
       Recompute on model_load + model_switch + avatar_scale_change fires
       synchronously with debounce_ms=0.
@@ -162,8 +162,9 @@ constraints:
 drift_checks:
   - description: >
       Any change to recompute_triggers source ids must be reflected in the
-      renderer's resize wiring (app-shell/window-bounds.ts) and in
-      avatar-event-contract.md if the trigger surface emits a new event.
+      renderer's resize wiring (app-shell/window-bounds.ts); emitted
+      observations remain bounded by rules rule.nimi.avatar.embodiment.r018
+      and r019.
   - description: >
       Any change to composition.formula must update both
       window-bounds-computer unit tests and the Tauri cargo test that

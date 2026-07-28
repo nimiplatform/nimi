@@ -6,7 +6,7 @@
 // instance (both plugins register on it; plugin order is matched against
 // the asset's GLTF extensions list).
 //
-// Load order is governed by vrm-backend-contract.md §2.1 (K-NAV-VRM-001):
+// The validated load lifecycle follows rule.nimi.avatar.embodiment.r056:
 //
 //     1. suspendCreateImageBitmapForTauriVrmLoad()    // Tauri WKWebView quirk
 //     2. load VRM GLTF via loader.loadAsync(url) or Tauri binary read + parse()
@@ -150,9 +150,9 @@ async function loadVrmGltf(path: string): Promise<VrmGltfLoadResult> {
 }
 
 /**
- * Load a VRM model from a resolved manifest. Honours the strict load order
- * from vrm-backend-contract.md §2.1 and the createImageBitmap suspend wrap
- * from §6.1. Cache hits short-circuit the loader entirely.
+ * Load a VRM model from a resolved manifest. Honours the validated r056 load
+ * order and the local createImageBitmap suspend wrap. Cache hits short-circuit
+ * the loader entirely.
  *
  * Throws when:
  *   - manifest.kind is not 'vrm'
@@ -187,9 +187,3 @@ export async function loadVrmFromManifest(manifest: VrmAvatarModelManifest): Pro
     restore();
   }
 }
-
-// `.vrma` loader was moved to vrm-animation-loader.ts (chunk 3-B) so the
-// `clipFromVRMAnimation` retargeting wrapper can sit alongside it. Both
-// names are re-exported here for back-compat with chunk 2-B import sites
-// (vrm-loader.test.ts + future motion preset registry).
-export { clipFromVRMAnimation, loadVrmAnimation } from './vrm-animation-loader.js';

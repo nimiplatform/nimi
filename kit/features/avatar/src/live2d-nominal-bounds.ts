@@ -6,8 +6,7 @@
 // unavailable, the bounds reduce to the canvas size with the body anchored at
 // the visual center.
 //
-// Spec: backend-branch-contract.md §"BackendNominalBounds";
-//       live2d-render-contract.md §"Model Loading".
+// Authority: rule.nimi.avatar.embodiment.r003.
 
 import type { BackendNominalBounds } from './backend-branch.js';
 

@@ -273,7 +273,6 @@ function simulatedAgentCenterAdapters(
           backgroundValidationMessage: null,
           previewState: null,
           previewTier: null,
-          previewArtifactRef: null,
           previewImageRef: null,
           previewFailureReason: null,
           previewWarnings: [],

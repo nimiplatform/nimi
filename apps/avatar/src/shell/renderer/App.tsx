@@ -1,5 +1,5 @@
-// Wave 1 — Avatar shell root component.
-// Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-002 the shell mounts exactly
+// Avatar shell root component.
+// Per rule.nimi.avatar.embodiment.r022 the shell mounts exactly
 // one of: embodiment-stage OR degraded-surface.
 // The retired mixed `recovery panel` + `trigger toggle` paths are
 // hard-cut; text/settings controls now move to transient overlays.

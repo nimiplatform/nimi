@@ -2,17 +2,14 @@
 // readiness projection for factory AIProfile materialization per
 // .nimi/spec/runtime/local-compute.authority.yaml.
 //
-// Activation states and reason codes are sourced from the canonical
-// catalog at runtime/kernel/tables/activation-gate-reason-codes.yaml.
-// Consumers may project the readiness but must not invent reason codes;
-// this package enforces fail-closed semantics so unknown reason codes are
-// rejected at construction time.
+// Consumers may project readiness but must not invent reason codes; this
+// package enforces fail-closed semantics so unknown values are rejected at
+// construction time.
 package materializationreadiness
 
 import "errors"
 
-// ActivationState enumerates Runtime activation states per
-// activation-gate-reason-codes.yaml state_priority.
+// ActivationState enumerates Runtime-owned activation states.
 type ActivationState string
 
 const (
@@ -36,9 +33,7 @@ func (s ActivationState) Valid() bool {
 }
 
 // IsTerminalNonReady reports whether the state is a terminal failure
-// projection (must not be reported as active/ready). Per yaml rule:
-// "non-ready activation states must not project active, degraded-ready,
-// best-effort-ready, endpoint-ready, or import-ready".
+// projection that must not be reported as active or ready.
 func (s ActivationState) IsTerminalNonReady() bool {
 	switch s {
 	case StateUnsupported, StateFailed, StateCancelled, StateRepairRequired:
@@ -47,8 +42,7 @@ func (s ActivationState) IsTerminalNonReady() bool {
 	return false
 }
 
-// ReasonCode enumerates Runtime activation reason codes per
-// runtime_activation_gate_reason_codes closed enum.
+// ReasonCode enumerates Runtime-owned activation reason codes.
 type ReasonCode string
 
 const (
@@ -74,9 +68,7 @@ const (
 	ReasonReady                         ReasonCode = "ready"
 )
 
-// CanonicalReasonCodes returns the full canonical reason code enum in
-// catalog order. Useful for tests and validators that must enumerate
-// the closed enum without consulting yaml at runtime.
+// CanonicalReasonCodes returns the closed Runtime reason-code vocabulary.
 func CanonicalReasonCodes() []ReasonCode {
 	return []ReasonCode{
 		ReasonEnginePackageMissing,

@@ -1,37 +1,23 @@
 import {
-  addNimiRealmGroupSourceParticipant,
-  commitNimiRealmGroupSourceMessageCandidate,
   createNimiRealmGroupChat,
   createNimiRealmGroupTextMessageInput,
   listNimiRealmGroupChats,
   loadNimiRealmGroupChat,
   loadNimiRealmGroupMessages,
   markNimiRealmGroupRead,
-  removeNimiRealmGroupSourceParticipant,
   sendNimiRealmGroupMessage,
   syncNimiRealmGroupEvents,
   type Realm,
-  type NimiRealmGroupSourceParticipantInput,
 } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
-import {
-  createNimiHostRuntimeRealmGroupMessageCandidateSurface,
-  isRuntimeLocalAgentRef,
-} from '@nimiplatform/sdk/runtime';
-import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { createNimiClientId, type JsonObject } from '@nimiplatform/sdk/types';
-import { assertGroupTriggerMessageMatchesChat } from './realm-group-trigger-evidence';
 
 type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
-type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
-type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type ListGroupChatsResultDto = RealmModel<'ListGroupChatsResultDto'>;
 type ListGroupMessagesResultDto = RealmModel<'ListGroupMessagesResultDto'>;
-type RealmGroupMessageCandidateCommitResultDto = RealmModel<'RealmGroupMessageCandidateCommitResultDto'>;
 
-export type { GroupChatViewDto, GroupMessageViewDto };
-export type GroupSourceParticipantInput = NimiRealmGroupSourceParticipantInput;
+export type { GroupChatViewDto };
 
 type RealmGroupChatApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type RealmGroupChatErrorEmitter = (
@@ -39,70 +25,8 @@ type RealmGroupChatErrorEmitter = (
   error: unknown,
   details?: JsonObject,
 ) => void;
-type CurrentUserReader = () => Record<string, unknown> | null;
-
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
 function createStableClientId(prefix: string): string {
   return createNimiClientId(prefix);
-}
-
-function requireCurrentUserId(getCurrentUser: CurrentUserReader): string {
-  const id = normalizeText(getCurrentUser()?.id);
-  if (!id) {
-    throw new Error('group source candidate handoff requires authenticated current user id');
-  }
-  return id;
-}
-
-function requireSourceParticipant(participant: GroupParticipantDto): {
-  runtimeParticipantSlot: string;
-  runtimeSourceRef: string;
-  ownerUserId: string;
-} {
-  const runtimeParticipantSlot = normalizeText(participant.runtimeParticipantSlot);
-  const runtimeSourceRef = normalizeText(participant.runtimeSourceRef);
-  const ownerUserId = normalizeText(participant.sourceAuthorityAccountId);
-  if (
-    participant.type !== 'source'
-    || !runtimeParticipantSlot
-    || !runtimeSourceRef
-    || !ownerUserId
-  ) {
-    throw new Error('group source candidate handoff requires a runtime source participant');
-  }
-  return { runtimeParticipantSlot, runtimeSourceRef, ownerUserId };
-}
-
-async function resolveGroupSourceLocalAgentRef(input: {
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  sdk: DesktopRendererSdkPort;
-}): Promise<string> {
-  const runtime = input.sdk.accountProduct();
-  const response = await input.sdk.withRuntimeProtectedScopes(
-    ['runtime.agent.read'],
-    (callOptions) => runtime.agents.listAgents({
-      lifecycleFilter: AgentLifecycleStatus.ACTIVE,
-      pageSize: 200,
-      pageToken: '',
-    }, callOptions),
-  );
-  const matchingLocalAgents = (response.agents || []).filter((agent) => (
-    normalizeText(agent.ownerUserId) === input.ownerUserId
-    && normalizeText(agent.runtimeSourceRef) === input.runtimeSourceRef
-    && isRuntimeLocalAgentRef(agent.localAgentRef)
-  ));
-  if (matchingLocalAgents.length !== 1) {
-    throw new Error('group source candidate handoff requires exactly one matching Runtime local agent for source provenance');
-  }
-  const localAgentRef = normalizeText(matchingLocalAgents[0]?.localAgentRef);
-  if (!isRuntimeLocalAgentRef(localAgentRef)) {
-    throw new Error('group source candidate handoff resolved malformed Runtime local agent identity');
-  }
-  return localAgentRef;
 }
 
 export async function loadGroupChatList(
@@ -180,72 +104,6 @@ export async function sendGroupChatMessage(
   }
 }
 
-export async function commitRealmGroupSourceMessageCandidateHandoff(
-  callApi: RealmGroupChatApiCaller,
-  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
-  getCurrentUser: CurrentUserReader,
-  chatId: string,
-  participant: GroupParticipantDto,
-  triggerMessage: GroupMessageViewDto,
-  sdk: DesktopRendererSdkPort,
-): Promise<RealmGroupMessageCandidateCommitResultDto> {
-  const currentUserId = requireCurrentUserId(getCurrentUser);
-  const sourceParticipant = requireSourceParticipant(participant);
-  const localAgentRef = await resolveGroupSourceLocalAgentRef({
-    ownerUserId: sourceParticipant.ownerUserId,
-    runtimeSourceRef: sourceParticipant.runtimeSourceRef,
-    sdk,
-  });
-  const triggerMessageId = assertGroupTriggerMessageMatchesChat({
-    chatId,
-    currentUserId,
-    triggerMessage,
-  });
-  const idempotencyKey = createStableClientId('rgmc');
-  const surface = createNimiHostRuntimeRealmGroupMessageCandidateSurface({
-    getRuntime: () => {
-      const accountRuntime = sdk.accountRuntime();
-      return {
-        appId: sdk.appId(),
-        auth: accountRuntime.auth,
-        agent: sdk.runtimeAgentOwner(),
-      };
-    },
-    getSubjectUserId: () => currentUserId,
-    withScopes: sdk.withRuntimeProtectedScopes,
-  });
-
-  try {
-    const candidateCommit = await surface.createCommitPayload({
-      participantType: participant.type,
-      currentUserId,
-      realmGroupThreadId: chatId,
-      runtimeParticipantSlot: sourceParticipant.runtimeParticipantSlot,
-      ownerUserId: sourceParticipant.ownerUserId,
-      runtimeSourceRef: sourceParticipant.runtimeSourceRef,
-      localAgentRef,
-      triggerMessageId,
-      triggerKind: 'mention',
-      idempotencyKey,
-    });
-    return await callApi(
-      (realm) => commitNimiRealmGroupSourceMessageCandidate(
-        realm,
-        chatId,
-        candidateCommit.realmCommitPayload,
-      ),
-      '提交群组 Source 消息失败',
-    );
-  } catch (error) {
-    emitRealmGroupChatError('commit-realm-group-message-candidate', error, {
-      chatId,
-      runtimeParticipantSlot: normalizeText(participant.runtimeParticipantSlot),
-      localAgentRef,
-    });
-    throw error;
-  }
-}
-
 export async function markGroupChatRead(
   callApi: RealmGroupChatApiCaller,
   emitRealmGroupChatError: RealmGroupChatErrorEmitter,
@@ -286,44 +144,6 @@ export async function createGroupChat(
   }
 }
 
-export async function addGroupChatSource(
-  callApi: RealmGroupChatApiCaller,
-  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
-  chatId: string,
-  input: GroupSourceParticipantInput,
-) {
-  try {
-    const result = await callApi(
-      (realm) => addNimiRealmGroupSourceParticipant(realm, chatId, input),
-      '添加群组 Source 失败',
-    );
-    return result;
-  } catch (error) {
-    emitRealmGroupChatError('add-group-source', error, {
-      chatId,
-      sourceRef: JSON.stringify(input.sourceRef),
-    });
-    throw error;
-  }
-}
-
-export async function removeGroupChatSource(
-  callApi: RealmGroupChatApiCaller,
-  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
-  chatId: string,
-  runtimeParticipantSlot: string,
-) {
-  try {
-    await callApi(
-      (realm) => removeNimiRealmGroupSourceParticipant(realm, chatId, runtimeParticipantSlot),
-      '移除群组 Source 失败',
-    );
-  } catch (error) {
-    emitRealmGroupChatError('remove-group-source', error, { chatId, runtimeParticipantSlot });
-    throw error;
-  }
-}
-
 export async function syncGroupChatEvents(
   callApi: RealmGroupChatApiCaller,
   emitRealmGroupChatError: RealmGroupChatErrorEmitter,
@@ -347,7 +167,6 @@ export async function syncGroupChatEvents(
 
 export function createRealmGroupChatData(input: {
   sdk: DesktopRendererSdkPort;
-  getCurrentUser: CurrentUserReader;
 }) {
   const callApi = input.sdk.socialData.callApi;
   const emitRealmDataError = input.sdk.socialData.emitDataError;
@@ -360,30 +179,12 @@ export function createRealmGroupChatData(input: {
     loadGroupChatMessages(callApi, emitRealmDataError, chatId, Math.min(limit, 100)),
   sendGroupMessage: (chatId: string, content: string) =>
     sendGroupChatMessage(callApi, emitRealmDataError, chatId, content),
-  commitRealmGroupSourceMessageCandidate: (
-    chatId: string,
-    participant: GroupParticipantDto,
-    triggerMessage: GroupMessageViewDto,
-  ) =>
-    commitRealmGroupSourceMessageCandidateHandoff(
-      callApi,
-      emitRealmDataError,
-      input.getCurrentUser,
-      chatId,
-      participant,
-      triggerMessage,
-      input.sdk,
-    ),
   markGroupRead: (chatId: string) =>
     markGroupChatRead(callApi, emitRealmDataError, chatId),
   createGroup: (title: string, participantIds: string[], initialMessage?: string) =>
     createGroupChat(callApi, emitRealmDataError, title, participantIds, initialMessage),
   syncGroupEvents: (chatId: string, afterSeq: number, limit = 100) =>
     syncGroupChatEvents(callApi, emitRealmDataError, chatId, afterSeq, Math.min(limit, 100)),
-  addGroupSource: (chatId: string, input: GroupSourceParticipantInput) =>
-    addGroupChatSource(callApi, emitRealmDataError, chatId, input),
-  removeGroupSource: (chatId: string, runtimeParticipantSlot: string) =>
-    removeGroupChatSource(callApi, emitRealmDataError, chatId, runtimeParticipantSlot),
   });
 }
 

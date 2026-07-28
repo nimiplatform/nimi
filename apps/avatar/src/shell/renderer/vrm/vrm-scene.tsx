@@ -2,10 +2,8 @@
 //
 // Pure presentational R3F scene for the VRM backend. No state, no effects;
 // trusts that the loader has already applied frustumCulled=false on the
-// scene graph (vrm-loader.ts step 5). Lights match
-// vrm-backend-contract.md §9 Scene Hierarchy: ambient 0.6 + directional
-// 0.8 from front-top-right. The light intensities/positions are static
-// per AGENTS.md §"VRM Backend Pitfalls" #10 (no per-frame light writes).
+// scene graph (vrm-loader.ts step 5). The static lights are renderer-local and
+// do not create backend-neutral or Runtime truth.
 
 import type { VRM } from '@pixiv/three-vrm';
 import type { JSX } from 'react';

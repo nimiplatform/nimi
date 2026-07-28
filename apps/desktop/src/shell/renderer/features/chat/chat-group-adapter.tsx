@@ -4,7 +4,6 @@ import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/ch
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
-import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useRealmGroupChatData } from './data/realm-group-chat-data-context.js';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { ChatGroupParticipantPanel } from './chat-group-participant-panel';
@@ -29,87 +28,10 @@ type UseGroupConversationModeHostInput = {
   currentUserId: string | null;
 };
 
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Whether `participant` is a LocalAgent the current user can invoke in this
- * group: a source slot the user owns with a fully materializable runtime
- * source identity. This is the canonical Group LocalAgent participation
- * criterion shared by mention resolution and NimiAIConfig scope binding.
- */
-function isInvokableGroupLocalAgentParticipant(
-  participant: GroupParticipantDto,
-  userId: string,
-): boolean {
-  return (
-    participant.type === 'source'
-    && normalizeText(participant.sourceAuthorityAccountId) === userId
-    && Boolean(normalizeText(participant.runtimeParticipantSlot))
-    && Boolean(normalizeText(participant.runtimeSourceRef))
-  );
-}
-
-/**
- * Whether the selected group has any active LocalAgent participation for the
- * current user. Drives whether Group reuses the `desktop.chat.agent` NimiAIConfig
- * scope (T3-2). When there is no LocalAgent participation, no built-in chat
- * scope is bound for Group.
- */
-export function hasInvokableGroupLocalAgentParticipation(
-  participants: readonly GroupParticipantDto[],
-  currentUserId: string | null,
-): boolean {
-  const userId = normalizeText(currentUserId);
-  if (!userId) {
-    return false;
-  }
-  return participants.some((participant) =>
-    isInvokableGroupLocalAgentParticipant(participant, userId),
-  );
-}
-
-export function resolveInvokableGroupSourceMention(
-  content: string,
-  participants: readonly GroupParticipantDto[],
-  currentUserId: string | null,
-): GroupParticipantDto | null {
-  const userId = normalizeText(currentUserId);
-  if (!userId) {
-    return null;
-  }
-  const candidates = participants
-    .filter((participant) =>
-      isInvokableGroupLocalAgentParticipant(participant, userId),
-    )
-    .sort((a, b) =>
-      normalizeText(b.displayName || b.handle).length
-      - normalizeText(a.displayName || a.handle).length,
-    );
-
-  for (const participant of candidates) {
-    const mentionName = normalizeText(participant.displayName || participant.handle);
-    if (!mentionName) {
-      continue;
-    }
-    const pattern = new RegExp(`(^|\\s)@${escapeRegExp(mentionName)}(?=\\s|$|[.,!?])`, 'i');
-    if (pattern.test(content)) {
-      return participant;
-    }
-  }
-  return null;
-}
-
 export function useGroupConversationModeHost(
   input: UseGroupConversationModeHostInput,
 ): DesktopConversationModeHost {
   const realmGroupChatData = useRealmGroupChatData();
-  const commands = useDesktopRendererCommands();
   const { authStatus, currentUserId } = input;
   const { t } = useTranslation();
   const groupChatCopy = useMemo<GroupChatCopy>(() => ({
@@ -184,25 +106,6 @@ export function useGroupConversationModeHost(
     },
   });
 
-  const candidateCommitMutation = useMutation({
-    mutationFn: async ({
-      chatId,
-      participant,
-      triggerMessage,
-    }: {
-      chatId: string;
-      participant: GroupParticipantDto;
-      triggerMessage: GroupMessageViewDto;
-    }) => realmGroupChatData.commitRealmGroupSourceMessageCandidate(chatId, participant, triggerMessage),
-    onSettled: (_result, _error, variables) => {
-      const sentChatId = String(variables.chatId || '');
-      if (sentChatId) {
-        void queryClient.invalidateQueries({ queryKey: ['group-messages', sentChatId] });
-      }
-      void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });
-    },
-  });
-
   useEffect(() => {
     if (!selectedGroupId) {
       return;
@@ -221,25 +124,6 @@ export function useGroupConversationModeHost(
   }, [allGroups, selectedGroupId, setSelectedTargetForSource]);
 
   const participants: readonly GroupParticipantDto[] = selectedGroup?.participants || [];
-
-  // T3-2: Group LocalAgent participation reuses the canonical
-  // `desktop.chat.agent` built-in NimiAIConfig scope — the SAME scope as Agent
-  // Chat. When the selected group has invokable LocalAgent participation, bind
-  // that agent scope; otherwise no built-in chat scope is bound. Group thread
-  // state stays Realm-owned — only the LocalAgent-participation NimiAIConfig is
-  // scoped, and it never mints a group-specific scope.
-  const groupHasLocalAgentParticipation = useMemo(
-    () => hasInvokableGroupLocalAgentParticipation(participants, currentUserId),
-    [participants, currentUserId],
-  );
-  useEffect(() => {
-    commands.setGroupLocalAgentParticipationActive(groupHasLocalAgentParticipation);
-  }, [commands, groupHasLocalAgentParticipation]);
-  useEffect(() => () => {
-    // Leaving the Group surface clears participation so a later mode does not
-    // inherit a stale agent-scope binding from Group.
-    commands.setGroupLocalAgentParticipationActive(false);
-  }, [commands]);
 
   const setupState = useMemo(() => {
     if (authStatus === 'authenticated') {
@@ -272,21 +156,8 @@ export function useGroupConversationModeHost(
 
   const handleSendMessage = useCallback(async (content: string) => {
     if (!selectedGroupId || !content.trim()) return;
-    const trimmed = content.trim();
-    const mentionedSource = resolveInvokableGroupSourceMention(
-      trimmed,
-      participants,
-      currentUserId,
-    );
-    const sentMessage = await sendMutation.mutateAsync({ chatId: selectedGroupId, content: trimmed });
-    if (mentionedSource) {
-      await candidateCommitMutation.mutateAsync({
-        chatId: selectedGroupId,
-        participant: mentionedSource,
-        triggerMessage: sentMessage,
-      });
-    }
-  }, [candidateCommitMutation, currentUserId, participants, selectedGroupId, sendMutation]);
+    await sendMutation.mutateAsync({ chatId: selectedGroupId, content: content.trim() });
+  }, [selectedGroupId, sendMutation]);
 
   const selectedGroupTitle = selectedGroup
     ? getGroupChatTitle(selectedGroup, groupChatCopy.group)
@@ -330,22 +201,14 @@ export function useGroupConversationModeHost(
       <ChatGroupParticipantPanel
         participants={participants}
         currentUserId={currentUserId}
-        chatId={selectedGroupId}
         embedded
-        onSourceSlotChanged={() => {
-          if (selectedGroupId) {
-            void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
-            void queryClient.invalidateQueries({ queryKey: ['group-messages', selectedGroupId] });
-          }
-        }}
       />
     ) : null,
     composerContent: selectedGroupId ? (
       <ChatGroupComposer
         selectedGroupId={selectedGroupId}
         onSendMessage={handleSendMessage}
-        isSending={sendMutation.isPending || candidateCommitMutation.isPending}
-        sourceParticipants={participants}
+        isSending={sendMutation.isPending}
       />
     ) : null,
     setupDescription: t('Chat.groupSetupRequired', {
@@ -363,7 +226,6 @@ export function useGroupConversationModeHost(
     selectedGroup,
     selectedGroupId,
     selectedGroupTitle,
-    candidateCommitMutation.isPending,
     sendMutation.isPending,
     setSelectedTargetForSource,
     t,

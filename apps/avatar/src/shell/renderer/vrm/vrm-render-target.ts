@@ -2,7 +2,7 @@
 //
 // Offscreen WebGL render target for VRM alpha-mask hit-region probing. The
 // VRM scene is normally rendered to the visible canvas via R3F; for hit
-// queries (per app-shell-contract.md §2.3.1) we need to read pixel alpha
+// queries under rule.nimi.avatar.embodiment.r004, we need to read pixel alpha
 // at client coordinates without disrupting the main render. This module
 // owns the offscreen FBO + 1×1 alpha probe used by the VRM hit-region wiring.
 //
@@ -191,8 +191,8 @@ function createRealRenderTarget(): VrmRenderTarget {
         throw new Error('vrm-render-target: capture() after dispose()');
       }
       const { renderer, scene, camera } = input;
-      // Compute FBO size = drawing buffer / 2 (1/2 res sampling per
-      // app-shell-contract.md §2.3.1). Clamp away from zero to avoid
+      // Compute FBO size = drawing buffer / 2 for bounded local sampling.
+      // Clamp away from zero to avoid
       // degenerate targets during transient layouts.
       const sized = readDrawingBufferSize(renderer);
       const drawX = sized?.x ?? MIN_FBO_DIMENSION * 2;

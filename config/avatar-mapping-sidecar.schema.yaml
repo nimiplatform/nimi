@@ -10,8 +10,8 @@ entries:
 admission_id: avatar-apml-auto-adapter
 description: >
   Schema for sidecar mappings from Avatar route ids to backend/model-specific
-  names. Sidecars carry confidence and evidence only. They do not own semantic
-  ids and must not contain generated keyframe math.
+  names. Sidecars carry confidence and source classification only. They do not
+  own semantic ids and must not contain generated keyframe math.
 
 required_fields:
   - sidecar_id
@@ -21,8 +21,8 @@ required_fields:
   - confidence
   - threshold
   - manual_confirmation
+  - source_kind
   - target_fields
-  - evidence
 
 route_id_source: config/avatar-generated-motion-routes.yaml
 default_threshold: 0.82
@@ -72,16 +72,6 @@ target_fields:
   optional_fields:
     - role
 
-evidence:
-  required_fields:
-    - source_kind
-    - source_fields
-    - rationale
-  source_fields_rule: >
-    source_fields must identify the model/profile fields inspected, such as
-    expression preset names, humanoid bone names, Live2D motion groups, or
-    manifest metadata.
-
 forbidden_fields:
   - keyframes
   - rotations
@@ -95,5 +85,5 @@ invariants:
   - confidence below threshold is fail_closed.
   - threshold below default_threshold is invalid sidecar input and fails closed.
   - sidecars must not create runtime activity ids or public APML syntax.
-  - sidecars must not claim support without matching backend capability profile evidence.
+  - sidecars must not claim support without matching backend capability profile facts.
   - target_fields are backend/model facts only and must not become Avatar-local ontology.

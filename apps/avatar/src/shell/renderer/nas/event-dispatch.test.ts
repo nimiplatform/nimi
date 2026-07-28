@@ -92,20 +92,6 @@ function createProjection(): BackendProjection {
   };
 }
 
-function admissionDetail(): Record<string, string> {
-  return {
-    agent_id: 'local-agent:owner-1:agent-1',
-    conversation_anchor_id: 'anchor-1',
-    turn_id: 'turn-1',
-    stream_id: 'stream-1',
-    runtime_admission_ref: 'runtime.admission/avatar-presentation-1',
-    gateway_verdict_ref: 'runtime.gateway/avatar-presentation-1',
-    firewall_verdict_ref: 'runtime.firewall/avatar-presentation-1',
-    audit_ref: 'runtime.audit/avatar-presentation-1',
-    credential_verdict_ref: 'runtime.credential/avatar-presentation-1',
-  };
-}
-
 function runtimeEnvelopeDetail(): Record<string, string> {
   return {
     agent_id: 'local-agent:owner-1:agent-1',
@@ -150,7 +136,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'emotion',
       intensity: 'strong',
       source: 'apml_output',
-      ...admissionDetail(),
+      ...runtimeEnvelopeDetail(),
     }));
     await Promise.resolve();
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -176,7 +162,7 @@ describe('Avatar NAS runtime event dispatch', () => {
     unwire();
   });
 
-  it('accepts runtime activity projection with envelope evidence but no admission refs', async () => {
+  it('accepts runtime activity projection with its typed envelope', async () => {
     const driver = createDriver();
     const projection = createProjection();
     const registry = createHandlerRegistry();
@@ -230,7 +216,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'emotion',
       intensity: 'strong',
       source: 'apml_output',
-      ...admissionDetail(),
+      ...runtimeEnvelopeDetail(),
     }));
     await Promise.resolve();
 
@@ -263,7 +249,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'emotion',
       intensity: 'strong',
       source: 'apml_output',
-      ...admissionDetail(),
+      ...runtimeEnvelopeDetail(),
     }));
     await Promise.resolve();
 
@@ -319,7 +305,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'emotion',
       intensity: 'strong',
       source: 'apml_output',
-      ...admissionDetail(),
+      ...runtimeEnvelopeDetail(),
     }));
     await Promise.resolve();
     await Promise.resolve();
@@ -355,7 +341,6 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'interaction',
       intensity: null,
       source: 'mock',
-      ...admissionDetail(),
     }));
     await Promise.resolve();
 
@@ -365,7 +350,7 @@ describe('Avatar NAS runtime event dispatch', () => {
     unwire();
   });
 
-  it('maps fixture activity projections into the carrier fallback without runtime admission', async () => {
+  it('maps fixture activity projections into the carrier fallback', async () => {
     const driver = createDriver();
     const projection = createProjection();
     const unwire = wireEventDispatch({
@@ -427,7 +412,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'renderer-local',
       intensity: 'strong',
       source: 'apml_output',
-      ...admissionDetail(),
+      ...runtimeEnvelopeDetail(),
     }));
     await Promise.resolve();
 
@@ -452,7 +437,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'emotion',
       intensity: 'strong',
       source: 'apml_output',
-      ...admissionDetail(),
+      ...runtimeEnvelopeDetail(),
     }));
     await Promise.resolve();
 
@@ -479,7 +464,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       detail: {
         expression_id: 'smile.default',
         source: 'apml_output',
-        ...admissionDetail(),
+        ...runtimeEnvelopeDetail(),
       },
     });
     await Promise.resolve();

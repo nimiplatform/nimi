@@ -6,7 +6,7 @@
 // generated motion runtime, routing activity ids through an injected
 // activity-mapping resolver.
 //
-// Hard contract (per backend-branch-contract.md): the BackendProjection
+// Per rule.nimi.avatar.embodiment.r006, the BackendProjection
 // surface is ontology-only; NO Live2D parameter id (`ParamMouthOpenY`
 // / `parameterId` / etc) on any method here. Live2D parameter writes
 // are reachable only through the kind-narrowed `live2dExtension`

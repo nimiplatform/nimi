@@ -17,7 +17,6 @@ const testFiles = process.argv.slice(2);
 const independentWorkspaceTestRoots = [
   'adapters/mastra/',
   'adapters/vercel-ai/',
-  'doctor/',
 ];
 
 function discoverDefaultTestFiles() {

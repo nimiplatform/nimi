@@ -17,7 +17,6 @@ import {
   consumeNativeVoiceStream,
 } from './sdk-driver-native-voice.js';
 import {
-  admissionEvidenceFields,
   clearTurnCueRecord,
   mapExecutionState,
   mergeCustomRecord,
@@ -27,7 +26,6 @@ import {
   optionalRuntimeExecutionState,
   optionalRuntimePreviousEmotion,
   readSnapshotStatusCue,
-  readRuntimePresentationAdmissionEvidence,
   requireRuntimeActivityCategory,
   requireRuntimeActivityIntensity,
   requireRuntimeCurrentEmotion,
@@ -421,7 +419,6 @@ export class SdkDriver implements AgentDataDriver {
         ...envelope,
         source: 'apml_output',
         catchup_source: 'session_snapshot',
-        ...admissionEvidenceFields(cue.admission),
       }, timestampNow));
     }
     if (cue.activityName) {
@@ -434,7 +431,6 @@ export class SdkDriver implements AgentDataDriver {
         source: 'apml_output',
         ...envelope,
         catchup_source: 'session_snapshot',
-        ...admissionEvidenceFields(cue.admission),
       }, timestampNow));
     }
   }
@@ -475,7 +471,6 @@ export class SdkDriver implements AgentDataDriver {
         const intensity = requireRuntimeActivityIntensity(event.detail.intensity);
         const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime activity projection');
         const envelope = requireRuntimePresentationEnvelopeEvidence(event);
-        const admission = readRuntimePresentationAdmissionEvidence(event.detail as Record<string, unknown>);
         this.bundle = {
           ...this.bundle,
           activity: {
@@ -483,7 +478,6 @@ export class SdkDriver implements AgentDataDriver {
             category,
             intensity,
             source: runtimeSource,
-            ...(admission ? { admission } : {}),
           },
           history: mergeHistory(this.bundle.history, {
             last_activity: {
@@ -505,7 +499,6 @@ export class SdkDriver implements AgentDataDriver {
           intensity,
           source: runtimeSource,
           ...envelope,
-          ...admissionEvidenceFields(admission),
         }, timestampNow));
         return;
       }
@@ -525,7 +518,6 @@ export class SdkDriver implements AgentDataDriver {
         const at = new Date(timestampNow).toISOString();
         const expressionId = requireRuntimeDetailText(event.detail.expressionId, 'runtime expression id');
         const envelope = requireRuntimePresentationEnvelopeEvidence(event);
-        const admission = readRuntimePresentationAdmissionEvidence(event.detail as Record<string, unknown>);
         this.bundle = {
           ...this.bundle,
           history: mergeHistory(this.bundle.history, {
@@ -538,7 +530,6 @@ export class SdkDriver implements AgentDataDriver {
           expression_id: expressionId,
           expected_duration_ms: event.detail.expectedDurationMs ?? null,
           ...envelope,
-          ...admissionEvidenceFields(admission),
         }, timestampNow));
         return;
       }

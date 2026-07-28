@@ -1,9 +1,8 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Generic trailing-edge debouncer used to throttle the per-frame
-// `onHitRegionChange` consumer callback inside the embodiment-stage. Per
-// app-shell-contract.md §2.3.1, the
-// hit-region bbox snapshot must not be delivered to the consumer faster
+// `onHitRegionChange` consumer callback inside the embodiment-stage. The
+// hit-region bbox snapshot is not delivered to the consumer faster
 // than 100ms. The carrier surface may emit on every captured frame; the
 // embodiment-stage owns the throttle (so the consumer never sees the raw
 // per-frame fire rate).
@@ -18,8 +17,8 @@
 // and a deep equality check would be expensive on the hot per-frame path.
 // Consumers should be idempotent against same-bbox repeats.
 
-/** 100ms minimum from app-shell-contract.md. Kept as a named constant so
- *  throttle logic contains no scattered float literals. */
+/** Local 100ms minimum kept as a named constant so throttle logic contains no
+ * scattered float literals. */
 export const THROTTLED_EMIT_DEFAULT_MIN_INTERVAL_MS = 100;
 
 export type ThrottledEmitHandle<T> = {

@@ -30,23 +30,19 @@ function validSidecar(overrides: Record<string, unknown> = {}): Record<string, u
     confidence: 0.94,
     threshold: 0.82,
     manual_confirmation: 'confirmed',
+    source_kind: 'llm_semantic_match',
     target_fields: [
       { target_kind: 'humanoid_bone', name: 'spine', role: 'stabilizer' },
       { target_kind: 'humanoid_bone', name: 'rightUpperArm', role: 'wave_source' },
       { target_kind: 'humanoid_bone', name: 'rightLowerArm', role: 'wave_source' },
       { target_kind: 'humanoid_bone', name: 'rightHand', role: 'wave_tip' },
     ],
-    evidence: {
-      source_kind: 'llm_semantic_match',
-      source_fields: ['humanoid.spine', 'humanoid.rightHand'],
-      rationale: 'route targets match available humanoid arm bones',
-    },
     ...overrides,
   };
 }
 
 describe('normalizeAvatarMappingSidecar', () => {
-  it('parses mapping-only YAML sidecars with confidence and evidence', () => {
+  it('parses mapping-only YAML sidecars with confidence and source kind', () => {
     const sidecar = parseAvatarMappingSidecarDocument(`
 sidecar_id: sidecar-greet-wave-vrm
 route_id: greet_wave
@@ -55,19 +51,15 @@ profile_id: vrm-runtime-probe-v1
 confidence: 0.94
 threshold: 0.82
 manual_confirmation: confirmed
+source_kind: llm_semantic_match
 target_fields:
   - target_kind: humanoid_bone
     name: rightHand
     role: wave_tip
-evidence:
-  source_kind: llm_semantic_match
-  source_fields:
-    - humanoid.rightHand
-  rationale: route target matches available humanoid hand bone
 `);
 
     expect(sidecar.routeId).toBe('greet_wave');
-    expect(sidecar.evidence.sourceKind).toBe('llm_semantic_match');
+    expect(sidecar.sourceKind).toBe('llm_semantic_match');
     expect(sidecar.targetFields).toContainEqual({
       targetKind: 'humanoid_bone',
       name: 'rightHand',
@@ -84,6 +76,14 @@ evidence:
         ],
       }),
     ).toThrow(/forbidden field/);
+  });
+
+  it('rejects retired evidence receipts and other open fields', () => {
+    expect(() =>
+      normalizeAvatarMappingSidecar(validSidecar({
+        evidence: { source_kind: 'llm_semantic_match' },
+      })),
+    ).toThrow(/unadmitted field "evidence"/);
   });
 
   it('rejects unknown Avatar backend route ids', () => {
@@ -106,7 +106,7 @@ evidence:
 });
 
 describe('evaluateAvatarMappingSidecarSupport', () => {
-  it('supports confirmed high-confidence LLM sidecars with matching profile evidence', () => {
+  it('supports confirmed high-confidence LLM sidecars with matching profile facts', () => {
     const profile = createVrmCapabilityProfile(makeVrm());
     const result = evaluateAvatarMappingSidecarSupport(
       normalizeAvatarMappingSidecar(validSidecar()),

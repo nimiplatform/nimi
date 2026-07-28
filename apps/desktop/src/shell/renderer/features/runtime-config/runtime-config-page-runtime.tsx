@@ -11,12 +11,11 @@ import { useGlobalAuditData } from './runtime-config-use-global-audit-data.js';
 import { ExternalAgentAccessPanel } from './runtime-config-external-agent-access';
 import { DelegatedCapabilityControlPanel } from './runtime-config-delegated-capability-panel';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { RuntimeConfigMemoryEmbeddingSection } from './runtime-config-memory-embedding-section';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { RuntimeOverviewTab } from './runtime-config-runtime-overview-tab';
 import { RuntimeNodeCapabilityMatrix } from './runtime-config-runtime-node-matrix';
 
-type RuntimeTabKey = 'overview' | 'health' | 'activity' | 'memory' | 'access';
+type RuntimeTabKey = 'overview' | 'health' | 'activity' | 'access';
 
 type RuntimePageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -67,7 +66,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       badge: unhealthyProviderCount > 0 ? unhealthyProviderCount : undefined,
     },
     { key: 'activity', label: t('runtimeConfig.runtime.tabActivity', { defaultValue: 'Activity' }) },
-    { key: 'memory', label: t('runtimeConfig.runtime.tabMemory', { defaultValue: 'Memory' }) },
     { key: 'access', label: t('runtimeConfig.runtime.tabAccess', { defaultValue: 'Access' }) },
   ];
 
@@ -170,10 +168,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             onLoadMore={() => void auditData.loadNextUsagePage()}
           />
         </>
-      ) : null}
-
-      {activeTab === 'memory' ? (
-        <RuntimeConfigMemoryEmbeddingSection state={state} />
       ) : null}
 
       {activeTab === 'access' ? (

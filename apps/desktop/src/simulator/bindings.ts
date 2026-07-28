@@ -309,9 +309,6 @@ export function createDesktopSimulatorBindings(
         setActiveScopeForMode() {
           throw new Error('DESKTOP_SIMULATOR_CHAT_MODE_UNADMITTED');
         },
-        setGroupLocalAgentParticipationActive() {
-          throw new Error('DESKTOP_SIMULATOR_GROUP_LOCAL_AGENT_UNADMITTED');
-        },
         async reportAuthEntryAction() {
           interactionSequence += 1;
           const result = await context.interactions.emit({

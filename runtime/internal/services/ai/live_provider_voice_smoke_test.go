@@ -41,7 +41,7 @@ func TestLiveSmokeVideoGenerateSpecVolcengineUsesBuiltInFallbacks(t *testing.T) 
 	}
 }
 
-func TestQualifyLocalSpeechLiveModelID(t *testing.T) {
+func TestLiveQualifyLocalSpeechModelID(t *testing.T) {
 	cases := []struct {
 		in   string
 		want string

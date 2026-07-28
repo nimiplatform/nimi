@@ -8,22 +8,21 @@ import type {
 import { EntityAvatar } from '../../components/entity-avatar.js';
 
 function resolveSenderName(message: ConversationCanonicalMessage): string {
-  return String(message.senderName || '').trim() || (message.senderKind === 'source' ? 'Source' : 'User');
+  return String(message.senderName || '').trim() || 'User';
 }
 
 export function useGroupMessageAvatarRenderer(): CanonicalMessageAvatarSlot {
   return useCallback<CanonicalMessageAvatarSlot>((message) => {
     const senderName = resolveSenderName(message);
-    const senderKind = message.senderKind === 'source' ? 'source' : 'human';
     return (
       <div className="shrink-0">
         <EntityAvatar
           imageUrl={message.senderAvatarUrl || undefined}
           name={senderName}
-          kind={senderKind}
+          kind="human"
           sizeClassName="h-8 w-8"
           textClassName="text-xs font-medium"
-          fallbackClassName={senderKind === 'human' ? 'bg-slate-200 text-slate-700' : undefined}
+          fallbackClassName="bg-slate-200 text-slate-700"
         />
       </div>
     );

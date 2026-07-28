@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { readYaml as readSpecHumanYaml } from './spec-human-doc-core.mjs';
+import { readYamlWithFragments } from './read-yaml-with-fragments.mjs';
 import { readYaml as readSdkGeneratorYaml, repoRoot } from '../../sdks/generators/lib/context.mjs';
 
 function writeFile(targetPath, content) {
@@ -12,7 +12,7 @@ function writeFile(targetPath, content) {
   fs.writeFileSync(targetPath, content, 'utf8');
 }
 
-test('spec human docs read fragment-backed YAML tables', async () => {
+test('shared YAML reader resolves fragment-backed tables', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-yaml-fragments-'));
   const tablePath = path.join(tempDir, 'table.yaml');
   writeFile(tablePath, `
@@ -31,7 +31,7 @@ values:
   - SECOND
 `);
 
-  const table = await readSpecHumanYaml(tablePath);
+  const table = readYamlWithFragments(tablePath);
   assert.deepEqual(table.values, ['FIRST', 'SECOND']);
 });
 

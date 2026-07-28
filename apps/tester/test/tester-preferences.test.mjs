@@ -74,13 +74,14 @@ test('tester preferences use a versioned localStorage schema and fail closed', (
     schemaVersion: 1,
     draftPersistence: false,
     verboseConsole: true,
+    unknownLegacyField: 'ignored',
   }, storage);
   assert.equal(saved.status.state, 'ready');
 
   const loaded = loadTesterPreferences(storage);
   assert.equal(loaded.preferences.draftPersistence, false);
   assert.equal(loaded.preferences.verboseConsole, true);
-  assert.equal(Object.hasOwn(loaded.preferences, 'evidenceCaptureMode'), false);
+  assert.equal(Object.hasOwn(loaded.preferences, 'unknownLegacyField'), false);
 
   storage.setItem(TESTER_PREFERENCES_STORAGE_KEY, '{bad json');
   const corrupt = loadTesterPreferences(storage);
@@ -88,7 +89,7 @@ test('tester preferences use a versioned localStorage schema and fail closed', (
   assert.equal(corrupt.status.state, 'corrupt');
 });
 
-test('reset removes only the preference key and leaves evidence stores untouched', () => {
+test('reset removes only the preference key and leaves unrelated app state untouched', () => {
   const {
     TESTER_PREFERENCES_STORAGE_KEY,
     TESTER_PROMPT_DRAFTS_STORAGE_KEY,
@@ -99,7 +100,6 @@ test('reset removes only the preference key and leaves evidence stores untouched
       schemaVersion: 1,
       draftPersistence: false,
       verboseConsole: true,
-      evidenceCaptureMode: 'after-run',
     }),
     [TESTER_PROMPT_DRAFTS_STORAGE_KEY]: JSON.stringify({
       schemaVersion: 1,
@@ -107,8 +107,7 @@ test('reset removes only the preference key and leaves evidence stores untouched
         'app-lab:text.generate:acceptance-note': 'saved prompt',
       },
     }),
-    tester_run_history: 'keep',
-    tester_image_history: 'keep',
+    unrelated_product_state: 'keep',
   });
 
   const reset = resetTesterPreferences(storage);
@@ -116,8 +115,7 @@ test('reset removes only the preference key and leaves evidence stores untouched
   const snapshot = storage.snapshot();
   assert.equal(snapshot[TESTER_PREFERENCES_STORAGE_KEY], undefined);
   assert.match(snapshot[TESTER_PROMPT_DRAFTS_STORAGE_KEY], /saved prompt/);
-  assert.equal(snapshot.tester_run_history, 'keep');
-  assert.equal(snapshot.tester_image_history, 'keep');
+  assert.equal(snapshot.unrelated_product_state, 'keep');
 });
 
 test('prompt drafts use versioned localStorage and fail closed to presets', () => {

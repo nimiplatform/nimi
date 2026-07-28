@@ -8,16 +8,15 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-// Resolver reason codes (K-MCAT-037). These are Runtime-owned activation
-// projection identifiers; consumers must not invent their own. They are
-// registered in tables/activation-gate-reason-codes.yaml.
+// Resolver reason codes are Runtime-owned activation projection identifiers;
+// consumers must not invent their own.
 const (
 	ReasonLocalModelResolveInstallLevelInvalid = "local_model_resolve_install_level_invalid"
 	ReasonLocalModelResolveSlotOmitted         = "local_model_resolve_slot_omitted"
 	ReasonLocalModelResolveHostUnsupported     = "local_model_resolve_host_unsupported"
 )
 
-// LocalResolveOutcomeKind discriminates the two K-MCAT-036 resolver outcomes.
+// LocalResolveOutcomeKind discriminates resolved and fail-closed outcomes.
 type LocalResolveOutcomeKind string
 
 const (
@@ -25,8 +24,7 @@ const (
 	LocalResolveFailClose LocalResolveOutcomeKind = "fail_close"
 )
 
-// variantFitTier mirrors the fixed K-LOCAL-021c head-room tiers reused by
-// K-MCAT-035 as the variant selector.
+// variantFitTier is the bounded head-room tier used by the variant selector.
 type variantFitTier int
 
 const (

@@ -26,11 +26,8 @@ export async function resolveAgentCenterAvatarPreviewProjection(input: {
 }) {
   const base = {
     previewTier: 'avatar_preview_service' as const,
-    previewArtifactRef: null,
     previewImageRef: null,
-    previewEvidenceRef: null,
     previewVisiblePixels: null,
-    previewSampledPixelChecksum: null,
     previewWarnings: [] as readonly string[],
   };
   if (!input.avatarAssetRef) return null;
@@ -76,27 +73,21 @@ export async function resolveAgentCenterAvatarPreviewProjection(input: {
         previewMaterialRef: normalizeAgentCenterPreviewRef(result.previewMaterialRef),
         previewState: 'ready',
         previewTier: result.tier,
-        previewArtifactRef: normalizeAgentCenterPreviewRef(result.previewArtifactRef),
         previewImageRef: normalizeAgentCenterPreviewRef(result.previewImageRef),
-        previewEvidenceRef: normalizeAgentCenterPreviewRef(result.evidenceRef),
         previewVisiblePixels: result.visiblePixels,
-        previewSampledPixelChecksum: result.sampledPixelChecksum,
       };
       if (!result.nonPlaceholder
         || result.backendKind !== backendKind
         || readyProjection.avatarAssetRef !== input.avatarAssetRef
         || readyProjection.previewMaterialRef !== input.material.result.previewMaterialRef
         || !isAgentCenterAvatarPreviewReady(readyProjection)) {
-        throw new Error('Avatar preview evidence does not match selected avatar material.');
+        throw new Error('Avatar preview output does not match the selected avatar material.');
       }
       return {
         previewState: 'ready' as const,
         previewTier: result.tier,
-        previewArtifactRef: readyProjection.previewArtifactRef,
         previewImageRef: readyProjection.previewImageRef,
-        previewEvidenceRef: readyProjection.previewEvidenceRef,
         previewVisiblePixels: readyProjection.previewVisiblePixels,
-        previewSampledPixelChecksum: readyProjection.previewSampledPixelChecksum,
         previewFailureReason: null,
         previewWarnings: result.warnings ?? [],
       };
@@ -105,7 +96,7 @@ export async function resolveAgentCenterAvatarPreviewProjection(input: {
       throw new Error('Avatar preview service returned an unknown state.');
     }
     if (result.nonPlaceholder !== false) {
-      throw new Error('Non-ready Avatar preview result cannot claim non-placeholder evidence.');
+      throw new Error('Non-ready Avatar preview result cannot claim non-placeholder output.');
     }
     return {
       ...base,

@@ -44,7 +44,7 @@ function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
 }
 
 describe('deriveCompositionState', () => {
-  it('enters fixture active for mock fixture playback without a live runtime binding', () => {
+  it('keeps mock driver selection inside the standard ready lifecycle', () => {
     const state = deriveCompositionState(input({
       model: {
         modelPath: 'fixture://vrm-lifecycle',
@@ -62,9 +62,31 @@ describe('deriveCompositionState', () => {
         agentId: 'fixture-agent-vrm-lifecycle',
         worldId: 'world-mock-vrm-lifecycle',
       },
+    }));
+
+    expect(state).toMatchObject({
+      state: 'ready',
+      variant: 'live',
+      reason: null,
+      ready: true,
+    });
+  });
+
+  it('does not let mock driver selection bypass an unavailable Runtime binding', () => {
+    const state = deriveCompositionState(input({
+      consume: {
+        mode: 'mock',
+        authority: 'fixture',
+        fixtureId: 'default',
+        fixturePlaying: true,
+        avatarInstanceId: 'fixture-avatar-default',
+        conversationAnchorId: 'fixture-anchor-default',
+        agentId: 'fixture-agent-default',
+        worldId: 'world-mock-default',
+      },
       runtimeBinding: {
         status: 'unavailable',
-        reason: 'runtime_not_required_for_fixture',
+        reason: 'runtime binding unavailable',
         reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
         accountReasonCode: null,
         actionHint: null,
@@ -75,14 +97,14 @@ describe('deriveCompositionState', () => {
     }));
 
     expect(state).toMatchObject({
-      state: 'fixture_active',
-      variant: 'fixture',
-      reason: null,
-      ready: true,
+      state: 'degraded_runtime_unavailable',
+      variant: 'degraded',
+      reason: 'runtime binding unavailable',
+      ready: false,
     });
   });
 
-  it('still fails closed when fixture mode has no running driver', () => {
+  it('still fails closed when a mock driver is not running', () => {
     const state = deriveCompositionState(input({
       consume: {
         mode: 'mock',
@@ -108,7 +130,7 @@ describe('deriveCompositionState', () => {
     });
   });
 
-  it('keeps live consume gated by the runtime binding', () => {
+  it('keeps every driver mode gated by the Runtime binding', () => {
     const state = deriveCompositionState(input({
       runtimeBinding: {
         status: 'unavailable',
@@ -191,16 +213,6 @@ describe('deriveCompositionState', () => {
         conversationAnchorId: 'fixture-anchor-default',
         agentId: 'fixture-agent-default',
         worldId: 'world-mock-default',
-      },
-      runtimeBinding: {
-        status: 'unavailable',
-        reason: 'runtime_not_required_for_fixture',
-        reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-        accountReasonCode: null,
-        actionHint: null,
-        stage: 'binding',
-        source: 'runtime',
-        retryable: false,
       },
     }));
 

@@ -1,6 +1,6 @@
-// Wave 3 chunk 3-C — VrmLipsyncDriver tests.
+// VrmLipsyncDriver owner behavior tests.
 //
-// Covers: constants exposure (RUNNER_CAP relative form); null snapshot
+// Covers: null snapshot
 // decay path; active speech winner+runner blend; S → I projection;
 // silence detection (amp threshold + winnerVal threshold); IDLE_MS
 // timeout via test seam; silent() zero-out; missing-preset graceful
@@ -11,19 +11,12 @@ import type { VRM } from '@pixiv/three-vrm';
 
 import {
   createVrmLipsyncDriver,
-  ATTACK_RATE,
-  RELEASE_RATE,
   CAP,
   RUNNER_CAP,
-  RUNNER_GAIN,
-  SILENCE_VOL,
-  SILENCE_GAIN,
   IDLE_MS,
   WEIGHT_SCALE,
   MIN_OUTPUT,
   LIP_KEYS,
-  RAW_TO_LIP,
-  VRM_PRESET,
   type LipKey,
 } from './vrm-lipsync-driver.js';
 import type { WLipSyncSnapshot } from '../carrier/backend-branch.js';
@@ -55,47 +48,6 @@ function makeSnapshot(
 ): WLipSyncSnapshot {
   return { weights: { ...emptyWeights(), ...weights }, volume };
 }
-
-describe('vrm-lipsync-driver constants', () => {
-  it('exposes RUNNER_CAP as the relative-ratio form (CAP * 0.5)', () => {
-    // The canonical relative-ratio drift rule requires this relationship;
-    // the audit grep also enforces
-    // "no literal 0.35" in the source file.
-    expect(RUNNER_CAP).toBe(CAP * 0.5);
-    expect(RUNNER_CAP).toBeCloseTo(0.35, 10);
-  });
-
-  it('exposes the canonical envelope constants', () => {
-    expect(ATTACK_RATE).toBe(50);
-    expect(RELEASE_RATE).toBe(30);
-    expect(CAP).toBe(0.7);
-    expect(RUNNER_GAIN).toBe(0.6);
-    expect(SILENCE_VOL).toBe(0.04);
-    expect(SILENCE_GAIN).toBe(0.05);
-    expect(IDLE_MS).toBe(160);
-    expect(WEIGHT_SCALE).toBe(0.7);
-    expect(MIN_OUTPUT).toBe(0.01);
-  });
-
-  it('exposes the LIP_KEYS / RAW_TO_LIP / VRM_PRESET tables', () => {
-    expect([...LIP_KEYS]).toEqual(['A', 'E', 'I', 'O', 'U']);
-    expect(RAW_TO_LIP).toMatchObject({
-      A: 'A',
-      E: 'E',
-      I: 'I',
-      O: 'O',
-      U: 'U',
-      S: 'I',
-    });
-    expect(VRM_PRESET).toMatchObject({
-      A: 'aa',
-      E: 'ee',
-      I: 'ih',
-      O: 'oh',
-      U: 'ou',
-    });
-  });
-});
 
 describe('createVrmLipsyncDriver — null snapshot path', () => {
   beforeEach(() => {

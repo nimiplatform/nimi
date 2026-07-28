@@ -139,12 +139,7 @@ export function groupMessageToCanonical(
 ): ConversationCanonicalMessage {
   const author = msg.author;
   const isCurrentUser = Boolean(currentUserId && author?.accountId === currentUserId);
-  const senderKind: 'human' | 'source' = author?.type === 'source' ? 'source' : 'human';
-  const role = isCurrentUser
-    ? 'user' as const
-    : author?.type === 'source'
-      ? 'assistant' as const
-      : 'assistant' as const;
+  const role = isCurrentUser ? 'user' as const : 'assistant' as const;
 
   let text = '';
   const rawText = String(msg.text || '').trim();
@@ -168,12 +163,11 @@ export function groupMessageToCanonical(
     senderName: author ? String(author.displayName || '').trim() || null : null,
     senderAvatarUrl: author?.avatarUrl || null,
     senderHandle: null,
-    senderKind,
+    senderKind: 'human',
     metadata: {
       senderId: String(msg.senderId || ''),
       authorAccountId: author?.accountId || null,
-      authorType: author?.type || null,
-      sourceOwnerId: author?.sourceAuthorityAccountId || null,
+      authorType: 'human',
     },
   };
 }

@@ -167,17 +167,13 @@ describe('generateDeterministicVrmMotion', () => {
             confidence: 0.5,
             threshold: 0.82,
             manual_confirmation: 'confirmed',
+            source_kind: 'llm_semantic_match',
             target_fields: [
               { target_kind: 'humanoid_bone', name: 'spine' },
               { target_kind: 'humanoid_bone', name: 'rightUpperArm' },
               { target_kind: 'humanoid_bone', name: 'rightLowerArm' },
               { target_kind: 'humanoid_bone', name: 'rightHand' },
             ],
-            evidence: {
-              source_kind: 'llm_semantic_match',
-              source_fields: ['humanoid.rightHand'],
-              rationale: 'route target matches available humanoid hand bone',
-            },
           },
         ],
       },

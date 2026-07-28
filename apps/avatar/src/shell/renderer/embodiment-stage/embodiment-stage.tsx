@@ -1,9 +1,7 @@
-// Wave 1 — Embodiment Stage surface.
-// Renders the Live2D carrier on a transparent background. Owns the hit-region /
-// drag-region / pointer interaction wiring. Per app-shell-contract.md
-// K-NAV-SHELL-COMPOSITION-001..002 this surface is mounted ONLY when composition
-// state is `ready` or `fixture_active`; it is hard-cut unmounted under any
-// degraded / loading / error / relaunch-pending state.
+// Embodiment Stage surface.
+// Renders the active backend carrier and owns hit-region, drag-region, and
+// pointer interaction wiring. Rules rule.nimi.avatar.embodiment.r021 and r022
+// permit this surface only in the `ready` lifecycle state.
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
@@ -37,7 +35,7 @@ export type EmbodimentStageProps = {
   /** Active BackendBranch supplying the surface component, audio
    *  consumer, and hit-region snapshots. `null` while bootstrap is in
    *  flight; the parent must not mount the stage before composition
-   *  reaches a `ready` / `fixture_active` posture. */
+   *  reaches the `ready` posture. */
   backend: BackendBranch | null;
   windowSize: { width: number; height: number };
   embodied: boolean;
@@ -250,8 +248,8 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     ],
   );
 
-  // Wave 4 chunk 4-C: pointer hit-test driver. Per app-shell-contract.md
-  // §2.3.1 the alpha-mask probe takes precedence over the bbox; the
+  // Pointer hit-test driver. Per rule.nimi.avatar.embodiment.r004, the
+  // alpha-mask probe takes precedence over the bbox; the
   // backend-supplied `isOpaqueAtClientPoint` can be absent, return null, or
   // return a false transparent sample while the visual carrier is still inside
   // its admitted bbox. Native click-through is irreversible for the next

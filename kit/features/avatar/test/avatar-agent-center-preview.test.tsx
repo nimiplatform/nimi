@@ -1,145 +1,102 @@
-import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
-
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   AgentCenterAvatarPreview,
   resolveAgentCenterAvatarPreviewServiceResult,
 } from '../src/agent-center-preview.js';
 
-describe('Agent Center Avatar preview service facade', () => {
-  it('admits non-placeholder Live2D and VRM previews only from avatar_preview_service evidence', () => {
-    const live2d = resolveAgentCenterAvatarPreviewServiceResult({
-      previewState: 'ready',
-      previewTier: 'avatar_preview_service',
-      backendKind: 'live2d',
-      avatarAssetRef: 'agent-center-avatar:local-agent/live2d',
-      previewMaterialRef: 'agent-center-avatar-asset:local-agent/live2d',
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d:123',
-      previewImageRef: '/__nimi/avatar-preview/live2d/123',
-      previewEvidenceRef: 'avatar.carrier.visual:live2d:123',
-      previewVisiblePixels: 32,
-      previewSampledPixelChecksum: 123,
-    });
-    const vrm = resolveAgentCenterAvatarPreviewServiceResult({
-      previewState: 'ready',
-      previewTier: 'avatar_preview_service',
-      backendKind: 'vrm',
-      avatarAssetRef: 'agent-center-avatar:local-agent/vrm',
-      previewMaterialRef: 'agent-center-avatar-asset:local-agent/vrm',
-      previewArtifactRef: 'avatar.vrm.preview-artifact:vrm:123',
-      previewImageRef: '/__nimi/avatar-preview/vrm/123',
-      previewEvidenceRef: 'avatar.vrm.visual:vrm:123',
-      previewVisiblePixels: 48,
-      previewSampledPixelChecksum: 456,
-    });
+(
+  globalThis as typeof globalThis & {
+    IS_REACT_ACT_ENVIRONMENT?: boolean;
+  }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
-    expect(live2d).toMatchObject({
-      state: 'ready',
-      backendKind: 'live2d',
-      nonPlaceholder: true,
-      evidenceRef: 'avatar.carrier.visual:live2d:123',
+let root: Root | null = null;
+let container: HTMLDivElement | null = null;
+
+afterEach(() => {
+  if (root) {
+    act(() => {
+      root?.unmount();
     });
-    expect(vrm).toMatchObject({
-      state: 'ready',
-      backendKind: 'vrm',
-      nonPlaceholder: true,
-      evidenceRef: 'avatar.vrm.visual:vrm:123',
-    });
+  }
+  container?.remove();
+  root = null;
+  container = null;
+});
+
+function renderPreview(
+  props: Parameters<typeof AgentCenterAvatarPreview>[0],
+): HTMLDivElement {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  act(() => {
+    root?.render(<AgentCenterAvatarPreview {...props} />);
   });
+  return container;
+}
 
-  it('fails closed instead of converting incomplete preview metadata into a placeholder success', () => {
+describe('AgentCenterAvatarPreview', () => {
+  it('admits a controlled renderer image only with positive visible pixels', () => {
     const result = resolveAgentCenterAvatarPreviewServiceResult({
       previewState: 'ready',
-      previewTier: 'material_resolve',
-      backendKind: 'live2d',
-      avatarAssetRef: 'agent-center-avatar:local-agent/live2d',
-      previewArtifactRef: 'agent-center-preview:local-agent/live2d',
-      previewFailureReason: 'avatar_preview_service tier required',
-    });
-
-    const markup = renderToStaticMarkup(
-      <AgentCenterAvatarPreview
-        fallback={<span>not ready</span>}
-        label="Partner avatar"
-        result={result}
-      />,
-    );
-
-    expect(result).toMatchObject({
-      state: 'unavailable',
-      nonPlaceholder: false,
-      reason: 'avatar_preview_service tier required',
-    });
-    expect(markup).toMatch(/data-avatar-preview-nonplaceholder="false"/u);
-    expect(markup).toMatch(/data-avatar-preview-tier="avatar_preview_service"/u);
-    expect(markup).toMatch(/not ready/u);
-  });
-
-  it('rejects artifact-only ready metadata without a render surface URL', () => {
-    expect(resolveAgentCenterAvatarPreviewServiceResult({
-      previewState: 'ready',
       previewTier: 'avatar_preview_service',
       backendKind: 'live2d',
-      avatarAssetRef: 'agent-center-avatar:local-agent/live2d',
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d:123',
-    })).toMatchObject({
-      state: 'unavailable',
-      nonPlaceholder: false,
+      avatarAssetRef: 'live2d_111111111111',
+      previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:live2d:live2d_111111111111',
+      previewImageRef: '/__nimi/avatar-preview/live2d/123',
+      previewVisiblePixels: 32,
     });
+
+    expect(result).toMatchObject({
+      state: 'ready',
+      previewImageRef: '/__nimi/avatar-preview/live2d/123',
+      visiblePixels: 32,
+      nonPlaceholder: true,
+    });
+    const view = renderPreview({ result, label: 'Ren' });
+    const surface = view.querySelector('[data-avatar-preview-state="ready"]');
+    expect(surface?.getAttribute('data-avatar-preview-visible-pixels')).toBe('32');
+    expect(surface?.getAttribute('data-avatar-preview-nonplaceholder')).toBe('true');
   });
 
-  it('rejects remote render URLs that are not controlled by the local Avatar surface', () => {
-    expect(resolveAgentCenterAvatarPreviewServiceResult({
+  it('fails closed for blank or externally hosted preview output', () => {
+    const blank = resolveAgentCenterAvatarPreviewServiceResult({
       previewState: 'ready',
       previewTier: 'avatar_preview_service',
       backendKind: 'vrm',
-      avatarAssetRef: 'agent-center-avatar:local-agent/vrm',
-      previewMaterialRef: 'agent-center-avatar-asset:local-agent/vrm',
-      previewArtifactRef: 'avatar.vrm.preview-artifact:vrm:123',
-      previewImageRef: 'https://example.com/preview.png',
-      previewEvidenceRef: 'avatar.vrm.visual:vrm:123',
-      previewVisiblePixels: 48,
-      previewSampledPixelChecksum: 456,
-    })).toMatchObject({
-      state: 'unavailable',
-      nonPlaceholder: false,
-    });
-  });
-
-  it('rejects foreign-origin blob URLs that are not controlled by the current Avatar surface', () => {
-    expect(resolveAgentCenterAvatarPreviewServiceResult({
-      previewState: 'ready',
-      previewTier: 'avatar_preview_service',
-      backendKind: 'live2d',
-      avatarAssetRef: 'agent-center-avatar:local-agent/live2d',
-      previewMaterialRef: 'agent-center-avatar-asset:local-agent/live2d',
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d:foreign',
-      previewImageRef: 'blob:https://foreign-origin.example/preview-id',
-      previewEvidenceRef: 'avatar.carrier.visual:live2d:foreign',
-      previewVisiblePixels: 48,
-      previewSampledPixelChecksum: 456,
-    })).toMatchObject({
-      state: 'unavailable',
-      nonPlaceholder: false,
-    });
-  });
-
-  it('rejects ready metadata without positive visible-pixel evidence', () => {
-    expect(resolveAgentCenterAvatarPreviewServiceResult({
-      previewState: 'ready',
-      previewTier: 'avatar_preview_service',
-      backendKind: 'live2d',
-      avatarAssetRef: 'agent-center-avatar:local-agent/live2d',
-      previewMaterialRef: 'agent-center-avatar-asset:local-agent/live2d',
-      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d:blank',
-      previewImageRef: 'blob:nimi-avatar-preview-blank',
-      previewEvidenceRef: 'avatar.carrier.visual:live2d:blank',
+      avatarAssetRef: 'vrm_222222222222',
+      previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:vrm:vrm_222222222222',
+      previewImageRef: '/__nimi/avatar-preview/vrm/123',
       previewVisiblePixels: 0,
-      previewSampledPixelChecksum: 0,
-    })).toMatchObject({
-      state: 'unavailable',
-      nonPlaceholder: false,
     });
+    const external = resolveAgentCenterAvatarPreviewServiceResult({
+      previewState: 'ready',
+      previewTier: 'avatar_preview_service',
+      backendKind: 'vrm',
+      avatarAssetRef: 'vrm_222222222222',
+      previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:vrm:vrm_222222222222',
+      previewImageRef: 'https://example.com/preview.png',
+      previewVisiblePixels: 48,
+    });
+
+    expect(blank).toMatchObject({ state: 'unavailable', nonPlaceholder: false });
+    expect(external).toMatchObject({ state: 'unavailable', nonPlaceholder: false });
+  });
+
+  it('renders the typed non-ready state without a placeholder success claim', () => {
+    const result = resolveAgentCenterAvatarPreviewServiceResult({
+      previewState: 'loading',
+      previewTier: 'avatar_preview_service',
+      backendKind: 'live2d',
+      avatarAssetRef: 'live2d_111111111111',
+      previewFailureReason: 'renderer loading',
+    });
+    const view = renderPreview({ result, label: 'Ren', fallback: 'Loading' });
+    const surface = view.querySelector('[data-avatar-preview-state="loading"]');
+    expect(surface?.getAttribute('data-avatar-preview-nonplaceholder')).toBe('false');
+    expect(surface?.textContent).toBe('Loading');
   });
 });

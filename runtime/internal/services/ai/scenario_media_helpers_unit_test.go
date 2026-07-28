@@ -61,12 +61,16 @@ func TestSanitizeScenarioJobReasonDetail_DropsProviderBodyForUnavailable(t *test
 	}
 }
 
-func TestSanitizeScenarioJobReasonDetail_LocalSpeechReasonsUseBundleAwareMessages(t *testing.T) {
-	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.FailedPrecondition, "legacy failure"), runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED); got != "explicit download confirmation is required before local speech setup can continue" {
-		t.Fatalf("unexpected speech download confirmation detail: %q", got)
-	}
-	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.FailedPrecondition, "legacy failure"), runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED); got != "local speech bundle is degraded and needs repair" {
-		t.Fatalf("unexpected speech degraded detail: %q", got)
+func TestSanitizeScenarioJobReasonDetail_LocalSpeechReasonsIgnoreTransportText(t *testing.T) {
+	const transportDetail = "legacy failure"
+	for _, reasonCode := range []runtimev1.ReasonCode{
+		runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
+		runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
+	} {
+		got := sanitizeScenarioJobReasonDetail(status.Error(codes.FailedPrecondition, transportDetail), reasonCode)
+		if got == "" || strings.Contains(got, transportDetail) {
+			t.Fatalf("transport text leaked for structured reason %v: %q", reasonCode, got)
+		}
 	}
 }
 

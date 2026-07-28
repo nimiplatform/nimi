@@ -12,7 +12,7 @@ authority: avatar.kernel.nimi2d_backend
 description: >
   Closed Avatar-local capability profile schema for the Nimi2D backend branch.
   Profiles describe what a loaded Nimi2D package can safely execute inside the
-  Avatar carrier. They consume Nimi2D package evidence and Runtime typed
+  Avatar carrier. They consume validated Nimi2D package facts and Runtime typed
   projection, but do not admit default generated asset viability.
 
 required_fields:
@@ -22,7 +22,6 @@ required_fields:
   - renderability
   - renderer
   - live_action_lanes
-  - evidence
 
 fields:
   profile_id:
@@ -38,7 +37,6 @@ fields:
       - package_kind
       - proven_tier
       - requested_tier
-      - validator_evidence_ref
     fields:
       package_manifest_ref:
         type: opaque_ref
@@ -62,8 +60,6 @@ fields:
           - tier-1_agent_basic
           - tier-2_viseme_gesture
           - tier-3_full_body_semantic
-      validator_evidence_ref:
-        type: opaque_ref
   renderability:
     required_fields:
       - base_body_renderable
@@ -148,20 +144,8 @@ fields:
           - tier-1_agent_basic
           - tier-2_viseme_gesture
           - tier-3_full_body_semantic
-      evidence_ref:
-        type: opaque_ref_optional
       failure_code:
         type: string_optional
-  evidence:
-    required_fields:
-      - source
-      - observed_at
-      - validator
-    source_enum:
-      - nimi2d_package_manifest
-      - runtime_probe
-      - static_asset_inspection
-      - human_review
 
 invariants:
   - "Profiles consume proven_tier, never requested_tier, for lane support."

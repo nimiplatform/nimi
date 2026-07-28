@@ -1,18 +1,12 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// Thin `.vrma` loader + `clipFromVRMAnimation` wrapper. Houses the
-// `loadVrmAnimation` function that previously lived in vrm-loader.ts
-// (chunk 2-B). vrm-loader.ts re-exports loadVrmAnimation so existing
-// import paths stay valid (back-compat).
+// Avatar-owned `.vrma` interchange loader and retargeting wrapper.
 //
 // The upstream `@pixiv/three-vrm-animation` package exports
 // `createVRMAnimationClip(animation, vrm)` (verified against
 // node_modules/.pnpm/@pixiv+three-vrm-animation@3.5.2/.../types/index.d.ts).
-// We expose a thin `clipFromVRMAnimation` named wrapper to match the
-// API name used in vrm-backend-contract.md §3.1 ("clipFromVRMAnimation
-// 转 THREE.AnimationClip"). Wrapper rationale: contract surface is
-// stable across upstream renames; if upstream renames the function in
-// a future release, only the wrapper updates.
+// The local `clipFromVRMAnimation` wrapper keeps the upstream conversion
+// dependency inside the VRM interchange implementation.
 
 import type { VRM } from '@pixiv/three-vrm';
 import {
@@ -57,8 +51,7 @@ export async function loadVrmAnimation(url: string): Promise<VRMAnimation | null
 /**
  * Build a Three.js `AnimationClip` from a `VRMAnimation` for the given
  * VRM instance. Thin wrapper around `@pixiv/three-vrm-animation`'s
- * `createVRMAnimationClip` — exposed under the contract-stable name
- * `clipFromVRMAnimation` (matches vrm-backend-contract.md §3.1).
+ * `createVRMAnimationClip`.
  */
 export function clipFromVRMAnimation(animation: VRMAnimation, vrm: VRM): AnimationClip {
   return createVRMAnimationClip(animation, vrm);

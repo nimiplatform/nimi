@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { groupMessageToCanonical } from '../src/shell/renderer/features/chat/chat-group-thread-model';
 
-test('groupMessageToCanonical maps current user, other human, and source into distinct canonical roles', () => {
+test('groupMessageToCanonical maps current and other human participants', () => {
   const currentUserMessage = groupMessageToCanonical({
     id: 'msg_self',
     chatId: 'chat_1',
@@ -39,23 +39,4 @@ test('groupMessageToCanonical maps current user, other human, and source into di
   } as never, 'user_self');
   assert.equal(otherHumanMessage.role, 'assistant');
   assert.equal(otherHumanMessage.senderKind, 'human');
-
-  const sourceMessage = groupMessageToCanonical({
-    id: 'msg_source',
-    chatId: 'chat_1',
-    senderId: 'source_1',
-    text: 'I can help.',
-    payload: null,
-    createdAt: '2026-04-15T00:02:00.000Z',
-    editedAt: null,
-    author: {
-      type: 'source',
-      accountId: 'source_1',
-      displayName: 'CuiCui',
-      avatarUrl: 'https://example.com/source.png',
-      sourceOwnerId: 'user_self',
-    },
-  } as never, 'user_self');
-  assert.equal(sourceMessage.role, 'assistant');
-  assert.equal(sourceMessage.senderKind, 'source');
 });

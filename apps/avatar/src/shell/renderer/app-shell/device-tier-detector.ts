@@ -1,7 +1,6 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// Per-device tier detector for the avatar carrier. Implements the
-// Tier A/B/C classification specified in app-shell-contract.md §2.3.2:
+// Per-device tier detector for local Avatar carrier performance policy:
 //
 //   Tier A — M-series Apple Silicon (M1+) → full alpha-mask + bbox + 60Hz
 //   Tier B — Intel macOS / Win 11 / Linux Wayland integrated GPU → full

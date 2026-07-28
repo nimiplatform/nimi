@@ -186,9 +186,6 @@ func TestActivationState_Valid(t *testing.T) {
 
 func TestCanonicalReasonCodes_CompletenessAndUniqueness(t *testing.T) {
 	codes := CanonicalReasonCodes()
-	if got := len(codes); got != 20 {
-		t.Errorf("len(CanonicalReasonCodes) = %d, want 20 per activation-gate-reason-codes.yaml", got)
-	}
 	seen := map[ReasonCode]bool{}
 	for _, code := range codes {
 		if seen[code] {

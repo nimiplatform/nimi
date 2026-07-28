@@ -34,18 +34,6 @@ const ROUTE_REQUIRED_BONES: Readonly<Record<VrmGeneratedRouteId, readonly VrmBon
 
 export type VrmBoneName = (typeof VRM_CAPABILITY_REQUIRED_BONES)[number];
 
-export type VrmCapabilityProfileEvidenceSource =
-  | 'model_manifest'
-  | 'runtime_probe'
-  | 'static_asset_inspection'
-  | 'human_review';
-
-export type VrmCapabilityProfileEvidence = {
-  source: VrmCapabilityProfileEvidenceSource;
-  observedAt: string;
-  validator: string;
-};
-
 export type VrmCapabilityProfile = {
   profileId: string;
   backendKind: 'vrm';
@@ -69,7 +57,6 @@ export type VrmCapabilityProfile = {
       maxRotationRad: number;
     };
   };
-  evidence: VrmCapabilityProfileEvidence;
 };
 
 export function createVrmCapabilityProfile(vrm: VRM): VrmCapabilityProfile {
@@ -91,12 +78,6 @@ export function createVrmCapabilityProfile(vrm: VRM): VrmCapabilityProfile {
       });
     }
   }
-
-  const evidence: VrmCapabilityProfileEvidence = {
-    source: 'runtime_probe',
-    observedAt: new Date().toISOString(),
-    validator: 'vrm-capability-profile-factory-v1',
-  };
 
   const maxRotationDeg = radiansToDegrees(GENERATED_MOTION_MAX_ROTATION_RAD);
 
@@ -123,7 +104,6 @@ export function createVrmCapabilityProfile(vrm: VRM): VrmCapabilityProfile {
         maxRotationRad: degreesToRadians(maxRotationDeg),
       },
     },
-    evidence,
   };
 }
 
@@ -133,18 +113,6 @@ function deriveModelFingerprint(vrm: VRM): string {
   ).join('');
   const hasExpressionManager = vrm.expressionManager ? '1' : '0';
   return `vrm:bones=${bonePresence};expr=${hasExpressionManager}`;
-}
-
-export function validateVrmCapabilityProfileEvidence(evidence: VrmCapabilityProfileEvidence): void {
-  if (!evidence.source) {
-    throw new Error('VrmCapabilityProfile: evidence.source is required');
-  }
-  if (!evidence.observedAt) {
-    throw new Error('VrmCapabilityProfile: evidence.observedAt is required');
-  }
-  if (!evidence.validator) {
-    throw new Error('VrmCapabilityProfile: evidence.validator is required');
-  }
 }
 
 export function validateVrmCapabilityProfile(profile: VrmCapabilityProfile): void {
@@ -191,7 +159,6 @@ export function validateVrmCapabilityProfile(profile: VrmCapabilityProfile): voi
   ) {
     throw new Error('VrmCapabilityProfile: generatedMotion.safetyLimits.maxRotationRad is required');
   }
-  validateVrmCapabilityProfileEvidence(profile.evidence);
 }
 
 export function getMissingRouteBones(

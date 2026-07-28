@@ -12,11 +12,8 @@ export type AgentCenterAvatarPreviewServiceResult =
       readonly tier: 'avatar_preview_service';
       readonly backendKind: AvatarBackendKind;
       readonly avatarAssetRef: string;
-      readonly previewArtifactRef: string;
       readonly previewImageRef: string;
-      readonly evidenceRef: string;
       readonly visiblePixels: number;
-      readonly sampledPixelChecksum: number;
       readonly nonPlaceholder: true;
       readonly warnings?: readonly string[];
     }
@@ -25,8 +22,6 @@ export type AgentCenterAvatarPreviewServiceResult =
       readonly tier: 'avatar_preview_service';
       readonly backendKind?: AvatarBackendKind | null;
       readonly avatarAssetRef?: string | null;
-      readonly previewArtifactRef?: string | null;
-      readonly evidenceRef?: string | null;
       readonly nonPlaceholder: false;
       readonly reason: string;
       readonly warnings?: readonly string[];
@@ -38,11 +33,8 @@ export interface ResolveAgentCenterAvatarPreviewServiceInput {
   readonly backendKind?: string | null;
   readonly avatarAssetRef?: string | null;
   readonly previewMaterialRef?: string | null;
-  readonly previewArtifactRef?: string | null;
   readonly previewImageRef?: string | null;
-  readonly previewEvidenceRef?: string | null;
   readonly previewVisiblePixels?: number | null;
-  readonly previewSampledPixelChecksum?: number | null;
   readonly previewFailureReason?: string | null;
   readonly previewWarnings?: readonly string[];
 }
@@ -53,36 +45,24 @@ export function resolveAgentCenterAvatarPreviewServiceResult(
   const backendKind = normalizeBackendKind(input.backendKind);
   const avatarAssetRef = normalizeText(input.avatarAssetRef);
   const previewMaterialRef = normalizeText(input.previewMaterialRef);
-  const previewArtifactRef = normalizeText(input.previewArtifactRef);
   const previewImageRef = normalizePreviewSurfaceRef(input.previewImageRef);
-  const evidenceRef = normalizeText(input.previewEvidenceRef);
   const visiblePixels = normalizePositiveNumber(input.previewVisiblePixels);
-  const sampledPixelChecksum = normalizeFiniteNumber(input.previewSampledPixelChecksum);
   if (
     input.previewState === 'ready'
     && input.previewTier === 'avatar_preview_service'
     && backendKind
     && avatarAssetRef
     && previewMaterialRef
-    && previewArtifactRef
-    && previewArtifactRef !== previewMaterialRef
-    && isAvatarOwnedArtifactRef(backendKind, previewArtifactRef)
     && previewImageRef
-    && evidenceRef
-    && isAvatarOwnedEvidenceRef(backendKind, evidenceRef)
     && visiblePixels !== null
-    && sampledPixelChecksum !== null
   ) {
     return {
       state: 'ready',
       tier: 'avatar_preview_service',
       backendKind,
       avatarAssetRef,
-      previewArtifactRef,
       previewImageRef,
-      evidenceRef,
       visiblePixels,
-      sampledPixelChecksum,
       nonPlaceholder: true,
       warnings: input.previewWarnings ?? [],
     };
@@ -92,8 +72,6 @@ export function resolveAgentCenterAvatarPreviewServiceResult(
     tier: 'avatar_preview_service',
     backendKind,
     avatarAssetRef: avatarAssetRef || null,
-    previewArtifactRef: previewArtifactRef || null,
-    evidenceRef: null,
     nonPlaceholder: false,
     reason: normalizeText(input.previewFailureReason) || 'avatar_preview_service result is not ready',
     warnings: input.previewWarnings ?? [],
@@ -134,10 +112,7 @@ export function AgentCenterAvatarPreview({
       data-avatar-preview-state="ready"
       data-avatar-preview-tier={result.tier}
       data-avatar-preview-backend-kind={result.backendKind}
-      data-avatar-preview-artifact-ref={result.previewArtifactRef}
-      data-avatar-preview-evidence-ref={result.evidenceRef}
       data-avatar-preview-visible-pixels={result.visiblePixels}
-      data-avatar-preview-sampled-pixel-checksum={result.sampledPixelChecksum}
       data-avatar-preview-nonplaceholder="true"
     >
       <AvatarStage
@@ -185,22 +160,6 @@ function normalizePreviewSurfaceRef(value: unknown): string {
   return '';
 }
 
-function isAvatarOwnedArtifactRef(backendKind: AvatarBackendKind, value: string): boolean {
-  return value.startsWith(backendKind === 'vrm'
-    ? 'avatar.vrm.preview-artifact:'
-    : 'avatar.carrier.preview-artifact:');
-}
-
-function isAvatarOwnedEvidenceRef(backendKind: AvatarBackendKind, value: string): boolean {
-  return value.startsWith(backendKind === 'vrm'
-    ? 'avatar.vrm.visual:'
-    : 'avatar.carrier.visual:');
-}
-
 function normalizePositiveNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
-}
-
-function normalizeFiniteNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

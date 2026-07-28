@@ -12,8 +12,8 @@
  *   element: __<element>
  *   modifier: --<modifier>
  *
- * Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-002 the shell renders
- * exactly one of: embodiment-stage under ready / fixture_active,
+ * Per rule.nimi.avatar.embodiment.r022 the shell renders exactly one of:
+ * embodiment-stage under ready,
  * OR degraded-surface under loading / degraded:* / error:* /
  * relaunch-pending. Retired `.avatar-stage*`, `.avatar-shell--*`,
  * `.avatar-shell__halo*`, `.avatar-companion-trigger`, `.avatar-shell__frame`

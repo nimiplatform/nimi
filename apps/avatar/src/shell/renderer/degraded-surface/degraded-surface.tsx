@@ -1,8 +1,7 @@
-// Wave 1 + Wave 2 — Degraded Surface
-// Per app-shell-contract.md K-NAV-SHELL-DEGRADED-001..005 this surface is the
-// SOLE renderer when composition state is loading / degraded:* / error:* /
-// relaunch-pending. It is mutually exclusive with embodiment-stage and
-// transient overlays; no ready surface elements are rendered concurrently.
+// Degraded Surface
+// Rules rule.nimi.avatar.embodiment.r021 and r022 make this the sole renderer
+// for every non-ready lifecycle state. It is mutually exclusive with
+// embodiment-stage and transient overlays.
 //
 // Wave 2: every label / summary / recovery / diagnostics row is i18n-driven
 // via `Avatar.degraded.<state>.{badge,title,summary[,_with_reason],recovery}`
@@ -18,7 +17,7 @@ export type DegradedSurfaceProps = {
 };
 
 // Map composition state → i18n key prefix. `unknown` covers the defensive
-// fallthrough for ready / fixture_active states which should never reach this
+// fallthrough for ready, which should never reach this
 // surface but must still produce coherent copy if they do.
 function stateKeyPrefix(state: CompositionDerivation['state']): string {
   switch (state) {
@@ -37,7 +36,6 @@ function stateKeyPrefix(state: CompositionDerivation['state']): string {
     case 'relaunch_pending':
       return 'Avatar.degraded.relaunch_pending';
     case 'ready':
-    case 'fixture_active':
     default:
       return 'Avatar.degraded.unknown';
   }

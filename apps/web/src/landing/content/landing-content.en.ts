@@ -223,9 +223,9 @@ export const landingContentEn: LandingContent = {
     runtimeBadges: ['Type-safe SDK', 'Runtime Ready', 'Local-first', 'Agent Context'],
     heroHighlights: [
       {
-        title: 'Agent integration',
+        title: 'Realm and Runtime clients',
         description:
-          'Connect agents to live worlds with shared context, identity, and product-ready boundaries.',
+          'Use typed owner APIs for Realm product data and Runtime-owned LocalAgent behavior.',
       },
       {
         title: 'Task & state sync',
@@ -239,22 +239,6 @@ export const landingContentEn: LandingContent = {
       },
     ],
     tabs: [
-      {
-        id: 'agent-participation',
-        label: 'Agent Participation',
-        description:
-          'Connect agents to live worlds — authored once, shared across sessions and apps.',
-        docsPath: 'sdk/agent-participation-client',
-        previewMediaId: 'sdk',
-      },
-      {
-        id: 'avatar-control',
-        label: 'Avatar Control',
-        description:
-          'Drive embodied avatars with multimodal input + scripted motion through one client.',
-        docsPath: 'sdk/avatar-control-client',
-        previewMediaId: 'multimodal',
-      },
       {
         id: 'delegation',
         label: 'Delegation',
@@ -304,18 +288,6 @@ export const landingContentEn: LandingContent = {
       },
     ],
     capabilityMatrix: [
-      {
-        title: 'Agent Participation',
-        description:
-          'Connect agents to live worlds - authored once, shared across sessions and apps.',
-        docsPath: 'sdk/agent-participation-client',
-      },
-      {
-        title: 'Avatar Control',
-        description:
-          'Drive embodied avatars with multimodal input + scripted motion through one client.',
-        docsPath: 'sdk/avatar-control-client',
-      },
       {
         title: 'Delegation',
         description:

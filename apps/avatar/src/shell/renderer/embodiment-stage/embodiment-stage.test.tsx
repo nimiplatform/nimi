@@ -1,6 +1,5 @@
-// K-NAV-SHELL-COMPOSITION-001..002 per-surface unit tests for
-// embodiment-stage covering:
-//  * render presence under ready / fixture_active composition states
+// Per-surface owner behavior tests for embodiment-stage covering:
+//  * render presence under the ready composition state
 //  * BackendBranch surface mount + audio-consumer / hit-region callbacks
 //  * pointermove → setIgnoreCursorEvents alpha-mask + bbox fallback
 //    routing

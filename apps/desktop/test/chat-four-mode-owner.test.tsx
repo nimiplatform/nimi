@@ -74,10 +74,9 @@ test('Human binds no built-in chat scope', async () => {
   }
 });
 
-test('Group-with-participation binds feature:desktop.chat:agent (reuses the Agent scope)', async () => {
+test('Group binds no built-in chat scope', async () => {
   const {
     setActiveScopeForMode,
-    setGroupLocalAgentParticipationActive,
     resolveChatModeAIScopeRef,
     getActiveScope,
     getActiveScopeMode,
@@ -85,19 +84,10 @@ test('Group-with-participation binds feature:desktop.chat:agent (reuses the Agen
 
   const originalMode = getActiveScopeMode();
   try {
-    // Group mode alone owns no built-in chat scope.
     assert.equal(resolveChatModeAIScopeRef('group'), null);
-    setGroupLocalAgentParticipationActive(false);
     setActiveScopeForMode('group');
     assert.equal(getActiveScope(), null);
-
-    // Activating LocalAgent participation rebinds Group to the SAME canonical
-    // agent feature scope as Agent Chat — never a group-specific scope.
-    setGroupLocalAgentParticipationActive(true);
-    assert.deepEqual(getActiveScope(), AGENT_SCOPE);
-    assert.deepEqual(getActiveScope(), resolveChatModeAIScopeRef('agent'));
   } finally {
-    setGroupLocalAgentParticipationActive(false);
     setActiveScopeForMode(originalMode);
   }
 });

@@ -1,4 +1,4 @@
-// Wave 1 K-NAV-SHELL-DEGRADED-001..005 — per-surface unit test for degraded-surface.
+// Per-surface owner behavior tests for the closed non-ready lifecycle states.
 // Covers all admitted state postures (loading / degraded:* / error / relaunch /
 // unknown), reason interpolation, reload-button affordance, and i18n coverage.
 
@@ -20,9 +20,8 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
       state === 'loading' ? 'loading'
         : state === 'relaunch_pending' ? 'relaunch'
           : state === 'error_bootstrap_fatal' ? 'error'
-            : state === 'fixture_active' ? 'fixture'
-              : state === 'ready' ? 'live'
-                : 'degraded',
+            : state === 'ready' ? 'live'
+              : 'degraded',
     reason: null,
     reasonCode: null,
     accountReasonCode: null,
@@ -31,7 +30,7 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
     source: null,
     retryable: null,
     modelDiagnostics: null,
-    ready: state === 'ready' || state === 'fixture_active',
+    ready: state === 'ready',
     ...overrides,
   };
 }
@@ -58,7 +57,7 @@ describe('DegradedSurface — composition postures', () => {
     expect(screen.getByText(expectedTitle)).toBeTruthy();
   });
 
-  it('falls through to unknown posture for ready / fixture_active (defensive)', () => {
+  it('falls through to unknown posture for ready (defensive)', () => {
     render(<DegradedSurface composition={makeComposition('ready')} />);
     expect(screen.getByText('Avatar surface paused')).toBeTruthy();
   });

@@ -3,7 +3,6 @@ import type {
   AgentDataBundle,
   AgentDataDriver,
   AgentEvent,
-  RuntimePresentationAdmissionEvidence,
 } from '../driver/types.js';
 import type {
   BackendProjection,
@@ -52,32 +51,6 @@ function readRuntimeAdmissionRef(
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function parseRuntimePresentationAdmission(
-  detail: Record<string, unknown>,
-): RuntimePresentationAdmissionEvidence | null {
-  const runtimeAdmissionRef = readRuntimeAdmissionRef(detail, 'runtime_admission_ref');
-  const gatewayVerdictRef = readRuntimeAdmissionRef(detail, 'gateway_verdict_ref');
-  const firewallVerdictRef = readRuntimeAdmissionRef(detail, 'firewall_verdict_ref');
-  const auditRef = readRuntimeAdmissionRef(detail, 'audit_ref');
-  const credentialVerdictRef = readRuntimeAdmissionRef(detail, 'credential_verdict_ref');
-  if (
-    !runtimeAdmissionRef
-    || !gatewayVerdictRef
-    || !firewallVerdictRef
-    || !auditRef
-    || !credentialVerdictRef
-  ) {
-    return null;
-  }
-  return {
-    runtimeAdmissionRef,
-    gatewayVerdictRef,
-    firewallVerdictRef,
-    auditRef,
-    credentialVerdictRef,
-  };
-}
-
 function hasRuntimePresentationEnvelope(detail: Record<string, unknown>): boolean {
   return Boolean(
     readRuntimeAdmissionRef(detail, 'agent_id')
@@ -107,13 +80,11 @@ function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDat
   if (!hasRuntimePresentationEnvelope(event.detail)) {
     return null;
   }
-  const admission = parseRuntimePresentationAdmission(event.detail);
   return {
     name: activityName,
     category,
     intensity: intensity === undefined ? null : intensity,
     source,
-    ...(admission ? { admission } : {}),
   };
 }
 

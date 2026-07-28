@@ -20,14 +20,6 @@ export type CurrentEmotion =
   | 'ext:lonely'
   | 'ext:grateful';
 
-export type RuntimePresentationAdmissionEvidence = {
-  runtimeAdmissionRef: string;
-  gatewayVerdictRef: string;
-  firewallVerdictRef: string;
-  auditRef: string;
-  credentialVerdictRef: string;
-};
-
 export type PostureSnapshot = {
   posture_class: string;
   action_family: ActionFamily;
@@ -64,7 +56,6 @@ export type AgentDataBundle = {
     category: ActivityCategory;
     intensity: ActivityIntensity | null;
     source: ActivitySource;
-    admission?: RuntimePresentationAdmissionEvidence;
   };
   emotion?: {
     current: CurrentEmotion;

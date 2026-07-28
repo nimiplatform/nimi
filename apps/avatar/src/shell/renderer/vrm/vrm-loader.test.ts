@@ -91,7 +91,6 @@ import { clearVrmCache } from './vrm-instance-cache.js';
 import {
   __resetVrmLoaderForTests,
   getVrmLoader,
-  loadVrmAnimation,
   loadVrmFromManifest,
 } from './vrm-loader.js';
 
@@ -285,30 +284,5 @@ describe('loadVrmFromManifest', () => {
       path: 'D:\\DataNimi\\avatar\\AliciaSolid.vrm',
     });
     expect(mocks.loadAsync).not.toHaveBeenCalled();
-  });
-});
-
-describe('loadVrmAnimation', () => {
-  it('returns the first VRM animation when present', async () => {
-    const animation = { kind: 'mock-anim' };
-    mocks.loadAsync.mockResolvedValue({ userData: { vrmAnimations: [animation, {}] } });
-    const result = await loadVrmAnimation('/p/anim.vrma');
-    expect(result).toBe(animation);
-  });
-
-  it('returns null when the asset has no vrmAnimations', async () => {
-    mocks.loadAsync.mockResolvedValue({ userData: {} });
-    expect(await loadVrmAnimation('/p/empty.vrma')).toBeNull();
-  });
-
-  it('returns null when vrmAnimations is empty', async () => {
-    mocks.loadAsync.mockResolvedValue({ userData: { vrmAnimations: [] } });
-    expect(await loadVrmAnimation('/p/empty.vrma')).toBeNull();
-  });
-
-  it('wraps loadAsync with the createImageBitmap suspend', async () => {
-    mocks.loadAsync.mockResolvedValue({ userData: { vrmAnimations: [{}] } });
-    await loadVrmAnimation('/p/anim.vrma');
-    expect(mocks.suspendCreateImageBitmap).toHaveBeenCalledTimes(1);
   });
 });
