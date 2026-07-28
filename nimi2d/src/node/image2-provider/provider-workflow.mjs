@@ -147,6 +147,19 @@ function workflowRequirements(input) {
       'Do not create clothing-removed base textures or hidden body regions under clothing.',
     ];
   }
+  if (
+    input.workflow === 'companion_asset'
+    && input.targetKind === 'scene_item'
+    && input.companionKind === 'scene_layer'
+  ) {
+    return [
+      ...common,
+      'Create or edit a full-frame Nimi2D scene layer, not a cutout character or isolated prop.',
+      'When a source image is attached, treat it as the precise edit target and make only the change named in the user description.',
+      'Preserve the source camera, composition, geometry, textures, lighting, color, aspect ratio, and all pixels outside the described edit as faithfully as possible.',
+      'A scene layer is full-frame imagery: do not replace it with a plain or removable background, and do not add character-rig, silhouette, or atlas requirements.',
+    ];
+  }
   return [
     ...common,
     'Create a companion asset image for Nimi2D wardrobe, accessory, prop, hair variant, or scene workflows.',

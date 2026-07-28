@@ -222,6 +222,38 @@ test('Codex Image2 provider plans prompt-to-image and registers a consumed respo
   assert.equal(artifact.evidence.pixel_identity.status, 'pass');
 });
 
+test('Codex Image2 provider plans a source-bound full-frame scene edit without cutout instructions', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-provider-scene-edit-'));
+  const sourceImage = path.join(tempDir, 'source.png');
+  await writeFixturePng(sourceImage);
+  const outDir = path.join(tempDir, 'plan');
+
+  const planned = await runCli([
+    'image2-provider-plan',
+    '--workflow', 'companion-asset',
+    '--target-kind', 'scene_item',
+    '--companion-kind', 'scene_layer',
+    '--slot-kind', 'scene_back',
+    '--image', sourceImage,
+    '--description', 'remove only the planet and preserve the lunar landscape',
+    '--out-dir', outDir,
+  ]);
+
+  const request = await readYaml(planned.requestPath);
+  assert.equal(request.workflow.kind, 'companion_asset');
+  assert.equal(request.workflow.target_input_kind, 'scene_item');
+  assert.equal(request.workflow.companion_kind, 'scene_layer');
+  assert.equal(request.workflow.slot_kind, 'scene_back');
+  assert.equal(request.inputs.source_image_ref, 'inputs/source.png');
+
+  const prompt = await readFile(planned.promptPath, 'utf8');
+  assert.match(prompt, /precise edit target/);
+  assert.match(prompt, /full-frame imagery/);
+  assert.match(prompt, /make only the change named in the user description/);
+  assert.doesNotMatch(prompt, /Use a plain removable background and crisp silhouettes/);
+  assert.doesNotMatch(prompt, /Do not redefine the main character rig/);
+});
+
 test('Codex Image2 provider records selected CLI model separately from request hint', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-provider-model-truth-'));
   const outDir = path.join(tempDir, 'plan');
