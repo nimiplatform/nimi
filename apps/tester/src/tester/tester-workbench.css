@@ -25,19 +25,9 @@
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger]:hover .lab-account-menu__avatar-glyph{ background: var(--nimi-material-glass-regular-bg); color: var(--nimi-text-primary);}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger][data-open="true"] .lab-account-menu__avatar-glyph{ background: transparent; color: inherit; box-shadow: none;}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-panel]{ position: fixed; left: 84px; bottom: 18px; z-index: 70;}
-.workbench-topbar-tooltip{ display: grid; gap: 6px; max-width: 320px;}
-.workbench-topbar-tooltip span{ display: grid; gap: 2px;}
-.workbench-topbar-tooltip b{ color: var(--nimi-text-primary); font-size: 12px;}
-.workbench-topbar-tooltip em{ color: var(--nimi-text-secondary); font-size: 12px; font-style: normal; line-height: 1.45;}
 .workbench-topbar__attachment{ display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; border: 0; border-radius: 999px; background: var(--nimi-material-glass-thick-bg); box-shadow: inset 0 0 0 1px var(--nimi-material-glass-thick-bg), 0 12px 30px rgba(36, 54, 82, 0.07); color: var(--nimi-text-primary); font-size: 14px; font-weight: 760;}
 .workbench-topbar__attachment:not(.workbench-topbar__attachment--icon){ padding: 0 16px;}
-.workbench-topbar__attachment--interactive{ font: inherit; cursor: pointer;}
-.workbench-topbar__attachment--interactive:hover{ background: var(--nimi-material-glass-chrome-bg);}
-.workbench-topbar__attachment--interactive:focus-visible{ outline: 2px solid var(--nimi-focus-ring); outline-offset: 2px;}
 .workbench-topbar__attachment--icon{ width: 40px; color: var(--nimi-text-secondary); cursor: pointer;}
-.workbench-topbar__dot{ width: 9px; height: 9px; border-radius: 999px; background: var(--nimi-text-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--nimi-status-success) 12%, transparent);}
-.workbench-topbar__attachment--success .workbench-topbar__dot{ background: var(--nimi-status-success);}
-.workbench-topbar__attachment--warning .workbench-topbar__dot{ background: var(--nimi-status-warning); box-shadow: 0 0 0 4px color-mix(in srgb, var(--nimi-status-warning) 12%, transparent);}
 .studio-history-toggle{ display: grid; place-items: center; width: 40px; height: 38px; border: 0; border-radius: 999px; background: transparent; box-shadow: none; color: color-mix(in srgb, var(--nimi-text-muted) 64%, transparent); cursor: pointer; transition: background-color 180ms ease, color 180ms ease;}
 .studio-history-toggle:hover{ background: var(--nimi-action-ghost-hover); color: color-mix(in srgb, var(--nimi-text-secondary) 62%, transparent);}
 .studio-history-toggle:focus-visible{ outline: 2px solid var(--nimi-focus-ring-color); outline-offset: 2px;}

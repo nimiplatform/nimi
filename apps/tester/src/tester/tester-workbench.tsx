@@ -1,9 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, OverlayShell, Tooltip } from '@nimiplatform/kit/ui';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
-import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { useTesterRendererHost } from '../renderer/context.js';
-import type { TesterEcosystemReferenceProjection, TesterPersonaReferenceProjection } from '../renderer/contract.js';
+import type { TesterEcosystemReferenceProjection } from '../renderer/contract.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import {
@@ -16,7 +14,6 @@ import type { TesterAIConfigSummary } from './tester-ai-config.js';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
 import type { TesterPreferences } from './tester-preferences.js';
 import { testerTestIds } from './tester-test-ids.js';
-import { TesterLocalAppPermissionLab } from './local-app-permission-lab.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
 import { SectionAITesting } from './workbench/section-ai-testing.js';
 import type { WorkbenchView } from './workbench/workbench-context.js';
@@ -95,42 +92,6 @@ async function materializeTesterArtifactResult(
   };
 }
 
-function runtimeBadge(summary: TesterAIConfigSummary | null): { label: string; tone: 'success' | 'warning' | 'neutral' } {
-  if (!summary) return { label: 'Checking', tone: 'neutral' };
-  if (summary.runtime.status === 'simulated') return { label: 'Simulated', tone: 'neutral' };
-  if (summary.runtime.status === 'ready') return { label: 'Ready', tone: 'success' };
-  if (summary.runtime.status === 'connected') return { label: 'Connected', tone: 'success' };
-  return { label: 'Unavailable', tone: 'warning' };
-}
-
-function runtimeUserMessage(summary: TesterAIConfigSummary | null): string {
-  if (!summary) return 'Checking the Runtime connection.';
-  if (summary.runtime.status === 'simulated') return summary.runtime.detail;
-  if (summary.runtime.status === 'ready') return 'Runtime is connected. You can generate text and stream responses.';
-  if (summary.runtime.status === 'connected') return summary.runtime.detail;
-  return 'Runtime is unavailable. Open App Lab in the desktop runtime, or start and repair Runtime before generating.';
-}
-
-function TopbarStatusTooltip({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: readonly { label: string; value: string }[];
-}) {
-  return (
-    <div className="workbench-topbar-tooltip">
-      <strong>{title}</strong>
-      {rows.map((row) => (
-        <span key={row.label}>
-          <b>{row.label}</b>
-          <em>{row.value}</em>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const rendererHost = useTesterRendererHost();
   const [view, setView] = useState<WorkbenchView>({ kind: 'capability', capabilityId: initialCapabilityId });
@@ -140,24 +101,11 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [lastResult, setLastResult] = useState<TesterCapabilityRunResult | null>(null);
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
   const [preferences] = useState<TesterPreferences>(() => rendererHost.app.projection.preferences());
-  const [localAppProjection, setLocalAppProjection] = useState<RuntimePlatformProjection | null>(null);
   const [ecosystemReference, setEcosystemReference] = useState<TesterEcosystemReferenceProjection | null>(
     () => rendererHost.app.projection.ecosystemReference(),
   );
-  const [personaReference, setPersonaReference] = useState<TesterPersonaReferenceProjection | null>(
-    () => rendererHost.app.projection.personaReference(),
-  );
-  const [permissionLabOpen, setPermissionLabOpen] = useState(false);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
-  const runtimeState = useMemo(() => runtimeBadge(summary), [summary]);
-  const runtimeTooltipRows = useMemo(
-    () => [
-      { label: 'Status', value: runtimeState.label },
-      { label: 'What it means', value: runtimeUserMessage(summary) },
-    ],
-    [runtimeState.label, summary],
-  );
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -195,9 +143,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   useEffect(() => {
     void refreshSummary();
     void refreshHistory();
-    void rendererHost.app.projection.runtimePlatform().then((projection) => {
-      setLocalAppProjection(projection);
-    });
   }, [refreshSummary, refreshHistory, rendererHost]);
 
   useEffect(() => rendererHost.app.events.subscribe(
@@ -209,34 +154,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       setEcosystemReference(reference as TesterEcosystemReferenceProjection);
     },
   ), [rendererHost]);
-
-  useEffect(() => rendererHost.app.events.subscribe(
-    'tester.persona.reference-updated',
-    (payload) => {
-      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return;
-      const reference = payload as Partial<TesterPersonaReferenceProjection>;
-      if (typeof reference.displayName !== 'string' || typeof reference.userId !== 'string') return;
-      setPersonaReference(reference as TesterPersonaReferenceProjection);
-    },
-  ), [rendererHost]);
-
-  const localAppTooltipRows = useMemo(() => {
-    const ready = localAppProjection?.status === 'ready' ? localAppProjection : null;
-    const session = ready?.localAppSession;
-    return [
-      { label: 'Session', value: session?.state || (localAppProjection ? 'Unavailable' : 'Checking') },
-      { label: 'Identity', value: session?.sessionBound ? 'Bound' : (localAppProjection ? 'Unavailable' : 'Pending') },
-      { label: 'Base entitlement', value: session?.sessionBound ? 'App-private storage' : 'Unavailable' },
-      ...(localAppProjection && localAppProjection.status !== 'ready'
-        ? [{ label: 'Reason', value: localAppProjection.message }]
-        : []),
-    ];
-  }, [localAppProjection]);
-  const localAppState = localAppProjection?.status === 'ready'
-    ? { label: 'Ready', tone: 'success' as const }
-    : localAppProjection
-      ? { label: 'Unavailable', tone: 'warning' as const }
-      : { label: 'Checking', tone: 'neutral' as const };
 
   const handleSelectHistoryRun = useCallback((record: TesterRunHistoryRecord) => {
     const capabilityId = record.capabilityId as TesterCapabilityId;
@@ -402,42 +319,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                         Ecosystem revision {ecosystemReference.ecosystemRevision}
                       </output>
                     ) : null}
-                    {personaReference ? (
-                      <output
-                        role="status"
-                        data-nimi-semantic-id="tester-persona-reference"
-                        data-persona-id={personaReference.userId}
-                        className="workbench-topbar__attachment workbench-topbar__attachment--success"
-                      >
-                        模拟居民 {personaReference.displayName}
-                      </output>
-                    ) : null}
-                    <Tooltip
-                      content={<TopbarStatusTooltip title="Local app" rows={localAppTooltipRows} />}
-                      placement="bottom"
-                    >
-                      <Button
-                        type="button"
-                        tone="ghost"
-                        size="sm"
-                        className={`workbench-topbar__attachment workbench-topbar__attachment--interactive workbench-topbar__attachment--${localAppState.tone}`}
-                        data-testid="tester-local-app-status"
-                        aria-label="打开 Local App 权限测试"
-                        onClick={() => setPermissionLabOpen(true)}
-                      >
-                        <span className="workbench-topbar__dot" aria-hidden="true" />
-                        <span>Local app · {localAppState.label}</span>
-                      </Button>
-                    </Tooltip>
-                    <Tooltip
-                      content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
-                      placement="bottom"
-                    >
-                      <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
-                        <span className="workbench-topbar__dot" aria-hidden="true" />
-                        <span>Runtime · {runtimeState.label}</span>
-                      </span>
-                    </Tooltip>
                   </>
                 )}
               />
@@ -445,24 +326,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           </div>
         </div>
       </div>
-      <OverlayShell
-        open={permissionLabOpen}
-        kind="drawer"
-        size="S"
-        onClose={() => setPermissionLabOpen(false)}
-        title="Local App 权限边界"
-        description="验证会话、保留权限 fail-close，以及无需 Nimi 批准的 app 私有存储。"
-        panelClassName="flex flex-col overflow-hidden"
-        contentClassName="min-h-0 min-w-0 flex-1 overflow-y-auto"
-        footer={(
-          <Button type="button" tone="secondary" onClick={() => setPermissionLabOpen(false)}>
-            关闭
-          </Button>
-        )}
-        dataTestId="tester-local-app-permission-drawer"
-      >
-        <TesterLocalAppPermissionLab />
-      </OverlayShell>
     </main>
   );
 }
