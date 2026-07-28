@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Derives `BackendNominalBounds` (carrier/backend-branch.ts) from a loaded
 // VRM scene + framing intent. Replaces the static placeholder previously

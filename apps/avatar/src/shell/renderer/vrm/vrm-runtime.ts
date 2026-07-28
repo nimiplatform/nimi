@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Pure (non-React) VRM lifecycle state machine. Owning the state machine
 // here (instead of inside the React component) keeps the

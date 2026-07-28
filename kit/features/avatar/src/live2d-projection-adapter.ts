@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Live2D BackendProjection adapter — implements the ontology-level
 // projection surface (`applyActivity / applyEmotion / applyMotion /
@@ -7,9 +7,9 @@
 // `Live2DBackendSession.applyCommand` already consumes.
 //
 // Spec authorities:
-//   - docs/authority/avatar-embodiment-rationale.md
+//   - .nimi/spec/avatar/embodiment-surface.authority.yaml
 //     §"BackendProjection ontology surface"
-//   - docs/authority/avatar-embodiment-rationale.md (re-anchor)
+//   - .nimi/spec/avatar/embodiment-surface.authority.yaml (re-anchor)
 //   - config/avatar-activity-mapping.yaml v2
 //     (`live2d.motion_group` / `fallback_motion_group`)
 //

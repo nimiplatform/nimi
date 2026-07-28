@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Verifies the VRM lifecycle state machine in isolation. Uses
 // `loaderOverride` + `setTimeoutFn` + `clearTimeoutFn` + `nowFn` test

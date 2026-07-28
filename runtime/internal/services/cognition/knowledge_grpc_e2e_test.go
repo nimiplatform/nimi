@@ -309,7 +309,7 @@ func startKnowledgeGRPCHarness(t *testing.T, cfg config.Config) *knowledgeGRPCHa
 		t.Fatalf("memoryservice.New: %v", err)
 	}
 	setMemoryEmbeddingVectorExecutorForTest(memorySvc)
-	svc, err := New(logger, cfg, memorySvc, NewAccountKnowledgeAuthorizer(logger), nil)
+	svc, err := New(logger, cfg, memorySvc, NewAccountKnowledgeAuthorizer(logger))
 	if err != nil {
 		_ = memorySvc.Close()
 		t.Fatalf("cognition.New: %v", err)
@@ -320,7 +320,9 @@ func startKnowledgeGRPCHarness(t *testing.T, cfg config.Config) *knowledgeGRPCHa
 		if err != nil {
 			return nil, err
 		}
-		return handler(envelope.WithMetadata(ctx, meta), req)
+		handlerCtx := envelope.WithMetadata(ctx, meta)
+		handlerCtx = withTestKnowledgeAuthorization(handlerCtx, meta.AppID, "acct-e2e")
+		return handler(handlerCtx, req)
 	}))
 	runtimev1.RegisterRuntimeCognitionServiceServer(server, svc)
 	go func() {

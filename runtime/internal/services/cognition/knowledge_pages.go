@@ -28,8 +28,8 @@ func (s *Service) PutPage(ctx context.Context, req *runtimev1.PutPageRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	writeAccess := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionWritePage, req.GetContext(), scope, "runtime put knowledge page")
-	readAccess := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope, "runtime resolve knowledge page before write")
+	writeAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionWritePage, req.GetContext(), scope)
+	readAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
 	mu := s.acquirePageWriteMutex(scope.ScopeID)
 	mu.Lock()
 	defer mu.Unlock()
@@ -52,7 +52,7 @@ func (s *Service) PutPage(ctx context.Context, req *runtimev1.PutPageRequest) (*
 		}
 		cognitionPage.Body = mustMarshalJSON(body)
 	}
-	if err := s.cognitionCore.AppMemoryAccessService().SaveKnowledge(ctx, writeAccess, cognitionPage); err != nil {
+	if err := s.cognitionCore.RuntimeBridge().SaveKnowledge(ctx, writeAccess, cognitionPage); err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "already exists") {
 			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_KNOWLEDGE_PAGE_SLUG_CONFLICT)
 		}
@@ -74,7 +74,7 @@ func (s *Service) GetPage(ctx context.Context, req *runtimev1.GetPageRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope, "runtime get knowledge page")
+	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
 	page, err := s.resolveKnowledgePage(ctx, access, scope.ScopeID, scope.ScopeID, req.GetPageId(), req.GetSlug())
 	if err != nil {
 		return nil, err
@@ -94,8 +94,8 @@ func (s *Service) ListPages(ctx context.Context, req *runtimev1.ListPagesRequest
 	if err != nil {
 		return nil, err
 	}
-	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope, "runtime list knowledge pages")
-	items, err := s.cognitionCore.AppMemoryAccessService().ListKnowledge(ctx, access, scope.ScopeID)
+	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
+	items, err := s.cognitionCore.RuntimeBridge().ListKnowledge(ctx, access, scope.ScopeID)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
@@ -132,8 +132,8 @@ func (s *Service) DeletePage(ctx context.Context, req *runtimev1.DeletePageReque
 	if err != nil {
 		return nil, err
 	}
-	writeAccess := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionDeletePage, req.GetContext(), scope, "runtime delete knowledge page")
-	readAccess := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope, "runtime resolve knowledge page before delete")
+	writeAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionDeletePage, req.GetContext(), scope)
+	readAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
 	page, err := s.resolveKnowledgePage(ctx, readAccess, scope.ScopeID, scope.ScopeID, req.GetPageId(), req.GetSlug())
 	if err != nil {
 		return nil, err
@@ -144,7 +144,7 @@ func (s *Service) DeletePage(ctx context.Context, req *runtimev1.DeletePageReque
 	if err := s.deleteKnowledgeRelationsForPage(ctx, readAccess, writeAccess, scope.ScopeID, page.GetPageId()); err != nil {
 		return nil, err
 	}
-	if err := s.cognitionCore.AppMemoryAccessService().DeleteKnowledge(ctx, writeAccess, scope.ScopeID, cognitionknowledge.PageID(page.GetPageId())); err != nil {
+	if err := s.cognitionCore.RuntimeBridge().DeleteKnowledge(ctx, writeAccess, scope.ScopeID, cognitionknowledge.PageID(page.GetPageId())); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 			ActionHint: "retry_after_cognition_storage_recovery",
 			Message:    "delete page: cognition storage error: " + err.Error(),
@@ -219,17 +219,17 @@ func cognitionPageToRuntime(bankID string, page cognitionknowledge.Page) (*runti
 	}, nil
 }
 
-func (s *Service) resolveKnowledgePage(ctx context.Context, access cognitionpkg.AppMemoryAccess, bankID string, scopeID string, pageID string, slug string) (*runtimev1.KnowledgePage, error) {
+func (s *Service) resolveKnowledgePage(ctx context.Context, access cognitionpkg.RuntimeAuthorization, bankID string, scopeID string, pageID string, slug string) (*runtimev1.KnowledgePage, error) {
 	pageID = strings.TrimSpace(pageID)
 	slug = strings.TrimSpace(slug)
 	if pageID != "" {
-		page, err := s.cognitionCore.AppMemoryAccessService().LoadKnowledge(ctx, access, scopeID, cognitionknowledge.PageID(pageID))
+		page, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, access, scopeID, cognitionknowledge.PageID(pageID))
 		if err != nil {
 			return nil, nil
 		}
 		return cognitionPageToRuntime(bankID, *page)
 	}
-	items, err := s.cognitionCore.AppMemoryAccessService().ListKnowledge(ctx, access, scopeID)
+	items, err := s.cognitionCore.RuntimeBridge().ListKnowledge(ctx, access, scopeID)
 	if err != nil {
 		return nil, err
 	}

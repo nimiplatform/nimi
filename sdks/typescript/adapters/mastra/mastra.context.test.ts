@@ -46,15 +46,6 @@ test('Nimi Runtime memory and knowledge context feed a Mastra Agent without Mast
     async history() {
       return unexpectedCall('memory.history');
     },
-    async getEmbeddingRuntimeProjection() {
-      return unexpectedCall('memory.getEmbeddingRuntimeProjection');
-    },
-    async requestEmbeddingRuntimeBind() {
-      return unexpectedCall('memory.requestEmbeddingRuntimeBind');
-    },
-    async requestEmbeddingRuntimeCutover() {
-      return unexpectedCall('memory.requestEmbeddingRuntimeCutover');
-    },
   } satisfies NimiRuntimeMemoryContextClient;
   const knowledgeClient = {
     async listBanks() {

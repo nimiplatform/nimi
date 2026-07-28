@@ -180,9 +180,6 @@ export const RUNTIME_MEMORY_METHODS = [
   'recall',
   'history',
   'deleteMemory',
-  'inspectMemoryEmbeddingRuntime',
-  'requestMemoryEmbeddingRuntimeBind',
-  'requestMemoryEmbeddingRuntimeCutover',
   'subscribeMemoryEvents',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 

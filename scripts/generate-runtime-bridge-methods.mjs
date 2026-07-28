@@ -10,7 +10,7 @@ const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestFile = resolve(repoRoot, 'sdks/typescript/core-generated/runtime-core.manifest.json');
 const authPostureIndexFile = resolve(
   repoRoot,
-  'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture.yaml',
+  'config/runtime-rpc-auth-posture.yaml',
 );
 const outputFiles = [
   resolve(repoRoot, 'kit/shell/tauri/src/runtime_bridge/generated/method_ids.rs'),
@@ -65,9 +65,6 @@ function readPostureDeniedMethodIds(methodIdSet) {
     const shardFile = resolve(dirname(authPostureIndexFile), 'runtime-rpc-auth-posture', basename(String(shard.path || '')));
     const document = parseYaml(readFileSync(shardFile, 'utf8'));
     const methods = document?.methods ?? [];
-    if (Number(shard.method_count) !== methods.length) {
-      throw new Error(`runtime bridge auth-posture shard count mismatch: ${shardFile}`);
-    }
     for (const row of methods) {
       const methodId = String(row?.method_id || '').trim();
       const posture = String(row?.posture || '').trim();

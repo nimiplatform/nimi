@@ -117,17 +117,7 @@ type Service struct {
 	// follow-up so scheduling assertions never depend on host contention.
 	chatFollowUpWait func(context.Context, time.Time) bool
 
-	realmGroupCandidateMu          sync.RWMutex
-	realmGroupCandidateExecutor    RealmGroupMessageCandidateExecutor
-	realmGroupCandidates           map[string]*realmGroupMessageCandidateEvidenceRecord
-	realmGroupCandidateIdempotency map[string]string
-	memoryPromotionEvidence        map[string]runtimeMemoryPromotionEvidence
-
-	// participationState is the K-AGCORE-061..088 participation record store
-	// (lazy-initialized through participationStore()); audit/replay lineage
-	// stays in auditStore per K-AGCORE-087.
-	participationOnce  sync.Once
-	participationState *participationStore
+	memoryPromotionEvidence map[string]runtimeMemoryPromotionEvidence
 
 	// K-AGCORE-144..150 Runtime Agent AI Config domain. agentAIConfigMu
 	// serializes mutations (the repository CAS re-checks inside the write tx);
@@ -218,8 +208,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatFollowUps:                            make(map[string]*publicChatFollowUpState),
 		avatarLiveInstanceBindings:               make(map[string]*avatarLiveInstanceBindingState),
 		chatActiveByAgent:                        make(map[string]string),
-		realmGroupCandidates:                     make(map[string]*realmGroupMessageCandidateEvidenceRecord),
-		realmGroupCandidateIdempotency:           make(map[string]string),
 		memoryPromotionEvidence:                  make(map[string]runtimeMemoryPromotionEvidence),
 		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),
 		runtimeArtifacts:                         runtimeartifact.NewMemoryStore(),
@@ -238,9 +226,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		return nil, fmt.Errorf("validate loaded source snapshot bindings: %w", err)
 	}
 	if err := svc.seedRuntimeAgentAIConfigsForLoadedAgents(); err != nil {
-		return nil, err
-	}
-	if err := svc.loadRealmGroupMessageCandidateStateFromDB(); err != nil {
 		return nil, err
 	}
 	if err := svc.loadDelegatedControlStateFromDB(); err != nil {
@@ -285,15 +270,6 @@ func (s *Service) SetAuditStore(store *auditlog.Store) {
 
 func (s *Service) SetLifeTrackExecutor(executor LifeTrackExecutor) {
 	s.setLifeTrackExecutor(executor)
-}
-
-func (s *Service) SetRealmGroupMessageCandidateExecutor(executor RealmGroupMessageCandidateExecutor) {
-	if s == nil {
-		return
-	}
-	s.realmGroupCandidateMu.Lock()
-	defer s.realmGroupCandidateMu.Unlock()
-	s.realmGroupCandidateExecutor = executor
 }
 
 // SetSourceMaterializationRuntimeIdentity binds private Realm Packet requests

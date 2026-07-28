@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/platform/ui-design-system.authority.yaml
-# Rationale: docs/authority/platform-ui-design-system-rationale.md
+# Authority: .nimi/spec/platform/ui-design-system.authority.yaml
 version: 2
 table_family: product_catalog
 owner: platform

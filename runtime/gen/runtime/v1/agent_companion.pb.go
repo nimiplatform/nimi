@@ -199,7 +199,6 @@ type CompanionParticipationProjection struct {
 	AgentId              string                              `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	SurfaceKind          CompanionParticipationSurfaceKind   `protobuf:"varint,3,opt,name=surface_kind,json=surfaceKind,proto3,enum=nimi.runtime.v1.CompanionParticipationSurfaceKind" json:"surface_kind,omitempty"`
 	ProfileRef           string                              `protobuf:"bytes,4,opt,name=profile_ref,json=profileRef,proto3" json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string                              `protobuf:"bytes,5,opt,name=room_orchestration_ref,json=roomOrchestrationRef,proto3" json:"room_orchestration_ref,omitempty"`
 	TriggerSource        CompanionParticipationTriggerSource `protobuf:"varint,6,opt,name=trigger_source,json=triggerSource,proto3,enum=nimi.runtime.v1.CompanionParticipationTriggerSource" json:"trigger_source,omitempty"`
 	Status               CompanionParticipationStatus        `protobuf:"varint,7,opt,name=status,proto3,enum=nimi.runtime.v1.CompanionParticipationStatus" json:"status,omitempty"`
 	CandidateRef         string                              `protobuf:"bytes,8,opt,name=candidate_ref,json=candidateRef,proto3" json:"candidate_ref,omitempty"`
@@ -269,13 +268,6 @@ func (x *CompanionParticipationProjection) GetSurfaceKind() CompanionParticipati
 func (x *CompanionParticipationProjection) GetProfileRef() string {
 	if x != nil {
 		return x.ProfileRef
-	}
-	return ""
-}
-
-func (x *CompanionParticipationProjection) GetRoomOrchestrationRef() string {
-	if x != nil {
-		return x.RoomOrchestrationRef
 	}
 	return ""
 }
@@ -365,7 +357,6 @@ type GetCompanionParticipationProjectionRequest struct {
 	SurfaceKind          CompanionParticipationSurfaceKind   `protobuf:"varint,4,opt,name=surface_kind,json=surfaceKind,proto3,enum=nimi.runtime.v1.CompanionParticipationSurfaceKind" json:"surface_kind,omitempty"`
 	TriggerSource        CompanionParticipationTriggerSource `protobuf:"varint,5,opt,name=trigger_source,json=triggerSource,proto3,enum=nimi.runtime.v1.CompanionParticipationTriggerSource" json:"trigger_source,omitempty"`
 	ProfileRef           string                              `protobuf:"bytes,6,opt,name=profile_ref,json=profileRef,proto3" json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string                              `protobuf:"bytes,7,opt,name=room_orchestration_ref,json=roomOrchestrationRef,proto3" json:"room_orchestration_ref,omitempty"`
 	RequestId            string                              `protobuf:"bytes,8,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
@@ -443,13 +434,6 @@ func (x *GetCompanionParticipationProjectionRequest) GetProfileRef() string {
 	return ""
 }
 
-func (x *GetCompanionParticipationProjectionRequest) GetRoomOrchestrationRef() string {
-	if x != nil {
-		return x.RoomOrchestrationRef
-	}
-	return ""
-}
-
 func (x *GetCompanionParticipationProjectionRequest) GetRequestId() string {
 	if x != nil {
 		return x.RequestId
@@ -509,7 +493,6 @@ type RequestCompanionParticipationRequest struct {
 	SurfaceKind          CompanionParticipationSurfaceKind   `protobuf:"varint,4,opt,name=surface_kind,json=surfaceKind,proto3,enum=nimi.runtime.v1.CompanionParticipationSurfaceKind" json:"surface_kind,omitempty"`
 	TriggerSource        CompanionParticipationTriggerSource `protobuf:"varint,5,opt,name=trigger_source,json=triggerSource,proto3,enum=nimi.runtime.v1.CompanionParticipationTriggerSource" json:"trigger_source,omitempty"`
 	ProfileRef           string                              `protobuf:"bytes,6,opt,name=profile_ref,json=profileRef,proto3" json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string                              `protobuf:"bytes,7,opt,name=room_orchestration_ref,json=roomOrchestrationRef,proto3" json:"room_orchestration_ref,omitempty"`
 	RequestId            string                              `protobuf:"bytes,8,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	Text                 string                              `protobuf:"bytes,9,opt,name=text,proto3" json:"text,omitempty"`
 	ThreadId             string                              `protobuf:"bytes,10,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
@@ -587,13 +570,6 @@ func (x *RequestCompanionParticipationRequest) GetTriggerSource() CompanionParti
 func (x *RequestCompanionParticipationRequest) GetProfileRef() string {
 	if x != nil {
 		return x.ProfileRef
-	}
-	return ""
-}
-
-func (x *RequestCompanionParticipationRequest) GetRoomOrchestrationRef() string {
-	if x != nil {
-		return x.RoomOrchestrationRef
 	}
 	return ""
 }
@@ -685,7 +661,6 @@ type CancelCompanionParticipationRequest struct {
 	SurfaceKind          CompanionParticipationSurfaceKind   `protobuf:"varint,4,opt,name=surface_kind,json=surfaceKind,proto3,enum=nimi.runtime.v1.CompanionParticipationSurfaceKind" json:"surface_kind,omitempty"`
 	TriggerSource        CompanionParticipationTriggerSource `protobuf:"varint,5,opt,name=trigger_source,json=triggerSource,proto3,enum=nimi.runtime.v1.CompanionParticipationTriggerSource" json:"trigger_source,omitempty"`
 	ProfileRef           string                              `protobuf:"bytes,6,opt,name=profile_ref,json=profileRef,proto3" json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string                              `protobuf:"bytes,7,opt,name=room_orchestration_ref,json=roomOrchestrationRef,proto3" json:"room_orchestration_ref,omitempty"`
 	ProjectionId         string                              `protobuf:"bytes,8,opt,name=projection_id,json=projectionId,proto3" json:"projection_id,omitempty"`
 	TurnId               string                              `protobuf:"bytes,9,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`
 	Reason               string                              `protobuf:"bytes,10,opt,name=reason,proto3" json:"reason,omitempty"`
@@ -762,13 +737,6 @@ func (x *CancelCompanionParticipationRequest) GetTriggerSource() CompanionPartic
 func (x *CancelCompanionParticipationRequest) GetProfileRef() string {
 	if x != nil {
 		return x.ProfileRef
-	}
-	return ""
-}
-
-func (x *CancelCompanionParticipationRequest) GetRoomOrchestrationRef() string {
-	if x != nil {
-		return x.RoomOrchestrationRef
 	}
 	return ""
 }
@@ -853,7 +821,6 @@ type OpenCompanionParticipationReplayRequest struct {
 	SurfaceKind          CompanionParticipationSurfaceKind   `protobuf:"varint,4,opt,name=surface_kind,json=surfaceKind,proto3,enum=nimi.runtime.v1.CompanionParticipationSurfaceKind" json:"surface_kind,omitempty"`
 	TriggerSource        CompanionParticipationTriggerSource `protobuf:"varint,5,opt,name=trigger_source,json=triggerSource,proto3,enum=nimi.runtime.v1.CompanionParticipationTriggerSource" json:"trigger_source,omitempty"`
 	ProfileRef           string                              `protobuf:"bytes,6,opt,name=profile_ref,json=profileRef,proto3" json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string                              `protobuf:"bytes,7,opt,name=room_orchestration_ref,json=roomOrchestrationRef,proto3" json:"room_orchestration_ref,omitempty"`
 	ProjectionId         string                              `protobuf:"bytes,8,opt,name=projection_id,json=projectionId,proto3" json:"projection_id,omitempty"`
 	RequestId            string                              `protobuf:"bytes,9,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	unknownFields        protoimpl.UnknownFields
@@ -932,13 +899,6 @@ func (x *OpenCompanionParticipationReplayRequest) GetProfileRef() string {
 	return ""
 }
 
-func (x *OpenCompanionParticipationReplayRequest) GetRoomOrchestrationRef() string {
-	if x != nil {
-		return x.RoomOrchestrationRef
-	}
-	return ""
-}
-
 func (x *OpenCompanionParticipationReplayRequest) GetProjectionId() string {
 	if x != nil {
 		return x.ProjectionId
@@ -1009,14 +969,13 @@ var File_runtime_v1_agent_companion_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_agent_companion_proto_rawDesc = "" +
 	"\n" +
-	" runtime/v1/agent_companion.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\"\x90\x06\n" +
+	" runtime/v1/agent_companion.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\"\xf8\x05\n" +
 	" CompanionParticipationProjection\x12#\n" +
 	"\rprojection_id\x18\x01 \x01(\tR\fprojectionId\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12U\n" +
 	"\fsurface_kind\x18\x03 \x01(\x0e22.nimi.runtime.v1.CompanionParticipationSurfaceKindR\vsurfaceKind\x12\x1f\n" +
 	"\vprofile_ref\x18\x04 \x01(\tR\n" +
-	"profileRef\x124\n" +
-	"\x16room_orchestration_ref\x18\x05 \x01(\tR\x14roomOrchestrationRef\x12[\n" +
+	"profileRef\x12[\n" +
 	"\x0etrigger_source\x18\x06 \x01(\x0e24.nimi.runtime.v1.CompanionParticipationTriggerSourceR\rtriggerSource\x12E\n" +
 	"\x06status\x18\a \x01(\x0e2-.nimi.runtime.v1.CompanionParticipationStatusR\x06status\x12#\n" +
 	"\rcandidate_ref\x18\b \x01(\tR\fcandidateRef\x12\x1d\n" +
@@ -1030,7 +989,7 @@ const file_runtime_v1_agent_companion_proto_rawDesc = "" +
 	"observedAt\x124\n" +
 	"\x16conversation_anchor_id\x18\x0e \x01(\tR\x14conversationAnchorId\x12\x17\n" +
 	"\aturn_id\x18\x0f \x01(\tR\x06turnId\x12\x1b\n" +
-	"\tstream_id\x18\x10 \x01(\tR\bstreamId\"\xe7\x03\n" +
+	"\tstream_id\x18\x10 \x01(\tR\bstreamIdJ\x04\b\x05\x10\x06R\x16room_orchestration_ref\"\xcf\x03\n" +
 	"*GetCompanionParticipationProjectionRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
@@ -1038,14 +997,13 @@ const file_runtime_v1_agent_companion_proto_rawDesc = "" +
 	"\fsurface_kind\x18\x04 \x01(\x0e22.nimi.runtime.v1.CompanionParticipationSurfaceKindR\vsurfaceKind\x12[\n" +
 	"\x0etrigger_source\x18\x05 \x01(\x0e24.nimi.runtime.v1.CompanionParticipationTriggerSourceR\rtriggerSource\x12\x1f\n" +
 	"\vprofile_ref\x18\x06 \x01(\tR\n" +
-	"profileRef\x124\n" +
-	"\x16room_orchestration_ref\x18\a \x01(\tR\x14roomOrchestrationRef\x12\x1d\n" +
+	"profileRef\x12\x1d\n" +
 	"\n" +
-	"request_id\x18\b \x01(\tR\trequestId\"\x80\x01\n" +
+	"request_id\x18\b \x01(\tR\trequestIdJ\x04\b\a\x10\bR\x16room_orchestration_ref\"\x80\x01\n" +
 	"+GetCompanionParticipationProjectionResponse\x12Q\n" +
 	"\n" +
 	"projection\x18\x01 \x01(\v21.nimi.runtime.v1.CompanionParticipationProjectionR\n" +
-	"projection\"\xd9\x04\n" +
+	"projection\"\xc1\x04\n" +
 	"$RequestCompanionParticipationRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
@@ -1053,19 +1011,18 @@ const file_runtime_v1_agent_companion_proto_rawDesc = "" +
 	"\fsurface_kind\x18\x04 \x01(\x0e22.nimi.runtime.v1.CompanionParticipationSurfaceKindR\vsurfaceKind\x12[\n" +
 	"\x0etrigger_source\x18\x05 \x01(\x0e24.nimi.runtime.v1.CompanionParticipationTriggerSourceR\rtriggerSource\x12\x1f\n" +
 	"\vprofile_ref\x18\x06 \x01(\tR\n" +
-	"profileRef\x124\n" +
-	"\x16room_orchestration_ref\x18\a \x01(\tR\x14roomOrchestrationRef\x12\x1d\n" +
+	"profileRef\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\b \x01(\tR\trequestId\x12\x12\n" +
 	"\x04text\x18\t \x01(\tR\x04text\x12\x1b\n" +
 	"\tthread_id\x18\n" +
 	" \x01(\tR\bthreadId\x12\x19\n" +
 	"\bworld_id\x18\v \x01(\tR\aworldId\x12*\n" +
-	"\x11max_output_tokens\x18\f \x01(\x05R\x0fmaxOutputTokens\"z\n" +
+	"\x11max_output_tokens\x18\f \x01(\x05R\x0fmaxOutputTokensJ\x04\b\a\x10\bR\x16room_orchestration_ref\"z\n" +
 	"%RequestCompanionParticipationResponse\x12Q\n" +
 	"\n" +
 	"projection\x18\x01 \x01(\v21.nimi.runtime.v1.CompanionParticipationProjectionR\n" +
-	"projection\"\xb6\x04\n" +
+	"projection\"\x9e\x04\n" +
 	"#CancelCompanionParticipationRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
@@ -1073,18 +1030,17 @@ const file_runtime_v1_agent_companion_proto_rawDesc = "" +
 	"\fsurface_kind\x18\x04 \x01(\x0e22.nimi.runtime.v1.CompanionParticipationSurfaceKindR\vsurfaceKind\x12[\n" +
 	"\x0etrigger_source\x18\x05 \x01(\x0e24.nimi.runtime.v1.CompanionParticipationTriggerSourceR\rtriggerSource\x12\x1f\n" +
 	"\vprofile_ref\x18\x06 \x01(\tR\n" +
-	"profileRef\x124\n" +
-	"\x16room_orchestration_ref\x18\a \x01(\tR\x14roomOrchestrationRef\x12#\n" +
+	"profileRef\x12#\n" +
 	"\rprojection_id\x18\b \x01(\tR\fprojectionId\x12\x17\n" +
 	"\aturn_id\x18\t \x01(\tR\x06turnId\x12\x16\n" +
 	"\x06reason\x18\n" +
 	" \x01(\tR\x06reason\x12\x1d\n" +
 	"\n" +
-	"request_id\x18\v \x01(\tR\trequestId\"y\n" +
+	"request_id\x18\v \x01(\tR\trequestIdJ\x04\b\a\x10\bR\x16room_orchestration_ref\"y\n" +
 	"$CancelCompanionParticipationResponse\x12Q\n" +
 	"\n" +
 	"projection\x18\x01 \x01(\v21.nimi.runtime.v1.CompanionParticipationProjectionR\n" +
-	"projection\"\x89\x04\n" +
+	"projection\"\xf1\x03\n" +
 	"'OpenCompanionParticipationReplayRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
@@ -1092,11 +1048,10 @@ const file_runtime_v1_agent_companion_proto_rawDesc = "" +
 	"\fsurface_kind\x18\x04 \x01(\x0e22.nimi.runtime.v1.CompanionParticipationSurfaceKindR\vsurfaceKind\x12[\n" +
 	"\x0etrigger_source\x18\x05 \x01(\x0e24.nimi.runtime.v1.CompanionParticipationTriggerSourceR\rtriggerSource\x12\x1f\n" +
 	"\vprofile_ref\x18\x06 \x01(\tR\n" +
-	"profileRef\x124\n" +
-	"\x16room_orchestration_ref\x18\a \x01(\tR\x14roomOrchestrationRef\x12#\n" +
+	"profileRef\x12#\n" +
 	"\rprojection_id\x18\b \x01(\tR\fprojectionId\x12\x1d\n" +
 	"\n" +
-	"request_id\x18\t \x01(\tR\trequestId\"\x9c\x01\n" +
+	"request_id\x18\t \x01(\tR\trequestIdJ\x04\b\a\x10\bR\x16room_orchestration_ref\"\x9c\x01\n" +
 	"(OpenCompanionParticipationReplayResponse\x12\x1d\n" +
 	"\n" +
 	"replay_ref\x18\x01 \x01(\tR\treplayRef\x12Q\n" +

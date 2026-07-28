@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // MToon material loader plugin factory with an outline-fallback policy for
 // GPU environments that cannot render outline meshes acceptably (software

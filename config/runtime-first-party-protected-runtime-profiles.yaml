@@ -1,0 +1,193 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/runtime/security-core.authority.yaml
+version: 1
+profiles:
+  - profile_id: desktop_machine_product_v1
+    identity_class: machine
+    native_profile_marker: desktop-machine-product-v1
+    methods:
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAssets
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectors
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
+      - method_id: /nimi.runtime.v1.RuntimeAiService/PeekScheduling
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario
+      - method_id: /nimi.runtime.v1.RuntimeAiService/StreamScenario
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveProfile
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ApplyProfile
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAudits
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents
+      - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus
+      - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken
+      - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken
+      - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens
+  - profile_id: desktop_account_product_v1
+    identity_class: account
+    native_profile_marker: desktop-account-product-v1
+    methods:
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind
+      - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
+      - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
+      - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
+      - method_id: /nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectors
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/CreateConnector
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpdateConnector
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteConnector
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/TestConnector
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentState
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPendingHooks
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateAgentState
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/EnableAutonomy
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/DisableAutonomy
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelHook
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision
+  - profile_id: bundled_avatar_v1
+    identity_class: avatar
+    app_id: nimi.avatar
+    native_profile_marker: avatar-v1
+    account_caller:
+      app_instance_id: nimi.avatar
+      device_id: avatar-native-host
+    realm_operations:
+      - WorldCoreController_listPersonaCharacters
+    methods:
+      - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
+        capability: runtime.health.read
+      - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
+        capability: account.session.read
+      - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents
+        capability: account.session.read
+      - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+        capability: account.realm.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
+        capability: runtime.agent.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent
+        capability: runtime.agent.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
+        capability: runtime.agent.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
+        capability: runtime.agent.write
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor
+        capability: runtime.agent.write
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot
+        capability: runtime.agent.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
+        capability: runtime.agent.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection
+        capability: runtime.agent.companion_participation.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation
+        capability: runtime.agent.companion_participation.write
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation
+        capability: runtime.agent.companion_participation.write
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay
+        capability: runtime.agent.companion_participation.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback
+        capability: runtime.agent.turn.write
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot
+        capability: runtime.agent.avatar_debug.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe
+        capability: runtime.agent.avatar_debug.write
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult
+        capability: runtime.agent.avatar_debug.write
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults
+        capability: runtime.agent.avatar_debug.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay
+        capability: runtime.agent.avatar_debug.read
+      - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
+        capability: runtime.artifact.read
+      - method_id: /nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob
+        capability: ai.spend.meter
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioJob
+        capability: runtime.ai.scenario.read
+      - method_id: /nimi.runtime.v1.RuntimeAiService/CancelScenarioJob
+        capability: runtime.ai.scenario.write
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts
+        capability: runtime.ai.scenario.read
+      - method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents
+        capability: runtime.ai.scenario.read
+      - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
+        capability: runtime.agent.turn.write
+      - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
+        capability: runtime.agent.turn.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
+        capability: runtime.agent.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream
+        capability: runtime.agent.turn.read

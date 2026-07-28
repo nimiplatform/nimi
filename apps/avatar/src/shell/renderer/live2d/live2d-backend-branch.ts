@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Builds the Live2D BackendBranch by composing the leaf modules
 // (`live2d-carrier-surface`, `live2d-projection-adapter`,

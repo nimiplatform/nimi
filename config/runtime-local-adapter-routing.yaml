@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/runtime/local-compute.authority.yaml
-# Rationale: docs/authority/runtime-local-compute-rationale.md
+# Authority: .nimi/spec/runtime/local-compute.authority.yaml
 version: 1
 table_family: protocol_surface
 owner: runtime

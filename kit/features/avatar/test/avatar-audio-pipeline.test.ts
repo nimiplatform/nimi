@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // AudioPipelineController test (renamed from AudioPlaybackController).
 // Verifies hard-cut surface:

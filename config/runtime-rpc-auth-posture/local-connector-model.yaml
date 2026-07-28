@@ -1,0 +1,176 @@
+# Non-authoritative fail-closed method posture configuration.
+# Normative authority: .nimi/spec/runtime/security-core.authority.yaml
+version: 1
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/CreateConnector
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/GetConnector
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectors
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpdateConnector
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteConnector
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/TestConnector
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail
+    posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAssets
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalAsset
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalAsset
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveProfile
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ApplyProfile
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalServices
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallLocalService
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalService
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalService
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalService
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAudits
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListEngines
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureEngine
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartEngine
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopEngine
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetEngineStatus
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeModelService/ListModels
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeModelService/PullModel
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeModelService/RemoveModel
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeModelService/CheckModelHealth
+    posture: anonymous_read

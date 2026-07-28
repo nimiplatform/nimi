@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Singleton GLTFLoader wired with VRMLoaderPlugin + VRMAnimationLoaderPlugin
 // + the apps/avatar MToon outline policy plugin. Responsible for loading

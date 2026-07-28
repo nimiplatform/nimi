@@ -1,0 +1,90 @@
+# Non-authoritative fail-closed method posture configuration.
+# Normative authority: .nimi/spec/runtime/security-core.authority.yaml
+version: 1
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/BeginLogin
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/CompleteLogin
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/Logout
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding
+    posture: blocked_pending_authority
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding
+    posture: blocked_pending_authority
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppStorage
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
+    posture: binding_only_bootstrap
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenSession
+    posture: binding_only_bootstrap
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RefreshSession
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RevokeSession
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession
+    posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens
+    posture: anonymous_read

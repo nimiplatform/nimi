@@ -96,7 +96,7 @@ func (r *knowledgeScopeRegistry) CreateKnowledgeScope(_ context.Context, desc Kn
 		return KnowledgeScope{}, err
 	}
 	if desc.Owner.Kind == storage.KnowledgeScopeOwnerKindAppPrivate {
-		return KnowledgeScope{}, fmt.Errorf("cognition knowledge scope: app_private create requires AppMemoryAccessService with admitted C-APMEM policy")
+		return KnowledgeScope{}, fmt.Errorf("cognition knowledge scope: app_private create requires RuntimeBridge")
 	}
 	return r.createKnowledgeScopeInternal(context.Background(), desc)
 }
@@ -151,7 +151,7 @@ func (r *knowledgeScopeRegistry) GetKnowledgeScope(_ context.Context, scopeID st
 // ListKnowledgeScopes filters and paginates registry rows.
 func (r *knowledgeScopeRegistry) ListKnowledgeScopes(_ context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, string, error) {
 	if filterIncludesAppPrivate(filter) {
-		return nil, "", fmt.Errorf("cognition knowledge scope: app_private list requires AppMemoryAccessService with admitted C-APMEM policy")
+		return nil, "", fmt.Errorf("cognition knowledge scope: app_private list requires RuntimeBridge")
 	}
 	return r.listKnowledgeScopesInternal(context.Background(), filter)
 }
@@ -192,7 +192,7 @@ func (r *knowledgeScopeRegistry) listKnowledgeScopesInternal(_ context.Context, 
 // DeleteKnowledgeScope removes a scope and all scope-anchored rows in
 // the cognition store via SQLiteBackend.DeleteScope.
 func (r *knowledgeScopeRegistry) DeleteKnowledgeScope(_ context.Context, scopeID string) error {
-	if err := rejectDirectAppPrivateScope(r.store, scopeID, "knowledge scope delete"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(r.store, scopeID, "knowledge scope delete"); err != nil {
 		return err
 	}
 	return r.deleteKnowledgeScopeInternal(context.Background(), scopeID)

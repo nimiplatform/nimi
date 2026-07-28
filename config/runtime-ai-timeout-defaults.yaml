@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/runtime/service-operations.authority.yaml
-# Rationale: docs/authority/runtime-service-operations-rationale.md
+# Authority: .nimi/spec/runtime/service-operations.authority.yaml
 version: 1
 table_family: product_catalog
 owner: runtime

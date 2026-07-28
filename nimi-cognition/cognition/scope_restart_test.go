@@ -37,7 +37,7 @@ func TestKnowledgeScopeRegistry_DurableAcrossRestart(t *testing.T) {
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	}
-	if err := c1.AppMemoryAccessService().SaveKnowledge(context.Background(), validAppKnowledgeWriteAccess(), page); err != nil {
+	if err := c1.RuntimeBridge().SaveKnowledge(context.Background(), runtimeKnowledgeAuthorization(RuntimeAccessWrite, scope.Owner, scopeID), page); err != nil {
 		t.Fatalf("save page: %v", err)
 	}
 
@@ -74,7 +74,7 @@ func TestKnowledgeScopeRegistry_DurableAcrossRestart(t *testing.T) {
 		t.Fatalf("expected owner preserved across restart, got %+v", got.Owner)
 	}
 
-	loaded, err := c2.AppMemoryAccessService().LoadKnowledge(context.Background(), validAppKnowledgeReadAccess(), scopeID, "page-restart-1")
+	loaded, err := c2.RuntimeBridge().LoadKnowledge(context.Background(), runtimeKnowledgeAuthorization(RuntimeAccessRead, got.Owner, scopeID), scopeID, "page-restart-1")
 	if err != nil {
 		t.Fatalf("load page after reopen: %v", err)
 	}

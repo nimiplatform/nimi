@@ -651,7 +651,7 @@ describe('avatar runtime carrier', () => {
   // mouth movement now flows through BackendAudioConsumer.snapshot() in the
   // surface useFrame loop, written by the wLipSync driver. Regression coverage
   // lives in voice-lipsync/lipsync-e2e.test.ts; normative authority remains in
-  // docs/authority/avatar-embodiment-rationale.md.
+  // .nimi/spec/avatar/embodiment-surface.authority.yaml.
 
   it('fails closed and records model error when backend branch creation fails', async () => {
     createLive2DBackendSessionMock.mockRejectedValue(new Error('Live2D backend load failed'));

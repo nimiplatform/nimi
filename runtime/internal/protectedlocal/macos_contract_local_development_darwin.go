@@ -1,6 +1,6 @@
 //go:build darwin && nimi_macos_local_development
 
-// Code generated from .nimi/spec fresh-carrier-4 authority; DO NOT EDIT.
+// Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT.
 package protectedlocal
 const (
  MacOSReleaseRecordSchemaVersion=3

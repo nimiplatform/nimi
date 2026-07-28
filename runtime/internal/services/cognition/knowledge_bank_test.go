@@ -166,7 +166,7 @@ func TestGetKnowledgeBankIgnoresForgedRequestContextAppID(t *testing.T) {
 		t.Fatalf("expected PermissionDenied, got %v", err)
 	}
 	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_KNOWLEDGE_BANK_ACCESS_DENIED {
-		t.Fatalf("expected KNOWLEDGE_BANK_ACCESS_DENIED, got reason=%v ok=%v", reason, ok)
+	if !ok || reason != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
+		t.Fatalf("expected PRINCIPAL_UNAUTHORIZED, got reason=%v ok=%v", reason, ok)
 	}
 }

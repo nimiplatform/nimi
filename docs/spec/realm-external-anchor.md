@@ -37,6 +37,5 @@ the Realm Packet and atomically materialized an opaque LocalAgent.
 ## Canonical Nimi Reading Path
 
 1. `.nimi/spec/sdks/realm-consumer.authority.yaml`
-2. `docs/authority/sdks-realm-consumer-rationale.md` (retired contract prose archive)
-4. `.nimi/spec/runtime/**` and `.nimi/spec/desktop/**` consumer contracts
+2. `.nimi/spec/runtime/**` and `.nimi/spec/desktop/**` consumer contracts
    that use Realm projections

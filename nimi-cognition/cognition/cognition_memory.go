@@ -15,7 +15,7 @@ import (
 
 // Save persists a memory record.
 func (s *MemoryService) Save(rec memory.Record) error {
-	if err := rejectDirectAppPrivateScope(s.store, rec.ScopeID, "memory save"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, rec.ScopeID, "memory save"); err != nil {
 		return err
 	}
 	return s.saveInternal(rec)
@@ -64,7 +64,7 @@ func (s *MemoryService) normalizeMemoryRecordForSave(rec memory.Record) (memory.
 
 // Load loads a memory record.
 func (s *MemoryService) Load(scopeID string, recordID memory.RecordID) (*memory.Record, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "memory load"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "memory load"); err != nil {
 		return nil, err
 	}
 	return s.loadInternal(scopeID, recordID)
@@ -96,7 +96,7 @@ func (s *MemoryService) LoadView(scopeID string, recordID memory.RecordID) (*mem
 
 // List returns all memory records for a scope.
 func (s *MemoryService) List(scopeID string) ([]memory.Record, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "memory list"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "memory list"); err != nil {
 		return nil, err
 	}
 	return s.listInternal(scopeID)
@@ -115,7 +115,7 @@ func (s *MemoryService) listInternal(scopeID string) ([]memory.Record, error) {
 
 // ListViews returns all memory views for a scope.
 func (s *MemoryService) ListViews(scopeID string) ([]memory.View, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "memory list views"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "memory list views"); err != nil {
 		return nil, err
 	}
 	return s.listViewsInternal(scopeID)
@@ -131,7 +131,7 @@ func (s *MemoryService) listViewsInternal(scopeID string) ([]memory.View, error)
 
 // SearchLexical performs lexical retrieval over raw memory records.
 func (s *MemoryService) SearchLexical(scopeID string, query string, limit int) ([]memory.Record, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "memory search"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "memory search"); err != nil {
 		return nil, err
 	}
 	return s.searchLexicalInternal(scopeID, query, limit)
@@ -153,7 +153,7 @@ func (s *MemoryService) searchLexicalInternal(scopeID string, query string, limi
 
 // SearchViews performs lexical retrieval and decorates results with live support-derived serving metadata.
 func (s *MemoryService) SearchViews(scopeID string, query string, limit int) ([]memory.View, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "memory search views"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "memory search views"); err != nil {
 		return nil, err
 	}
 	return s.searchViewsInternal(scopeID, query, limit)
@@ -174,7 +174,7 @@ func (s *MemoryService) searchViewsInternal(scopeID string, query string, limit 
 
 // Delete removes a memory record and preserves explicit local lifecycle history.
 func (s *MemoryService) Delete(scopeID string, recordID memory.RecordID) error {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "memory delete"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "memory delete"); err != nil {
 		return err
 	}
 	return s.deleteInternal(scopeID, recordID)
@@ -214,7 +214,7 @@ func (s *MemoryService) deleteInternal(scopeID string, recordID memory.RecordID)
 
 // History returns explicit local lifecycle history for one record.
 func (s *MemoryService) History(scopeID string, recordID memory.RecordID) ([]memory.HistoryEntry, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "memory history"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "memory history"); err != nil {
 		return nil, err
 	}
 	if err := validateScopeID(scopeID); err != nil {
@@ -241,7 +241,7 @@ func (s *MemoryService) History(scopeID string, recordID memory.RecordID) ([]mem
 
 // ListIDs lists memory record IDs.
 func (s *MemoryService) ListIDs(scopeID string) ([]string, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "memory list ids"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "memory list ids"); err != nil {
 		return nil, err
 	}
 	if err := validateScopeID(scopeID); err != nil {

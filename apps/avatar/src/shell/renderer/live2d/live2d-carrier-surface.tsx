@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Live2D BackendSurface adapter — wraps `Live2DCarrierVisualSurface` so
 // the embodiment-stage can mount `backend.surface.Component` directly

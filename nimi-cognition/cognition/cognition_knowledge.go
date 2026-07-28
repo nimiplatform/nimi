@@ -644,7 +644,6 @@ func (s *KnowledgeService) runIngestTask(task knowledge.IngestTask, env knowledg
 		Version:   1,
 		Title:     env.Title,
 		Body:      env.Body,
-		AppWrite:  env.AppWrite,
 		Lifecycle: knowledge.ProjectionLifecycleActive,
 		CreatedAt: now,
 		UpdatedAt: now,

@@ -43,11 +43,10 @@ const (
 type Service struct {
 	runtimev1.UnimplementedRuntimeCognitionServiceServer
 
-	logger          *slog.Logger
-	memorySvc       *memoryservice.Service
-	authorizer      KnowledgeAuthorizer
-	apmemAuthorizer *AppMemoryAuthorizer
-	cognitionCore   *nimicognition.Cognition
+	logger        *slog.Logger
+	memorySvc     *memoryservice.Service
+	authorizer    KnowledgeAuthorizer
+	cognitionCore *nimicognition.Cognition
 
 	mu               sync.RWMutex
 	sequence         uint64
@@ -99,13 +98,9 @@ type storedKnowledgeBody struct {
 	Runtime json.RawMessage `json:"_runtime_page,omitempty"`
 }
 
-// New constructs the cognition service. grantChecker is the realm
-// grant projection seam for the C-APMEM app-memory-access gate; nil is
-// admitted and means the seam is UNBOUND, in which case every
-// grant-requiring app memory decision denies with reason
-// apmem_grant_checker_unbound (C-APMEM-001 / C-APMEM-004 fail-closed,
-// never fake-allow).
-func New(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Service, authorizer KnowledgeAuthorizer, grantChecker AppMemoryGrantChecker) (*Service, error) {
+// New constructs the Runtime-owned cognition service around the internal
+// cognition adapter.
+func New(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Service, authorizer KnowledgeAuthorizer) (*Service, error) {
 	if memorySvc == nil {
 		return nil, errors.New("cognition service: memory service is required")
 	}
@@ -121,13 +116,12 @@ func New(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Servic
 		return nil, fmt.Errorf("cognition service: init cognition core: %w", err)
 	}
 	return &Service{
-		logger:          logger,
-		memorySvc:       memorySvc,
-		authorizer:      authorizer,
-		apmemAuthorizer: NewAppMemoryAuthorizer(grantChecker),
-		cognitionCore:   core,
-		subscribers:     make(map[uint64]*subscriber),
-		ingestTasks:     make(map[string]ingestTaskProjection),
+		logger:        logger,
+		memorySvc:     memorySvc,
+		authorizer:    authorizer,
+		cognitionCore: core,
+		subscribers:   make(map[uint64]*subscriber),
+		ingestTasks:   make(map[string]ingestTaskProjection),
 	}, nil
 }
 
@@ -139,6 +133,9 @@ func (s *Service) Close() error {
 }
 
 func (s *Service) CreateBank(ctx context.Context, req *runtimev1.CreateBankRequest) (*runtimev1.CreateBankResponse, error) {
+	if _, _, err := authorizePublicMemoryLocator(ctx, req.GetContext(), req.GetLocator(), "runtime.memory.admin"); err != nil {
+		return nil, err
+	}
 	resp, err := s.memorySvc.CreateBank(ctx, req)
 	if err != nil {
 		return nil, err
@@ -160,11 +157,18 @@ func (s *Service) GetBank(ctx context.Context, req *runtimev1.GetBankRequest) (*
 	if err := validatePublicRuntimeMemoryLocator(req.GetLocator()); err != nil {
 		return nil, err
 	}
+	if _, err := authorizeMemoryLocator(ctx, req.GetContext(), req.GetLocator(), "runtime.memory.read"); err != nil {
+		return nil, err
+	}
 	return s.memorySvc.GetBank(ctx, req)
 }
 
 func (s *Service) ListBanks(ctx context.Context, req *runtimev1.ListBanksRequest) (*runtimev1.ListBanksResponse, error) {
-	resp, err := s.memorySvc.ListBanks(ctx, req)
+	authorized, err := authorizedMemoryListRequest(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := s.memorySvc.ListBanks(ctx, authorized)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +186,7 @@ func (s *Service) ListBanks(ctx context.Context, req *runtimev1.ListBanksRequest
 }
 
 func (s *Service) DeleteBank(ctx context.Context, req *runtimev1.DeleteBankRequest) (*runtimev1.DeleteBankResponse, error) {
-	locator, err := publicMemoryLocatorToFull(req.GetLocator())
+	locator, _, err := authorizePublicMemoryLocator(ctx, req.GetContext(), req.GetLocator(), "runtime.memory.admin")
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +216,11 @@ func (s *Service) DeleteBank(ctx context.Context, req *runtimev1.DeleteBankReque
 }
 
 func (s *Service) SubscribeMemoryEvents(req *runtimev1.SubscribeMemoryEventsRequest, stream runtimev1.RuntimeCognitionService_SubscribeMemoryEventsServer) error {
-	sub := s.addSubscriber(req)
+	authorized, err := authorizedMemorySubscription(stream.Context(), req)
+	if err != nil {
+		return err
+	}
+	sub := s.addSubscriber(authorized)
 	defer s.removeSubscriber(sub.id)
 	for {
 		select {

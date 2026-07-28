@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // VRM lipsync driver — translates per-frame `WLipSyncSnapshot` (6-dim
 // AEIOUS weights + volume from the wLipSync worklet) into VRM viseme

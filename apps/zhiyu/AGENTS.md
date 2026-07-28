@@ -2,7 +2,7 @@
 
 ## Scope
 - `apps/zhiyu/**` is implementation, not product authority.
-- Current Zhiyu formal product authority lives in `.nimi/spec/zhiyu/local-partner-surface.authority.yaml`; current explanatory prose lives in `docs/authority/zhiyu-local-partner-surface-rationale.md`.
+- Current Zhiyu product authority lives only in `.nimi/spec/zhiyu/local-partner-surface.authority.yaml`.
 
 ## Hard Boundaries
 - Product-shape work derives from the Zhiyu authority, admitted config, and referenced upstream owners; local plans, code, tests, screenshots, closeouts, and evidence are not product authority.

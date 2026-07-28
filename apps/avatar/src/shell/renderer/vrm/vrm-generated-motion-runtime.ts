@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Avatar-owned VRM generated motion runtime. This is downstream of typed
 // runtime.agent.* projection and does not load .vrma files; .vrma remains

@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Verifies the diagnostics module: window global wiring, snapshot shape,
 // SSR-safe attach, and the frameStats boundary (visibleDrawableCount

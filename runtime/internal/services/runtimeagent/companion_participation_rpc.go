@@ -17,9 +17,8 @@ const (
 	runtimeAgentCompanionParticipationReadScope  = "runtime.agent.companion_participation.read"
 	runtimeAgentCompanionParticipationWriteScope = "runtime.agent.companion_participation.write"
 
-	companionParticipationDefaultRoomOrchestrationRef = "runtime.room_orchestration/avatar_companion_presentation_room"
-	companionParticipationDefaultPresentationRef      = "runtime.presentation/avatar_companion"
-	companionParticipationMaxTextBytes                = 32 * 1024
+	companionParticipationDefaultPresentationRef = "runtime.presentation/avatar_companion"
+	companionParticipationMaxTextBytes           = 32 * 1024
 )
 
 func (s *Service) GetCompanionParticipationProjection(ctx context.Context, req *runtimev1.GetCompanionParticipationProjectionRequest) (*runtimev1.GetCompanionParticipationProjectionResponse, error) {
@@ -27,7 +26,7 @@ func (s *Service) GetCompanionParticipationProjection(ctx context.Context, req *
 	if err != nil {
 		return nil, err
 	}
-	params, err := companionParticipationProjectionParamsFromRead(req.GetSurfaceKind(), req.GetTriggerSource(), req.GetProfileRef(), req.GetRoomOrchestrationRef())
+	params, err := companionParticipationProjectionParamsFromRead(req.GetSurfaceKind(), req.GetTriggerSource(), req.GetProfileRef())
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +40,7 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 	if err != nil {
 		return nil, err
 	}
-	params, err := companionParticipationProjectionParamsFromRead(req.GetSurfaceKind(), req.GetTriggerSource(), req.GetProfileRef(), req.GetRoomOrchestrationRef())
+	params, err := companionParticipationProjectionParamsFromRead(req.GetSurfaceKind(), req.GetTriggerSource(), req.GetProfileRef())
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +130,7 @@ func (s *Service) CancelCompanionParticipation(ctx context.Context, req *runtime
 	if err != nil {
 		return nil, err
 	}
-	params, err := companionParticipationProjectionParamsFromRead(req.GetSurfaceKind(), req.GetTriggerSource(), req.GetProfileRef(), req.GetRoomOrchestrationRef())
+	params, err := companionParticipationProjectionParamsFromRead(req.GetSurfaceKind(), req.GetTriggerSource(), req.GetProfileRef())
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +180,7 @@ func (s *Service) OpenCompanionParticipationReplay(ctx context.Context, req *run
 	if err != nil {
 		return nil, err
 	}
-	params, err := companionParticipationProjectionParamsFromRead(req.GetSurfaceKind(), req.GetTriggerSource(), req.GetProfileRef(), req.GetRoomOrchestrationRef())
+	params, err := companionParticipationProjectionParamsFromRead(req.GetSurfaceKind(), req.GetTriggerSource(), req.GetProfileRef())
 	if err != nil {
 		return nil, err
 	}
@@ -205,10 +204,9 @@ func (s *Service) OpenCompanionParticipationReplay(ctx context.Context, req *run
 }
 
 type companionParticipationProjectionParams struct {
-	surfaceKind          runtimev1.CompanionParticipationSurfaceKind
-	triggerSource        runtimev1.CompanionParticipationTriggerSource
-	profileRef           string
-	roomOrchestrationRef string
+	surfaceKind   runtimev1.CompanionParticipationSurfaceKind
+	triggerSource runtimev1.CompanionParticipationTriggerSource
+	profileRef    string
 }
 
 func (s *Service) validateCompanionParticipationProjectionRequest(
@@ -270,7 +268,6 @@ func companionParticipationProjectionParamsFromRead(
 	surfaceKind runtimev1.CompanionParticipationSurfaceKind,
 	triggerSource runtimev1.CompanionParticipationTriggerSource,
 	profileRef string,
-	roomOrchestrationRef string,
 ) (companionParticipationProjectionParams, error) {
 	if surfaceKind != runtimev1.CompanionParticipationSurfaceKind_COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION &&
 		surfaceKind != runtimev1.CompanionParticipationSurfaceKind_COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL &&
@@ -283,10 +280,9 @@ func companionParticipationProjectionParamsFromRead(
 		return companionParticipationProjectionParams{}, status.Error(codes.InvalidArgument, "companion participation trigger_source is required")
 	}
 	return companionParticipationProjectionParams{
-		surfaceKind:          surfaceKind,
-		triggerSource:        triggerSource,
-		profileRef:           strings.TrimSpace(profileRef),
-		roomOrchestrationRef: firstNonEmpty(strings.TrimSpace(roomOrchestrationRef), companionParticipationDefaultRoomOrchestrationRef),
+		surfaceKind:   surfaceKind,
+		triggerSource: triggerSource,
+		profileRef:    strings.TrimSpace(profileRef),
 	}, nil
 }
 
@@ -367,7 +363,6 @@ func buildCompanionParticipationProjectionWithStatus(
 		AgentId:              session.AgentID,
 		SurfaceKind:          params.surfaceKind,
 		ProfileRef:           profileRef,
-		RoomOrchestrationRef: params.roomOrchestrationRef,
 		TriggerSource:        params.triggerSource,
 		Status:               statusValue,
 		RefusalReason:        strings.TrimSpace(refusalReason),

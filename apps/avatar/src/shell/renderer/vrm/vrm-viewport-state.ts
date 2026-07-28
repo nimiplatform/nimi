@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Pure types + immutable state-mapping helpers for the VRM viewport. The
 // surface layer reads from this state to drive camera framing

@@ -6,8 +6,6 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 import "runtime/v1/agent_companion.proto";
-import "runtime/v1/agent_group_message_candidate.proto";
-import "runtime/v1/agent_participation.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/agent_source_materialization.proto";
 import "runtime/v1/ai.proto";
@@ -766,8 +764,6 @@ service RuntimeAgentService {
   rpc RequestCompanionParticipation(RequestCompanionParticipationRequest) returns (RequestCompanionParticipationResponse);
   rpc CancelCompanionParticipation(CancelCompanionParticipationRequest) returns (CancelCompanionParticipationResponse);
   rpc OpenCompanionParticipationReplay(OpenCompanionParticipationReplayRequest) returns (OpenCompanionParticipationReplayResponse);
-  rpc CreateRealmGroupMessageCandidate(CreateRealmGroupMessageCandidateRequest) returns (CreateRealmGroupMessageCandidateResponse);
-  rpc GetRealmGroupMessageCandidateEvidence(GetRealmGroupMessageCandidateEvidenceRequest) returns (GetRealmGroupMessageCandidateEvidenceResponse);
   rpc GetAvatarDebugSnapshot(GetAvatarDebugSnapshotRequest) returns (GetAvatarDebugSnapshotResponse);
   rpc RequestAvatarDebugProbe(RequestAvatarDebugProbeRequest) returns (RequestAvatarDebugProbeResponse);
   rpc SubmitAvatarDebugProbeResult(SubmitAvatarDebugProbeResultRequest) returns (SubmitAvatarDebugProbeResultResponse);
@@ -792,15 +788,6 @@ service RuntimeAgentService {
   rpc GetAgentCanonicalMemoryBankStatus(GetAgentCanonicalMemoryBankStatusRequest) returns (GetAgentCanonicalMemoryBankStatusResponse);
   rpc RequestAgentCanonicalMemoryBankBind(RequestAgentCanonicalMemoryBankBindRequest) returns (RequestAgentCanonicalMemoryBankBindResponse);
   rpc GetAgentCanonicalMemoryReviewStatus(GetAgentCanonicalMemoryReviewStatusRequest) returns (GetAgentCanonicalMemoryReviewStatusResponse);
-  // Runtime Agent Participation surface (K-AGCORE-061..088, K-PROTO-012).
-  rpc DescribeParticipationProfiles(DescribeParticipationProfilesRequest) returns (DescribeParticipationProfilesResponse);
-  rpc DescribeParticipationContextBlocks(DescribeParticipationContextBlocksRequest) returns (DescribeParticipationContextBlocksResponse);
-  rpc ValidateParticipation(ValidateParticipationRequest) returns (ValidateParticipationResponse);
-  rpc ExecuteParticipation(ExecuteParticipationRequest) returns (ExecuteParticipationResponse);
-  rpc GetParticipationCandidate(GetParticipationCandidateRequest) returns (GetParticipationCandidateResponse);
-  rpc GetParticipationVerdicts(GetParticipationVerdictsRequest) returns (GetParticipationVerdictsResponse);
-  rpc ListParticipationAuditEvents(ListParticipationAuditEventsRequest) returns (ListParticipationAuditEventsResponse);
-  rpc GetParticipationReplay(GetParticipationReplayRequest) returns (GetParticipationReplayResponse);
   rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
   rpc SubscribeAgentVoiceStream(SubscribeAgentVoiceStreamRequest) returns (stream AgentVoiceStreamEvent);
   rpc InterruptAgentVoicePlayback(InterruptAgentVoicePlaybackRequest) returns (InterruptAgentVoicePlaybackResponse);

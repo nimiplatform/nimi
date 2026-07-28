@@ -18,10 +18,8 @@ without prior conversation context.
 4. `.nimi/spec/sdks/realm-consumer.authority.yaml`.
 5. `config/sdks-runtime-method-groups.yaml`.
 
-The three containers above carry the whole SDK authority surface; earlier
-revisions of this list repeated them because it was written against the
-per-file kernel layout. `docs/authority/sdks-testing-gates-rationale.md` is
-retired prose kept for history and is not part of the reading order.
+The three containers above carry the whole SDK authority surface. Historical
+per-file kernel prose remains available only through Git history.
 
 ## Final Architecture
 

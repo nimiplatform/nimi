@@ -17,16 +17,12 @@ const providerExtensionRegistryTablePath = path.join(repoRoot, 'config', 'runtim
 const providerProbeTargetsTablePath = path.join(
   repoRoot,
   'config',
-  'spec-frozen',
-  'runtime',
-  'tables',
-  'provider-probe-targets.yaml',
+  'runtime-provider-probe-targets.yaml',
 );
 
 const configTableHeader = [
   '# Non-authoritative machine configuration.',
   '# Normative authority: .nimi/spec/runtime/model-catalog.authority.yaml',
-  '# Rationale: docs/authority/runtime-model-catalog-rationale.md',
   '',
 ].join('\n');
 
@@ -288,32 +284,28 @@ async function loadProviderExtensionCapabilities() {
 async function loadTokenProbeProviders(recordsByID) {
   const raw = await fs.readFile(providerProbeTargetsTablePath, 'utf8');
   const doc = YAML.parse(raw) || {};
-  const targets = Array.isArray(doc?.targets) ? doc.targets : [];
+  const providerIDs = Array.isArray(doc?.token_probe_provider_ids)
+    ? doc.token_probe_provider_ids
+    : [];
   const seen = new Set();
-  const out = [];
-  for (const target of targets) {
-    if (String(target?.category || '').trim() !== 'cloud') {
-      continue;
+  for (const rawProviderID of providerIDs) {
+    const providerID = normalizeProvider(rawProviderID);
+    if (!providerID) {
+      throw new Error('token probe provider id must be non-empty');
     }
-    const name = String(target?.name || '').trim();
-    if (!name.startsWith('cloud-')) {
-      throw new Error(`provider-probe-targets cloud entry must use cloud- prefix: ${name || '<missing>'}`);
-    }
-    const providerID = normalizeProvider(name.slice('cloud-'.length)).replaceAll('-', '_');
     const provider = recordsByID.get(providerID);
     if (!provider || provider.runtimePlane !== 'remote') {
-      throw new Error(`provider-probe-targets references unknown remote provider: ${providerID}`);
+      throw new Error(`token probe references unknown remote provider: ${providerID}`);
     }
     if (seen.has(providerID)) {
-      throw new Error(`provider-probe-targets duplicates provider: ${providerID}`);
+      throw new Error(`token probe provider duplicated: ${providerID}`);
     }
     seen.add(providerID);
-    out.push(providerID);
   }
-  if (!seen.has('nimillm') || out.length === 0) {
-    throw new Error('provider-probe-targets must admit the nimillm cloud provider');
+  if (!seen.has('nimillm') || seen.size === 0) {
+    throw new Error('token probes must admit the nimillm provider');
   }
-  return out.sort(compareProviderID);
+  return [...seen].sort(compareProviderID);
 }
 
 function applyProviderExtensionCapabilities(record, extensionCapabilities) {

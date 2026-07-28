@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc"
@@ -62,68 +61,6 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 			}
 			if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != test.reason.String() {
 				t.Fatalf("unexpected denial: code=%v reason=%q err=%v", status.Code(err), status.Convert(err).Message(), err)
-			}
-		})
-	}
-}
-
-func TestParticipationRPCsAreDeniedOnOrdinaryGRPCBeforeHandler(t *testing.T) {
-	interceptor := newUnaryPublicTransportInterceptor()
-	methods := []string{
-		"/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
-		"/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
-		"/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
-		"/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
-		"/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
-		"/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
-		"/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
-		"/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
-	}
-
-	for _, method := range methods {
-		t.Run(method, func(t *testing.T) {
-			handlerCalled := false
-			response, err := interceptor(
-				context.Background(),
-				struct{}{},
-				&grpc.UnaryServerInfo{FullMethod: method},
-				func(context.Context, any) (any, error) {
-					handlerCalled = true
-					return struct{}{}, nil
-				},
-			)
-			if response != nil || handlerCalled {
-				t.Fatalf("deferred participation method reached handler: response=%+v called=%v", response, handlerCalled)
-			}
-			if status.Code(err) != codes.PermissionDenied {
-				t.Fatalf("deferred participation method code=%v, want PermissionDenied: %v", status.Code(err), err)
-			}
-			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
-				t.Fatalf("deferred participation method reason=%v present=%v, want PROTECTED_ORIGIN_ROLE_MISMATCH: %v", reason, ok, err)
-			}
-		})
-	}
-}
-
-func TestParticipationDenyLeavesRealmGroupCandidateRPCsReachable(t *testing.T) {
-	interceptor := newUnaryPublicTransportInterceptor()
-	for _, method := range []string{
-		"/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
-		"/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
-	} {
-		t.Run(method, func(t *testing.T) {
-			handlerCalled := false
-			response, err := interceptor(
-				context.Background(),
-				struct{}{},
-				&grpc.UnaryServerInfo{FullMethod: method},
-				func(context.Context, any) (any, error) {
-					handlerCalled = true
-					return "realm-group-candidate", nil
-				},
-			)
-			if err != nil || !handlerCalled || response != "realm-group-candidate" {
-				t.Fatalf("Realm GROUP candidate method was caught by participation deny: response=%+v called=%v err=%v", response, handlerCalled, err)
 			}
 		})
 	}

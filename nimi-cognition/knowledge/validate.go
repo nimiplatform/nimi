@@ -49,11 +49,6 @@ func ValidatePage(p Page) error {
 			return fmt.Errorf("validate page %s: source_refs[%d]: %w", p.PageID, i, err)
 		}
 	}
-	if p.AppWrite != nil {
-		if err := ValidateAppWriteProvenance(*p.AppWrite, p.ScopeID); err != nil {
-			return fmt.Errorf("validate page %s: %w", p.PageID, err)
-		}
-	}
 	for i, ref := range p.ArtifactRefs {
 		if err := artifactref.Validate(ref); err != nil {
 			return fmt.Errorf("validate page %s: artifact_refs[%d]: %w", p.PageID, i, err)
@@ -115,42 +110,6 @@ func ValidateIngestEnvelope(env IngestEnvelope) error {
 	}
 	if len(env.Body) == 0 {
 		return errors.New("body is required")
-	}
-	if env.AppWrite != nil {
-		if err := ValidateAppWriteProvenance(*env.AppWrite, ""); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// ValidateAppWriteProvenance validates durable C-APMEM proof for app-derived
-// knowledge writes. expectedScopeID is optional; when supplied it must match
-// the provenance target scope.
-func ValidateAppWriteProvenance(p AppWriteProvenance, expectedScopeID string) error {
-	if strings.TrimSpace(p.PolicyClass) == "" {
-		return errors.New("app write policy_class is required")
-	}
-	if strings.TrimSpace(p.GrantRef) == "" {
-		return errors.New("app write grant_ref is required")
-	}
-	if strings.TrimSpace(p.RealmAuditEventID) == "" {
-		return errors.New("app write realm_audit_event_id is required")
-	}
-	if strings.TrimSpace(p.KnowledgeBaseID) == "" {
-		return errors.New("app write knowledge_base_id is required")
-	}
-	if strings.TrimSpace(p.TargetScopeID) == "" {
-		return errors.New("app write target_scope_id is required")
-	}
-	if expectedScopeID != "" && strings.TrimSpace(p.TargetScopeID) != strings.TrimSpace(expectedScopeID) {
-		return fmt.Errorf("app write target_scope_id %s does not match scope %s", p.TargetScopeID, expectedScopeID)
-	}
-	if strings.TrimSpace(p.SourceAppID) == "" {
-		return errors.New("app write source_app_id is required")
-	}
-	if strings.TrimSpace(p.AuditReason) == "" {
-		return errors.New("app write audit_reason is required")
 	}
 	return nil
 }

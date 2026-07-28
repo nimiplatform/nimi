@@ -1,4 +1,4 @@
-// Lifecycle tests for docs/authority/avatar-embodiment-rationale.md.
+// Lifecycle tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // End-to-end VRM lifecycle test that drives the full chain:
 //

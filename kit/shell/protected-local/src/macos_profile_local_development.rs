@@ -1,4 +1,4 @@
-// Code generated from .nimi/spec fresh-carrier-4 authority; DO NOT EDIT.
+// Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT.
 pub(crate) const RECORD_ROOT:&str="/Library/Application Support/Nimi/RuntimeDev/active/trust/protected-local/v1";
 pub(crate) const RECORD_SCHEMA_VERSION:u64=3;
 pub(crate) const REQUIRED_ARCHITECTURE:&str="arm64";

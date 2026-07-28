@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Apply a neutral standing idle pose to a freshly-loaded VRM. The default
 // VRM rig comes up in T-pose with arms extended horizontally; without an

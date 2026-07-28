@@ -3,11 +3,11 @@ package cognition
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
@@ -18,6 +18,9 @@ import (
 // authorize is the single seam every knowledge RPC uses to invoke the
 // KnowledgeAuthorizer. It maps the typed result into a gRPC error.
 func (s *Service) authorize(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, owner cognitionpkg.KnowledgeScopeOwner) error {
+	if err := authorizeKnowledgeSession(ctx, action, requestCtx); err != nil {
+		return err
+	}
 	res, err := s.authorizer.Authorize(ctx, KnowledgeAuthRequest{
 		Action:         action,
 		Context:        requestCtx,
@@ -39,6 +42,27 @@ func (s *Service) authorize(ctx context.Context, action KnowledgeAction, request
 		ActionHint: res.ActionHint,
 		Message:    res.Message,
 	})
+}
+
+func authorizeKnowledgeSession(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext) error {
+	identity := authn.IdentityFromContext(ctx)
+	accountID := ""
+	if identity != nil {
+		accountID = strings.TrimSpace(identity.SubjectUserID)
+	}
+	appID := trimContextAppID(requestCtx)
+	callerAppID := callerAppIDFromEnvelope(ctx)
+	required := requiredScopesForKnowledgeAction(action)
+	if accountID == "" || appID == "" || callerAppID == "" || callerAppID != appID || len(required) != 1 {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	if requestedSubject := strings.TrimSpace(requestCtx.GetSubjectUserId()); requestedSubject != "" && requestedSubject != accountID {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	if !envelope.HasValidatedProtectedCapability(ctx, appID, required[0]) {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	return nil
 }
 
 func knowledgeCallerFromEnvelope(ctx context.Context) *runtimev1.AccountCaller {
@@ -78,15 +102,16 @@ func (s *Service) loadAuthorizedScope(ctx context.Context, requestCtx *runtimev1
 // by SearchKeyword (default empty bank list) and GetIngestTask.
 func (s *Service) listAuthorizedScopes(ctx context.Context, requestCtx *runtimev1.KnowledgeRequestContext) ([]cognitionpkg.KnowledgeScope, error) {
 	callerAppID := callerAppIDFromEnvelope(ctx)
+	owner := cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: callerAppID}
+	if err := s.authorize(ctx, KnowledgeActionReadBank, requestCtx, owner); err != nil {
+		return nil, err
+	}
 	filter := cognitionpkg.KnowledgeScopeFilter{
 		OwnerKinds: []string{cognitionpkg.KnowledgeScopeOwnerKindAppPrivate},
-		Owners: []cognitionpkg.KnowledgeScopeOwner{{
-			Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
-			AppID: callerAppID,
-		}},
+		Owners:     []cognitionpkg.KnowledgeScopeOwner{owner},
 	}
-	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadBank, requestCtx, cognitionpkg.KnowledgeScope{Owner: cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: callerAppID}}, "runtime list authorized knowledge scopes")
-	scopes, _, err := s.cognitionCore.AppMemoryAccessService().ListKnowledgeScopes(ctx, access, filter)
+	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, requestCtx, cognitionpkg.KnowledgeScope{Owner: owner})
+	scopes, _, err := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, access, filter)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
@@ -148,36 +173,27 @@ func callerAppIDFromEnvelope(ctx context.Context) string {
 	return strings.TrimSpace(meta.AppID)
 }
 
-func appAccessForAuthorizedKnowledge(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, scope cognitionpkg.KnowledgeScope, reason string) cognitionpkg.AppMemoryAccess {
+func runtimeAuthorizationForKnowledge(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, scope cognitionpkg.KnowledgeScope) cognitionpkg.RuntimeAuthorization {
 	appID := callerAppIDFromEnvelope(ctx)
 	if appID == "" {
 		appID = trimContextAppID(requestCtx)
 	}
-	policy := cognitionpkg.AppMemoryPolicyKnowledgeReadBounded
+	mode := cognitionpkg.RuntimeAccessRead
 	switch action {
 	case KnowledgeActionCreateBank, KnowledgeActionDeleteBank, KnowledgeActionWritePage, KnowledgeActionDeletePage, KnowledgeActionWriteLink, KnowledgeActionIngest:
-		policy = cognitionpkg.AppMemoryPolicyKnowledgeWriteAdmitted
+		mode = cognitionpkg.RuntimeAccessWrite
 	}
-	auditID := "runtime-knowledge:" + string(action) + ":" + strings.TrimSpace(scope.ScopeID)
-	if auditID == "runtime-knowledge:"+string(action)+":" {
-		auditID = "runtime-knowledge:" + string(action) + ":" + strings.TrimSpace(scope.Owner.AppID)
+	accountID := ""
+	if identity := authn.IdentityFromContext(ctx); identity != nil {
+		accountID = strings.TrimSpace(identity.SubjectUserID)
 	}
-	knowledgeBaseID := strings.TrimSpace(scope.ScopeID)
-	if knowledgeBaseID == "" {
-		knowledgeBaseID = strings.TrimSpace(scope.Owner.AppID)
-	}
-	if knowledgeBaseID == "" {
-		knowledgeBaseID = strings.TrimSpace(scope.Owner.WorkspaceID)
-	}
-	if knowledgeBaseID == "" {
-		knowledgeBaseID = string(action)
-	}
-	return cognitionpkg.AppMemoryAccess{
-		PolicyClass:     policy,
-		Grant:           cognitionpkg.AppMemoryGrantEvidence{GrantRef: fmt.Sprintf("runtime-knowledge-authorized:%s", action), RealmAuditEventID: auditID, Active: true},
-		SourceAppID:     appID,
-		KnowledgeBaseID: knowledgeBaseID,
-		AuditReason:     reason,
+	return cognitionpkg.RuntimeAuthorization{
+		Allowed:   true,
+		AccountID: accountID,
+		AppID:     appID,
+		Mode:      mode,
+		ScopeID:   strings.TrimSpace(scope.ScopeID),
+		Owner:     scope.Owner,
 	}
 }
 

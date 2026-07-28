@@ -27,7 +27,7 @@ func (s *Service) IngestDocument(ctx context.Context, req *runtimev1.IngestDocum
 	if err != nil {
 		return nil, err
 	}
-	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionIngest, req.GetContext(), scope, "runtime ingest knowledge document")
+	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionIngest, req.GetContext(), scope)
 	pageID := strings.TrimSpace(req.GetPageId())
 	if pageID == "" {
 		pageID = newULID()
@@ -48,7 +48,7 @@ func (s *Service) IngestDocument(ctx context.Context, req *runtimev1.IngestDocum
 		Title:  title,
 		Body:   mustMarshalJSON(storedKnowledgeBody{Content: content, Runtime: mustProtoJSON(runtimePage)}),
 	}
-	task, err := s.cognitionCore.AppMemoryAccessService().IngestKnowledge(ctx, access, scope.ScopeID, env)
+	task, err := s.cognitionCore.RuntimeBridge().IngestKnowledge(ctx, access, scope.ScopeID, env)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -92,8 +92,8 @@ func (s *Service) GetIngestTask(ctx context.Context, req *runtimev1.GetIngestTas
 		if err != nil {
 			return nil, err
 		}
-		access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope, "runtime get ingest task")
-		task, err := s.cognitionCore.AppMemoryAccessService().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
+		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope)
+		task, err := s.cognitionCore.RuntimeBridge().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND)
 		}
@@ -104,8 +104,8 @@ func (s *Service) GetIngestTask(ctx context.Context, req *runtimev1.GetIngestTas
 		return nil, err
 	}
 	for _, scope := range scopes {
-		access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope, "runtime scan ingest task")
-		task, err := s.cognitionCore.AppMemoryAccessService().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
+		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope)
+		task, err := s.cognitionCore.RuntimeBridge().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
 		if err != nil {
 			continue
 		}
@@ -146,7 +146,7 @@ func cognitionTaskToRuntime(bankID string, task *cognitionknowledge.IngestTask) 
 	}
 }
 
-func (s *Service) projectIngestTask(ctx context.Context, access cognitionpkg.AppMemoryAccess, bankID string, task *cognitionknowledge.IngestTask) *runtimev1.KnowledgeIngestTask {
+func (s *Service) projectIngestTask(ctx context.Context, access cognitionpkg.RuntimeAuthorization, bankID string, task *cognitionknowledge.IngestTask) *runtimev1.KnowledgeIngestTask {
 	runtimeTask := cognitionTaskToRuntime(bankID, task)
 	if runtimeTask == nil {
 		return nil

@@ -8,10 +8,10 @@ export const RUNTIME_FACADE_PATHS = Object.freeze({
   methodGroups: 'config/sdks-runtime-method-groups.yaml',
   exportMap: 'config/sdks-typescript-target-export-map.yaml',
   postureShards: Object.freeze([
-    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/identity-access.yaml',
-    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml',
-    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
-    'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture/audit-artifact.yaml',
+    'config/runtime-rpc-auth-posture/identity-access.yaml',
+    'config/runtime-rpc-auth-posture/agent-ai-cognition.yaml',
+    'config/runtime-rpc-auth-posture/local-connector-model.yaml',
+    'config/runtime-rpc-auth-posture/audit-artifact.yaml',
   ]),
 });
 
@@ -27,7 +27,6 @@ export const GROUP_TO_FACADE_ARRAYS = Object.freeze([
   { groups: ['health_monitoring_projection', 'audit_service_projection'], arrays: ['RUNTIME_AUDIT_METHODS'] },
   { groups: ['knowledge_service_projection'], arrays: ['RUNTIME_KNOWLEDGE_METHODS'] },
   { groups: ['app_service_projection'], arrays: ['RUNTIME_APP_MESSAGE_METHODS'] },
-  { groups: ['app_lifecycle_service_projection'], arrays: ['RUNTIME_APP_LIFECYCLE_METHODS'] },
   { groups: ['artifact_service_projection'], arrays: ['RUNTIME_ARTIFACT_METHODS'] },
   { groups: ['memory_service_projection'], arrays: ['RUNTIME_MEMORY_METHODS'] },
   {

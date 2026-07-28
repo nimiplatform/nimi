@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"testing"
 
 	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
@@ -20,7 +19,7 @@ func TestWorkspacePrivateRPCsAlwaysDenied(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-3")
 	scope, err := svc.cognitionCore.KnowledgeScopeRegistry().CreateKnowledgeScope(ctx, cognitionpkg.KnowledgeScopeDescriptor{
 		Owner:       cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws.s2-3"},
 		DisplayName: "WS Bank",

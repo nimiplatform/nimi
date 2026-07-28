@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/platform/product-lifecycle.authority.yaml
-# Rationale: docs/authority/platform-product-lifecycle-rationale.md
+# Authority: .nimi/spec/platform/product-lifecycle.authority.yaml
 version: 2
 table_family: product_record_schema
 owner: platform

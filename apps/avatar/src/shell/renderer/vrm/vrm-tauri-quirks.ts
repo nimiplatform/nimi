@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Tauri webview (macOS WKWebView) intermittently fails when GLTFLoader's
 // `ImageBitmapLoader` decodes blob-backed VRM textures via

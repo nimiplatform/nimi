@@ -932,14 +932,11 @@ export interface GetParticipationReplayResponse {
     replay?: ParticipationReplay;
 }
 // Runtime Agent Participation wire surface.
-// Semantic authority: K-AGCORE-061..K-AGCORE-088 plus the
-// agent-participation-* tables under config/spec-frozen/runtime/tables/.
-// K-PROTO-012: no raw prompt blobs, no protocol-native external-agent
-// protocol payloads, no raw provider payloads, no raw memory payloads
-// (the closed protocol families are enumerated by K-PROTO-012 itself).
-// Candidate content is
-// read through the owning destination surface via candidate_ref; this
-// surface carries refs and typed verdict/audit projections only.
+// Semantic authority: .nimi/spec/runtime/agent-participation.authority.yaml.
+// Advanced multi-participant and external-entry behavior remains deferred;
+// wire enums do not confer product admission. Candidate content is read
+// through the owning destination surface via candidate_ref; this surface
+// carries refs and typed verdict/audit projections only.
 
 /**
  * K-AGCORE-074 closed profile registry.

@@ -7,7 +7,7 @@ import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const tablePath = path.join(repoRoot, 'config', 'spec-frozen', 'runtime', 'tables', 'connector-auth-profiles.yaml');
+const tablePath = path.join(repoRoot, 'config', 'runtime-connector-auth-profiles.yaml');
 const runtimeOutPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'connector', 'auth_profiles.generated.go');
 const sdkVnextOutPath = path.join(repoRoot, 'sdks', 'typescript', 'runtime', 'connector-auth-profiles.generated.ts');
 
@@ -66,7 +66,6 @@ function parseProfiles(raw) {
       authKind,
       allowedProviders: normalizeStringArray(entry?.allowed_providers, 'allowed_providers', id),
       headerBehavior,
-      sourceRule: normalizeString(entry?.source_rule) || '—',
     };
   }).sort((a, b) => a.id.localeCompare(b.id));
 }
@@ -87,7 +86,6 @@ function renderGo(profiles) {
       `\t\tAuthKind: ${quoteGo(profile.authKind)},\n` +
       `\t\tAllowedProviders: []string{\n${providers}\n\t\t},\n` +
       `\t\tHeaderBehavior: ${quoteGo(profile.headerBehavior)},\n` +
-      `\t\tSourceRule: ${quoteGo(profile.sourceRule)},\n` +
       `\t},`;
   }).join('\n');
 
@@ -98,7 +96,6 @@ function renderGo(profiles) {
     `\tAuthKind string\n` +
     `\tAllowedProviders []string\n` +
     `\tHeaderBehavior string\n` +
-    `\tSourceRule string\n` +
     `}\n\n` +
     `var GeneratedProviderAuthProfiles = map[string]ProviderAuthProfileSpec{\n${records}\n}\n`;
 }
@@ -111,7 +108,6 @@ function renderTS(profiles) {
       `    authKind: ${quoteTS(profile.authKind)},\n` +
       `    allowedProviders: [${providers}],\n` +
       `    headerBehavior: ${quoteTS(profile.headerBehavior)},\n` +
-      `    sourceRule: ${quoteTS(profile.sourceRule)},\n` +
       `  },`;
   }).join('\n');
 
@@ -121,7 +117,6 @@ function renderTS(profiles) {
     `  authKind: 'oauth_managed';\n` +
     `  allowedProviders: readonly string[];\n` +
     `  headerBehavior: 'none' | 'codex_oauth' | 'anthropic';\n` +
-    `  sourceRule: string;\n` +
     `};\n\n` +
     `export const CONNECTOR_AUTH_PROFILES: Record<string, ConnectorAuthProfileSpec> = {\n${records}\n};\n`;
 }

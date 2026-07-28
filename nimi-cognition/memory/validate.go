@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
@@ -54,28 +53,6 @@ func ValidateRecord(r Record) error {
 		if ref.FromKind != artifactref.KindMemoryRecord || ref.FromID != string(r.RecordID) {
 			return fmt.Errorf("validate record %s: artifact_refs[%d]: ownership must stay on the record", r.RecordID, i)
 		}
-	}
-	return nil
-}
-
-// ValidateAppProjectionProvenance validates durable C-APMEM proof for an
-// app-derived memory record. Standalone-local records may omit provenance, but
-// app-facing write paths must call this and fail before persistence.
-func ValidateAppProjectionProvenance(p AppProjectionProvenance) error {
-	if strings.TrimSpace(p.PolicyClass) == "" {
-		return errors.New("app projection policy_class is required")
-	}
-	if strings.TrimSpace(p.GrantRef) == "" {
-		return errors.New("app projection grant_ref is required")
-	}
-	if strings.TrimSpace(p.RealmAuditEventID) == "" {
-		return errors.New("app projection realm_audit_event_id is required")
-	}
-	if strings.TrimSpace(p.SourceAppID) == "" {
-		return errors.New("app projection source_app_id is required")
-	}
-	if strings.TrimSpace(p.TargetPersonaID) == "" {
-		return errors.New("app projection target_persona_id is required")
 	}
 	return nil
 }

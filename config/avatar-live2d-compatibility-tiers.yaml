@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/avatar/embodiment-surface.authority.yaml
-# Rationale: docs/authority/avatar-embodiment-rationale.md
+# Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml
 version: 1
 table_family: closed_enum
 owner: avatar

@@ -1,0 +1,24 @@
+# Non-authoritative fail-closed method posture configuration.
+# Normative authority: .nimi/spec/runtime/security-core.authority.yaml
+version: 1
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
+    posture: authenticated_or_protected_local_app_operation
+  - method_id: /nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAuditEvents
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
+    posture: anonymous_read

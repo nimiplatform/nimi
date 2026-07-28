@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Thin `.vrma` loader + `clipFromVRMAnimation` wrapper. Houses the
 // `loadVrmAnimation` function that previously lived in vrm-loader.ts

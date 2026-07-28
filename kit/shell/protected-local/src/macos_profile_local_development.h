@@ -1,4 +1,4 @@
-/* Code generated from .nimi/spec fresh-carrier-4 authority; DO NOT EDIT. */
+/* Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT. */
 #define NIMI_MACOS_RUNTIME_ACCOUNT "_nimiruntimedev"
 #define NIMI_MACOS_RUNTIME_SOCKET_DIRECTORY "/private/var/run/nimi-dev"
 #define NIMI_MACOS_RUNTIME_SOCKET "/private/var/run/nimi-dev/runtime-desktop.sock"

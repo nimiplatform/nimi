@@ -151,7 +151,5 @@ App 看到的是强类型 `TIMEOUT`，不是模糊的"请求失败了"；`Scenar
 
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
-- [`config/spec-frozen/runtime/tables/multimodal-canonical-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/multimodal-canonical-fields.yaml)
-- [`config/spec-frozen/runtime/tables/multimodal-artifact-fields.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/multimodal-artifact-fields.yaml)
 - [`config/runtime-voice-enums.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-voice-enums.yaml)
 - [`config/runtime-tts-provider-capability-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-tts-provider-capability-matrix.yaml)

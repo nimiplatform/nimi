@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/desktop/bridge-ipc.authority.yaml
-# Rationale: docs/authority/desktop-bridge-ipc-rationale.md
+# Authority: .nimi/spec/desktop/bridge-ipc.authority.yaml
 table_family: protocol_surface
 owner: desktop
 protocol_id: desktop_ipc_commands

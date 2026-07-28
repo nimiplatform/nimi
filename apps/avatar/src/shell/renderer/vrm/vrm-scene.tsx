@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Pure presentational R3F scene for the VRM backend. No state, no effects;
 // trusts that the loader has already applied frustumCulled=false on the

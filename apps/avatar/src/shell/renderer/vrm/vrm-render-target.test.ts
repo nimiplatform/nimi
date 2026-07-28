@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Tests for vrm-render-target. Most cases use stubMode because jsdom
 // does not provide WebGL. The real-WebGL path is exercised via a

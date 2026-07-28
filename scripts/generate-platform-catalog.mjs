@@ -13,7 +13,6 @@ const checkMode = args.has('--check');
 
 const profileTablePath = path.join(repoRoot, 'config/platform-ai-profile-factory-catalog.yaml');
 const canonicalCapabilityTablePath = path.join(repoRoot, 'config/platform-canonical-capability-catalog.yaml');
-const hostCapabilityProfilesTablePath = path.join(repoRoot, 'config/spec-frozen/runtime/tables/host-capability-profiles.yaml');
 const localComputePacksTablePath = path.join(repoRoot, 'config/runtime-local-compute-packs.yaml');
 const localEnvironmentDependenciesTablePath = path.join(
   repoRoot,
@@ -94,11 +93,6 @@ function assertFactoryCatalogRefsResolve(factoryRows, referenceDocs) {
     'capabilityId',
     'canonical capability rows',
   );
-  const hostProfileIds = idSetFromRows(
-    referenceDocs.hostCapabilityProfiles?.profiles,
-    'profile_id',
-    'host capability profile rows',
-  );
   const localComputePackIds = idSetFromRows(
     referenceDocs.localComputePacks?.packs,
     'pack_id',
@@ -112,7 +106,6 @@ function assertFactoryCatalogRefsResolve(factoryRows, referenceDocs) {
 
   for (const row of factoryRows) {
     assertRefsResolve(row.capabilitySet, capabilityIds, row.alias, 'capability_set');
-    assertRefsResolve(row.hostCapabilityProfileRefs, hostProfileIds, row.alias, 'host_capability_profile_refs');
     assertRefsResolve(row.localComputePackRefs, localComputePackIds, row.alias, 'local_compute_pack_refs');
     assertRefsResolve(row.dependencyFamilyRefs, dependencyFamilyIds, row.alias, 'dependency_family_refs');
   }
@@ -309,20 +302,17 @@ async function main() {
   const [
     profileDoc,
     canonicalCapabilityDoc,
-    hostCapabilityProfileDoc,
     localComputePackDoc,
     localEnvironmentDependencyDoc,
   ] = await Promise.all([
     readYaml(profileTablePath),
     readYaml(canonicalCapabilityTablePath),
-    readYaml(hostCapabilityProfilesTablePath),
     readYaml(localComputePacksTablePath),
     readYaml(localEnvironmentDependenciesTablePath),
   ]);
   const factoryRows = normalizeAIProfileFactoryRows(profileDoc);
   assertFactoryCatalogRefsResolve(factoryRows, {
     canonicalCapabilities: canonicalCapabilityDoc,
-    hostCapabilityProfiles: hostCapabilityProfileDoc,
     localComputePacks: localComputePackDoc,
     localEnvironmentDependencies: localEnvironmentDependencyDoc,
   });

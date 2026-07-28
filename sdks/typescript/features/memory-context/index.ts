@@ -1,18 +1,12 @@
 import type {
   HistoryRequest,
   HistoryResponse,
-  InspectMemoryEmbeddingRuntimeRequest,
-  InspectMemoryEmbeddingRuntimeResponse,
   MemoryBankLocator,
   MemoryEvent,
   MemoryRecord,
   MemoryRecallHit,
   RecallRequest,
   RecallResponse,
-  RequestMemoryEmbeddingRuntimeBindRequest,
-  RequestMemoryEmbeddingRuntimeBindResponse,
-  RequestMemoryEmbeddingRuntimeCutoverRequest,
-  RequestMemoryEmbeddingRuntimeCutoverResponse,
   SubscribeMemoryEventsRequest,
 } from '../../core-generated/runtime-typed-client';
 import { MemoryBankScope as RuntimeMemoryBankScope } from '../../core-generated/runtime-typed-client';
@@ -59,35 +53,9 @@ export interface NimiRuntimeMemoryHistoryOptions {
   readonly includeInvalidated?: boolean;
 }
 
-export interface NimiMemoryEmbeddingRuntimeProjection {
-  readonly textEmbedIntentPresent: boolean;
-  readonly textEmbedSourceKind: string;
-  readonly configRevision: number;
-  readonly resolutionState: string;
-  readonly canonicalBankStatus: string;
-  readonly bindAllowed: boolean;
-  readonly cutoverAllowed: boolean;
-  readonly blockedReasonCode: number;
-  readonly raw: {
-    readonly inspection: InspectMemoryEmbeddingRuntimeResponse;
-  };
-}
-
 export interface NimiRuntimeMemoryClient {
   recall(request: RecallRequest, options?: RuntimeTypedCallOptions): Promise<RecallResponse>;
   history(request: HistoryRequest, options?: RuntimeTypedCallOptions): Promise<HistoryResponse>;
-  inspectMemoryEmbeddingRuntime(
-    request: InspectMemoryEmbeddingRuntimeRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<InspectMemoryEmbeddingRuntimeResponse>;
-  requestMemoryEmbeddingRuntimeBind(
-    request: RequestMemoryEmbeddingRuntimeBindRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<RequestMemoryEmbeddingRuntimeBindResponse>;
-  requestMemoryEmbeddingRuntimeCutover(
-    request: RequestMemoryEmbeddingRuntimeCutoverRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<RequestMemoryEmbeddingRuntimeCutoverResponse>;
   subscribeMemoryEvents?(
     request: SubscribeMemoryEventsRequest,
     options?: RuntimeTypedCallOptions,
@@ -104,9 +72,6 @@ export interface NimiRuntimeMemoryContextClientOptions {
 export interface NimiRuntimeMemoryContextClient {
   recall(options: NimiRuntimeMemoryRecallOptions): Promise<NimiMemoryContextWindow>;
   history(options?: NimiRuntimeMemoryHistoryOptions): Promise<NimiMemoryContextWindow & { readonly nextPageToken: string }>;
-  getEmbeddingRuntimeProjection(): Promise<NimiMemoryEmbeddingRuntimeProjection>;
-  requestEmbeddingRuntimeBind(): Promise<RequestMemoryEmbeddingRuntimeBindResponse>;
-  requestEmbeddingRuntimeCutover(): Promise<RequestMemoryEmbeddingRuntimeCutoverResponse>;
   subscribeEvents?(cursor?: string): AsyncIterable<MemoryEvent>;
 }
 
@@ -199,17 +164,6 @@ export function createNimiRuntimeMemoryContextClient(
         nextPageToken: response.nextPageToken,
       };
     },
-    async getEmbeddingRuntimeProjection() {
-      const request = { context, locator: bank };
-      const inspection = await client.inspectMemoryEmbeddingRuntime(request, options.callOptions);
-      return projectNimiMemoryEmbeddingRuntime(inspection);
-    },
-    requestEmbeddingRuntimeBind() {
-      return client.requestMemoryEmbeddingRuntimeBind({ context, locator: bank }, options.callOptions);
-    },
-    requestEmbeddingRuntimeCutover() {
-      return client.requestMemoryEmbeddingRuntimeCutover({ context, locator: bank }, options.callOptions);
-    },
     subscribeEvents: client.subscribeMemoryEvents
       ? (cursor = '') => client.subscribeMemoryEvents?.({
         context,
@@ -274,23 +228,6 @@ export function createNimiWorkspacePrivateMemoryBankLocator(input: {
         workspaceId: requireText(input.workspaceId, 'memory workspace locator requires workspaceId', 'provide_memory_workspace_id'),
       },
     },
-  };
-}
-
-export function projectNimiMemoryEmbeddingRuntime(
-  inspection: InspectMemoryEmbeddingRuntimeResponse,
-): NimiMemoryEmbeddingRuntimeProjection {
-  const revision = Number(normalizeText(inspection.configRevision));
-  return {
-    textEmbedIntentPresent: inspection.textEmbedIntentPresent,
-    textEmbedSourceKind: normalizeText(inspection.textEmbedSourceKind),
-    configRevision: Number.isSafeInteger(revision) && revision >= 0 ? revision : 0,
-    resolutionState: normalizeText(inspection.resolutionState),
-    canonicalBankStatus: normalizeText(inspection.canonicalBankStatus),
-    bindAllowed: inspection.operationReadiness?.bindAllowed === true,
-    cutoverAllowed: inspection.operationReadiness?.cutoverAllowed === true,
-    blockedReasonCode: inspection.blockedReasonCode,
-    raw: { inspection },
   };
 }
 

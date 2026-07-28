@@ -1,5 +1,5 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md and
-// docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml and
+// .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Hard-cut surface:
 //   - The deprecated runtime presentation per-frame mouth-batch consume

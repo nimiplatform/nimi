@@ -86,7 +86,6 @@
     "check:runtime-golangci-lint": "node scripts/run-pinned-go-tool.mjs --tool golangci-lint --cwd runtime -- run",
     "check:runtime-govulncheck": "node scripts/run-pinned-go-tool.mjs --tool govulncheck --cwd runtime -- ./...",
     "check:runtime-release-signing": "node scripts/release/run-sign-and-sbom-artifacts.mjs",
-    "check:runtime-config-defaults-drift": "node scripts/check-runtime-config-defaults-drift.mjs",
     "check:platform-catalog-drift": "node scripts/check-platform-catalog-drift.mjs",
     "check:runtime-selection-freshness": "node scripts/check-runtime-selection-freshness.mjs",
     "check:runtime-provider-capability-token-canonicalization": "node scripts/check-runtime-provider-capability-token-canonicalization.mjs",

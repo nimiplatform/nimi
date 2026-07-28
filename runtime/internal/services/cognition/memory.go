@@ -12,34 +12,16 @@ import (
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// Retain is the app-facing RuntimeCognitionService memory write entry.
-//
-// C-APMEM-001 scope note: this handler is reachable only through the
-// RuntimeCognitionService gRPC registration (grpcserver/server.go), i.e.
-// app access to cognition memory. RuntimeAgentService's canonical agent
-// memory path (K-AGCORE-004) flows through memoryservice.Service
-// Retain/Recall directly (runtimeagent/memory_policy_runtime.go) and
-// never enters this handler, so the C-APMEM gate below constrains only
-// app-scoped access — the agent-internal route is a structurally
-// distinct admitted path, not an implicit bypass of this gate.
+// Retain writes through the Runtime-owned public Memory capability after
+// binding the verified session account and app to the target bank.
 func (s *Service) Retain(ctx context.Context, req *runtimev1.RetainRequest) (*runtimev1.RetainResponse, error) {
-	// C-APMEM-005 write boundary: authorize before any work; deny carries
-	// the typed apmem_* reason (C-APMEM-004 no implicit allow).
-	if result := s.apmemAuthorizer.AuthorizeMemoryWrite(ctx, appMemoryWriteRequestFromWire(req.GetContext())); result.Decision != AppMemoryAuthAllow {
-		return nil, status.Error(codes.PermissionDenied, result.Reason)
+	if _, err := authorizeMemoryLocator(ctx, req.GetContext(), req.GetBank(), "runtime.memory.write"); err != nil {
+		return nil, err
 	}
-	return s.retainAdmitted(ctx, req)
-}
-
-// retainAdmitted is the post-gate write pipeline. It must only be
-// reached through Retain's C-APMEM-005 authorization (or by package
-// tests exercising the pipeline mechanics directly).
-func (s *Service) retainAdmitted(ctx context.Context, req *runtimev1.RetainRequest) (*runtimev1.RetainResponse, error) {
 	if err := validatePublicRuntimeMemoryLocator(req.GetBank()); err != nil {
 		return nil, err
 	}
@@ -87,23 +69,11 @@ func (s *Service) retainAdmitted(ctx context.Context, req *runtimev1.RetainReque
 	return &runtimev1.RetainResponse{Records: records}, nil
 }
 
-// Recall is the app-facing RuntimeCognitionService memory read entry.
-// See the C-APMEM-001 scope note on Retain: only app-scoped access
-// arrives here; the RuntimeAgentService agent-memory path bypasses the
-// cognition handlers structurally via memoryservice.Service.
+// Recall reads through the Runtime-owned public Memory capability.
 func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*runtimev1.RecallResponse, error) {
-	// C-APMEM-002 read boundary: authorize before any work; deny carries
-	// the typed apmem_* reason (C-APMEM-004 no implicit allow).
-	if result := s.apmemAuthorizer.AuthorizeMemoryRead(ctx, appMemoryReadRequestFromWire(req.GetContext())); result.Decision != AppMemoryAuthAllow {
-		return nil, status.Error(codes.PermissionDenied, result.Reason)
+	if _, err := authorizeMemoryLocator(ctx, req.GetContext(), req.GetBank(), "runtime.memory.read"); err != nil {
+		return nil, err
 	}
-	return s.recallAdmitted(ctx, req)
-}
-
-// recallAdmitted is the post-gate read pipeline. It must only be
-// reached through Recall's C-APMEM-002 authorization (or by package
-// tests exercising the pipeline mechanics directly).
-func (s *Service) recallAdmitted(ctx context.Context, req *runtimev1.RecallRequest) (*runtimev1.RecallResponse, error) {
 	if err := validatePublicRuntimeMemoryLocator(req.GetBank()); err != nil {
 		return nil, err
 	}
@@ -159,13 +129,9 @@ func (s *Service) recallAdmitted(ctx context.Context, req *runtimev1.RecallReque
 }
 
 func (s *Service) History(ctx context.Context, req *runtimev1.HistoryRequest) (*runtimev1.HistoryResponse, error) {
-	if result := s.apmemAuthorizer.AuthorizeMemoryRead(ctx, appMemoryReadRequestFromWire(req.GetContext())); result.Decision != AppMemoryAuthAllow {
-		return nil, status.Error(codes.PermissionDenied, result.Reason)
+	if _, err := authorizeMemoryLocator(ctx, req.GetContext(), req.GetBank(), "runtime.memory.read"); err != nil {
+		return nil, err
 	}
-	return s.historyAdmitted(ctx, req)
-}
-
-func (s *Service) historyAdmitted(ctx context.Context, req *runtimev1.HistoryRequest) (*runtimev1.HistoryResponse, error) {
 	if err := validatePublicRuntimeMemoryLocator(req.GetBank()); err != nil {
 		return nil, err
 	}
@@ -213,13 +179,9 @@ func (s *Service) historyAdmitted(ctx context.Context, req *runtimev1.HistoryReq
 }
 
 func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryRequest) (*runtimev1.DeleteMemoryResponse, error) {
-	if result := s.apmemAuthorizer.AuthorizeMemoryWrite(ctx, appMemoryWriteRequestFromWire(req.GetContext())); result.Decision != AppMemoryAuthAllow {
-		return nil, status.Error(codes.PermissionDenied, result.Reason)
+	if _, err := authorizeMemoryLocator(ctx, req.GetContext(), req.GetBank(), "runtime.memory.write"); err != nil {
+		return nil, err
 	}
-	return s.deleteMemoryAdmitted(ctx, req)
-}
-
-func (s *Service) deleteMemoryAdmitted(ctx context.Context, req *runtimev1.DeleteMemoryRequest) (*runtimev1.DeleteMemoryResponse, error) {
 	if err := validatePublicRuntimeMemoryLocator(req.GetBank()); err != nil {
 		return nil, err
 	}

@@ -1,0 +1,18 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/runtime/model-catalog.authority.yaml
+version: 1
+token_probe_provider_ids:
+  - nimillm
+  - dashscope
+  - volcengine
+  - volcengine_openspeech
+  - gemini
+  - minimax
+  - mimo
+  - kimi
+  - glm
+  - deepseek
+  - openrouter
+  - openai
+  - openai_compatible
+  - openai_codex

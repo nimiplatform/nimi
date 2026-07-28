@@ -57,11 +57,6 @@ type Record struct {
 	// Source references — links to upstream sources
 	SourceRefs []kernel.SourceRef `json:"source_refs,omitempty"`
 
-	// AppProjection records admitted app-memory projection/write provenance.
-	// It is required for C-APMEM app-derived writes and omitted for
-	// standalone-local cognition substrate records.
-	AppProjection *AppProjectionProvenance `json:"app_projection,omitempty"`
-
 	// ArtifactRefs carry owned links to other local cognition artifacts.
 	ArtifactRefs []artifactref.Ref `json:"artifact_refs,omitempty"`
 
@@ -71,21 +66,6 @@ type Record struct {
 	// Timestamps
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// AppProjectionProvenance is the durable proof carried by app-derived memory
-// records. It records the admitted policy, grant lineage, source app, target
-// persona/session, and Realm audit event required by the app-memory access
-// contract.
-type AppProjectionProvenance struct {
-	PolicyClass           string `json:"policy_class"`
-	GrantRef              string `json:"grant_ref"`
-	RealmAuditEventID     string `json:"realm_audit_event_id"`
-	ConversationAnchorRef string `json:"conversation_anchor_ref,omitempty"`
-	SourceAppID           string `json:"source_app_id"`
-	TargetPersonaID       string `json:"target_persona_id"`
-	SessionRef            string `json:"session_ref,omitempty"`
-	AuditReason           string `json:"audit_reason,omitempty"`
 }
 
 // SupportSummary describes live incoming support for a record.

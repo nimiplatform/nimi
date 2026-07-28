@@ -16,8 +16,8 @@ aids and carry no product semantics.
 - `.nimi/spec/nimi2d/` — asset-package, generation-supply
 
 Scope bindings: `.nimi/config/authority-scope-bindings.yaml`. Historical
-rationale under `docs/authority/**` is non-normative. Machine rows under
-`config/**` are projections and must declare their non-authoritative status.
+contract prose remains only in Git history. Machine rows under `config/**`
+are projections and must declare their non-authoritative status.
 
 ## External Authority Anchors
 

@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/runtime/rpc-foundations.authority.yaml
-# Rationale: docs/authority/runtime-rpc-foundations-rationale.md
+# Authority: .nimi/spec/runtime/rpc-foundations.authority.yaml
 version: 1
 table_family: protocol_surface
 owner: runtime
@@ -541,10 +541,6 @@ services:
         type: unary
       - name: OpenCompanionParticipationReplay
         type: unary
-      - name: CreateRealmGroupMessageCandidate
-        type: unary
-      - name: GetRealmGroupMessageCandidateEvidence
-        type: unary
       - name: GetAvatarDebugSnapshot
         type: unary
       - name: RequestAvatarDebugProbe
@@ -592,22 +588,6 @@ services:
       - name: RequestAgentCanonicalMemoryBankBind
         type: unary
       - name: GetAgentCanonicalMemoryReviewStatus
-        type: unary
-      - name: DescribeParticipationProfiles
-        type: unary
-      - name: DescribeParticipationContextBlocks
-        type: unary
-      - name: ValidateParticipation
-        type: unary
-      - name: ExecuteParticipation
-        type: unary
-      - name: GetParticipationCandidate
-        type: unary
-      - name: GetParticipationVerdicts
-        type: unary
-      - name: ListParticipationAuditEvents
-        type: unary
-      - name: GetParticipationReplay
         type: unary
       - name: SubscribeAgentEvents
         type: server_stream

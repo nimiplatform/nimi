@@ -161,7 +161,7 @@ func newWorkspaceAuthorizedCognitionService(t *testing.T, scopes ...string) (*Se
 		t.Fatalf("memoryservice.New: %v", err)
 	}
 	setMemoryEmbeddingVectorExecutorForTest(memorySvc)
-	svc, err := New(logger, cfg, memorySvc, NewAccountKnowledgeAuthorizer(logger, accountSvc), nil)
+	svc, err := New(logger, cfg, memorySvc, NewAccountKnowledgeAuthorizer(logger, accountSvc))
 	if err != nil {
 		_ = memorySvc.Close()
 		t.Fatalf("cognition.New: %v", err)
@@ -170,6 +170,7 @@ func newWorkspaceAuthorizedCognitionService(t *testing.T, scopes ...string) (*Se
 		AppID:         workspaceAuthAppID,
 		AppInstanceID: workspaceAuthAppInstance,
 	})
+	ctx = withTestKnowledgeAuthorization(ctx, workspaceAuthAppID, workspaceAuthAccountID)
 	cleanup := func() {
 		_ = svc.Close()
 		_ = memorySvc.Close()
@@ -179,8 +180,8 @@ func newWorkspaceAuthorizedCognitionService(t *testing.T, scopes ...string) (*Se
 
 func workspaceReqCtx(attachment *runtimev1.WorkspaceBindingAttachment) *runtimev1.KnowledgeRequestContext {
 	return &runtimev1.KnowledgeRequestContext{
-		AppId:            "forged.body.app",
-		SubjectUserId:    "forged-subject",
+		AppId:            workspaceAuthAppID,
+		SubjectUserId:    workspaceAuthAccountID,
 		WorkspaceBinding: attachment,
 	}
 }
@@ -299,6 +300,7 @@ func TestWorkspacePrivateRejectsBodyOrAttachmentIdentityProof(t *testing.T) {
 	}
 
 	noInstanceCtx := envelope.WithMetadata(context.Background(), envelope.Metadata{AppID: workspaceAuthAppID})
+	noInstanceCtx = withTestKnowledgeAuthorization(noInstanceCtx, workspaceAuthAppID, workspaceAuthAccountID)
 	_, err = svc.GetKnowledgeBank(noInstanceCtx, &runtimev1.GetKnowledgeBankRequest{Context: workspaceReqCtx(attachment), BankId: scope.ScopeID})
 	assertWorkspaceDeniedReason(t, err, runtimev1.ReasonCode_WORKSPACE_BINDING_CALLER_MISMATCH)
 
@@ -319,7 +321,7 @@ func TestWorkspacePrivateListDoesNotEnumerateWithoutBinding(t *testing.T) {
 	if _, err := svc.cognitionCore.KnowledgeScopeRegistry().CreateKnowledgeScope(ctx, cognitionScopeDescriptor(workspaceAuthWorkspaceID)); err != nil {
 		t.Fatalf("seed workspace bank: %v", err)
 	}
-	resp, err := svc.ListKnowledgeBanks(ctx, &runtimev1.ListKnowledgeBanksRequest{Context: &runtimev1.KnowledgeRequestContext{AppId: "body.app"}})
+	resp, err := svc.ListKnowledgeBanks(ctx, &runtimev1.ListKnowledgeBanksRequest{Context: &runtimev1.KnowledgeRequestContext{AppId: workspaceAuthAppID}})
 	if err != nil {
 		t.Fatalf("ListKnowledgeBanks default: %v", err)
 	}

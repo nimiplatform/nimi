@@ -80,8 +80,6 @@ scopes:
         value: "apps/desktop/src/shell/renderer/bridge/runtime-bridge/support-logs-export.ts"
       - kind: path_glob
         value: "apps/desktop/src-tauri/src/desktop_logs_export.rs"
-      - kind: path_glob
-        value: "config/desktop-product-surfaces-*.yaml"
   - scope: desktop.agent-projection
     bindings:
       - kind: path_glob
@@ -184,14 +182,6 @@ scopes:
         value: "runtime/internal/services/connector/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/localservice/**/*.go"
-      - kind: path_glob
-        value: "config/runtime-reason-codes.yaml"
-      - kind: path_glob
-        value: "config/runtime-reason-codes/*.yaml"
-      - kind: path_glob
-        value: "config/runtime-activation-gate-reason-codes.yaml"
-      - kind: path_glob
-        value: "config/runtime-metadata-keys.yaml"
   - scope: runtime.service-operations
     bindings:
       - kind: path_glob

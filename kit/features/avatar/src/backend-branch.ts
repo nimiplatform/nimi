@@ -1,6 +1,6 @@
 // Multi-backend BackendBranch carrier abstraction.
 //
-// Spec authority: docs/authority/avatar-embodiment-rationale.md
+// Spec authority: .nimi/spec/avatar/embodiment-surface.authority.yaml
 // Drift rule: type definitions here MUST stay in sync with that contract.
 
 import type { ComponentType } from 'react';

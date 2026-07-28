@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Computes BackendNominalBounds for the Live2D branch. Authority for the
 // nominal viewport size is the model's CanvasInfo (model3 / Cubism Core)

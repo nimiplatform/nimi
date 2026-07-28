@@ -1,4 +1,4 @@
-// Integration tests for docs/authority/avatar-embodiment-rationale.md.
+// Integration tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Smoke-level integration verification of `createVrmBackendBranch` after
 // chunk 3-D rewires emote state + motion preset registry + lipsync driver

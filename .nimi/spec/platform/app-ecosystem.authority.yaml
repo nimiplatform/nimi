@@ -372,7 +372,7 @@ units:
     kind: rule
     title: P-PERM-010 decision-owner boundaries
     modality: must
-    statement: Cloud account, OAuth, Realm-owned decisions, domain data, and endpoint enforcement are decided on the Realm surface; Runtime decides local identity, session, Runtime-owned decisions, and local enforcement; Cognition decides memory and knowledge policy; Platform standardizes only catalog and projection, copies no backend truth, and one user intent receives no duplicate approval from multiple owners.
+    statement: Cloud account, OAuth, Realm-owned decisions, domain data, and endpoint enforcement are decided on the Realm surface; Runtime decides local identity, session, operational Memory, Knowledge, Conversation, other Runtime-owned decisions, and local enforcement; Cognition remains an independent capability domain and does not silently take over those Runtime truths; Platform standardizes only catalog and projection, copies no backend truth, and one user intent receives no duplicate approval from multiple owners.
     condition: Whenever permission ownership, enforcement, or projection is allocated.
     failure: Reject copied owner truth, a parallel decision owner, or duplicate approval flow.
     relations:

@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Tests for device-tier-detector. Use probeOverride for deterministic
 // classification across all tier boundaries; verify cache + clear

@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Tests for vrm-hit-region. Uses an in-memory fake VrmRenderTarget so we
 // can drive the alpha-byte return value deterministically without

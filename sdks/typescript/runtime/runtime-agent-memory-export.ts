@@ -33,7 +33,7 @@ import {
 /**
  * Canonical memory export helper.
  *
- * Authority posture (S-SURFACE-015 / S-SURFACE-016, `docs/authority/sdks-client-core-rationale.md`;
+ * Authority posture (S-SURFACE-015 / S-SURFACE-016, `.nimi/spec/sdks/client-core.authority.yaml`;
  * canonical: `.nimi/spec/sdks/client-core.authority.yaml`):
  * this module is a developer-experience composition over the admitted
  * RuntimeAgentService read projection (`queryAgentMemory` + `getAgentState`).

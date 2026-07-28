@@ -173,32 +173,6 @@ test('Runtime-bound memory and knowledge context clients project Runtime-owned d
         async history() {
           return { records: [], nextPageToken: '' };
         },
-        async inspectMemoryEmbeddingRuntime() {
-          return {
-            textEmbedIntentPresent: true,
-            textEmbedSourceKind: 'local',
-            configRevision: '1',
-            resolutionState: 'resolved',
-            canonicalBankStatus: 'bound',
-            blockedReasonCode: 0,
-            operationReadiness: { bindAllowed: true, cutoverAllowed: false },
-          };
-        },
-        async requestMemoryEmbeddingRuntimeBind() {
-          return {
-            outcome: 'accepted',
-            blockedReasonCode: 0,
-            canonicalBankStatusAfter: 'binding',
-            pendingCutover: true,
-          };
-        },
-        async requestMemoryEmbeddingRuntimeCutover() {
-          return {
-            outcome: 'blocked',
-            blockedReasonCode: 1,
-            canonicalBankStatusAfter: 'binding',
-          };
-        },
       },
     },
   });
@@ -207,11 +181,6 @@ test('Runtime-bound memory and knowledge context clients project Runtime-owned d
   assert.equal(memoryWindow.snippets[0]?.text, 'Mira prefers green tea');
   assert.equal((memoryWindow.snippets[0]?.metadata as { matchReason?: string }).matchReason, 'semantic');
   assert.equal((memoryRequests[0] as { query?: { query?: string } }).query?.query, 'tea');
-  const embedding = await memory.getEmbeddingRuntimeProjection();
-  assert.equal(embedding.textEmbedSourceKind, 'local');
-  assert.equal(embedding.bindAllowed, true);
-  assert.equal((await memory.requestEmbeddingRuntimeBind()).pendingCutover, true);
-
   const knowledgeRequests: unknown[] = [];
   const knowledge = createNimiRuntimeKnowledgeContextClient({
     context: { appId: 'app-1', subjectUserId: 'user-1' },

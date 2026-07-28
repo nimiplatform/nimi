@@ -5,7 +5,6 @@ export type ConnectorAuthProfileSpec = {
   authKind: 'oauth_managed';
   allowedProviders: readonly string[];
   headerBehavior: 'none' | 'codex_oauth' | 'anthropic';
-  sourceRule: string;
 };
 
 export const CONNECTOR_AUTH_PROFILES: Record<string, ConnectorAuthProfileSpec> = {
@@ -14,20 +13,17 @@ export const CONNECTOR_AUTH_PROFILES: Record<string, ConnectorAuthProfileSpec> =
     authKind: "oauth_managed",
     allowedProviders: ["anthropic"],
     headerBehavior: "anthropic",
-    sourceRule: "K-CONN-002",
   },
   "openai_codex": {
     id: "openai_codex",
     authKind: "oauth_managed",
     allowedProviders: ["openai_codex"],
     headerBehavior: "codex_oauth",
-    sourceRule: "K-CONN-002",
   },
   "qwen_oauth": {
     id: "qwen_oauth",
     authKind: "oauth_managed",
     allowedProviders: ["openai_compatible"],
     headerBehavior: "none",
-    sourceRule: "K-CONN-002",
   },
 };

@@ -1,6 +1,6 @@
 # Non-authoritative Desktop shell UI machine configuration.
 # Normative authority: .nimi/spec/desktop/shell-ui.authority.yaml
-# Rationale: docs/authority/desktop-shell-ui-rationale.md
+# Authority: .nimi/spec/desktop/shell-ui.authority.yaml
 table_family: closed_enum
 owner: desktop
 enum_id: desktop_error_codes

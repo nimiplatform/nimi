@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Tests for live2d-hit-region:
 //   - `computeLive2DHitRegion` (compatibility-driven bbox)

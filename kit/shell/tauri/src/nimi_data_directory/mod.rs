@@ -1,6 +1,6 @@
 //! `nimi_data` directory ownership enforcement + destructive cleanup.
 //!
-//! Spec authority: `docs/authority/platform-product-lifecycle-rationale.md`
+//! Spec authority: `.nimi/spec/platform/product-lifecycle.authority.yaml`
 //! `P-MIG-006`, `P-MIG-008`, and the kernel table
 //! `config/platform-nimi-data-directory-ownership.yaml`.
 //!

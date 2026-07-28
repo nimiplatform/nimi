@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Verifies that deriveVrmNominalBounds returns the policy default when
 // the VRM is null (boot placeholder), derives clamped bounds from a

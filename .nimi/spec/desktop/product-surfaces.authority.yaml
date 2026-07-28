@@ -32,7 +32,7 @@ units:
     kind: rule
     title: Explore sections are closed
     modality: must
-    statement: Explore has exactly Worlds for admitted WorldCore browsing and World detail entry, Personas for PersonaCharacter discovery across Worlds, and Activity for admitted public Realm activity from humans, personas, and world characters; config/desktop-product-surfaces-explore-sections.yaml is the non-authoritative machine projection of this closed set, whose meanings remain distinct.
+    statement: Explore has exactly Worlds for admitted WorldCore browsing and World detail entry, Personas for PersonaCharacter discovery across Worlds, and Activity for admitted public Realm activity from humans, personas, and world characters, whose meanings remain distinct.
     condition: Whenever Desktop configures, renders, labels, or selects an Explore section.
     failure: Reject a missing, additional, renamed, reordered in meaning, or undifferentiated Explore section projection.
     relations:
@@ -192,7 +192,7 @@ units:
     kind: rule
     title: Home feed scopes are closed
     modality: must
-    statement: Home presents and distinguishes exactly personal for viewer-authored Posts, friends for visible Posts from the viewer's ACTIVE human friends, persona_activity for public-activity Posts from PersonaCharacter sources, and world_character_activity for public-activity Posts from explicitly admitted WorldCharacter sources; config/desktop-product-surfaces-home-feed-scopes.yaml is the non-authoritative machine projection, while Realm owns scope semantics, visibility, and author attribution.
+    statement: Home presents and distinguishes exactly personal for viewer-authored Posts, friends for visible Posts from the viewer's ACTIVE human friends, persona_activity for public-activity Posts from PersonaCharacter sources, and world_character_activity for public-activity Posts from explicitly admitted WorldCharacter sources, while Realm owns scope semantics, visibility, and author attribution.
     condition: Whenever Home configures, reads, labels, filters, or renders Realm feed scope.
     failure: Reject a missing, additional, renamed, or semantically collapsed scope and never present LocalAgent private activity as Realm feed content.
     relations:
@@ -322,7 +322,7 @@ units:
     kind: rule
     title: Relationship categories are closed
     modality: must
-    statement: Contextual relationship and profile consumers distinguish exactly human_friends for ACTIVE human-to-human Friendship relations that resolve to human relationship and Human Chat, and local_agents for Runtime-owned LocalAgents discovered from Runtime inventory and provenance that may expose source provenance and open an existing LocalAgent without treating source records as friends or deriving LocalAgent identity from source metadata; config/desktop-product-surfaces-relationship-categories.yaml is the non-authoritative machine projection.
+    statement: Contextual relationship and profile consumers distinguish exactly human_friends for ACTIVE human-to-human Friendship relations that resolve to human relationship and Human Chat, and local_agents for Runtime-owned LocalAgents discovered from Runtime inventory and provenance that may expose source provenance and open an existing LocalAgent without treating source records as friends or deriving LocalAgent identity from source metadata.
     condition: Whenever Desktop categorizes a relationship or source-backed profile entry.
     failure: Reject an additional or collapsed category, non-ACTIVE human relation as a friend, source record as friendship, or source-derived LocalAgent identity.
     relations:
@@ -332,7 +332,7 @@ units:
     kind: rule
     title: Friend request states and transitions are closed
     modality: must
-    statement: Desktop friend-request projection uses exactly received_pending with accept or reject, sent_pending with cancel and no duplicate resend, accepted as an ACTIVE relationship no longer represented as a request, rejected with no relationship and no automatic duplicate, and cancelled with no relationship; only received_pending transitions to accepted or rejected and sent_pending transitions to accepted by the other party or cancelled by the sender, while Realm social admission alone creates the canonical relationship and config/desktop-product-surfaces-relationship-friend-request-states.yaml is non-authoritative machine projection.
+    statement: Desktop friend-request projection uses exactly received_pending with accept or reject, sent_pending with cancel and no duplicate resend, accepted as an ACTIVE relationship no longer represented as a request, rejected with no relationship and no automatic duplicate, and cancelled with no relationship; only received_pending transitions to accepted or rejected and sent_pending transitions to accepted by the other party or cancelled by the sender, while Realm social admission alone creates the canonical relationship.
     condition: Whenever Desktop projects or advances friend-request state.
     failure: Reject an unknown state or transition, duplicate resend, Desktop-created canonical relationship, automatic duplicate after rejection, and any accepted, rejected, or cancelled request still presented as pending.
     relations:

@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // In-browser VRM diagnostics. Mirrors the Live2D debug pattern documented
 // in `apps/avatar/AGENTS.md` §"Live2D Debugging Workflow" — but unlike

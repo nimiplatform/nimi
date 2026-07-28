@@ -96,9 +96,6 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	if !agentSvc.HasCanonicalReviewExecutor() {
 		t.Fatal("expected canonical review executor to be configured")
 	}
-	if !agentSvc.HasRealmGroupMessageCandidateExecutor() {
-		t.Fatal("expected realm group message candidate executor to be configured")
-	}
 	if !agentSvc.HasVoiceLipsyncScenarioExecutor() {
 		t.Fatal("expected voice/lipsync scenario executor to be configured")
 	}

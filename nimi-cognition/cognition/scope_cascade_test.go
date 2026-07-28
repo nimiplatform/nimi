@@ -54,11 +54,11 @@ func TestKnowledgeScopeRegistry_DeleteCascadesIncludingFTS(t *testing.T) {
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	}
-	writeAccess := validAppKnowledgeWriteAccess()
-	if err := c.AppMemoryAccessService().SaveKnowledge(context.Background(), writeAccess, page1); err != nil {
+	writeAuth := runtimeKnowledgeAuthorization(RuntimeAccessWrite, scope.Owner, scopeID)
+	if err := c.RuntimeBridge().SaveKnowledge(context.Background(), writeAuth, page1); err != nil {
 		t.Fatalf("save page1: %v", err)
 	}
-	if err := c.AppMemoryAccessService().SaveKnowledge(context.Background(), writeAccess, page2); err != nil {
+	if err := c.RuntimeBridge().SaveKnowledge(context.Background(), writeAuth, page2); err != nil {
 		t.Fatalf("save page2: %v", err)
 	}
 

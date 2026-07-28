@@ -19,7 +19,7 @@ import (
 )
 
 func (s *SkillService) Save(bundle skill.Bundle) error {
-	if err := rejectDirectAppPrivateScope(s.store, bundle.ScopeID, "skill save"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, bundle.ScopeID, "skill save"); err != nil {
 		return err
 	}
 	return s.saveInternal(bundle)
@@ -43,7 +43,7 @@ func (s *SkillService) saveInternal(bundle skill.Bundle) error {
 }
 
 func (s *SkillService) Load(scopeID string, bundleID skill.BundleID) (*skill.Bundle, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill load"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "skill load"); err != nil {
 		return nil, err
 	}
 	return s.loadInternal(scopeID, bundleID)
@@ -61,7 +61,7 @@ func (s *SkillService) loadInternal(scopeID string, bundleID skill.BundleID) (*s
 }
 
 func (s *SkillService) List(scopeID string) ([]skill.Bundle, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill list"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "skill list"); err != nil {
 		return nil, err
 	}
 	return s.listInternal(scopeID)
@@ -82,7 +82,7 @@ func (s *SkillService) listInternal(scopeID string) ([]skill.Bundle, error) {
 }
 
 func (s *SkillService) Search(scopeID string, query string, limit int) ([]skill.Bundle, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill search"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "skill search"); err != nil {
 		return nil, err
 	}
 	return s.searchInternal(scopeID, query, limit)
@@ -106,7 +106,7 @@ func (s *SkillService) searchInternal(scopeID string, query string, limit int) (
 }
 
 func (s *SkillService) Delete(scopeID string, bundleID skill.BundleID) error {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill delete"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "skill delete"); err != nil {
 		return err
 	}
 	return s.deleteInternal(scopeID, bundleID)
@@ -136,7 +136,7 @@ func (s *SkillService) deleteInternal(scopeID string, bundleID skill.BundleID) e
 }
 
 func (s *SkillService) History(scopeID string, bundleID skill.BundleID) ([]skill.HistoryEntry, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill history"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "skill history"); err != nil {
 		return nil, err
 	}
 	if err := validateScopeID(scopeID); err != nil {
@@ -162,7 +162,7 @@ func (s *SkillService) History(scopeID string, bundleID skill.BundleID) ([]skill
 }
 
 func (s *SkillService) ListIDs(scopeID string) ([]string, error) {
-	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill list ids"); err != nil {
+	if err := rejectDirectRuntimePrivateScope(s.store, scopeID, "skill list ids"); err != nil {
 		return nil, err
 	}
 	if err := validateScopeID(scopeID); err != nil {

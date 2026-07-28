@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Offscreen WebGL render target for VRM alpha-mask hit-region probing. The
 // VRM scene is normally rendered to the visible canvas via R3F; for hit

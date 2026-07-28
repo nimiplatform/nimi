@@ -3,7 +3,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import YAML from 'yaml';
 
-export const SOURCE_RELATIVE = 'config/spec-frozen/runtime/tables/first-party-protected-runtime-profiles.yaml';
+export const SOURCE_RELATIVE = 'config/runtime-first-party-protected-runtime-profiles.yaml';
 export const RPC_SOURCE_RELATIVE = 'config/runtime-rpc-methods.yaml';
 export const COMPILER_RELATIVE = 'scripts/generate-first-party-protected-runtime-profiles.mjs';
 
@@ -17,41 +17,20 @@ const OUTPUT_PATHS = Object.freeze([
   'sdks/typescript/runtime/bundled-avatar-profile.generated.ts',
 ]);
 
-const TOP_LEVEL_FIELDS = new Set([
-  'version', 'table_family', 'owner', 'protocol_id', 'surfaces', 'source_rules',
-  'physical_endpoint_binding', 'logical_transport_class_by_profile',
-  'membership_authority', 'renderer_may_select_profile',
-  'renderer_may_supply_method_id', 'renderer_may_supply_metadata',
-  'renderer_may_supply_principal', 'renderer_may_supply_account', 'portable_session_allowed',
-  'ordinary_grpc_disposition', 'public_tcp_disposition', 'generic_proxy',
-  'method_authority_ref', 'transport_authority_ref', 'principal_authority_refs',
-  'negative_test_profiles', 'intents', 'external_profiles', 'profiles',
-]);
+const TOP_LEVEL_FIELDS = new Set(['version', 'profiles']);
 const PROFILE_FIELDS = new Set([
-  'profile_id', 'identity_class', 'app_id', 'native_profile_marker', 'required_origin_role',
-  'logical_transport_class', 'host_owner', 'principal_policy_ref', 'account_posture',
-  'desktop_account_control_inheritance', 'open_desktop_session_requirement',
-  'live_desktop_process_requirement', 'sender_posture',
-  'invalidation_policy_ref', 'native_entrypoint_classes', 'negative_test_ref',
-  'account_caller', 'realm_operations', 'methods', 'forbidden',
+  'profile_id', 'identity_class', 'app_id', 'native_profile_marker',
+  'account_caller', 'realm_operations', 'methods',
 ]);
-const METHOD_FIELDS = new Set(['method_id', 'kind', 'intent_refs', 'capability']);
-const INTENT_FIELDS = new Set(['owner_postcondition_refs']);
-const NEGATIVE_FIELDS = new Set(['rejects']);
-const EXTERNAL_PROFILE_FIELDS = new Set(['profile_id', 'membership_ref', 'owner', 'merged_into_product_profiles']);
-const ACCOUNT_CALLER_FIELDS = new Set(['mode', 'app_instance_id', 'device_id']);
+const METHOD_FIELDS = new Set(['method_id', 'capability']);
+const ACCOUNT_CALLER_FIELDS = new Set(['app_instance_id', 'device_id']);
 const METHOD_ID_PATTERN = /^\/nimi\.runtime\.v1\.([A-Za-z0-9]+)\/([A-Za-z0-9]+)$/u;
 const PROFILE_ID_PATTERN = /^[a-z][a-z0-9_]*_v[0-9]+$/u;
-const LOGICAL_TRANSPORT_CLASS_BY_PROFILE = Object.freeze({
-  desktop_machine_product_v1: 'desktop_control',
-  desktop_account_product_v1: 'desktop_control',
-  bundled_avatar_v1: 'avatar_control',
+const REQUIRED_PROFILE_IDENTITIES = Object.freeze({
+  desktop_machine_product_v1: 'machine',
+  desktop_account_product_v1: 'account',
+  bundled_avatar_v1: 'avatar',
 });
-const INDEPENDENT_AVATAR_FORBIDDEN_FIELDS = Object.freeze([
-  'desktop_account_control_inheritance',
-  'open_desktop_session_requirement',
-  'live_desktop_process_requirement',
-]);
 
 export function compileFirstPartyProtectedRuntimeProfiles({ repoRoot, sourceText, rpcSourceText } = {}) {
   if (!repoRoot) throw new Error('repoRoot is required');
@@ -94,44 +73,7 @@ function parseYaml(source, label) {
 function validateAndBuildModel(registry, rpcRegistry) {
   requirePlainObject(registry, 'registry');
   rejectUnknownFields(registry, TOP_LEVEL_FIELDS, 'registry');
-  if (registry.version !== 1 || registry.protocol_id !== 'first_party_protected_runtime_profiles'
-    || registry.membership_authority !== 'canonical' || registry.generic_proxy !== 'forbidden') {
-    throw new Error('canonical first-party profile registry identity is invalid');
-  }
-  if (registry.physical_endpoint_binding !== 'verified_platform_transport') {
-    throw new Error('physical_endpoint_binding must be verified_platform_transport');
-  }
-  requirePlainObject(registry.logical_transport_class_by_profile, 'logical_transport_class_by_profile');
-  rejectUnknownFields(
-    registry.logical_transport_class_by_profile,
-    new Set(Object.keys(LOGICAL_TRANSPORT_CLASS_BY_PROFILE)),
-    'logical_transport_class_by_profile',
-  );
-  for (const [profileId, transportClass] of Object.entries(LOGICAL_TRANSPORT_CLASS_BY_PROFILE)) {
-    if (registry.logical_transport_class_by_profile[profileId] !== transportClass) {
-      throw new Error(`logical transport class mismatch for ${profileId}`);
-    }
-  }
-  const intents = registry.intents;
-  requirePlainObject(intents, 'intents');
-  for (const [intentId, intent] of Object.entries(intents)) {
-    requirePlainObject(intent, `intent ${intentId}`);
-    rejectUnknownFields(intent, INTENT_FIELDS, `intent ${intentId}`);
-    requireNonEmptyStrings(intent.owner_postcondition_refs, `intent ${intentId} owner_postcondition_refs`);
-  }
-  requirePlainObject(registry.negative_test_profiles, 'negative_test_profiles');
-  for (const [name, negative] of Object.entries(registry.negative_test_profiles)) {
-    requirePlainObject(negative, `negative profile ${name}`);
-    rejectUnknownFields(negative, NEGATIVE_FIELDS, `negative profile ${name}`);
-    requireNonEmptyStrings(negative.rejects, `negative profile ${name} rejects`);
-  }
-  requirePlainObject(registry.external_profiles, 'external_profiles');
-  for (const [name, external] of Object.entries(registry.external_profiles)) {
-    requirePlainObject(external, `external profile ${name}`);
-    rejectUnknownFields(external, EXTERNAL_PROFILE_FIELDS, `external profile ${name}`);
-    requireString(external.profile_id, `external profile ${name} profile_id`);
-    requireString(external.membership_ref, `external profile ${name} membership_ref`);
-  }
+  if (registry.version !== 1) throw new Error('first-party profile registry version must be 1');
   const rpcKinds = buildRpcKindMap(rpcRegistry);
   if (!Array.isArray(registry.profiles) || registry.profiles.length === 0) throw new Error('profiles must be non-empty');
   const profileIds = new Set();
@@ -142,26 +84,12 @@ function validateAndBuildModel(registry, rpcRegistry) {
     if (!PROFILE_ID_PATTERN.test(profileId)) throw new Error(`invalid profile id: ${profileId}`);
     if (profileIds.has(profileId)) throw new Error(`duplicate profile: ${profileId}`);
     profileIds.add(profileId);
-    for (const field of ['identity_class', 'native_profile_marker', 'required_origin_role', 'host_owner', 'principal_policy_ref', 'invalidation_policy_ref', 'negative_test_ref']) {
-      requireString(profile[field], `${profileId} ${field}`);
+    const identityClass = requireString(profile.identity_class, `${profileId} identity_class`);
+    const requiredIdentityClass = REQUIRED_PROFILE_IDENTITIES[profileId];
+    if (requiredIdentityClass && identityClass !== requiredIdentityClass) {
+      throw new Error(`${profileId} identity_class must be ${requiredIdentityClass}`);
     }
-    if (profileId === 'bundled_avatar_v1') {
-      const logicalTransportClass = requireString(
-        profile.logical_transport_class,
-        `${profileId} logical_transport_class`,
-      );
-      if (logicalTransportClass !== registry.logical_transport_class_by_profile[profileId]) {
-        throw new Error(`${profileId} logical_transport_class must match its profile mapping`);
-      }
-      for (const field of INDEPENDENT_AVATAR_FORBIDDEN_FIELDS) {
-        if (profile[field] !== 'forbidden') {
-          throw new Error(`${profileId} ${field} must be forbidden`);
-        }
-      }
-    }
-    if (!registry.negative_test_profiles[profile.negative_test_ref]) throw new Error(`${profileId} has unknown negative_test_ref`);
-    requireNonEmptyStrings(profile.native_entrypoint_classes, `${profileId} native_entrypoint_classes`);
-    requireNonEmptyStrings(profile.forbidden, `${profileId} forbidden`);
+    requireString(profile.native_profile_marker, `${profileId} native_profile_marker`);
     if (profile.account_caller !== undefined) {
       requirePlainObject(profile.account_caller, `${profileId} account_caller`);
       rejectUnknownFields(profile.account_caller, ACCOUNT_CALLER_FIELDS, `${profileId} account_caller`);
@@ -178,29 +106,32 @@ function validateAndBuildModel(registry, rpcRegistry) {
       seenMethods.add(normalized.methodId);
       const rpcKind = rpcKinds.get(normalized.methodId);
       if (!rpcKind) throw new Error(`unknown RPC method in ${profileId}: ${normalized.methodId}`);
-      if (rpcKind !== normalized.kind) throw new Error(`RPC kind mismatch for ${normalized.methodId}: ${normalized.kind} != ${rpcKind}`);
-      requireNonEmptyStrings(method.intent_refs, `${normalized.methodId} intent_refs`);
-      for (const intentRef of method.intent_refs) if (!intents[intentRef]) throw new Error(`${normalized.methodId} has unknown intent_ref: ${intentRef}`);
-      if (profile.identity_class === 'avatar') requireString(method.capability, `${normalized.methodId} capability`);
+      if (identityClass === 'avatar') requireString(method.capability, `${normalized.methodId} capability`);
       else if (method.capability !== undefined) throw new Error(`${profileId} must not duplicate non-Avatar capability authority`);
-      return { ...normalized, intentRefs: [...method.intent_refs], capability: method.capability };
+      return { ...normalized, kind: rpcKind, capability: method.capability };
     });
     return {
       profileId,
-      identityClass: profile.identity_class,
+      identityClass,
       appId: profile.app_id,
       nativeProfileMarker: profile.native_profile_marker,
-      requiredOriginRole: profile.required_origin_role,
-      principalPolicyRef: profile.principal_policy_ref,
-      invalidationPolicyRef: profile.invalidation_policy_ref,
       accountCaller: profile.account_caller,
       realmOperations: profile.realm_operations ?? [],
       methods,
     };
   });
-  for (const required of ['desktop_machine_product_v1', 'desktop_account_product_v1', 'bundled_avatar_v1']) {
-    if (!profileIds.has(required)) throw new Error(`required profile is missing: ${required}`);
+  for (const [required, identityClass] of Object.entries(REQUIRED_PROFILE_IDENTITIES)) {
+    const profile = profiles.find((candidate) => candidate.profileId === required);
+    if (!profile) throw new Error(`required profile is missing: ${required}`);
+    if (profile.identityClass !== identityClass) throw new Error(`${required} identity_class must be ${identityClass}`);
   }
+  const avatar = profiles.find((candidate) => candidate.profileId === 'bundled_avatar_v1');
+  requireString(avatar.appId, 'bundled_avatar_v1 app_id');
+  requirePlainObject(avatar.accountCaller, 'bundled_avatar_v1 account_caller');
+  for (const field of ACCOUNT_CALLER_FIELDS) {
+    requireString(avatar.accountCaller[field], `bundled_avatar_v1 account_caller.${field}`);
+  }
+  requireNonEmptyStrings(avatar.realmOperations, 'bundled_avatar_v1 realm_operations');
   return { profiles };
 }
 
@@ -224,12 +155,10 @@ function buildRpcKindMap(rpcRegistry) {
 function normalizeMethod(method, label) {
   const methodId = requireString(method.method_id, `${label} method_id`);
   if (methodId.includes('*') || !METHOD_ID_PATTERN.test(methodId)) throw new Error(`invalid or wildcard method id: ${methodId}`);
-  const kind = requireString(method.kind, `${label} kind`);
-  if (kind !== 'unary' && kind !== 'server_stream') throw new Error(`invalid method kind for ${methodId}: ${kind}`);
   const match = METHOD_ID_PATTERN.exec(methodId);
   const service = match[1];
   const rpc = match[2];
-  return { methodId, kind, service, rpc, methodName: `${rpc[0].toLowerCase()}${rpc.slice(1)}` };
+  return { methodId, service, rpc, methodName: `${rpc[0].toLowerCase()}${rpc.slice(1)}` };
 }
 
 function renderOutputs(model) {
@@ -297,7 +226,7 @@ function renderRustMethodEnum(name, methods) {
 }
 
 function renderElectronProfiles(model) {
-  const profiles = model.profiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: {\n    identityClass: ${JSON.stringify(profile.identityClass)},\n    nativeProfileMarker: ${JSON.stringify(profile.nativeProfileMarker)},\n    methods: {\n${profile.methods.map((method) => `      ${JSON.stringify(method.methodId)}: { kind: ${JSON.stringify(method.kind)}, intentRefs: ${JSON.stringify(method.intentRefs)} },`).join('\n')}\n    },\n  },`).join('\n');
+  const profiles = model.profiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: {\n    identityClass: ${JSON.stringify(profile.identityClass)},\n    nativeProfileMarker: ${JSON.stringify(profile.nativeProfileMarker)},\n    methods: {\n${profile.methods.map((method) => `      ${JSON.stringify(method.methodId)}: { kind: ${JSON.stringify(method.kind)} },`).join('\n')}\n    },\n  },`).join('\n');
   return `${generatedHeader()}\nexport const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {\n${profiles}\n} as const;\n\nexport type NimiElectronDesktopMachineProductMethodId = keyof typeof NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES.desktop_machine_product_v1.methods;\nexport type NimiElectronDesktopAccountProductMethodId = keyof typeof NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES.desktop_account_product_v1.methods;\n\nexport function isNimiElectronDesktopMachineProductMethod(methodId: string, kind: 'unary' | 'server_stream'): methodId is NimiElectronDesktopMachineProductMethodId {\n  return NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES.desktop_machine_product_v1.methods[methodId as NimiElectronDesktopMachineProductMethodId]?.kind === kind;\n}\n\nexport function isNimiElectronDesktopAccountProductMethod(methodId: string, kind: 'unary' | 'server_stream'): methodId is NimiElectronDesktopAccountProductMethodId {\n  return NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES.desktop_account_product_v1.methods[methodId as NimiElectronDesktopAccountProductMethodId]?.kind === kind;\n}\n`;
 }
 
@@ -308,7 +237,7 @@ function renderElectronAvatar(model) {
 }
 
 function renderSdkProfiles(model) {
-  const profiles = model.profiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: {\n    identityClass: ${JSON.stringify(profile.identityClass)},\n    principalPolicyRef: ${JSON.stringify(profile.principalPolicyRef)},\n    invalidationPolicyRef: ${JSON.stringify(profile.invalidationPolicyRef)},\n    methods: {\n${profile.methods.map((method) => `      ${JSON.stringify(method.methodId)}: { typedMethod: ${JSON.stringify(method.methodName)}, kind: ${JSON.stringify(method.kind)}, intentRefs: ${JSON.stringify(method.intentRefs)} },`).join('\n')}\n    },\n  },`).join('\n');
+  const profiles = model.profiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: {\n    identityClass: ${JSON.stringify(profile.identityClass)},\n    methods: {\n${profile.methods.map((method) => `      ${JSON.stringify(method.methodId)}: { typedMethod: ${JSON.stringify(method.methodName)}, kind: ${JSON.stringify(method.kind)} },`).join('\n')}\n    },\n  },`).join('\n');
   const groups = model.profiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: ${JSON.stringify(profile.methods.map((method) => method.methodName))},`).join('\n');
   return `${generatedHeader()}\nimport type { RuntimeTypedClient } from '../core-generated/runtime-typed-client';\n\nexport const NIMI_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {\n${profiles}\n} as const;\n\nexport const NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS = {\n${groups}\n} as const satisfies Readonly<Record<string, readonly (keyof RuntimeTypedClient)[]>>;\n\nexport type NimiFirstPartyProtectedRuntimeProfileId = keyof typeof NIMI_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES;\nexport type DesktopMachineProductRuntimeMethods = Pick<RuntimeTypedClient, typeof NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS.desktop_machine_product_v1[number]>;\nexport type DesktopAccountProductRuntimeMethods = Pick<RuntimeTypedClient, typeof NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS.desktop_account_product_v1[number]>;\n`;
 }

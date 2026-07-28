@@ -1,6 +1,6 @@
 # Desktop 迁移域索引
 
-Desktop 的 canonical product authority 已迁至 `.nimi/spec/desktop/**`。本页只提供迁移后的定位清单，不定义规则，也不把 `config/**` 或 `docs/authority/**` 提升为 authority。
+Desktop 的 canonical product authority 已迁至 `.nimi/spec/desktop/**`。本页只提供迁移后的定位清单，不定义规则，也不把 `config/**` 提升为 authority。
 
 ## Canonical authority 容器
 
@@ -33,16 +33,6 @@ Desktop 的 canonical product authority 已迁至 `.nimi/spec/desktop/**`。本�
 - `config/desktop-shell-ui-renderer-design-sidebars.yaml`
 - `config/desktop-shell-ui-renderer-design-surfaces.yaml`
 - `config/desktop-shell-ui-renderer-design-tokens.yaml`
-
-## Non-authoritative rationale
-
-- `docs/authority/desktop-agent-projection-rationale.md`
-- `docs/authority/desktop-ai-consumption-rationale.md`
-- `docs/authority/desktop-bridge-ipc-rationale.md`
-- `docs/authority/desktop-command-execution-rationale.md`
-- `docs/authority/desktop-product-surfaces-rationale.md`
-- `docs/authority/desktop-shell-runtime-rationale.md`
-- `docs/authority/desktop-shell-ui-rationale.md`
 
 ## 迁移边界
 

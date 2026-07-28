@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/platform/app-ecosystem.authority.yaml
-# Rationale: docs/authority/platform-app-ecosystem-rationale.md
+# Authority: .nimi/spec/platform/app-ecosystem.authority.yaml
 version: 1
 table_family: owner_matrix
 owner: platform

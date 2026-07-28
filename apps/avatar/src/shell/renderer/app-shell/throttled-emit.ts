@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Generic trailing-edge debouncer used to throttle the per-frame
 // `onHitRegionChange` consumer callback inside the embodiment-stage. Per

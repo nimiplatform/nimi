@@ -7,7 +7,6 @@ type ProviderAuthProfileSpec struct {
 	AuthKind string
 	AllowedProviders []string
 	HeaderBehavior string
-	SourceRule string
 }
 
 var GeneratedProviderAuthProfiles = map[string]ProviderAuthProfileSpec{
@@ -18,7 +17,6 @@ var GeneratedProviderAuthProfiles = map[string]ProviderAuthProfileSpec{
 			"anthropic",
 		},
 		HeaderBehavior: "anthropic",
-		SourceRule: "K-CONN-002",
 	},
 	"openai_codex": {
 		ID: "openai_codex",
@@ -27,7 +25,6 @@ var GeneratedProviderAuthProfiles = map[string]ProviderAuthProfileSpec{
 			"openai_codex",
 		},
 		HeaderBehavior: "codex_oauth",
-		SourceRule: "K-CONN-002",
 	},
 	"qwen_oauth": {
 		ID: "qwen_oauth",
@@ -36,6 +33,5 @@ var GeneratedProviderAuthProfiles = map[string]ProviderAuthProfileSpec{
 			"openai_compatible",
 		},
 		HeaderBehavior: "none",
-		SourceRule: "K-CONN-002",
 	},
 }

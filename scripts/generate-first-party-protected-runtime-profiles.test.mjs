@@ -54,29 +54,14 @@ test('rejects duplicate and wildcard methods', () => {
   rejectsMutation((value) => { value.profiles[0].methods[0].method_id = '/nimi.runtime.v1.RuntimeLocalService/*'; }, /wildcard method id/u);
 });
 
-test('rejects unknown fields, RPCs, references, and kind mismatches', () => {
+test('rejects unknown fields and RPCs', () => {
   rejectsMutation((value) => { value.profiles[0].unexpected = true; }, /unknown field/u);
   rejectsMutation((value) => { value.profiles[0].methods[0].method_id = '/nimi.runtime.v1.RuntimeLocalService/DoesNotExist'; }, /unknown RPC method/u);
-  rejectsMutation((value) => { value.profiles[0].methods[0].intent_refs = ['missing_intent']; }, /unknown intent_ref/u);
-  rejectsMutation((value) => { value.profiles[0].methods[0].kind = 'server_stream'; }, /RPC kind mismatch/u);
 });
 
-test('rejects missing intent, postcondition, negative-test, and Avatar capability closure', () => {
-  rejectsMutation((value) => { value.profiles[0].methods[0].intent_refs = []; }, /intent_refs must be a non-empty/u);
-  rejectsMutation((value) => { value.intents.product_control.owner_postcondition_refs = []; }, /owner_postcondition_refs must be a non-empty/u);
-  rejectsMutation((value) => { value.profiles[0].negative_test_ref = 'missing'; }, /unknown negative_test_ref/u);
+test('rejects malformed required profiles and Avatar capability closure', () => {
+  rejectsMutation((value) => { value.profiles[2].identity_class = 'account'; }, /identity_class must be avatar/u);
+  rejectsMutation((value) => { delete value.profiles[2].account_caller; }, /account_caller must be an object/u);
   rejectsMutation((value) => { delete value.profiles[2].methods[0].capability; }, /capability must be a non-empty/u);
-});
-
-test('rejects transport mapping drift and desktop-coupled Avatar fields', () => {
-  rejectsMutation((value) => { value.physical_endpoint_binding = 'desktop_control'; }, /physical_endpoint_binding must be verified_platform_transport/u);
-  rejectsMutation((value) => { value.logical_transport_class_by_profile.bundled_avatar_v1 = 'desktop_control'; }, /logical transport class mismatch/u);
-  rejectsMutation((value) => { value.profiles[2].logical_transport_class = 'desktop_control'; }, /logical_transport_class must match its profile mapping/u);
-  for (const field of [
-    'desktop_account_control_inheritance',
-    'open_desktop_session_requirement',
-    'live_desktop_process_requirement',
-  ]) {
-    rejectsMutation((value) => { value.profiles[2][field] = 'required'; }, new RegExp(`${field} must be forbidden`, 'u'));
-  }
+  rejectsMutation((value) => { value.profiles[0].methods[0].capability = 'text.generate'; }, /must not duplicate non-Avatar capability authority/u);
 });

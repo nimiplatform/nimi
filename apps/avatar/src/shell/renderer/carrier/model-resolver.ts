@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Backend-agnostic ModelManifest resolver. Detects backend kind from the
 // resolved package and returns a discriminated union the rest of the

@@ -29,8 +29,8 @@ func (s *Service) SearchKeyword(ctx context.Context, req *runtimev1.SearchKeywor
 	topK := clampPageSize(req.GetTopK(), defaultSearchTopK, maxSearchTopK)
 	hits := make([]*runtimev1.KnowledgeKeywordHit, 0)
 	for _, scope := range scopes {
-		access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionSearch, req.GetContext(), scope, "runtime keyword search")
-		pages, err := s.cognitionCore.AppMemoryAccessService().SearchKnowledge(ctx, access, scope.ScopeID, query, topK)
+		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionSearch, req.GetContext(), scope)
+		pages, err := s.cognitionCore.RuntimeBridge().SearchKnowledge(ctx, access, scope.ScopeID, query, topK)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 		}
@@ -69,8 +69,8 @@ func (s *Service) SearchHybrid(ctx context.Context, req *runtimev1.SearchHybridR
 		return nil, err
 	}
 	pageSize := clampPageSize(req.GetPageSize(), defaultSearchPageSize, maxSearchPageSize)
-	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionSearch, req.GetContext(), scope, "runtime hybrid search")
-	pages, err := s.cognitionCore.AppMemoryAccessService().SearchKnowledgeHybrid(ctx, access, scope.ScopeID, query, pageSize*4)
+	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionSearch, req.GetContext(), scope)
+	pages, err := s.cognitionCore.RuntimeBridge().SearchKnowledgeHybrid(ctx, access, scope.ScopeID, query, pageSize*4)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE)
 	}

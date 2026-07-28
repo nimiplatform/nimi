@@ -1,0 +1,17 @@
+# Non-authoritative fail-closed method posture configuration.
+# Normative authority: .nimi/spec/runtime/security-core.authority.yaml
+version: 1
+posture_enum:
+  - value: anonymous_read
+  - value: authenticated_required
+  - value: binding_only_bootstrap
+  - value: protected_origin_required
+  - value: authenticated_or_protected_local_app_operation
+  - value: unavailable_by_authority
+  - value: blocked_pending_authority
+  - value: mixed
+method_shards:
+  - path: ./runtime-rpc-auth-posture/identity-access.yaml
+  - path: ./runtime-rpc-auth-posture/agent-ai-cognition.yaml
+  - path: ./runtime-rpc-auth-posture/local-connector-model.yaml
+  - path: ./runtime-rpc-auth-posture/audit-artifact.yaml

@@ -272,10 +272,6 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.companion_participation.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay":
 		return "runtime.agent.companion_participation.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate":
-		return "runtime.agent.create_realm_group_message_candidate", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence":
-		return "runtime.agent.get_realm_group_message_candidate_evidence", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot":
 		return "runtime.agent.avatar_debug.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe":

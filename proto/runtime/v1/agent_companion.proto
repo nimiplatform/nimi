@@ -29,11 +29,12 @@ enum CompanionParticipationStatus {
   COMPANION_PARTICIPATION_STATUS_CANCELED = 8;
 }
 message CompanionParticipationProjection {
+  reserved 5;
+  reserved "room_orchestration_ref";
   string projection_id = 1;
   string agent_id = 2;
   CompanionParticipationSurfaceKind surface_kind = 3;
   string profile_ref = 4;
-  string room_orchestration_ref = 5;
   CompanionParticipationTriggerSource trigger_source = 6;
   CompanionParticipationStatus status = 7;
   string candidate_ref = 8;
@@ -47,26 +48,28 @@ message CompanionParticipationProjection {
   string stream_id = 16;
 }
 message GetCompanionParticipationProjectionRequest {
+  reserved 7;
+  reserved "room_orchestration_ref";
   AgentRequestContext context = 1;
   string agent_id = 2;
   string conversation_anchor_id = 3;
   CompanionParticipationSurfaceKind surface_kind = 4;
   CompanionParticipationTriggerSource trigger_source = 5;
   string profile_ref = 6;
-  string room_orchestration_ref = 7;
   string request_id = 8;
 }
 message GetCompanionParticipationProjectionResponse {
   CompanionParticipationProjection projection = 1;
 }
 message RequestCompanionParticipationRequest {
+  reserved 7;
+  reserved "room_orchestration_ref";
   AgentRequestContext context = 1;
   string agent_id = 2;
   string conversation_anchor_id = 3;
   CompanionParticipationSurfaceKind surface_kind = 4;
   CompanionParticipationTriggerSource trigger_source = 5;
   string profile_ref = 6;
-  string room_orchestration_ref = 7;
   string request_id = 8;
   string text = 9;
   string thread_id = 10;
@@ -77,13 +80,14 @@ message RequestCompanionParticipationResponse {
   CompanionParticipationProjection projection = 1;
 }
 message CancelCompanionParticipationRequest {
+  reserved 7;
+  reserved "room_orchestration_ref";
   AgentRequestContext context = 1;
   string agent_id = 2;
   string conversation_anchor_id = 3;
   CompanionParticipationSurfaceKind surface_kind = 4;
   CompanionParticipationTriggerSource trigger_source = 5;
   string profile_ref = 6;
-  string room_orchestration_ref = 7;
   string projection_id = 8;
   string turn_id = 9;
   string reason = 10;
@@ -93,13 +97,14 @@ message CancelCompanionParticipationResponse {
   CompanionParticipationProjection projection = 1;
 }
 message OpenCompanionParticipationReplayRequest {
+  reserved 7;
+  reserved "room_orchestration_ref";
   AgentRequestContext context = 1;
   string agent_id = 2;
   string conversation_anchor_id = 3;
   CompanionParticipationSurfaceKind surface_kind = 4;
   CompanionParticipationTriggerSource trigger_source = 5;
   string profile_ref = 6;
-  string room_orchestration_ref = 7;
   string projection_id = 8;
   string request_id = 9;
 }

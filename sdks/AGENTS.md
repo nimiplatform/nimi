@@ -1,7 +1,7 @@
 # sdks/ AGENTS.md
 ## Scope
 - Applies to `sdks/**`.
-- `.nimi/spec/sdks/*.authority.yaml` owns the new SDK family(原文散文 `docs/authority/sdks-*-rationale.md`).
+- `.nimi/spec/sdks/*.authority.yaml` owns the SDK family.
 - `sdks/typescript/**` is the TypeScript-first next major `@nimiplatform/sdk`.
 - Python/Go/Rust stay generated Runtime/Realm core until TypeScript stabilizes.
 ## Hard Boundaries

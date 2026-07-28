@@ -7,7 +7,7 @@ Nimi Avatar（阿凡达）是桌面悬浮 embodiment carrier。Authority-defined
 
 ## Quick Links
 
-- [Avatar authority reader guide](../../docs/authority/avatar-embodiment-rationale.md)
+- [Avatar authority](../../.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [Live2D integration](../../docs/avatar/live2d-integration.md)
 - [VRM motion authoring](../../docs/avatar/vrm-motion-authoring.md)
 - [Module instructions](AGENTS.md)

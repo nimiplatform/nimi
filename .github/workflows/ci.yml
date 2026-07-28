@@ -118,7 +118,7 @@ jobs:
                   "${file}" =~ ^config/realm-openapi ||
                   "${file}" == "config/sdks-error-codes.yaml" ||
                   "${file}" == "config/sdks-realm-private-operation-carriers.yaml" ||
-                  "${file}" =~ ^config/spec-frozen/runtime/tables/runtime-rpc-auth-posture ||
+                  "${file}" =~ ^config/runtime-rpc-auth-posture ||
                   "${file}" == "scripts/lib/read-yaml-with-fragments.mjs" ||
                   "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
               sdk_conformance_changed=true

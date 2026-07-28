@@ -150,5 +150,3 @@ next.
 - [`config/runtime-provider-catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-provider-catalog.yaml)
 - [`config/runtime-provider-capabilities.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-provider-capabilities.yaml)
 - [`config/runtime-provider-extension-registry.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-provider-extension-registry.yaml)
-- [`config/spec-frozen/runtime/tables/connector-rpc-field-rules.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/connector-rpc-field-rules.yaml)
-- [`config/spec-frozen/runtime/tables/key-source-truth-table.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/spec-frozen/runtime/tables/key-source-truth-table.yaml)

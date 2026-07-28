@@ -1,4 +1,4 @@
-// Code generated from .nimi/spec fresh-carrier-4 authority; DO NOT EDIT.
+// Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT.
 let generatedProfileID = "macos_local_development_v1"
 let generatedProfileAdmission = "local_development_candidate_fail_closed_pending_real_acceptance"
 let generatedProfileEnvironment = "local_development"

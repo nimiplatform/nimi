@@ -1,4 +1,4 @@
-// Contract tests for docs/authority/avatar-embodiment-rationale.md.
+// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Verifies the VRM BackendBranch surface (vrm-carrier-surface.tsx). Uses
 // the runtime's loaderOverride seam to feed a stub VRM, and stubs out

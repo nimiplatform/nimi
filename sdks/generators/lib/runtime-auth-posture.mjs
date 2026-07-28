@@ -2,17 +2,14 @@ import path from 'node:path';
 
 import { generatedBy, readYaml, writeText } from './context.mjs';
 
-const AUTH_POSTURE_INDEX = 'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture.yaml';
-const AUTH_POSTURE_DIR = 'config/spec-frozen/runtime/tables/runtime-rpc-auth-posture';
+const AUTH_POSTURE_INDEX = 'config/runtime-rpc-auth-posture.yaml';
+const AUTH_POSTURE_DIR = 'config/runtime-rpc-auth-posture';
 export function writeTypescriptRuntimeAuthPostureProjection(runtime) {
   const index = readYaml(AUTH_POSTURE_INDEX);
   const rows = [];
   for (const shard of index.method_shards ?? []) {
     const shardPath = path.join(AUTH_POSTURE_DIR, path.basename(String(shard.path || '')));
     const document = readYaml(shardPath);
-    if (Number(shard.method_count) !== (document.methods ?? []).length) {
-      throw new Error(`Runtime RPC auth posture shard count mismatch in ${shardPath}`);
-    }
     for (const method of document.methods ?? []) {
       const methodId = String(method.method_id || '').trim();
       const posture = String(method.posture || '').trim();

@@ -1,6 +1,6 @@
 # Non-authoritative Desktop shell UI machine configuration.
 # Normative authority: .nimi/spec/desktop/shell-ui.authority.yaml
-# Rationale: docs/authority/desktop-shell-ui-rationale.md
+# Authority: .nimi/spec/desktop/shell-ui.authority.yaml
 version: 1
 table_family: product_catalog
 owner: desktop

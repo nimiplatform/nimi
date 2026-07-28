@@ -1,4 +1,4 @@
-// Authority: docs/authority/avatar-embodiment-rationale.md.
+// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // VRM BackendBranch surface integrates emote state, generated motion runtime,
 // lipsync driver, and projection adapter are all wired through the

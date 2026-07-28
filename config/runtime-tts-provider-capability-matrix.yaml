@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/runtime/model-catalog.authority.yaml
-# Rationale: docs/authority/runtime-model-catalog-rationale.md
+# Authority: .nimi/spec/runtime/model-catalog.authority.yaml
 version: 1
 table_family: owner_matrix
 owner: runtime

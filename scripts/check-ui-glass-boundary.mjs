@@ -31,7 +31,7 @@
 //   - Segment B (pinned known debt); each entry requires an exact canonical
 //     authority reference.
 //
-// Spec companion: docs/authority/platform-ui-design-system-rationale.md
+// Spec companion: .nimi/spec/platform/ui-design-system.authority.yaml
 //
 // Exit 0 on green. Exit 1 with a per-file violation report otherwise.
 
@@ -355,7 +355,7 @@ function main() {
     }
   }
   process.stderr.write(`\nAllowlist: ${ALLOWLIST_FILE}\n`);
-  process.stderr.write(`Spec: docs/authority/platform-ui-design-system-rationale.md\n`);
+  process.stderr.write(`Spec: .nimi/spec/platform/ui-design-system.authority.yaml\n`);
   process.exit(1);
 }
 
