@@ -17,7 +17,8 @@
 ## Retrieval Defaults
 - Start in `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/renderer`, `kit/shell/electron`, `kit/features`, `.nimi/spec/platform/ui-design-system.authority.yaml`, and `scripts/check-nimi-kit.mjs`; skip generated output except token/theme drift and generated platform docs.
 ## Verification Commands
-- `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`; `pnpm check:nimi-kit && pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform --check`
+- `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`; `pnpm check:nimi-kit`.
+- For shared design projection changes, also run `pnpm check:nimi-design-artifacts`.
 ## Semver Discipline
 - Public exports are governed by `kit/package.json`; classify every public export change before merge.
 - Patch: compatible fixes only. Minor: new export, widening, or 0.x breaking change. Major: explicit 1.0.0 or post-1.0 breaking change.

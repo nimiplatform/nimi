@@ -16,5 +16,5 @@
 - Skip generated outputs and unrelated reports when debugging a script.
 
 ## Verification Commands
-- Script-sensitive gates: `pnpm check:runtime-catalog-drift`, `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc --check`, `pnpm proto:drift-check`.
+- Script-sensitive gates: `pnpm check:runtime-catalog-drift`, `pnpm proto:drift-check`, and `pnpm spec:authority:check` when authority inputs are affected.
 - When changing script inputs, rerun the matching `generate:*` command and then the paired `check:*` command.
