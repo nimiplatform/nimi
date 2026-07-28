@@ -1,4 +1,4 @@
-/* The Field — luminous sky, specks, drifting wisps; smoked-glass panes.
+/* The Field — airless lunar sky and terrain; smoked-glass panes.
  * Ported from prototype2 (see src/shell/styles/tokens.css for the port note). */
 
 /* Border-box is scoped to shell-owned chrome only: canonical App renderers
@@ -45,6 +45,9 @@ button {
 .field {
   position: fixed;
   inset: 0;
+  /* The idle Shell field covers readiness-mounted Scenario surfaces at the
+   * base App layer (z 40). Explicit App presentation raises that layer to 46. */
+  z-index: 41;
   background: var(--sky);
   transition: background 1.2s var(--fld-ease);
   overflow: hidden;
@@ -53,6 +56,7 @@ button {
 /* stars / specks */
 .field::before {
   content: "";
+  display: none;
   position: absolute;
   inset: 0;
   background-image:
@@ -69,45 +73,11 @@ button {
     radial-gradient(1.5px 1.5px at 63% 86%, var(--sky-speck), transparent 60%),
     radial-gradient(1.1px 1.1px at 18% 40%, var(--sky-speck), transparent 60%);
   opacity: 0.65;
-  animation: speck-drift 90s linear infinite alternate;
+  animation: speck-drift 1440s linear infinite alternate;
 }
 
 @keyframes speck-drift {
   to { transform: translate3d(-1.5%, 1%, 0); }
-}
-
-/* aurora wisps */
-.wisp {
-  position: absolute;
-  width: 56vw;
-  height: 56vw;
-  min-width: 620px;
-  min-height: 620px;
-  border-radius: 50%;
-  filter: blur(110px);
-  pointer-events: none;
-}
-
-.wisp.a {
-  top: -22%;
-  left: -10%;
-  background: radial-gradient(circle, var(--sky-wisp-1), transparent 66%);
-  animation: wisp-a 42s ease-in-out infinite alternate;
-}
-
-.wisp.b {
-  right: -16%;
-  bottom: -30%;
-  background: radial-gradient(circle, var(--sky-wisp-2), transparent 66%);
-  animation: wisp-b 54s ease-in-out infinite alternate;
-}
-
-@keyframes wisp-a {
-  to { transform: translate3d(7vw, 5vh, 0) scale(1.1); }
-}
-
-@keyframes wisp-b {
-  to { transform: translate3d(-6vw, -4vh, 0) scale(1.14); }
 }
 
 /* — Shared type roles — */
@@ -186,7 +156,6 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wisp,
   .field::before { animation: none !important; }
   .pane-float { animation: none !important; translate: none; }
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -310,4 +279,23 @@ button {
   border-color: rgba(74, 222, 128, 0.4);
   background: rgba(74, 222, 128, 0.1);
   cursor: default;
+}
+
+.sky-panel-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.sky-panel-preset {
+  align-self: stretch;
+  margin: 2px 0 6px;
+  padding-inline: 0;
+  text-align: center;
+}
+
+.sky-panel-playback {
+  align-self: stretch;
+  width: 100%;
+  text-align: center;
 }

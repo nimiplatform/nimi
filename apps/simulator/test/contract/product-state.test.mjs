@@ -6,7 +6,10 @@ import test from 'node:test';
 import { parse } from 'yaml';
 
 import { createSimulatorStateEngine } from '../../src/state-engine/engine.ts';
-import { SIMULATOR_PRODUCT_COMMANDS as CMD } from '../../src/state-engine/product-state.ts';
+import {
+  parseShellProductState,
+  SIMULATOR_PRODUCT_COMMANDS as CMD,
+} from '../../src/state-engine/product-state.ts';
 import { SIMULATOR_PRODUCT_FLOWS } from '../../src/state-engine/product-flows.ts';
 import { validateSimulatorScenario } from '../../build/config.mjs';
 
@@ -44,16 +47,28 @@ async function dispatch(engine, type, payload, issuer = SHELL) {
   return result;
 }
 
+function stepCurrentFlow(engine) {
+  const { flowId, stepIndex } = productOf(engine).flow;
+  return dispatch(engine, CMD.flowStep, { flowId, stepIndex });
+}
+
 test('scenario seeds the shell product partition with grants, ledger, and idle flow', () => {
   const engine = createEngine();
   const product = productOf(engine);
   assert.equal(product.persona, null);
   assert.deepEqual(product.agent, { status: 'idle', location: 'cradle', carry: null });
-  assert.equal(product.grants.length, 3);
-  assert.deepEqual(product.grants.map((grant) => [grant.id, grant.status]), [
-    ['g-world-write', 'active'],
-    ['g-presence-read', 'active'],
-    ['g-local-agent-context-projection', 'revoked'],
+  assert.equal(product.grants.length, 5);
+  assert.deepEqual(product.grants.map((grant) => [
+    grant.id,
+    grant.status,
+    grant.day,
+    grant.generatedDate,
+  ]), [
+    ['g-world-write', 'active', 'today', '2026-07-27'],
+    ['g-presence-read', 'active', 'today', '2026-07-27'],
+    ['g-local-agent-context-projection', 'revoked', 'earlier', '2026-07-26'],
+    ['g-journal-read', 'pending', 'today', '2026-07-27'],
+    ['g-footprint-weekly', 'pending', 'earlier', '2026-07-24'],
   ]);
   assert.equal(product.ledger.length, 6);
   assert.equal(product.ledger.filter((entry) => entry.history === true).length, 3);
@@ -92,6 +107,42 @@ test('grant toggle flips status and appends a deterministic delegation ledger en
   assert.equal(unknown.error.code, 'SIMULATOR_INVALID_PAYLOAD');
 });
 
+test('pending grants resolve into session-scoped engine truth', async () => {
+  const engine = createEngine();
+  const accepted = await dispatch(engine, CMD.grantResolve, {
+    grantId: 'g-journal-read',
+    accept: true,
+  });
+  assert.equal(accepted.ok, true);
+  assert.deepEqual(accepted.value, { grantId: 'g-journal-read', status: 'active' });
+  let grant = productOf(engine).grants.find((entry) => entry.id === 'g-journal-read');
+  assert.equal(grant.status, 'active');
+  assert.equal(grant.receipt.validity, '本次会话');
+  assert.equal(grant.receipt.expiry, '本次模拟会话结束时失效');
+  assert.equal(productOf(engine).ledger.at(-1).title, '授权 · 心情日记读取');
+  assert.equal(productOf(engine).ledger.at(-1).result, 'committed');
+
+  const denied = await dispatch(engine, CMD.grantResolve, {
+    grantId: 'g-footprint-weekly',
+    accept: false,
+  });
+  assert.equal(denied.ok, true);
+  assert.deepEqual(denied.value, { grantId: 'g-footprint-weekly', status: 'revoked' });
+  grant = productOf(engine).grants.find((entry) => entry.id === 'g-footprint-weekly');
+  assert.equal(grant.status, 'revoked');
+  assert.equal(grant.receipt.expiry, '已撤销');
+  assert.equal(productOf(engine).ledger.at(-1).result, 'denied');
+});
+
+test('Shell product projection rejects malformed nested grant state', () => {
+  const product = structuredClone(productOf(createEngine()));
+  product.grants[0].receipt.validity = '长期有效';
+  assert.throws(
+    () => parseShellProductState(product),
+    /SIMULATOR_PRODUCT_STATE_INVALID/u,
+  );
+});
+
 test('world.pin flow runs its declared steps to completion as engine truth', async () => {
   const engine = createEngine();
   const flow = SIMULATOR_PRODUCT_FLOWS['world.pin'];
@@ -101,12 +152,19 @@ test('world.pin flow runs its declared steps to completion as engine truth', asy
   // Step 0 is an engine-effect (agent) step: no directive is published.
   assert.equal(productOf(engine).flow.currentDirective, null);
 
+  const legacyPayload = await dispatch(engine, CMD.flowStep, {});
+  assert.equal(legacyPayload.ok, false);
+  assert.equal(legacyPayload.error.code, 'SIMULATOR_INVALID_PAYLOAD');
+  const stalePosition = await dispatch(engine, CMD.flowStep, { flowId: 'world.pin', stepIndex: 1 });
+  assert.equal(stalePosition.ok, false);
+  assert.equal(stalePosition.error.code, 'SIMULATOR_INVALID_LIFECYCLE');
+
   for (let index = 0; index < flow.steps.length - 1; index += 1) {
-    const stepped = await dispatch(engine, CMD.flowStep, {});
+    const stepped = await stepCurrentFlow(engine);
     assert.equal(stepped.ok, true, `step ${index}`);
     assert.equal(stepped.value.status, 'running');
   }
-  const last = await dispatch(engine, CMD.flowStep, {});
+  const last = await stepCurrentFlow(engine);
   assert.equal(last.ok, true);
   assert.deepEqual(last.value, { flowId: 'world.pin', stepIndex: flow.steps.length, status: 'completed' });
 
@@ -119,7 +177,7 @@ test('world.pin flow runs its declared steps to completion as engine truth', asy
   assert.equal(product.flow.status, 'completed');
   assert.equal(product.flow.currentDirective, null);
 
-  const after = await dispatch(engine, CMD.flowStep, {});
+  const after = await stepCurrentFlow(engine);
   assert.equal(after.ok, false);
   assert.equal(after.error.code, 'SIMULATOR_INVALID_LIFECYCLE');
 });
@@ -136,7 +194,7 @@ test('revoked non-consentable grant blocks the flow with a typed unsupported led
   assert.equal(entry.result, 'unsupported');
   assert.equal(entry.kind, 'flow');
   assert.match(entry.title, /未提交/u);
-  const stepped = await dispatch(engine, CMD.flowStep, {});
+  const stepped = await stepCurrentFlow(engine);
   assert.equal(stepped.ok, false);
   assert.equal(stepped.error.code, 'SIMULATOR_INVALID_LIFECYCLE');
 });
@@ -175,7 +233,7 @@ test('local-agent.project flow gates on the revoked grant through consent, and a
 
   const flow = SIMULATOR_PRODUCT_FLOWS['local-agent.project'];
   for (let index = 0; index < flow.steps.length; index += 1) {
-    assert.equal((await dispatch(engine, CMD.flowStep, {})).ok, true, `step ${index}`);
+    assert.equal((await stepCurrentFlow(engine)).ok, true, `step ${index}`);
   }
   product = productOf(engine);
   assert.equal(product.flow.status, 'completed');
@@ -208,13 +266,54 @@ test('handoff flow publishes its request-interaction directive at step 1 like la
   assert.equal(handoff.ok, true);
   // Step 0 is an agent engine-effect step: no directive yet.
   assert.equal(productOf(engine).flow.currentDirective, null);
-  assert.equal((await dispatch(engine, CMD.flowStep, {})).ok, true);
+  assert.equal((await stepCurrentFlow(engine)).ok, true);
   assert.deepEqual(productOf(engine).flow.currentDirective, {
     name: 'request-interaction',
     interactionType: 'handoff.surface.commit',
     commandType: 'desktop.handoff.request',
     moduleId: 'zhiyu',
   });
+});
+
+test('flow.block commits typed failure truth and rejects stale async positions', async () => {
+  const engine = createEngine();
+  assert.equal((await dispatch(engine, CMD.flowBegin, { flowId: 'handoff.zhiyu' })).ok, true);
+  const ledgerBefore = productOf(engine).ledger.length;
+
+  const stale = await dispatch(engine, CMD.flowBlock, {
+    flowId: 'handoff.zhiyu',
+    stepIndex: 1,
+    errorCode: 'SIMULATOR_INSTANCE_DISPOSED',
+  });
+  assert.equal(stale.ok, false);
+  assert.equal(stale.error.code, 'SIMULATOR_INVALID_LIFECYCLE');
+  assert.equal(productOf(engine).ledger.length, ledgerBefore);
+  assert.equal(productOf(engine).flow.status, 'running');
+
+  const blocked = await dispatch(engine, CMD.flowBlock, {
+    flowId: 'handoff.zhiyu',
+    stepIndex: 0,
+    errorCode: 'SIMULATOR_INSTANCE_DISPOSED',
+  });
+  assert.equal(blocked.ok, true);
+  assert.deepEqual(blocked.value, {
+    flowId: 'handoff.zhiyu',
+    stepIndex: 0,
+    status: 'blocked',
+    errorCode: 'SIMULATOR_INSTANCE_DISPOSED',
+  });
+  const product = productOf(engine);
+  assert.deepEqual(product.flow, {
+    flowId: 'handoff.zhiyu',
+    stepIndex: 0,
+    status: 'blocked',
+    currentDirective: null,
+  });
+  const entry = product.ledger.at(-1);
+  assert.equal(entry.kind, 'flow');
+  assert.equal(entry.result, 'unsupported');
+  assert.match(entry.detail, /SIMULATOR_INSTANCE_DISPOSED/u);
+  assert.equal((await stepCurrentFlow(engine)).error.code, 'SIMULATOR_INVALID_LIFECYCLE');
 });
 
 test('consent deny commits a denied ledger entry and no grant flip', async () => {
@@ -318,7 +417,7 @@ test('product command sequences are deterministic across fresh engines', async (
     await dispatch(engine, CMD.grantToggle, { grantId: 'g-local-agent-context-projection' });
     await dispatch(engine, CMD.flowBegin, { flowId: 'world.pin' });
     for (let index = 0; index < SIMULATOR_PRODUCT_FLOWS['world.pin'].steps.length; index += 1) {
-      await dispatch(engine, CMD.flowStep, {});
+      await stepCurrentFlow(engine);
     }
     await dispatch(engine, CMD.personaCommit, { name: '林澈', id: 'u_7f3a', role: '生态居民 · 早期体验者' });
     return productOf(engine);

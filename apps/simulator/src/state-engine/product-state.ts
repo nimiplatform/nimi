@@ -5,7 +5,7 @@
  * commands. Follows the overlay-state conventions: one owner, closed write
  * set, fail-closed reads, no wall-clock, no host randomness.
  *
- * Authority: P-SIM-001 (simulated labeling), P-SIM-010..012, P-SIM-019.
+ * Authority: .nimi/spec/platform/simulator.authority.yaml.
  */
 
 import {
@@ -17,6 +17,7 @@ import {
   simulatorError,
   simulatorFail,
   simulatorOk,
+  type SimulatorErrorCode,
   type SimulatorResult,
 } from './errors.ts';
 import { formatCanonicalId } from './ids.ts';
@@ -99,13 +100,15 @@ export interface SimulatorShellProductState {
     readonly receipt: {
       readonly access: string;
       readonly range: string;
-      readonly validity: string;
+      readonly validity: '本次会话';
       readonly expiry: string;
       readonly restriction: string;
       readonly lastUsed: string;
     };
-    readonly status: 'active' | 'revoked';
+    readonly status: 'active' | 'revoked' | 'pending';
     readonly seeded: boolean;
+    readonly day?: 'today' | 'earlier';
+    readonly generatedDate: string;
   }[];
   readonly ledger: readonly {
     readonly id: string;
@@ -140,7 +143,7 @@ export interface SimulatorShellProductState {
  */
 export function parseShellProductState(value: JsonValue | undefined): SimulatorShellProductState | null {
   if (value === undefined) return null;
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!isValidProductState(value)) {
     throw new Error('SIMULATOR_PRODUCT_STATE_INVALID');
   }
   return value as unknown as SimulatorShellProductState;
@@ -162,42 +165,92 @@ function ledgerId(epoch: number, op: number): string {
   return `${epoch}:op:${String(op).padStart(3, '0')}`;
 }
 
-function validateLedgerEntry(entry: JsonValue): void {
-  if (!isRecord(entry)
-    || typeof entry.id !== 'string'
-    || !Number.isSafeInteger(entry.epoch)
-    || typeof entry.kind !== 'string'
-    || !PRODUCT_LEDGER_KINDS.includes(entry.kind as SimulatorProductLedgerKind)
-    || typeof entry.title !== 'string'
-    || typeof entry.detail !== 'string'
-    || !Array.isArray(entry.actors)
-    || typeof entry.result !== 'string'
-    || !PRODUCT_LEDGER_RESULTS.includes(entry.result as SimulatorProductLedgerResult)
-    || typeof entry.at !== 'string') {
-    abortIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
-  }
+function isStringArray(value: JsonValue | undefined): value is readonly string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
 }
 
-function validateGrant(grant: JsonValue): void {
-  if (!isRecord(grant)
-    || typeof grant.id !== 'string'
-    || typeof grant.title !== 'string'
-    || (grant.status !== 'active' && grant.status !== 'revoked')
-    || typeof grant.seeded !== 'boolean'
-    || !isRecord(grant.receipt)) {
-    abortIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
-  }
+function isValidLedgerEntry(entry: JsonValue): boolean {
+  return isRecord(entry)
+    && typeof entry.id === 'string'
+    && Number.isSafeInteger(entry.epoch)
+    && typeof entry.kind === 'string'
+    && PRODUCT_LEDGER_KINDS.includes(entry.kind as SimulatorProductLedgerKind)
+    && typeof entry.title === 'string'
+    && typeof entry.detail === 'string'
+    && isStringArray(entry.actors)
+    && (entry.tags === undefined || isStringArray(entry.tags))
+    && typeof entry.result === 'string'
+    && PRODUCT_LEDGER_RESULTS.includes(entry.result as SimulatorProductLedgerResult)
+    && typeof entry.at === 'string'
+    && (entry.history === undefined || typeof entry.history === 'boolean');
 }
 
-function validateFlowState(flow: JsonValue): void {
-  if (!isRecord(flow)
-    || (flow.flowId !== null && typeof flow.flowId !== 'string')
-    || !Number.isSafeInteger(flow.stepIndex)
-    || typeof flow.status !== 'string'
-    || !PRODUCT_FLOW_STATUSES.includes(flow.status as SimulatorProductFlowStatus)
-    || (flow.currentDirective !== null && !isRecord(flow.currentDirective))) {
-    abortIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
+function isValidGrant(grant: JsonValue): boolean {
+  const receipt = isRecord(grant) ? grant.receipt : undefined;
+  return isRecord(grant)
+    && typeof grant.id === 'string'
+    && typeof grant.title === 'string'
+    && typeof grant.scope === 'string'
+    && typeof grant.from === 'string'
+    && typeof grant.to === 'string'
+    && typeof grant.meta === 'string'
+    && isStringArray(grant.tags)
+    && (grant.status === 'active' || grant.status === 'revoked' || grant.status === 'pending')
+    && typeof grant.seeded === 'boolean'
+    && (grant.day === undefined || grant.day === 'today' || grant.day === 'earlier')
+    && typeof grant.generatedDate === 'string'
+    && /^\d{4}-\d{2}-\d{2}$/u.test(grant.generatedDate)
+    && isRecord(receipt)
+    && typeof receipt.access === 'string'
+    && typeof receipt.range === 'string'
+    && receipt.validity === '本次会话'
+    && typeof receipt.expiry === 'string'
+    && typeof receipt.restriction === 'string'
+    && typeof receipt.lastUsed === 'string';
+}
+
+function expiryForGrantStatus(status: 'active' | 'revoked'): string {
+  return status === 'active' ? '本次模拟会话结束时失效' : '已撤销';
+}
+
+function isValidFlowState(flow: JsonValue | undefined): boolean {
+  return isRecord(flow)
+    && (flow.flowId === null || typeof flow.flowId === 'string')
+    && Number.isSafeInteger(flow.stepIndex)
+    && (flow.stepIndex as number) >= 0
+    && typeof flow.status === 'string'
+    && PRODUCT_FLOW_STATUSES.includes(flow.status as SimulatorProductFlowStatus)
+    && (flow.currentDirective === null || isRecord(flow.currentDirective));
+}
+
+function isValidProductState(product: JsonValue | undefined): product is JsonRecord {
+  if (!isRecord(product)
+    || (product.persona !== null && (!isRecord(product.persona)
+      || typeof product.persona.name !== 'string'
+      || typeof product.persona.id !== 'string'
+      || typeof product.persona.role !== 'string'))
+    || !isRecord(product.localAgentPresentation)
+    || typeof product.localAgentPresentation.name !== 'string'
+    || typeof product.localAgentPresentation.kind !== 'string'
+    || typeof product.localAgentPresentation.mode !== 'string'
+    || !isRecord(product.agent)
+    || !PRODUCT_AGENT_STATUSES.includes(product.agent.status as SimulatorProductAgentStatus)
+    || typeof product.agent.location !== 'string'
+    || (product.agent.carry !== null && typeof product.agent.carry !== 'string')
+    || !Array.isArray(product.grants)
+    || !product.grants.every(isValidGrant)
+    || !Array.isArray(product.ledger)
+    || !product.ledger.every(isValidLedgerEntry)
+    || (product.consent !== null && (!isRecord(product.consent)
+      || typeof product.consent.flowId !== 'string'
+      || typeof product.consent.grantId !== 'string'
+      || typeof product.consent.origin !== 'string'))
+    || !isValidFlowState(product.flow)
+    || !Number.isSafeInteger(product.opSeq)
+    || (product.opSeq as number) < 0) {
+    return false;
   }
+  return true;
 }
 
 /** Reads and validates the product sub-state; null when the scenario does not seed it. */
@@ -206,20 +259,9 @@ export function readProductState(context: EngineContext): JsonRecord | null {
   if (!isRecord(shell)) abortIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
   const product = shell.product;
   if (product === undefined) return null;
-  if (!isRecord(product)
-    || (product.persona !== null && !isRecord(product.persona))
-    || !isRecord(product.localAgentPresentation)
-    || !isRecord(product.agent)
-    || !PRODUCT_AGENT_STATUSES.includes(product.agent.status as SimulatorProductAgentStatus)
-    || !Array.isArray(product.grants)
-    || !Array.isArray(product.ledger)
-    || (product.consent !== null && !isRecord(product.consent))
-    || !Number.isSafeInteger(product.opSeq)) {
+  if (!isValidProductState(product)) {
     abortIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
   }
-  for (const grant of product.grants) validateGrant(grant);
-  for (const entry of product.ledger) validateLedgerEntry(entry);
-  validateFlowState(product.flow as JsonValue);
   return product;
 }
 
@@ -318,7 +360,16 @@ class ProductEditor {
 
   setGrantStatus(grantId: string, status: 'active' | 'revoked'): void {
     const grants = this.grants().map((entry) => (
-      isRecord(entry) && entry.id === grantId ? { ...entry, status } : entry
+      isRecord(entry) && entry.id === grantId && isRecord(entry.receipt)
+        ? {
+          ...entry,
+          status,
+          receipt: {
+            ...entry.receipt,
+            expiry: expiryForGrantStatus(status),
+          },
+        }
+        : entry
     ));
     this.product = { ...this.product, grants };
     this.events.push({
@@ -464,7 +515,9 @@ function beginFlow(
     editor.appendLedger({
       kind: 'flow',
       title: `${flow.title} · 未提交`,
-      detail: `授权「${String(grant.title)}」已被撤销。操作返回稳定的 typed unsupported，未提交任何状态。`,
+      detail: grant.status === 'pending'
+        ? `授权「${String(grant.title)}」尚未授权。操作返回稳定的 typed unsupported，未提交任何状态。`
+        : `授权「${String(grant.title)}」已被撤销。操作返回稳定的 typed unsupported，未提交任何状态。`,
       actors: [flow.originLabel, '生态共享'],
       result: 'unsupported',
     });
@@ -507,13 +560,26 @@ function applyFlowStep(
   context: EngineContext,
   operation: QueuedOperation,
   editor: ProductEditor,
+  expectedFlowId: string,
+  expectedStepIndex: number,
 ): void {
   const current = editor.flow();
-  if (current.status !== 'running' || typeof current.flowId !== 'string') {
+  if (
+    current.status !== 'running'
+    || current.flowId !== expectedFlowId
+    || current.stepIndex !== expectedStepIndex
+  ) {
     failOperation(context, operation, 'SIMULATOR_INVALID_LIFECYCLE');
     return;
   }
-  const flow = flowDefinition(current.flowId);
+  const flow = flowDefinition(expectedFlowId);
+  if (flow.requiredGrant) {
+    const grant = editor.grant(flow.requiredGrant);
+    if (!grant || grant.status !== 'active') {
+      failOperation(context, operation, 'SIMULATOR_INVALID_LIFECYCLE');
+      return;
+    }
+  }
   const stepIndex = current.stepIndex as number;
   const step = flow.steps[stepIndex];
   if (!step) {
@@ -546,6 +612,45 @@ function applyFlowStep(
   });
 }
 
+function blockFlow(
+  context: EngineContext,
+  operation: QueuedOperation,
+  editor: ProductEditor,
+  expectedFlowId: string,
+  expectedStepIndex: number,
+  errorCode: SimulatorErrorCode,
+): void {
+  const current = editor.flow();
+  if (
+    current.status !== 'running'
+    || current.flowId !== expectedFlowId
+    || current.stepIndex !== expectedStepIndex
+  ) {
+    failOperation(context, operation, 'SIMULATOR_INVALID_LIFECYCLE');
+    return;
+  }
+  const flow = flowDefinition(expectedFlowId);
+  editor.appendLedger({
+    kind: 'flow',
+    title: `${flow.title} · 未提交`,
+    detail: `步骤 ${expectedStepIndex + 1} 执行失败（${errorCode}）。流程已阻断，未提交该步骤及后续状态。`,
+    actors: [flow.originLabel, 'Simulator Shell'],
+    result: 'unsupported',
+  });
+  editor.setFlow({
+    flowId: flow.id,
+    stepIndex: expectedStepIndex,
+    status: 'blocked',
+    currentDirective: null,
+  });
+  settleProductCommand(context, operation, editor, {
+    flowId: flow.id,
+    stepIndex: expectedStepIndex,
+    status: 'blocked',
+    errorCode,
+  });
+}
+
 export function processProductCommand(context: EngineContext, operation: QueuedOperation): boolean {
   const type = operation.type;
   if (!Object.values(SIMULATOR_PRODUCT_COMMANDS).includes(type as never)) return false;
@@ -557,7 +662,7 @@ export function processProductCommand(context: EngineContext, operation: QueuedO
   if (type === SIMULATOR_PRODUCT_COMMANDS.grantToggle) {
     const grantId = payload.grantId as string;
     const grant = editor.grant(grantId);
-    if (!grant) {
+    if (!grant || grant.status === 'pending') {
       failOperation(context, operation, 'SIMULATOR_INVALID_PAYLOAD');
       return true;
     }
@@ -571,6 +676,29 @@ export function processProductCommand(context: EngineContext, operation: QueuedO
         : `你在基座重新授权了「${String(grant.title)}」。`,
       actors: [editor.personaName(), String(grant.from)],
       result: next === 'revoked' ? 'info' : 'committed',
+    });
+    settleProductCommand(context, operation, editor, { grantId, status: next });
+    return true;
+  }
+
+  if (type === SIMULATOR_PRODUCT_COMMANDS.grantResolve) {
+    const grantId = payload.grantId as string;
+    const grant = editor.grant(grantId);
+    if (!grant || grant.status !== 'pending') {
+      failOperation(context, operation, 'SIMULATOR_INVALID_LIFECYCLE');
+      return true;
+    }
+    const accept = payload.accept === true;
+    const next = accept ? 'active' : 'revoked';
+    editor.setGrantStatus(grantId, next);
+    editor.appendLedger({
+      kind: 'delegation',
+      title: accept ? `授权 · ${String(grant.title)}` : `拒绝授权 · ${String(grant.title)}`,
+      detail: accept
+        ? `你在授权卡片堆批准了「${String(grant.title)}」。`
+        : `你在授权卡片堆拒绝了「${String(grant.title)}」。未提交任何状态，目标应用未收到内容。`,
+      actors: [editor.personaName(), String(grant.from)],
+      result: accept ? 'committed' : 'denied',
     });
     settleProductCommand(context, operation, editor, { grantId, status: next });
     return true;
@@ -629,8 +757,26 @@ export function processProductCommand(context: EngineContext, operation: QueuedO
     return true;
   }
 
+  if (type === SIMULATOR_PRODUCT_COMMANDS.flowBlock) {
+    blockFlow(
+      context,
+      operation,
+      editor,
+      payload.flowId as string,
+      payload.stepIndex as number,
+      payload.errorCode as SimulatorErrorCode,
+    );
+    return true;
+  }
+
   if (type === SIMULATOR_PRODUCT_COMMANDS.flowStep) {
-    applyFlowStep(context, operation, editor);
+    applyFlowStep(
+      context,
+      operation,
+      editor,
+      payload.flowId as string,
+      payload.stepIndex as number,
+    );
     return true;
   }
 

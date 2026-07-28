@@ -50,7 +50,6 @@ const AGENT_FEED = [
   { text: '为你恢复上次对话上下文', done: false, at: '14:27' },
 ];
 const AGENT_LAST_CHAT = { text: '回声谷 · 低语回廊，停在第三段回声', at: '昨天 22:41' };
-const AGENT_RECENT = '你在优化世界入口与 LocalAgent 投影方式';
 
 /** LocalAgent projection chip + expandable panel (cradle pane content).
  * 继续上次对话 runs the consentable context-projection demo flow. */
@@ -102,7 +101,6 @@ export function AgentHud({ onOpenChange }: { onOpenChange?: (open: boolean) => v
               <b>
                 {localAgentPresentation.name} · {AGENT_STATUS[agent.status] ?? agent.status}
               </b>
-              <span>{localAgentPresentation.kind}</span>
             </span>
             <button
               type="button"
@@ -146,13 +144,6 @@ export function AgentHud({ onOpenChange }: { onOpenChange?: (open: boolean) => v
             <span className="agent-hud-meta">{AGENT_LAST_CHAT.at}</span>
           </section>
 
-          <section className="agent-hud-section">
-            <span className="agent-hud-label">
-              <i className="agent-hud-label-ico" aria-hidden /> 你最近在做
-            </span>
-            <p className="agent-hud-note">{AGENT_RECENT}</p>
-          </section>
-
           <div className="agent-hud-actions">
             <button
               type="button"
@@ -175,8 +166,6 @@ export function AgentHud({ onOpenChange }: { onOpenChange?: (open: boolean) => v
               <BarChartIcon size={13} /> 查看今日轨迹
             </button>
           </div>
-
-          <span className="agent-hud-meta">模拟演示 · 以上动态为演示投影，不是真实记忆。</span>
         </div>
       ) : null}
     </div>

@@ -19,6 +19,7 @@ export interface ShellModule {
 }
 
 export interface ShellActions {
+  readonly epoch: number;
   readonly phase: 'open' | 'resetting' | 'terminal';
   readonly route: SimulatorShellRoute;
   readonly instances: readonly SimulatorSessionInstanceView[];
@@ -42,11 +43,6 @@ export function useShellActions(): ShellActions {
   const ctx = useContext(ShellActionsContext);
   if (!ctx) throw new Error('useShellActions must be used inside ShellActionsProvider');
   return ctx;
-}
-
-/** Module accent token (falls back to a neutral tone for unknown modules). */
-export function moduleAccent(moduleId: string): string {
-  return `var(--mod-${moduleId}, #a8b8d6)`;
 }
 
 /** First live (non-disposed) instance of a module, in creation order. */

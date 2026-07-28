@@ -10,7 +10,7 @@
  * engine reseeds and this provider simply re-reads.
  *
  * Components consume only the `ShellProductPresentation` interface; every
- * surface keeps the simulated labeling (P-SIM-001).
+ * surface keeps the simulated labeling required by the Simulator authority.
  */
 
 import {
@@ -24,7 +24,12 @@ import {
   type ReactNode,
 } from 'react';
 import type { JsonValue } from '../../state-engine/json-value.ts';
-import type { SimulatorResult } from '../../state-engine/errors.ts';
+import {
+  simulatorError,
+  simulatorFail,
+  simulatorOk,
+  type SimulatorResult,
+} from '../../state-engine/errors.ts';
 import type {
   SimulatorProductAgentStatus,
   SimulatorProductFlowDefinition,
@@ -137,6 +142,7 @@ export interface ShellProductPresentation {
   readonly runFlow: (flowId: string) => void;
   readonly resolveConsent: (accept: boolean) => void;
   readonly toggleGrant: (grantId: string) => void;
+  readonly resolveGrant: (grantId: string, accept: boolean) => void;
   readonly toggleLedger: () => void;
   readonly setLedgerFilter: (filter: LedgerFilter) => void;
 }
@@ -146,7 +152,7 @@ const ProductPresentationContext = createContext<ShellProductPresentation | null
 const STEP_DELAY = 640;
 const BRIDGE_DELAY = 780;
 
-interface FlowDirective {
+export interface FlowDirective {
   readonly name: string;
   readonly moduleId?: string | null;
   readonly text?: string | null;
@@ -168,6 +174,133 @@ function asDirective(value: JsonValue): FlowDirective | null {
   return typeof record.name === 'string' ? record as unknown as FlowDirective : null;
 }
 
+export async function emitPresentationInteraction(input: {
+  readonly directive: FlowDirective;
+  readonly flowId: string;
+  readonly stepIndex: number;
+  readonly instances: readonly {
+    readonly instanceId: string;
+    readonly moduleId: string;
+    readonly status: string;
+  }[];
+  readonly modules: readonly {
+    readonly moduleId: string;
+    readonly surfaces: readonly { readonly id: string }[];
+  }[];
+  readonly emitInteraction: ProductEnginePorts['emitInteraction'];
+}): Promise<SimulatorResult<JsonValue>> {
+  const { directive } = input;
+  if (!directive.interactionType || !directive.moduleId || !directive.commandType) {
+    return simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
+  }
+  const origin = input.instances.find(
+    (entry) => entry.moduleId === 'desktop' && entry.status !== 'disposed',
+  );
+  if (!origin) {
+    return simulatorFail(simulatorError('SIMULATOR_INSTANCE_DISPOSED', { moduleId: 'desktop' }));
+  }
+
+  let payload: JsonValue;
+  if (
+    directive.interactionType === 'handoff.surface.commit'
+    && directive.commandType === 'desktop.handoff.request'
+  ) {
+    const surface = input.modules.find((module) => module.moduleId === directive.moduleId)?.surfaces[0];
+    if (!surface) {
+      return simulatorFail(simulatorError('SIMULATOR_UNSUPPORTED', { moduleId: directive.moduleId }));
+    }
+    payload = {
+      targetSurfaceId: surface.id,
+      route: SIMULATOR_PRODUCT_HANDOFF_ROUTE as unknown as JsonValue,
+      card: HANDOFF_CARD as unknown as JsonValue,
+    };
+  } else if (
+    directive.interactionType === 'local-agent.context.project'
+    && directive.commandType === 'desktop.context-projection.request'
+  ) {
+    payload = {
+      carry: SIMULATOR_PRODUCT_LOCAL_AGENT_CONTEXT_SUMMARY,
+      card: CARRY_CARD as unknown as JsonValue,
+    };
+  } else {
+    return simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE', { moduleId: 'desktop' }));
+  }
+
+  try {
+    return await input.emitInteraction({
+      type: directive.interactionType,
+      sourceModuleId: 'desktop',
+      sourceInstanceId: origin.instanceId,
+      targets: [directive.moduleId],
+      payload,
+      interactionId: `${origin.instanceId}:shell-flow:${input.flowId}:${input.stepIndex}`,
+    });
+  } catch {
+    return simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE', {
+      moduleId: 'desktop',
+      instanceId: origin.instanceId,
+    }));
+  }
+}
+
+export interface PresentationFlowTickOutcome {
+  readonly directive: SimulatorResult<JsonValue>;
+  readonly progression: SimulatorResult<JsonValue> | null;
+  readonly settlement: SimulatorResult<JsonValue>;
+}
+
+/**
+ * Executes one published flow position. A directive failure never advances
+ * the flow: it is converted into a guarded `flow.block` commit. The expected
+ * flow id/index carried by both commands prevents a late async result from
+ * mutating a reset or replacement flow.
+ */
+export async function advancePresentationFlow(input: {
+  readonly flowId: string;
+  readonly stepIndex: number;
+  readonly runDirective: () => Promise<SimulatorResult<JsonValue>>;
+  readonly dispatchProductCommand: ProductEnginePorts['dispatchProductCommand'];
+}): Promise<PresentationFlowTickOutcome> {
+  const failed = (code: Parameters<typeof simulatorError>[0]): SimulatorResult<JsonValue> => (
+    simulatorFail(simulatorError(code))
+  );
+  const dispatch = async (type: string, payload: JsonValue): Promise<SimulatorResult<JsonValue>> => {
+    try {
+      return await input.dispatchProductCommand(type, payload);
+    } catch {
+      return failed('SIMULATOR_INTEGRITY_FAILURE');
+    }
+  };
+  let directive: SimulatorResult<JsonValue>;
+  try {
+    directive = await input.runDirective();
+  } catch {
+    directive = failed('SIMULATOR_INTEGRITY_FAILURE');
+  }
+
+  if (!directive.ok) {
+    const settlement = await dispatch('simulator.product.flow.block', {
+      flowId: input.flowId,
+      stepIndex: input.stepIndex,
+      errorCode: directive.error.code,
+    });
+    return { directive, progression: null, settlement };
+  }
+
+  const progression = await dispatch('simulator.product.flow.step', {
+    flowId: input.flowId,
+    stepIndex: input.stepIndex,
+  });
+  if (progression.ok) return { directive, progression, settlement: progression };
+
+  const settlement = await dispatch('simulator.product.flow.block', {
+    flowId: input.flowId,
+    stepIndex: input.stepIndex,
+    errorCode: progression.error.code,
+  });
+  return { directive, progression, settlement };
+}
+
 export function ProductPresentationProvider({
   ports,
   children,
@@ -180,6 +313,8 @@ export function ProductPresentationProvider({
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [ledgerFilter, setLedgerFilter] = useState<LedgerFilter>('all');
   const [bridge, setBridge] = useState<PresentationBridge | null>(null);
+  const bridgeRef = useRef<PresentationBridge | null>(bridge);
+  bridgeRef.current = bridge;
 
   const product = ports?.productState() ?? null;
   const flow = product?.flow ?? null;
@@ -192,30 +327,33 @@ export function ProductPresentationProvider({
     latest.current.ui.showToast({ title: label, detail: result.error.code });
   }, []);
 
-  const focusModule = useCallback((moduleId: string) => {
+  const focusModule = useCallback((moduleId: string): SimulatorResult<JsonValue> => {
     const { ui: currentUi, actions: currentActions } = latest.current;
     const target = [...currentActions.instances]
       .reverse()
       .find((entry) => entry.moduleId === moduleId && entry.status !== 'disposed');
-    if (!target) return;
+    if (!target) {
+      return simulatorFail(simulatorError('SIMULATOR_INSTANCE_DISPOSED', { moduleId }));
+    }
     currentUi.restoreWindow(target.instanceId);
     currentUi.focusWindow(target.instanceId);
+    return simulatorOk({ directive: 'focus-app', moduleId });
   }, []);
 
-  const openModule = useCallback((moduleId: string) => {
-    const { actions: currentActions } = latest.current;
-    const surface = currentActions.modules.find((module) => module.moduleId === moduleId)?.surfaces[0];
-    if (surface) currentActions.open(moduleId, surface.id);
-  }, []);
-
-  const measureBridge = useCallback((): PresentationBridge => {
+  const measureBridge = useCallback((): SimulatorResult<PresentationBridge> => {
     const { ui: currentUi, actions: currentActions } = latest.current;
     const firstOf = (moduleId: string) => currentActions.instances
       .find((entry) => entry.moduleId === moduleId && entry.status !== 'disposed');
     const desktop = firstOf('desktop');
     const zhiyu = firstOf('zhiyu');
+    if (!desktop) {
+      return simulatorFail(simulatorError('SIMULATOR_INSTANCE_DISPOSED', { moduleId: 'desktop' }));
+    }
+    if (!zhiyu) {
+      return simulatorFail(simulatorError('SIMULATOR_INSTANCE_DISPOSED', { moduleId: 'zhiyu' }));
+    }
     const source = centerOf(
-      desktop ? currentUi.stageElement(desktop.instanceId) : null,
+      currentUi.stageElement(desktop.instanceId),
       { x: window.innerWidth * 0.3, y: window.innerHeight * 0.4 },
     );
     const chip = centerOf(document.querySelector('[data-agent-chip]'), {
@@ -223,86 +361,101 @@ export function ProductPresentationProvider({
       y: 64,
     });
     const target = centerOf(
-      zhiyu ? currentUi.stageElement(zhiyu.instanceId) : null,
+      currentUi.stageElement(zhiyu.instanceId),
       { x: window.innerWidth * 0.5, y: window.innerHeight * 0.7 },
     );
-    return { points: [source, chip, target], stage: 'toAgent' };
+    return simulatorOk({ points: [source, chip, target], stage: 'toAgent' });
   }, []);
 
-  const dispatchInteraction = useCallback((directive: FlowDirective, flowId: string, stepIndex: number) => {
-    const { ui: currentUi, actions: currentActions, ports: currentPorts } = latest.current;
-    if (!currentPorts || !directive.interactionType || !directive.moduleId) return;
-    const origin = currentActions.instances.find(
-      (entry) => entry.moduleId === 'desktop' && entry.status !== 'disposed',
-    );
-    if (!origin) {
-      currentUi.showToast({
-        title: '交接未提交',
-        detail: 'SIMULATOR_INSTANCE_DISPOSED — no live desktop origin instance',
-      });
-      return;
+  const dispatchInteraction = useCallback((
+    directive: FlowDirective,
+    flowId: string,
+    stepIndex: number,
+  ): Promise<SimulatorResult<JsonValue>> => {
+    const { actions: currentActions, ports: currentPorts } = latest.current;
+    if (!currentPorts) {
+      return Promise.resolve(simulatorFail(simulatorError('SIMULATOR_UNSUPPORTED')));
     }
-    const payload: JsonValue = directive.commandType === 'desktop.handoff.request'
-      ? {
-          targetSurfaceId: currentActions.modules.find((module) => module.moduleId === directive.moduleId)
-            ?.surfaces[0]?.id ?? 'main',
-          route: SIMULATOR_PRODUCT_HANDOFF_ROUTE as unknown as JsonValue,
-          card: HANDOFF_CARD as unknown as JsonValue,
-        }
-      : {
-          carry: SIMULATOR_PRODUCT_LOCAL_AGENT_CONTEXT_SUMMARY,
-          card: CARRY_CARD as unknown as JsonValue,
-        };
-    void currentPorts.emitInteraction({
-      type: directive.interactionType,
-      sourceModuleId: 'desktop',
-      sourceInstanceId: origin.instanceId,
-      targets: [directive.moduleId],
-      payload,
-      interactionId: `${origin.instanceId}:shell-flow:${flowId}:${stepIndex}`,
-    }).then((result) => reportFailure(result, '交接未提交'));
-  }, [reportFailure]);
+    return emitPresentationInteraction({
+      directive,
+      flowId,
+      stepIndex,
+      instances: currentActions.instances,
+      modules: currentActions.modules,
+      emitInteraction: currentPorts.emitInteraction,
+    });
+  }, []);
 
-  const runDirective = useCallback((directive: FlowDirective, flowId: string, stepIndex: number) => {
-    const { ui: currentUi } = latest.current;
+  const runDirective = useCallback(async (
+    directive: FlowDirective,
+    flowId: string,
+    stepIndex: number,
+  ): Promise<SimulatorResult<JsonValue>> => {
+    const { ui: currentUi, actions: currentActions } = latest.current;
     switch (directive.name) {
-      case 'open-app':
-        if (directive.moduleId) openModule(directive.moduleId);
-        return;
       case 'focus-app':
-        if (directive.moduleId) focusModule(directive.moduleId);
-        return;
-      case 'notice':
-        if (directive.moduleId) currentUi.setWindowNotice(directive.moduleId, directive.text ?? null);
-        return;
-      case 'toast':
-        if (directive.title && directive.detail) {
-          currentUi.showToast({ title: directive.title, detail: directive.detail });
+        return directive.moduleId
+          ? focusModule(directive.moduleId)
+          : simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
+      case 'notice': {
+        if (!directive.moduleId) {
+          return simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
         }
-        return;
-      case 'bridge-measure':
-        setBridge(measureBridge());
-        return;
-      case 'bridge-to-target':
-        setBridge((current) => (current ? { ...current, stage: 'toTarget' } : current));
-        return;
+        const target = currentActions.instances.find(
+          (entry) => entry.moduleId === directive.moduleId && entry.status !== 'disposed',
+        );
+        if (!target) {
+          return simulatorFail(simulatorError('SIMULATOR_INSTANCE_DISPOSED', {
+            moduleId: directive.moduleId,
+          }));
+        }
+        currentUi.setWindowNotice(directive.moduleId, directive.text ?? null);
+        return simulatorOk({ directive: directive.name, moduleId: directive.moduleId });
+      }
+      case 'toast': {
+        if (!directive.title || !directive.detail) {
+          return simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
+        }
+        currentUi.showToast({ title: directive.title, detail: directive.detail });
+        return simulatorOk({ directive: directive.name });
+      }
+      case 'bridge-measure': {
+        const measured = measureBridge();
+        if (!measured.ok) return simulatorFail(measured.error);
+        bridgeRef.current = measured.value;
+        setBridge(measured.value);
+        return simulatorOk({ directive: directive.name });
+      }
+      case 'bridge-to-target': {
+        const current = bridgeRef.current;
+        if (!current) {
+          return simulatorFail(simulatorError('SIMULATOR_INVALID_LIFECYCLE'));
+        }
+        const next: PresentationBridge = { ...current, stage: 'toTarget' };
+        bridgeRef.current = next;
+        setBridge(next);
+        return simulatorOk({ directive: directive.name });
+      }
       case 'bridge-done':
+        if (!bridgeRef.current) {
+          return simulatorFail(simulatorError('SIMULATOR_INVALID_LIFECYCLE'));
+        }
+        bridgeRef.current = null;
         setBridge(null);
-        return;
+        return simulatorOk({ directive: directive.name });
       case 'request-interaction':
-        dispatchInteraction(directive, flowId, stepIndex);
-        return;
+        return dispatchInteraction(directive, flowId, stepIndex);
       default:
-        return;
+        return simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
     }
-  }, [dispatchInteraction, focusModule, measureBridge, openModule]);
+  }, [dispatchInteraction, focusModule, measureBridge]);
 
   /* — Flow runner —
    * Watches engine flow state instead of assuming. While
    * `flow.status === 'running'`, each tick (640ms, 780ms for bridge
-   * directives) animates the current directive (the step about to be
-   * advanced past) and then dispatches `simulator.product.flow.step`, whose
-   * commit publishes the next directive and the next tick. Terminal statuses
+   * directives) awaits the current directive (the step about to be advanced
+   * past). Success dispatches a guarded `simulator.product.flow.step`; failure
+   * dispatches a guarded `simulator.product.flow.block`. Terminal statuses
    * (completed/blocked/denied/idle) simply stop scheduling. */
   const flowStatus = flow?.status ?? null;
   const flowId = flow?.flowId ?? null;
@@ -314,12 +467,30 @@ export function ProductPresentationProvider({
   useEffect(() => {
     if (!ports || flowStatus !== 'running' || flowId === null) return undefined;
     const delay = flowDirective?.name.startsWith('bridge') ? BRIDGE_DELAY : STEP_DELAY;
+    let active = true;
     const timer = window.setTimeout(() => {
-      if (flowDirective) runDirective(flowDirective, flowId, flowStepIndex);
-      void latest.current.ports?.dispatchProductCommand('simulator.product.flow.step', {})
-        .then((result) => reportFailure(result, '流程未提交'));
+      const currentPorts = latest.current.ports;
+      if (!currentPorts) return;
+      void advancePresentationFlow({
+        flowId,
+        stepIndex: flowStepIndex,
+        runDirective: () => (
+          flowDirective
+            ? runDirective(flowDirective, flowId, flowStepIndex)
+            : Promise.resolve(simulatorOk({ directive: null }))
+        ),
+        dispatchProductCommand: currentPorts.dispatchProductCommand,
+      }).then((outcome) => {
+        if (!active) return;
+        reportFailure(outcome.directive, '流程指令失败');
+        if (outcome.progression) reportFailure(outcome.progression, '流程推进失败');
+        reportFailure(outcome.settlement, '流程失败状态未提交');
+      });
     }, delay);
-    return () => window.clearTimeout(timer);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
   }, [ports, flowStatus, flowId, flowStepIndex, flowDirective, runDirective, reportFailure]);
 
   /* Terminal transition notices (blocked/denied) as window notices on the
@@ -332,14 +503,14 @@ export function ProductPresentationProvider({
     if (prev === flowStatus || flowStatus === null) return;
     const origin = (flowId && ports?.productFlow(flowId)?.origin) || 'desktop';
     if (flowStatus === 'blocked') {
-      latest.current.ui.setWindowNotice(origin, '授权已撤销 · 操作未提交 (SIMULATOR_UNSUPPORTED)');
+      latest.current.ui.setWindowNotice(origin, '流程已阻断 · 操作未提交');
     } else if (flowStatus === 'denied') {
       latest.current.ui.setWindowNotice(origin, '已拒绝授权 · 操作未提交');
     }
   }, [ports, flowStatus, flowId]);
 
   const runFlow = useCallback((nextFlowId: string) => {
-    const { product: current, ports: currentPorts, ui: currentUi } = latest.current;
+    const { product: current, ports: currentPorts } = latest.current;
     if (!currentPorts) return;
     const currentFlow = current?.flow ?? null;
     if (current?.consent || (currentFlow && (currentFlow.status === 'running' || currentFlow.status === 'awaiting-consent'))) {
@@ -363,6 +534,13 @@ export function ProductPresentationProvider({
       .then((result) => reportFailure(result, '授权变更未提交'));
   }, [reportFailure]);
 
+  const resolveGrant = useCallback((grantId: string, accept: boolean) => {
+    const { ports: currentPorts } = latest.current;
+    if (!currentPorts) return;
+    void currentPorts.dispatchProductCommand('simulator.product.grant.resolve', { grantId, accept })
+      .then((result) => reportFailure(result, '授权处理未提交'));
+  }, [reportFailure]);
+
   const flowTitle = useCallback((nextFlowId: string) => (
     latest.current.ports?.productFlow(nextFlowId)?.title ?? null
   ), []);
@@ -382,6 +560,7 @@ export function ProductPresentationProvider({
     runFlow,
     resolveConsent,
     toggleGrant,
+    resolveGrant,
     toggleLedger: () => setLedgerOpen((open) => !open),
     setLedgerFilter,
   }), [
@@ -394,6 +573,7 @@ export function ProductPresentationProvider({
     runFlow,
     resolveConsent,
     toggleGrant,
+    resolveGrant,
   ]);
 
   return (

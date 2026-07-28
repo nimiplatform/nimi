@@ -1,7 +1,7 @@
 /**
  * Simulator shell chrome state: one React context + reducer holding the
  * shell-atmosphere (sky phase/time/intensity/motion), chrome overlays (Lens,
- * Tide, Apps page, Sky panel, Field menu, toast), and window geometry for the
+ * Apps page, Sky panel, Field menu, toast), and window geometry for the
  * imperative `.simulator-surface` sections (per-instance x/y/w/h/z/minimized).
  *
  * This is presentation state only. Product/session truth stays in the State
@@ -16,29 +16,32 @@ import {
   useReducer,
   type ReactNode,
 } from 'react';
+import { usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
 import {
-  dayTimeFromDate,
-  phaseFromDayTime,
-  PHASE_PRESET_TIME,
-  type Phase,
+  sceneTimeFromDate,
+  scenePhaseFromTime,
+  SCENE_PHASE_PRESET_TIME,
+  type ScenePhase,
 } from './sky-math.ts';
 
-export type { Phase } from './sky-math.ts';
-export type PhaseSetting = Phase | 'auto';
+export type { ScenePhase } from './sky-math.ts';
+export type ScenePhaseSetting = ScenePhase | 'auto';
 
-const PHASE_ORDER: PhaseSetting[] = ['auto', 'day', 'dusk', 'night', 'dawn'];
+const SCENE_PHASE_ORDER: ScenePhaseSetting[] = ['auto', 'day', 'dusk', 'night', 'dawn'];
+const SCENE_TIME_PANEL_TICK_MS = 1_000;
+const SCENE_TIME_BACKGROUND_TICK_MS = 15_000;
 
-export const PHASE_LABEL: Record<PhaseSetting, string> = {
-  auto: '自动 · Auto',
-  day: '昼 · Day',
-  dusk: '暮 · Dusk',
-  night: '夜 · Night',
-  dawn: '晨 · Dawn',
+export const SCENE_PHASE_LABEL: Record<ScenePhaseSetting, string> = {
+  auto: '演进 · Auto',
+  day: '月昼 · Lunar day',
+  dusk: '月暮 · Lunar dusk',
+  night: '月夜 · Lunar night',
+  dawn: '月晨 · Lunar dawn',
 };
 
-/** Time-of-day driven phase for the Auto atmosphere mode. */
-export function autoPhase(now = new Date()): Phase {
-  return phaseFromDayTime(dayTimeFromDate(now));
+/** Authored lunar-cycle phase for the automatically evolving scene. */
+export function autoScenePhase(now = new Date()): ScenePhase {
+  return scenePhaseFromTime(sceneTimeFromDate(now));
 }
 
 export interface ChromeWindowGeometry {
@@ -49,6 +52,8 @@ export interface ChromeWindowGeometry {
   readonly z: number;
   readonly minimized: boolean;
 }
+
+export type ChromeWindowBounds = Pick<ChromeWindowGeometry, 'x' | 'y' | 'w' | 'h'>;
 
 export interface ChromePaneSpot {
   readonly x: number;
@@ -68,12 +73,11 @@ export interface ChromeFieldMenu {
 }
 
 interface ChromeState {
-  readonly dayTime: number;
-  readonly autoTime: boolean;
+  readonly sceneTime: number;
+  readonly autoSceneTime: boolean;
   readonly intensity: number;
   readonly motion: number;
   readonly lensOpen: boolean;
-  readonly tide: boolean;
   readonly appsPageOpen: boolean;
   readonly skyPanelOpen: boolean;
   readonly fieldMenu: ChromeFieldMenu | null;
@@ -82,20 +86,22 @@ interface ChromeState {
   readonly windows: Readonly<Record<string, ChromeWindowGeometry>>;
   readonly windowNotices: Readonly<Record<string, string>>;
   readonly zCounter: number;
+  readonly surfaceLayerZ: number;
+  readonly homeDepthLayerZ: number;
   readonly panePos: Readonly<Record<string, ChromePaneSpot>>;
   readonly paneZs: Readonly<Record<string, number>>;
   readonly paneZCounter: number;
+  readonly homeDepthWindow: string;
 }
 
 type ChromeAction =
-  | { readonly type: 'set-day-time'; readonly t: number }
-  | { readonly type: 'tick-day-time'; readonly t: number }
-  | { readonly type: 'set-auto-time' }
-  | { readonly type: 'cycle-phase' }
+  | { readonly type: 'set-scene-time'; readonly t: number }
+  | { readonly type: 'tick-scene-time'; readonly t: number }
+  | { readonly type: 'set-auto-scene-time' }
+  | { readonly type: 'cycle-scene-phase' }
   | { readonly type: 'set-intensity'; readonly v: number }
   | { readonly type: 'set-motion'; readonly v: number }
   | { readonly type: 'set-lens-open'; readonly v: boolean }
-  | { readonly type: 'toggle-tide' }
   | { readonly type: 'set-apps-page-open'; readonly v: boolean }
   | { readonly type: 'set-sky-panel-open'; readonly v: boolean }
   | { readonly type: 'set-field-menu'; readonly menu: ChromeFieldMenu | null }
@@ -103,7 +109,9 @@ type ChromeAction =
   | { readonly type: 'show-toast'; readonly toast: ChromeToast }
   | { readonly type: 'dismiss-toast' }
   | { readonly type: 'sync-windows'; readonly instances: readonly { readonly instanceId: string; readonly moduleId: string }[] }
+  | { readonly type: 'present-window'; readonly instanceId: string; readonly moduleId: string }
   | { readonly type: 'move-window'; readonly instanceId: string; readonly x: number; readonly y: number }
+  | { readonly type: 'resize-window'; readonly instanceId: string; readonly bounds: ChromeWindowBounds }
   | { readonly type: 'focus-window'; readonly instanceId: string }
   | { readonly type: 'minimize-window'; readonly instanceId: string }
   | { readonly type: 'restore-window'; readonly instanceId: string }
@@ -112,21 +120,18 @@ type ChromeAction =
   | { readonly type: 'move-pane'; readonly paneId: string; readonly x: number; readonly y: number }
   | { readonly type: 'focus-pane'; readonly paneId: string }
   | { readonly type: 'tidy-panes' }
+  | { readonly type: 'set-home-depth-window'; readonly windowId: string }
   | { readonly type: 'viewport-resize'; readonly vw: number; readonly vh: number };
 
 /* — Spawn layout: a pure function of the viewport —
- * Every slot derives from (vw, vh); at the qualified 1440×1000 viewport each
- * formula evaluates to the exact pixel geometry required by the layout contract
- * (desktop 24/500×64 460×600, tester/zhiyu 224×288 at y 688, pane column
- * x 1002 w 414, pane slots agent/identity/modules/instances/grants/worlds).
- * Structure: a right pane column (paneW = round(vw × 0.2875), right margin
- * 24), a window zone from x 24 to paneX-34, two full-height desktop windows
- * on top (their 100vh-centered auth primary control must stay visible and
- * clickable), and four small windows tiling the bottom strip. Below the
- * ~721px/800px floor the ported media queries reflow the cradle into a
- * scrolling grid, so pinned controls stay reachable by scrolling. */
+ * The three admitted App surfaces share one large stage rectangle. Their
+ * foreground order is projected as depth by WindowManager; per-window x/y
+ * remains available when a surface is focused and dragged. */
 
 const PANE_IDS = ['identity', 'agent', 'modules', 'instances', 'grants', 'worlds'] as const;
+const SURFACE_LAYER_BASE_Z = 40;
+const HOME_DEPTH_LAYER_BASE_Z = 45;
+const SURFACE_LAYER_FOREGROUND_Z = 46;
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -153,49 +158,21 @@ interface SpawnSlot {
 }
 
 function spawnSlots(moduleId: string, vw: number, vh: number): readonly SpawnSlot[] {
-  // Compact strip mode for the media-query zone (≤720px wide or ≤800px
-  // tall): the cradle reflows into a scrolling grid there (see panes.css),
-  // so windows park as small tiles along the reserved bottom strip instead
-  // of covering pinned pane content. Slot order: desktop, tester, zhiyu
-  // pairs left to right.
-  if (vw <= 720 || vh <= 800) {
-    const w = Math.max(110, Math.floor((vw - 48 - 5 * 12) / 6));
-    const h = clampNumber(Math.round(vh * 0.18), 96, 160);
-    const y = vh - 24 - h;
-    const order = moduleId === 'desktop' ? 0 : moduleId === 'tester' ? 2 : moduleId === 'zhiyu' ? 4 : -1;
-    if (order < 0) return [];
-    return [0, 1].map((i) => ({
-      x: 24 + (order + i) * (w + 12),
-      y,
-      w,
-      h,
-    }));
-  }
-  const paneW = clampNumber(Math.round(vw * 0.2875), 340, 460);
-  const paneX = vw - 24 - paneW;
-  const zoneX = 24;
-  const zoneW = Math.max(280, paneX - 34 - zoneX);
-  const smallH = clampNumber(Math.round(vh * 0.288), 170, 288);
-  // The desktop auth logo centers at window.top + chrome + vh/2 (100vh
-  // shell): the bottom strip must start low enough for it to stay visible.
-  const bottomY = Math.max(Math.round(vh / 2 + 157), vh - 24 - smallH);
-  const desktopH = Math.min(bottomY - 24 - 64, 960);
-  const desktopW = Math.max(240, Math.floor((zoneW - 24) / 2));
-  const smallW = Math.max(110, Math.floor((zoneW - 48) / 4));
-  if (moduleId === 'desktop') {
-    return [
-      { x: zoneX, y: 64, w: desktopW, h: desktopH },
-      { x: zoneX + desktopW + 16, y: 64, w: desktopW, h: desktopH },
-    ];
-  }
-  const smallOffset = moduleId === 'tester' ? 0 : moduleId === 'zhiyu' ? 2 : -1;
-  if (smallOffset < 0) return [];
-  return [0, 1].map((i) => ({
-    x: zoneX + (smallOffset + i) * (smallW + 16),
-    y: bottomY,
-    w: smallW,
-    h: smallH,
-  }));
+  if (!['desktop', 'tester', 'zhiyu'].includes(moduleId)) return [];
+  const compact = vw <= 720 || vh <= 760;
+  const w = compact
+    ? Math.max(280, vw - 96)
+    : clampNumber(Math.round(vw * 0.64), 680, 1080);
+  const h = compact
+    ? Math.max(320, vh - 176)
+    : clampNumber(Math.round(vh * 0.7), 520, 760);
+  const x = compact
+    ? 68
+    : clampNumber(Math.round((vw - w) * 0.22), 88, 180);
+  const y = compact
+    ? 64
+    : clampNumber(Math.round((vh - h) * 0.42), 72, 148);
+  return [{ x, y, w, h }];
 }
 
 function spawnGeometry(
@@ -222,22 +199,27 @@ function spawnGeometry(
 function defaultPaneSpots(vw: number, vh: number): Record<string, ChromePaneSpot> {
   const paneW = clampNumber(Math.round(vw * 0.2875), 340, 460);
   const x = vw - 24 - paneW;
+  const identityW = clampNumber(Math.round(vw * 0.36), 420, 620);
+  const instancesW = clampNumber(Math.round(vw * 0.23), 300, 390);
+  const instancesH = clampNumber(Math.round(vh * 0.18), 150, 210);
   // modules is content-sized and scroll-clips below its full height; the
-  // instances/grants/worlds remainder splits the leftover column by the
-  // exact 190:130:74 ratio of the 1440×1000 slot.
-  const modulesH = clampNumber(Math.round(vh * 0.374), 280, 374);
+  // worlds photo card takes a fixed share of the leftover column and the
+  // instances/grants remainder splits the rest by the 19:13 ratio.
+  const modulesH = clampNumber(Math.round(vh * 0.3), 240, 300);
   const instancesY = 192 + modulesH + 8;
   const avail = vh - 16 - instancesY;
-  const instancesH = Math.max(72, Math.round((avail * 19) / 41));
-  const grantsH = Math.max(56, Math.round((avail * 13) / 41));
-  const grantsY = instancesY + instancesH + 8;
+  const worldsTarget = clampNumber(Math.round(avail * 0.45), 130, 260);
+  const split = avail - worldsTarget - 8;
+  const legacyInstancesH = Math.max(72, Math.round((split * 19) / 32));
+  const grantsH = Math.max(56, split - legacyInstancesH);
+  const grantsY = instancesY + legacyInstancesH + 8;
   const worldsY = grantsY + grantsH + 8;
   const worldsH = Math.max(30, vh - 16 - worldsY);
   return {
     agent: { x, y: 52, w: paneW, h: 52 },
-    identity: { x, y: 108, w: paneW, h: 76 },
+    identity: { x: 28, y: 70, w: identityW, h: 76 },
     modules: { x, y: 192, w: paneW, h: modulesH },
-    instances: { x, y: instancesY, w: paneW, h: instancesH },
+    instances: { x: 28, y: 174, w: instancesW, h: instancesH },
     grants: { x, y: grantsY, w: paneW, h: grantsH },
     worlds: { x, y: worldsY, w: paneW, h: worldsH },
   };
@@ -245,12 +227,11 @@ function defaultPaneSpots(vw: number, vh: number): Record<string, ChromePaneSpot
 
 function initialChromeState(): ChromeState {
   return {
-    dayTime: dayTimeFromDate(),
-    autoTime: true,
+    sceneTime: sceneTimeFromDate(),
+    autoSceneTime: true,
     intensity: 1,
     motion: 1,
     lensOpen: false,
-    tide: false,
     appsPageOpen: false,
     skyPanelOpen: false,
     fieldMenu: null,
@@ -259,9 +240,12 @@ function initialChromeState(): ChromeState {
     windows: {},
     windowNotices: {},
     zCounter: 10,
+    surfaceLayerZ: SURFACE_LAYER_BASE_Z,
+    homeDepthLayerZ: HOME_DEPTH_LAYER_BASE_Z,
     panePos: defaultPaneSpots(viewport().w, viewport().h),
     paneZs: {},
     paneZCounter: PANE_IDS.length,
+    homeDepthWindow: 'modules',
   };
 }
 
@@ -288,38 +272,106 @@ function syncWindows(
     windows[entry.instanceId] = {
       ...spawnGeometry(entry.moduleId, ordinal, Object.keys(windows).length),
       z: zCounter,
-      minimized: false,
+      minimized: true,
     };
   }
-  return changed ? { ...state, windows, zCounter } : state;
+  if (!changed) return state;
+  const hasVisibleWindow = Object.values(windows).some((geometry) => !geometry.minimized);
+  return {
+    ...state,
+    windows,
+    zCounter,
+    ...(hasVisibleWindow
+      ? {}
+      : {
+          surfaceLayerZ: SURFACE_LAYER_BASE_Z,
+          homeDepthLayerZ: HOME_DEPTH_LAYER_BASE_Z,
+        }),
+  };
 }
 
 function raiseWindow(state: ChromeState, instanceId: string): ChromeState {
   const geometry = state.windows[instanceId];
   if (!geometry) return state;
+  if (
+    geometry.z === state.zCounter
+    && state.surfaceLayerZ > state.homeDepthLayerZ
+    && !geometry.minimized
+  ) return state;
   const zCounter = state.zCounter + 1;
-  if (geometry.z === state.zCounter && !geometry.minimized) return state;
   return {
     ...state,
     zCounter,
+    surfaceLayerZ: SURFACE_LAYER_FOREGROUND_Z,
     windows: { ...state.windows, [instanceId]: { ...geometry, z: zCounter } },
+  };
+}
+
+function presentWindow(state: ChromeState, instanceId: string, moduleId: string): ChromeState {
+  const existing = state.windows[instanceId];
+  if (existing) {
+    return raiseWindow(
+      existing.minimized
+        ? {
+            ...state,
+            windows: {
+              ...state.windows,
+              [instanceId]: { ...existing, minimized: false },
+            },
+          }
+        : state,
+      instanceId,
+    );
+  }
+  const zCounter = state.zCounter + 1;
+  const next = {
+    ...state,
+    zCounter,
+    windows: {
+      ...state.windows,
+      [instanceId]: {
+        ...spawnGeometry(moduleId, 0, Object.keys(state.windows).length),
+        z: zCounter,
+        minimized: false,
+      },
+    },
+  };
+  return raiseWindow(next, instanceId);
+}
+
+function raiseHomeDepthWindow(state: ChromeState, windowId: string): ChromeState {
+  if (
+    state.homeDepthWindow === windowId
+    && state.homeDepthLayerZ > state.surfaceLayerZ
+  ) return state;
+  return {
+    ...state,
+    surfaceLayerZ: SURFACE_LAYER_BASE_Z,
+    homeDepthLayerZ: HOME_DEPTH_LAYER_BASE_Z,
+    homeDepthWindow: windowId,
   };
 }
 
 function chromeReducer(state: ChromeState, action: ChromeAction): ChromeState {
   switch (action.type) {
-    case 'set-day-time':
-      return { ...state, autoTime: false, dayTime: ((action.t % 1) + 1) % 1 };
-    case 'tick-day-time':
-      return state.autoTime && state.dayTime !== action.t ? { ...state, dayTime: action.t } : state;
-    case 'set-auto-time':
-      return { ...state, autoTime: true, dayTime: dayTimeFromDate() };
-    case 'cycle-phase': {
-      const effectivePhase = phaseFromDayTime(state.dayTime);
-      const current: PhaseSetting = state.autoTime ? 'auto' : effectivePhase;
-      const next = PHASE_ORDER[(PHASE_ORDER.indexOf(current) + 1) % PHASE_ORDER.length];
-      if (next === 'auto') return { ...state, autoTime: true, dayTime: dayTimeFromDate() };
-      return { ...state, autoTime: false, dayTime: PHASE_PRESET_TIME[next] };
+    case 'set-scene-time':
+      return { ...state, autoSceneTime: false, sceneTime: ((action.t % 1) + 1) % 1 };
+    case 'tick-scene-time':
+      return state.autoSceneTime && state.sceneTime !== action.t
+        ? { ...state, sceneTime: action.t }
+        : state;
+    case 'set-auto-scene-time':
+      return { ...state, autoSceneTime: true, sceneTime: sceneTimeFromDate() };
+    case 'cycle-scene-phase': {
+      const effectivePhase = scenePhaseFromTime(state.sceneTime);
+      const current: ScenePhaseSetting = state.autoSceneTime ? 'auto' : effectivePhase;
+      const next = SCENE_PHASE_ORDER[
+        (SCENE_PHASE_ORDER.indexOf(current) + 1) % SCENE_PHASE_ORDER.length
+      ];
+      if (next === 'auto') {
+        return { ...state, autoSceneTime: true, sceneTime: sceneTimeFromDate() };
+      }
+      return { ...state, autoSceneTime: false, sceneTime: SCENE_PHASE_PRESET_TIME[next] };
     }
     case 'set-intensity':
       return { ...state, intensity: action.v };
@@ -327,8 +379,6 @@ function chromeReducer(state: ChromeState, action: ChromeAction): ChromeState {
       return { ...state, motion: action.v };
     case 'set-lens-open':
       return state.lensOpen === action.v ? state : { ...state, lensOpen: action.v };
-    case 'toggle-tide':
-      return { ...state, tide: !state.tide };
     case 'set-apps-page-open':
       return state.appsPageOpen === action.v ? state : { ...state, appsPageOpen: action.v };
     case 'set-sky-panel-open':
@@ -343,6 +393,8 @@ function chromeReducer(state: ChromeState, action: ChromeAction): ChromeState {
       return state.toast === null ? state : { ...state, toast: null };
     case 'sync-windows':
       return syncWindows(state, action.instances);
+    case 'present-window':
+      return presentWindow(state, action.instanceId, action.moduleId);
     case 'move-window': {
       const geometry = state.windows[action.instanceId];
       if (!geometry) return state;
@@ -352,14 +404,35 @@ function chromeReducer(state: ChromeState, action: ChromeAction): ChromeState {
         windows: { ...state.windows, [action.instanceId]: { ...geometry, x: action.x, y: action.y } },
       };
     }
+    case 'resize-window': {
+      const geometry = state.windows[action.instanceId];
+      if (!geometry) return state;
+      const { x, y, w, h } = action.bounds;
+      if (geometry.x === x && geometry.y === y && geometry.w === w && geometry.h === h) return state;
+      return {
+        ...state,
+        windows: { ...state.windows, [action.instanceId]: { ...geometry, x, y, w, h } },
+      };
+    }
     case 'focus-window':
       return raiseWindow(state, action.instanceId);
     case 'minimize-window': {
       const geometry = state.windows[action.instanceId];
       if (!geometry || geometry.minimized) return state;
+      const windows = {
+        ...state.windows,
+        [action.instanceId]: { ...geometry, minimized: true },
+      };
+      const hasVisibleWindow = Object.values(windows).some((entry) => !entry.minimized);
       return {
         ...state,
-        windows: { ...state.windows, [action.instanceId]: { ...geometry, minimized: true } },
+        windows,
+        ...(hasVisibleWindow
+          ? {}
+          : {
+              surfaceLayerZ: SURFACE_LAYER_BASE_Z,
+              homeDepthLayerZ: HOME_DEPTH_LAYER_BASE_Z,
+            }),
       };
     }
     case 'restore-window': {
@@ -369,6 +442,7 @@ function chromeReducer(state: ChromeState, action: ChromeAction): ChromeState {
       return {
         ...state,
         zCounter,
+        surfaceLayerZ: SURFACE_LAYER_FOREGROUND_Z,
         windows: { ...state.windows, [action.instanceId]: { ...geometry, minimized: false, z: zCounter } },
       };
     }
@@ -403,6 +477,8 @@ function chromeReducer(state: ChromeState, action: ChromeAction): ChromeState {
     }
     case 'tidy-panes':
       return { ...state, panePos: defaultPaneSpots(viewport().w, viewport().h), paneZs: {} };
+    case 'set-home-depth-window':
+      return raiseHomeDepthWindow(state, action.windowId);
     case 'viewport-resize': {
       // Re-clamp open windows into the new bounds (positions preserved, sizes
       // capped to the viewport) and re-flow the cradle pane constellation.
@@ -438,14 +514,14 @@ function chromeReducer(state: ChromeState, action: ChromeAction): ChromeState {
 }
 
 export interface UiState {
-  readonly phase: PhaseSetting;
-  readonly effectivePhase: Phase;
-  readonly dayTime: number;
-  readonly autoTime: boolean;
+  readonly phase: ScenePhaseSetting;
+  readonly effectivePhase: ScenePhase;
+  readonly sceneTime: number;
+  readonly autoSceneTime: boolean;
   readonly intensity: number;
   readonly motion: number;
+  readonly prefersReducedMotion: boolean;
   readonly lensOpen: boolean;
-  readonly tide: boolean;
   readonly appsPageOpen: boolean;
   readonly skyPanelOpen: boolean;
   readonly fieldMenu: ChromeFieldMenu | null;
@@ -457,13 +533,15 @@ export interface UiState {
   readonly paneZs: Readonly<Record<string, number>>;
   readonly paneZCounter: number;
   readonly zCounter: number;
-  readonly setDayTime: (t: number) => void;
-  readonly setAutoTime: () => void;
-  readonly cyclePhase: () => void;
+  readonly surfaceLayerZ: number;
+  readonly homeDepthLayerZ: number;
+  readonly homeDepthWindow: string;
+  readonly setSceneTime: (t: number) => void;
+  readonly setAutoSceneTime: () => void;
+  readonly cycleScenePhase: () => void;
   readonly setIntensity: (v: number) => void;
   readonly setMotion: (v: number) => void;
   readonly setLensOpen: (v: boolean) => void;
-  readonly toggleTide: () => void;
   readonly setAppsPageOpen: (v: boolean) => void;
   readonly setSkyPanelOpen: (v: boolean) => void;
   readonly setFieldMenu: (menu: ChromeFieldMenu | null) => void;
@@ -471,7 +549,9 @@ export interface UiState {
   readonly showToast: (toast: ChromeToast) => void;
   readonly dismissToast: () => void;
   readonly syncWindows: (instances: readonly { readonly instanceId: string; readonly moduleId: string }[]) => void;
+  readonly presentWindow: (instanceId: string, moduleId: string) => void;
   readonly moveWindow: (instanceId: string, x: number, y: number) => void;
+  readonly resizeWindow: (instanceId: string, bounds: ChromeWindowBounds) => void;
   readonly focusWindow: (instanceId: string) => void;
   readonly minimizeWindow: (instanceId: string) => void;
   readonly restoreWindow: (instanceId: string) => void;
@@ -480,6 +560,7 @@ export interface UiState {
   readonly movePane: (paneId: string, x: number, y: number) => void;
   readonly focusPane: (paneId: string) => void;
   readonly tidyPanes: () => void;
+  readonly setHomeDepthWindow: (windowId: string) => void;
   readonly subscribeFamily: (familyId: string, handler: (event: unknown) => void) => (() => void) | null;
   readonly stageElement: (instanceId: string) => HTMLElement | null;
 }
@@ -497,14 +578,17 @@ export interface UiProviderProps {
 
 export function UiProvider({ children, subscribeFamily, stageElement }: UiProviderProps) {
   const [state, dispatch] = useReducer(chromeReducer, null, () => initialChromeState());
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
-    if (!state.autoTime) return undefined;
+    if (!state.autoSceneTime || prefersReducedMotion) return undefined;
     const t = window.setInterval(() => {
-      dispatch({ type: 'tick-day-time', t: dayTimeFromDate() });
-    }, 15_000);
+      dispatch({ type: 'tick-scene-time', t: sceneTimeFromDate() });
+    }, state.skyPanelOpen
+      ? SCENE_TIME_PANEL_TICK_MS
+      : SCENE_TIME_BACKGROUND_TICK_MS);
     return () => window.clearInterval(t);
-  }, [state.autoTime]);
+  }, [prefersReducedMotion, state.autoSceneTime, state.skyPanelOpen]);
 
   // Re-clamp/re-flow chrome geometry on viewport changes through the
   // admitted `viewport` listener family (rAF-coalesced, deterministic — the
@@ -527,16 +611,16 @@ export function UiProvider({ children, subscribeFamily, stageElement }: UiProvid
   }, [subscribeFamily]);
 
   const value = useMemo<UiState>(() => {
-    const effectivePhase = phaseFromDayTime(state.dayTime);
+    const effectivePhase = scenePhaseFromTime(state.sceneTime);
     return {
-      phase: state.autoTime ? 'auto' : effectivePhase,
+      phase: state.autoSceneTime ? 'auto' : effectivePhase,
       effectivePhase,
-      dayTime: state.dayTime,
-      autoTime: state.autoTime,
+      sceneTime: state.sceneTime,
+      autoSceneTime: state.autoSceneTime,
       intensity: state.intensity,
       motion: state.motion,
+      prefersReducedMotion,
       lensOpen: state.lensOpen,
-      tide: state.tide,
       appsPageOpen: state.appsPageOpen,
       skyPanelOpen: state.skyPanelOpen,
       fieldMenu: state.fieldMenu,
@@ -548,13 +632,15 @@ export function UiProvider({ children, subscribeFamily, stageElement }: UiProvid
       paneZs: state.paneZs,
       paneZCounter: state.paneZCounter,
       zCounter: state.zCounter,
-      setDayTime: (t) => dispatch({ type: 'set-day-time', t }),
-      setAutoTime: () => dispatch({ type: 'set-auto-time' }),
-      cyclePhase: () => dispatch({ type: 'cycle-phase' }),
+      surfaceLayerZ: state.surfaceLayerZ,
+      homeDepthLayerZ: state.homeDepthLayerZ,
+      homeDepthWindow: state.homeDepthWindow,
+      setSceneTime: (t) => dispatch({ type: 'set-scene-time', t }),
+      setAutoSceneTime: () => dispatch({ type: 'set-auto-scene-time' }),
+      cycleScenePhase: () => dispatch({ type: 'cycle-scene-phase' }),
       setIntensity: (v) => dispatch({ type: 'set-intensity', v }),
       setMotion: (v) => dispatch({ type: 'set-motion', v }),
       setLensOpen: (v) => dispatch({ type: 'set-lens-open', v }),
-      toggleTide: () => dispatch({ type: 'toggle-tide' }),
       setAppsPageOpen: (v) => dispatch({ type: 'set-apps-page-open', v }),
       setSkyPanelOpen: (v) => dispatch({ type: 'set-sky-panel-open', v }),
       setFieldMenu: (menu) => dispatch({ type: 'set-field-menu', menu }),
@@ -562,7 +648,9 @@ export function UiProvider({ children, subscribeFamily, stageElement }: UiProvid
       showToast: (toast) => dispatch({ type: 'show-toast', toast }),
       dismissToast: () => dispatch({ type: 'dismiss-toast' }),
       syncWindows: (instances) => dispatch({ type: 'sync-windows', instances }),
+      presentWindow: (instanceId, moduleId) => dispatch({ type: 'present-window', instanceId, moduleId }),
       moveWindow: (instanceId, x, y) => dispatch({ type: 'move-window', instanceId, x, y }),
+      resizeWindow: (instanceId, bounds) => dispatch({ type: 'resize-window', instanceId, bounds }),
       focusWindow: (instanceId) => dispatch({ type: 'focus-window', instanceId }),
       minimizeWindow: (instanceId) => dispatch({ type: 'minimize-window', instanceId }),
       restoreWindow: (instanceId) => dispatch({ type: 'restore-window', instanceId }),
@@ -571,10 +659,11 @@ export function UiProvider({ children, subscribeFamily, stageElement }: UiProvid
       movePane: (paneId, x, y) => dispatch({ type: 'move-pane', paneId, x, y }),
       focusPane: (paneId) => dispatch({ type: 'focus-pane', paneId }),
       tidyPanes: () => dispatch({ type: 'tidy-panes' }),
+      setHomeDepthWindow: (windowId) => dispatch({ type: 'set-home-depth-window', windowId }),
       subscribeFamily: subscribeFamily ?? NOOP_UNSUBSCRIBE,
       stageElement: stageElement ?? NO_STAGE,
     };
-  }, [state, subscribeFamily, stageElement]);
+  }, [prefersReducedMotion, state, subscribeFamily, stageElement]);
 
   return <UiContext.Provider value={value}>{children}</UiContext.Provider>;
 }

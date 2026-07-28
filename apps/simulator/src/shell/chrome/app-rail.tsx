@@ -1,14 +1,9 @@
 import { useUi } from './ui-context.tsx';
 import { liveInstancesOf, useShellActions } from './shell-actions.tsx';
+import { AppLogo } from './app-logo.tsx';
+import { bounceRailIcon, railIconCenter, transitionRestoreWindow } from './window-transitions.ts';
 
-/** Center of a rail icon in viewport coordinates — the animation target for
- * windows flying into / out of the left app rail. */
-export function railIconCenter(moduleId: string): { x: number; y: number } | null {
-  const el = document.querySelector<HTMLElement>(`.app-rail-btn[data-mod='${moduleId}']`);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-}
+export { railIconCenter };
 
 /** App rail — left sidebar, dock-style. Always lists every selected module;
  * a vertical bar on the icon's left edge marks running instances. Clicking an
@@ -16,9 +11,9 @@ export function railIconCenter(moduleId: string): { x: number; y: number } | nul
  * recent live window. */
 export function AppRail() {
   const { modules, instances, open } = useShellActions();
-  const { windows, focusWindow, restoreWindow, showToast } = useUi();
+  const { windows, focusWindow, restoreWindow, showToast, stageElement } = useUi();
   return (
-    <nav className="app-rail" data-nimi-material="glass-chrome" data-nimi-tone="panel" aria-label="应用栏">
+    <nav className="app-rail" aria-label="应用栏">
       {modules.map((module) => {
         const id = module.moduleId;
         const live = liveInstancesOf(instances, id);
@@ -41,20 +36,24 @@ export function AppRail() {
             aria-label={title}
             onClick={() => {
               if (latest) {
-                restoreWindow(latest.instanceId);
-                focusWindow(latest.instanceId);
+                if (minimized) {
+                  transitionRestoreWindow(stageElement(latest.instanceId), latest.instanceId, id, () => {
+                    restoreWindow(latest.instanceId);
+                    focusWindow(latest.instanceId);
+                  });
+                } else {
+                  focusWindow(latest.instanceId);
+                }
+                bounceRailIcon(id);
               } else if (module.surfaces[0]) {
+                bounceRailIcon(id);
                 open(id, module.surfaces[0].id);
               } else {
                 showToast({ title: id, detail: 'This module declares no surfaces.' });
               }
             }}
           >
-            <span className={`spine-glyph spine-glyph-${id}`} aria-hidden>
-              <i />
-              <i />
-              <i />
-            </span>
+            <AppLogo moduleId={id} size="rail" />
           </button>
         );
       })}

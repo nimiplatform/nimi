@@ -229,12 +229,17 @@ export function parseSimulatorScenario(text, label = 'config/simulator/scenario.
 }
 
 export function validateSelectedSourceDescriptor(value, label = 'selected-source') {
-  assertExact(value, ['module_id', 'root'], '');
+  assertExact(value, ['module_id', 'root', 'icon'], '');
   const moduleId = assertString(value.module_id, 'module_id', { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
   assertSimulatorSourcePath(value.root, 'root');
+  assertSimulatorSourcePath(value.icon, 'icon');
+  if (!/\.(?:jpe?g|png|webp)$/u.test(value.icon)) {
+    fail('SIM_DESCRIPTOR_VALUE', 'must be a supported image path', 'icon');
+  }
   return Object.freeze({
     module_id: moduleId,
     root: value.root,
+    icon: value.icon,
     descriptor_label: label,
   });
 }

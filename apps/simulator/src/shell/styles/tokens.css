@@ -7,10 +7,8 @@
  * as Nimi; the field itself is prototype-local (`--fld-*`).
  *
  * Port note: kit style/theme imports stay in src/styles.css (the simulator
- * foundation entry); this file carries tokens only. The night phase uses a
- * pure-CSS sky because the simulator CSP pins `img-src 'none'` — the
- * prototype's sky-night.png photo is intentionally not ported; the WebGL
- * shader generates its own procedural night terrain instead.
+ * foundation entry); this file carries tokens only. Static fallback surfaces
+ * use a representative frame exported from the live lunar renderer.
  * ------------------------------------------------------------------------- */
 
 :root {
@@ -77,42 +75,16 @@
   --nimi-radius-lg: 22px;
 }
 
-/* — Sky phases (the field itself changes with the atmosphere) — */
+/* — Static representative frame for genuine WebGL unavailability.
+ * Every phase intentionally uses the same coherent photographic scene; the
+ * fallback makes no live-lighting claim. — */
 :root,
-[data-phase='day'] {
-  --sky: linear-gradient(180deg, #2c44c2 0%, #2f6ed6 34%, #35a8dd 66%, #4fd2e8 100%);
-  --sky-speck: rgba(255, 255, 255, 0.5);
-  --sky-wisp-1: rgba(120, 220, 255, 0.28);
-  --sky-wisp-2: rgba(157, 124, 246, 0.22);
-}
-
-[data-phase='dawn'] {
-  --sky: linear-gradient(180deg, #27389a 0%, #5a63c8 38%, #a58fd8 72%, #f2c9d6 100%);
-  --sky-speck: rgba(255, 255, 255, 0.45);
-  --sky-wisp-1: rgba(255, 214, 231, 0.3);
-  --sky-wisp-2: rgba(157, 124, 246, 0.24);
-}
-
-[data-phase='dusk'] {
-  --sky: linear-gradient(180deg, #3a2a8c 0%, #7a3fa0 40%, #d0608e 74%, #f0a070 100%);
-  --sky-speck: rgba(255, 255, 255, 0.5);
-  --sky-wisp-1: rgba(255, 176, 120, 0.26);
-  --sky-wisp-2: rgba(208, 96, 142, 0.24);
-}
-
-/* Pure-CSS night sky (CSP img-src 'none'): layered radial star fields over a
- * deep indigo gradient replace the prototype's sky-night.png photo. */
+[data-phase='day'],
+[data-phase='dawn'],
+[data-phase='dusk'],
 [data-phase='night'] {
   --sky:
-    radial-gradient(1.4px 1.4px at 18% 22%, rgba(255, 242, 246, 0.8), transparent 60%),
-    radial-gradient(1.1px 1.1px at 42% 12%, rgba(255, 242, 246, 0.6), transparent 60%),
-    radial-gradient(1.7px 1.7px at 66% 30%, rgba(255, 242, 246, 0.7), transparent 60%),
-    radial-gradient(1.2px 1.2px at 84% 16%, rgba(255, 242, 246, 0.55), transparent 60%),
-    radial-gradient(1.3px 1.3px at 30% 44%, rgba(255, 242, 246, 0.5), transparent 60%),
-    radial-gradient(1.5px 1.5px at 74% 52%, rgba(255, 242, 246, 0.45), transparent 60%),
-    radial-gradient(120% 90% at 50% 110%, #2a1848 0%, transparent 60%),
-    linear-gradient(180deg, #150c30 0%, #1a0f38 52%, #241544 100%);
-  --sky-speck: rgba(255, 242, 246, 0.5);
-  --sky-wisp-1: rgba(234, 172, 192, 0.16);
-  --sky-wisp-2: rgba(167, 143, 191, 0.14);
+    #080a10 url('../../assets/sky-night.png')
+    center / cover no-repeat;
+  --sky-speck: transparent;
 }

@@ -229,11 +229,11 @@ assert.equal(firstRoots.overlay.classList.contains('nimi-ui-module--tester'), tr
 assert.equal(secondRoots.renderer.classList.contains('nimi-ui-module--tester'), true);
 assert.equal(secondRoots.overlay.classList.contains('nimi-ui-module--tester'), true);
 assert.notEqual(firstRoots.renderer.closest('.simulator-surface'), secondRoots.renderer.closest('.simulator-surface'));
-await waitForCondition(
-  () => firstRoots.renderer.textContent?.includes('Local app · Unavailable') === true
-    && firstRoots.renderer.textContent?.includes('Runtime · Simulated') === true,
-  'the canonical Tester UI to disclose unavailable identity and simulated execution',
-);
+const disclosure = browser.document.querySelector('[data-testid="simulator-status"]');
+assert.ok(disclosure instanceof browser.HTMLElement);
+assert.equal(disclosure.closest('.simulator-surface'), null);
+assert.match(disclosure.textContent ?? '', /Simulated data/u);
+assert.doesNotMatch(firstRoots.renderer.textContent ?? '', /Local app ·|Runtime ·|模拟居民/u);
 assert.doesNotMatch(firstRoots.renderer.textContent ?? '', /Runtime · (?:Ready|Connected)|Runtime is connected/u);
 assert.doesNotMatch(firstRoots.renderer.textContent ?? '', /Identity protected by Nimi Desktop/u);
 
@@ -329,6 +329,8 @@ assert.equal(surfaces.stageElement(second.value.instanceId), null);
 assert.equal(surfaces.liveSurfaceCount, 0);
 assert.equal(listeners.totalInstalledListeners(), listenerBaseline);
 assert.equal(session.instances().length, 0);
+assert.equal(disclosure.isConnected, true);
+assert.match(disclosure.textContent ?? '', /Simulated data/u);
 const resetTesterState = session.engine.getCommitted().partitions.modules.tester;
 assert.equal(Array.isArray(resetTesterState.capabilityExecutions), true);
 assert.equal(resetTesterState.capabilityExecutions.length, 0);
@@ -349,6 +351,7 @@ await act(async () => {
 assert.equal(surfaces.liveSurfaceCount, 0);
 assert.equal(listeners.totalInstalledListeners(), listenerBaseline);
 assert.deepEqual(session.instances().map((instance) => instance.status), ['disposed']);
+assert.equal(disclosure.isConnected, true);
 
 await act(async () => { reactRoot.unmount(); });
 dom.window.close();

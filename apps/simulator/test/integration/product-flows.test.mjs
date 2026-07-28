@@ -6,7 +6,12 @@ import test from 'node:test';
 import { parse } from 'yaml';
 
 import { createSimulatorStateEngine } from '../../src/state-engine/engine.ts';
+import { simulatorOk } from '../../src/state-engine/errors.ts';
 import { simulatorReferenceInteractionCatalog } from '../../src/interactions/reference-ecosystem.ts';
+import {
+  advancePresentationFlow,
+  emitPresentationInteraction,
+} from '../../src/shell/chrome/product-presentation.tsx';
 import { validateSimulatorScenario } from '../../build/config.mjs';
 import { desktopSimulatorBehavior } from '../../../desktop/src/simulator/behavior.ts';
 import { simulatorConformanceFixture as desktopFixture } from '../../../desktop/src/simulator/fixture.ts';
@@ -269,11 +274,10 @@ test('product interactions fail typed with no state commit when a target is miss
 });
 
 /* — Shell product runner sequence behavior —
- * These mirror the Shell chrome provider's dispatch loop
- * (src/shell/chrome/product-presentation.tsx): `simulator.product.flow.begin`
- * → consent gating → fixed-step `simulator.product.flow.step` ticks, emitting
- * the typed cross-app interaction envelope exactly when the engine publishes
- * a `request-interaction` directive. */
+ * These execute the production presentation runner against a real integrated
+ * State Engine. The only substituted work is DOM-only animation directives;
+ * request-interaction directives use the production envelope builder and
+ * actual module behaviors. */
 
 const SHELL_ISSUER = SHELL;
 
@@ -281,7 +285,64 @@ function shellDispatch(engine, type, payload) {
   return engine.acceptCommand(type, payload, SHELL_ISSUER);
 }
 
-async function runShellRunnerToTerminal(engine, originInstanceId, { maxTicks = 24 } = {}) {
+const PRESENTATION_MODULES = MODULES.map((module) => ({
+  moduleId: module.moduleId,
+  surfaces: [{ id: 'main' }],
+}));
+
+function presentationInstances(engine, instanceIds) {
+  return Object.values(instanceIds).map((instanceId) => {
+    const instance = engine.getCommitted().instance(instanceId);
+    return {
+      instanceId,
+      moduleId: instance.moduleId,
+      status: instance.status,
+    };
+  });
+}
+
+function presentationInteractionPort(engine) {
+  return (input) => engine.acceptCommand('simulator.interaction.emit', {
+    protocol: 'nimi.simulator.interaction/v1',
+    interactionId: input.interactionId,
+    source: { moduleId: input.sourceModuleId, instanceId: input.sourceInstanceId },
+    targets: [...input.targets],
+    type: input.type,
+    payload: input.payload,
+  }, {
+    kind: 'instance',
+    moduleId: input.sourceModuleId,
+    instanceId: input.sourceInstanceId,
+  });
+}
+
+function runPublishedDirective(engine, instanceIds, flow, directive) {
+  if (!directive) return Promise.resolve(simulatorOk({ directive: null }));
+  if (directive.name !== 'request-interaction') {
+    return Promise.resolve(simulatorOk({ directive: directive.name }));
+  }
+  return emitPresentationInteraction({
+    directive,
+    flowId: flow.flowId,
+    stepIndex: flow.stepIndex,
+    instances: presentationInstances(engine, instanceIds),
+    modules: PRESENTATION_MODULES,
+    emitInteraction: presentationInteractionPort(engine),
+  });
+}
+
+function advanceShellRunnerTick(engine, instanceIds) {
+  const flow = shellProduct(engine).flow;
+  const directive = flow.currentDirective;
+  return advancePresentationFlow({
+    flowId: flow.flowId,
+    stepIndex: flow.stepIndex,
+    runDirective: () => runPublishedDirective(engine, instanceIds, flow, directive),
+    dispatchProductCommand: (type, payload) => shellDispatch(engine, type, payload),
+  });
+}
+
+async function runShellRunnerToTerminal(engine, instanceIds, { maxTicks = 24 } = {}) {
   const seenDirectives = [];
   for (let tick = 0; tick < maxTicks; tick += 1) {
     const product = shellProduct(engine);
@@ -291,19 +352,10 @@ async function runShellRunnerToTerminal(engine, originInstanceId, { maxTicks = 2
     // included (begin/resolve commit stepDirective(flow, 0)).
     const directive = flow.currentDirective;
     seenDirectives.push(directive?.name ?? null);
-    if (directive?.name === 'request-interaction') {
-      const emitted = await engine.acceptCommand(
-        'simulator.interaction.emit',
-        interactionEnvelope(originInstanceId, directive.interactionType, {
-          carry: '回声谷解谜计划',
-          card: { title: '来自 Runtime LocalAgent · 会话摘要', detail: '模拟摘要卡片' },
-        }, [directive.moduleId]),
-        { kind: 'instance', moduleId: 'desktop', instanceId: originInstanceId },
-      );
-      assert.equal(emitted.ok, true, `interaction emit at step ${flow.stepIndex}`);
-    }
-    const stepped = await shellDispatch(engine, 'simulator.product.flow.step', {});
-    assert.equal(stepped.ok, true, `flow.step at tick ${tick}`);
+    const outcome = await advanceShellRunnerTick(engine, instanceIds);
+    assert.equal(outcome.directive.ok, true, `directive at tick ${tick}`);
+    assert.equal(outcome.progression?.ok, true, `flow.step at tick ${tick}`);
+    assert.equal(outcome.settlement.ok, true, `flow settlement at tick ${tick}`);
   }
   return { status: shellProduct(engine).flow.status, seenDirectives };
 }
@@ -328,7 +380,7 @@ test('shell runner: local-agent.project gates on consent, steps to completion, a
   assert.equal(shellProduct(engine).grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'active');
   assert.equal(shellProduct(engine).ledger.at(-1).title, '重新授权 · context 携带');
 
-  const { status, seenDirectives } = await runShellRunnerToTerminal(engine, instanceIds.desktop);
+  const { status, seenDirectives } = await runShellRunnerToTerminal(engine, instanceIds);
   assert.equal(status, 'completed');
   assert.ok(seenDirectives.includes('request-interaction'));
   assert.ok(seenDirectives.includes('bridge-measure'));
@@ -350,6 +402,65 @@ test('shell runner: local-agent.project gates on consent, steps to completion, a
     search: [{ key: 'carry', value: 'sim-local-agent-context-projection' }],
     fragment: null,
   });
+});
+
+test('shell runner: a missing Desktop origin commits blocked State Engine truth without advancing', async () => {
+  const { engine, instanceIds } = await createIntegratedEngine({ omitModule: 'desktop' });
+  assert.equal((await shellDispatch(engine, 'simulator.product.flow.begin', {
+    flowId: 'local-agent.project',
+  })).ok, true);
+  assert.equal((await shellDispatch(engine, 'simulator.product.consent.resolve', { accept: true })).ok, true);
+  const ledgerBefore = shellProduct(engine).ledger.length;
+
+  const outcome = await advanceShellRunnerTick(engine, instanceIds);
+  assert.equal(outcome.directive.ok, false);
+  assert.equal(outcome.directive.error.code, 'SIMULATOR_INSTANCE_DISPOSED');
+  assert.equal(outcome.progression, null);
+  assert.equal(outcome.settlement.ok, true);
+  assert.deepEqual(outcome.settlement.value, {
+    flowId: 'local-agent.project',
+    stepIndex: 0,
+    status: 'blocked',
+    errorCode: 'SIMULATOR_INSTANCE_DISPOSED',
+  });
+
+  const product = shellProduct(engine);
+  assert.deepEqual(product.flow, {
+    flowId: 'local-agent.project',
+    stepIndex: 0,
+    status: 'blocked',
+    currentDirective: null,
+  });
+  assert.equal(product.ledger.length, ledgerBefore + 1);
+  assert.equal(product.ledger.at(-1).result, 'unsupported');
+  assert.match(product.ledger.at(-1).detail, /SIMULATOR_INSTANCE_DISPOSED/u);
+  assert.deepEqual(product.agent, { status: 'idle', location: 'cradle', carry: null });
+});
+
+test('shell runner: an interaction target failure commits blocked truth instead of pseudo-success', async () => {
+  const { engine, instanceIds } = await createIntegratedEngine({ omitModule: 'zhiyu' });
+  assert.equal((await shellDispatch(engine, 'simulator.product.flow.begin', {
+    flowId: 'local-agent.project',
+  })).ok, true);
+  assert.equal((await shellDispatch(engine, 'simulator.product.consent.resolve', { accept: true })).ok, true);
+  const revisionBefore = engine.getCommitted().revision;
+
+  const outcome = await advanceShellRunnerTick(engine, instanceIds);
+  assert.equal(outcome.directive.ok, false);
+  assert.equal(outcome.directive.error.code, 'SIMULATOR_INSTANCE_DISPOSED');
+  assert.equal(outcome.progression, null);
+  assert.equal(outcome.settlement.ok, true);
+  assert.equal(engine.getCommitted().revision, revisionBefore + 1);
+  assert.equal(shellProduct(engine).flow.status, 'blocked');
+  assert.equal(shellProduct(engine).flow.stepIndex, 0);
+  assert.match(shellProduct(engine).ledger.at(-1).detail, /SIMULATOR_INSTANCE_DISPOSED/u);
+
+  const after = await shellDispatch(engine, 'simulator.product.flow.step', {
+    flowId: 'local-agent.project',
+    stepIndex: 0,
+  });
+  assert.equal(after.ok, false);
+  assert.equal(after.error.code, 'SIMULATOR_INVALID_LIFECYCLE');
 });
 
 test('shell runner: consent deny commits a denied entry, no grant flip, and no carry', async () => {

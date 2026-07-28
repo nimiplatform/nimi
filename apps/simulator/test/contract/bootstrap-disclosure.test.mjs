@@ -14,6 +14,7 @@ import {
 
 const simulatorRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const indexHtml = readFileSync(path.join(simulatorRoot, 'index.html'), 'utf8');
+const simulatorStyles = readFileSync(path.join(simulatorRoot, 'src/styles.css'), 'utf8');
 
 test('static HTML exposes simulation and starting status before JavaScript or CSS', () => {
   const dom = new JSDOM(indexHtml);
@@ -32,6 +33,7 @@ test('static HTML exposes simulation and starting status before JavaScript or CS
   assert.ok(indexHtml.indexOf('simulator-disclosure-root') < indexHtml.indexOf('id="root"'));
   assert.ok(indexHtml.indexOf('simulator-bootstrap-status') < indexHtml.indexOf('<script'));
   assert.equal(dom.window.document.querySelector('link[rel="icon"]')?.getAttribute('href'), 'data:,');
+  assert.match(simulatorStyles, /\.simulator-disclosure-root\s*\{[^}]*position:\s*fixed;[^}]*z-index:\s*2010099;/su);
 });
 
 test('bootstrap rejection preserves only the fixed typed failure disclosure', async () => {

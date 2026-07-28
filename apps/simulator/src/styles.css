@@ -11,6 +11,7 @@
   font-family: var(--nimi-font-sans);
   background: var(--nimi-surface-canvas);
   color: var(--nimi-text-primary);
+  --simulator-full-window-bar-height: 2.5rem;
 }
 
 body {
@@ -20,21 +21,10 @@ body {
 }
 
 .simulator-disclosure-root {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
   z-index: 2010099;
-}
-
-.simulator-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 2.5rem;
-  padding: 0.5rem 1rem;
-  color: var(--nimi-text-primary);
-  background: var(--nimi-surface-overlay);
-  border-bottom: 1px solid var(--nimi-border-subtle);
 }
 
 .simulator-empty-shell {
@@ -54,10 +44,13 @@ body {
 }
 
 .simulator-shell--full-window {
-  position: sticky;
-  top: 2.5rem;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
   z-index: 2010098;
-  padding-block: 0.5rem;
+  height: var(--simulator-full-window-bar-height);
+  padding: 0;
   background: var(--nimi-surface-overlay);
   border-bottom: 1px solid var(--nimi-border-subtle);
 }
@@ -67,9 +60,9 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  height: 100%;
 }
 
-.simulator-nav,
 .simulator-modules,
 .simulator-windows__item {
   display: flex;
@@ -107,7 +100,7 @@ body {
 }
 
 .simulator-surface[data-full-window='true'] {
-  min-height: calc(100vh - 7rem);
+  min-height: calc(100vh - var(--simulator-full-window-bar-height));
   border: 0;
   border-radius: 0;
 }

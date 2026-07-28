@@ -1,2 +1,3 @@
 module_id: tester
 root: apps/tester
+icon: src-tauri/icons/icon.png

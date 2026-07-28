@@ -3,24 +3,27 @@ import { useUi } from './ui-context.tsx';
 import { SkyCanvas } from './sky-canvas.tsx';
 
 /**
- * The Field — luminous sky container. Phase rides on this element.
- * Renders the WebGL living sky when available; CSS phase background otherwise.
+ * The Field — fixed lunar-surface scene container. Phase rides on this
+ * element. Renders the unified WebGL light model when available and a
+ * physically coherent static lunar plate otherwise.
+ *
+ * Fallback is capability-driven: SkyCanvas rejects unavailable WebGL2 and
+ * software rasterizers itself. Browser automation is not a rendering
+ * capability signal, so controlled headed development keeps the living sky.
  */
 export function Field({ phase, children }: { phase: string; children?: ReactNode }) {
-  const { dayTime, intensity, motion } = useUi();
+  const { sceneTime, autoSceneTime, intensity, motion } = useUi();
   const [glFailed, setGlFailed] = useState(false);
   const useCssSky = glFailed;
 
   return (
     <div className={useCssSky ? 'field' : 'field field--gl'} data-phase={phase}>
       {useCssSky ? (
-        <>
-          <span className="wisp a" aria-hidden />
-          <span className="wisp b" aria-hidden />
-        </>
+        null
       ) : (
         <SkyCanvas
-          dayTime={dayTime}
+          sceneTime={sceneTime}
+          autoTime={autoSceneTime}
           intensity={intensity}
           motion={motion}
           onFallback={() => setGlFailed(true)}

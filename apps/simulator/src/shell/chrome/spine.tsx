@@ -1,6 +1,7 @@
-import { useUi, PHASE_LABEL, autoPhase } from './ui-context.tsx';
-import { useShellActions } from './shell-actions.tsx';
+import { useUi, SCENE_PHASE_LABEL, autoScenePhase } from './ui-context.tsx';
+import { liveInstancesOf, useShellActions } from './shell-actions.tsx';
 import { useProductPresentation } from './product-presentation.tsx';
+import { AppLogo } from './app-logo.tsx';
 
 const AGENT_STATUS: Record<string, string> = {
   idle: '空闲',
@@ -9,16 +10,27 @@ const AGENT_STATUS: Record<string, string> = {
   acting: '行动中',
 };
 
-/** The spine — bottom floating dock. LocalAgent projection chip, a simulated world
- * marker, atmosphere controls, and the interaction ledger toggle. */
+/** The spine — bottom floating dock. LocalAgent projection chip, App launchers,
+ * atmosphere controls, and the interaction ledger toggle. */
 export function Spine() {
-  const { navigate } = useShellActions();
-  const { phase, effectivePhase, cyclePhase, skyPanelOpen, setSkyPanelOpen, showToast } = useUi();
+  const { navigate, modules, instances, open } = useShellActions();
+  const {
+    phase,
+    effectivePhase,
+    cycleScenePhase,
+    skyPanelOpen,
+    setSkyPanelOpen,
+    windows,
+    focusWindow,
+    restoreWindow,
+    setHomeDepthWindow,
+    showToast,
+  } = useUi();
   const { agent, localAgentPresentation, ledgerOpen, toggleLedger } = useProductPresentation();
   const phaseTitle =
     phase === 'auto'
-      ? `自动 · Auto（当前 ${PHASE_LABEL[effectivePhase ?? autoPhase()]}）`
-      : PHASE_LABEL[phase];
+      ? `演进 · Auto（当前 ${SCENE_PHASE_LABEL[effectivePhase ?? autoScenePhase()]}）`
+      : SCENE_PHASE_LABEL[phase];
   const where = agent.location === 'cradle' ? '@基座' : `@${agent.location}`;
   const agentTitle = `${localAgentPresentation.name} · ${AGENT_STATUS[agent.status] ?? agent.status} ${where}${agent.carry ? ` · 投影上下文 ${agent.carry}` : ''}`;
 
@@ -30,30 +42,56 @@ export function Spine() {
         title={agentTitle}
         aria-label={agentTitle}
         data-agent-chip
-        onClick={() => navigate({ kind: 'home' })}
+        onClick={() => {
+          setHomeDepthWindow('modules');
+          navigate({ kind: 'home' });
+        }}
       >
         <span className="agent-orb" data-status={agent.status} />
       </button>
       <span className="spine-sep" />
-      <button
-        type="button"
-        className="spine-btn"
-        title="世界 · 星港 Starport · simulated"
-        aria-label="世界 · 星港 Starport · simulated"
-        onClick={() => showToast({
-          title: '星港 · Starport',
-          detail: 'Simulated world marker — no live world runtime in the Simulator.',
-        })}
-      >
-        <span className="spine-world" style={{ ['--world-hue' as string]: '#45b8d6' }} />
-      </button>
+      {modules.map((module) => {
+        const id = module.moduleId;
+        const latest = liveInstancesOf(instances, id).at(-1) ?? null;
+        const minimized = latest ? windows[latest.instanceId]?.minimized === true : false;
+        const title = latest
+          ? minimized
+            ? `${id} · 已最小化 · 点击恢复`
+            : `${id} · 运行中`
+          : `打开 · ${id}`;
+
+        return (
+          <button
+            key={id}
+            type="button"
+            className="spine-btn"
+            data-mod={id}
+            data-open={latest ? true : undefined}
+            data-minimized={minimized || undefined}
+            title={title}
+            aria-label={title}
+            onClick={() => {
+              if (latest) {
+                if (minimized) restoreWindow(latest.instanceId);
+                focusWindow(latest.instanceId);
+              } else if (module.surfaces[0]) {
+                open(id, module.surfaces[0].id);
+              } else {
+                showToast({ title: id, detail: 'This module declares no surfaces.' });
+              }
+            }}
+          >
+            <AppLogo moduleId={id} size="rail" />
+          </button>
+        );
+      })}
       <span className="spine-sep" />
       <button
         type="button"
         className="spine-btn"
-        title={`换背景 · ${phaseTitle}`}
-        aria-label={`换背景 · ${phaseTitle}`}
-        onClick={cyclePhase}
+        title={`切换月昼相位 · ${phaseTitle}`}
+        aria-label={`切换月昼相位 · ${phaseTitle}`}
+        onClick={cycleScenePhase}
       >
         <span className="spine-text-glyph" aria-hidden>◐</span>
       </button>

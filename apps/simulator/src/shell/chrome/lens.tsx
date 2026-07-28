@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useUi, PHASE_LABEL } from './ui-context.tsx';
+import { useUi, SCENE_PHASE_LABEL } from './ui-context.tsx';
 import { useShellActions } from './shell-actions.tsx';
 
 interface Command {
@@ -14,9 +14,8 @@ export function Lens() {
   const {
     lensOpen,
     setLensOpen,
-    cyclePhase,
+    cycleScenePhase,
     phase,
-    toggleTide,
     setAppsPageOpen,
     setSkyPanelOpen,
   } = useUi();
@@ -44,18 +43,17 @@ export function Lens() {
       { id: 'diagnostics', label: '会话诊断', hint: 'diagnostics', run: () => navigate({ kind: 'diagnostics' }) },
       {
         id: 'phase',
-        label: `切换氛围相位（当前 ${PHASE_LABEL[phase]}）`,
-        hint: 'atmosphere',
-        run: cyclePhase,
+        label: `切换月昼相位（当前 ${SCENE_PHASE_LABEL[phase]}）`,
+        hint: 'lunar light',
+        run: cycleScenePhase,
       },
       { id: 'sky', label: '光影与时间', hint: 'light & time', run: () => setSkyPanelOpen(true) },
-      { id: 'tide', label: 'Tide 概览', hint: 'overview', run: toggleTide },
       ...(sessionPhase === 'open'
         ? [{ id: 'reset', label: '重置场景（新 epoch）', hint: 'reset', run: reset }]
         : []),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [modules, navigate, cyclePhase, phase, toggleTide, reset, sessionPhase, setAppsPageOpen, setSkyPanelOpen],
+    [modules, navigate, cycleScenePhase, phase, reset, sessionPhase, setAppsPageOpen, setSkyPanelOpen],
   );
 
   if (!lensOpen) return null;
@@ -90,7 +88,7 @@ export function Lens() {
             if (e.key === 'Enter' && matched[0]) runAndClose(matched[0]);
             if (e.key === 'Escape') setLensOpen(false);
           }}
-          placeholder="输入命令 · open, tide, phase, reset…"
+          placeholder="输入命令 · open, phase, reset…"
         />
         <div className="lens-list">
           {matched.length === 0 ? <p className="t-caption lens-empty">没有匹配的命令</p> : null}

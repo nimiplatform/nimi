@@ -21,6 +21,20 @@ pnpm --filter @nimiplatform/simulator test:contract
 pnpm --filter @nimiplatform/simulator test:integration
 ```
 
+## Current presentation
+
+- The tracked Scenario launches two independent instances of Desktop, Tester,
+  and Zhiyu. The Shell keeps a persistent simulated-data disclosure visible
+  outside App-owned surfaces.
+- `src/shell/chrome/**` provides the lunar Field, draggable App surfaces,
+  Cradle, grant dock, ledger, Lens, sky controls, and Shell-owned navigation.
+  The live scene uses WebGL when available and retains the static fallback and
+  reduced-motion behavior as presentation paths, not acceptance evidence.
+- The `shell.product` State Engine partition drives the simulated grant,
+  consent, persona, interaction-ledger, and cross-App presentation flows.
+  Scenario values remain seeded simulation data and are not account,
+  permission, or Runtime truth.
+
 ## Product boundaries
 
 - `src/state-engine/**` owns Simulator state, commands, events, scheduling, and
@@ -31,7 +45,8 @@ pnpm --filter @nimiplatform/simulator test:integration
 - `src/shell/**` owns Simulator routes, global-listener coordination,
   presentation, and module instances.
 - `build/generate-modules.mjs` validates the selected current-workspace Apps
-  and writes their direct Vite import map into `.generated/`.
+  and writes their direct Vite import map plus declared App icons into
+  `.generated/`.
 - `build/finalize-build.mjs` checks the built artifact's CSP, credential
   boundary, and guard-first entry ordering.
 

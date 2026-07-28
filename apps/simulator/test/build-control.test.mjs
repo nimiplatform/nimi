@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -32,10 +33,15 @@ function scenarioValue() {
 
 test('selected source descriptors point directly at current workspace Apps', () => {
   assert.deepEqual(
-    validateSelectedSourceDescriptor({ module_id: 'sample-app', root: 'apps/sample-app' }),
+    validateSelectedSourceDescriptor({
+      module_id: 'sample-app',
+      root: 'apps/sample-app',
+      icon: 'src/assets/icon.png',
+    }),
     {
       module_id: 'sample-app',
       root: 'apps/sample-app',
+      icon: 'src/assets/icon.png',
       descriptor_label: 'selected-source',
     },
   );
@@ -43,17 +49,30 @@ test('selected source descriptors point directly at current workspace Apps', () 
     () => validateSelectedSourceDescriptor({
       module_id: 'sample-app',
       root: 'apps/sample-app',
+      icon: 'src/assets/icon.png',
       source_revision: 'stale',
     }),
     (error) => error?.code === 'SIM_DESCRIPTOR_UNKNOWN_FIELD',
   );
   assert.throws(
-    () => validateSelectedSourceDescriptor({ module_id: 'sample-app', root: '../sample-app' }),
+    () => validateSelectedSourceDescriptor({
+      module_id: 'sample-app',
+      root: '../sample-app',
+      icon: 'src/assets/icon.png',
+    }),
+    (error) => error?.code === 'SIM_MANIFEST_PATH',
+  );
+  assert.throws(
+    () => validateSelectedSourceDescriptor({
+      module_id: 'sample-app',
+      root: 'apps/sample-app',
+      icon: '../icon.png',
+    }),
     (error) => error?.code === 'SIM_MANIFEST_PATH',
   );
   assert.throws(
     () => parseSelectedSourceDescriptor(
-      'module_id: &module sample-app\nroot: *module\n',
+      'module_id: &module sample-app\nroot: *module\nicon: src/assets/icon.png\n',
       'fixture',
     ),
     (error) => ['SIM_DESCRIPTOR_YAML_ANCHOR', 'SIM_DESCRIPTOR_YAML_ALIAS'].includes(error?.code),
@@ -66,15 +85,37 @@ test('current Simulator config selects the three workspace Apps without reposito
     config.descriptors.map((descriptor) => ({
       module_id: descriptor.module_id,
       root: descriptor.root,
+      icon: descriptor.icon,
     })),
     [
-      { module_id: 'desktop', root: 'apps/desktop' },
-      { module_id: 'tester', root: 'apps/tester' },
-      { module_id: 'zhiyu', root: 'apps/zhiyu' },
+      {
+        module_id: 'desktop',
+        root: 'apps/desktop',
+        icon: 'src/shell/renderer/assets/logo.png',
+      },
+      {
+        module_id: 'tester',
+        root: 'apps/tester',
+        icon: 'src-tauri/icons/icon.png',
+      },
+      {
+        module_id: 'zhiyu',
+        root: 'apps/zhiyu',
+        icon: 'src/shell/assets/app-icon.png',
+      },
     ],
   );
   assert.equal(config.scenario.launch.length, 6);
   assert.equal(Object.hasOwn(config.scenario, 'readiness'), false);
+});
+
+test('Shell App logos consume only selected-source generated inputs', () => {
+  const source = readFileSync(
+    path.join(REPO_ROOT, 'apps', 'simulator', 'src', 'shell', 'chrome', 'app-logo.tsx'),
+    'utf8',
+  );
+  assert.match(source, /simulatorSelectedModuleLogos/u);
+  assert.doesNotMatch(source, /apps\/(?:desktop|tester|zhiyu)|\.\.\/\.\.\/\.\.\/\.\.\//u);
 });
 
 test('Scenario validation keeps launch/state structure and rejects removed readiness policy', () => {

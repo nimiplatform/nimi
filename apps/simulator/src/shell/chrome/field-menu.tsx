@@ -4,7 +4,13 @@ import { useUi, type ChromeFieldMenu } from './ui-context.tsx';
 export type { ChromeFieldMenu as FieldMenuState } from './ui-context.tsx';
 
 interface FieldMenuProps {
-  items: Array<{ id: string; label: string; hint?: string; run: () => void }>;
+  items: Array<{
+    id: string;
+    label: string;
+    hint?: string;
+    simulatorAction?: string;
+    run: () => void;
+  }>;
 }
 
 /** Right-click spatial menu on the empty field (Aurora idiom). Dismissal
@@ -45,6 +51,7 @@ export function FieldMenu({ items }: FieldMenuProps) {
           type="button"
           className="field-menu-row"
           role="menuitem"
+          data-simulator-action={item.simulatorAction}
           onClick={() => {
             item.run();
             setFieldMenu(null);

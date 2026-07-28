@@ -1,2 +1,3 @@
 module_id: desktop
 root: apps/desktop
+icon: src/shell/renderer/assets/logo.png

@@ -30,6 +30,7 @@ export function GrantReceiptDialog({ grantId, onClose }: GrantReceiptProps) {
 
   if (!grant) return null;
   const active = grant.status === 'active';
+  const pending = grant.status === 'pending';
   const r = grant.receipt;
 
   return (
@@ -110,9 +111,9 @@ export function GrantReceiptDialog({ grantId, onClose }: GrantReceiptProps) {
           <div className="receipt-row">
             <dt>当前状态</dt>
             <dd>
-              <span className="receipt-state" data-active={active}>
+              <span className="receipt-state" data-active={active} data-pending={pending || undefined}>
                 <i aria-hidden />
-                {active ? '生效中' : '已撤销'}
+                {active ? '生效中' : pending ? '待授权' : '已撤销'}
               </span>
             </dd>
           </div>
@@ -123,15 +124,14 @@ export function GrantReceiptDialog({ grantId, onClose }: GrantReceiptProps) {
         </dl>
 
         <div className="receipt-actions">
-          <button type="button" className="sys-btn" disabled title="演示版暂未开放范围调整">
-            调整范围
-          </button>
           <button
             type="button"
             className={active ? 'sys-btn danger' : 'sys-btn primary'}
+            disabled={pending}
+            title={pending ? '待授权 · 请在右下角授权卡片堆处理' : undefined}
             onClick={() => toggleGrant(grant.id)}
           >
-            {active ? '撤销授权' : '重新授权'}
+            {active ? '撤销授权' : pending ? '待授权' : '重新授权'}
           </button>
         </div>
 

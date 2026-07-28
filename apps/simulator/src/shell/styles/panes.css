@@ -1,34 +1,15 @@
 /* Nimi OS "Field" — panes, spine, lens, cradle, windows, consent, ledger,
- * toast, tide. Aurora-inspired spatial idiom.
+ * and toast. Aurora-inspired spatial idiom.
  * Ported from prototype2. Mock-app-only scroll helpers were dropped; the
  * consent / receipt / ledger / agent-HUD / bridge sections are retained for
  * the follow-up overlay task even though nothing renders them yet.
- * Asset-backed imagery (module banner/background, world backdrops) is
- * replaced with pure-CSS gradients to satisfy the simulator CSP
- * (`img-src 'none'`). */
+ * Asset-backed imagery (module background, world backdrops, night sky) uses
+ * the same photo assets as the prototype (src/assets). */
 
-/* — Stage + tide overview — */
+/* — Stage — */
 .stage {
   position: absolute;
   inset: 0;
-  transition: transform 0.7s var(--fld-ease), filter 0.7s var(--fld-ease);
-}
-
-.stage[data-tide='true'] {
-  transform: scale(0.84);
-  filter: brightness(0.82) saturate(0.9);
-}
-
-.tide-caption {
-  position: fixed;
-  top: 5vh;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.75rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--fld-text-2);
-  z-index: 700;
 }
 
 /* — Spine (bottom dock) — */
@@ -80,6 +61,10 @@
   border-radius: 999px;
   background: var(--fld-text);
   opacity: 0.7;
+}
+
+.spine-btn[data-mod][data-open='true']::after {
+  width: 7px;
 }
 
 .spine-sep {
@@ -330,12 +315,10 @@
 }
 
 /* darker acrylic reserved for system chrome (dock, lens, menus) */
-.app-rail,
 .apps-page,
 .spine,
 .lens,
 .field-menu,
-.simulator-nav,
 .sky-panel {
   background: linear-gradient(
     160deg,
@@ -416,26 +399,6 @@
 }
 
 /* cradle content */
-.cradle-hi {
-  margin: 0;
-  font-size: 1.65rem;
-  line-height: 1.2;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.cradle-hi em {
-  font-style: normal;
-  background: linear-gradient(
-    120deg,
-    color-mix(in srgb, var(--nimi-status-success) 58%, #ffffff),
-    var(--nimi-status-success)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 .cradle-sub {
   margin: 0;
   font-size: 0.875rem;
@@ -614,11 +577,6 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--fld-text);
-}
-
-.agent-hud-head-main span {
-  font-size: 0.6875rem;
-  color: var(--fld-text-3);
 }
 
 .agent-hud-gear {
@@ -813,20 +771,18 @@
 .cradle-modules-wrap {
   position: relative;
   margin-top: -43px;
-  padding: 60px 18px 6px;
+  padding: 94px 18px 6px;
 }
 
-/* Pure-CSS replacement for the prototype's module-background.png photo. */
 .cradle-modules-background {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
   pointer-events: none;
   user-select: none;
-  background:
-    radial-gradient(90% 60% at 18% 0%, rgba(234, 176, 194, 0.28), transparent 62%),
-    radial-gradient(80% 55% at 86% 8%, rgba(120, 220, 255, 0.2), transparent 60%),
-    radial-gradient(120% 90% at 50% 118%, rgba(38, 24, 54, 0.85), transparent 70%),
-    linear-gradient(165deg, #2c2140 0%, #1d1730 58%, #161226 100%);
 }
 
 .cradle-modules-wrap::before {
@@ -873,45 +829,6 @@
   transform: translateY(-1px);
 }
 
-.cradle-glyph {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 44px;
-  width: 44px;
-  flex: none;
-  border-radius: 13px;
-  color: var(--glyph-accent, var(--mod-desktop));
-  background: color-mix(in srgb, var(--glyph-accent, var(--mod-desktop)) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--glyph-accent, var(--mod-desktop)) 34%, transparent);
-}
-
-.cradle-glyph i {
-  display: block;
-  border-radius: 999px;
-  background: currentColor;
-}
-
-.cradle-module-row[data-mod='desktop'] { --glyph-accent: var(--mod-desktop); }
-.cradle-module-row[data-mod='zhiyu'] { --glyph-accent: var(--mod-zhiyu); }
-.cradle-module-row[data-mod='tester'] { --glyph-accent: var(--mod-tester); }
-
-.cradle-module-row[data-mod='desktop'] .cradle-glyph i { width: 5px; }
-.cradle-module-row[data-mod='desktop'] .cradle-glyph i:nth-child(1) { height: 9px; }
-.cradle-module-row[data-mod='desktop'] .cradle-glyph i:nth-child(2) { height: 19px; }
-.cradle-module-row[data-mod='desktop'] .cradle-glyph i:nth-child(3) { height: 13px; }
-
-.cradle-module-row[data-mod='zhiyu'] .cradle-glyph { flex-direction: column; gap: 4px; }
-.cradle-module-row[data-mod='zhiyu'] .cradle-glyph i { width: 20px; height: 4px; }
-.cradle-module-row[data-mod='zhiyu'] .cradle-glyph i:nth-child(2) { width: 26px; }
-.cradle-module-row[data-mod='zhiyu'] .cradle-glyph i:nth-child(3) { width: 13px; }
-
-.cradle-module-row[data-mod='tester'] .cradle-glyph i { width: 5px; }
-.cradle-module-row[data-mod='tester'] .cradle-glyph i:nth-child(1) { height: 8px; }
-.cradle-module-row[data-mod='tester'] .cradle-glyph i:nth-child(2) { height: 21px; }
-.cradle-module-row[data-mod='tester'] .cradle-glyph i:nth-child(3) { height: 12px; }
-
 .cradle-module-main {
   flex: 1;
   display: flex;
@@ -921,19 +838,6 @@
 
 .cradle-module-main b {
   font-size: 0.9375rem;
-}
-
-.cradle-module-main b em {
-  font-style: normal;
-  font-weight: 500;
-  font-size: 0.75rem;
-  color: var(--fld-text-3);
-  margin-left: 8px;
-}
-
-.cradle-module-main span {
-  font-size: 0.8125rem;
-  color: var(--fld-text-2);
 }
 
 .cradle-enter {
@@ -1085,6 +989,17 @@
   background: rgba(74, 222, 128, 0.14);
 }
 
+.grant-status-badge[data-pending] {
+  color: #f5c46a;
+  border-color: color-mix(in srgb, var(--nimi-warning) 45%, transparent);
+  background: color-mix(in srgb, var(--nimi-warning) 14%, transparent);
+  cursor: default;
+}
+
+.grant-status-badge:disabled {
+  opacity: 1;
+}
+
 .grant-status-meta {
   font-size: 0.6875rem;
   color: var(--fld-text-3);
@@ -1111,33 +1026,29 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* worlds — static presentation card; pure-CSS backdrop tinted by the world
- * hue (the prototype's photo backdrops are dropped for CSP). */
+/* worlds — static presentation card with a photo backdrop tinted by the
+ * world hue (same imagery as the prototype, re-cropped per world). */
 .pane-worlds .pane-body {
   padding: 0 10px 12px;
 }
 
 .cradle-world-stage {
   position: relative;
-  height: 200px;
+  flex: 1;
+  min-height: 120px;
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
-/* Pure-CSS world backdrop (replaces the prototype's photo imagery). */
 .cradle-world-backdrop {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   pointer-events: none;
   user-select: none;
-  background:
-    radial-gradient(70% 90% at 22% 108%, color-mix(in srgb, var(--world-hue, #45b8d6) 34%, transparent), transparent 66%),
-    radial-gradient(60% 70% at 84% -8%, rgba(255, 255, 255, 0.14), transparent 60%),
-    radial-gradient(1.3px 1.3px at 24% 26%, rgba(255, 242, 246, 0.7), transparent 60%),
-    radial-gradient(1.1px 1.1px at 58% 14%, rgba(255, 242, 246, 0.5), transparent 60%),
-    radial-gradient(1.5px 1.5px at 76% 34%, rgba(255, 242, 246, 0.6), transparent 60%),
-    linear-gradient(168deg, #241a3c 0%, #181227 62%, #120d20 100%);
   animation: world-swap 0.45s var(--fld-ease);
 }
 
@@ -1347,20 +1258,12 @@
     padding: 11px 10px;
   }
 
-  .cradle-glyph {
-    width: 40px;
-    height: 40px;
-  }
-
-  .cradle-module-main span {
-    overflow-wrap: anywhere;
-  }
-
   .cradle-enter {
     padding-inline: 10px;
   }
 
   .cradle-world-stage {
+    flex: none;
     height: 240px;
   }
 
@@ -1473,8 +1376,11 @@
 }
 
 .window-header {
+  position: relative;
+  z-index: 7;
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 10px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--fld-border);
@@ -1487,14 +1393,11 @@
   cursor: grabbing;
 }
 
-.module-accent {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex: none;
-}
-
 .window-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 600;
   font-size: 0.875rem;
   white-space: nowrap;
@@ -1506,14 +1409,6 @@
   color: var(--fld-text-3);
   font-size: 0.75rem;
   margin-left: 8px;
-}
-
-.window-iid {
-  flex: 1;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .window-actions {
@@ -1534,6 +1429,105 @@
 .window-actions button:hover {
   background: rgba(255, 255, 255, 0.12);
   color: var(--fld-text);
+}
+
+.window-resize-handle {
+  position: absolute;
+  z-index: 4;
+  display: block;
+  touch-action: none;
+}
+
+.window-resize-handle[data-resize-edge='n'],
+.window-resize-handle[data-resize-edge='s'] {
+  right: 12px;
+  left: 12px;
+  height: 12px;
+  cursor: ns-resize;
+}
+
+.window-resize-handle[data-resize-edge='n'] {
+  top: 0;
+}
+
+.window-resize-handle[data-resize-edge='s'] {
+  bottom: 0;
+}
+
+.window-resize-handle[data-resize-edge='e'],
+.window-resize-handle[data-resize-edge='w'] {
+  top: 12px;
+  bottom: 12px;
+  width: 12px;
+  cursor: ew-resize;
+}
+
+.window-resize-handle[data-resize-edge='e'] {
+  right: 0;
+}
+
+.window-resize-handle[data-resize-edge='w'] {
+  left: 0;
+}
+
+.window-resize-handle[data-resize-edge='ne'],
+.window-resize-handle[data-resize-edge='se'],
+.window-resize-handle[data-resize-edge='sw'],
+.window-resize-handle[data-resize-edge='nw'] {
+  width: 18px;
+  height: 18px;
+}
+
+.window-resize-handle[data-resize-edge='ne'] {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.window-resize-handle[data-resize-edge='se'] {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
+.window-resize-handle[data-resize-edge='sw'] {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.window-resize-handle[data-resize-edge='nw'] {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.window-resize-capture {
+  position: fixed;
+  inset: 0;
+  z-index: 2010098;
+  display: block;
+  touch-action: none;
+}
+
+.window-resize-capture[data-resize-edge='n'],
+.window-resize-capture[data-resize-edge='s'] {
+  cursor: ns-resize;
+}
+
+.window-resize-capture[data-resize-edge='e'],
+.window-resize-capture[data-resize-edge='w'] {
+  cursor: ew-resize;
+}
+
+.window-resize-capture[data-resize-edge='ne'],
+.window-resize-capture[data-resize-edge='sw'] {
+  cursor: nesw-resize;
+}
+
+.window-resize-capture[data-resize-edge='se'],
+.window-resize-capture[data-resize-edge='nw'] {
+  cursor: nwse-resize;
 }
 
 .window-notice {
@@ -1794,6 +1788,14 @@
   box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
 }
 
+.receipt-state[data-pending] {
+  color: #f5c46a;
+}
+
+.receipt-state[data-pending] i {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--nimi-warning) 70%, transparent);
+}
+
 .receipt-actions {
   display: flex;
   gap: 10px;
@@ -1823,7 +1825,8 @@
   right: 18px;
   bottom: 86px;
   width: min(420px, 92vw);
-  z-index: 880;
+  /* Above the grant dock (910) so open ledger covers the receipt fan. */
+  z-index: 920;
   display: flex;
   flex-direction: column;
   border-radius: 22px;
@@ -2209,7 +2212,7 @@
   padding: 0 20px 8px;
 }
 
-.pane-bare .cradle-hi,
+.pane-bare .cradle-identity,
 .pane-bare .cradle-sub,
 .pane-bare .cradle-dim {
   text-shadow:
@@ -2217,22 +2220,109 @@
     0 8px 32px rgba(12, 8, 16, 0.55);
 }
 
-.pane-bare .cradle-hi {
-  font-size: 1.9rem;
-  font-weight: 300;
-  letter-spacing: 0.02em;
+.cradle-identity {
+  --cradle-identity-mint: var(--nimi-status-success);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 0;
+  cursor: default;
+  user-select: none;
 }
 
-/* Pre-login placeholder: the longer "Simulator User" name stays on one
- * clean line instead of wrapping into a two-line poster. */
-.pane-bare .cradle-hi--placeholder {
-  font-size: 1.35rem;
+.cradle-identity__welcome {
+  color: rgba(238, 229, 224, 0.58);
+  font-size: 0.75rem;
+  line-height: 1.2;
   font-weight: 400;
-  white-space: nowrap;
+  letter-spacing: 0.08em;
 }
 
-.pane-bare .cradle-hi em {
-  font-weight: 600;
+.cradle-identity__main {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: min(100%, 380px);
+  height: 2rem;
+}
+
+.cradle-identity__sigil {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  margin-right: 10px;
+  flex: 0 0 auto;
+}
+
+.cradle-identity__sigil::before,
+.cradle-identity__sigil::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  border-radius: 999px;
+  background: var(--cradle-identity-mint);
+  transform: translate(-50%, -50%);
+}
+
+.cradle-identity__sigil::before {
+  width: 11px;
+  height: 2px;
+  box-shadow: 0 0 7px color-mix(in srgb, var(--cradle-identity-mint) 70%, transparent);
+}
+
+.cradle-identity__sigil::after {
+  width: 2px;
+  height: 11px;
+  box-shadow: 0 0 7px color-mix(in srgb, var(--cradle-identity-mint) 70%, transparent);
+}
+
+.cradle-identity__name {
+  flex: 0 0 auto;
+  color: rgba(255, 252, 249, 0.96);
+  font-size: 1.85rem;
+  line-height: 1;
+  font-weight: 620;
+  letter-spacing: 0.015em;
+  text-shadow:
+    -0.35px 0 color-mix(in srgb, var(--cradle-identity-mint) 28%, transparent),
+    0.35px 0 color-mix(in srgb, var(--cradle-identity-mint) 20%, transparent),
+    0 1px 2px rgba(12, 8, 16, 0.58),
+    0 7px 28px rgba(12, 8, 16, 0.5);
+}
+
+.cradle-identity__status {
+  width: 5px;
+  height: 5px;
+  margin-left: 11px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--cradle-identity-mint);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--cradle-identity-mint) 13%, transparent),
+    0 0 9px color-mix(in srgb, var(--cradle-identity-mint) 60%, transparent);
+}
+
+.cradle-identity__line {
+  height: 1px;
+  min-width: 28px;
+  max-width: 130px;
+  margin-left: 8px;
+  flex: 1 1 92px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cradle-identity-mint) 52%, transparent),
+    color-mix(in srgb, var(--cradle-identity-mint) 18%, transparent) 48%,
+    transparent 100%
+  );
+}
+
+/* Pre-login placeholder: the longer fallback name remains a single quiet
+ * system identity without overpowering the surrounding shell. */
+.cradle-identity--placeholder .cradle-identity__name {
+  font-size: 1.25rem;
+  font-weight: 560;
+  white-space: nowrap;
 }
 
 /* — Field menu — */
@@ -2314,6 +2404,8 @@
   transition:
     left 0.38s var(--fld-ease),
     top 0.38s var(--fld-ease),
+    width 0.38s var(--fld-ease),
+    height 0.38s var(--fld-ease),
     transform 0.38s var(--fld-ease),
     opacity 0.38s var(--fld-ease),
     border-color 0.2s var(--fld-ease),
@@ -2327,25 +2419,9 @@
 
 .pane-float[data-dragging='true'],
 .window-frame[data-dragging='true'],
-.simulator-surface[data-dragging='true'] {
+.simulator-surface[data-dragging='true'],
+.simulator-surface[data-resizing='true'] {
   transition: none;
-}
-
-/* — Tide overview: pane name labels — */
-.stage[data-tide='true'] .pane-float::after,
-.stage[data-tide='true'] .window-frame::after {
-  content: attr(aria-label);
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--fld-text-2);
-  white-space: nowrap;
-  pointer-events: none;
 }
 
 /* — App rail (left sidebar: launch + running instances, dock-style) — */
@@ -2399,6 +2475,38 @@
 
 .app-rail-btn[data-minimized='true'] {
   opacity: 0.55;
+}
+
+.simulator-app-logo {
+  display: block;
+  flex: none;
+  object-fit: contain;
+  user-select: none;
+}
+
+.simulator-app-logo[data-logo-size='home'] {
+  width: 28px;
+  height: 28px;
+}
+
+.simulator-app-logo[data-logo-size='window'] {
+  width: 24px;
+  height: 24px;
+}
+
+.simulator-app-logo[data-logo-size='rail'] {
+  width: 30px;
+  height: 30px;
+}
+
+.simulator-app-logo[data-logo-size='card'] {
+  width: 36px;
+  height: 36px;
+}
+
+.simulator-app-logo[data-logo-module='zhiyu'] {
+  border-radius: 22%;
+  box-shadow: 0 4px 12px rgba(5, 24, 29, 0.22);
 }
 
 /* running indicator — small vertical bar on the icon's left edge; grows in
@@ -2599,8 +2707,14 @@
 }
 
 .apps-search-icon {
-  font-size: 0.95rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.apps-search-icon .simulator-app-logo {
+  width: 20px;
+  height: 20px;
 }
 
 .apps-search input {
@@ -2825,7 +2939,7 @@
  * contract selectors (attributes/behavior stay owned by the shell view; only
  * presentation lives here). The disclosure status bar is intentionally NOT
  * styled here: `src/styles.css` owns it so its computed style stays
- * independent of module open order (P-SIM-001/014).
+ * independent of module open order under the Simulator authority.
  * ------------------------------------------------------------------------- */
 
 .simulator-shell {
@@ -2835,41 +2949,6 @@
    * `document.documentElement` between light/dark, which would otherwise
    * cascade `#root`'s theme text color into un-colored chrome text. */
   color: var(--fld-text);
-}
-
-/* Shell-owned navigation as a floating glass pill — pinned left of the agent
- * HUD chip so it never covers window chrome. */
-.simulator-nav {
-  position: fixed;
-  top: 58px;
-  right: 230px;
-  z-index: 860;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px;
-  border-radius: 999px;
-}
-
-.simulator-nav a {
-  padding: 5px 14px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--fld-text-2);
-  text-decoration: none;
-  transition: all 160ms var(--fld-ease);
-}
-
-.simulator-nav a:hover {
-  color: var(--fld-text);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.simulator-nav a[aria-current='page'] {
-  color: var(--fld-text);
-  background: rgba(255, 255, 255, 0.16);
 }
 
 /* Home-route pinned text structures inside the cradle panes. */
@@ -2948,16 +3027,24 @@
 /* — Surface windowing layer —
  * `#simulator-surfaces` is a fixed, inset-0, pointer-events-none layer; each
  * `.simulator-surface` section is an absolutely-positioned window whose
- * geometry the shell WindowManager writes from chrome state. In full-window
- * mode the layer stays pinned and the single visible section fills the
- * viewport under the disclosure + full-window shell bars. */
+ * geometry the shell WindowManager writes from chrome state. The layer starts
+ * below the depth workspace at z 40; both layers then follow the shell-owned
+ * last-interaction stacking order.
+ * In full-window mode the layer stays pinned and the single visible section
+ * fills the viewport under the full-window shell bar. */
 .simulator-surfaces {
   position: fixed;
   inset: 0;
   z-index: 40;
   display: block;
   padding: 0;
+  perspective: 1400px;
+  perspective-origin: 50% 45%;
   pointer-events: none;
+}
+
+.simulator-surfaces:not([data-full-window='true'])[data-shell-foreground='false'] {
+  visibility: hidden;
 }
 
 .simulator-surface {
@@ -2969,9 +3056,82 @@
   animation: pane-in 0.5s var(--fld-spring) backwards;
 }
 
+.simulator-surfaces:not([data-full-window='true']) .simulator-surface[data-app-depth-state] {
+  transform:
+    translate3d(
+      var(--surface-depth-x, 0),
+      var(--surface-depth-y, 0),
+      var(--surface-depth-z, 0)
+    )
+    scale(var(--surface-depth-scale, 1))
+    rotateY(var(--surface-depth-rotate-y, 0deg))
+    rotateX(var(--surface-depth-rotate-x, 0deg));
+  transform-origin: 16% 100%;
+  transform-style: preserve-3d;
+  opacity: var(--surface-depth-opacity, 1);
+  will-change: transform, opacity;
+}
+
+.simulator-surfaces:not([data-full-window='true'])
+  .simulator-surface[data-app-depth-state^='depth-'] {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 18px 44px rgba(8, 8, 15, 0.16);
+}
+
+.simulator-surface[data-app-depth-state^='depth-'] .simulator-surface__renderer {
+  filter: blur(var(--surface-depth-blur, 0)) saturate(0.9) contrast(0.94);
+}
+
+.simulator-surface[data-app-depth-state='hidden'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.app-depth-switch {
+  position: absolute;
+  inset: 49px 0 0;
+  z-index: 6;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 16px;
+  border: 0;
+  border-radius: inherit;
+  color: var(--fld-text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.app-depth-switch > span {
+  padding: 6px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(24, 22, 30, 0.68);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity var(--nimi-motion-fast) var(--nimi-motion-ease-standard),
+    transform var(--nimi-motion-fast) var(--nimi-motion-ease-standard);
+}
+
+.app-depth-switch:hover > span,
+.app-depth-switch:focus-visible > span {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.app-depth-switch:focus-visible {
+  outline: var(--nimi-focus-ring-width) solid var(--nimi-focus-ring-color);
+  outline-offset: -4px;
+}
+
 .simulator-surfaces[data-full-window='true'] .simulator-surface {
   position: fixed;
-  inset: 7rem 0 0 0 !important;
+  inset: var(--simulator-full-window-bar-height) 0 0 0 !important;
   width: auto !important;
   height: auto !important;
   z-index: 41 !important;
@@ -3004,6 +3164,30 @@
 
 .simulator-surface__overlays > * {
   pointer-events: auto;
+}
+
+@media (max-width: 1100px) {
+  .simulator-surfaces:not([data-full-window='true'])
+    .simulator-surface[data-app-depth='1'] {
+    transform: translate3d(170px, -38px, -160px) scale(0.84) rotateY(-4deg) rotateX(1deg);
+  }
+
+  .simulator-surfaces:not([data-full-window='true'])
+    .simulator-surface[data-app-depth='2'] {
+    transform: translate3d(330px, -72px, -310px) scale(0.69) rotateY(-6deg) rotateX(1deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .simulator-surfaces:not([data-full-window='true'])
+    .simulator-surface[data-app-depth='1'] {
+    transform: translate3d(72px, -22px, -140px) scale(0.86) rotateY(-3deg);
+  }
+
+  .simulator-surfaces:not([data-full-window='true'])
+    .simulator-surface[data-app-depth='2'] {
+    transform: translate3d(132px, -42px, -260px) scale(0.72) rotateY(-5deg);
+  }
 }
 
 /* — Full-window route bar — */
@@ -3067,6 +3251,19 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   color: var(--fld-text);
+}
+
+.simulator-diagnostics__section + .simulator-diagnostics__section {
+  margin-top: 18px;
+}
+
+.simulator-diagnostics__section-title {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fld-text-2);
 }
 
 .simulator-diagnostics__empty {

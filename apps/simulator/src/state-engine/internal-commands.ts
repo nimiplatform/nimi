@@ -3,7 +3,7 @@
  * activation, instance lifecycle, readiness settlement, and scenario reset
  * entry — each with one declared owner and closed write set.
  *
- * Authority: P-SIM-011..014; tables/simulator-state-engine-policy.yaml.
+ * Authority: .nimi/spec/platform/simulator.authority.yaml.
  */
 
 import {
@@ -23,6 +23,7 @@ import {
   INSTANCE_TRANSITIONS,
   INTERNAL,
   QUERY_COMMITTED,
+  SimulatorIntegrityAbort,
   type QueuedOperation,
 } from './engine-types.ts';
 import {
@@ -37,7 +38,10 @@ import {
 } from './module-commands.ts';
 import { beginResetLinearization } from './reset.ts';
 import { processOverlayCommand, registerOverlayCommands } from './overlay-state.ts';
-import { processProductCommand, registerProductCommands } from './product-state.ts';
+import {
+  processProductCommand,
+  registerProductCommands,
+} from './product-state.ts';
 import { isSimulatorRouteState } from './route-state.ts';
 
 const INTEGER_SCHEMA: SimulatorSchema = { kind: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER };
@@ -259,7 +263,8 @@ function processClockAdvance(context: EngineContext, operation: QueuedOperation,
     const next = advance();
     context.committed = { ...context.committed, logicalTime: next };
     stateChanged(context, operation, { now: next, pendingJobs: context.clock.pendingJobCount });
-  } catch {
+  } catch (error) {
+    if (error instanceof SimulatorIntegrityAbort) throw error;
     recordSettlement(context, operation.sequence, operation.settle, simulatorFail(simulatorError('SIMULATOR_INVALID_PAYLOAD', {
       moduleId: operation.issuer.moduleId, instanceId: operation.issuer.instanceId, operationId: operation.operationId,
     })));

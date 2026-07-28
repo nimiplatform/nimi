@@ -1,0 +1,548 @@
+/* Bottom-right authorization receipt shelf.
+ * Receipts rest as an aligned row of upright glass volumes, then form a
+ * continuous wave around the targeted receipt on hover.
+ */
+
+.grant-dock {
+  --grant-dock-scale: 0.88;
+  position: fixed;
+  right: 18px;
+  bottom: 72px;
+  z-index: 910;
+  width: min(500px, calc(100vw - 36px));
+  height: 404px;
+  zoom: var(--grant-dock-scale);
+  pointer-events: none;
+  perspective: 1180px;
+  perspective-origin: 68% 82%;
+  font-family: var(--fld-font);
+}
+
+.grant-dock__track {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: min(
+    100%,
+    calc(244px + (var(--grant-card-count, 1) - 1) * 72px)
+  );
+  height: 392px;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.grant-dock__track::before {
+  content: '';
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 26px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(128, 255, 195, 0.14),
+    rgba(108, 196, 255, 0.055) 42%,
+    transparent 72%
+  );
+  filter: blur(24px);
+  opacity: 0.78;
+  transform: translateZ(-90px);
+  pointer-events: none;
+}
+
+.grant-receipt-slot {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 72px;
+  height: 282px;
+  transform: translate3d(var(--grant-slot-x, 0px), 0, 0);
+  transform-style: preserve-3d;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: calc(20 + var(--grant-card-order, 0));
+}
+
+.grant-receipt-slot[data-active] {
+  z-index: 200;
+}
+
+.grant-receipt-slot__trigger {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 72px;
+  height: 282px;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.grant-receipt-slot__trigger:disabled {
+  cursor: default;
+}
+
+.grant-receipt-slot[data-detail-open] > .grant-receipt-slot__trigger {
+  pointer-events: none;
+}
+
+.grant-receipt-card {
+  --receipt-accent: 133, 255, 191;
+  --receipt-accent-solid: #75f0ad;
+  --receipt-text-primary: rgba(255, 255, 255, 0.98);
+  --receipt-text-secondary: rgba(247, 250, 252, 0.84);
+  --receipt-text-tertiary: rgba(241, 246, 248, 0.72);
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 244px;
+  height: 282px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 82% 100%, rgba(var(--receipt-accent), 0.11), transparent 42%),
+    linear-gradient(152deg, rgba(48, 47, 53, 0.96), rgba(22, 24, 29, 0.97) 52%, rgba(10, 14, 19, 0.98));
+  -webkit-backdrop-filter: blur(24px) saturate(108%);
+  backdrop-filter: blur(24px) saturate(108%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    inset 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset -4px 0 0 rgba(var(--receipt-accent), 0.13),
+    inset 0 -4px 9px rgba(var(--receipt-accent), 0.09),
+    6px 3px 0 rgba(204, 234, 231, 0.18),
+    10px 5px 18px rgba(2, 8, 15, 0.22),
+    0 22px 52px rgba(2, 8, 15, 0.34);
+  opacity: var(--grant-card-opacity, 1);
+  transform:
+    translate3d(var(--grant-card-x, 0px), var(--grant-card-y, 0px), var(--grant-card-z, 0px))
+    rotateY(var(--grant-card-rotate-y, -64deg))
+    rotateZ(var(--grant-card-rotate-z, 0deg))
+    scale(var(--grant-card-scale, 0.88));
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  contain: layout style;
+  isolation: isolate;
+  transition:
+    transform 340ms cubic-bezier(0.22, 0.76, 0.18, 1),
+    opacity 180ms ease-out,
+    border-color 180ms ease-out;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.grant-receipt-card[data-status='pending'] {
+  --receipt-accent: 255, 197, 104;
+  --receipt-accent-solid: #ffc568;
+}
+
+.grant-receipt-card[data-status='revoked'] {
+  --receipt-accent: 188, 195, 204;
+  --receipt-accent-solid: #aeb6c0;
+}
+
+.grant-receipt-card[data-active] {
+  border-color: rgba(255, 255, 255, 0.67);
+  background:
+    radial-gradient(circle at 82% 100%, rgba(var(--receipt-accent), 0.11), transparent 42%),
+    linear-gradient(152deg, rgb(48, 47, 53), rgb(22, 24, 29) 52%, rgb(10, 14, 19));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 1px 0 0 rgba(255, 255, 255, 0.24),
+    inset -4px 0 0 rgba(var(--receipt-accent), 0.16),
+    inset 0 -4px 10px rgba(var(--receipt-accent), 0.06),
+    5px 3px 0 rgba(213, 244, 238, 0.2),
+    0 30px 72px rgba(1, 6, 12, 0.46),
+    0 0 26px rgba(var(--receipt-accent), 0.1);
+}
+
+.grant-receipt-card::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: 4;
+  border: 1px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.42);
+  border-left-color: rgba(255, 255, 255, 0.2);
+  border-right-color: rgba(var(--receipt-accent), 0.12);
+  border-bottom-color: rgba(var(--receipt-accent), 0.2);
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset -3px -4px 8px rgba(var(--receipt-accent), 0.06);
+  pointer-events: none;
+}
+
+.grant-receipt-card::after {
+  content: '';
+  position: absolute;
+  right: -48px;
+  bottom: -64px;
+  width: 176px;
+  height: 176px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--receipt-accent), 0.14), transparent 68%);
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.grant-receipt-card__close {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  z-index: 8;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--receipt-text-secondary);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.grant-receipt-card__close:hover,
+.grant-receipt-card__close:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  outline: none;
+}
+
+.grant-receipt-card[data-detail-open] .grant-receipt-card__status-mark {
+  margin-right: 28px;
+}
+
+.grant-receipt-card__select {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 18px 18px 17px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--receipt-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  pointer-events: none;
+}
+
+.grant-receipt-slot__trigger:focus-visible {
+  outline: none;
+}
+
+.grant-receipt-slot__trigger:focus-visible + .grant-receipt-card {
+  outline: 2px solid rgba(var(--receipt-accent), 0.92);
+  outline-offset: -4px;
+}
+
+.grant-receipt-card__topline,
+.grant-receipt-card__identity,
+.grant-receipt-card__identity-copy,
+.grant-receipt-card__route,
+.grant-receipt-card__access,
+.grant-receipt-card__validity-row,
+.grant-receipt-card__footer,
+.grant-receipt-card__state,
+.grant-receipt-card__actions {
+  display: flex;
+  align-items: center;
+}
+
+.grant-receipt-card__topline {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.grant-receipt-card__identity {
+  min-width: 0;
+  gap: 10px;
+}
+
+.grant-receipt-card__identity-copy {
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.grant-receipt-card__app-icon {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--receipt-text-secondary);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.grant-receipt-card__app-icon .simulator-app-logo {
+  width: 36px;
+  height: 36px;
+}
+
+.grant-receipt-card__app-name {
+  max-width: 142px;
+  overflow: hidden;
+  color: var(--receipt-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grant-receipt-card__eyebrow {
+  color: var(--receipt-text-tertiary);
+  font-size: 0.625rem;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+}
+
+.grant-receipt-card__route {
+  gap: 6px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--receipt-text-tertiary);
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+
+.grant-receipt-card__route span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grant-receipt-card__access {
+  min-width: 0;
+  min-height: 47px;
+  gap: 5px;
+  align-items: flex-start;
+  margin-top: 6px;
+  padding-top: 1px;
+  color: var(--receipt-text-secondary);
+  font-size: 0.625rem;
+  line-height: 1.55;
+}
+
+.grant-receipt-card__access svg {
+  flex: none;
+  color: rgba(var(--receipt-accent), 0.9);
+}
+
+.grant-receipt-card__access span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grant-receipt-card__validity-row {
+  position: relative;
+  min-width: 0;
+  gap: 5px;
+  margin-top: 3px;
+  padding: 8px 9px;
+  border: 1px solid rgba(var(--receipt-accent), 0.2);
+  border-radius: 9px;
+  background: rgba(var(--receipt-accent), 0.07);
+  color: var(--receipt-text-secondary);
+  font-size: 0.625rem;
+  line-height: 1.25;
+}
+
+.grant-receipt-card__validity-row svg {
+  flex: none;
+  color: rgba(var(--receipt-accent), 0.94);
+}
+
+.grant-receipt-card__validity-label {
+  flex: none;
+  color: var(--receipt-text-tertiary);
+}
+
+.grant-receipt-card__validity-value {
+  flex: none;
+  color: var(--receipt-text-primary);
+  font-weight: 700;
+}
+
+.grant-receipt-card__expiry {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--receipt-text-tertiary);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grant-receipt-card__title {
+  display: block;
+  margin-top: 14px;
+  overflow: hidden;
+  color: var(--receipt-text-primary);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grant-receipt-card__footer {
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.grant-receipt-card__state {
+  min-width: 0;
+  flex: none;
+  gap: 7px;
+  color: var(--receipt-accent-solid);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.grant-receipt-card__status-mark {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(var(--receipt-accent), 0.5);
+  border-radius: 999px;
+  background: rgba(var(--receipt-accent), 0.16);
+  color: #0d1b16;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 14px rgba(var(--receipt-accent), 0.24);
+}
+
+.grant-receipt-card__status-mark svg {
+  width: 12px;
+  height: 12px;
+  color: var(--receipt-accent-solid);
+}
+
+.grant-receipt-card[data-status='revoked'] .grant-receipt-card__status-mark {
+  color: var(--receipt-accent-solid);
+}
+
+.grant-receipt-card__time {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--receipt-text-secondary);
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grant-receipt-card__actions {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 6;
+  gap: 7px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 180ms ease 90ms, transform 220ms ease 90ms;
+}
+
+.grant-receipt-card[data-detail-open] .grant-receipt-card__actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.grant-receipt-card[data-detail-open] .grant-receipt-card__footer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.grant-receipt-card__action {
+  min-width: 60px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.625rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.grant-receipt-card__action:active {
+  transform: scale(0.96);
+}
+
+.grant-receipt-card__action--deny {
+  border: 1px solid rgba(255, 255, 255, 0.23);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(250, 252, 253, 0.82);
+}
+
+.grant-receipt-card__action--deny:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.grant-receipt-card__action--approve {
+  border: 1px solid rgba(var(--receipt-accent), 0.64);
+  background: rgba(var(--receipt-accent), 0.24);
+  color: #fff7e8;
+  box-shadow: 0 0 18px rgba(var(--receipt-accent), 0.18);
+}
+
+.grant-receipt-card__action--approve:hover {
+  background: rgba(var(--receipt-accent), 0.36);
+  border-color: rgba(var(--receipt-accent), 0.9);
+}
+
+@media (max-width: 760px) {
+  .grant-dock {
+    --grant-dock-scale: 0.74;
+    right: 10px;
+    bottom: 68px;
+    width: calc(100vw - 20px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grant-receipt-card {
+    transition: opacity 120ms linear, border-color 120ms linear, box-shadow 120ms linear;
+  }
+
+  .grant-receipt-card__actions {
+    transition: none;
+  }
+
+}

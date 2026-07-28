@@ -1,2 +1,3 @@
 module_id: zhiyu
 root: apps/zhiyu
+icon: src/shell/assets/app-icon.png

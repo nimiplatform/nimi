@@ -35,7 +35,7 @@ export type SimulatorProductFlowStep =
     }
   | {
       readonly type: 'directive';
-      readonly name: 'open-app' | 'focus-app' | 'notice' | 'toast' | 'bridge-measure' | 'bridge-to-target' | 'bridge-done';
+      readonly name: 'focus-app' | 'notice' | 'toast' | 'bridge-measure' | 'bridge-to-target' | 'bridge-done';
       readonly moduleId?: string;
       readonly text?: string | null;
       readonly title?: string;

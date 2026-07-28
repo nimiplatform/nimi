@@ -4,7 +4,7 @@
  * React root. Imported dynamically by the effect-guard bootstrap only after
  * every guard is installed.
  *
- * Authority: P-SIM-001, P-SIM-017, P-SIM-018.
+ * Authority: .nimi/spec/platform/simulator.authority.yaml.
  */
 
 import { Fragment, StrictMode, createElement as h, useMemo, useSyncExternalStore } from 'react';
@@ -40,7 +40,8 @@ import '../styles.css';
 import './styles/tokens.css';
 import './styles/field.css';
 import './styles/panes.css';
-import './styles/spatial-tide.css';
+import './styles/depth-workspace.css';
+import './styles/grant-dock.css';
 import type { JsonValue } from '../state-engine/json-value.ts';
 import type { SimulatorModuleCatalogDeclaration } from '../state-engine/types.ts';
 import { simulatorError } from '../state-engine/errors.ts';
@@ -119,8 +120,9 @@ function ShellRoot({
       surfaces: row.metadata.surfaces.map((surface) => ({ id: surface.id, label: surface.label })),
     })),
     onNavigate: (route) => session.navigate(route),
-    onOpen: (moduleId, surfaceId) => {
-      void session.openInstance(moduleId, surfaceId, { activateBeforeMount: true });
+    onOpen: async (moduleId, surfaceId) => {
+      const opened = await session.openInstance(moduleId, surfaceId, { activateBeforeMount: true });
+      return opened.ok ? opened.value.instanceId : null;
     },
     onClose: (instanceId) => { void session.closeInstance(instanceId); },
     onActivate: (instanceId) => { void session.activateInstance(instanceId); },

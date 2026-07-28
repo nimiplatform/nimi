@@ -1,23 +1,35 @@
+import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useUi } from './ui-context.tsx';
 import { liveInstancesOf, useShellActions } from './shell-actions.tsx';
+import { AppLogo } from './app-logo.tsx';
 
 /** The apps page — a launcher overlay entered from the cradle's modules pane.
  * Lists the selected registry modules with their real running state; the
  * simulator admits no placeholder catalog, so the grid stays honest. */
 export function AppsPage() {
-  const { appsPageOpen, setAppsPageOpen } = useUi();
+  const {
+    appsPageOpen,
+    setAppsPageOpen,
+    windows,
+    focusWindow,
+    restoreWindow,
+  } = useUi();
   const { modules, instances, open } = useShellActions();
   const [query, setQuery] = useState('');
   const [full, setFull] = useState(false);
 
-  const entries = useMemo(() => modules.map((module) => ({
-    key: module.moduleId,
-    name: module.moduleId,
-    desc: module.surfaces.map((surface) => surface.label).join(' · ') || 'no surfaces',
-    running: liveInstancesOf(instances, module.moduleId).length > 0,
-    surfaceId: module.surfaces[0]?.id ?? null,
-  })), [modules, instances]);
+  const entries = useMemo(() => modules.map((module) => {
+    const latest = liveInstancesOf(instances, module.moduleId).at(-1) ?? null;
+    return {
+      key: module.moduleId,
+      name: module.moduleId,
+      desc: module.surfaces.map((surface) => surface.label).join(' · ') || 'no surfaces',
+      latest,
+      running: latest !== null,
+      surfaceId: module.surfaces[0]?.id ?? null,
+    };
+  }), [modules, instances]);
 
   if (!appsPageOpen) return null;
   const q = query.trim().toLowerCase();
@@ -57,7 +69,9 @@ export function AppsPage() {
 
         <div className="apps-tools">
           <label className="apps-search">
-            <span className="apps-search-icon" aria-hidden>⌕</span>
+            <span className="apps-search-icon" aria-hidden>
+              <Search size={17} strokeWidth={1.8} />
+            </span>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -78,18 +92,20 @@ export function AppsPage() {
                   className="apps-card-open"
                   title={`${entry.name} · 点击${entry.running ? '聚焦' : '打开'}`}
                   aria-label={`${entry.name} · ${entry.running ? '聚焦运行中的应用' : '打开应用'}`}
-                  disabled={!entry.surfaceId}
+                  disabled={!entry.latest && !entry.surfaceId}
                   onClick={() => {
-                    if (entry.surfaceId) open(entry.key, entry.surfaceId);
+                    if (entry.latest) {
+                      const instanceId = entry.latest.instanceId;
+                      if (windows[instanceId]?.minimized === true) restoreWindow(instanceId);
+                      focusWindow(instanceId);
+                    } else if (entry.surfaceId) {
+                      open(entry.key, entry.surfaceId);
+                    }
                     close();
                   }}
                 >
                   <span className="apps-icon" aria-hidden>
-                    <span className={`spine-glyph spine-glyph-${entry.key}`}>
-                      <i />
-                      <i />
-                      <i />
-                    </span>
+                    <AppLogo moduleId={entry.key} size="card" />
                   </span>
                   <span className="apps-card-main">
                     <b>

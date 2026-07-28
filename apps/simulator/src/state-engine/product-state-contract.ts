@@ -4,14 +4,17 @@ import type {
   SimulatorProductLedgerKind,
   SimulatorProductLedgerResult,
 } from './product-flows.ts';
+import { SIMULATOR_ERROR_CODES } from './errors.ts';
 import { SIMULATOR_PRODUCT_FLOW_IDS } from './product-flows.ts';
 import type { SimulatorSchema } from './schema.ts';
 
 export const SIMULATOR_PRODUCT_COMMANDS = Object.freeze({
   grantToggle: 'simulator.product.grant.toggle',
+  grantResolve: 'simulator.product.grant.resolve',
   consentRequest: 'simulator.product.consent.request',
   consentResolve: 'simulator.product.consent.resolve',
   flowBegin: 'simulator.product.flow.begin',
+  flowBlock: 'simulator.product.flow.block',
   flowStep: 'simulator.product.flow.step',
   ledgerAppend: 'simulator.product.ledger.append',
   localAgentTransition: 'simulator.product.local-agent.transition',
@@ -174,6 +177,13 @@ export function registerProductCommands(context: EngineContext): void {
     kind: 'object',
     properties: { grantId: { kind: 'string', minLength: 1, maxLength: 64 } },
   });
+  register(SIMULATOR_PRODUCT_COMMANDS.grantResolve, {
+    kind: 'object',
+    properties: {
+      grantId: { kind: 'string', minLength: 1, maxLength: 64 },
+      accept: { kind: 'boolean' },
+    },
+  });
   register(SIMULATOR_PRODUCT_COMMANDS.consentRequest, {
     kind: 'object',
     properties: { flowId: FLOW_ID_SCHEMA },
@@ -186,7 +196,21 @@ export function registerProductCommands(context: EngineContext): void {
     kind: 'object',
     properties: { flowId: FLOW_ID_SCHEMA },
   });
-  register(SIMULATOR_PRODUCT_COMMANDS.flowStep, { kind: 'object', properties: {} });
+  register(SIMULATOR_PRODUCT_COMMANDS.flowBlock, {
+    kind: 'object',
+    properties: {
+      flowId: FLOW_ID_SCHEMA,
+      stepIndex: { kind: 'integer', minimum: 0 },
+      errorCode: { kind: 'stringEnum', values: SIMULATOR_ERROR_CODES },
+    },
+  });
+  register(SIMULATOR_PRODUCT_COMMANDS.flowStep, {
+    kind: 'object',
+    properties: {
+      flowId: FLOW_ID_SCHEMA,
+      stepIndex: { kind: 'integer', minimum: 0 },
+    },
+  });
   register(SIMULATOR_PRODUCT_COMMANDS.ledgerAppend, productLedgerEntrySchema());
   register(SIMULATOR_PRODUCT_COMMANDS.localAgentTransition, {
     kind: 'object',
