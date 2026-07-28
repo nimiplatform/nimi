@@ -162,6 +162,18 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.simulator.session-projection
+  - id: rule.nimi.platform.simulator.p-sim-010a
+    kind: rule
+    title: Preview workspace starts home first
+    modality: must
+    statement: Scenario launch may mount and run its declared selected App instances for readiness, but the Shell initially presents the home workspace with every App window closed, only an explicit user App-window action or instance deep link opens or raises an App surface, simulated login never opens an App window, and reset restores the same home-first state.
+    condition: Whenever a Simulator scenario launches, commits simulated login, opens an App window, or resets.
+    failure: Keep readiness-mounted App surfaces below the home workspace and reject any implicit window-open transition.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.session-projection
+      - type: applies_to
+        target: definition.nimi.platform.simulator.state-engine
   - id: rule.nimi.platform.simulator.p-sim-011
     kind: rule
     title: Instance state is isolated
@@ -220,5 +232,41 @@ units:
     condition: Whenever Simulator acceptance is summarized.
     failure: Report only preview behavior and classify real connectivity as not verified.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.failure-model
+  - id: rule.nimi.platform.simulator.p-sim-025
+    kind: rule
+    title: Simulator owns its scenic environment
+    modality: must
+    statement: The Simulator Shell exclusively owns its fixed lunar-viewpoint scenic composition of a photographic lunar plate and independently rendered Earth as presentation truth, and the composition does not become Kit, App, State Engine, Runtime, Realm, astronomical, or physically reversible lighting truth.
+    condition: Whenever Simulator presents or controls its scenic environment.
+    failure: Reject a scenic path that transfers ownership or claims astronomical, product-state, or physically reversible lighting truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.effect-boundary
+      - type: applies_to
+        target: definition.nimi.platform.simulator.owner-boundary
+  - id: rule.nimi.platform.simulator.p-sim-025a
+    kind: rule
+    title: Live lunar composition preserves authored art direction
+    modality: must
+    statement: The live scenic path uses one full-frame photographic lunar plate without baked Earth as the sole lunar landscape source, renders Earth from separate surface and cloud image inputs, derives plate modulation and Earth lighting from one normalized presentation-only scene time and off-camera light projection, preserves an unbiased physical phase while showing a same-light-state twenty-to-thirty-percent crescent when physical phase is at or below thirty percent, keeps textured non-pure-black dark-side detail and a thin illuminated-side atmosphere, retains the established upper-right Earth position and normalized radius 0.0531, and excludes a rendered Sun, procedural lunar terrain, procedural clouds, and full-frame beauty-frame cross-fading presented as live lighting.
+    condition: Whenever the live lunar scenic path renders a frame.
+    failure: Reject a frame path that replaces the authored sources, introduces another light authority, loses the bounded crescent and dark-side art direction, changes the established Earth framing, or presents a forbidden substitute as live lighting.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.effect-boundary
+      - type: applies_to
+        target: definition.nimi.platform.simulator.owner-boundary
+  - id: rule.nimi.platform.simulator.p-sim-025b
+    kind: rule
+    title: Scenic availability and motion fail closed
+    modality: must
+    statement: The live scene remains unready until the lunar plate and both Earth image inputs decode and upload successfully, WebGL unavailability, context loss, software rendering, or required-resource failure selects a representative static fallback with no live-lighting claim, automation identity alone never selects that fallback, and reduced motion freezes continuous playback while retaining manual scene-time, phase-preset, and intensity controls on the live path.
+    condition: Whenever Simulator initializes, loses, falls back from, or animates its scenic renderer.
+    failure: Keep the live scene unready or enter the explicit static fallback, expose no live-lighting claim, and preserve the required reduced-motion controls.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.simulator.effect-boundary
       - type: applies_to
         target: definition.nimi.platform.simulator.failure-model
