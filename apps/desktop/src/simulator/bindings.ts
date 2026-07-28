@@ -190,7 +190,6 @@ export function createDesktopSimulatorBindings(
       appId: simulatorSdkUnadmitted,
       machineProduct: simulatorSdkUnadmitted,
       accountProduct: simulatorSdkUnadmitted,
-      appLifecycle: simulatorSdkUnadmitted,
       connectorAdmin: simulatorSdkUnadmitted,
       localAssetAdmin: simulatorSdkUnadmitted,
       localAudit: simulatorSdkUnadmitted,

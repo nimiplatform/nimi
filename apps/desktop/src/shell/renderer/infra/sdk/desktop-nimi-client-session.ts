@@ -255,11 +255,6 @@ export function getDesktopAccountProductClient(): NimiDesktopAccountProductRunti
   return getDesktopRuntimeRealmSession().runtimeClients.accountProduct;
 }
 
-export function getDesktopAppLifecycleClient() {
-  const apps = getDesktopRuntimeRealmSession().runtimeClients.accountProduct.apps;
-  return apps;
-}
-
 export function getDesktopConnectorAdminClient() {
   const clients = getDesktopRuntimeRealmSession().runtimeClients;
   return {

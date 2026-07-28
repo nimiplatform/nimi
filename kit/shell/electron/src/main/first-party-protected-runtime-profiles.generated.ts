@@ -97,8 +97,6 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents": { kind: "server_stream", intentRefs: ["partner_turn","agent_presentation"] },
       "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes": { kind: "unary", intentRefs: ["partner_artifact"] },
       "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts": { kind: "unary", intentRefs: ["partner_artifact"] },
-      "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory": { kind: "unary", intentRefs: ["account_app_inventory"] },
-      "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness": { kind: "unary", intentRefs: ["account_app_inventory"] },
       "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders": { kind: "unary", intentRefs: ["account_connector_control"] },
       "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels": { kind: "unary", intentRefs: ["account_connector_control"] },
       "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail": { kind: "unary", intentRefs: ["account_connector_control"] },

@@ -368,7 +368,6 @@ function createDesktopTestNimiClientSession(input: {
         accountProduct: {
           agents: runtime.agents,
           connectors: runtime.connectors,
-          apps: runtime.appLifecycle,
           appMessages: runtime.appMessages,
           artifacts: runtime.artifacts,
           materializeRealmSource: runtime.materializeRealmSource,
@@ -400,7 +399,6 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
     appId: () => session.appId,
     machineProduct: () => runtime,
     accountProduct: () => runtime,
-    appLifecycle: () => runtime.appLifecycle,
     connectorAdmin: () => runtime.connectors,
     localAssetAdmin: () => runtime.local,
     localAudit: () => runtime.local,

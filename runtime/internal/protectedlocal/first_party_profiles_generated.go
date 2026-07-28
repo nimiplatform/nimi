@@ -196,10 +196,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness":
-			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels":
@@ -410,8 +406,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail", Kind: FirstPartyMethodUnary},

@@ -163,10 +163,6 @@ intents:
   external_agent_reserved_control:
     owner_postcondition_refs:
       - K-RPC-026
-  account_app_inventory:
-    owner_postcondition_refs:
-      - K-APP-002
-      - K-APP-003
   account_connector_control:
     owner_postcondition_refs:
       - K-CONN-001
@@ -575,14 +571,6 @@ profiles:
         kind: unary
         intent_refs:
           - partner_artifact
-      - method_id: /nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory
-        kind: unary
-        intent_refs:
-          - account_app_inventory
-      - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness
-        kind: unary
-        intent_refs:
-          - account_app_inventory
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders
         kind: unary
         intent_refs:

@@ -452,12 +452,6 @@ services:
         type: unary
       - name: SubscribeAppMessages
         type: server_stream
-      - name: InstallApp
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/InstallApp
-      - name: UninstallApp
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/UninstallApp
       - name: GetAppStorage
         type: unary
       - name: ReadLocalAppStorageJson
@@ -475,34 +469,12 @@ services:
         authority_status: admitted_local_app
         transport_disposition: protected_local_app_host_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
-      - name: GetAccountAppInventory
-        type: unary
-      - name: GetAppPackageReadiness
-        type: unary
-      - name: GetAppInstallJob
-        type: unary
-      - name: ListAppInstallJobs
-        type: unary
-      - name: WatchAppInstallJobEvents
-        type: server_stream
-      - name: UpdateApp
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/UpdateApp
-      - name: HealthRepairApp
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/HealthRepairApp
       - name: PrepareLocalAppLaunch
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
       - name: BindLocalAppProcess
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess
-      - name: PrepareAppLifecycleIntent
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent
-      - name: GetAppLifecycleIntentStatus
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus
   - name: RuntimeArtifactService
     source_rule: K-AGCORE-053
     methods:

@@ -11,10 +11,9 @@ type runtimeAccountSecurityContextProvider interface {
 	AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool)
 }
 
-// authenticatedLifecycleAccount is shared by the active local-development
-// lifecycle. Immutable package lifecycle intent production is unavailable in
-// 0K and does not consume this account authority.
-func (s *Service) authenticatedLifecycleAccount(ctx context.Context) (*runtimev1.AccountProjection, uint64, bool) {
+// authenticatedRuntimeAccount resolves the current Runtime-owned account
+// partition used by active local-development operations.
+func (s *Service) authenticatedRuntimeAccount(ctx context.Context) (*runtimev1.AccountProjection, uint64, bool) {
 	if s == nil || s.accountSecurity == nil {
 		return nil, 0, false
 	}

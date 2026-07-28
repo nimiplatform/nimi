@@ -182,6 +182,23 @@ var RemoteProviders = []string{
 	"xai",
 }
 
+var TokenProbeProviders = []string{
+	"dashscope",
+	"deepseek",
+	"gemini",
+	"glm",
+	"kimi",
+	"mimo",
+	"minimax",
+	"nimillm",
+	"openai",
+	"openai_codex",
+	"openai_compatible",
+	"openrouter",
+	"volcengine",
+	"volcengine_openspeech",
+}
+
 var Records = map[string]ProviderRecord{
 	"anthropic": {
 		ID:                            "anthropic",

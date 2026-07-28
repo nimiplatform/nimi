@@ -5,7 +5,6 @@
 //! must materialize or verify local Platform projections.
 
 pub mod ai_profile_factory;
-pub mod nimi_app_registry;
 
 #[cfg(test)]
 mod tests {

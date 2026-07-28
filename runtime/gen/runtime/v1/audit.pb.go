@@ -1277,7 +1277,6 @@ type GetRuntimeHealthResponse struct {
 	Status              RuntimeHealthStatus    `protobuf:"varint,1,opt,name=status,proto3,enum=nimi.runtime.v1.RuntimeHealthStatus" json:"status,omitempty"`
 	Reason              string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	QueueDepth          int32                  `protobuf:"varint,3,opt,name=queue_depth,json=queueDepth,proto3" json:"queue_depth,omitempty"`
-	ActiveWorkflows     int32                  `protobuf:"varint,4,opt,name=active_workflows,json=activeWorkflows,proto3" json:"active_workflows,omitempty"`
 	ActiveInferenceJobs int32                  `protobuf:"varint,5,opt,name=active_inference_jobs,json=activeInferenceJobs,proto3" json:"active_inference_jobs,omitempty"`
 	CpuMilli            int64                  `protobuf:"varint,6,opt,name=cpu_milli,json=cpuMilli,proto3" json:"cpu_milli,omitempty"`
 	MemoryBytes         int64                  `protobuf:"varint,7,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
@@ -1334,13 +1333,6 @@ func (x *GetRuntimeHealthResponse) GetReason() string {
 func (x *GetRuntimeHealthResponse) GetQueueDepth() int32 {
 	if x != nil {
 		return x.QueueDepth
-	}
-	return 0
-}
-
-func (x *GetRuntimeHealthResponse) GetActiveWorkflows() int32 {
-	if x != nil {
-		return x.ActiveWorkflows
 	}
 	return 0
 }
@@ -1422,7 +1414,6 @@ type RuntimeHealthEvent struct {
 	Status              RuntimeHealthStatus    `protobuf:"varint,2,opt,name=status,proto3,enum=nimi.runtime.v1.RuntimeHealthStatus" json:"status,omitempty"`
 	Reason              string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	QueueDepth          int32                  `protobuf:"varint,4,opt,name=queue_depth,json=queueDepth,proto3" json:"queue_depth,omitempty"`
-	ActiveWorkflows     int32                  `protobuf:"varint,5,opt,name=active_workflows,json=activeWorkflows,proto3" json:"active_workflows,omitempty"`
 	ActiveInferenceJobs int32                  `protobuf:"varint,6,opt,name=active_inference_jobs,json=activeInferenceJobs,proto3" json:"active_inference_jobs,omitempty"`
 	CpuMilli            int64                  `protobuf:"varint,7,opt,name=cpu_milli,json=cpuMilli,proto3" json:"cpu_milli,omitempty"`
 	MemoryBytes         int64                  `protobuf:"varint,8,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
@@ -1486,13 +1477,6 @@ func (x *RuntimeHealthEvent) GetReason() string {
 func (x *RuntimeHealthEvent) GetQueueDepth() int32 {
 	if x != nil {
 		return x.QueueDepth
-	}
-	return 0
-}
-
-func (x *RuntimeHealthEvent) GetActiveWorkflows() int32 {
-	if x != nil {
-		return x.ActiveWorkflows
 	}
 	return 0
 }
@@ -2138,28 +2122,26 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"\x16ListUsageStatsResponse\x12:\n" +
 	"\arecords\x18\x01 \x03(\v2 .nimi.runtime.v1.UsageStatRecordR\arecords\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x19\n" +
-	"\x17GetRuntimeHealthRequest\"\x8a\x03\n" +
+	"\x17GetRuntimeHealthRequest\"\xf7\x02\n" +
 	"\x18GetRuntimeHealthResponse\x12<\n" +
 	"\x06status\x18\x01 \x01(\x0e2$.nimi.runtime.v1.RuntimeHealthStatusR\x06status\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x1f\n" +
 	"\vqueue_depth\x18\x03 \x01(\x05R\n" +
-	"queueDepth\x12)\n" +
-	"\x10active_workflows\x18\x04 \x01(\x05R\x0factiveWorkflows\x122\n" +
+	"queueDepth\x122\n" +
 	"\x15active_inference_jobs\x18\x05 \x01(\x05R\x13activeInferenceJobs\x12\x1b\n" +
 	"\tcpu_milli\x18\x06 \x01(\x03R\bcpuMilli\x12!\n" +
 	"\fmemory_bytes\x18\a \x01(\x03R\vmemoryBytes\x12\x1d\n" +
 	"\n" +
 	"vram_bytes\x18\b \x01(\x03R\tvramBytes\x129\n" +
 	"\n" +
-	"sampled_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tsampledAt\"%\n" +
-	"#SubscribeRuntimeHealthEventsRequest\"\xa0\x03\n" +
+	"sampled_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tsampledAtJ\x04\b\x04\x10\x05R\x10active_workflows\"%\n" +
+	"#SubscribeRuntimeHealthEventsRequest\"\x8d\x03\n" +
 	"\x12RuntimeHealthEvent\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x04R\bsequence\x12<\n" +
 	"\x06status\x18\x02 \x01(\x0e2$.nimi.runtime.v1.RuntimeHealthStatusR\x06status\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\x12\x1f\n" +
 	"\vqueue_depth\x18\x04 \x01(\x05R\n" +
-	"queueDepth\x12)\n" +
-	"\x10active_workflows\x18\x05 \x01(\x05R\x0factiveWorkflows\x122\n" +
+	"queueDepth\x122\n" +
 	"\x15active_inference_jobs\x18\x06 \x01(\x05R\x13activeInferenceJobs\x12\x1b\n" +
 	"\tcpu_milli\x18\a \x01(\x03R\bcpuMilli\x12!\n" +
 	"\fmemory_bytes\x18\b \x01(\x03R\vmemoryBytes\x12\x1d\n" +
@@ -2167,7 +2149,7 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"vram_bytes\x18\t \x01(\x03R\tvramBytes\x129\n" +
 	"\n" +
 	"sampled_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tsampledAt\"\x1d\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tsampledAtJ\x04\b\x05\x10\x06R\x10active_workflows\"\x1d\n" +
 	"\x1bListAIProviderHealthRequest\"\xa3\x02\n" +
 	"\x13AIProviderSubHealth\x12#\n" +
 	"\rprovider_name\x18\x01 \x01(\tR\fproviderName\x12\x14\n" +

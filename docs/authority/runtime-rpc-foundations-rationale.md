@@ -149,7 +149,6 @@ Current baseline 固定 `request_id == trace_id`（同一 ULID），为后续 fa
 | `status` | RuntimeHealthStatus | 健康状态（`K-DAEMON-001`） |
 | `reason` | string | 状态原因 |
 | `queue_depth` | int32 | 调度队列深度 |
-| `active_workflows` | int32 | 活跃工作流数 |
 | `active_inference_jobs` | int32 | 活跃推理作业数 |
 | `cpu_milli` | int64 | CPU 使用量（毫核） |
 | `memory_bytes` | int64 | 内存使用量 |
@@ -848,7 +847,6 @@ workflow-capable speech family 的 app-facing consume 与健康验证必须保�
 
 **模式 B — 终态事件后 gRPC OK close**（K-STREAM-005）：
 - `SubscribeScenarioJobEvents`（状态事件流）
-- `SubscribeWorkflowEvents`（K-WF-004：终态事件后 server 正常关闭流）
 - `SubscribeAgentVoiceStream`（K-VOICE-019：agent voice playback terminal event 后 server 正常关闭流；非 final chunks 仅 transient transport，final replay authority 来自唯一 durable audio artifact）
 
 **模式 C — eof=true 块后 gRPC OK close**（K-STREAM-009）：
@@ -912,9 +910,9 @@ workflow-capable speech family 的 app-facing consume 与健康验证必须保�
 
 ## K-STREAM-005 状态事件流约束
 
-`SubscribeScenarioJobEvents` / `SubscribeWorkflowEvents` 不使用 `done=true` 语义； steady-state 下在终态事件后 server 正常关闭流（gRPC OK）。但 daemon 进入 `STOPPING` 时，runtime 可为 bounded shutdown 直接以 gRPC `CANCELLED` 预empt这些活跃流，不保证一定送达终态事件。
+`SubscribeScenarioJobEvents` 不使用 `done=true` 语义；steady-state 下在终态事件后 server 正常关闭流（gRPC OK）。但 daemon 进入 `STOPPING` 时，runtime 可为 bounded shutdown 直接以 gRPC `CANCELLED` 预empt这些活跃流，不保证一定送达终态事件。
 
-同一 job / workflow 在非终态期间可重复发送相同 `event_type` 的状态事件；消费者必须以事件内最新 snapshot 覆盖旧 snapshot，而不是假设事件类型严格单调不重复。
+同一 job 在非终态期间可重复发送相同 `event_type` 的状态事件；消费者必须以事件内最新 snapshot 覆盖旧 snapshot，而不是假设事件类型严格单调不重复。
 
 ## K-STREAM-006 Chunk framing 规则
 
@@ -936,7 +934,7 @@ Runtime 全部 server-streaming RPC 归入四种关闭模式（K-STREAM-001 分�
 | 模式 | 关闭信号 | 适用 RPC | 详细规则 |
 |---|---|---|---|
 | A — done=true 终帧 | 最后一帧 `done=true` + 可选 `reason_code` | StreamScenario(TEXT_GENERATE), StreamScenario(SPEECH_SYNTHESIZE) | K-STREAM-003, K-STREAM-004 |
-| B — 终态事件后 close | steady-state 下终态事件（COMPLETED/FAILED/CANCELED 等）发出后 server gRPC OK close；shutdown 可 `CANCELLED` 预empt | SubscribeScenarioJobEvents, SubscribeWorkflowEvents, SubscribeAgentVoiceStream | K-STREAM-005, K-WF-004, K-VOICE-019 |
+| B — 终态事件后 close | steady-state 下终态事件（COMPLETED/FAILED/CANCELED 等）发出后 server gRPC OK close；shutdown 可 `CANCELLED` 预empt | SubscribeScenarioJobEvents, SubscribeAgentVoiceStream | K-STREAM-005, K-VOICE-019 |
 | C — eof=true 块后 close | `eof=true` 块发出后 server gRPC OK close | ExportAuditEvents | K-AUDIT-009 |
 | D — 长生命周期订阅 | 无终帧/eof 信号；server 在 daemon STOPPING 时以 `CANCELLED` 关闭 | SubscribeRuntimeHealthEvents, SubscribeAIProviderHealthEvents, SubscribeAccountSessionEvents, SubscribeRuntimeAgentAIConfigReadiness, SubscribeAppMessages, WatchAppInstallJobEvents, ReadRealtimeEvents, WatchLocalTransfers, grpc.health.v1.Health/Watch | K-STREAM-010 |
 

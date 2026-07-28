@@ -267,32 +267,3 @@ fn account_presence_verification_is_not_exposed_through_generic_bridge() {
     assert!(!is_allowlisted_method(method));
     assert!(!is_stream_method(method));
 }
-
-#[test]
-fn immutable_package_positive_methods_are_not_exposed_through_generic_bridge() {
-    for method in [
-        "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
-        "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
-        "/nimi.runtime.v1.RuntimeAppService/InstallApp",
-        "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
-        "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
-        "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
-        "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
-        "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
-        "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
-    ] {
-        assert!(
-            !is_allowlisted_method(method),
-            "{method} must remain unavailable before 0P"
-        );
-        assert!(
-            !is_stream_method(method),
-            "{method} must not expose a stream before 0P"
-        );
-    }
-
-    assert!(
-        is_allowlisted_method("/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness"),
-        "the frozen 0K readiness seam remains callable only for a typed unavailable response",
-    );
-}

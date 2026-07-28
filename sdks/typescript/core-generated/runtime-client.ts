@@ -727,76 +727,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "BindLocalAppProcessResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
-    "service": "RuntimeAppService",
-    "method": "GetAccountAppInventory",
-    "kind": "unary",
-    "requestType": "GetAccountAppInventoryRequest",
-    "responseType": "GetAccountAppInventoryResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
-    "service": "RuntimeAppService",
-    "method": "GetAppInstallJob",
-    "kind": "unary",
-    "requestType": "GetAppInstallJobRequest",
-    "responseType": "GetAppInstallJobResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
-    "service": "RuntimeAppService",
-    "method": "GetAppLifecycleIntentStatus",
-    "kind": "unary",
-    "requestType": "GetAppLifecycleIntentStatusRequest",
-    "responseType": "GetAppLifecycleIntentStatusResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
-    "service": "RuntimeAppService",
-    "method": "GetAppPackageReadiness",
-    "kind": "unary",
-    "requestType": "GetAppPackageReadinessRequest",
-    "responseType": "GetAppPackageReadinessResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "service": "RuntimeAppService",
     "method": "GetAppStorage",
     "kind": "unary",
     "requestType": "GetAppStorageRequest",
     "responseType": "GetAppStorageResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
-    "service": "RuntimeAppService",
-    "method": "HealthRepairApp",
-    "kind": "unary",
-    "requestType": "HealthRepairAppRequest",
-    "responseType": "HealthRepairAppResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/InstallApp",
-    "service": "RuntimeAppService",
-    "method": "InstallApp",
-    "kind": "unary",
-    "requestType": "InstallAppRequest",
-    "responseType": "InstallAppResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
-    "service": "RuntimeAppService",
-    "method": "ListAppInstallJobs",
-    "kind": "unary",
-    "requestType": "ListAppInstallJobsRequest",
-    "responseType": "ListAppInstallJobsResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
-    "service": "RuntimeAppService",
-    "method": "PrepareAppLifecycleIntent",
-    "kind": "unary",
-    "requestType": "PrepareAppLifecycleIntentRequest",
-    "responseType": "PrepareAppLifecycleIntentResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -837,30 +773,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "server_stream",
     "requestType": "SubscribeAppMessagesRequest",
     "responseType": "AppMessageEvent"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
-    "service": "RuntimeAppService",
-    "method": "UninstallApp",
-    "kind": "unary",
-    "requestType": "UninstallAppRequest",
-    "responseType": "UninstallAppResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
-    "service": "RuntimeAppService",
-    "method": "UpdateApp",
-    "kind": "unary",
-    "requestType": "UpdateAppRequest",
-    "responseType": "UpdateAppResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
-    "service": "RuntimeAppService",
-    "method": "WatchAppInstallJobEvents",
-    "kind": "server_stream",
-    "requestType": "WatchAppInstallJobEventsRequest",
-    "responseType": "AppInstallJobEvent"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",

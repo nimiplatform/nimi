@@ -33,14 +33,6 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 		{method: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
-		{method: "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
-		{method: "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
-		{method: "/nimi.runtime.v1.RuntimeAppService/InstallApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
-		{method: "/nimi.runtime.v1.RuntimeAppService/UninstallApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
-		{method: "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
-		{method: "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
-		{method: "/nimi.runtime.v1.RuntimeAppService/UpdateApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
-		{method: "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
 		{method: "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
@@ -68,11 +60,7 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 			if resp != nil || handlerCalled {
 				t.Fatalf("protected method reached handler: response=%+v called=%v", resp, handlerCalled)
 			}
-			wantCode := codes.PermissionDenied
-			if test.reason == runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
-				wantCode = codes.Unimplemented
-			}
-			if status.Code(err) != wantCode || status.Convert(err).Message() != test.reason.String() {
+			if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != test.reason.String() {
 				t.Fatalf("unexpected denial: code=%v reason=%q err=%v", status.Code(err), status.Convert(err).Message(), err)
 			}
 		})
@@ -148,7 +136,6 @@ func TestA0OrdinaryGRPCRejectsProtectedStreamsBeforeHandler(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		"/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
-		"/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
 	} {
 		handlerCalled := false
 		stream := &authzTestStream{ctx: context.Background()}
@@ -156,11 +143,7 @@ func TestA0OrdinaryGRPCRejectsProtectedStreamsBeforeHandler(t *testing.T) {
 			handlerCalled = true
 			return nil
 		})
-		wantCode := codes.PermissionDenied
-		if method == "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents" {
-			wantCode = codes.Unimplemented
-		}
-		if handlerCalled || status.Code(err) != wantCode {
+		if handlerCalled || status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("protected stream %s was not denied before handler: called=%v err=%v", method, handlerCalled, err)
 		}
 	}
@@ -279,20 +262,12 @@ func TestA0PublicTransportHardcutOverRealGRPC(t *testing.T) {
 			_, callErr := authClient.RenewLocalAppSession(bindingContext, &runtimev1.RenewLocalAppSessionRequest{})
 			return callErr
 		}},
-		{name: "InstallApp", call: func() error {
-			_, callErr := runtimev1.NewRuntimeAppServiceClient(conn).InstallApp(bindingContext, &runtimev1.InstallAppRequest{AppId: "community.target"})
-			return callErr
-		}},
 	}
 	for _, call := range calls {
 		t.Run(call.name, func(t *testing.T) {
 			err := call.call()
-			wantCode := codes.PermissionDenied
-			if call.name == "InstallApp" {
-				wantCode = codes.Unimplemented
-			}
-			if status.Code(err) != wantCode {
-				t.Fatalf("real gRPC call was not denied: code=%v want=%v err=%v", status.Code(err), wantCode, err)
+			if status.Code(err) != codes.PermissionDenied {
+				t.Fatalf("real gRPC call was not denied: code=%v want=%v err=%v", status.Code(err), codes.PermissionDenied, err)
 			}
 		})
 	}

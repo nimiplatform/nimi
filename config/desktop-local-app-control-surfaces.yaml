@@ -9,7 +9,7 @@ logical_role:
   portable_credential: forbidden
   authority_source: runtime_derived_from_verified_desktop_control_connection
   owns:
-    - local_app_lifecycle_ux
+    - local_development_lifecycle_ux
     - local_development_confirmation_and_supervision
     - protected_launch_request_and_process_binding
   does_not_own:

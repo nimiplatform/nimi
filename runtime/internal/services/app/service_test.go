@@ -18,6 +18,15 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+type testRuntimeAccountProjectionProvider struct {
+	projection *runtimev1.AccountProjection
+	ok         bool
+}
+
+func (provider testRuntimeAccountProjectionProvider) AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool) {
+	return provider.projection, provider.ok
+}
+
 func newTestService(opts ...Option) *Service {
 	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), opts...)
 }

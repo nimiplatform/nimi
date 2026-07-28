@@ -52,36 +52,6 @@ fn push_nested_pairs(out: &mut Vec<String>, field_name: &str, raw: &[u8]) {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AccountAppInstallState {
-    ACCOUNTAPPINSTALLSTATEUNSPECIFIED,
-    ACCOUNTAPPINSTALLSTATENOTINSTALLED,
-    ACCOUNTAPPINSTALLSTATEINSTALLED,
-    ACCOUNTAPPINSTALLSTATEREMOVED,
-}
-
-impl Default for AccountAppInstallState {
-    fn default() -> Self {
-        Self::ACCOUNTAPPINSTALLSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AccountAppInventoryState {
-    ACCOUNTAPPINVENTORYSTATEUNSPECIFIED,
-    ACCOUNTAPPINVENTORYSTATEVERIFIED,
-    ACCOUNTAPPINVENTORYSTATEENTITLED,
-    ACCOUNTAPPINVENTORYSTATEDISABLED,
-    ACCOUNTAPPINVENTORYSTATEREMOVED,
-    ACCOUNTAPPINVENTORYSTATEREVOKED,
-}
-
-impl Default for AccountAppInventoryState {
-    fn default() -> Self {
-        Self::ACCOUNTAPPINVENTORYSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AccountCallerMode {
     ACCOUNTCALLERMODEUNSPECIFIED,
     ACCOUNTCALLERMODELOCALFIRSTPARTYAPP,
@@ -635,122 +605,6 @@ impl Default for AgentTurnContextTruncationReason {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppHealthRepairAction {
-    APPHEALTHREPAIRACTIONUNSPECIFIED,
-    APPHEALTHREPAIRACTIONCANCEL,
-    APPHEALTHREPAIRACTIONRETRY,
-    APPHEALTHREPAIRACTIONREPAIR,
-    APPHEALTHREPAIRACTIONREINSTALL,
-}
-
-impl Default for AppHealthRepairAction {
-    fn default() -> Self {
-        Self::APPHEALTHREPAIRACTIONUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppInstallJobPhase {
-    APPINSTALLJOBPHASEUNSPECIFIED,
-    APPINSTALLJOBPHASEQUEUED,
-    APPINSTALLJOBPHASERESOLVEDESCRIPTOR,
-    APPINSTALLJOBPHASEDOWNLOAD,
-    APPINSTALLJOBPHASEVERIFY,
-    APPINSTALLJOBPHASEMATERIALIZE,
-    APPINSTALLJOBPHASEUNPACK,
-    APPINSTALLJOBPHASEEVIDENCE,
-    APPINSTALLJOBPHASEINSTALLED,
-    APPINSTALLJOBPHASEFAILED,
-    APPINSTALLJOBPHASESWAP,
-    APPINSTALLJOBPHASECANCELLED,
-    APPINSTALLJOBPHASEUNINSTALLED,
-}
-
-impl Default for AppInstallJobPhase {
-    fn default() -> Self {
-        Self::APPINSTALLJOBPHASEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppInstallJobState {
-    APPINSTALLJOBSTATEUNSPECIFIED,
-    APPINSTALLJOBSTATEQUEUED,
-    APPINSTALLJOBSTATEINPROGRESS,
-    APPINSTALLJOBSTATEINSTALLED,
-    APPINSTALLJOBSTATEFAILED,
-    APPINSTALLJOBSTATECANCELLED,
-    APPINSTALLJOBSTATEUNINSTALLED,
-}
-
-impl Default for AppInstallJobState {
-    fn default() -> Self {
-        Self::APPINSTALLJOBSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppInstallSourceKind {
-    APPINSTALLSOURCEKINDUNSPECIFIED,
-    APPINSTALLSOURCEKINDBUNDLED,
-    APPINSTALLSOURCEKINDEXTERNALARTIFACT,
-}
-
-impl Default for AppInstallSourceKind {
-    fn default() -> Self {
-        Self::APPINSTALLSOURCEKINDUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppLifecycleIntentAction {
-    APPLIFECYCLEINTENTACTIONUNSPECIFIED,
-    APPLIFECYCLEINTENTACTIONINSTALL,
-    APPLIFECYCLEINTENTACTIONUNINSTALL,
-    APPLIFECYCLEINTENTACTIONUPDATE,
-    APPLIFECYCLEINTENTACTIONHEALTHREPAIR,
-}
-
-impl Default for AppLifecycleIntentAction {
-    fn default() -> Self {
-        Self::APPLIFECYCLEINTENTACTIONUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppLifecycleIntentStatus {
-    APPLIFECYCLEINTENTSTATUSUNSPECIFIED,
-    APPLIFECYCLEINTENTSTATUSPREPARED,
-    APPLIFECYCLEINTENTSTATUSCONSUMED,
-    APPLIFECYCLEINTENTSTATUSSIDEEFFECTSTARTED,
-    APPLIFECYCLEINTENTSTATUSSUCCEEDED,
-    APPLIFECYCLEINTENTSTATUSFAILED,
-    APPLIFECYCLEINTENTSTATUSCANCELLED,
-    APPLIFECYCLEINTENTSTATUSEXPIRED,
-}
-
-impl Default for AppLifecycleIntentStatus {
-    fn default() -> Self {
-        Self::APPLIFECYCLEINTENTSTATUSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppLifecycleJobKind {
-    APPLIFECYCLEJOBKINDUNSPECIFIED,
-    APPLIFECYCLEJOBKINDINSTALL,
-    APPLIFECYCLEJOBKINDUPDATE,
-    APPLIFECYCLEJOBKINDREPAIR,
-    APPLIFECYCLEJOBKINDUNINSTALL,
-}
-
-impl Default for AppLifecycleJobKind {
-    fn default() -> Self {
-        Self::APPLIFECYCLEJOBKINDUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppMessageEventType {
     APPMESSAGEEVENTTYPEUNSPECIFIED,
     APPMESSAGEEVENTRECEIVED,
@@ -779,26 +633,9 @@ impl Default for AppMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppPackageReadinessState {
-    APPPACKAGEREADINESSSTATEUNSPECIFIED,
-    APPPACKAGEREADINESSSTATEREADY,
-    APPPACKAGEREADINESSSTATEINSTALLREQUIRED,
-    APPPACKAGEREADINESSSTATEUPDATEREQUIRED,
-    APPPACKAGEREADINESSSTATEREPAIRREQUIRED,
-    APPPACKAGEREADINESSSTATEBLOCKED,
-}
-
-impl Default for AppPackageReadinessState {
-    fn default() -> Self {
-        Self::APPPACKAGEREADINESSSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppStorageState {
     APPSTORAGESTATEUNSPECIFIED,
     APPSTORAGESTATEREADY,
-    APPSTORAGESTATEINSTALLREQUIRED,
     APPSTORAGESTATEREPAIRREQUIRED,
     APPSTORAGESTATESTORAGEUNAVAILABLE,
 }
@@ -2321,21 +2158,6 @@ pub enum ReasonCode {
     APPMESSAGEPAYLOADTOOLARGE,
     APPMESSAGERATELIMITED,
     APPMESSAGELOOPDETECTED,
-    APPINSTALLDESCRIPTORNOTFOUND,
-    APPINSTALLDIGESTMISMATCH,
-    APPINSTALLMANIFESTINVALID,
-    APPINSTALLSTORAGEVIOLATION,
-    APPINSTALLDOWNLOADFAILED,
-    APPINSTALLUNPACKFAILED,
-    APPINSTALLINTERNAL,
-    APPUPDATENOTAVAILABLE,
-    APPUPDATENOTINSTALLED,
-    APPUPDATECONFIRMATIONREQUIRED,
-    APPUPDATESWAPFAILED,
-    APPREPAIRACTIONINVALID,
-    APPREPAIRNORECOVERABLEJOB,
-    APPREPAIRNOTREPAIRABLE,
-    APPLIFECYCLEJOBCANCELLED,
     AILOCALSPEECHPREFLIGHTBLOCKED,
     AILOCALSPEECHDOWNLOADCONFIRMATIONREQUIRED,
     AILOCALSPEECHENVINITFAILED,
@@ -2409,10 +2231,6 @@ pub enum ReasonCode {
     PROTECTEDLOCALCUSTODYBOUNDARYUNAVAILABLE,
     PROTECTEDLOCALPRODUCTIONCONFIGOVERRIDEFORBIDDEN,
     RUNTIMEEXECUTABLETRUSTRECORDINVALID,
-    LIFECYCLEINTENTREQUIRED,
-    LIFECYCLEINTENTMISMATCH,
-    LIFECYCLEINTENTREPLAY,
-    LIFECYCLEINTENTEXPIRED,
     LOCALAPPPRINCIPALREQUIRED,
     LOCALAPPRECORDNOTFOUND,
     LOCALAPPRECORDTOMBSTONED,
@@ -3089,85 +2907,6 @@ impl AIProviderSubHealth {
         out.consecutive_failures = pairs.get("consecutive_failures").and_then(|value| value.parse().ok());
         out.last_changed_at = pairs.get("last_changed_at").cloned();
         out.last_checked_at = pairs.get("last_checked_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountAppInventoryRecord {
-    pub schema_version: Option<u32>,
-    pub account_id: Option<String>,
-    pub updated_at: Option<String>,
-    pub apps: Vec<Box<AccountAppInventoryRow>>,
-}
-
-impl AccountAppInventoryRecord {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.schema_version { pairs.push(format!("schema_version={}", value)); }
-        if let Some(value) = &self.account_id { pairs.push(format!("account_id={}", value)); }
-        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
-        if !self.apps.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode apps"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["apps"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.schema_version = pairs.get("schema_version").and_then(|value| value.parse().ok());
-        out.account_id = pairs.get("account_id").cloned();
-        out.updated_at = pairs.get("updated_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountAppInventoryRow {
-    pub app_id: Option<String>,
-    pub account_state: Option<AccountAppInventoryState>,
-    pub install_state: Option<AccountAppInstallState>,
-    pub last_opened_at: Option<String>,
-    pub data_policy: Option<String>,
-    pub verified_at: Option<String>,
-    pub source: Option<String>,
-    pub detail: Option<String>,
-}
-
-impl AccountAppInventoryRow {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.account_state { pairs.push(format!("account_state={:?}", value)); }
-        if let Some(value) = &self.install_state { pairs.push(format!("install_state={:?}", value)); }
-        if let Some(value) = &self.last_opened_at { pairs.push(format!("last_opened_at={}", value)); }
-        if let Some(value) = &self.data_policy { pairs.push(format!("data_policy={}", value)); }
-        if let Some(value) = &self.verified_at { pairs.push(format!("verified_at={}", value)); }
-        if let Some(value) = &self.source { pairs.push(format!("source={}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["account_state", "install_state"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.last_opened_at = pairs.get("last_opened_at").cloned();
-        out.data_policy = pairs.get("data_policy").cloned();
-        out.verified_at = pairs.get("verified_at").cloned();
-        out.source = pairs.get("source").cloned();
-        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -5024,217 +4763,6 @@ impl AgentVoiceStreamEvent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppInstallJob {
-    pub job_id: Option<String>,
-    pub app_id: Option<String>,
-    pub release_descriptor_ref: Option<String>,
-    pub installed_version: Option<String>,
-    pub state: Option<AppInstallJobState>,
-    pub phase: Option<AppInstallJobPhase>,
-    pub source_kind: Option<AppInstallSourceKind>,
-    pub sha256: Option<String>,
-    pub artifact_bytes: Option<i64>,
-    pub storage: Option<Box<AppInstallStorageProjection>>,
-    pub reason_code: Option<ReasonCode>,
-    pub failure_detail: Option<String>,
-    pub retryable: Option<bool>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-    pub kind: Option<AppLifecycleJobKind>,
-    pub previous_version: Option<String>,
-}
-
-impl AppInstallJob {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.release_descriptor_ref { pairs.push(format!("release_descriptor_ref={}", value)); }
-        if let Some(value) = &self.installed_version { pairs.push(format!("installed_version={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.phase { pairs.push(format!("phase={:?}", value)); }
-        if let Some(value) = &self.source_kind { pairs.push(format!("source_kind={:?}", value)); }
-        if let Some(value) = &self.sha256 { pairs.push(format!("sha256={}", value)); }
-        if let Some(value) = &self.artifact_bytes { pairs.push(format!("artifact_bytes={}", value)); }
-        if self.storage.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode storage"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.failure_detail { pairs.push(format!("failure_detail={}", value)); }
-        if let Some(value) = &self.retryable { pairs.push(format!("retryable={}", value)); }
-        if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
-        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
-        if let Some(value) = &self.kind { pairs.push(format!("kind={:?}", value)); }
-        if let Some(value) = &self.previous_version { pairs.push(format!("previous_version={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["state", "phase", "source_kind", "storage", "reason_code", "kind"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.job_id = pairs.get("job_id").cloned();
-        out.app_id = pairs.get("app_id").cloned();
-        out.release_descriptor_ref = pairs.get("release_descriptor_ref").cloned();
-        out.installed_version = pairs.get("installed_version").cloned();
-        out.sha256 = pairs.get("sha256").cloned();
-        out.artifact_bytes = pairs.get("artifact_bytes").and_then(|value| value.parse().ok());
-        out.failure_detail = pairs.get("failure_detail").cloned();
-        out.retryable = pairs.get("retryable").and_then(|value| value.parse().ok());
-        out.created_at = pairs.get("created_at").cloned();
-        out.updated_at = pairs.get("updated_at").cloned();
-        out.previous_version = pairs.get("previous_version").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppInstallJobEvent {
-    pub sequence: Option<u64>,
-    pub job: Option<Box<AppInstallJob>>,
-    pub timestamp: Option<String>,
-}
-
-impl AppInstallJobEvent {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
-        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
-        if let Some(value) = &self.timestamp { pairs.push(format!("timestamp={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["job"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
-        out.timestamp = pairs.get("timestamp").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppInstallStorageProjection {
-    pub app_root: Option<String>,
-    pub release_root: Option<String>,
-    pub durable_data_root: Option<String>,
-    pub cache_root: Option<String>,
-    pub temp_root: Option<String>,
-}
-
-impl AppInstallStorageProjection {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_root { pairs.push(format!("app_root={}", value)); }
-        if let Some(value) = &self.release_root { pairs.push(format!("release_root={}", value)); }
-        if let Some(value) = &self.durable_data_root { pairs.push(format!("durable_data_root={}", value)); }
-        if let Some(value) = &self.cache_root { pairs.push(format!("cache_root={}", value)); }
-        if let Some(value) = &self.temp_root { pairs.push(format!("temp_root={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_root = pairs.get("app_root").cloned();
-        out.release_root = pairs.get("release_root").cloned();
-        out.durable_data_root = pairs.get("durable_data_root").cloned();
-        out.cache_root = pairs.get("cache_root").cloned();
-        out.temp_root = pairs.get("temp_root").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppLifecycleCanonicalImpact {
-    pub schema_version: Option<u32>,
-    pub action: Option<AppLifecycleIntentAction>,
-    pub app_id: Option<String>,
-    pub account_generation: Option<u64>,
-    pub release_ref: Option<String>,
-    pub artifact_digest: Option<String>,
-    pub destructive_options: Option<Box<AppLifecycleDestructiveOptions>>,
-    pub impact_flags: Vec<String>,
-    pub display_contract_version: Option<u32>,
-}
-
-impl AppLifecycleCanonicalImpact {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.schema_version { pairs.push(format!("schema_version={}", value)); }
-        if let Some(value) = &self.action { pairs.push(format!("action={:?}", value)); }
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
-        if let Some(value) = &self.release_ref { pairs.push(format!("release_ref={}", value)); }
-        if let Some(value) = &self.artifact_digest { pairs.push(format!("artifact_digest={}", value)); }
-        if self.destructive_options.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode destructive_options"); }
-        for value in &self.impact_flags { pairs.push(format!("impact_flags={}", value)); }
-        if let Some(value) = &self.display_contract_version { pairs.push(format!("display_contract_version={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["action", "destructive_options"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.schema_version = pairs.get("schema_version").and_then(|value| value.parse().ok());
-        out.app_id = pairs.get("app_id").cloned();
-        out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
-        out.release_ref = pairs.get("release_ref").cloned();
-        out.artifact_digest = pairs.get("artifact_digest").cloned();
-        out.impact_flags = parse_repeated_string(raw, "impact_flags");
-        out.display_contract_version = pairs.get("display_contract_version").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppLifecycleDestructiveOptions {
-    pub delete_durable_data: Option<bool>,
-    pub health_repair_action: Option<AppHealthRepairAction>,
-    pub target_job_id: Option<String>,
-}
-
-impl AppLifecycleDestructiveOptions {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.delete_durable_data { pairs.push(format!("delete_durable_data={}", value)); }
-        if let Some(value) = &self.health_repair_action { pairs.push(format!("health_repair_action={:?}", value)); }
-        if let Some(value) = &self.target_job_id { pairs.push(format!("target_job_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["health_repair_action"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.delete_durable_data = pairs.get("delete_durable_data").and_then(|value| value.parse().ok());
-        out.target_job_id = pairs.get("target_job_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppMessageEvent {
     pub event_type: Option<AppMessageEventType>,
     pub sequence: Option<u64>,
@@ -5321,60 +4849,6 @@ impl AppModeManifest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPackageReadinessProjection {
-    pub app_id: Option<String>,
-    pub release_descriptor_ref: Option<String>,
-    pub storage_policy_ref: Option<String>,
-    pub expected_version: Option<String>,
-    pub active_version: Option<String>,
-    pub installed_version: Option<String>,
-    pub sha256: Option<String>,
-    pub verification_state: Option<String>,
-    pub state: Option<AppPackageReadinessState>,
-    pub reason_code: Option<ReasonCode>,
-    pub detail: Option<String>,
-}
-
-impl AppPackageReadinessProjection {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.release_descriptor_ref { pairs.push(format!("release_descriptor_ref={}", value)); }
-        if let Some(value) = &self.storage_policy_ref { pairs.push(format!("storage_policy_ref={}", value)); }
-        if let Some(value) = &self.expected_version { pairs.push(format!("expected_version={}", value)); }
-        if let Some(value) = &self.active_version { pairs.push(format!("active_version={}", value)); }
-        if let Some(value) = &self.installed_version { pairs.push(format!("installed_version={}", value)); }
-        if let Some(value) = &self.sha256 { pairs.push(format!("sha256={}", value)); }
-        if let Some(value) = &self.verification_state { pairs.push(format!("verification_state={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["state", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.release_descriptor_ref = pairs.get("release_descriptor_ref").cloned();
-        out.storage_policy_ref = pairs.get("storage_policy_ref").cloned();
-        out.expected_version = pairs.get("expected_version").cloned();
-        out.active_version = pairs.get("active_version").cloned();
-        out.installed_version = pairs.get("installed_version").cloned();
-        out.sha256 = pairs.get("sha256").cloned();
-        out.verification_state = pairs.get("verification_state").cloned();
-        out.detail = pairs.get("detail").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppPrivateBankOwner {
     pub account_id: Option<String>,
     pub app_id: Option<String>,
@@ -5403,11 +4877,9 @@ pub struct AppStorageProjection {
     pub app_id: Option<String>,
     pub state: Option<AppStorageState>,
     pub app_root: Option<String>,
-    pub active_release_root: Option<String>,
     pub durable_data_root: Option<String>,
     pub cache_root: Option<String>,
     pub temp_root: Option<String>,
-    pub active_version: Option<String>,
     pub storage_policy_ref: Option<String>,
     pub reason_code: Option<ReasonCode>,
     pub detail: Option<String>,
@@ -5419,11 +4891,9 @@ impl AppStorageProjection {
         if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
         if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
         if let Some(value) = &self.app_root { pairs.push(format!("app_root={}", value)); }
-        if let Some(value) = &self.active_release_root { pairs.push(format!("active_release_root={}", value)); }
         if let Some(value) = &self.durable_data_root { pairs.push(format!("durable_data_root={}", value)); }
         if let Some(value) = &self.cache_root { pairs.push(format!("cache_root={}", value)); }
         if let Some(value) = &self.temp_root { pairs.push(format!("temp_root={}", value)); }
-        if let Some(value) = &self.active_version { pairs.push(format!("active_version={}", value)); }
         if let Some(value) = &self.storage_policy_ref { pairs.push(format!("storage_policy_ref={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
@@ -5441,49 +4911,11 @@ impl AppStorageProjection {
 
         out.app_id = pairs.get("app_id").cloned();
         out.app_root = pairs.get("app_root").cloned();
-        out.active_release_root = pairs.get("active_release_root").cloned();
         out.durable_data_root = pairs.get("durable_data_root").cloned();
         out.cache_root = pairs.get("cache_root").cloned();
         out.temp_root = pairs.get("temp_root").cloned();
-        out.active_version = pairs.get("active_version").cloned();
         out.storage_policy_ref = pairs.get("storage_policy_ref").cloned();
         out.detail = pairs.get("detail").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppUninstallResult {
-    pub app_id: Option<String>,
-    pub release_removed: Option<bool>,
-    pub durable_data_removed: Option<bool>,
-    pub storage: Option<Box<AppInstallStorageProjection>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl AppUninstallResult {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.release_removed { pairs.push(format!("release_removed={}", value)); }
-        if let Some(value) = &self.durable_data_removed { pairs.push(format!("durable_data_removed={}", value)); }
-        if self.storage.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode storage"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["storage", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.release_removed = pairs.get("release_removed").and_then(|value| value.parse().ok());
-        out.durable_data_removed = pairs.get("durable_data_removed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -10563,57 +9995,6 @@ impl GatewayVerdictRefBlock {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAccountAppInventoryRequest {
-
-}
-
-impl GetAccountAppInventoryRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAccountAppInventoryResponse {
-    pub exists: Option<bool>,
-    pub record: Option<Box<AccountAppInventoryRecord>>,
-    pub reason_code: Option<ReasonCode>,
-    pub detail: Option<String>,
-}
-
-impl GetAccountAppInventoryResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.exists { pairs.push(format!("exists={}", value)); }
-        if self.record.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode record"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["record", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.exists = pairs.get("exists").and_then(|value| value.parse().ok());
-        out.detail = pairs.get("detail").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAccountSessionStatusRequest {
     pub caller: Option<Box<AccountCaller>>,
 }
@@ -10891,166 +10272,6 @@ impl GetAgentStateResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["state"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAppInstallJobRequest {
-    pub job_id: Option<String>,
-}
-
-impl GetAppInstallJobRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.job_id = pairs.get("job_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAppInstallJobResponse {
-    pub job: Option<Box<AppInstallJob>>,
-}
-
-impl GetAppInstallJobResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["job"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAppLifecycleIntentStatusRequest {
-    pub intent_id: Option<String>,
-}
-
-impl GetAppLifecycleIntentStatusRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.intent_id { pairs.push(format!("intent_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.intent_id = pairs.get("intent_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAppLifecycleIntentStatusResponse {
-    pub intent_id: Option<String>,
-    pub status: Option<AppLifecycleIntentStatus>,
-    pub non_authorizing_job_id: Option<String>,
-    pub canonical_result: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-    pub retryability: Option<bool>,
-}
-
-impl GetAppLifecycleIntentStatusResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.intent_id { pairs.push(format!("intent_id={}", value)); }
-        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
-        if let Some(value) = &self.non_authorizing_job_id { pairs.push(format!("non_authorizing_job_id={}", value)); }
-        if let Some(value) = &self.canonical_result { pairs.push(format!("canonical_result={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.retryability { pairs.push(format!("retryability={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["status", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.intent_id = pairs.get("intent_id").cloned();
-        out.non_authorizing_job_id = pairs.get("non_authorizing_job_id").cloned();
-        out.canonical_result = pairs.get("canonical_result").cloned();
-        out.retryability = pairs.get("retryability").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAppPackageReadinessRequest {
-    pub app_id: Option<String>,
-}
-
-impl GetAppPackageReadinessRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_id = pairs.get("app_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAppPackageReadinessResponse {
-    pub projection: Option<Box<AppPackageReadinessProjection>>,
-}
-
-impl GetAppPackageReadinessResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["projection"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -12570,7 +11791,6 @@ pub struct GetRuntimeHealthResponse {
     pub status: Option<RuntimeHealthStatus>,
     pub reason: Option<String>,
     pub queue_depth: Option<i32>,
-    pub active_workflows: Option<i32>,
     pub active_inference_jobs: Option<i32>,
     pub cpu_milli: Option<i64>,
     pub memory_bytes: Option<i64>,
@@ -12584,7 +11804,6 @@ impl GetRuntimeHealthResponse {
         if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
         if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
         if let Some(value) = &self.queue_depth { pairs.push(format!("queue_depth={}", value)); }
-        if let Some(value) = &self.active_workflows { pairs.push(format!("active_workflows={}", value)); }
         if let Some(value) = &self.active_inference_jobs { pairs.push(format!("active_inference_jobs={}", value)); }
         if let Some(value) = &self.cpu_milli { pairs.push(format!("cpu_milli={}", value)); }
         if let Some(value) = &self.memory_bytes { pairs.push(format!("memory_bytes={}", value)); }
@@ -12604,7 +11823,6 @@ impl GetRuntimeHealthResponse {
 
         out.reason = pairs.get("reason").cloned();
         out.queue_depth = pairs.get("queue_depth").and_then(|value| value.parse().ok());
-        out.active_workflows = pairs.get("active_workflows").and_then(|value| value.parse().ok());
         out.active_inference_jobs = pairs.get("active_inference_jobs").and_then(|value| value.parse().ok());
         out.cpu_milli = pairs.get("cpu_milli").and_then(|value| value.parse().ok());
         out.memory_bytes = pairs.get("memory_bytes").and_then(|value| value.parse().ok());
@@ -12755,72 +11973,6 @@ impl GetVoiceAssetResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["asset"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct HealthRepairAppRequest {
-    pub app_id: Option<String>,
-    pub action: Option<AppHealthRepairAction>,
-    pub job_id: Option<String>,
-    pub lifecycle_intent_id: Option<String>,
-    pub displayed_impact_digest: Option<String>,
-}
-
-impl HealthRepairAppRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.action { pairs.push(format!("action={:?}", value)); }
-        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
-        if let Some(value) = &self.lifecycle_intent_id { pairs.push(format!("lifecycle_intent_id={}", value)); }
-        if let Some(value) = &self.displayed_impact_digest { pairs.push(format!("displayed_impact_digest={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["action"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.job_id = pairs.get("job_id").cloned();
-        out.lifecycle_intent_id = pairs.get("lifecycle_intent_id").cloned();
-        out.displayed_impact_digest = pairs.get("displayed_impact_digest").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct HealthRepairAppResponse {
-    pub job: Option<Box<AppInstallJob>>,
-}
-
-impl HealthRepairAppResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -13599,65 +12751,6 @@ impl InspectMemoryEmbeddingRuntimeResponse {
         out.resolution_state = pairs.get("resolution_state").cloned();
         out.canonical_bank_status = pairs.get("canonical_bank_status").cloned();
         out.config_revision = pairs.get("config_revision").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct InstallAppRequest {
-    pub app_id: Option<String>,
-    pub confirmed: Option<bool>,
-    pub lifecycle_intent_id: Option<String>,
-    pub displayed_impact_digest: Option<String>,
-}
-
-impl InstallAppRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.confirmed { pairs.push(format!("confirmed={}", value)); }
-        if let Some(value) = &self.lifecycle_intent_id { pairs.push(format!("lifecycle_intent_id={}", value)); }
-        if let Some(value) = &self.displayed_impact_digest { pairs.push(format!("displayed_impact_digest={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.confirmed = pairs.get("confirmed").and_then(|value| value.parse().ok());
-        out.lifecycle_intent_id = pairs.get("lifecycle_intent_id").cloned();
-        out.displayed_impact_digest = pairs.get("displayed_impact_digest").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct InstallAppResponse {
-    pub job: Option<Box<AppInstallJob>>,
-}
-
-impl InstallAppResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["job"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
         out
     }
 }
@@ -14757,56 +13850,6 @@ impl ListAgentsResponse {
         }
 
         out.next_page_token = pairs.get("next_page_token").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListAppInstallJobsRequest {
-    pub app_id: Option<String>,
-}
-
-impl ListAppInstallJobsRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_id = pairs.get("app_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListAppInstallJobsResponse {
-    pub jobs: Vec<Box<AppInstallJob>>,
-}
-
-impl ListAppInstallJobsResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if !self.jobs.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode jobs"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["jobs"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
         out
     }
 }
@@ -22354,78 +21397,6 @@ impl PersonaCharacterSourceRefV3 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PrepareAppLifecycleIntentRequest {
-    pub action: Option<AppLifecycleIntentAction>,
-    pub app_id: Option<String>,
-    pub expected_release_ref: Option<String>,
-    pub expected_artifact_digest: Option<String>,
-    pub destructive_options: Option<Box<AppLifecycleDestructiveOptions>>,
-}
-
-impl PrepareAppLifecycleIntentRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.action { pairs.push(format!("action={:?}", value)); }
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.expected_release_ref { pairs.push(format!("expected_release_ref={}", value)); }
-        if let Some(value) = &self.expected_artifact_digest { pairs.push(format!("expected_artifact_digest={}", value)); }
-        if self.destructive_options.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode destructive_options"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["action", "destructive_options"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.expected_release_ref = pairs.get("expected_release_ref").cloned();
-        out.expected_artifact_digest = pairs.get("expected_artifact_digest").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PrepareAppLifecycleIntentResponse {
-    pub intent_id: Option<String>,
-    pub canonical_impact: Option<Box<AppLifecycleCanonicalImpact>>,
-    pub canonical_impact_digest: Option<String>,
-    pub deadline: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl PrepareAppLifecycleIntentResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.intent_id { pairs.push(format!("intent_id={}", value)); }
-        if self.canonical_impact.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode canonical_impact"); }
-        if let Some(value) = &self.canonical_impact_digest { pairs.push(format!("canonical_impact_digest={}", value)); }
-        if let Some(value) = &self.deadline { pairs.push(format!("deadline={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["canonical_impact", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.intent_id = pairs.get("intent_id").cloned();
-        out.canonical_impact_digest = pairs.get("canonical_impact_digest").cloned();
-        out.deadline = pairs.get("deadline").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PrepareLocalAppLaunchRequest {
     pub local_app_handle: Option<Vec<u8>>,
     pub supervisor_run_id: Option<Vec<u8>>,
@@ -26456,7 +25427,6 @@ pub struct RuntimeHealthEvent {
     pub status: Option<RuntimeHealthStatus>,
     pub reason: Option<String>,
     pub queue_depth: Option<i32>,
-    pub active_workflows: Option<i32>,
     pub active_inference_jobs: Option<i32>,
     pub cpu_milli: Option<i64>,
     pub memory_bytes: Option<i64>,
@@ -26471,7 +25441,6 @@ impl RuntimeHealthEvent {
         if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
         if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
         if let Some(value) = &self.queue_depth { pairs.push(format!("queue_depth={}", value)); }
-        if let Some(value) = &self.active_workflows { pairs.push(format!("active_workflows={}", value)); }
         if let Some(value) = &self.active_inference_jobs { pairs.push(format!("active_inference_jobs={}", value)); }
         if let Some(value) = &self.cpu_milli { pairs.push(format!("cpu_milli={}", value)); }
         if let Some(value) = &self.memory_bytes { pairs.push(format!("memory_bytes={}", value)); }
@@ -26492,7 +25461,6 @@ impl RuntimeHealthEvent {
         out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
         out.reason = pairs.get("reason").cloned();
         out.queue_depth = pairs.get("queue_depth").and_then(|value| value.parse().ok());
-        out.active_workflows = pairs.get("active_workflows").and_then(|value| value.parse().ok());
         out.active_inference_jobs = pairs.get("active_inference_jobs").and_then(|value| value.parse().ok());
         out.cpu_milli = pairs.get("cpu_milli").and_then(|value| value.parse().ok());
         out.memory_bytes = pairs.get("memory_bytes").and_then(|value| value.parse().ok());
@@ -29937,70 +28905,6 @@ impl TriggerMessageRefBlock {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UninstallAppRequest {
-    pub app_id: Option<String>,
-    pub delete_durable_data: Option<bool>,
-    pub destructive_data_delete_confirmed: Option<bool>,
-    pub lifecycle_intent_id: Option<String>,
-    pub displayed_impact_digest: Option<String>,
-}
-
-impl UninstallAppRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.delete_durable_data { pairs.push(format!("delete_durable_data={}", value)); }
-        if let Some(value) = &self.destructive_data_delete_confirmed { pairs.push(format!("destructive_data_delete_confirmed={}", value)); }
-        if let Some(value) = &self.lifecycle_intent_id { pairs.push(format!("lifecycle_intent_id={}", value)); }
-        if let Some(value) = &self.displayed_impact_digest { pairs.push(format!("displayed_impact_digest={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.delete_durable_data = pairs.get("delete_durable_data").and_then(|value| value.parse().ok());
-        out.destructive_data_delete_confirmed = pairs.get("destructive_data_delete_confirmed").and_then(|value| value.parse().ok());
-        out.lifecycle_intent_id = pairs.get("lifecycle_intent_id").cloned();
-        out.displayed_impact_digest = pairs.get("displayed_impact_digest").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UninstallAppResponse {
-    pub result: Option<Box<AppUninstallResult>>,
-    pub job: Option<Box<AppInstallJob>>,
-}
-
-impl UninstallAppResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.result.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode result"); }
-        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["result", "job"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateAgentStateRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -30046,65 +28950,6 @@ impl UpdateAgentStateResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["state"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateAppRequest {
-    pub app_id: Option<String>,
-    pub confirmed: Option<bool>,
-    pub lifecycle_intent_id: Option<String>,
-    pub displayed_impact_digest: Option<String>,
-}
-
-impl UpdateAppRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.confirmed { pairs.push(format!("confirmed={}", value)); }
-        if let Some(value) = &self.lifecycle_intent_id { pairs.push(format!("lifecycle_intent_id={}", value)); }
-        if let Some(value) = &self.displayed_impact_digest { pairs.push(format!("displayed_impact_digest={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.confirmed = pairs.get("confirmed").and_then(|value| value.parse().ok());
-        out.lifecycle_intent_id = pairs.get("lifecycle_intent_id").cloned();
-        out.displayed_impact_digest = pairs.get("displayed_impact_digest").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateAppResponse {
-    pub job: Option<Box<AppInstallJob>>,
-}
-
-impl UpdateAppResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["job"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -31281,27 +30126,6 @@ impl WarmLocalAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WatchAppInstallJobEventsRequest {
-    pub job_id: Option<String>,
-}
-
-impl WatchAppInstallJobEventsRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.job_id = pairs.get("job_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WatchLocalTransfersRequest {
 
 }
@@ -32020,18 +30844,6 @@ impl From<Vec<u8>> for AIProviderSubHealth {
     }
 }
 
-impl From<Vec<u8>> for AccountAppInventoryRecord {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AccountAppInventoryRow {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for AccountCaller {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32308,36 +31120,6 @@ impl From<Vec<u8>> for AgentVoiceStreamEvent {
     }
 }
 
-impl From<Vec<u8>> for AppInstallJob {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AppInstallJobEvent {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AppInstallStorageProjection {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AppLifecycleCanonicalImpact {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AppLifecycleDestructiveOptions {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for AppMessageEvent {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32350,12 +31132,6 @@ impl From<Vec<u8>> for AppModeManifest {
     }
 }
 
-impl From<Vec<u8>> for AppPackageReadinessProjection {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for AppPrivateBankOwner {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32363,12 +31139,6 @@ impl From<Vec<u8>> for AppPrivateBankOwner {
 }
 
 impl From<Vec<u8>> for AppStorageProjection {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AppUninstallResult {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33256,18 +32026,6 @@ impl From<Vec<u8>> for GatewayVerdictRefBlock {
     }
 }
 
-impl From<Vec<u8>> for GetAccountAppInventoryRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetAccountAppInventoryResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for GetAccountSessionStatusRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33323,42 +32081,6 @@ impl From<Vec<u8>> for GetAgentStateRequest {
 }
 
 impl From<Vec<u8>> for GetAgentStateResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetAppInstallJobRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetAppInstallJobResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetAppLifecycleIntentStatusRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetAppLifecycleIntentStatusResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetAppPackageReadinessRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetAppPackageReadinessResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33724,18 +32446,6 @@ impl From<Vec<u8>> for GetVoiceAssetResponse {
     }
 }
 
-impl From<Vec<u8>> for HealthRepairAppRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for HealthRepairAppResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for HistoryRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33869,18 +32579,6 @@ impl From<Vec<u8>> for InspectMemoryEmbeddingRuntimeRequest {
 }
 
 impl From<Vec<u8>> for InspectMemoryEmbeddingRuntimeResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for InstallAppRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for InstallAppResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34073,18 +32771,6 @@ impl From<Vec<u8>> for ListAgentsRequest {
 }
 
 impl From<Vec<u8>> for ListAgentsResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListAppInstallJobsRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListAppInstallJobsResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35291,18 +33977,6 @@ impl From<Vec<u8>> for PendingHook {
 }
 
 impl From<Vec<u8>> for PersonaCharacterSourceRefV3 {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for PrepareAppLifecycleIntentRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for PrepareAppLifecycleIntentResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36694,18 +35368,6 @@ impl From<Vec<u8>> for TriggerMessageRefBlock {
     }
 }
 
-impl From<Vec<u8>> for UninstallAppRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for UninstallAppResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for UpdateAgentStateRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36713,18 +35375,6 @@ impl From<Vec<u8>> for UpdateAgentStateRequest {
 }
 
 impl From<Vec<u8>> for UpdateAgentStateResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for UpdateAppRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for UpdateAppResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36935,12 +35585,6 @@ impl From<Vec<u8>> for WarmLocalAssetRequest {
 }
 
 impl From<Vec<u8>> for WarmLocalAssetResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for WatchAppInstallJobEventsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -38000,46 +36644,6 @@ where
         Ok(BindLocalAppProcessResponse::from_transport(&raw))
     }
 
-    pub fn get_account_app_inventory(&self, request: GetAccountAppInventoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountAppInventoryResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(GetAccountAppInventoryResponse::from_transport(&raw))
-    }
-
-    pub fn get_app_install_job(&self, request: GetAppInstallJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppInstallJobResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(GetAppInstallJobResponse::from_transport(&raw))
-    }
-
-    pub fn get_app_lifecycle_intent_status(&self, request: GetAppLifecycleIntentStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppLifecycleIntentStatusResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(GetAppLifecycleIntentStatusResponse::from_transport(&raw))
-    }
-
-    pub fn get_app_package_readiness(&self, request: GetAppPackageReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppPackageReadinessResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(GetAppPackageReadinessResponse::from_transport(&raw))
-    }
-
     pub fn get_app_storage(&self, request: GetAppStorageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppStorageResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppStorage".to_string(),
@@ -38048,46 +36652,6 @@ where
             timeout,
         })?;
         Ok(GetAppStorageResponse::from_transport(&raw))
-    }
-
-    pub fn health_repair_app(&self, request: HealthRepairAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<HealthRepairAppResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(HealthRepairAppResponse::from_transport(&raw))
-    }
-
-    pub fn install_app(&self, request: InstallAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InstallAppResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/InstallApp".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(InstallAppResponse::from_transport(&raw))
-    }
-
-    pub fn list_app_install_jobs(&self, request: ListAppInstallJobsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAppInstallJobsResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ListAppInstallJobsResponse::from_transport(&raw))
-    }
-
-    pub fn prepare_app_lifecycle_intent(&self, request: PrepareAppLifecycleIntentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PrepareAppLifecycleIntentResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(PrepareAppLifecycleIntentResponse::from_transport(&raw))
     }
 
     pub fn prepare_local_app_launch(&self, request: PrepareLocalAppLaunchRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PrepareLocalAppLaunchResponse, T::Error> {
@@ -38136,39 +36700,6 @@ where
     {
         let inner = self.core.server_stream(CoreStreamRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
-    }
-
-    pub fn uninstall_app(&self, request: UninstallAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UninstallAppResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/UninstallApp".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(UninstallAppResponse::from_transport(&raw))
-    }
-
-    pub fn update_app(&self, request: UpdateAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateAppResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/UpdateApp".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(UpdateAppResponse::from_transport(&raw))
-    }
-
-    pub fn watch_app_install_job_events(&self, request: WatchAppInstallJobEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, AppInstallJobEvent>, T::Error>
-    where
-        T::Stream: CoreTypedStream,
-    {
-        let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,

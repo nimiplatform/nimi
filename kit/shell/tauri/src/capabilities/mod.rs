@@ -52,8 +52,7 @@ pub mod runtime {
         RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID,
         RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID,
         RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID,
-        RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID,
-        RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
         RUNTIME_AUTH_REGISTER_APP_METHOD_ID, RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
         RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
         RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
@@ -566,10 +565,7 @@ pub mod avatar {
 
 pub mod agent_center;
 pub mod platform_projection {
-    pub use crate::platform_catalog::nimi_app_registry;
-    pub use crate::platform_projection::{
-        apps_bridge, apps_packages, apps_registry, factory_profile_index,
-    };
+    pub use crate::platform_projection::factory_profile_index;
     pub use crate::standard_platform_projection::{
         StandardPlatformProjectionPayload, StandardPlatformProjectionResult,
     };

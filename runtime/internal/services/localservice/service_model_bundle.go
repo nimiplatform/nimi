@@ -537,22 +537,21 @@ func (s *Service) healManagedSupervisedRuntimeMode(localModelID string) (*runtim
 	return cloneLocalAsset(cloned), true, nil
 }
 
-func isLegacyManagedLocalImportRecord(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
-	if !isManagedSupervisedLlamaModel(model, mode) {
-		return false
-	}
-	repo := strings.ToLower(strings.TrimSpace(model.GetSource().GetRepo()))
-	return strings.HasPrefix(repo, "local-import/")
-}
-
 func validateManagedLocalAssetRecord(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) error {
 	if model == nil {
 		return fmt.Errorf("managed local model is unavailable")
 	}
-	if !isLegacyManagedLocalImportRecord(model, mode) {
+	if !isManagedSupervisedLlamaModel(model, mode) &&
+		!isManagedSupervisedImageModel(model, mode) &&
+		!isManagedSupervisedSpeechModel(model, mode) {
 		return nil
 	}
-	return fmt.Errorf("legacy local-import record is unsupported; re-import the managed asset manifest or clear stale runtime state")
+	repo := strings.TrimSpace(model.GetSource().GetRepo())
+	if !strings.HasPrefix(repo, "file://") ||
+		!strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
+		return fmt.Errorf("managed local asset source repo must point to file://.../asset.manifest.json")
+	}
+	return nil
 }
 
 func (s *Service) HasManagedSupervisedLlamaModels() bool {

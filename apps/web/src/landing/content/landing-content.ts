@@ -129,7 +129,7 @@ export type LandingContent = {
       label: string;
       description: string;
       docsPath: string;
-      previewMediaId: 'sdk' | 'multimodal' | 'streamJob' | 'workflow';
+      previewMediaId: 'sdk' | 'multimodal' | 'streamJob' | 'runtime';
     }>;
     capabilityMatrix: ReadonlyArray<{
       title: string;
@@ -140,7 +140,7 @@ export type LandingContent = {
       sdk: { alt: string };
       multimodal: { alt: string };
       streamJob: { alt: string };
-      workflow: { alt: string };
+      runtime: { alt: string };
     };
   };
   desktop: {

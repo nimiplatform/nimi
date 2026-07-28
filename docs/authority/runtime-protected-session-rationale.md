@@ -483,10 +483,10 @@ minted principal into authenticated handler context, and only after exact
 account-profile binding. Any pre-existing authenticated identity that conflicts
 with the minted account fails closed before handler dispatch; the machine
 profile receives no account identity. The account profile carries only the exact
-source materialization, account app inventory/readiness, account-partitioned
-connector catalog/admin, LocalAgent inventory/state/autonomy/hooks, delegated
-control, anchor/snapshot, partner-turn, AI-config, memory-binding, presentation
-and owned-artifact operations in the canonical table. Logout,
+source materialization, account-partitioned connector catalog/admin, LocalAgent
+inventory/state/autonomy/hooks, delegated control, anchor/snapshot, partner-turn,
+AI-config, memory-binding, presentation and owned-artifact operations in the
+canonical table. Logout,
 account switch, account-generation change, sender destruction, connection loss,
 process replacement, or boot-epoch change invalidates the profile and centrally
 cancels its streams before any later read, event, or commit. The independent
@@ -563,12 +563,11 @@ never authorizes. Runtime executes mutation admission, idempotency-key consume,
 session/generation checks, and durable operation creation in one service-owned
 database transaction before beginning an external side effect.
 
-`PrepareAppLifecycleIntent` may project immutable-package unavailable impact
-without creating package truth. Positive immutable install/update/promotion/
-repair is unavailable until 0P/P. `PrepareLocalAppLaunch` is the only 0K
-positive third-party launch preparation and always requires the principal/
-record conjunction in K-PLOCAL-008. Exact operation fields are owned by
-`tables/protected-local-lifecycle-intent-protocol.yaml`.
+The ordinary package lifecycle-intent protocol and its
+`PrepareAppLifecycleIntent` method are deferred and physically absent.
+`PrepareLocalAppLaunch` is the only current positive third-party launch
+preparation and always requires the principal/record conjunction in
+K-PLOCAL-008.
 
 Runtime stores Desktop sessions, lifecycle operations, local-app lease
 consumption, local-app sessions, generations and revocation state in one
@@ -1621,7 +1620,6 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 
 **Phase 2（完整 Runtime 服务）：**
 
-- `RuntimeWorkflowService`（`K-WF-*`）
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
 - `RuntimeCognitionService`（`K-MEM-*`, `K-KNOW-*`, `K-RPC-004a`）

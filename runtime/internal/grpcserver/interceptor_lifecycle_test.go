@@ -123,38 +123,6 @@ func TestUnaryLifecycleInterceptorRejectsLocalAppLaunchWritesWhenStoppingOrStopp
 	}
 }
 
-func TestUnaryLifecycleInterceptorAllowsAppInventoryReadsWhenStoppingOrStopped(t *testing.T) {
-	for _, stateStatus := range []health.Status{health.StatusStopping, health.StatusStopped} {
-		t.Run(stateStatus.String(), func(t *testing.T) {
-			state := health.NewState()
-			state.SetStatus(stateStatus, "draining")
-			interceptor := newUnaryLifecycleInterceptor(state)
-
-			for _, fullMethod := range []string{
-				"/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
-				"/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
-			} {
-				handlerCalled := false
-				_, err := interceptor(
-					context.Background(),
-					struct{}{},
-					&grpc.UnaryServerInfo{FullMethod: fullMethod},
-					func(_ context.Context, _ any) (any, error) {
-						handlerCalled = true
-						return struct{}{}, nil
-					},
-				)
-				if err != nil {
-					t.Fatalf("%s should be allowed while %s: %v", fullMethod, stateStatus, err)
-				}
-				if !handlerCalled {
-					t.Fatalf("handler must be called for %s", fullMethod)
-				}
-			}
-		})
-	}
-}
-
 func TestUnaryLifecycleInterceptorAllowsScenarioReadWhenStopping(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusStopping, "draining")

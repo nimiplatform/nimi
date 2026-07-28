@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.sdks.feature-clients.app-client-plane
     kind: definition
     title: SDK app client plane
-    meaning: The SDK app client plane owns the typed consumer surface over the Platform Nimi App catalog, Runtime local-record projection, and the final host-injected local-app carrier, covering the sole admitted access path, the inventory logical operation set, launch and installer non-ownership, typed projection states, catalog visibility filtering, package and storage boundaries, permission declaration boundaries, review-evidence access, generated-app auth composition, storage partition projection, readiness and inventory accessors, bootstrap custody, Desktop Open Intent data surfaces, and the protected local-app selected voice client.
+    meaning: The SDK app client plane owns the typed consumer surface over the current Runtime local-development record projection and final host-injected local-app carrier, covering the sole admitted access path, fixed read-only operation set, launch and installer non-ownership, typed fail-closed projection state, future catalog non-activation, storage and permission declaration boundaries, generated-app auth composition, bootstrap custody, Desktop Open Intent data surfaces, and the protected local-app selected voice client; ordinary catalog, release review, account inventory, package readiness, install, update, repair, and lifecycle event surfaces are deferred and physically absent.
   - id: definition.nimi.sdks.feature-clients.permission-plane
     kind: definition
     title: SDK permission plane
@@ -230,8 +230,8 @@ units:
     kind: rule
     title: The app client is the sole admitted access path
     modality: must
-    statement: The SDK Nimi App client surface is the only admitted typed path for apps, developers, and the Desktop hosted shell to consume the verified catalog, account inventory, Runtime local-record status, and the host-injected local-app carrier, and apps, developers, and shells never bypass the SDK to read or write the Platform nimi-app-registry table directly, call Runtime app registration private RPCs directly, privately implement installer, package-manager, or source-selector logic, or select principal, launch, account, grant, or session through an app id, path, manifest, renderer metadata, or SDK argument.
-    condition: Whenever app catalog, inventory, record, or carrier data is consumed.
+    statement: The SDK Nimi App client surface is the only admitted typed path for apps, developers, and the Desktop hosted shell to consume current Runtime local-development record status and the host-injected local-app carrier, retained Platform catalog rows and release descriptors remain future-only read-only metadata that do not enter the current Apps listing, account inventory and package readiness SDK surfaces are physically absent, and apps, developers, and shells never bypass the SDK to read or write Platform catalog configuration directly, call Runtime private registration methods directly, privately implement installer, package-manager, or source-selector logic, or select principal, launch, account, grant, or session through an app id, path, manifest, renderer metadata, or SDK argument.
+    condition: Whenever current local-development record or carrier data is consumed or future Platform catalog metadata is inspected.
     failure: Reject bypass paths and caller-side authority selection.
     relations:
       - type: applies_to
@@ -240,9 +240,9 @@ units:
     kind: rule
     title: The inventory operation set is fixed and read-only
     modality: must
-    statement: The 0K SDK exposes the inventory logical operations app.list returning the unified Apps inventory visible to the current user composed from the Platform ordinary catalog source, the Runtime authenticated account inventory source, and the Runtime local-record source with sources preserved and never inferred from each other, app.get returning a single app inventory entry with source, state, and action projection, app.status returning app health and repair projection state, and app.subscribe subscribing to app lifecycle events as a host-local event stream, while the 0K Nimi App client exposes no app.install, app.update, app.uninstall, app.launch, app.healthRepair, import, promotion, or package job mutation, immutable readiness returns only typed unavailable through the package readiness accessor, and local-development launch is native-host initiated and never an SDK app-id call.
-    condition: Whenever the app inventory operation set is defined or consumed.
-    failure: Reject mutation operations and inferred sources.
+    statement: The current SDK exposes only app.list, app.get, and app.status over an explicitly injected read-only local-development record projection, exposes no current Platform ordinary-catalog listing, authenticated account inventory, package-readiness accessor, lifecycle event subscription, app.install, app.update, app.uninstall, app.launch, app.healthRepair, import, promotion, or package-job operation, and local-development launch is native-host initiated and never an SDK app-id call.
+    condition: Whenever the current app read-projection operation set is defined or consumed.
+    failure: Reject ordinary catalog activation, deferred projections, mutation operations, subscriptions, and inferred sources.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
@@ -270,7 +270,7 @@ units:
     kind: rule
     title: Projection states are typed and fail-closed
     modality: must
-    statement: Every app client logical operation returns typed projection state aligned with the Platform health and repair fail-closed semantics, ready is never inferred from transfer completion, endpoint reachability, process liveness, or file existence, and multiple fail-closed reasons are never collapsed through a generic unavailable.
+    statement: Every current local-development app client logical operation returns typed fail-closed projection state, ready is never inferred from transfer completion, endpoint reachability, process liveness, registry or release metadata, or file existence, and distinct fail-closed reasons are never collapsed through a generic unavailable.
     condition: Whenever app projection states are produced.
     failure: Reject inferred readiness and collapsed reasons.
     relations:
@@ -298,21 +298,16 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r026
     kind: rule
+    lifecycle: removed
     title: App subscriptions carry projection events only
-    modality: must
-    statement: app.subscribe carries only catalog, account, and local-record projection events such as source degraded, record active, dormant, or removed, and session or grant posture changed typed events, and the subscription never carries audit, permission, or spend events because the permission fabric and Realm audit own audit truth.
-    condition: Whenever app subscription events are emitted.
-    failure: Reject audit, permission, and spend events on the app subscription.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.app-client-plane
+    reason: Removed because no current app lifecycle subscription is admitted; ordinary lifecycle and account-inventory event projections are physically absent.
   - id: rule.nimi.sdks.feature-clients.r027
     kind: rule
-    title: Catalog sources project ordinary-visible rows only
+    title: Future catalog metadata cannot activate current Apps
     modality: must
-    statement: The app.list catalog source and Desktop Apps consumers project only catalog-sourced apps whose registry row resolves as ordinary visible with admission_status admitted, ordinary_visibility ordinary-visible, an admitted package kind, a resolving release descriptor, and resolving trust, runtime, permission, and storage policy refs, Avatar never appears from the catalog source for ordinary Apps even when an internal registry row exists for bundled package and update coordination, the SDK never exposes unadmitted workspace apps, app-local spec rows, Avatar hidden-internal rows, or source-discovered packages as catalog Apps, and account inventory and local-record sources are admitted separately and never relabeled as ordinary catalog truth.
-    condition: Whenever catalog-sourced apps are projected.
-    failure: Reject non-ordinary rows, hidden rows, and relabeled sources.
+    statement: Retained generated Platform catalog rows and release descriptors are future-only read-only metadata, current app.list and Desktop Apps consumers never turn them into ordinary visibility or runnable truth, Avatar, bundled first-party, developer-only, workspace, app-local, and source-discovered rows never become ordinary Apps through the SDK, and any future ordinary catalog projection requires separately activated lifecycle authority and a new admitted consumer contract.
+    condition: Whenever Platform catalog metadata is generated, exported, or considered by an Apps consumer.
+    failure: Reject current ordinary listing, inferred runnable truth, and activation from metadata presence.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
@@ -320,9 +315,9 @@ units:
     kind: rule
     title: Immutable package mutation is unadmitted
     modality: must
-    statement: Verified release descriptors are read-only discovery and review input in 0K, the SDK may project catalog metadata but cannot download, inspect, unpack, register, install, import, update, promote, rollback, repair, or execute an immutable artifact, those operations are absent from the Nimi App client with Runtime package readiness mapping to typed unavailable, and the SDK never performs direct npm install, npx, GitHub clone, source build or run, lifecycle script execution, digest-only admission, or local file scanning as package truth.
+    statement: Verified release descriptors are future-only read-only discovery and review metadata, the SDK cannot download, inspect, unpack, register, install, import, update, promote, rollback, repair, or execute an immutable artifact, those operations and package-readiness placeholders are physically absent from the Nimi App client, and the SDK never performs direct npm install, npx, GitHub clone, source build or run, lifecycle script execution, digest-only admission, or local file scanning as package truth.
     condition: Whenever immutable package operations are approached.
-    failure: Return typed unavailable and reject direct package execution paths.
+    failure: Reject the operation without a placeholder or direct package execution path.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
@@ -340,7 +335,7 @@ units:
     kind: rule
     title: Manifest permissions declare eligibility only
     modality: must
-    statement: The developer-authored manifest may carry only a permissions list of id and reason entries using admitted rows from the Platform public permission catalog, the verified registry projects the same list as permission_requirements and release descriptors may reference the reviewed list through permissions_ref, declaration is request eligibility and review transparency and never authority, the runtime app client exposes no legacy scope or qualifier carriers and never derives live permission posture from a manifest or descriptor, live status and requests use only the host-injected permissions.status by permission id and permissions.request with permission id and reason surface, current posture comes from the row's single decision owner and an app declaration, trust tier, review result, app id, or prior success cannot manufacture granted, the SDK rejects unknown, reserved, or non-admitted permission ids before a positive request and never exposes AIScopeRef, scopeFamily, scopeName, qualifier, internal operationId or resourceRef, selector fingerprints, or owner grant identifiers, and base entitlements and app-owned authority are forbidden from manifest permission declarations and remain usable without a permission request.
+    statement: The developer-authored local-development manifest may carry only a permissions list of id and reason entries using admitted rows from the Platform public permission catalog, declaration is request eligibility and transparency and never authority, retained future registry or release metadata never enters the current SDK app projection, the runtime app client exposes no legacy scope or qualifier carriers and never derives live permission posture from a manifest, descriptor, registry row, or review record, live status and requests use only the host-injected permissions.status by permission id and permissions.request with permission id and reason surface, current posture comes from the row's single decision owner and an app declaration, trust tier, review result, app id, or prior success cannot manufacture granted, the SDK rejects unknown, reserved, or non-admitted permission ids before a positive request and never exposes AIScopeRef, scopeFamily, scopeName, qualifier, internal operationId or resourceRef, selector fingerprints, or owner grant identifiers, and base entitlements and app-owned authority are forbidden from manifest permission declarations and remain usable without a permission request.
     condition: Whenever manifest permission declarations or live posture are consumed.
     failure: Reject manufactured grants, legacy carriers, and internal identity exposure.
     relations:
@@ -368,14 +363,9 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r033
     kind: rule
+    lifecycle: removed
     title: The review-evidence accessor is read-only
-    modality: must
-    statement: The SDK Nimi App client surface admits a typed read-only accessor over the admitted release descriptor review block exposing the platform-owned typed fields decision as the closed enum approved, revision-requested, rejected, or kill-switched, adjudicator_kind as the closed enum human or nimi-automated-gate, adjudicator_ref as a string reference to a reviewer policy or human reviewer identifier, and decided_at as the terminal-decision timestamp owned by the review record, the accessor returns the descriptor terminal review-decision record as admitted and serves the Apps first-level review status display and Desktop hosted shell admission-trail UX, the accessor is admitted in the app client surface and not in the permission client because the review-decision record is an admission-evidence accessor over the admitted release descriptor and not a permission grant lifecycle accessor, the accessor never drives policy so it never gates app launch, install, or grant requests and never alters app.list ordinary-visibility filtering or Apps-surface visibility decisions because launch, admission, and grant lifecycle keep their own authorities, the rule never redefines the platform decision schema, extends the decision or adjudicator enums, or introduces a parallel review record differing from the admitted descriptor review block, collapsing any two of the four typed fields into one accessor field is a forbidden parallel-truth projection, and the accessor never exposes the three upstream audit-evidence references audit_evidence_ref, ai_audit_model_ref, and scanner_results_ref under this rule because upstream evidence-record consumer surfaces are out of scope and not part of the first-level Apps display.
-    condition: Whenever the review-evidence accessor is exposed or consumed.
-    failure: Reject policy driving, schema redefinition, field collapsing, and upstream evidence exposure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.app-client-plane
+    reason: Removed because ordinary release review is deferred and no current SDK catalog row, release descriptor, review accessor, generated projection, Desktop Apps projection, or permission placement seam remains.
   - id: rule.nimi.sdks.feature-clients.r034
     kind: rule
     title: Generated-app auth composition is closed
@@ -398,31 +388,21 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r036
     kind: rule
+    lifecycle: removed
     title: Package readiness is typed unavailable in 0K
-    modality: must
-    statement: The SDK exposes typed app package readiness access backed by Runtime GetAppPackageReadiness, in 0K immutable package, install, update, and promotion readiness returns typed unavailable while opaque lineage, attestation, revision, execution-profile, and digest slots stay inside Runtime, the SDK never exposes those opaque internal refs as a positive package assertion, never scans Runtime-owned install-evidence files, never infers package readiness from file existence, and never treats Desktop or Kit bridge evidence as canonical package truth, and SDK orchestration here stays non-authoritative by submitting explicit typed requests to Runtime and mapping the Runtime projection without hiding fail-closed states.
-    condition: Whenever app package readiness is accessed.
-    failure: Reject positive package assertions and evidence scanning.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.app-client-plane
+    reason: Removed because package readiness is deferred and its accessor, request, response, decoder, placeholder, and bridge projection are physically absent.
   - id: rule.nimi.sdks.feature-clients.r037
     kind: rule
+    lifecycle: removed
     title: Account inventory truth is Runtime-resolved
-    modality: must
-    statement: The SDK exposes typed access, request builders, response parsers, and decoders for Runtime GetAccountAppInventory, the Runtime request carries no app-supplied or renderer-supplied account id because Runtime resolves the authenticated account binding and validates the projection, account visibility and local record state remain separate with the 0K local states not-present, local-record-active, local-record-dormant, and removed and immutable package install state unavailable until 0P or P, an account verified row without local materialization remains a valid catalog row, and the SDK never reads the account apps inventory JSON file, infers account directories, or converts absent or corrupt inventory state into success while SDK helpers may preserve the explicit exists-false response and parse present records because Runtime owns account app-inventory validation, writes, and fail-closed reason codes.
-    condition: Whenever account app inventory is accessed or parsed.
-    failure: Reject caller-supplied account ids and success conversion of absent state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.app-client-plane
+    reason: Removed because account app inventory is deferred and its accessor, request, record schema, parser, decoder, fixture, and alternate file reader are physically absent.
   - id: rule.nimi.sdks.feature-clients.r038
     kind: rule
     title: Inventory entries compose deterministically
     modality: must
-    statement: NimiAppClient.list returns NimiAppInventoryEntry values each carrying the appId and display metadata, the optional catalog, account, and local sources, and closed trustTier, installState, openReadiness, activeJobs, nextActions, and typed reasonCode and detail fields, catalog and account composition is deterministic by appId while distinct local records are deterministic by their Runtime-issued opaque record reference and never merge merely because their display appId matches, a source failure emits a typed source-degraded projection and never fabricates entries from another source while valid entries from other sources may remain visible only with the source-degraded reason preserved, and the SDK never collapses account entitlement, local records, and ordinary catalog admission into a single installed or ready boolean and never infers account visibility from install evidence or a local record from file existence.
-    condition: Whenever the unified apps inventory is composed.
-    failure: Reject fabricated entries, merged records, and collapsed booleans.
+    statement: NimiAppClient.list returns current local-development NimiAppInventoryEntry values carrying appId, display metadata, the explicit local-record source, local trust class, local record state, open readiness, next actions, and typed reasonCode and detail, distinct local records remain distinct by their Runtime-issued opaque identity and never merge merely because display appId matches, a source failure emits a typed source-degraded projection and never fabricates a record, and entries expose no catalog, account-inventory, package-readiness, active-job, install-state, release, or package field.
+    condition: Whenever the current local-development Apps read projection is composed.
+    failure: Reject fabricated or merged records and fields belonging to deferred ordinary lifecycle projections.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
@@ -430,7 +410,7 @@ units:
     kind: rule
     title: Local records project without identity leakage
     modality: must
-    statement: The SDK exposes read-only typed status for the current host-injected local-app carrier covering trust class, record state, session state, public permission posture, and typed reason, the projection omits local_app_principal_id, lineage, SID partition, launch, process, and session identifiers, permission-decision identifiers and revisions, digests, and provenance-attestation refs, the SDK exposes no workspace-adoption, install, import, promote, or repair accessor in 0K, immutable positive package materialization remains typed unavailable until 0P or P, and SDK, Desktop, and apps never scan workspaces or infer a record from a manifest, path, app id, or file existence.
+    statement: The SDK exposes read-only typed status for the current host-injected local-app carrier covering local_development trust class, record state, session state, public permission posture, and typed reason, the projection omits local_app_principal_id, lineage, SID partition, launch, process, and session identifiers, permission-decision identifiers and revisions, digests, and provenance-attestation refs, the SDK exposes no workspace-adoption, install, import, promote, package-readiness, account-inventory, or repair accessor, and SDK, Desktop, and apps never scan workspaces or infer a record from a manifest, path, app id, or file existence.
     condition: Whenever local app records are projected.
     failure: Reject identity leakage and inferred records.
     relations:
@@ -558,9 +538,9 @@ units:
         target: definition.nimi.sdks.feature-clients.permission-plane
   - id: rule.nimi.sdks.feature-clients.r052
     kind: rule
-    title: Review evidence never enters permission
+    title: Deferred release review never enters permission
     modality: must
-    statement: The release review and attestation accessor belongs to the app client admission-evidence surface and never appears in permission posture, permission requests, subscriptions, or owner grant lifecycle, the review decisions approved, revision-requested, rejected, and kill-switched and the public permission posture and lifecycle vocabularies are mutually exclusive, and a review result never seeds or enlarges a grant.
+    statement: Retained Platform release review metadata is future-only configuration and never appears in the current SDK app client, permission posture, permission requests, subscriptions, or owner grant lifecycle, review metadata and public permission posture vocabularies remain mutually exclusive, and a review result never seeds or enlarges a grant.
     condition: Whenever review evidence meets permission surfaces.
     failure: Reject review-driven grants and vocabulary mixing.
     relations:

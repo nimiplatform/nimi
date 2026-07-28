@@ -884,42 +884,6 @@
           "response_stream": true
         },
         {
-          "name": "PrepareAppLifecycleIntent",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
-          "kind": "unary",
-          "request_type": "PrepareAppLifecycleIntentRequest",
-          "response_type": "PrepareAppLifecycleIntentResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetAppLifecycleIntentStatus",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
-          "kind": "unary",
-          "request_type": "GetAppLifecycleIntentStatusRequest",
-          "response_type": "GetAppLifecycleIntentStatusResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "InstallApp",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/InstallApp",
-          "kind": "unary",
-          "request_type": "InstallAppRequest",
-          "response_type": "InstallAppResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "UninstallApp",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
-          "kind": "unary",
-          "request_type": "UninstallAppRequest",
-          "response_type": "UninstallAppResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "GetAppStorage",
           "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
           "kind": "unary",
@@ -952,69 +916,6 @@
           "kind": "unary",
           "request_type": "RemoveLocalAppStorageJsonRequest",
           "response_type": "RemoveLocalAppStorageJsonResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetAccountAppInventory",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
-          "kind": "unary",
-          "request_type": "GetAccountAppInventoryRequest",
-          "response_type": "GetAccountAppInventoryResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetAppPackageReadiness",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
-          "kind": "unary",
-          "request_type": "GetAppPackageReadinessRequest",
-          "response_type": "GetAppPackageReadinessResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetAppInstallJob",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
-          "kind": "unary",
-          "request_type": "GetAppInstallJobRequest",
-          "response_type": "GetAppInstallJobResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListAppInstallJobs",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
-          "kind": "unary",
-          "request_type": "ListAppInstallJobsRequest",
-          "response_type": "ListAppInstallJobsResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "WatchAppInstallJobEvents",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
-          "kind": "server_stream",
-          "request_type": "WatchAppInstallJobEventsRequest",
-          "response_type": "AppInstallJobEvent",
-          "request_stream": false,
-          "response_stream": true
-        },
-        {
-          "name": "UpdateApp",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
-          "kind": "unary",
-          "request_type": "UpdateAppRequest",
-          "response_type": "UpdateAppResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "HealthRepairApp",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
-          "kind": "unary",
-          "request_type": "HealthRepairAppRequest",
-          "response_type": "HealthRepairAppResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2521,23 +2422,12 @@
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
     "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
-    "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
-    "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
-    "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
-    "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
-    "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
-    "/nimi.runtime.v1.RuntimeAppService/InstallApp",
-    "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
-    "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
     "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
     "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
-    "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
-    "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
-    "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
     "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
     "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
@@ -3402,76 +3292,12 @@
       "response_type": "BindLocalAppProcessResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
-      "service": "RuntimeAppService",
-      "method": "GetAccountAppInventory",
-      "kind": "unary",
-      "request_type": "GetAccountAppInventoryRequest",
-      "response_type": "GetAccountAppInventoryResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
-      "service": "RuntimeAppService",
-      "method": "GetAppInstallJob",
-      "kind": "unary",
-      "request_type": "GetAppInstallJobRequest",
-      "response_type": "GetAppInstallJobResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
-      "service": "RuntimeAppService",
-      "method": "GetAppLifecycleIntentStatus",
-      "kind": "unary",
-      "request_type": "GetAppLifecycleIntentStatusRequest",
-      "response_type": "GetAppLifecycleIntentStatusResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
-      "service": "RuntimeAppService",
-      "method": "GetAppPackageReadiness",
-      "kind": "unary",
-      "request_type": "GetAppPackageReadinessRequest",
-      "response_type": "GetAppPackageReadinessResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
       "service": "RuntimeAppService",
       "method": "GetAppStorage",
       "kind": "unary",
       "request_type": "GetAppStorageRequest",
       "response_type": "GetAppStorageResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
-      "service": "RuntimeAppService",
-      "method": "HealthRepairApp",
-      "kind": "unary",
-      "request_type": "HealthRepairAppRequest",
-      "response_type": "HealthRepairAppResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/InstallApp",
-      "service": "RuntimeAppService",
-      "method": "InstallApp",
-      "kind": "unary",
-      "request_type": "InstallAppRequest",
-      "response_type": "InstallAppResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
-      "service": "RuntimeAppService",
-      "method": "ListAppInstallJobs",
-      "kind": "unary",
-      "request_type": "ListAppInstallJobsRequest",
-      "response_type": "ListAppInstallJobsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
-      "service": "RuntimeAppService",
-      "method": "PrepareAppLifecycleIntent",
-      "kind": "unary",
-      "request_type": "PrepareAppLifecycleIntentRequest",
-      "response_type": "PrepareAppLifecycleIntentResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -3512,30 +3338,6 @@
       "kind": "server_stream",
       "request_type": "SubscribeAppMessagesRequest",
       "response_type": "AppMessageEvent"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
-      "service": "RuntimeAppService",
-      "method": "UninstallApp",
-      "kind": "unary",
-      "request_type": "UninstallAppRequest",
-      "response_type": "UninstallAppResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
-      "service": "RuntimeAppService",
-      "method": "UpdateApp",
-      "kind": "unary",
-      "request_type": "UpdateAppRequest",
-      "response_type": "UpdateAppResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
-      "service": "RuntimeAppService",
-      "method": "WatchAppInstallJobEvents",
-      "kind": "server_stream",
-      "request_type": "WatchAppInstallJobEventsRequest",
-      "response_type": "AppInstallJobEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
@@ -5444,76 +5246,12 @@
       "response_type": "BindLocalAppProcessResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
-      "service": "RuntimeAppService",
-      "method": "GetAccountAppInventory",
-      "kind": "unary",
-      "request_type": "GetAccountAppInventoryRequest",
-      "response_type": "GetAccountAppInventoryResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
-      "service": "RuntimeAppService",
-      "method": "GetAppInstallJob",
-      "kind": "unary",
-      "request_type": "GetAppInstallJobRequest",
-      "response_type": "GetAppInstallJobResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
-      "service": "RuntimeAppService",
-      "method": "GetAppLifecycleIntentStatus",
-      "kind": "unary",
-      "request_type": "GetAppLifecycleIntentStatusRequest",
-      "response_type": "GetAppLifecycleIntentStatusResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
-      "service": "RuntimeAppService",
-      "method": "GetAppPackageReadiness",
-      "kind": "unary",
-      "request_type": "GetAppPackageReadinessRequest",
-      "response_type": "GetAppPackageReadinessResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
       "service": "RuntimeAppService",
       "method": "GetAppStorage",
       "kind": "unary",
       "request_type": "GetAppStorageRequest",
       "response_type": "GetAppStorageResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
-      "service": "RuntimeAppService",
-      "method": "HealthRepairApp",
-      "kind": "unary",
-      "request_type": "HealthRepairAppRequest",
-      "response_type": "HealthRepairAppResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/InstallApp",
-      "service": "RuntimeAppService",
-      "method": "InstallApp",
-      "kind": "unary",
-      "request_type": "InstallAppRequest",
-      "response_type": "InstallAppResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
-      "service": "RuntimeAppService",
-      "method": "ListAppInstallJobs",
-      "kind": "unary",
-      "request_type": "ListAppInstallJobsRequest",
-      "response_type": "ListAppInstallJobsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
-      "service": "RuntimeAppService",
-      "method": "PrepareAppLifecycleIntent",
-      "kind": "unary",
-      "request_type": "PrepareAppLifecycleIntentRequest",
-      "response_type": "PrepareAppLifecycleIntentResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -5554,30 +5292,6 @@
       "kind": "server_stream",
       "request_type": "SubscribeAppMessagesRequest",
       "response_type": "AppMessageEvent"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
-      "service": "RuntimeAppService",
-      "method": "UninstallApp",
-      "kind": "unary",
-      "request_type": "UninstallAppRequest",
-      "response_type": "UninstallAppResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
-      "service": "RuntimeAppService",
-      "method": "UpdateApp",
-      "kind": "unary",
-      "request_type": "UpdateAppRequest",
-      "response_type": "UpdateAppResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
-      "service": "RuntimeAppService",
-      "method": "WatchAppInstallJobEvents",
-      "kind": "server_stream",
-      "request_type": "WatchAppInstallJobEventsRequest",
-      "response_type": "AppInstallJobEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
@@ -6777,8 +6491,6 @@
       "AIProviderHealthEvent",
       "AIProviderHealthSnapshot",
       "AIProviderSubHealth",
-      "AccountAppInventoryRecord",
-      "AccountAppInventoryRow",
       "AccountCaller",
       "AccountProjection",
       "AccountSessionEvent",
@@ -6825,17 +6537,10 @@
       "AgentTurnContextSummary",
       "AgentTurnContextTruncationSummary",
       "AgentVoiceStreamEvent",
-      "AppInstallJob",
-      "AppInstallJobEvent",
-      "AppInstallStorageProjection",
-      "AppLifecycleCanonicalImpact",
-      "AppLifecycleDestructiveOptions",
       "AppMessageEvent",
       "AppModeManifest",
-      "AppPackageReadinessProjection",
       "AppPrivateBankOwner",
       "AppStorageProjection",
-      "AppUninstallResult",
       "AppendInferenceAuditRequest",
       "AppendRealtimeInputRequest",
       "AppendRealtimeInputResponse",
@@ -6983,8 +6688,6 @@
       "ExternalParticipantIdentityRefBlock",
       "ExternalPayloadRefBlock",
       "GatewayVerdictRefBlock",
-      "GetAccountAppInventoryRequest",
-      "GetAccountAppInventoryResponse",
       "GetAccountSessionStatusRequest",
       "GetAccountSessionStatusResponse",
       "GetAgentCanonicalMemoryBankStatusRequest",
@@ -6995,12 +6698,6 @@
       "GetAgentResponse",
       "GetAgentStateRequest",
       "GetAgentStateResponse",
-      "GetAppInstallJobRequest",
-      "GetAppInstallJobResponse",
-      "GetAppLifecycleIntentStatusRequest",
-      "GetAppLifecycleIntentStatusResponse",
-      "GetAppPackageReadinessRequest",
-      "GetAppPackageReadinessResponse",
       "GetAppStorageRequest",
       "GetAppStorageResponse",
       "GetAvatarDebugReplayRequest",
@@ -7061,8 +6758,6 @@
       "GetScenarioJobResponse",
       "GetVoiceAssetRequest",
       "GetVoiceAssetResponse",
-      "HealthRepairAppRequest",
-      "HealthRepairAppResponse",
       "HistoryRequest",
       "HistoryResponse",
       "HookExecutionOutcome",
@@ -7086,8 +6781,6 @@
       "InitializeAgentResponse",
       "InspectMemoryEmbeddingRuntimeRequest",
       "InspectMemoryEmbeddingRuntimeResponse",
-      "InstallAppRequest",
-      "InstallAppResponse",
       "InstallLocalServiceRequest",
       "InstallLocalServiceResponse",
       "InstallModelFromPlanRequest",
@@ -7120,8 +6813,6 @@
       "ListAgentConversationSummariesResponse",
       "ListAgentsRequest",
       "ListAgentsResponse",
-      "ListAppInstallJobsRequest",
-      "ListAppInstallJobsResponse",
       "ListAuditEventsRequest",
       "ListAuditEventsResponse",
       "ListAvatarDebugProbeResultsRequest",
@@ -7323,8 +7014,6 @@
       "PeekSchedulingResponse",
       "PendingHook",
       "PersonaCharacterSourceRefV3",
-      "PrepareAppLifecycleIntentRequest",
-      "PrepareAppLifecycleIntentResponse",
       "PrepareLocalAppLaunchRequest",
       "PrepareLocalAppLaunchResponse",
       "PrepareProfileRuntimeDescriptorRequest",
@@ -7556,12 +7245,8 @@
       "TraverseGraphRequest",
       "TraverseGraphResponse",
       "TriggerMessageRefBlock",
-      "UninstallAppRequest",
-      "UninstallAppResponse",
       "UpdateAgentStateRequest",
       "UpdateAgentStateResponse",
-      "UpdateAppRequest",
-      "UpdateAppResponse",
       "UpdateConnectorRequest",
       "UpdateConnectorResponse",
       "UploadArtifactChunk",
@@ -7597,7 +7282,6 @@
       "VoiceV2VInput",
       "WarmLocalAssetRequest",
       "WarmLocalAssetResponse",
-      "WatchAppInstallJobEventsRequest",
       "WatchLocalTransfersRequest",
       "WorkspaceBindingAttachment",
       "WorkspaceBindingRelation",
@@ -7622,8 +7306,6 @@
       "WriteLocalAppStorageJsonResponse"
     ],
     "enums": [
-      "AccountAppInstallState",
-      "AccountAppInventoryState",
       "AccountCallerMode",
       "AccountEventType",
       "AccountReasonCode",
@@ -7660,16 +7342,8 @@
       "AgentTurnContextState",
       "AgentTurnContextSummarySchemaVersion",
       "AgentTurnContextTruncationReason",
-      "AppHealthRepairAction",
-      "AppInstallJobPhase",
-      "AppInstallJobState",
-      "AppInstallSourceKind",
-      "AppLifecycleIntentAction",
-      "AppLifecycleIntentStatus",
-      "AppLifecycleJobKind",
       "AppMessageEventType",
       "AppMode",
-      "AppPackageReadinessState",
       "AppStorageState",
       "AvatarDebugEventFamily",
       "AvatarDebugProbeKind",
@@ -7805,102 +7479,6 @@
       "WorldRelation"
     ],
     "message_schemas": [
-      {
-        "name": "AccountAppInventoryRecord",
-        "fields": [
-          {
-            "name": "schema_version",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "account_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "updated_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "apps",
-            "type": "AccountAppInventoryRow",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AccountAppInventoryRow",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "account_state",
-            "type": "AccountAppInventoryState",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "install_state",
-            "type": "AccountAppInstallState",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "last_opened_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "data_policy",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "verified_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "source",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
       {
         "name": "AccountCaller",
         "fields": [
@@ -10725,295 +10303,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "AppInstallJob",
-        "fields": [
-          {
-            "name": "job_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "release_descriptor_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "installed_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "state",
-            "type": "AppInstallJobState",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "phase",
-            "type": "AppInstallJobPhase",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "source_kind",
-            "type": "AppInstallSourceKind",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "sha256",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "artifact_bytes",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "storage",
-            "type": "AppInstallStorageProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "failure_detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "retryable",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "created_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          },
-          {
-            "name": "updated_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 15
-          },
-          {
-            "name": "kind",
-            "type": "AppLifecycleJobKind",
-            "repeated": false,
-            "optional": false,
-            "number": 16
-          },
-          {
-            "name": "previous_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 17
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppInstallJobEvent",
-        "fields": [
-          {
-            "name": "sequence",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "job",
-            "type": "AppInstallJob",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "timestamp",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppInstallStorageProjection",
-        "fields": [
-          {
-            "name": "app_root",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "release_root",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "durable_data_root",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "cache_root",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "temp_root",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppLifecycleCanonicalImpact",
-        "fields": [
-          {
-            "name": "schema_version",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "action",
-            "type": "AppLifecycleIntentAction",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "account_generation",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "release_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "artifact_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "destructive_options",
-            "type": "AppLifecycleDestructiveOptions",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "impact_flags",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "display_contract_version",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppLifecycleDestructiveOptions",
-        "fields": [
-          {
-            "name": "delete_durable_data",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "health_repair_action",
-            "type": "AppHealthRepairAction",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "target_job_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "ApplyProfileRequest",
         "fields": [
           {
@@ -11157,89 +10446,6 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
-        "name": "AppPackageReadinessProjection",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "release_descriptor_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "storage_policy_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "expected_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "active_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "installed_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "sha256",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "verification_state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "state",
-            "type": "AppPackageReadinessState",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "AppPrivateBankOwner",
         "fields": [
           {
@@ -11284,13 +10490,6 @@
             "number": 3
           },
           {
-            "name": "active_release_root",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
             "name": "durable_data_root",
             "type": "string",
             "repeated": false,
@@ -11312,13 +10511,6 @@
             "number": 7
           },
           {
-            "name": "active_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
             "name": "storage_policy_ref",
             "type": "string",
             "repeated": false,
@@ -11338,47 +10530,6 @@
             "repeated": false,
             "optional": false,
             "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppUninstallResult",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "release_removed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "durable_data_removed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "storage",
-            "type": "AppInstallStorageProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -16608,45 +15759,6 @@
         "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
-        "name": "GetAccountAppInventoryRequest",
-        "fields": [],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "GetAccountAppInventoryResponse",
-        "fields": [
-          {
-            "name": "exists",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "record",
-            "type": "AccountAppInventoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "GetAccountSessionStatusRequest",
         "fields": [
           {
@@ -16831,119 +15943,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAppInstallJobRequest",
-        "fields": [
-          {
-            "name": "job_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "GetAppInstallJobResponse",
-        "fields": [
-          {
-            "name": "job",
-            "type": "AppInstallJob",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "GetAppLifecycleIntentStatusRequest",
-        "fields": [
-          {
-            "name": "intent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "GetAppLifecycleIntentStatusResponse",
-        "fields": [
-          {
-            "name": "intent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "status",
-            "type": "AppLifecycleIntentStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "non_authorizing_job_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "canonical_result",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "retryability",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "GetAppPackageReadinessRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "GetAppPackageReadinessResponse",
-        "fields": [
-          {
-            "name": "projection",
-            "type": "AppPackageReadinessProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "GetAppStorageRequest",
@@ -18011,13 +17010,6 @@
             "number": 3
           },
           {
-            "name": "active_workflows",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
             "name": "active_inference_jobs",
             "type": "int32",
             "repeated": false,
@@ -18153,60 +17145,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
-      },
-      {
-        "name": "HealthRepairAppRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "action",
-            "type": "AppHealthRepairAction",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "job_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "lifecycle_intent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "displayed_impact_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "HealthRepairAppResponse",
-        "fields": [
-          {
-            "name": "job",
-            "type": "AppInstallJob",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "HistoryRequest",
@@ -18974,53 +17912,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "InstallAppRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "confirmed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "lifecycle_intent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "displayed_impact_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "InstallAppResponse",
-        "fields": [
-          {
-            "name": "job",
-            "type": "AppInstallJob",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "InstallLocalServiceRequest",
@@ -20150,32 +19041,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
-      },
-      {
-        "name": "ListAppInstallJobsRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "ListAppInstallJobsResponse",
-        "fields": [
-          {
-            "name": "jobs",
-            "type": "AppInstallJob",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "ListAuditEventsRequest",
@@ -29448,88 +28313,6 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
-        "name": "PrepareAppLifecycleIntentRequest",
-        "fields": [
-          {
-            "name": "action",
-            "type": "AppLifecycleIntentAction",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "expected_release_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "expected_artifact_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "destructive_options",
-            "type": "AppLifecycleDestructiveOptions",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "PrepareAppLifecycleIntentResponse",
-        "fields": [
-          {
-            "name": "intent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "canonical_impact",
-            "type": "AppLifecycleCanonicalImpact",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "canonical_impact_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "deadline",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "PrepareLocalAppLaunchRequest",
         "fields": [
           {
@@ -33418,13 +32201,6 @@
             "number": 4
           },
           {
-            "name": "active_workflows",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
             "name": "active_inference_jobs",
             "type": "int32",
             "repeated": false,
@@ -36975,67 +35751,6 @@
         "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
-        "name": "UninstallAppRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "delete_durable_data",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "destructive_data_delete_confirmed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "lifecycle_intent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "displayed_impact_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "UninstallAppResponse",
-        "fields": [
-          {
-            "name": "result",
-            "type": "AppUninstallResult",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "job",
-            "type": "AppInstallJob",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "UpdateAgentStateRequest",
         "fields": [
           {
@@ -37074,53 +35789,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "UpdateAppRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "confirmed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "lifecycle_intent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "displayed_impact_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "UpdateAppResponse",
-        "fields": [
-          {
-            "name": "job",
-            "type": "AppInstallJob",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "UpdateConnectorRequest",
@@ -38356,19 +37024,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "WatchAppInstallJobEventsRequest",
-        "fields": [
-          {
-            "name": "job_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "WatchLocalTransfersRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -39022,28 +37677,6 @@
     ],
     "enum_schemas": [
       {
-        "name": "AccountAppInstallState",
-        "values": [
-          "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED",
-          "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED",
-          "ACCOUNT_APP_INSTALL_STATE_INSTALLED",
-          "ACCOUNT_APP_INSTALL_STATE_REMOVED"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AccountAppInventoryState",
-        "values": [
-          "ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED",
-          "ACCOUNT_APP_INVENTORY_STATE_VERIFIED",
-          "ACCOUNT_APP_INVENTORY_STATE_ENTITLED",
-          "ACCOUNT_APP_INVENTORY_STATE_DISABLED",
-          "ACCOUNT_APP_INVENTORY_STATE_REMOVED",
-          "ACCOUNT_APP_INVENTORY_STATE_REVOKED"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "AccountCallerMode",
         "values": [
           "ACCOUNT_CALLER_MODE_UNSPECIFIED",
@@ -39453,94 +38086,6 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
-        "name": "AppHealthRepairAction",
-        "values": [
-          "APP_HEALTH_REPAIR_ACTION_UNSPECIFIED",
-          "APP_HEALTH_REPAIR_ACTION_CANCEL",
-          "APP_HEALTH_REPAIR_ACTION_RETRY",
-          "APP_HEALTH_REPAIR_ACTION_REPAIR",
-          "APP_HEALTH_REPAIR_ACTION_REINSTALL"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppInstallJobPhase",
-        "values": [
-          "APP_INSTALL_JOB_PHASE_UNSPECIFIED",
-          "APP_INSTALL_JOB_PHASE_QUEUED",
-          "APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR",
-          "APP_INSTALL_JOB_PHASE_DOWNLOAD",
-          "APP_INSTALL_JOB_PHASE_VERIFY",
-          "APP_INSTALL_JOB_PHASE_MATERIALIZE",
-          "APP_INSTALL_JOB_PHASE_UNPACK",
-          "APP_INSTALL_JOB_PHASE_EVIDENCE",
-          "APP_INSTALL_JOB_PHASE_INSTALLED",
-          "APP_INSTALL_JOB_PHASE_FAILED",
-          "APP_INSTALL_JOB_PHASE_SWAP",
-          "APP_INSTALL_JOB_PHASE_CANCELLED",
-          "APP_INSTALL_JOB_PHASE_UNINSTALLED"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppInstallJobState",
-        "values": [
-          "APP_INSTALL_JOB_STATE_UNSPECIFIED",
-          "APP_INSTALL_JOB_STATE_QUEUED",
-          "APP_INSTALL_JOB_STATE_IN_PROGRESS",
-          "APP_INSTALL_JOB_STATE_INSTALLED",
-          "APP_INSTALL_JOB_STATE_FAILED",
-          "APP_INSTALL_JOB_STATE_CANCELLED",
-          "APP_INSTALL_JOB_STATE_UNINSTALLED"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppInstallSourceKind",
-        "values": [
-          "APP_INSTALL_SOURCE_KIND_UNSPECIFIED",
-          "APP_INSTALL_SOURCE_KIND_BUNDLED",
-          "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppLifecycleIntentAction",
-        "values": [
-          "APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED",
-          "APP_LIFECYCLE_INTENT_ACTION_INSTALL",
-          "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL",
-          "APP_LIFECYCLE_INTENT_ACTION_UPDATE",
-          "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppLifecycleIntentStatus",
-        "values": [
-          "APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED",
-          "APP_LIFECYCLE_INTENT_STATUS_PREPARED",
-          "APP_LIFECYCLE_INTENT_STATUS_CONSUMED",
-          "APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED",
-          "APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED",
-          "APP_LIFECYCLE_INTENT_STATUS_FAILED",
-          "APP_LIFECYCLE_INTENT_STATUS_CANCELLED",
-          "APP_LIFECYCLE_INTENT_STATUS_EXPIRED"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppLifecycleJobKind",
-        "values": [
-          "APP_LIFECYCLE_JOB_KIND_UNSPECIFIED",
-          "APP_LIFECYCLE_JOB_KIND_INSTALL",
-          "APP_LIFECYCLE_JOB_KIND_UPDATE",
-          "APP_LIFECYCLE_JOB_KIND_REPAIR",
-          "APP_LIFECYCLE_JOB_KIND_UNINSTALL"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "AppMessageEventType",
         "values": [
           "APP_MESSAGE_EVENT_TYPE_UNSPECIFIED",
@@ -39561,23 +38106,10 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
-        "name": "AppPackageReadinessState",
-        "values": [
-          "APP_PACKAGE_READINESS_STATE_UNSPECIFIED",
-          "APP_PACKAGE_READINESS_STATE_READY",
-          "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED",
-          "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED",
-          "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED",
-          "APP_PACKAGE_READINESS_STATE_BLOCKED"
-        ],
-        "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
         "name": "AppStorageState",
         "values": [
           "APP_STORAGE_STATE_UNSPECIFIED",
           "APP_STORAGE_STATE_READY",
-          "APP_STORAGE_STATE_INSTALL_REQUIRED",
           "APP_STORAGE_STATE_REPAIR_REQUIRED",
           "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"
         ],
@@ -40712,21 +39244,6 @@
           "APP_MESSAGE_PAYLOAD_TOO_LARGE",
           "APP_MESSAGE_RATE_LIMITED",
           "APP_MESSAGE_LOOP_DETECTED",
-          "APP_INSTALL_DESCRIPTOR_NOT_FOUND",
-          "APP_INSTALL_DIGEST_MISMATCH",
-          "APP_INSTALL_MANIFEST_INVALID",
-          "APP_INSTALL_STORAGE_VIOLATION",
-          "APP_INSTALL_DOWNLOAD_FAILED",
-          "APP_INSTALL_UNPACK_FAILED",
-          "APP_INSTALL_INTERNAL",
-          "APP_UPDATE_NOT_AVAILABLE",
-          "APP_UPDATE_NOT_INSTALLED",
-          "APP_UPDATE_CONFIRMATION_REQUIRED",
-          "APP_UPDATE_SWAP_FAILED",
-          "APP_REPAIR_ACTION_INVALID",
-          "APP_REPAIR_NO_RECOVERABLE_JOB",
-          "APP_REPAIR_NOT_REPAIRABLE",
-          "APP_LIFECYCLE_JOB_CANCELLED",
           "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED",
           "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED",
           "AI_LOCAL_SPEECH_ENV_INIT_FAILED",
@@ -40800,10 +39317,6 @@
           "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE",
           "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN",
           "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID",
-          "LIFECYCLE_INTENT_REQUIRED",
-          "LIFECYCLE_INTENT_MISMATCH",
-          "LIFECYCLE_INTENT_REPLAY",
-          "LIFECYCLE_INTENT_EXPIRED",
           "LOCAL_APP_PRINCIPAL_REQUIRED",
           "LOCAL_APP_RECORD_NOT_FOUND",
           "LOCAL_APP_RECORD_TOMBSTONED",

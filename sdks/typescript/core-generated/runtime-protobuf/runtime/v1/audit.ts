@@ -465,10 +465,6 @@ export interface GetRuntimeHealthResponse {
      */
     queueDepth: number;
     /**
-     * @generated from protobuf field: int32 active_workflows = 4
-     */
-    activeWorkflows: number;
-    /**
      * @generated from protobuf field: int32 active_inference_jobs = 5
      */
     activeInferenceJobs: number;
@@ -514,10 +510,6 @@ export interface RuntimeHealthEvent {
      * @generated from protobuf field: int32 queue_depth = 4
      */
     queueDepth: number;
-    /**
-     * @generated from protobuf field: int32 active_workflows = 5
-     */
-    activeWorkflows: number;
     /**
      * @generated from protobuf field: int32 active_inference_jobs = 6
      */
@@ -1891,7 +1883,6 @@ class GetRuntimeHealthResponse$Type extends MessageType<GetRuntimeHealthResponse
             { no: 1, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.RuntimeHealthStatus", RuntimeHealthStatus, "RUNTIME_HEALTH_STATUS_"] },
             { no: 2, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "queue_depth", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 4, name: "active_workflows", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 5, name: "active_inference_jobs", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 6, name: "cpu_milli", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 7, name: "memory_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
@@ -1904,7 +1895,6 @@ class GetRuntimeHealthResponse$Type extends MessageType<GetRuntimeHealthResponse
         message.status = 0;
         message.reason = "";
         message.queueDepth = 0;
-        message.activeWorkflows = 0;
         message.activeInferenceJobs = 0;
         message.cpuMilli = "0";
         message.memoryBytes = "0";
@@ -1926,9 +1916,6 @@ class GetRuntimeHealthResponse$Type extends MessageType<GetRuntimeHealthResponse
                     break;
                 case /* int32 queue_depth */ 3:
                     message.queueDepth = reader.int32();
-                    break;
-                case /* int32 active_workflows */ 4:
-                    message.activeWorkflows = reader.int32();
                     break;
                 case /* int32 active_inference_jobs */ 5:
                     message.activeInferenceJobs = reader.int32();
@@ -1966,9 +1953,6 @@ class GetRuntimeHealthResponse$Type extends MessageType<GetRuntimeHealthResponse
         /* int32 queue_depth = 3; */
         if (message.queueDepth !== 0)
             writer.tag(3, WireType.Varint).int32(message.queueDepth);
-        /* int32 active_workflows = 4; */
-        if (message.activeWorkflows !== 0)
-            writer.tag(4, WireType.Varint).int32(message.activeWorkflows);
         /* int32 active_inference_jobs = 5; */
         if (message.activeInferenceJobs !== 0)
             writer.tag(5, WireType.Varint).int32(message.activeInferenceJobs);
@@ -2040,7 +2024,6 @@ class RuntimeHealthEvent$Type extends MessageType<RuntimeHealthEvent> {
             { no: 2, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.RuntimeHealthStatus", RuntimeHealthStatus, "RUNTIME_HEALTH_STATUS_"] },
             { no: 3, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "queue_depth", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 5, name: "active_workflows", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 6, name: "active_inference_jobs", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 7, name: "cpu_milli", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 8, name: "memory_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
@@ -2054,7 +2037,6 @@ class RuntimeHealthEvent$Type extends MessageType<RuntimeHealthEvent> {
         message.status = 0;
         message.reason = "";
         message.queueDepth = 0;
-        message.activeWorkflows = 0;
         message.activeInferenceJobs = 0;
         message.cpuMilli = "0";
         message.memoryBytes = "0";
@@ -2079,9 +2061,6 @@ class RuntimeHealthEvent$Type extends MessageType<RuntimeHealthEvent> {
                     break;
                 case /* int32 queue_depth */ 4:
                     message.queueDepth = reader.int32();
-                    break;
-                case /* int32 active_workflows */ 5:
-                    message.activeWorkflows = reader.int32();
                     break;
                 case /* int32 active_inference_jobs */ 6:
                     message.activeInferenceJobs = reader.int32();
@@ -2122,9 +2101,6 @@ class RuntimeHealthEvent$Type extends MessageType<RuntimeHealthEvent> {
         /* int32 queue_depth = 4; */
         if (message.queueDepth !== 0)
             writer.tag(4, WireType.Varint).int32(message.queueDepth);
-        /* int32 active_workflows = 5; */
-        if (message.activeWorkflows !== 0)
-            writer.tag(5, WireType.Varint).int32(message.activeWorkflows);
         /* int32 active_inference_jobs = 6; */
         if (message.activeInferenceJobs !== 0)
             writer.tag(6, WireType.Varint).int32(message.activeInferenceJobs);

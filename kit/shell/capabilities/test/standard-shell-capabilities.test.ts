@@ -2,17 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import {
-  NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS,
-  NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS,
   NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS,
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_IDS,
   NIMI_STANDARD_SHELL_CAPABILITY_SETS,
   NIMI_STANDARD_SHELL_ERROR_CODES,
-  buildNimiAppsBridgeProjection,
-  buildNimiAppsPackagesRecordFromRows,
-  buildNimiAppsRegistryRecord,
   buildNimiFactoryProfileIndexRecord,
   buildNimiPlatformProjection,
   getNimiStandardShellCommand,
@@ -34,8 +29,6 @@ function findRepoRoot(start = process.cwd()): string {
 
 const catalogPath = resolve(findRepoRoot(), 'config/platform-standard-shell-capabilities.yaml');
 const aiProfileCatalogPath = resolve(findRepoRoot(), 'config/platform-ai-profile-factory-catalog.yaml');
-const appRegistryCatalogPath = resolve(findRepoRoot(), 'config/platform-nimi-app-registry.yaml');
-const releaseDescriptorCatalogPath = resolve(findRepoRoot(), 'config/platform-nimi-app-release-descriptors.yaml');
 
 function readYamlList(section: string, content: string): string[] {
   const start = content.indexOf(`${section}:\n`);
@@ -85,14 +78,6 @@ function readCatalogNegativeStatesForCommand(content: string, command: string): 
 
 function readAiProfileAliases(content: string): string[] {
   return [...content.matchAll(/^  - alias: ([a-zA-Z0-9-]+)$/gm)].map((match) => match[1]);
-}
-
-function readAppIds(content: string): string[] {
-  return [...content.matchAll(/^  - app_id: ([a-zA-Z0-9.-]+)$/gm)].map((match) => match[1]);
-}
-
-function readDescriptorIds(content: string): string[] {
-  return [...content.matchAll(/^  - descriptor_id: ([a-zA-Z0-9.-]+)$/gm)].map((match) => match[1]);
 }
 
 describe('standard shell capabilities', () => {
@@ -248,40 +233,6 @@ describe('standard shell capabilities', () => {
     });
   });
 
-  it('exports the Platform Nimi App registry and release descriptor projections for shell hosts', () => {
-    const registryCatalog = readFileSync(appRegistryCatalogPath, 'utf8');
-    const descriptorCatalog = readFileSync(releaseDescriptorCatalogPath, 'utf8');
-    expect(NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS.map((row) => row.appId)).toEqual(readAppIds(registryCatalog));
-    expect(NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS.map((row) => row.descriptorId)).toEqual(readDescriptorIds(descriptorCatalog));
-
-    const registry = buildNimiAppsRegistryRecord('2026-06-27T00:00:00.000Z');
-    expect(registry).toMatchObject({
-      schemaVersion: 1,
-      catalogId: 'platform_nimi_app_registry',
-      catalogVersion: 2,
-      updatedAt: '2026-06-27T00:00:00.000Z',
-    });
-    expect(registry.apps).toHaveLength(NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS.length);
-    expect(registry.apps.find((app) => app.appId === 'nimi.avatar')).toMatchObject({
-      displayName: 'Avatar',
-      visibility: 'hidden-internal',
-      installState: 'bundled',
-      recommendedProfileRef: 'local-gpu',
-    });
-
-    const bridge = buildNimiAppsBridgeProjection();
-    expect(bridge.registryRows).toHaveLength(NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS.length);
-    expect(bridge.releaseDescriptors).toHaveLength(NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS.length);
-    expect(bridge).not.toHaveProperty('packagesPath');
-
-    const packages = buildNimiAppsPackagesRecordFromRows('2026-06-27T00:00:00.000Z', []);
-    expect(packages).toEqual({
-      schemaVersion: 2,
-      updatedAt: '2026-06-27T00:00:00.000Z',
-      packages: [],
-    });
-  });
-
   it('builds standard platform projections by projection id', () => {
     expect(buildNimiPlatformProjection({
       projectionId: 'factory-profile-index',
@@ -289,13 +240,6 @@ describe('standard shell capabilities', () => {
     })).toMatchObject({
       projectionId: 'factory-profile-index',
       record: { catalogVersion: 'v1' },
-    });
-    expect(buildNimiPlatformProjection({
-      projectionId: 'apps-registry',
-      updatedAt: '2026-06-27T00:00:00.000Z',
-    })).toMatchObject({
-      projectionId: 'apps-registry',
-      record: { catalogId: 'platform_nimi_app_registry' },
     });
     expect(() => buildNimiPlatformProjection({ projectionId: 'missing' })).toThrow(/unsupported platform projection/u);
   });

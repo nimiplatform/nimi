@@ -45,6 +45,20 @@ function readManifest() {
 
 function readPostureDeniedMethodIds(methodIdSet) {
   const index = parseYaml(readFileSync(authPostureIndexFile, 'utf8'));
+  const postureValues = new Set();
+  for (const row of index?.posture_enum ?? []) {
+    const posture = String(row?.value || '').trim();
+    if (!posture) {
+      throw new Error('runtime bridge auth-posture enum contains an empty value');
+    }
+    if (postureValues.has(posture)) {
+      throw new Error(`runtime bridge auth-posture enum duplicated: ${posture}`);
+    }
+    postureValues.add(posture);
+  }
+  if (postureValues.size === 0) {
+    throw new Error('runtime bridge auth-posture enum is empty');
+  }
   const denied = new Set();
   const seen = new Set();
   for (const shard of index?.method_shards ?? []) {
@@ -63,9 +77,20 @@ function readPostureDeniedMethodIds(methodIdSet) {
       if (seen.has(methodId)) {
         throw new Error(`runtime bridge auth-posture method duplicated: ${methodId}`);
       }
+      if (!postureValues.has(posture)) {
+        throw new Error(`runtime bridge auth-posture method has unknown posture: ${methodId} (${posture || '<empty>'})`);
+      }
       seen.add(methodId);
       if (GENERIC_BRIDGE_DENIED_POSTURES.has(posture)) denied.add(methodId);
     }
+  }
+  const missingPostures = Array.from(methodIdSet)
+    .filter((methodId) => !seen.has(methodId))
+    .sort();
+  if (missingPostures.length > 0) {
+    throw new Error(
+      `runtime bridge manifest methods missing auth posture: ${missingPostures.join(', ')}`,
+    );
   }
   return denied;
 }

@@ -53,7 +53,7 @@ func loadLocalStateSnapshot(path string) (localStateSnapshot, error) {
 	if err := json.Unmarshal(payload, &result); err != nil {
 		return result, err
 	}
-	if result.SchemaVersion != 0 && result.SchemaVersion != localStateSchemaVersion {
+	if result.SchemaVersion != localStateSchemaVersion {
 		return result, fmt.Errorf("unsupported local-state.json schemaVersion=%d (expected %d); delete local-state.json before starting Runtime", result.SchemaVersion, localStateSchemaVersion)
 	}
 	return result, nil

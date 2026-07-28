@@ -15,9 +15,9 @@ use serde_json::Value;
 /// Identity of one governed local config or materialized projection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GovernedConfigFile {
-    /// Stable registry id, e.g. `registry_json`.
+    /// Stable owner-defined id, e.g. `factory_profile_index`.
     pub config_file_id: &'static str,
-    /// Product-facing diagnostic path, e.g. `<dataRoot>/apps/registry.json`.
+    /// Product-facing diagnostic path, e.g. `<ownerRoot>/projection.json`.
     ///
     /// This label never resolves the file; callers pass the actual path to the
     /// read or write operation.

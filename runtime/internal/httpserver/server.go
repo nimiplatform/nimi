@@ -106,7 +106,6 @@ func (s *Server) handleRuntimeHealth(w http.ResponseWriter, req *http.Request) {
 		"status_code":           int32(snapshot.Status),
 		"reason":                snapshot.Reason,
 		"queue_depth":           snapshot.QueueDepth,
-		"active_workflows":      snapshot.ActiveWorkflows,
 		"active_inference_jobs": snapshot.ActiveInferenceJobs,
 		"cpu_milli":             snapshot.CPUMilli,
 		"memory_bytes":          snapshot.MemoryBytes,

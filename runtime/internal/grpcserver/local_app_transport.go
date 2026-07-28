@@ -173,9 +173,6 @@ func newUnaryProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Unar
 		if info == nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
-		if immutablePackageTransportDenied(info.FullMethod) {
-			return nil, immutablePackageTransportUnavailable()
-		}
 		policy, allowed := protectedLocalAppUnaryMethodPolicies[info.FullMethod]
 		if !allowed {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
@@ -215,9 +212,6 @@ func newStreamProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Str
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if info == nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
-		}
-		if immutablePackageTransportDenied(info.FullMethod) {
-			return immutablePackageTransportUnavailable()
 		}
 		policy, allowed := protectedLocalAppStreamMethodPolicies[info.FullMethod]
 		if !allowed {

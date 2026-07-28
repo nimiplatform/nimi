@@ -1407,7 +1407,7 @@ These artifacts must not be represented as Realm shared present-state truth or R
 
 ## K-WEV-003 Shared Event / Envelope Semantic Home
 
-If the World Evolution Engine introduces a stable execution event or envelope contract, its semantic home is `K-WEV-*`, not `K-WF-*`, `K-AUDIT-*`, SDK projection, or Platform boundary text.
+If the World Evolution Engine introduces a stable execution event or envelope contract, its semantic home is future `K-WEV-*` authority, not `K-AUDIT-*`, SDK projection, or Platform boundary text.
 
 That future execution event / envelope contract must:
 
@@ -1438,24 +1438,11 @@ Therefore:
 - shared kernel history semantics are limited to explicit append candidates or derived commit artifacts, not automatic history truth
 - shared kernel replay/checkpoint evidence must not be represented as the canonical audit ledger
 
-## K-WEV-005 Workflow Partial Reuse Boundary
+## K-WEV-005 No Current Generic Workflow Dependency
 
-The existing Runtime workflow DAG / task / node / output event model is not the semantic owner of the World Evolution Engine.
+Runtime does not currently admit a general Workflow service, DAG contract, or SDK surface. World Evolution Engine readiness must not depend on one.
 
-Allowed partial reuse is limited to runtime-local substrate candidates such as:
-
-- `K-WF-003` workflow status vocabulary
-- `K-WF-004` ordered runtime-local stream traits: `sequence`, `trace_id`, `timestamp`, `reason_code`, and terminal close behavior
-- implementation-level stream delivery patterns that remain explicitly non-canonical
-
-The following are not admissible as World Evolution Engine semantic truth:
-
-- DAG / task / node as the top-level shared kernel vocabulary
-- `payload: Struct` as a stable semantic envelope by itself
-- direct promotion of workflow output events into shared kernel event truth
-- `route_policy` / `fallback` bearing workflow node semantics as shared kernel semantic defaults
-
-Workflow remains a reusable runtime subsystem, not the semantic home of the World Evolution Engine.
+If a future owner admits either capability, that decision must define its own semantic boundary. A future optional Workflow subsystem must not become World Evolution Engine truth or a Runtime-core prerequisite merely through implementation reuse.
 
 ## K-WEV-006 Runtime-Owned Execution Semantics Family
 
@@ -1632,40 +1619,13 @@ Authorization rules:
 - `REPLAY` and any non-`CANON_MUTATION` runtime-local continuity path must not stage shared-history append as if they were `CANON_MUTATION`
 - missing Realm envelope fields or unverifiable provenance must fail-close before the candidate is presented as a valid commit path
 
-## K-WEV-016 Workflow Partial-Reuse Substrate Contract
+## K-WEV-016 Future Execution-Substrate Boundary
 
-If Runtime implementation reuses existing workflow substrate internally, the reuse is limited to implementation substrate only.
-
-Allowed substrate reuse:
-
-- ordered stream transport and subscriber lifecycle
-- task-local progress/status vocabulary aligned with `K-WF-003`
-- runtime-local sequencing and terminal close behavior aligned with `K-WF-004`
-- internal dispatch or queue-management helpers that remain hidden beneath `K-WEV-*`
-
-Forbidden top-level semantic reuse:
-
-- `workflow`
-- `task`
-- `node`
-- `edge`
-- `callback_ref`
-- `external_async`
-- `route_policy`
-- `fallback`
-
-Forbidden semantic shortcuts:
-
-- exposing workflow DAG identity as shared-kernel semantic identity
-- treating workflow output events as shared-kernel canonical event truth
-- treating workflow node payloads as a stable shared-kernel envelope
-
-If an implementation uses workflow substrate, it must first project all externally relevant semantics into `K-WEV-*` event, stage, checkpoint, replay, supervision, and commit-request vocabulary.
+World Evolution Engine and general Workflow remain deferred, non-core capabilities. Any future shared execution substrate requires an explicit owner decision and must not be inferred from retired Workflow contracts, generated clients, or implementation helpers.
 
 ## Fact Sources
 
 - `.nimi/spec/platform/core-protocol.authority.yaml` — `P-ARCH-022` through `P-ARCH-028`
 - `audit-contract.md` — `K-AUDIT-001`, `K-AUDIT-003`, `K-AUDIT-015`, `K-AUDIT-019`, `K-AUDIT-020`, `K-AUDIT-021`
-- `workflow-contract.md` — `K-WF-003`, `K-WF-004`
 - `scheduling-contract.md` — `K-SCHED-001` through `K-SCHED-007`
 - `ai-profile-execution-contract.md` — `K-AIEXEC-003`, `K-AIEXEC-004`

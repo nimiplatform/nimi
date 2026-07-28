@@ -60,7 +60,7 @@ export const landingContentZh: LandingContent = {
       'Nimi 提供强类型 SDK，让你构建跨越持续世界的 AI 体验 —— 自主智能体、共享记忆、身份、社交与经济 —— 由可本地或云端运行的 runtime 桥接。',
     devTitle: '面向构建者',
     devText:
-      '通过强类型 SDK 接入。无论运行在笔记本上还是你掌控的云端基础设施，组合智能体、模型、工作流和记忆的方式完全一致。',
+      '通过强类型 SDK 接入。无论运行在笔记本上还是你掌控的云端基础设施，都以同样方式组合源自 Character 的智能体、模型、对话和记忆。',
     userTitle: '面向产品用户',
     userText:
       'Nimi 是 AI 开放世界平台 —— 智能体跨会话持续存在、跨世界共享状态，并通过边界清楚的 runtime 能力行动。不是聊天框封装，不是单一用途的应用。',
@@ -84,7 +84,7 @@ export const landingContentZh: LandingContent = {
       ],
       runtimeCapabilities: [
         { id: 'ai-models', label: 'AI 模型', icon: '\u{1F9E0}' },
-        { id: 'workflows', label: '工作流', icon: '\u{26A1}' },
+        { id: 'conversations', label: '对话', icon: '\u{26A1}' },
         { id: 'knowledge', label: '知识库', icon: '\u{1F4DA}' },
       ],
       crossCutting: [
@@ -206,7 +206,7 @@ export const landingContentZh: LandingContent = {
     eyebrow: '一套强类型 SDK',
     title: '一个 SDK，',
     titleAccent: '多种运行 AI 的方式。',
-    subtitle: '通过统一的强类型接入面，组合智能体、模型、工作流和共享环境 —— 本地或云端运行皆可。',
+    subtitle: '通过统一的强类型接入面，组合源自 Character 的智能体、模型、对话和共享环境 —— 本地或云端运行皆可。',
     callout: '查看 SDK 参考',
     primaryCta: '阅读 SDK 文档',
     secondaryCta: '查看源码',
@@ -250,14 +250,14 @@ export const landingContentZh: LandingContent = {
         label: '任务委派',
         description: '在智能体与人之间交接任务，带强类型上下文交接与审计轨迹。',
         docsPath: 'sdk/delegation-client',
-        previewMediaId: 'workflow',
+        previewMediaId: 'runtime',
       },
       {
         id: 'local-environment',
         label: '本地环境',
         description: '将共享环境映射到本地会话 —— 文件、工具与运行时状态。',
         docsPath: 'sdk/local-environment-projection',
-        previewMediaId: 'workflow',
+        previewMediaId: 'runtime',
       },
       {
         id: 'ai-config',
@@ -285,7 +285,7 @@ export const landingContentZh: LandingContent = {
         label: '传输与错误',
         description: '强类型传输契约 + 全 SDK 一致的结构化错误语义。',
         docsPath: 'sdk/transport-and-error',
-        previewMediaId: 'workflow',
+        previewMediaId: 'runtime',
       },
     ],
     capabilityMatrix: [
@@ -334,7 +334,7 @@ export const landingContentZh: LandingContent = {
       sdk: { alt: 'Nimi SDK 快速上手预览' },
       multimodal: { alt: 'Nimi 多模态客户端预览' },
       streamJob: { alt: 'Nimi stream job 预览' },
-      workflow: { alt: 'Nimi 工作流客户端预览' },
+      runtime: { alt: 'Nimi Runtime 强类型客户端预览' },
     },
   },
   desktop: {
@@ -376,20 +376,20 @@ export const landingContentZh: LandingContent = {
     eyebrow: 'Nimi Apps',
     title: '把新的能力装进 Nimi。',
     subtitle:
-      'Nimi App 是可以在 Nimi 里打开和使用的小应用：它可以带来新的工具、场景或工作流。Desktop 会显示当前账号与本地工作区可用的内容；开发者用 SDK 构建，并按清晰的产品规则交付。',
+      'Nimi App 是可以在 Nimi 里打开和使用的小应用：它可以带来新的工具、场景或本地 AI 体验。Desktop 会显示当前账号与本地工作区可用的内容；开发者用 SDK 构建，并按清晰的产品规则交付。',
     cta: '查看 Desktop 文档',
     cards: [
       {
         label: '使用',
         title: '一个地方打开应用',
         description:
-          '在 Desktop 的 Apps 界面打开当前产品环境中可用的工具、场景或工作流，不需要理解底层运行方式。',
+          '在 Desktop 的 Apps 界面打开当前产品环境中可用的工具、场景或本地 AI 体验，不需要理解底层运行方式。',
       },
       {
         label: '开发',
         title: '用 SDK 接入 Nimi',
         description:
-          '开发者可以把自己的功能做成 Nimi App，通过 SDK 调用模型、工作流和本地能力，让应用在 Nimi 的环境里工作。',
+          '开发者可以把自己的功能做成 Nimi App，通过 SDK 调用模型和 Runtime 能力，让应用在 Nimi 的环境里工作。',
       },
       {
         label: '本地',
@@ -413,7 +413,7 @@ export const landingContentZh: LandingContent = {
       {
         question: 'Nimi 是什么？',
         answer:
-          '一个面向持续世界与有形智能体的开源 AI 运行时。通过统一的强类型 SDK 组合模型、工作流与共享记忆。',
+          '一个面向持续世界与有形智能体的开源 AI 运行时。通过统一的强类型 SDK 组合模型、对话与共享记忆。',
       },
       {
         question: '如何开始接入？',
@@ -438,7 +438,7 @@ export const landingContentZh: LandingContent = {
       {
         question: '可以开发自己的 Nimi App 吗？',
         answer:
-          '可以。开发者可以从 SDK 与 Desktop 文档开始，通过 Nimi Apps 路径把工具、场景或工作流接入 Nimi。',
+          '可以。开发者可以从 SDK 与 Desktop 文档开始，通过 Nimi Apps 路径把工具、场景或本地 AI 体验接入 Nimi。',
       },
     ],
   },

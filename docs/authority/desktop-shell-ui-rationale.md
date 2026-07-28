@@ -825,10 +825,9 @@ authority 缺失仍按 `P-COLD-001` 状态投影。
 ## D-HOME-004 — Apps Surface Placement
 
 `MUST`：Apps surface placement 是 Desktop primary navigation 的 ordinary
-入口之一。Apps 行的数据 source 由 SDK `NimiAppClient.list()` 的 unified
-inventory projection 提供；该 projection 保留 Platform catalog、Runtime
-authenticated account inventory、Runtime local-record 三个 source。
-Desktop 只负责呈现 source/state/action，不拥有 source truth。
+入口之一。Apps 行的数据 source 由 SDK `NimiAppClient.list()` 的 current
+local-development record projection 提供。Desktop 只负责呈现
+source/state/action，不拥有 source truth。
 
 `MUST NOT`：Apps 不得拥有 app admission truth、marketplace truth、或
 package trust truth；不得读取 app-local spec、workspace source tree、package
@@ -837,22 +836,24 @@ manager install roots、或未 admitted registry row 作为 catalog 可见性来
 
 ## D-HOME-005 — Apps Card State Placement
 
-`MUST`：Apps 必须以显式 typed projection 区分 catalog-only、account-visible、
-local-record-active/dormant/removed、permission-required、unsupported、
-blocked-by-policy 与 immutable-package-unavailable。0K 不得显示 immutable
-install/update/repair 正向成功；这些状态只有 0P/P admission 后才可加入。
+`MUST`：Apps 必须以显式 typed projection 区分
+local-record-active/dormant/removed、sign-in-required 与 unsupported。当前
+surface 不投影 ordinary catalog、account inventory、package readiness、
+install/update/repair 或 package job。
 
-`MUST NOT`：Apps 不得自创 app registry truth；不得把 distinct
-fail-closed 状态压缩为单一 `Unavailable` / `Blocked`；admission state 由
-Nimi App registry 拥有，package readiness 由 package/runtime projection
-拥有。
+`MUST NOT`：Apps 不得从保留的 Platform catalog/release metadata 推导当前
+可见或可运行 App；不得把 distinct fail-closed 状态压缩为单一
+`Unavailable` / `Blocked`。
 
 `MUST NOT`：Apps 不提供 workspace connect/adoption 入口。Mutable project
 admission 只在 Developer Mode/Developer Tools 通过 `D-DEV-*` 与 `D-IPC-019`
 进入；Desktop 不得扫描本地 app、不得写 local record truth、不得从
 renderer-local in-flight state 推断接入成功。
 
-`MUST`：Apps 只能把 `capabilitySet` 投影为 App 声明使用的 Nimi 平台功能，不得据此推导用户权限、账户授权、启动前 prompt 或 grant。Permissions 只能来自 SDK 明确公开的 permission requirement/posture projection；当 unified inventory 没有该字段时，Apps 卡片和详情不得显示 permission requirement。
+`MUST`：当前 local-development inventory 不携带 `capabilitySet`、package、
+release、account 或 review 字段。Permissions 只能来自 SDK 明确公开的
+permission posture projection；Apps 卡片和详情不得从 manifest、catalog 或
+inventory 字段推导 permission requirement。
 
 ## D-HOME-006 — Agent Chat Placement
 
@@ -1371,7 +1372,6 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 |---|---|---|---|
 | `LOCAL_APP_*` 族 | K-ERR-012 | 高（Developer Mode / local app journey） | 区分未授权、已撤销、进程替换、账号切换、Runtime 重启、需重新确认与 owner-unavailable，并提供明确恢复动作 |
 | `PAGE_TOKEN_INVALID` | K-PAGE-002 | 低（分页错误罕见） | "分页参数无效，请刷新重试" |
-| `WORKFLOW_*` 族 | Phase 2 | 中（Workflow UI 启动时） | 待 K-WF-012 消费契约定义 |
 | `APP_MESSAGE_*` 族 | K-APP-005 | 中（AppMessage UI 启动时） | 待 K-APP-006a 消费契约定义 |
 
 **映射治理规则**：

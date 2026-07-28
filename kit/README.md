@@ -192,10 +192,6 @@ Realm, account, credential, Agent, or Cognition operations.
 
 ```rust
 use nimi_shell_tauri::capabilities::platform_catalog::ai_profile_factory;
-use nimi_shell_tauri::capabilities::platform_catalog::nimi_app_registry;
-use nimi_shell_tauri::capabilities::platform_projection::apps_bridge;
-use nimi_shell_tauri::capabilities::platform_projection::apps_packages;
-use nimi_shell_tauri::capabilities::platform_projection::apps_registry;
 use nimi_shell_tauri::capabilities::platform_projection::factory_profile_index;
 ```
 

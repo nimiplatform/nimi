@@ -28,7 +28,6 @@ const (
 	EligibilityReasonNotOrdinaryVisible       EligibilityReason = "app-not-ordinary-visible"
 	EligibilityReasonReleaseDescriptorMissing EligibilityReason = "app-release-descriptor-missing"
 	EligibilityReasonStoragePolicyMissing     EligibilityReason = "app-storage-policy-missing"
-	EligibilityReasonInstallRequired          EligibilityReason = "app-install-required"
 )
 
 var (
@@ -36,10 +35,9 @@ var (
 )
 
 // CheckCallerEligibility evaluates whether the given app_id is eligible
-// for Runtime caller registration. Ordinary-visible apps still require the
-// app install path before launch; hidden/internal admitted first-party rows
-// are already bound to bundled release descriptors and may register with
-// Runtime while remaining absent from ordinary Apps projection.
+// for Runtime caller registration. Only hidden/internal admitted first-party
+// rows may register from this retained catalog. Ordinary-visible rows remain
+// deferred and cannot become runnable from registry presence.
 func (r *Registry) CheckCallerEligibility(appID string) (CallerEligibility, error) {
 	if appID == "" {
 		return CallerEligibility{}, fmt.Errorf("appregistrycatalog CheckCallerEligibility: %w", ErrEligibilityAppIDRequired)
@@ -85,7 +83,7 @@ func (r *Registry) CheckCallerEligibility(appID string) (CallerEligibility, erro
 		}
 		return CallerEligibility{
 			Eligible: false,
-			Reason:   string(EligibilityReasonInstallRequired),
+			Reason:   string(EligibilityReasonAppDeferred),
 		}, nil
 	case AdmissionStatusGatedByAvatarMasterGate:
 		return CallerEligibility{

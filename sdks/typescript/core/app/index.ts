@@ -3,7 +3,7 @@ import {
   validateNimiAppInventoryEntry,
   validateNimiAppStatus,
 } from './inventory-types.js';
-import type { NimiAppAIProfileFactoryRow } from './platform-catalog.generated.js';
+import type { NimiAppAIProfileFactoryRow } from './ai-profile-factory.generated.js';
 import type {
   NimiAppInventoryEntry,
   NimiAppStatus,
@@ -88,44 +88,11 @@ export type {
 export {
   NIMI_APP_AI_PROFILE_FACTORY_CATALOG,
   NIMI_APP_AI_PROFILE_FACTORY_ROWS,
-  NIMI_APP_RELEASE_DESCRIPTOR_ROWS,
-  NIMI_APP_REGISTRY_ROWS,
   loadNimiAppAIProfileFactoryCatalog,
   loadNimiAppAIProfileFactoryRows,
-  loadNimiAppReleaseDescriptorRows,
-  loadNimiAppRegistryRows,
-} from './platform-catalog.generated.js';
-export type { NimiAppAIProfileFactoryRow } from './platform-catalog.generated.js';
-export {
-  NimiAppRegistryTransportError,
-  createNimiAppRegistryTransport,
-} from './registry-transport.js';
-export {
-  parseNimiAppBridgeProjection,
-  parseNimiAppBridgeRegistryRow,
-  parseNimiAppBridgeReleaseDescriptorRow,
-} from './bridge-projection.js';
+} from './ai-profile-factory.generated.js';
+export type { NimiAppAIProfileFactoryRow } from './ai-profile-factory.generated.js';
 export * from './inventory-types.js';
-export {
-  parseNimiAppAccountInventoryProjection,
-  parseNimiAppAccountInventoryRecord,
-  parseNimiAppAccountInventoryRow,
-  parseOptionalNimiAppAccountInventoryProjection,
-  parseOptionalNimiAppAccountInventoryRecord,
-} from './account-inventory.js';
-export type { NimiAppBridgeProjection } from './bridge-projection.js';
-export type {
-  NimiAppAccountInstallState,
-  NimiAppAccountInventoryProjection,
-  NimiAppAccountInventoryRecord,
-  NimiAppAccountInventoryRow,
-  NimiAppAccountInventoryState,
-} from './account-inventory.js';
-export type {
-  NimiAppAdmissionStatus,
-  NimiAppRegistrySourceRow,
-  NimiAppRegistryTransportOptions,
-} from './registry-transport.js';
 export {
   ADMITTED_PERMISSION_IDS,
   KNOWN_PERMISSION_IDS,

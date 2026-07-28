@@ -53,15 +53,15 @@ func TestSetStatusTransitions(t *testing.T) {
 
 func TestSetActivity(t *testing.T) {
 	s := NewState()
-	s.SetActivity(5, 2, 3)
+	s.SetActivity(5, 3)
 	snap := s.Snapshot()
-	if snap.QueueDepth != 5 || snap.ActiveWorkflows != 2 || snap.ActiveInferenceJobs != 3 {
-		t.Fatalf("activity: queue=%d wf=%d inf=%d", snap.QueueDepth, snap.ActiveWorkflows, snap.ActiveInferenceJobs)
+	if snap.QueueDepth != 5 || snap.ActiveInferenceJobs != 3 {
+		t.Fatalf("activity: queue=%d inf=%d", snap.QueueDepth, snap.ActiveInferenceJobs)
 	}
 
-	s.SetActivity(-1, -2, -3)
+	s.SetActivity(-1, -3)
 	snap = s.Snapshot()
-	if snap.QueueDepth != 0 || snap.ActiveWorkflows != 0 || snap.ActiveInferenceJobs != 0 {
+	if snap.QueueDepth != 0 || snap.ActiveInferenceJobs != 0 {
 		t.Fatalf("negative activity values should be clamped to zero: %+v", snap)
 	}
 }
@@ -223,7 +223,7 @@ func TestConcurrentAccess(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			s.SetStatus(StatusReady, "ready")
-			s.SetActivity(1, 1, 1)
+			s.SetActivity(1, 1)
 			s.SetResource(100, 200, 300)
 			_ = s.Snapshot()
 		}()

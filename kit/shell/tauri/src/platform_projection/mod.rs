@@ -6,7 +6,4 @@
 //! commands; materializers in this module write only absent projections and
 //! route existing faults to repair without overwrite.
 
-pub mod apps_bridge;
-pub mod apps_packages;
-pub mod apps_registry;
 pub mod factory_profile_index;

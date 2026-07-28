@@ -61,290 +61,34 @@ message AppMessageEvent {
   google.protobuf.Timestamp timestamp = 11;
 }
 
-// === Frozen immutable-package wire seam (K-APP-011..K-APP-016) ===
-// Frozen seam constraints:
-// These messages and enum slots reserve the 0K public schema only. They do
-// not admit an install, uninstall, update, repair, lifecycle-intent, job, or
-// event producer. Every corresponding RPC is deny-all and returns typed
-// LOCAL_APP_OPERATION_UNAVAILABLE until a future 0P/P authority revision
-// admits positive package behavior. Presence in this file is never evidence
-// of package, release, readiness, promotion, or lifecycle truth.
-
-// AppInstallJobPhase reserves the future immutable-package pipeline vocabulary.
-// No value is positively emitted in 0K.
-enum AppInstallJobPhase {
-  APP_INSTALL_JOB_PHASE_UNSPECIFIED = 0;
-  APP_INSTALL_JOB_PHASE_QUEUED = 1;
-  APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR = 2;
-  APP_INSTALL_JOB_PHASE_DOWNLOAD = 3;
-  APP_INSTALL_JOB_PHASE_VERIFY = 4;
-  APP_INSTALL_JOB_PHASE_MATERIALIZE = 5;
-  APP_INSTALL_JOB_PHASE_UNPACK = 6;
-  APP_INSTALL_JOB_PHASE_EVIDENCE = 7;
-  APP_INSTALL_JOB_PHASE_INSTALLED = 8;
-  APP_INSTALL_JOB_PHASE_FAILED = 9;
-  // APP_INSTALL_JOB_PHASE_SWAP is the atomic active-release pointer swap of an
-  // update job. It runs only after the new release is fully materialized and
-  // digest-verified; the old release stays usable until the swap commits.
-  APP_INSTALL_JOB_PHASE_SWAP = 10;
-  // APP_INSTALL_JOB_PHASE_CANCELLED is the terminal phase of a job cancelled
-  // through HealthRepairApp(action=cancel).
-  APP_INSTALL_JOB_PHASE_CANCELLED = 11;
-  // APP_INSTALL_JOB_PHASE_UNINSTALLED is the terminal phase of a completed
-  // uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
-  // APP_LIFECYCLE_JOB_KIND_UNINSTALL after the release payload is removed.
-  APP_INSTALL_JOB_PHASE_UNINSTALLED = 12;
-}
-
-// AppInstallJobState reserves future immutable-package job states. No value is
-// positively emitted in 0K.
-enum AppInstallJobState {
-  APP_INSTALL_JOB_STATE_UNSPECIFIED = 0;
-  APP_INSTALL_JOB_STATE_QUEUED = 1;
-  APP_INSTALL_JOB_STATE_IN_PROGRESS = 2;
-  APP_INSTALL_JOB_STATE_INSTALLED = 3;
-  APP_INSTALL_JOB_STATE_FAILED = 4;
-  // APP_INSTALL_JOB_STATE_CANCELLED is the terminal state of a job cancelled
-  // through HealthRepairApp(action=cancel). A cancelled job is recoverable via
-  // retry and is never projected as success.
-  APP_INSTALL_JOB_STATE_CANCELLED = 5;
-  // APP_INSTALL_JOB_STATE_UNINSTALLED is the terminal success state of an
-  // uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
-  // APP_LIFECYCLE_JOB_KIND_UNINSTALL; a successful uninstall is never
-  // projected as APP_INSTALL_JOB_STATE_INSTALLED.
-  APP_INSTALL_JOB_STATE_UNINSTALLED = 6;
-}
-
-// AppLifecycleJobKind reserves future immutable-package operation kinds. No
-// lifecycle job exists in 0K.
-enum AppLifecycleJobKind {
-  APP_LIFECYCLE_JOB_KIND_UNSPECIFIED = 0;
-  APP_LIFECYCLE_JOB_KIND_INSTALL = 1;
-  APP_LIFECYCLE_JOB_KIND_UPDATE = 2;
-  APP_LIFECYCLE_JOB_KIND_REPAIR = 3;
-  // APP_LIFECYCLE_JOB_KIND_UNINSTALL marks a watchable uninstall lifecycle
-  // job (K-APP-017). UninstallApp emits a typed AppInstallJob of this kind so
-  // the `uninstalling` Apps card state has a single live-job truth source. An
-  // uninstall job never carries the install digest/download phases; it runs
-  // through the materialize phase (release payload removal) to the installed
-  // (completed) terminal phase, and a failed uninstall is recoverable.
-  APP_LIFECYCLE_JOB_KIND_UNINSTALL = 4;
-}
-
-// AppHealthRepairAction is a frozen future wire vocabulary. No repair action
-// is admitted in 0K.
-enum AppHealthRepairAction {
-  APP_HEALTH_REPAIR_ACTION_UNSPECIFIED = 0;
-  APP_HEALTH_REPAIR_ACTION_CANCEL = 1;
-  APP_HEALTH_REPAIR_ACTION_RETRY = 2;
-  APP_HEALTH_REPAIR_ACTION_REPAIR = 3;
-  APP_HEALTH_REPAIR_ACTION_REINSTALL = 4;
-}
-
-// AppLifecycleIntentAction is a frozen future wire vocabulary. 0K has no
-// lifecycle intent producer or consumer.
-enum AppLifecycleIntentAction {
-  APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED = 0;
-  APP_LIFECYCLE_INTENT_ACTION_INSTALL = 1;
-  APP_LIFECYCLE_INTENT_ACTION_UNINSTALL = 2;
-  APP_LIFECYCLE_INTENT_ACTION_UPDATE = 3;
-  APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR = 4;
-  reserved 5, 6, 7;
-}
-
-// AppLifecycleIntentStatus reserves a future reconciliation vocabulary. 0K
-// has no durable lifecycle intent state; an id could never authorize a call.
-enum AppLifecycleIntentStatus {
-  APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED = 0;
-  APP_LIFECYCLE_INTENT_STATUS_PREPARED = 1;
-  APP_LIFECYCLE_INTENT_STATUS_CONSUMED = 2;
-  APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED = 3;
-  APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED = 4;
-  APP_LIFECYCLE_INTENT_STATUS_FAILED = 5;
-  APP_LIFECYCLE_INTENT_STATUS_CANCELLED = 6;
-  APP_LIFECYCLE_INTENT_STATUS_EXPIRED = 7;
-}
-
-// AppLifecycleDestructiveOptions reserves future immutable-package impact
-// fields. Runtime does not resolve or issue such an intent in 0K.
-message AppLifecycleDestructiveOptions {
-  bool delete_durable_data = 1;
-  AppHealthRepairAction health_repair_action = 2;
-  string target_job_id = 3;
-}
-
-// AppLifecycleCanonicalImpact reserves a future canonical-impact shape. No
-// canonical package impact is produced or projected in 0K.
-message AppLifecycleCanonicalImpact {
-  uint32 schema_version = 1;
-  AppLifecycleIntentAction action = 2;
-  string app_id = 3;
-  uint64 account_generation = 4;
-  string release_ref = 5;
-  string artifact_digest = 6;
-  reserved 7;
-  AppLifecycleDestructiveOptions destructive_options = 8;
-  repeated string impact_flags = 9;
-  uint32 display_contract_version = 10;
-}
-
-message PrepareAppLifecycleIntentRequest {
-  AppLifecycleIntentAction action = 1;
-  string app_id = 2;
-  string expected_release_ref = 3;
-  string expected_artifact_digest = 4;
-  reserved 5;
-  AppLifecycleDestructiveOptions destructive_options = 6;
-}
-
-message PrepareAppLifecycleIntentResponse {
-  string intent_id = 1;
-  AppLifecycleCanonicalImpact canonical_impact = 2;
-  string canonical_impact_digest = 3;
-  google.protobuf.Timestamp deadline = 4;
-  ReasonCode reason_code = 5;
-}
-
-message GetAppLifecycleIntentStatusRequest {
-  string intent_id = 1;
-}
-
-message GetAppLifecycleIntentStatusResponse {
-  string intent_id = 1;
-  AppLifecycleIntentStatus status = 2;
-  string non_authorizing_job_id = 3;
-  // canonical_result is an RFC8785 JSON document with no credential,
-  // process-tuple, boot-epoch, account-generation, or ledger-anchor material.
-  string canonical_result = 4;
-  ReasonCode reason_code = 5;
-  bool retryability = 6;
-}
-
-// AppInstallSourceKind reserves future immutable-package provenance mapping.
-// It does not admit a bundled or external install in 0K.
-enum AppInstallSourceKind {
-  APP_INSTALL_SOURCE_KIND_UNSPECIFIED = 0;
-  APP_INSTALL_SOURCE_KIND_BUNDLED = 1;
-  APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT = 2;
-}
-
-// AppInstallStorageProjection reserves future immutable-materialization roots.
-// It is never positively populated in 0K.
-message AppInstallStorageProjection {
-  string app_root = 1;
-  string release_root = 2;
-  string durable_data_root = 3;
-  string cache_root = 4;
-  string temp_root = 5;
-}
-
-// AppStorageState describes app-private storage independently of the frozen
-// package seam. Local-app data/cache/tmp may be READY without a release.
+// AppStorageState describes current app-private storage independently of any
+// deferred ordinary package lifecycle.
 enum AppStorageState {
   APP_STORAGE_STATE_UNSPECIFIED = 0;
   APP_STORAGE_STATE_READY = 1;
-  APP_STORAGE_STATE_INSTALL_REQUIRED = 2;
+  reserved 2;
+  reserved "APP_STORAGE_STATE_INSTALL_REQUIRED";
   APP_STORAGE_STATE_REPAIR_REQUIRED = 3;
   APP_STORAGE_STATE_STORAGE_UNAVAILABLE = 4;
 }
 
-// AppPackageReadinessState is the frozen package-readiness vocabulary. 0K
-// emits only BLOCKED with LOCAL_APP_OPERATION_UNAVAILABLE and never reads an
-// active release pointer or install evidence.
-enum AppPackageReadinessState {
-  APP_PACKAGE_READINESS_STATE_UNSPECIFIED = 0;
-  APP_PACKAGE_READINESS_STATE_READY = 1;
-  APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED = 2;
-  APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED = 3;
-  APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED = 4;
-  APP_PACKAGE_READINESS_STATE_BLOCKED = 5;
-}
-
 // AppStorageProjection is the stable Runtime-owned app-private storage truth
 // surface (K-APP-022). data/cache/tmp are principal-partitioned roots under the
-// selected nimi_data root. In 0K active_release_root and active_version remain
-// empty because no immutable materialization is admitted.
+// selected nimi_data root. Ordinary release roots and versions are deferred.
 message AppStorageProjection {
   string app_id = 1;
   AppStorageState state = 2;
   string app_root = 3;
-  string active_release_root = 4;
+  reserved 4;
+  reserved "active_release_root";
   string durable_data_root = 5;
   string cache_root = 6;
   string temp_root = 7;
-  string active_version = 8;
+  reserved 8;
+  reserved "active_version";
   string storage_policy_ref = 9;
   ReasonCode reason_code = 10;
   string detail = 11;
-}
-
-// AppPackageReadinessProjection is the frozen opaque package seam. In 0K it
-// contains only BLOCKED, LOCAL_APP_OPERATION_UNAVAILABLE, and
-// immutable_profile_unavailable; all identity, descriptor, version, digest,
-// verification, and storage-policy fields remain empty.
-message AppPackageReadinessProjection {
-  string app_id = 1;
-  string release_descriptor_ref = 2;
-  string storage_policy_ref = 3;
-  string expected_version = 4;
-  string active_version = 5;
-  string installed_version = 6;
-  string sha256 = 7;
-  string verification_state = 8;
-  AppPackageReadinessState state = 9;
-  ReasonCode reason_code = 10;
-  string detail = 11;
-}
-
-// AppInstallJob reserves a future immutable-package job projection. No job id,
-// descriptor, digest, storage, retry, or terminal success is emitted in 0K.
-message AppInstallJob {
-  string job_id = 1;
-  string app_id = 2;
-  string release_descriptor_ref = 3;
-  string installed_version = 4;
-  AppInstallJobState state = 5;
-  AppInstallJobPhase phase = 6;
-  AppInstallSourceKind source_kind = 7;
-  // sha256 is the digest computed over the downloaded/bundled artifact bytes.
-  // It is populated only after the verify phase succeeds.
-  string sha256 = 8;
-  int64 artifact_bytes = 9;
-  AppInstallStorageProjection storage = 10;
-  // reason_code is the typed fail-closed reason on a failed job. It is never
-  // collapsed into a generic value.
-  ReasonCode reason_code = 11;
-  string failure_detail = 12;
-  bool retryable = 13;
-  string created_at = 14;
-  string updated_at = 15;
-  // kind distinguishes install / update / repair jobs. They share this shape
-  // but the consumer never infers the lifecycle operation from the phase.
-  AppLifecycleJobKind kind = 16;
-  // previous_version is the active release version before an update or repair
-  // job ran. It is empty for an install job.
-  string previous_version = 17;
-}
-
-message InstallAppRequest {
-  // Reserved future package selector; it has no authority in 0K.
-  string app_id = 1;
-  // Reserved future confirmation slot; it cannot admit an install in 0K.
-  bool confirmed = 2;
-  string lifecycle_intent_id = 3;
-  string displayed_impact_digest = 4;
-}
-
-message InstallAppResponse {
-  AppInstallJob job = 1;
-}
-
-message GetAppInstallJobRequest {
-  string job_id = 1;
-}
-
-message GetAppInstallJobResponse {
-  AppInstallJob job = 1;
 }
 
 message GetAppStorageRequest {
@@ -390,162 +134,11 @@ message RemoveLocalAppStorageJsonResponse {
   ReasonCode reason_code = 2;
 }
 
-// AccountAppInventoryState is the account-side authority for an app row. It is
-// not derived from local install evidence: a verified/entitled app may be
-// visible before any package is installed or adopted on this machine.
-enum AccountAppInventoryState {
-  ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED = 0;
-  ACCOUNT_APP_INVENTORY_STATE_VERIFIED = 1;
-  ACCOUNT_APP_INVENTORY_STATE_ENTITLED = 2;
-  ACCOUNT_APP_INVENTORY_STATE_DISABLED = 3;
-  ACCOUNT_APP_INVENTORY_STATE_REMOVED = 4;
-  ACCOUNT_APP_INVENTORY_STATE_REVOKED = 5;
-}
-
-// AccountAppInstallState is a frozen future local-materialization overlay.
-// Runtime has no positive materialization writer in 0K and never derives
-// entitlement from this field.
-enum AccountAppInstallState {
-  ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED = 0;
-  ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED = 1;
-  ACCOUNT_APP_INSTALL_STATE_INSTALLED = 2;
-  reserved 3;
-  ACCOUNT_APP_INSTALL_STATE_REMOVED = 4;
-}
-
-// AccountAppInventoryRow is one Runtime-owned account app inventory row.
-// Consumers read it through GetAccountAppInventory; no renderer/app-supplied
-// account_id is accepted.
-message AccountAppInventoryRow {
-  string app_id = 1;
-  AccountAppInventoryState account_state = 2;
-  AccountAppInstallState install_state = 3;
-  string last_opened_at = 4;
-  string data_policy = 5;
-  string verified_at = 6;
-  string source = 7;
-  string detail = 8;
-}
-
-// AccountAppInventoryRecord is the authenticated account-scoped app inventory
-// projection. Schema version 2 hard-cuts the previous install-after-write
-// library shape: account visibility and local materialization are distinct.
-message AccountAppInventoryRecord {
-  uint32 schema_version = 1;
-  string account_id = 2;
-  string updated_at = 3;
-  repeated AccountAppInventoryRow apps = 4;
-}
-
-message GetAccountAppInventoryRequest {
-}
-
-message GetAccountAppInventoryResponse {
-  bool exists = 1;
-  AccountAppInventoryRecord record = 2;
-  ReasonCode reason_code = 3;
-  string detail = 4;
-}
-
-message GetAppPackageReadinessRequest {
-  // Reserved selector slot. 0K callers send it empty; Runtime ignores it and
-  // returns one global typed-unavailable projection without reading package
-  // files, descriptors, active-release pointers, or install evidence.
-  string app_id = 1;
-}
-
-message GetAppPackageReadinessResponse {
-  AppPackageReadinessProjection projection = 1;
-}
-
-message ListAppInstallJobsRequest {
-  // Reserved future selector. No local or global job enumeration exists in 0K.
-  string app_id = 1;
-}
-
-message ListAppInstallJobsResponse {
-  repeated AppInstallJob jobs = 1;
-}
-
-message WatchAppInstallJobEventsRequest {
-  // Reserved future selector. No job event stream exists in 0K.
-  string job_id = 1;
-}
-
-// AppInstallJobEvent reserves a future progress-frame shape. No frame is
-// emitted in 0K.
-message AppInstallJobEvent {
-  uint64 sequence = 1;
-  AppInstallJob job = 2;
-  google.protobuf.Timestamp timestamp = 3;
-}
-
-message UninstallAppRequest {
-  string app_id = 1;
-  // Reserved future destructive option; ignored because the RPC is deny-all.
-  bool delete_durable_data = 2;
-  // Reserved future confirmation slot; it cannot authorize deletion in 0K.
-  bool destructive_data_delete_confirmed = 3;
-  string lifecycle_intent_id = 4;
-  string displayed_impact_digest = 5;
-}
-
-// AppUninstallResult reserves a future immutable-package removal projection.
-// It is never positively returned in 0K.
-message AppUninstallResult {
-  string app_id = 1;
-  bool release_removed = 2;
-  bool durable_data_removed = 3;
-  AppInstallStorageProjection storage = 4;
-  ReasonCode reason_code = 5;
-}
-
-message UninstallAppResponse {
-  // Reserved future result; absent in 0K typed-unavailable responses.
-  AppUninstallResult result = 1;
-  // Reserved future job; no uninstall job exists in 0K.
-  AppInstallJob job = 2;
-}
-
-// === Nimi App Update Lifecycle (K-APP-015) ===
-
-message UpdateAppRequest {
-  // Reserved future package selector; it has no authority in 0K.
-  string app_id = 1;
-  // Reserved future confirmation slot; it cannot admit an update in 0K.
-  bool confirmed = 2;
-  string lifecycle_intent_id = 3;
-  string displayed_impact_digest = 4;
-}
-
-message UpdateAppResponse {
-  // Reserved future job; no update job exists in 0K.
-  AppInstallJob job = 1;
-}
-
-// === Nimi App Health / Repair Lifecycle (K-APP-016) ===
-
-message HealthRepairAppRequest {
-  // Reserved future package selector; it has no authority in 0K.
-  string app_id = 1;
-  // Reserved future repair action; no action is admitted in 0K.
-  AppHealthRepairAction action = 2;
-  // Reserved future job selector; no recoverable job exists in 0K.
-  string job_id = 3;
-  string lifecycle_intent_id = 4;
-  string displayed_impact_digest = 5;
-}
-
-message HealthRepairAppResponse {
-  // Reserved future job; no repair job exists in 0K.
-  AppInstallJob job = 1;
-}
-
 // === Shared local-app protected launch (K-APP-017 / K-PLOCAL-008) ===
 
 message PrepareLocalAppLaunchRequest {
-  // Runtime-generated management handle. For local_development it resolves an
-  // active authorization; immutable profiles remain typed unavailable in 0K.
+  // Runtime-generated management handle resolving an active local_development
+  // authorization. Ordinary package profiles are deferred and absent.
   // It is not a principal id, app id, account selector, path, or credential.
   bytes local_app_handle = 1;
   // Required only for a live local_development supervisor run.
@@ -573,27 +166,10 @@ service RuntimeAppService {
   rpc SendAppMessage(SendAppMessageRequest) returns (SendAppMessageResponse);
   rpc SubscribeAppMessages(SubscribeAppMessagesRequest) returns (stream AppMessageEvent);
 
-  rpc PrepareAppLifecycleIntent(PrepareAppLifecycleIntentRequest) returns (PrepareAppLifecycleIntentResponse);
-  rpc GetAppLifecycleIntentStatus(GetAppLifecycleIntentStatusRequest) returns (GetAppLifecycleIntentStatusResponse);
-
-  // Frozen immutable-package seam. Mutation/job methods below are deny-all in
-  // 0K; GetAppPackageReadiness is callable only for typed unavailable.
-  rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
-  rpc UninstallApp(UninstallAppRequest) returns (UninstallAppResponse);
   rpc GetAppStorage(GetAppStorageRequest) returns (GetAppStorageResponse);
   rpc ReadLocalAppStorageJson(ReadLocalAppStorageJsonRequest) returns (ReadLocalAppStorageJsonResponse);
   rpc WriteLocalAppStorageJson(WriteLocalAppStorageJsonRequest) returns (WriteLocalAppStorageJsonResponse);
   rpc RemoveLocalAppStorageJson(RemoveLocalAppStorageJsonRequest) returns (RemoveLocalAppStorageJsonResponse);
-  rpc GetAccountAppInventory(GetAccountAppInventoryRequest) returns (GetAccountAppInventoryResponse);
-  rpc GetAppPackageReadiness(GetAppPackageReadinessRequest) returns (GetAppPackageReadinessResponse);
-  rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);
-  rpc ListAppInstallJobs(ListAppInstallJobsRequest) returns (ListAppInstallJobsResponse);
-  rpc WatchAppInstallJobEvents(WatchAppInstallJobEventsRequest) returns (stream AppInstallJobEvent);
-
-  // Frozen immutable update/repair seam; deny-all in 0K.
-  rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse);
-  rpc HealthRepairApp(HealthRepairAppRequest) returns (HealthRepairAppResponse);
-
   rpc PrepareLocalAppLaunch(PrepareLocalAppLaunchRequest) returns (PrepareLocalAppLaunchResponse);
   rpc BindLocalAppProcess(BindLocalAppProcessRequest) returns (BindLocalAppProcessResponse);
 }

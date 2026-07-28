@@ -242,14 +242,53 @@ test('runtime wrappers enforce permitted-owner phases and unknown scoped owners'
   assert.equal(calls.fetch, 0);
 });
 
-test('runtime scope is synchronous and does not become ambient async attribution', async () => {
+test('scoped async callbacks cannot escape effect attribution after await', async () => {
   const { target, calls } = fabricateTarget();
   const handle = installSimulatorEffectGuards({ catalog, target });
-  await handle.withScope({ owner: 'canonical-renderer', phase: 'callback' }, async () => {
-    await Promise.resolve();
-    target.fetch('/unscoped-async-callback');
-  });
+  await assert.rejects(
+    handle.withScope({ owner: 'canonical-renderer', phase: 'callback' }, async () => {
+      await Promise.resolve();
+      target.fetch('/scoped-async-callback');
+    }),
+    (error) => (
+      error instanceof SimulatorEffectForbiddenError
+      && error.owner === 'canonical-renderer'
+      && error.phase === 'callback'
+    ),
+  );
+  assert.equal(calls.fetch, 0);
+  target.fetch('/reviewed-framework-code');
   assert.equal(calls.fetch, 1);
+});
+
+test('overlapping async scopes use fail-closed admission intersection', async () => {
+  const { target, calls } = fabricateTarget();
+  const handle = installSimulatorEffectGuards({ catalog, target });
+  let releasePending;
+  const pending = handle.withScope({ owner: 'canonical-renderer', phase: 'callback' }, async () => {
+    await new Promise((resolve) => {
+      releasePending = resolve;
+    });
+  });
+  await Promise.resolve();
+
+  assert.equal(resolveEffectAdmission(catalog, 'timer_scheduling', 'state-engine', 'instance-lifecycle'), 'allow');
+  assert.throws(
+    () => handle.withScope({ owner: 'state-engine', phase: 'instance-lifecycle' }, () => {
+      target.setTimeout(() => {}, 1);
+    }),
+    (error) => (
+      error instanceof SimulatorEffectForbiddenError
+      && error.owner === 'canonical-renderer'
+      && error.phase === 'callback'
+    ),
+  );
+  assert.equal(calls.timeout, 0);
+
+  releasePending();
+  await pending;
+  target.setTimeout(() => {}, 1);
+  assert.equal(calls.timeout, 1);
 });
 
 test('CSP floor holds and remaining sources follow emitted asset classes', () => {

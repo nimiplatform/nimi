@@ -52,9 +52,6 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 
 func newUnaryPublicTransportInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if info != nil && immutablePackageTransportDenied(info.FullMethod) {
-			return nil, immutablePackageTransportUnavailable()
-		}
 		if reason, blocked := publicTransportDenial(info.FullMethod); blocked {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, reason)
 		}
@@ -64,9 +61,6 @@ func newUnaryPublicTransportInterceptor() grpc.UnaryServerInterceptor {
 
 func newStreamPublicTransportInterceptor() grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if info != nil && immutablePackageTransportDenied(info.FullMethod) {
-			return immutablePackageTransportUnavailable()
-		}
 		if reason, blocked := publicTransportDenial(info.FullMethod); blocked {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, reason)
 		}
@@ -75,9 +69,6 @@ func newStreamPublicTransportInterceptor() grpc.StreamServerInterceptor {
 }
 
 func publicTransportDenial(fullMethod string) (runtimev1.ReasonCode, bool) {
-	if immutablePackageTransportDenied(fullMethod) {
-		return runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, true
-	}
 	if _, bundledAvatarMethod := bundledavatar.Method(fullMethod); bundledAvatarMethod {
 		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true
 	}

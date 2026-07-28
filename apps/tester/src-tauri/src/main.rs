@@ -39,45 +39,12 @@ mod tests {
             .expect("first-run profile");
         assert_eq!(first_run_profile.alias, "local-speech-ready");
 
-        let descriptor =
-            nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry::resolve_release_descriptor(
-                "nimi.avatar.bundled-with-nimi",
-            )
-            .expect("avatar release descriptor");
-        assert_eq!(descriptor.app_id, "nimi.avatar");
-
-        let app_registry =
-            nimi_shell_tauri::capabilities::platform_projection::apps_registry::build_apps_registry_record()
-                .expect("apps registry projection");
-        assert!(app_registry
-            .apps
-            .iter()
-            .any(|row| row.app_id == "nimi.avatar"));
         let profile_index = nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::build_factory_profile_index_record()
             .expect("factory profile index projection");
         assert!(profile_index
             .profiles
             .iter()
             .any(|row| row.alias == "local-speech-ready"));
-
-        let bridge_registry_path = std::env::temp_dir()
-            .join("nimi-tester-data-root")
-            .join("apps")
-            .join("registry.json");
-        let bridge_projection =
-            nimi_shell_tauri::capabilities::platform_projection::apps_bridge::build_apps_bridge_projection(
-                bridge_registry_path.display().to_string(),
-            )
-            .expect("apps bridge projection");
-        assert_eq!(
-            bridge_projection.registry_path,
-            bridge_registry_path.display().to_string()
-        );
-        assert_eq!(
-            bridge_projection.registry_rows.len(),
-            nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS
-                .len()
-        );
     }
 
     #[test]
@@ -87,19 +54,7 @@ mod tests {
             .expect("time")
             .as_nanos();
         let dir = std::env::temp_dir().join(format!("nimi-tester-platform-projection-{unique}"));
-        let registry_path = dir.join("apps").join("registry.json");
         let factory_path = dir.join("profiles").join("factory-index.json");
-
-        let registry_outcome =
-            nimi_shell_tauri::capabilities::platform_projection::apps_registry::materialize_apps_registry_projection(
-                &registry_path,
-            )
-            .expect("materialize registry");
-        assert!(matches!(
-            registry_outcome,
-            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Ready(_)
-        ));
-        assert!(registry_path.exists());
 
         let factory_outcome = nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::materialize_factory_profile_index_projection(
             &factory_path,
@@ -110,34 +65,6 @@ mod tests {
             nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Ready(_)
         ));
         assert!(factory_path.exists());
-
-        let future_registry_path = dir.join("apps").join("future-registry.json");
-        let mut future_registry =
-            nimi_shell_tauri::capabilities::platform_projection::apps_registry::build_apps_registry_record()
-                .expect("registry record");
-        future_registry.schema_version = 9999;
-        let future_registry_raw =
-            serde_json::to_string_pretty(&future_registry).expect("registry json");
-        std::fs::write(&future_registry_path, &future_registry_raw).expect("write registry");
-
-        match nimi_shell_tauri::capabilities::platform_projection::apps_registry::materialize_apps_registry_projection(
-            &future_registry_path,
-        )
-        .expect("future registry materialize")
-        {
-            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Repair { severity, reason } => {
-                assert_eq!(
-                    severity,
-                    nimi_shell_tauri::capabilities::config::ConfigRepairSeverity::RepairRequired
-                );
-                assert!(reason.contains("newer than the supported version"));
-            }
-            other => panic!("expected registry repair state, got {other:?}"),
-        }
-        assert_eq!(
-            std::fs::read_to_string(&future_registry_path).expect("read registry"),
-            future_registry_raw
-        );
 
         let future_factory_path = dir.join("profiles").join("future-factory-index.json");
         let mut future_factory = nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::build_factory_profile_index_record()

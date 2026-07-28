@@ -97,7 +97,6 @@ import { type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/ge
 import {
   createNimiAppClient,
   type NimiAppInventoryEntry,
-  type NimiAppRow,
 } from '@nimiplatform/sdk/app';
 import { ReasonCode, createNimiError, type JsonObject, type NimiError } from '@nimiplatform/sdk/types';
 import { textPart, type NimiCapabilityManifest, type NimiMessage } from '@nimiplatform/sdk/contracts';
@@ -119,38 +118,23 @@ const config: NimiClientConfig = { appId: 'dev.nimi.surface', runtime: { transpo
 const client = createNimiClient(config);
 const runtime = createRuntime({ transport });
 const realm: Realm = createRealm({ transport });
-const appRow: NimiAppRow = {
-  appId: 'dev.nimi.surface',
-  appKind: 'nimi-app',
-  displayName: 'Surface',
-  trustTier: 'nimi-community',
-  publisher: 'Nimi',
-  aiProfileSelectionRef: 'local-standard',
-  capabilitySet: ['text.generate'],
-  releaseDescriptorRef: 'release',
-  installStoragePolicyRef: 'storage',
-  sourceRule: 'test',
-};
 const appEntry: NimiAppInventoryEntry = {
-  appId: appRow.appId,
-  appKind: appRow.appKind,
-  displayName: appRow.displayName,
-  trustTier: appRow.trustTier,
-  publisher: appRow.publisher,
-  aiProfileSelectionRef: appRow.aiProfileSelectionRef,
-  capabilitySet: appRow.capabilitySet,
-  releaseDescriptorRef: appRow.releaseDescriptorRef,
-  installStoragePolicyRef: appRow.installStoragePolicyRef,
-  sources: {
-    catalog: { status: 'present', value: appRow },
-    account: { status: 'absent' },
-    localRecord: { status: 'absent' },
-    packageReadiness: { status: 'absent' },
+  appId: 'dev.nimi.surface',
+  displayName: 'Surface',
+  trustClass: 'local_development',
+  source: {
+    status: 'present',
+    value: {
+      appId: 'dev.nimi.surface',
+      displayName: 'Surface',
+      trustClass: 'local_development',
+      recordState: 'active',
+      sessionState: 'session-bound',
+    },
   },
-  installState: 'not-present',
-  openReadiness: 'package-unavailable',
-  activeJobs: [],
-  nextActions: [],
+  localRecordState: 'active',
+  openReadiness: 'ready',
+  nextActions: ['open'],
 };
 const appClient = createNimiAppClient({
   async list(): Promise<readonly NimiAppInventoryEntry[]> { return [appEntry]; },

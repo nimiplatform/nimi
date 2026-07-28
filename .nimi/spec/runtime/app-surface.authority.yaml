@@ -5,19 +5,19 @@ units:
   - id: definition.nimi.runtime.app-surface.app-lifecycle-plane
     kind: definition
     title: Runtime app lifecycle plane
-    meaning: The Runtime app lifecycle plane owns PC-local app lifecycle semantics over principals and records, including the immutable local-app admission posture, lifecycle job projection, the lifecycle event stream, remove and tombstone lifecycle, immutable update, promotion, and repair posture, protected local-app launch preparation, the Runtime-mediated file API non-admission boundary, the protected local-app control protocol, and the local development lifecycle.
+    meaning: The Runtime app lifecycle plane currently owns only the Desktop-hosted local-development lifecycle over PC-local development principals and records, protected local-app launch preparation and process binding, the Runtime-mediated file API non-admission boundary, and the protected local-app control protocol; ordinary install, update, repair, inventory, package-readiness, and public-distribution lifecycle behavior is deferred and physically absent from the current wire, SDK, and Runtime.
   - id: definition.nimi.runtime.app-surface.app-messaging-plane
     kind: definition
     title: Runtime app messaging plane
-    meaning: The Runtime app messaging plane owns the RuntimeAppService method set, app-to-app message send and subscribe semantics, the app message event vocabulary, the messaging security baseline, the single admitted runtime-owned messaging path, cross-domain consumption contracts, delivery, retention, and backpressure semantics, the reserved runtime.agent reactive chat target, the companion multi-app interaction boundary, and the Avatar runtime boundary.
+    meaning: The Runtime app messaging plane owns the current RuntimeAppService method set, app-to-app message send and subscribe semantics, protected local-app JSON storage, protected local-development launch and process binding, the app message event vocabulary, the messaging security baseline, the single admitted runtime-owned messaging path, cross-domain consumption contracts, delivery, retention, and backpressure semantics, the reserved runtime.agent reactive chat target, the companion multi-app interaction boundary, and the Avatar runtime boundary.
   - id: definition.nimi.runtime.app-surface.app-projection-plane
     kind: definition
     title: Runtime app projection plane
-    meaning: The Runtime app projection plane owns Runtime-owned app health typed diagnostic projection, app response-state typed projection, support next-action mapping, app storage truth projection, protected local-app JSON storage operations, app package readiness projection, account app-inventory projection, and the retired local adoption boundary.
+    meaning: The Runtime app projection plane owns current app-private storage truth, protected local-app JSON storage operations, and the retired local adoption boundary; ordinary app health, response-state, support next-action, package-readiness, and account app-inventory projections are deferred and physically absent.
   - id: definition.nimi.runtime.app-surface.local-app-principal-record-plane
     kind: definition
     title: Runtime local-app principal and record plane
-    meaning: The Runtime local-app principal and record plane owns the PC-local LocalAppPrincipal and LocalAppRecord lifecycle seam, including the local OS-user partition, the stable local security principal, the lifecycle record and opaque package seam, and owner separation with immutable per-operation resolution.
+    meaning: The Runtime local-app principal and record plane owns the PC-local development LocalAppPrincipal and LocalAppRecord lifecycle seam, including the local OS-user partition, the stable local security principal, the development lifecycle record, and owner separation with immutable per-operation resolution; no ordinary package principal or package record seam is admitted in the current product.
   - id: definition.nimi.runtime.app-surface.auth-service-plane
     kind: definition
     title: Runtime auth service plane
@@ -26,7 +26,7 @@ units:
     kind: rule
     title: K-APP ownership boundary is fixed
     modality: must
-    statement: Runtime K-APP owns PC-local principal and record lifecycle and does not own Platform package format, K-GRANT grant state, K-PLOCAL process and session facts, account custody, or operation-domain policy.
+    statement: Runtime K-APP owns the current PC-local development principal and record lifecycle and does not own Platform package format, ordinary package distribution, K-GRANT grant state, K-PLOCAL process and session facts, account custody, or operation-domain policy.
     condition: Whenever app lifecycle authority ownership is interpreted.
     failure: Reject lifecycle semantics owned outside Runtime K-APP and K-APP claims over the excluded authorities.
     relations:
@@ -36,7 +36,7 @@ units:
     kind: rule
     title: Lifecycle mutations require the protected control carrier
     modality: must
-    statement: All K-APP lifecycle mutations require Runtime-derived local_app_control on the current protected Desktop connection, and public TCP, app id, caller enum, renderer metadata, request confirmation, endpoint, environment, or portable bearer is denied before target parsing.
+    statement: All admitted K-APP development lifecycle mutations require Runtime-derived local_app_control on the current protected Desktop connection, and public TCP, app id, caller enum, renderer metadata, request confirmation, endpoint, environment, or portable bearer is denied before target parsing.
     condition: Whenever a lifecycle mutation request arrives.
     failure: Deny the request before target parsing.
     relations:
@@ -44,61 +44,61 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r003
     kind: rule
-    title: Immutable local-app admission stays typed unavailable
+    title: Ordinary package admission is deferred and physically absent
     modality: must
-    statement: The 0K wire and schema reserve immutable principal and record lifecycle fields while positive install and import stay typed unavailable until 0P defines signed package and attestation mapping and Lane P implements it, no existing catalog download, local adoption, source directory, or unsigned package path may create an immutable principal or runnable record, any retained InstallApp symbol during the atomic wire migration is inactive and must fail with the stable immutable-profile-unavailable reason, and the final package and import RPC shape is owned by 0P and cannot reshape the 0K principal, record, grant, launch, or session contracts.
-    condition: Whenever immutable local-app install or import is requested or shaped.
-    failure: Fail with the stable immutable-profile-unavailable reason instead of creating principals or records.
+    statement: Ordinary package install and import are deferred, their RPCs, messages, enums, generated clients, SDK facades, Runtime handlers, placeholder errors, and restoration inputs are physically absent, and no catalog download, local adoption, source directory, unsigned package path, ignored field, compatibility decoder, or alternate method may create an ordinary package principal or runnable record; any future admission requires new canonical authority and a new wire design without reusing the removed placeholder contract.
+    condition: Whenever ordinary package install or import is requested, shaped, generated, or restored.
+    failure: Reject the request or restoration attempt without creating principals or records and without reintroducing a placeholder surface.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r004
     kind: rule
-    title: Lifecycle job projections are typed owner results
+    title: Ordinary lifecycle job projections are deferred
     modality: must
-    statement: Lifecycle job projections are typed owner results rather than admission truth, a job must carry stable id, kind, state, phase, target record and principal refs where available, generation, reason code, redacted detail, and retryability, and a future immutable job remains unavailable before 0P/P and cannot report installed, updated, or runnable success.
-    condition: Whenever a lifecycle job is projected.
-    failure: Reject jobs missing required fields and pre-0P/P immutable success reports.
+    statement: Ordinary install, update, repair, and uninstall job projections are deferred and physically absent from the current wire, SDK, Runtime, config, tests, and generated surfaces; no placeholder job, dormant stream, synthetic failure, or reserved SDK wrapper represents future behavior.
+    condition: Whenever an ordinary lifecycle job projection is proposed or restored.
+    failure: Reject the projection until new canonical authority admits its complete behavior.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r005
     kind: rule
-    title: Lifecycle events are typed and honest
+    title: Ordinary lifecycle event streams are deferred
     modality: must
-    statement: Lifecycle events carry monotonic sequence and the full typed job snapshot, they do not carry grant, credential, launch lease, process, session proof, or domain operation truth, and an unavailable immutable lifecycle emits an explicit terminal failure rather than synthetic progress or success.
-    condition: Whenever lifecycle events are emitted.
-    failure: Reject events carrying excluded truth and synthetic progress or success.
+    statement: Ordinary install, update, repair, and uninstall lifecycle event streams are deferred and physically absent from the current wire, SDK, Runtime, config, tests, and generated surfaces, and no unavailable-event placeholder or synthetic terminal failure is admitted.
+    condition: Whenever an ordinary lifecycle event stream is proposed or restored.
+    failure: Reject the event stream until new canonical authority admits its complete behavior.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r006
     kind: rule
-    title: Remove and tombstone lifecycle is transactional
+    title: Development revoke and tombstone lifecycle is transactional
     modality: must
-    statement: Removing an active immutable record or revoking a development authorization transactionally revokes its leases and sessions and permanently tombstones the principal, retained durable data remains keyed to the tombstone and is delete-only after fresh presence, reinstall or re-authorization allocates a new non-reused principal and inherits no permission decision, storage, app-scoped audience, session, or audit subject, immutable remove and uninstall stay typed unavailable before 0P/P because no 0K positive immutable install exists, and development revoke is active through the Developer Mode lifecycle.
-    condition: Whenever a record is removed or a development authorization is revoked.
+    statement: Revoking a development authorization transactionally revokes its leases and sessions and permanently tombstones the principal, retained durable data remains keyed to the tombstone and is delete-only after fresh presence, re-authorization allocates a new non-reused principal and inherits no permission decision, storage, app-scoped audience, session, or audit subject, and ordinary remove and uninstall are deferred and physically absent rather than represented by unavailable placeholders.
+    condition: Whenever a development authorization is revoked.
     failure: Reject non-transactional removal, tombstone reuse, and inherited authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r007
     kind: rule
-    title: Immutable update and promotion posture is frozen
+    title: Ordinary update and promotion are deferred
     modality: must
-    statement: Positive immutable update and imported-to-verified promotion are typed unavailable until 0P/P, the frozen semantic seam is exact in that eligible update or promotion preserves local_app_principal_id, increments record, provenance, or release generation as applicable, invalidates current leases and sessions, and never creates or widens a grant, and signer and attestation mapping and atomic package promotion remain 0P authority.
-    condition: Whenever immutable update or promotion is requested or its seam is shaped.
-    failure: Return typed unavailable and reject seam reshaping outside 0P authority.
+    statement: Ordinary update and imported-to-verified promotion are deferred, and their RPCs, messages, generated clients, SDK facades, Runtime handlers, tests, and configuration restoration inputs are physically absent; no current principal or record contract reserves their future semantics, and future admission requires new canonical authority.
+    condition: Whenever ordinary update or promotion is requested, shaped, generated, or restored.
+    failure: Reject the request or restoration attempt without a placeholder, compatibility path, or inferred future contract.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r008
     kind: rule
-    title: Immutable repair posture fails typed
+    title: Ordinary repair and reinstall are deferred
     modality: must
-    statement: Immutable repair and reinstall cannot be active before the 0P package and fixed-host lifecycle exists, requests fail with typed immutable-profile-unavailable and do not download catalog bytes, scan local directories, or revive a tombstoned principal, and development recovery uses supervised rebuild and restart plus a new K-PLOCAL lease and session rather than an immutable repair alias.
-    condition: Whenever immutable repair or reinstall is requested.
-    failure: Fail with typed immutable-profile-unavailable without side effects or tombstone revival.
+    statement: Ordinary repair and reinstall are deferred, and their RPCs, messages, generated clients, SDK facades, Runtime handlers, tests, and configuration restoration inputs are physically absent; development recovery uses supervised rebuild and restart plus a new K-PLOCAL lease and session and never aliases an ordinary repair or reinstall operation.
+    condition: Whenever ordinary repair, reinstall, or development recovery is requested or restored.
+    failure: Reject ordinary repair or reinstall without a placeholder or side effect and keep development recovery on the supervised path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
@@ -116,7 +116,7 @@ units:
     kind: rule
     title: The positive launch profile is supervised local development
     modality: must
-    statement: BindLocalAppProcess and request-empty OpenLocalAppSession complete the protected process and session path under K-PLOCAL-008, the positive 0K profile is an approved supervised local_development record, immutable execution profiles return typed unavailable until 0P/P, and a shortcut invokes the verified Nimi or Desktop launcher with a record selector and never points to app code.
+    statement: BindLocalAppProcess and request-empty OpenLocalAppSession complete the protected process and session path under K-PLOCAL-008, the only positive current profile is an approved supervised local_development record, ordinary package execution profiles are deferred and physically absent, and a shortcut invokes the verified Nimi or Desktop launcher with a record selector and never points to app code.
     condition: Whenever the protected launch path completes or a shortcut is created.
     failure: Reject non-supervised positive profiles, active immutable profiles, and shortcuts pointing at app code.
     relations:
@@ -136,8 +136,8 @@ units:
     kind: rule
     title: Protected control mutations are one transaction
     modality: must
-    statement: Lifecycle and development mutations consume the live protected Desktop connection, local_app_control, current OS-user anchor, account, and boot epoch, exact target generation, and any presence challenge required by the Nimi-owned operation being requested in one service-owned transaction, the zero-permission local-project run decision is completed by the foreground verified Desktop confirmation UX itself and must not add a second Windows Hello, OS credential, or Realm reauthentication challenge, and returned evaluation, job, and bootstrap ids are correlation only.
-    condition: Whenever a protected lifecycle or development mutation executes.
+    statement: Development mutations consume the live protected Desktop connection, local_app_control, current OS-user anchor, account, and boot epoch, exact target generation, and any presence challenge required by the Nimi-owned operation being requested in one service-owned transaction, the zero-permission local-project run decision is completed by the foreground verified Desktop confirmation UX itself and must not add a second Windows Hello, OS credential, or Realm reauthentication challenge, and returned evaluation and bootstrap ids are correlation only.
+    condition: Whenever a protected development mutation executes.
     failure: Reject mutations outside the service-owned transaction and added second challenges.
     relations:
       - type: applies_to
@@ -146,7 +146,7 @@ units:
     kind: rule
     title: The local-app control role does not generalize
     modality: must
-    statement: The local_app_control logical role covers local-app lifecycle UX coordination, future permission UX, protected launch, and development supervision, it does not generalize OpenDesktopSession account control and creates no portable controller credential, and a future controller requires a separate transport and identity admission while consuming the same logical role.
+    statement: The local_app_control logical role covers current local-development UX coordination, future permission UX, protected launch, and development supervision, it does not expose deferred ordinary lifecycle operations, does not generalize OpenDesktopSession account control, and creates no portable controller credential; a future controller requires a separate transport and identity admission while consuming the same logical role.
     condition: Whenever the local-app control role is consumed or extended.
     failure: Reject account-control generalization and portable controller credentials.
     relations:
@@ -186,7 +186,7 @@ units:
     kind: rule
     title: The RuntimeAppService method set is fixed
     modality: must
-    statement: The RuntimeAppService method set is fixed to SendAppMessage and SubscribeAppMessages for app-to-app messaging, PrepareAppLifecycleIntent resolving and freezing the canonical lifecycle impact Desktop will display, GetAppLifecycleIntentStatus querying non-authorizing intent and reconciliation status, InstallApp and UninstallApp as immutable package seams with no positive 0K materialization, GetAppStorage reading the app-scoped storage projection, GetAccountAppInventory reading the authenticated account app-inventory projection, GetAppPackageReadiness reading the opaque typed-unavailable package seam projection, GetAppInstallJob, ListAppInstallJobs, and WatchAppInstallJobEvents as 0K typed-unavailable job and event seams, UpdateApp and HealthRepairApp as immutable update and repair seams fixed to typed unavailable in 0K, PrepareLocalAppLaunch creating the single-use protected launch lease, and BindLocalAppProcess binding the exact native process to the current lease, and the messaging methods share RuntimeAppService with the lifecycle intent, package-seam, and local-app launch methods while remaining semantically independent so lifecycle and projection methods carry no app-to-app message broker semantics and messaging methods carry no package or launch semantics.
+    statement: The current RuntimeAppService method set is fixed to SendAppMessage and SubscribeAppMessages for app-to-app messaging, GetAppStorage for trusted host-side app-private storage-root projection, ReadLocalAppStorageJson, WriteLocalAppStorageJson, and RemoveLocalAppStorageJson for process-bound local-app private JSON storage, PrepareLocalAppLaunch for the single-use protected local-development launch lease, and BindLocalAppProcess for binding the exact native process to that lease; ordinary lifecycle intent, install, uninstall, account inventory, package readiness, job, update, repair, reinstall, and public-distribution methods are deferred and physically absent, and messaging, storage, and launch methods remain semantically independent.
     condition: Whenever the RuntimeAppService method surface is defined or consumed.
     failure: Reject undeclared methods and cross-carried semantics.
     relations:
@@ -334,89 +334,49 @@ units:
         target: definition.nimi.runtime.app-surface.app-messaging-plane
   - id: rule.nimi.runtime.app-surface.r032
     kind: rule
+    lifecycle: removed
     title: AppHealth reports eight typed dimensions
-    modality: must
-    statement: The AppHealth typed projection reports exactly the eight typed diagnostic dimensions integrity, runtime, nimi_api_permissions, storage, publisher_disclosed_network, data, review, and response, each emitting exactly one typed sub-state per projection emission, with the admitted sub-state enum being ok, digest_mismatch, signature_unverified, provenance_unverified, and mirror_unreachable for integrity, ok, registration_missing, lifecycle_supervisor_failed, and dependency_unready for runtime, ok, scope_missing, scope_revoked, and scope_expired for nimi_api_permissions, ok, root_missing, migration_pending, and os_storage_disclosure_missing for storage, ok, disclosure_missing, and disclosure_mismatch for publisher_disclosed_network, ok, app_data_corrupt, and cache_corrupt for data, approved, revision-requested, rejected, and kill-switched for review, and ok, forced_update_required, rollback_available, publisher_suspended, report_received, and kill_switch_active for response.
-    condition: Whenever an AppHealth projection is emitted.
-    failure: Reject undeclared dimensions or sub-states and multi-sub-state emissions.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-projection-plane
+    reason: Removed because ordinary AppHealth projection is deferred and physically absent from the current wire, Runtime, SDK, and host surfaces.
   - id: rule.nimi.runtime.app-surface.r033
     kind: rule
+    lifecycle: removed
     title: Overall state derivation is a closed table
-    modality: must
-    statement: The P-NAPP-008 overall states are derived from the eight AppHealth dimensions only through the admitted canonical lookup table in which integrity digest_mismatch, signature_unverified, and provenance_unverified raise failed, integrity mirror_unreachable raises stale-projection, runtime registration_missing and dependency_unready raise setup-required, runtime lifecycle_supervisor_failed raises failed, nimi_api_permissions scope_missing raises needs-confirmation, nimi_api_permissions scope_revoked and scope_expired raise repair-required, storage root_missing raises repair-required, storage migration_pending raises in-progress, storage os_storage_disclosure_missing raises unsupported, publisher_disclosed_network disclosure_missing and disclosure_mismatch raise unsupported, data app_data_corrupt and cache_corrupt raise repair-required, review revision-requested raises needs-confirmation, review rejected and kill-switched raise unavailable, response forced_update_required, publisher_suspended, and kill_switch_active raise unavailable, response rollback_available raises repair-required, and response report_received raises needs-confirmation, a row raising multiple overall states lists all raised states, the projection layer resolves the final overall state by the admitted precedence unavailable over repair-required over failed over setup-required over needs-confirmation over in-progress over unsupported over stale-projection, and when all eight dimensions report ok or no-raise sub-states the projection emits no raised state with that absence being the typed default rather than one of the admitted degraded states.
-    condition: Whenever an overall app state is derived from AppHealth dimensions.
-    failure: Reject free-form derivation outside the table and misuse of the ok default.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-projection-plane
+    reason: Removed with the deferred ordinary AppHealth projection; no current derivation table or placeholder state remains.
   - id: rule.nimi.runtime.app-surface.r034
     kind: rule
+    lifecycle: removed
     title: Dimensions and overall states never conflate
-    modality: must
-    statement: The eight orthogonal AppHealth diagnostic dimensions and the eight mutually exclusive P-NAPP-008 overall states of unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, repair-required, and stale-projection are different eights that are never conflated or substituted for each other, the projection rule does not redefine the P-NAPP-008 overall state set and cross-references it while admitting only the derivation table, the eight typed dimensions are never collapsed into a single health sub-state because each dimension is independently emitted, the projection layer never infers an overall state outside the derivation table enumeration, and the typed reason os_storage_disclosure_missing shared with the P-NAPP-028 admission intent covers both the missing under app-owned-os-storage and populated under nimi-mediated-default invariants while the projection layer surfaces a differentiated typed user message between disclosure-missing and disclosure-cross-populated cases without inventing a new typed reason.
-    condition: Whenever health dimensions or overall states are interpreted or projected.
-    failure: Reject conflation, collapse, out-of-table inference, and undifferentiated messages.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-projection-plane
+    reason: Removed with the deferred ordinary AppHealth projection; its dimension and overall-state contract is not reserved.
   - id: rule.nimi.runtime.app-surface.r035
     kind: rule
+    lifecycle: removed
     title: AppResponseState fields are exactly five
-    modality: must
-    statement: The AppResponseState typed projection surfaces exactly kill_switch_active projecting from the P-ECO-004 kill-switched review-state as true when the admitted descriptor review decision under P-NAPP-025 or the registry row runtime kill-switch posture resolves to kill-switched, forced_update_required as true when Runtime response-state policy resolves that the active descriptor requires a remediated version before next launch, rollback_available as true when a previous admitted release descriptor remains eligible per the descriptor rollback_eligibility under P-NAPP-018 and is materializable, publisher_suspended as true when Runtime response-state policy resolves that the publisher namespace is suspended for app launch and support purposes, and report_received as a typed monotonic uint32 counter of post-release community reports against the descriptor where zero is no report and a non-zero count indicates the admitted report aggregate has delivered at least one report and is the support-UX entry into report-driven detection, and apps consume this projection as typed truth without computing the fields from raw review-state polling, raw descriptor diffing, or raw publisher-status fetches because Runtime owns the projection.
-    condition: Whenever app response state is projected or consumed.
-    failure: Reject app-side raw computation and fields outside the five-field set.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-projection-plane
+    reason: Removed because ordinary AppResponseState projection is deferred and physically absent rather than reserved as a current contract.
   - id: rule.nimi.runtime.app-surface.r036
     kind: rule
+    lifecycle: removed
     title: Response-state sources are typed and closed
-    modality: must
-    statement: The response-state projection cross-references P-ECO-004 for kill-switched review-state and P-NAPP-018 for rollback_eligibility, the remaining inputs forced_update_required, publisher_suspended, and report_received are Runtime projection inputs resolved as typed evidence before Runtime emits them, Runtime never derives one response field from another or from host execution dossiers, the five-field set is closed with a new response-state field being a separate authority-bearing admission event, one typed field value is never silently coerced from another such as inferring forced_update_required true from kill_switch_active true because the five fields are orthogonal projections, and the Apps surface never reads raw P-ECO, descriptor, publisher, report, or host task state directly to compute these fields because the projection seam is this response-state rule.
-    condition: Whenever response-state inputs are resolved or the field set evolves.
-    failure: Reject derived or coerced fields, uncleared set extension, and raw source reads.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-projection-plane
+    reason: Removed with the deferred ordinary AppResponseState projection; no current response-state input contract remains.
   - id: rule.nimi.runtime.app-surface.r037
     kind: rule
+    lifecycle: removed
     title: The support next-action enum is exactly ten tokens
-    modality: must
-    statement: Every typed degraded AppHealth state and every degraded AppResponseState maps to a typed next-action token drawn from the closed ten-token enum of request_permission, repair_runtime_materialization, reinstall_descriptor, rollback, clear_cache, export_diagnostics, contact_publisher, stop_kill_switched, stop_rejected, and await_forced_update, and extending the enum beyond ten values or contracting it below ten values is a separate authority-bearing admission event.
-    condition: Whenever support next-actions are enumerated or extended.
-    failure: Reject tokens outside the ten-token enum and uncleared enum changes.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-projection-plane
+    reason: Removed because ordinary lifecycle support next-actions are deferred and their token vocabulary is not reserved.
   - id: rule.nimi.runtime.app-surface.r038
     kind: rule
-    title: Next-action tokens are not RPC action tokens
-    modality: must
-    statement: The HealthRepairApp RPC admits exactly the four typed action tokens cancel, retry, repair, and reinstall living at the gRPC surface as caller-invoked actions driving a lifecycle job, the ten next-action tokens live at the projection surface as support-UX next-action projections and are not a superset, subset, or rename of the four RPC action tokens, some next-action tokens map onto an RPC action invocation so repair_runtime_materialization ultimately drives repair and reinstall_descriptor ultimately drives reinstall while request_permission, rollback, clear_cache, export_diagnostics, contact_publisher, stop_kill_switched, stop_rejected, and await_forced_update are not RPC actions, and the two enums are never conflated with the projection layer never rewriting a next-action token into an RPC action token without going through the action-binding semantics.
-    condition: Whenever next-action tokens and RPC action tokens are related.
-    failure: Reject conflation and rewrites outside the action-binding semantics.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-projection-plane
+    lifecycle: removed
+    title: Next-action tokens are non-executable projections
+    reason: Removed with the non-admitted support next-action vocabulary; current Runtime exposes neither the projection nor executable ordinary lifecycle actions.
   - id: rule.nimi.runtime.app-surface.r039
     kind: rule
+    lifecycle: removed
     title: The state-to-action mapping table is closed
-    modality: must
-    statement: The mapping from AppHealth degraded states and AppResponseState flags to next-action tokens is the admitted typed lookup table in which review kill-switched or kill_switch_active true maps to stop_kill_switched, review rejected maps to stop_rejected, forced_update_required true maps to await_forced_update, rollback_available true maps to rollback when surfaced for a degraded condition that rollback resolves, nimi_api_permissions scope_missing, scope_revoked, and scope_expired map to request_permission, runtime registration_missing, lifecycle_supervisor_failed, and dependency_unready and storage root_missing and migration_pending map to repair_runtime_materialization, data app_data_corrupt and integrity digest_mismatch, signature_unverified, and provenance_unverified map to reinstall_descriptor, integrity mirror_unreachable, storage os_storage_disclosure_missing, and report_received non-zero map to export_diagnostics, data cache_corrupt maps to clear_cache, publisher_disclosed_network disclosure_missing and disclosure_mismatch, publisher_suspended true, and review revision-requested map to contact_publisher, simultaneous conditions resolve by the admitted precedence stop_kill_switched over stop_rejected over await_forced_update over rollback over request_permission over repair_runtime_materialization over reinstall_descriptor over clear_cache over export_diagnostics over contact_publisher, the table covers every degraded condition and typed-flag condition mapping to a support next-action while ok, approved, and no-raise conditions map to no token, and the Support surface consumes this table without skipping it or inferring next-actions from prose because the derivation and mapping tables are closed contract faces not open to free-form projection-layer reinterpretation.
-    condition: Whenever a support next-action is derived.
-    failure: Reject out-of-table mappings and free-form inference.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-projection-plane
+    reason: Removed with the deferred ordinary AppHealth, AppResponseState, and support next-action projections; no mapping table remains current.
   - id: rule.nimi.runtime.app-surface.r040
     kind: rule
     title: App storage roots are principal-scoped Runtime truth
     modality: must
-    statement: App-private storage is Runtime-owned principal-scoped truth, a local-app session resolves its opaque principal internally with the request accepting no app_id or principal override, Runtime derives the roots <nimi_data>/apps/<local-app-principal-id>/data, <nimi_data>/apps/<local-app-principal-id>/cache, and <nimi_data>/apps/<local-app-principal-id>/tmp, the immutable release root is absent in 0K and a later 0P/P may add its positive projection without changing the principal-keyed data, cache, and tmp roots, an active development principal may receive data, cache, and tmp roots without an immutable release, same-app-id principals remain isolated, and tombstoned data is not rebound to a new authorization and is delete-only after fresh presence.
+    statement: App-private storage is Runtime-owned principal-scoped truth, a local-app session resolves its opaque development principal internally with the request accepting no app_id or principal override, Runtime derives the roots <nimi_data>/apps/<local-app-principal-id>/data, <nimi_data>/apps/<local-app-principal-id>/cache, and <nimi_data>/apps/<local-app-principal-id>/tmp, no immutable release root or future package slot is reserved in the current contract, an active development principal may receive data, cache, and tmp roots, same-app-id principals remain isolated, and tombstoned data is not rebound to a new authorization and is delete-only after fresh presence.
     condition: Whenever app storage roots are derived or resolved.
     failure: Reject caller-supplied principals, cross-principal roots, and tombstone rebinding.
     relations:
@@ -464,31 +424,31 @@ units:
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r045
     kind: rule
-    title: Package readiness is an opaque unavailable seam
+    title: Package readiness is deferred and physically absent
     modality: must
-    statement: 0K admits GetAppPackageReadiness only as an opaque typed-unavailable seam whose response identifies blocked and immutable_profile_unavailable without reading or asserting an active release, install job, install evidence, package root, update candidate, rollback candidate, or repair state and which cannot create a principal or record and cannot authorize launch, Runtime derives the blocked response without accepting app ID, path, descriptor, digest, release, or account selectors as package truth, a later 0P may populate only the already frozen immutable_lineage_id, opaque provenance attestation refs and revision, execution_profile_ref, host_executable_digest, and payload_root_digest fields without reshaping the 0K principal, record, grant, lease, process, or session schema, Runtime, Desktop, Kit, SDK, and apps never scan a package directory, active pointer, install evidence, or file existence in 0K, and ready, install_required, update_required, repair_required, package jobs, and positive immutable launch stay unavailable until 0P/P is independently admitted.
-    condition: Whenever app package readiness is queried or the seam evolves.
-    failure: Return the typed blocked response and reject scanning and positive readiness claims.
+    statement: Package readiness is deferred and GetAppPackageReadiness, its request and response messages, readiness enums and projections, generated clients, SDK facade, Runtime handler, tests, and configuration inputs are physically absent; Runtime, Desktop, Kit, SDK, templates, and apps never scan package directories, active pointers, install evidence, or file existence as package truth, and any future package readiness requires new canonical authority and a new wire design.
+    condition: Whenever app package readiness is queried, shaped, generated, or restored.
+    failure: Reject the request or restoration attempt without a typed-unavailable placeholder or positive readiness claim.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r046
     kind: rule
-    title: Account app inventory splits visibility from materialization
+    title: Account app inventory is deferred and physically absent
     modality: must
-    statement: GetAccountAppInventory is the Runtime-owned authenticated account app-inventory projection, Runtime resolves the account id from the current authenticated Runtime account projection with the request never accepting a renderer- or app-supplied account_id, schema version 2 separates account visibility from local materialization with AccountAppInventoryRow.account_state carrying verified, entitled, disabled, removed, and revoked semantics and install_state carrying not-present, local-record-active, local-record-dormant, and removed, account eligibility and PC-local principal and record state remain separate and are never collapsed into one installed boolean, and immutable and development lifecycle mutations may only change local materialization fields and never create account entitlement truth or silently upgrade a row to verified.
-    condition: Whenever account app inventory is projected or mutated.
-    failure: Reject caller-supplied account ids, collapsed states, and entitlement creation.
+    statement: Account app inventory and ordinary visibility-versus-materialization projection are deferred, and GetAccountAppInventory, its record and row messages and enums, generated clients, SDK decoders and facade, Runtime store and handler, tests, and configuration inputs are physically absent; current local-development records never create account entitlement or verified distribution truth.
+    condition: Whenever account app inventory is projected, mutated, generated, or restored.
+    failure: Reject the projection or restoration attempt without creating entitlement truth or a placeholder inventory.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r047
     kind: rule
-    title: Inventory reads validate and stay Runtime-owned
+    title: Deferred inventory has no alternate read path
     modality: must
-    statement: The inventory response distinguishes an absent projection with exists false from a present validated AccountAppInventoryRecord, corrupt JSON, unsupported schema, account-id mismatch, invalid row state, invalid install state, or invalid data policy fails closed with PROTOCOL_ENVELOPE_INVALID, Desktop, SDK, Kit, and apps never read <dataRoot>/accounts/<account-id>/apps/inventory.json directly, derive the authenticated account directory from a caller-supplied root, or expose a mutation path as an alternate inventory authority, and SDK may expose typed request and response helpers and decoders over this Runtime surface while Runtime remains the writer and validator and resolves dataRoot only from canonical Product Control.
-    condition: Whenever account app inventory is read or validated.
-    failure: Fail closed with PROTOCOL_ENVELOPE_INVALID and reject alternate authorities.
+    statement: With account app inventory deferred, Runtime, Desktop, SDK, Kit, templates, and apps expose no inventory file reader, parser, decoder, store, mutation path, fixture, or alternate projection, never read <dataRoot>/accounts/<account-id>/apps/inventory.json as product truth, and never derive account eligibility from current local-development records.
+    condition: Whenever deferred account app inventory is read, generated, or restored.
+    failure: Reject alternate inventory authority and restoration of the removed projection.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
@@ -496,7 +456,7 @@ units:
     kind: rule
     title: The local adoption family stays retired
     modality: must
-    statement: The predecessor local-adoption family is retired and removed from Proto, generated clients, Runtime handlers and stores, SDK and Kit exports, Desktop UX, tests, and inventory states in the atomic public wire epoch with no active success behavior and no alias, mutable source enters through Developer Mode and creates a fresh isolated development principal and record only after Runtime presence and approval, immutable bytes remain typed unavailable until 0P/P, and package-manager roots, workspace and source scanning, app-local manifests, app id, file presence, process liveness, and inventory-only records cannot create runnable truth.
+    statement: The predecessor local-adoption family is retired and removed from Proto, generated clients, Runtime handlers and stores, SDK and Kit exports, Desktop UX, tests, and inventory states in the atomic public wire epoch with no active success behavior and no alias, mutable source enters through Developer Mode and creates a fresh isolated development principal and record only after Runtime presence and approval, ordinary package bytes and lifecycle surfaces are deferred and physically absent, and package-manager roots, workspace and source scanning, app-local manifests, app id, file presence, process liveness, and inventory-like records cannot create runnable truth.
     condition: Whenever local adoption or runnable truth creation is attempted.
     failure: Reject retired-family revival and runnable truth outside the admitted paths.
     relations:
@@ -544,9 +504,9 @@ units:
         target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
   - id: rule.nimi.runtime.app-surface.r053
     kind: rule
-    title: Exactly one principal-kind anchor exists
+    title: Development principals have one owner anchor
     modality: must
-    statement: An immutable principal carries an opaque immutable_lineage_id whose package key and attestation mapping is unavailable until 0P with 0P allowed only to populate the frozen field, a development principal carries a Runtime-owned development_authorization_id, canonical project-root file identity, and the declared app_id, and exactly one principal-kind anchor is present.
+    statement: A current development principal carries exactly one Runtime-owned development_authorization_id together with canonical project-root file identity and the declared app_id; ordinary immutable lineage and package anchors are deferred and physically absent from the current principal schema.
     condition: Whenever a principal-kind anchor is created or populated.
     failure: Reject principals with zero or multiple kind anchors and unfrozen field reshaping.
     relations:
@@ -554,10 +514,10 @@ units:
         target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
   - id: rule.nimi.runtime.app-surface.r054
     kind: rule
-    title: Principals survive update and die on revoke
+    title: Development principals die on revoke
     modality: must
-    statement: Update and exact imported-to-verified promotion preserve the principal, uninstall or project-authorization revoke tombstones it permanently, any reinstall or re-authorization including the same signer, project, or app id allocates a new principal and inherits no permission decision, storage, audience, session, or audit identity, retained tombstoned data is delete-only after fresh presence with rebind and migration not admitted, app_id remains a display and routing identifier, and a development project declaring the same app_id as an immutable app or immutable records with different lineage remain isolated principals.
-    condition: Whenever principal lifecycle transitions or app-id collisions occur.
+    statement: Project-authorization revoke tombstones the development principal permanently, any re-authorization including the same project or app id allocates a new principal and inherits no permission decision, storage, audience, session, or audit identity, retained tombstoned data is delete-only after fresh presence with rebind and migration not admitted, app_id remains a display and routing identifier, and ordinary update, uninstall, reinstall, promotion, signer, and immutable-lineage behavior is deferred and physically absent.
+    condition: Whenever development principal lifecycle transitions or app-id collisions occur.
     failure: Reject tombstone revival, inherited identity, and app-id-based principal merging.
     relations:
       - type: applies_to
@@ -566,7 +526,7 @@ units:
     kind: rule
     title: The lifecycle record binds one principal
     modality: must
-    statement: LocalAppRecord binds one principal to current provenance and lifecycle and contains the closed verified, user_imported, and local_development trust class, opaque provenance-attestation references, provenance_revision, install-or-project generation, active capability fingerprint, opaque execution_profile_ref, host executable digest slot, payload-root digest slot, and lifecycle state, and it contains no grant boolean, permission result, account owner, session proof, or operation-policy decision.
+    statement: The current LocalAppRecord binds one development principal to current project provenance and lifecycle and contains only the local_development trust class, project generation, active capability fingerprint, opaque execution_profile_ref, host executable digest, payload-root digest, and lifecycle state required by supervised local development, and it contains no ordinary verified or imported trust class, package attestation, install state, grant boolean, permission result, account owner, session proof, or operation-policy decision.
     condition: Whenever a lifecycle record is created or read.
     failure: Reject records missing the closed shape or embedding excluded authority.
     relations:
@@ -574,11 +534,11 @@ units:
         target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
   - id: rule.nimi.runtime.app-surface.r056
     kind: rule
-    title: The package seam is frozen and promotion invalidates
+    title: The ordinary package seam is not admitted
     modality: must
-    statement: Immutable positive install, update, and promotion are typed unavailable until 0P defines how signed package and Platform-attestation inputs map into the already frozen opaque fields with no package authority reshaping this schema, promotion increments provenance_revision and transactionally invalidates all current launch leases and local-app sessions without creating or widening a grant, a new session revalidates any still-compatible grant, and delisting changes discovery only while security revoke blocks execution and cannot fall back to another provenance class.
-    condition: Whenever the package seam is populated or provenance changes.
-    failure: Reject schema reshaping, non-transactional promotion, and provenance-class fallback.
+    statement: Ordinary package install, update, promotion, repair, reinstall, and public distribution are deferred, no package seam or frozen future package fields exist in the current principal and record schema, and no wire, generated client, Runtime handler, SDK facade, config input, fixture, compatibility loader, or dormant implementation may reserve or repopulate them; future admission requires new canonical authority and must not reinterpret development provenance.
+    condition: Whenever an ordinary package seam or provenance class is proposed, populated, generated, or restored.
+    failure: Reject restoration, compatibility paths, and reinterpretation of development provenance.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.local-app-principal-record-plane

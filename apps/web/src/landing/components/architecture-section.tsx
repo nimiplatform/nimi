@@ -14,7 +14,7 @@ const REALM_DOMAIN_STYLE: Record<string, { y: number; color: string }> = {
 
 const RUNTIME_CAPABILITY_STYLE: Record<string, { y: number; color: string }> = {
   'ai-models': { y: 250, color: '#0ea5e9' },
-  workflows: { y: 320, color: '#8b5cf6' },
+  conversations: { y: 320, color: '#8b5cf6' },
   knowledge: { y: 390, color: '#f43f5e' },
 };
 

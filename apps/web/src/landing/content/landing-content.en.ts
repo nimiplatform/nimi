@@ -61,7 +61,7 @@ export const landingContentEn: LandingContent = {
       'Nimi gives you a typed SDK to build AI experiences that span persistent worlds, autonomous agents, shared memory, identity, social, and economy — bridged by a runtime you can run locally or in the cloud.',
     devTitle: 'For builders',
     devText:
-      'Integrate through the typed SDK. Compose agents, models, workflows, and memory the same way whether they run on a laptop or in cloud infrastructure you control.',
+      'Integrate through the typed SDK. Compose character-backed agents, models, conversations, and memory the same way whether they run on a laptop or in cloud infrastructure you control.',
     userTitle: 'For product readers',
     userText:
       'Nimi is an AI open world platform — agents persist across sessions, share state across worlds, and act through runtime capabilities with clear limits. Not a chat wrapper, not a single-purpose app.',
@@ -85,7 +85,7 @@ export const landingContentEn: LandingContent = {
       ],
       runtimeCapabilities: [
         { id: 'ai-models', label: 'AI Models', icon: '\u{1F9E0}' },
-        { id: 'workflows', label: 'Workflows', icon: '\u{26A1}' },
+        { id: 'conversations', label: 'Conversations', icon: '\u{26A1}' },
         { id: 'knowledge', label: 'Knowledge', icon: '\u{1F4DA}' },
       ],
       crossCutting: [
@@ -210,7 +210,7 @@ export const landingContentEn: LandingContent = {
     title: 'One SDK.',
     titleAccent: 'Multiple ways to run AI.',
     subtitle:
-      'Compose agents, models, workflows, and shared environments through one typed integration surface — locally or in the cloud.',
+      'Compose character-backed agents, models, conversations, and shared environments through one typed integration surface — locally or in the cloud.',
     callout: 'Explore the SDK reference',
     primaryCta: 'Read SDK Docs',
     secondaryCta: 'View Source',
@@ -261,7 +261,7 @@ export const landingContentEn: LandingContent = {
         description:
           'Hand off tasks between agents and humans with typed context handoff and audit trail.',
         docsPath: 'sdk/delegation-client',
-        previewMediaId: 'workflow',
+        previewMediaId: 'runtime',
       },
       {
         id: 'local-environment',
@@ -269,7 +269,7 @@ export const landingContentEn: LandingContent = {
         description:
           'Project shared environments into local sessions — files, tools, and runtime state.',
         docsPath: 'sdk/local-environment-projection',
-        previewMediaId: 'workflow',
+        previewMediaId: 'runtime',
       },
       {
         id: 'ai-config',
@@ -300,7 +300,7 @@ export const landingContentEn: LandingContent = {
         description:
           'Typed transport contracts plus structured error semantics across the whole SDK.',
         docsPath: 'sdk/transport-and-error',
-        previewMediaId: 'workflow',
+        previewMediaId: 'runtime',
       },
     ],
     capabilityMatrix: [
@@ -356,7 +356,7 @@ export const landingContentEn: LandingContent = {
       sdk: { alt: 'Nimi SDK quickstart preview' },
       multimodal: { alt: 'Nimi multimodal client preview' },
       streamJob: { alt: 'Nimi stream job preview' },
-      workflow: { alt: 'Nimi workflow client preview' },
+      runtime: { alt: 'Nimi typed Runtime client preview' },
     },
   },
   desktop: {
@@ -410,20 +410,20 @@ export const landingContentEn: LandingContent = {
     eyebrow: 'Nimi Apps',
     title: 'Bring new abilities into Nimi.',
     subtitle:
-      'Nimi Apps are small apps you can open inside Nimi. They can add tools, scenes, or workflows. Desktop shows what is available for your account and local workspace; developers build with the SDK and ship through clear product rules.',
+      'Nimi Apps are small apps you can open inside Nimi. They can add tools, scenes, or local AI experiences. Desktop shows what is available for your account and local workspace; developers build with the SDK and ship through clear product rules.',
     cta: 'Read Desktop Docs',
     cards: [
       {
         label: 'Use',
         title: 'Open apps in one place',
         description:
-          'Use the Apps area in Desktop to open the tools, scenes, or workflows that are available in your current product context.',
+          'Use the Apps area in Desktop to open the tools, scenes, or local AI experiences that are available in your current product context.',
       },
       {
         label: 'Build',
         title: 'Build with the SDK',
         description:
-          'Developers can turn their own product ideas into Nimi Apps, connect models and workflows through the SDK, and let the app work inside Nimi.',
+          'Developers can turn their own product ideas into Nimi Apps, connect models and Runtime capabilities through the SDK, and let the app work inside Nimi.',
       },
       {
         label: 'Local',
@@ -448,7 +448,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'What is Nimi?',
         answer:
-          'An open-source AI runtime built around persistent worlds and embodied agents. Compose models, workflows, and shared memory through one typed SDK.',
+          'An open-source AI runtime built around persistent worlds and embodied agents. Compose models, conversations, and shared memory through one typed SDK.',
       },
       {
         question: 'How do I start integrating?',
@@ -473,7 +473,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'Can I build my own Nimi App?',
         answer:
-          'Yes. Developers can start from the SDK and Desktop docs, then connect tools, scenes, or workflows to Nimi through the Nimi Apps path.',
+          'Yes. Developers can start from the SDK and Desktop docs, then connect tools, scenes, or local AI experiences to Nimi through the Nimi Apps path.',
       },
     ],
   },

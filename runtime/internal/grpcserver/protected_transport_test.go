@@ -261,55 +261,6 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	}
 
 	appClient := runtimev1.NewRuntimeAppServiceClient(clientConn)
-	immutableCalls := []struct {
-		name string
-		call func() error
-	}{
-		{name: "PrepareAppLifecycleIntent", call: func() error {
-			_, callErr := appClient.PrepareAppLifecycleIntent(context.Background(), &runtimev1.PrepareAppLifecycleIntentRequest{})
-			return callErr
-		}},
-		{name: "GetAppLifecycleIntentStatus", call: func() error {
-			_, callErr := appClient.GetAppLifecycleIntentStatus(context.Background(), &runtimev1.GetAppLifecycleIntentStatusRequest{})
-			return callErr
-		}},
-		{name: "InstallApp", call: func() error {
-			_, callErr := appClient.InstallApp(context.Background(), &runtimev1.InstallAppRequest{})
-			return callErr
-		}},
-		{name: "UninstallApp", call: func() error {
-			_, callErr := appClient.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{})
-			return callErr
-		}},
-		{name: "GetAppInstallJob", call: func() error {
-			_, callErr := appClient.GetAppInstallJob(context.Background(), &runtimev1.GetAppInstallJobRequest{})
-			return callErr
-		}},
-		{name: "ListAppInstallJobs", call: func() error {
-			_, callErr := appClient.ListAppInstallJobs(context.Background(), &runtimev1.ListAppInstallJobsRequest{})
-			return callErr
-		}},
-		{name: "UpdateApp", call: func() error {
-			_, callErr := appClient.UpdateApp(context.Background(), &runtimev1.UpdateAppRequest{})
-			return callErr
-		}},
-		{name: "HealthRepairApp", call: func() error {
-			_, callErr := appClient.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{})
-			return callErr
-		}},
-	}
-	for _, call := range immutableCalls {
-		err := call.call()
-		if status.Code(err) != codes.Unimplemented {
-			t.Fatalf("%s protected carrier code = %v, want Unimplemented: %v", call.name, status.Code(err), err)
-		}
-		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
-			t.Fatalf("%s protected carrier reason = %v present=%v: %v", call.name, reason, ok, err)
-		}
-	}
-	if appService.prepareBound || appService.statusBound || appService.installBound {
-		t.Fatalf("immutable package methods reached handler: prepare=%v status=%v install=%v", appService.prepareBound, appService.statusBound, appService.installBound)
-	}
 	localAppLaunch, err := appClient.PrepareLocalAppLaunch(context.Background(), &runtimev1.PrepareLocalAppLaunchRequest{})
 	if err != nil || localAppLaunch.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !appService.localAppLaunchBound {
 		t.Fatalf("PrepareLocalAppLaunch protected carrier = (%+v, %v), bound=%v", localAppLaunch, err, appService.localAppLaunchBound)
@@ -590,25 +541,7 @@ func (service *protectedDesktopAccountTestService) IssueWorkspaceBinding(context
 
 type protectedDesktopAppTestService struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
-	prepareBound        bool
-	statusBound         bool
-	installBound        bool
 	localAppLaunchBound bool
-}
-
-func (service *protectedDesktopAppTestService) PrepareAppLifecycleIntent(ctx context.Context, _ *runtimev1.PrepareAppLifecycleIntentRequest) (*runtimev1.PrepareAppLifecycleIntentResponse, error) {
-	_, service.prepareBound = protectedlocal.DesktopConnectionFromContext(ctx)
-	return &runtimev1.PrepareAppLifecycleIntentResponse{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
-}
-
-func (service *protectedDesktopAppTestService) GetAppLifecycleIntentStatus(ctx context.Context, _ *runtimev1.GetAppLifecycleIntentStatusRequest) (*runtimev1.GetAppLifecycleIntentStatusResponse, error) {
-	_, service.statusBound = protectedlocal.DesktopConnectionFromContext(ctx)
-	return &runtimev1.GetAppLifecycleIntentStatusResponse{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
-}
-
-func (service *protectedDesktopAppTestService) InstallApp(ctx context.Context, _ *runtimev1.InstallAppRequest) (*runtimev1.InstallAppResponse, error) {
-	_, service.installBound = protectedlocal.DesktopConnectionFromContext(ctx)
-	return &runtimev1.InstallAppResponse{}, nil
 }
 
 func (service *protectedDesktopAppTestService) PrepareLocalAppLaunch(ctx context.Context, _ *runtimev1.PrepareLocalAppLaunchRequest) (*runtimev1.PrepareLocalAppLaunchResponse, error) {

@@ -587,7 +587,6 @@ Daemon 启动固定为以下阶段：
 | 子系统状态机 | STOPPING 行为 | 引用 |
 |---|---|---|
 | 活跃 ScenarioJob（K-JOB-001） | lifecycle 拦截器拒绝新请求（`UNAVAILABLE`）；已建立的 job 事件流可被 shutdown controller 以 `CANCELLED` 预empt，后台 job 由进程/engine shutdown 继续兜底 | K-DAEMON-003 step 2 |
-| 活跃 Workflow（K-WF-003） | 新请求拒绝；活跃 workflow 订阅流可被 shutdown controller 以 `CANCELLED` 预empt | K-DAEMON-003 step 2 |
 | 活跃 StreamScenario | 活跃执行流可被 shutdown controller 直接 `CANCELLED`，不得伪造完成态；若 handler 不退出，deadline 到期后 ForceStop | K-DAEMON-003 step 2 |
 | 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流，不得继续占住 `GracefulStop` | K-STREAM-010 |
 | Supervised 引擎（K-LENG-004） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 gRPC/HTTP 关闭前执行 | K-DAEMON-003 step 4 |

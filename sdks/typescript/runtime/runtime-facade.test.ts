@@ -369,32 +369,6 @@ test('Runtime facade blocks origin-only methods and routes scoped artifact reads
     (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_METHOD_UNAVAILABLE',
   );
   await assert.rejects(
-    runtime.generated.installApp({
-      appId: 'app.example',
-      confirmed: true,
-      lifecycleIntentId: 'intent-1',
-      displayedImpactDigest: 'impact-digest-1',
-    }),
-    (error: unknown) =>
-      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
-  );
-  await assert.rejects(
-    runtime.generated.prepareAppLifecycleIntent({
-      action: 1,
-      appId: 'app.example',
-      expectedReleaseRef: 'release:app.example@1.0.0',
-      expectedArtifactDigest: 'digest-1',
-      expectedAdoptionGeneration: '0',
-    }),
-    (error: unknown) =>
-      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
-  );
-  await assert.rejects(
-    runtime.generated.getAppLifecycleIntentStatus({ intentId: 'intent-1' }),
-    (error: unknown) =>
-      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
-  );
-  await assert.rejects(
     runtime.generated.openDesktopSession({}),
     (error: unknown) =>
       (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,

@@ -968,8 +968,8 @@ state belong to Runtime/Cognition.
 
 ## D-DSYNC-012 — Transit Owner Map
 
-World transit canonical state belongs to Realm and admitted Runtime/Realm
-workflow contracts. Typed access belongs to SDK/Kit when reused.
+World transit canonical state belongs to Realm and any explicitly admitted
+Runtime/Realm transit contracts. Typed access belongs to SDK/Kit when reused.
 
 - Desktop may own transit UI intent wiring and display state.
 - Desktop DataSync must not remain the transit service authority.

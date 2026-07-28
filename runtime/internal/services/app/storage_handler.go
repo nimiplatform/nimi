@@ -13,9 +13,8 @@ import (
 const defaultAppStoragePolicyRef = "nimi-data-app-roots"
 const avatarAppID = "nimi.avatar"
 
-// GetAppStorage returns only app-private data/cache/tmp roots in 0K. It never
-// reads an active-release pointer or install evidence and never projects an
-// immutable release root; positive immutable package storage belongs to 0P/P.
+// GetAppStorage returns only current app-private data/cache/tmp roots. It never
+// reads an ordinary package release pointer or install evidence.
 func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorageRequest) (*runtimev1.GetAppStorageResponse, error) {
 	if req == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -32,7 +31,7 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 	if dataRootRef == "" {
 		return &runtimev1.GetAppStorageResponse{Projection: appStorageUnavailable(
 			appID,
-			runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION,
+			runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE,
 			"app storage dataRootRef is not configured",
 		)}, nil
 	}
@@ -41,7 +40,7 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 	if err != nil {
 		return &runtimev1.GetAppStorageResponse{Projection: appStorageUnavailable(
 			appID,
-			runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION,
+			runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE,
 			err.Error(),
 		)}, nil
 	}
@@ -50,8 +49,7 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 			appID,
 			roots,
 			runtimev1.AppStorageState_APP_STORAGE_STATE_REPAIR_REQUIRED,
-			"",
-			runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION,
+			runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE,
 			err.Error(),
 		)}, nil
 	}
@@ -60,7 +58,6 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 		appID,
 		roots,
 		runtimev1.AppStorageState_APP_STORAGE_STATE_READY,
-		"",
 		runtimev1.ReasonCode_ACTION_EXECUTED,
 		"",
 	)}, nil
@@ -79,21 +76,18 @@ func appStorageProjectionFromPlan(
 	appID string,
 	plan appstorage.Plan,
 	state runtimev1.AppStorageState,
-	activeVersion string,
 	reason runtimev1.ReasonCode,
 	detail string,
 ) *runtimev1.AppStorageProjection {
 	return &runtimev1.AppStorageProjection{
-		AppId:             appID,
-		State:             state,
-		AppRoot:           plan.AppRoot,
-		ActiveReleaseRoot: "",
-		DurableDataRoot:   plan.DurableDataRoot,
-		CacheRoot:         plan.CacheRoot,
-		TempRoot:          plan.TempRoot,
-		ActiveVersion:     "",
-		StoragePolicyRef:  plan.StoragePolicyRef,
-		ReasonCode:        reason,
-		Detail:            detail,
+		AppId:            appID,
+		State:            state,
+		AppRoot:          plan.AppRoot,
+		DurableDataRoot:  plan.DurableDataRoot,
+		CacheRoot:        plan.CacheRoot,
+		TempRoot:         plan.TempRoot,
+		StoragePolicyRef: plan.StoragePolicyRef,
+		ReasonCode:       reason,
+		Detail:           detail,
 	}
 }

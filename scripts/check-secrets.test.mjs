@@ -50,7 +50,7 @@ test('generated Platform catalog projections are excluded while their authority 
   const generatedPaths = [
     'kit/shell/capabilities/src/platform-projection.ts',
     'kit/shell/tauri/src/platform_catalog/nimi_app_registry.rs',
-    'sdks/typescript/core/app/platform-catalog.generated.ts',
+    'sdks/typescript/core/app/ai-profile-factory.generated.ts',
   ];
 
   for (const generatedPath of generatedPaths) {

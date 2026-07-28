@@ -83,41 +83,6 @@ const runtimeWireTypeShardDefinitions = [
   },
 ];
 
-// The generated Runtime core deliberately preserves the complete protobuf
-// epoch. The lightweight public wire-types subpath is narrower: 0K admits
-// account/local-record reads and typed-unavailable package readiness, but no
-// immutable-package mutation/job DTOs or positive readiness projection. Keep
-// this exclusion at the generator boundary so regeneration cannot restore a
-// second public package lifecycle surface (S-APP-010 / S-APP-018).
-const runtimePublicWireExcludedMessageNames = new Set([
-  'AppInstallJob',
-  'AppInstallJobEvent',
-  'AppInstallStorageProjection',
-  'AppLifecycleCanonicalImpact',
-  'AppLifecycleDestructiveOptions',
-  'AppPackageReadinessProjection',
-  'AppUninstallResult',
-  'GetAppInstallJobRequest',
-  'GetAppInstallJobResponse',
-  'GetAppLifecycleIntentStatusRequest',
-  'GetAppLifecycleIntentStatusResponse',
-  'GetAppPackageReadinessRequest',
-  'GetAppPackageReadinessResponse',
-  'HealthRepairAppRequest',
-  'HealthRepairAppResponse',
-  'InstallAppRequest',
-  'InstallAppResponse',
-  'ListAppInstallJobsRequest',
-  'ListAppInstallJobsResponse',
-  'PrepareAppLifecycleIntentRequest',
-  'PrepareAppLifecycleIntentResponse',
-  'UninstallAppRequest',
-  'UninstallAppResponse',
-  'UpdateAppRequest',
-  'UpdateAppResponse',
-  'WatchAppInstallJobEventsRequest',
-]);
-
 function runtimeWireTypeShard(importPath) {
   const shard = runtimeWireTypeShardDefinitions.find((definition) => definition.matches(importPath));
   if (!shard) {
@@ -134,9 +99,7 @@ function runtimeWireTypeShardGroups(runtime) {
   const groupById = new Map(groups.map((group) => [group.id, group]));
   for (const [importPath, names] of groupRuntimeTypesByImport(
     runtime,
-    runtimeMessageSchemas(runtime)
-      .filter((schema) => !runtimePublicWireExcludedMessageNames.has(schema.name))
-      .map((schema) => schema.name),
+    runtimeMessageSchemas(runtime).map((schema) => schema.name),
   )) {
     const shard = runtimeWireTypeShard(importPath);
     groupById.get(shard.id).imports.push({ importPath, names });
@@ -201,17 +164,6 @@ const failClosedRuntimeWireEnumNames = new Set([
   'AgentTurnContextSummarySchemaVersion',
   'AgentTurnContextManifestSchemaVersion',
   'AgentTurnContextCompilerSchemaVersion',
-]);
-
-const runtimePublicWireExcludedEnumNames = new Set([
-  'AppHealthRepairAction',
-  'AppInstallJobPhase',
-  'AppInstallJobState',
-  'AppInstallSourceKind',
-  'AppLifecycleIntentAction',
-  'AppLifecycleIntentStatus',
-  'AppLifecycleJobKind',
-  'AppPackageReadinessState',
 ]);
 
 function renderRuntimeWireEnum(schema) {
@@ -328,9 +280,6 @@ function runtimeWireEnumShardGroups(runtime) {
   }));
   const groupById = new Map(groups.map((group) => [group.id, group]));
   for (const schema of runtimeEnumSchemas(runtime)) {
-    if (runtimePublicWireExcludedEnumNames.has(schema.name)) {
-      continue;
-    }
     const shard = runtimeWireEnumShard(schema);
     groupById.get(shard.id).schemas.push(schema);
   }

@@ -132,17 +132,6 @@ func (ledger *Ledger) ensureSchema(ctx context.Context) error {
 		if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
 			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("write protected-local schema version: %w", err))
 		}
-	} else if schemaVersion == 2 {
-		if err := retireImmutablePackageLifecycleSchema(ctx, tx); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
-			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("write protected-local schema version: %w", err))
-		}
-	} else if schemaVersion == 3 {
-		if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
-			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("write protected-local schema version: %w", err))
-		}
 	} else if schemaVersion != ledgerSchemaVersion {
 		return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("validate protected-local schema version: unsupported version"))
 	}
@@ -150,28 +139,6 @@ func (ledger *Ledger) ensureSchema(ctx context.Context) error {
 		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("commit protected-local schema: %w", err))
 	}
 	return ledger.checkpoint(ctx)
-}
-
-func retireImmutablePackageLifecycleSchema(ctx context.Context, tx *sql.Tx) error {
-	for _, table := range []string{"protected_lifecycle_intent", "protected_lifecycle_challenge"} {
-		var rows int
-		query := fmt.Sprintf("SELECT COUNT(*) FROM %s", table)
-		if err := tx.QueryRowContext(ctx, query).Scan(&rows); err != nil {
-			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("inspect retired immutable package lifecycle table %s: %w", table, err))
-		}
-		if rows != 0 {
-			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("retired immutable package lifecycle table %s contains active state", table))
-		}
-	}
-	for _, statement := range []string{
-		"DROP TABLE protected_lifecycle_intent",
-		"DROP TABLE protected_lifecycle_challenge",
-	} {
-		if _, err := tx.ExecContext(ctx, statement); err != nil {
-			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("retire immutable package lifecycle schema: %w", err))
-		}
-	}
-	return nil
 }
 
 func (ledger *Ledger) integrityCheck(ctx context.Context) error {

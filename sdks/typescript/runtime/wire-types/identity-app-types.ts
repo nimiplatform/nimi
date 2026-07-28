@@ -78,14 +78,10 @@ export type {
 };
 
 import type {
-  AccountAppInventoryRecord,
-  AccountAppInventoryRow,
   AppMessageEvent,
   AppStorageProjection,
   BindLocalAppProcessRequest,
   BindLocalAppProcessResponse,
-  GetAccountAppInventoryRequest,
-  GetAccountAppInventoryResponse,
   GetAppStorageRequest,
   GetAppStorageResponse,
   PrepareLocalAppLaunchRequest,
@@ -102,14 +98,10 @@ import type {
 } from "../../core-generated/runtime-protobuf/runtime/v1/app";
 
 export type {
-  AccountAppInventoryRecord,
-  AccountAppInventoryRow,
   AppMessageEvent,
   AppStorageProjection,
   BindLocalAppProcessRequest,
   BindLocalAppProcessResponse,
-  GetAccountAppInventoryRequest,
-  GetAccountAppInventoryResponse,
   GetAppStorageRequest,
   GetAppStorageResponse,
   PrepareLocalAppLaunchRequest,

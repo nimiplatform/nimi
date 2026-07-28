@@ -242,11 +242,6 @@ export function RuntimeHealthSection({
       {health ? (
         <div className={cn('mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px]', TOKEN_TEXT_MUTED)}>
           <span>
-            {t('runtimeConfig.runtime.workflows', { defaultValue: 'Workflows' })}
-            {': '}
-            <span className={cn('font-mono', TOKEN_TEXT_PRIMARY)}>{health.activeWorkflows}</span>
-          </span>
-          <span>
             {t('runtimeConfig.runtime.jobs', { defaultValue: 'Jobs' })}
             {': '}
             <span className={cn('font-mono', TOKEN_TEXT_PRIMARY)}>{health.activeInferenceJobs}</span>

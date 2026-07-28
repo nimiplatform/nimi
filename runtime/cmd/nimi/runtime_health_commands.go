@@ -138,7 +138,6 @@ func extractRuntimeHealthSnapshot(payload map[string]any) runtimeHealthSnapshot 
 		StatusCode:          int32(getInt64(payload["status_code"])),
 		Reason:              getString(payload["reason"]),
 		QueueDepth:          int32(getInt64(payload["queue_depth"])),
-		ActiveWorkflows:     int32(getInt64(payload["active_workflows"])),
 		ActiveInferenceJobs: int32(getInt64(payload["active_inference_jobs"])),
 		CPUMilli:            getInt64(payload["cpu_milli"]),
 		MemoryBytes:         getInt64(payload["memory_bytes"]),
@@ -183,7 +182,6 @@ func watchRuntimeHealthGRPC(ctx context.Context, grpcAddr string, changesOnly bo
 				StatusCode:          event.Snapshot.StatusCode,
 				Reason:              event.Snapshot.Reason,
 				QueueDepth:          event.Snapshot.QueueDepth,
-				ActiveWorkflows:     event.Snapshot.ActiveWorkflows,
 				ActiveInferenceJobs: event.Snapshot.ActiveInferenceJobs,
 				CPUMilli:            event.Snapshot.CPUMilli,
 				MemoryBytes:         event.Snapshot.MemoryBytes,
@@ -221,7 +219,6 @@ func runtimeHealthSignature(snapshot runtimeHealthSnapshot) string {
 		strconv.FormatInt(int64(snapshot.StatusCode), 10),
 		snapshot.Reason,
 		strconv.FormatInt(int64(snapshot.QueueDepth), 10),
-		strconv.FormatInt(int64(snapshot.ActiveWorkflows), 10),
 		strconv.FormatInt(int64(snapshot.ActiveInferenceJobs), 10),
 		strconv.FormatInt(snapshot.CPUMilli, 10),
 		strconv.FormatInt(snapshot.MemoryBytes, 10),
@@ -230,7 +227,7 @@ func runtimeHealthSignature(snapshot runtimeHealthSnapshot) string {
 }
 
 func buildRuntimeHealthChanges(before runtimeHealthSnapshot, after runtimeHealthSnapshot) []runtimeHealthChange {
-	out := make([]runtimeHealthChange, 0, 9)
+	out := make([]runtimeHealthChange, 0, 8)
 	appendIfChanged := func(field string, left string, right string) {
 		if left == right {
 			return
@@ -245,7 +242,6 @@ func buildRuntimeHealthChanges(before runtimeHealthSnapshot, after runtimeHealth
 	appendIfChanged("status_code", strconv.FormatInt(int64(before.StatusCode), 10), strconv.FormatInt(int64(after.StatusCode), 10))
 	appendIfChanged("reason", before.Reason, after.Reason)
 	appendIfChanged("queue_depth", strconv.FormatInt(int64(before.QueueDepth), 10), strconv.FormatInt(int64(after.QueueDepth), 10))
-	appendIfChanged("active_workflows", strconv.FormatInt(int64(before.ActiveWorkflows), 10), strconv.FormatInt(int64(after.ActiveWorkflows), 10))
 	appendIfChanged("active_inference_jobs", strconv.FormatInt(int64(before.ActiveInferenceJobs), 10), strconv.FormatInt(int64(after.ActiveInferenceJobs), 10))
 	appendIfChanged("cpu_milli", strconv.FormatInt(before.CPUMilli, 10), strconv.FormatInt(after.CPUMilli, 10))
 	appendIfChanged("memory_bytes", strconv.FormatInt(before.MemoryBytes, 10), strconv.FormatInt(after.MemoryBytes, 10))
@@ -260,7 +256,6 @@ func printRuntimeHealthSnapshot(snapshot runtimeHealthSnapshot) {
 	printCLIField(os.Stdout, "status code", strconv.FormatInt(int64(snapshot.StatusCode), 10))
 	printCLIField(os.Stdout, "reason", snapshot.Reason)
 	printCLIField(os.Stdout, "queue depth", strconv.FormatInt(int64(snapshot.QueueDepth), 10))
-	printCLIField(os.Stdout, "active workflows", strconv.FormatInt(int64(snapshot.ActiveWorkflows), 10))
 	printCLIField(os.Stdout, "active jobs", strconv.FormatInt(int64(snapshot.ActiveInferenceJobs), 10))
 	printCLIField(os.Stdout, "cpu milli", strconv.FormatInt(snapshot.CPUMilli, 10))
 	printCLIField(os.Stdout, "memory bytes", strconv.FormatInt(snapshot.MemoryBytes, 10))

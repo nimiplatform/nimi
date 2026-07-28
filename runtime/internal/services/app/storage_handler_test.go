@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,6 +16,16 @@ import (
 )
 
 type rejectingAppSessionValidator struct{}
+
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+type allowingAppSessionValidator struct{}
+
+func (allowingAppSessionValidator) ValidateAppSession(string, string, string) (runtimev1.ReasonCode, bool) {
+	return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, true
+}
 
 func (rejectingAppSessionValidator) ValidateAppSession(string, string, string) (runtimev1.ReasonCode, bool) {
 	return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, false
@@ -30,9 +42,6 @@ func TestGetAppStorageMaterializesOnlyPrivateDataRoots(t *testing.T) {
 	projection := resp.GetProjection()
 	if projection.GetState() != runtimev1.AppStorageState_APP_STORAGE_STATE_READY {
 		t.Fatalf("state = %v detail=%q, want READY", projection.GetState(), projection.GetDetail())
-	}
-	if projection.GetActiveReleaseRoot() != "" || projection.GetActiveVersion() != "" {
-		t.Fatalf("0K storage projected immutable release truth: %+v", projection)
 	}
 	for _, root := range []string{projection.GetDurableDataRoot(), projection.GetCacheRoot(), projection.GetTempRoot()} {
 		info, err := os.Stat(root)
@@ -55,7 +64,7 @@ func TestGetAppStorageFailsClosedWithoutDataRoot(t *testing.T) {
 		t.Fatalf("GetAppStorage: %v", err)
 	}
 	if resp.GetProjection().GetState() != runtimev1.AppStorageState_APP_STORAGE_STATE_STORAGE_UNAVAILABLE ||
-		resp.GetProjection().GetReasonCode() != runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION {
+		resp.GetProjection().GetReasonCode() != runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE {
 		t.Fatalf("projection = %+v, want STORAGE_UNAVAILABLE", resp.GetProjection())
 	}
 }
@@ -71,8 +80,8 @@ func TestGetAppStorageAllowsDesktopCoreAvatarTargetProjection(t *testing.T) {
 		t.Fatalf("desktop-core avatar storage projection: %v", err)
 	}
 	projection := resp.GetProjection()
-	if projection.GetState() != runtimev1.AppStorageState_APP_STORAGE_STATE_READY || projection.GetActiveReleaseRoot() != "" {
-		t.Fatalf("avatar 0K storage projection = %+v", projection)
+	if projection.GetState() != runtimev1.AppStorageState_APP_STORAGE_STATE_READY {
+		t.Fatalf("avatar storage projection = %+v", projection)
 	}
 }
 

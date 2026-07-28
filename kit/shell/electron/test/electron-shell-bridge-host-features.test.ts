@@ -532,62 +532,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
 
     await expect(invokeBridge(ipcMain, event, {
       command,
-      payload: {
-        projectionId: 'apps-registry',
-      },
-    })).resolves.toMatchObject({
-      projectionId: 'apps-registry',
-      record: {
-        catalogId: 'platform_nimi_app_registry',
-        apps: expect.arrayContaining([
-          expect.objectContaining({ appId: 'nimi.avatar', visibility: 'hidden-internal' }),
-        ]),
-      },
-    });
-
-    await expect(invokeBridge(ipcMain, event, {
-      command,
-      payload: {
-        projectionId: 'apps-bridge',
-      },
-    })).resolves.toMatchObject({
-      projectionId: 'apps-bridge',
-      record: {
-        registryRows: expect.arrayContaining([
-          expect.objectContaining({ appId: 'nimi.avatar', aiProfileSelectionRef: 'local-gpu' }),
-        ]),
-        releaseDescriptors: expect.arrayContaining([
-          expect.objectContaining({ descriptorId: 'nimi.avatar.bundled-with-nimi' }),
-        ]),
-      },
-    });
-
-    await expect(invokeBridge(ipcMain, event, {
-      command,
-      payload: {
-        projectionId: 'apps-bridge',
-        registryPath: 'C:\\attacker\\registry.json',
-      },
-    })).rejects.toMatchObject({
-      code: 'not-found',
-      reasonCode: 'electron-platform-projection-payload-invalid',
-    });
-
-    await expect(invokeBridge(ipcMain, event, {
-      command,
-      payload: {
-        projectionId: 'apps-packages',
-      },
-    })).resolves.toMatchObject({
-      projectionId: 'apps-packages',
-      record: {
-        schemaVersion: 2,
-        packages: [],
-      },
-    });
-
-    await expect(invokeBridge(ipcMain, event, {
-      command,
       payload: { projectionId: 'missing' },
     })).rejects.toMatchObject({
       code: 'not-found',

@@ -451,6 +451,7 @@ func recordManagedLlamaWarmKeyForTest(t *testing.T, svc *Service, model *runtime
 
 func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Service, assetID string) *runtimev1.LocalAssetRecord {
 	t.Helper()
+	manifestPath := filepath.Join(t.TempDir(), "asset.manifest.json")
 	record, err := svc.installLocalAssetRecord(
 		assetID,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
@@ -458,7 +459,7 @@ func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Serv
 		"media",
 		"model.safetensors",
 		"unknown",
-		assetID,
+		"file://"+filepath.ToSlash(manifestPath),
 		"local",
 		nil,
 		"",

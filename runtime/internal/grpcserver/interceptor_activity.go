@@ -106,8 +106,6 @@ func classifyRPCMethod(fullMethod string, isStream bool) (string, rpcShutdownDis
 		return "realtime_read_stream", rpcShutdownCancel
 	case "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers":
 		return "local_transfer_watch", rpcShutdownCancel
-	case "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents":
-		return "app_install_job_watch", rpcShutdownCancel
 	case "/grpc.health.v1.Health/Watch":
 		return "grpc_health_watch", rpcShutdownCancel
 	case "/grpc.health.v1.Health/Check":

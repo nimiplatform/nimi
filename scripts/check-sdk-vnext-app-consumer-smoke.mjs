@@ -63,43 +63,22 @@ import {
   selectNimiAppFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/app';
 
-const row = {
-  appId: 'nimi.example-app',
-  appKind: 'nimi-app',
-  displayName: 'Example App',
-  trustTier: 'nimi-first-party',
-  publisher: 'Nimi',
-  aiProfileSelectionRef: 'local-standard',
-  capabilitySet: ['text.generate'],
-  releaseDescriptorRef: 'nimi.example-app.bundled',
-  installStoragePolicyRef: 'nimi-data-app-roots',
-  sourceRule: 'P-NAPP-004',
-};
-function entryFor(appId = row.appId) {
-  const catalogRow = { ...row, appId };
+function entryFor(appId = 'nimi.example-app') {
+  const localRecord = {
+    appId,
+    displayName: 'Example App',
+    trustClass: 'local_development',
+    recordState: 'active',
+    sessionState: 'session-bound',
+  };
   return {
-    appId: catalogRow.appId,
-    appKind: catalogRow.appKind,
-    displayName: catalogRow.displayName,
-    trustTier: catalogRow.trustTier,
-    publisher: catalogRow.publisher,
-    aiProfileSelectionRef: catalogRow.aiProfileSelectionRef,
-    capabilitySet: catalogRow.capabilitySet,
-    releaseDescriptorRef: catalogRow.releaseDescriptorRef,
-    installStoragePolicyRef: catalogRow.installStoragePolicyRef,
-    sources: {
-      catalog: { status: 'present', value: catalogRow },
-      account: { status: 'absent' },
-      localRecord: { status: 'absent' },
-      packageReadiness: {
-        status: 'present',
-        value: { state: 'unavailable', reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE' },
-      },
-    },
-    installState: 'not-present',
-    openReadiness: 'package-unavailable',
-    activeJobs: [],
-    nextActions: [],
+    appId,
+    displayName: localRecord.displayName,
+    trustClass: localRecord.trustClass,
+    source: { status: 'present', value: localRecord },
+    localRecordState: 'active',
+    openReadiness: 'ready',
+    nextActions: ['open'],
   };
 }
 const appClient = createNimiAppClient({
@@ -218,49 +197,30 @@ import {
   createNimiAppClient,
   createPermissionClient,
   type NimiAppInventoryEntry,
-  type NimiAppRow,
   type NimiAppScopeRef,
   type NimiAppStatus,
   type NimiAppAIProfileFactoryRow,
 } from '@nimiplatform/sdk/app';
 
-const row: NimiAppRow = {
-  appId: 'nimi.example-app',
-  appKind: 'nimi-app',
-  displayName: 'Example App',
-  trustTier: 'nimi-first-party',
-  publisher: 'Nimi',
-  aiProfileSelectionRef: 'local-standard',
-  capabilitySet: ['text.generate'],
-  releaseDescriptorRef: 'nimi.example-app.bundled',
-  installStoragePolicyRef: 'nimi-data-app-roots',
-  sourceRule: 'P-NAPP-004',
-};
 const entry: NimiAppInventoryEntry = {
-  appId: row.appId,
-  appKind: row.appKind,
-  displayName: row.displayName,
-  trustTier: row.trustTier,
-  publisher: row.publisher,
-  aiProfileSelectionRef: row.aiProfileSelectionRef,
-  capabilitySet: row.capabilitySet,
-  releaseDescriptorRef: row.releaseDescriptorRef,
-  installStoragePolicyRef: row.installStoragePolicyRef,
-  sources: {
-    catalog: { status: 'present', value: row },
-    account: { status: 'absent' },
-    localRecord: { status: 'absent' },
-    packageReadiness: {
-      status: 'present',
-      value: { state: 'unavailable', reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE' },
+  appId: 'nimi.example-app',
+  displayName: 'Example App',
+  trustClass: 'local_development',
+  source: {
+    status: 'present',
+    value: {
+      appId: 'nimi.example-app',
+      displayName: 'Example App',
+      trustClass: 'local_development',
+      recordState: 'active',
+      sessionState: 'session-bound',
     },
   },
-  installState: 'not-present',
-  openReadiness: 'package-unavailable',
-  activeJobs: [],
-  nextActions: [],
+  localRecordState: 'active',
+  openReadiness: 'ready',
+  nextActions: ['open'],
 };
-const status: NimiAppStatus = { appId: row.appId, launchReadiness: 'ready' };
+const status: NimiAppStatus = { appId: 'nimi.example-app', launchReadiness: 'ready' };
 const appClient: NimiAppClient = createNimiAppClient({
   async list() { return [entry]; },
   async get() { return entry; },

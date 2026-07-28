@@ -412,6 +412,33 @@ func TestEnsureManagedLocalModelBundleReadyAcceptsVerifiedCatalogLogicalModelID(
 	}
 }
 
+func TestValidateManagedLocalAssetRecordRequiresCanonicalManifestSource(t *testing.T) {
+	model := &runtimev1.LocalAssetRecord{
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Capabilities:   []string{"text.generate"},
+		Engine:         "llama",
+		Entry:          "model.gguf",
+		LogicalModelId: "nimi/current-model",
+		Source: &runtimev1.LocalAssetSource{
+			Repo: "https://models.example/current-model",
+		},
+	}
+	mode := runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+
+	err := validateManagedLocalAssetRecord(model, mode)
+	if err == nil {
+		t.Fatal("expected non-canonical managed source record to fail closed")
+	}
+	if !strings.Contains(err.Error(), "must point to file://.../asset.manifest.json") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	model.Source.Repo = "file://" + filepath.ToSlash(filepath.Join(t.TempDir(), "asset.manifest.json"))
+	if err := validateManagedLocalAssetRecord(model, mode); err != nil {
+		t.Fatalf("current canonical managed source record rejected: %v", err)
+	}
+}
+
 func TestEnsureManagedLocalModelBundleReadyRejectsManagedSpeechBundleMissingDeclaredFile(t *testing.T) {
 	svc := newTestService(t)
 

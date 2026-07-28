@@ -126,7 +126,7 @@ func TestStoreListUsageByCallerKindAndCapability(t *testing.T) {
 		SubjectUserID: "user-001",
 		CallerKind:    runtimev1.CallerKind_CALLER_KIND_THIRD_PARTY_SERVICE,
 		CallerID:      "svc-novelizer",
-		Capability:    "runtime.workflow.submit",
+		Capability:    "runtime.agent.read",
 		Success:       true,
 	})
 

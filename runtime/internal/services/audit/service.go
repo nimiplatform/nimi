@@ -258,7 +258,6 @@ func (s *Service) GetRuntimeHealth(context.Context, *runtimev1.GetRuntimeHealthR
 		Status:              mapStatus(snapshot.Status),
 		Reason:              snapshot.Reason,
 		QueueDepth:          snapshot.QueueDepth,
-		ActiveWorkflows:     snapshot.ActiveWorkflows,
 		ActiveInferenceJobs: snapshot.ActiveInferenceJobs,
 		CpuMilli:            snapshot.CPUMilli,
 		MemoryBytes:         snapshot.MemoryBytes,
@@ -377,7 +376,6 @@ func (s *Service) SubscribeRuntimeHealthEvents(_ *runtimev1.SubscribeRuntimeHeal
 				Status:              mapStatus(snapshot.Status),
 				Reason:              snapshot.Reason,
 				QueueDepth:          snapshot.QueueDepth,
-				ActiveWorkflows:     snapshot.ActiveWorkflows,
 				ActiveInferenceJobs: snapshot.ActiveInferenceJobs,
 				CpuMilli:            snapshot.CPUMilli,
 				MemoryBytes:         snapshot.MemoryBytes,
@@ -573,7 +571,6 @@ func (s *Service) syntheticAuditEvents() []*runtimev1.AuditEventRecord {
 	payload, _ := structpb.NewStruct(map[string]any{
 		"status":                mapStatus(snapshot.Status).String(),
 		"queue_depth":           snapshot.QueueDepth,
-		"active_workflows":      snapshot.ActiveWorkflows,
 		"active_inference_jobs": snapshot.ActiveInferenceJobs,
 		"cpu_milli":             snapshot.CPUMilli,
 		"memory_bytes":          snapshot.MemoryBytes,

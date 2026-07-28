@@ -241,28 +241,6 @@ methods:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: 0K retains only opaque immutable-package fields and does not admit a package lifecycle intent producer or consumer
-    kernel_refs:
-      - K-APP-026
-  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: 0K has no positive immutable-package lifecycle intent state to reconcile or project
-    kernel_refs:
-      - K-APP-026
-  - method_id: /nimi.runtime.v1.RuntimeAppService/InstallApp
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: 0K retains only opaque immutable-package fields; positive install requires 0P/P
-    kernel_refs: [K-APP-011]
-  - method_id: /nimi.runtime.v1.RuntimeAppService/UninstallApp
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: 0K has no immutable positive materialization to remove
-    kernel_refs: [K-APP-014]
   - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppStorage
     posture: authenticated_required
     rationale: app-scoped storage truth read; requires admitted caller identity before projecting Runtime-owned app roots
@@ -289,47 +267,6 @@ methods:
     required_origin_role: local_app_session
     rationale: idempotent current-principal JSON remove is a base entitlement bound to the current partition and returns no path
     kernel_refs: [K-AUTHN-006, P-PERM-011, K-APP-022, K-APP-032]
-  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory
-    posture: authenticated_required
-    rationale: authenticated account app-inventory truth read; Runtime resolves the account binding before projecting verified/entitled rows and local materialization state
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
-      - K-APP-024
-  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness
-    posture: authenticated_required
-    rationale: callable only to return typed unavailable for the opaque 0K immutable-package seam; no install, release, readiness, or promotion truth exists
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
-      - K-APP-023
-  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppInstallJob
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: 0K admits no immutable-package install job state
-    kernel_refs: [K-APP-011]
-  - method_id: /nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: 0K admits no immutable-package install job collection
-    kernel_refs: [K-APP-011]
-  - method_id: /nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: 0K admits no immutable-package install job event stream
-    kernel_refs: [K-APP-011]
-  - method_id: /nimi.runtime.v1.RuntimeAppService/UpdateApp
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: opaque promotion revision is frozen but positive immutable update requires 0P/P
-    kernel_refs: [K-APP-015]
-  - method_id: /nimi.runtime.v1.RuntimeAppService/HealthRepairApp
-    posture: unavailable_by_authority
-    transport_disposition: deny_all
-    rationale: immutable repair is unavailable before 0P/P; no local-development repair alias exists
-    kernel_refs: [K-APP-016]
   - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
     posture: protected_origin_required
     protected_transport_class: desktop_control

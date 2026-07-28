@@ -31,7 +31,7 @@ func (s *Service) GetLocalDevelopmentAuthoritySummary(ctx context.Context, _ *ru
 			}
 		}
 	}
-	account, _, authenticated := s.authenticatedLifecycleAccount(ctx)
+	account, _, authenticated := s.authenticatedRuntimeAccount(ctx)
 	if !authenticated {
 		response.ProjectAuthorization = unavailableProjectAuthorizationSummary(runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 		return response, nil

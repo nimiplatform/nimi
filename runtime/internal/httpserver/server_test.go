@@ -22,7 +22,7 @@ func TestProviderSnapshotsPayloadNilTracker(t *testing.T) {
 func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
-	state.SetActivity(2, 1, 3)
+	state.SetActivity(2, 3)
 	state.SetResource(200, 1024, 2048)
 
 	tracker := providerhealth.New()

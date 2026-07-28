@@ -185,17 +185,12 @@ func callerAppIDFromRequest(req any) string {
 	return ""
 }
 
-// RequestAppIDIsRuntimeAppLifecycleTarget reports RuntimeAppService requests
-// whose app_id names the lifecycle target app, not the caller app identity.
+// RequestAppIDIsRuntimeAppLifecycleTarget reports the current host-side
+// RuntimeAppService storage request whose app_id names the target app, not the
+// caller app identity.
 func RequestAppIDIsRuntimeAppLifecycleTarget(req any) bool {
 	switch req.(type) {
-	case *runtimev1.GetAppStorageRequest,
-		*runtimev1.GetAppPackageReadinessRequest,
-		*runtimev1.ListAppInstallJobsRequest,
-		*runtimev1.InstallAppRequest,
-		*runtimev1.UninstallAppRequest,
-		*runtimev1.UpdateAppRequest,
-		*runtimev1.HealthRepairAppRequest:
+	case *runtimev1.GetAppStorageRequest:
 		return true
 	default:
 		return false

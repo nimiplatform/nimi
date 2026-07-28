@@ -18,7 +18,6 @@ import type {
   DesktopAccountProductRuntimeMethods,
   DesktopMachineProductRuntimeMethods,
 } from './first-party-protected-runtime-profiles.generated';
-import type { NimiRuntimeAppLifecycleClient } from './app-lifecycle-types';
 import type { NimiRuntimeAgentAuthClient } from './runtime-agent-protected';
 import type { NimiRuntimeScenarioJobClient } from './scenario-jobs';
 
@@ -109,7 +108,6 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'getDelegatedControlSurfaceSnapshot'
     | 'getDelegatedReplayTrace'
     | 'submitDelegatedApprovalDecision'>;
-  readonly apps: Pick<NimiRuntimeAppLifecycleClient, 'accountInventory' | 'packageReadiness'>;
   readonly connectors: Pick<DesktopAccountProductRuntimeMethods,
     | 'listModelCatalogProviders'
     | 'listCatalogProviderModels'
@@ -317,10 +315,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     }),
     accountProduct: Object.freeze({
       agents: accountAgents,
-      apps: Object.freeze({
-        accountInventory: runtime.appLifecycle.accountInventory,
-        packageReadiness: runtime.appLifecycle.packageReadiness,
-      }),
       connectors: Object.freeze({
         listModelCatalogProviders: runtime.connectors.listModelCatalogProviders,
         listCatalogProviderModels: runtime.connectors.listCatalogProviderModels,

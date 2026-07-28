@@ -238,9 +238,6 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		if info == nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
-		if immutablePackageTransportDenied(info.FullMethod) {
-			return nil, immutablePackageTransportUnavailable()
-		}
 		bundledProfile, bundled, bundledErr := resolveProtectedBundledAvatarProfile(ctx, info.FullMethod, bundledavatar.MethodUnary)
 		if bundledErr != nil {
 			return nil, bundledErr
@@ -347,9 +344,6 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if info == nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
-		}
-		if immutablePackageTransportDenied(info.FullMethod) {
-			return immutablePackageTransportUnavailable()
 		}
 		bundledProfile, bundled, bundledErr := resolveProtectedBundledAvatarProfile(stream.Context(), info.FullMethod, bundledavatar.MethodServerStream)
 		if bundledErr != nil {

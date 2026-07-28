@@ -19,25 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAppService_SendAppMessage_FullMethodName              = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
-	RuntimeAppService_SubscribeAppMessages_FullMethodName        = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
-	RuntimeAppService_PrepareAppLifecycleIntent_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent"
-	RuntimeAppService_GetAppLifecycleIntentStatus_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus"
-	RuntimeAppService_InstallApp_FullMethodName                  = "/nimi.runtime.v1.RuntimeAppService/InstallApp"
-	RuntimeAppService_UninstallApp_FullMethodName                = "/nimi.runtime.v1.RuntimeAppService/UninstallApp"
-	RuntimeAppService_GetAppStorage_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
-	RuntimeAppService_ReadLocalAppStorageJson_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
-	RuntimeAppService_WriteLocalAppStorageJson_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
-	RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
-	RuntimeAppService_GetAccountAppInventory_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory"
-	RuntimeAppService_GetAppPackageReadiness_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness"
-	RuntimeAppService_GetAppInstallJob_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
-	RuntimeAppService_ListAppInstallJobs_FullMethodName          = "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs"
-	RuntimeAppService_WatchAppInstallJobEvents_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents"
-	RuntimeAppService_UpdateApp_FullMethodName                   = "/nimi.runtime.v1.RuntimeAppService/UpdateApp"
-	RuntimeAppService_HealthRepairApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp"
-	RuntimeAppService_PrepareLocalAppLaunch_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch"
-	RuntimeAppService_BindLocalAppProcess_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess"
+	RuntimeAppService_SendAppMessage_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	RuntimeAppService_SubscribeAppMessages_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	RuntimeAppService_GetAppStorage_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
+	RuntimeAppService_ReadLocalAppStorageJson_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
+	RuntimeAppService_WriteLocalAppStorageJson_FullMethodName  = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
+	RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
+	RuntimeAppService_PrepareLocalAppLaunch_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch"
+	RuntimeAppService_BindLocalAppProcess_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -46,24 +35,10 @@ const (
 type RuntimeAppServiceClient interface {
 	SendAppMessage(ctx context.Context, in *SendAppMessageRequest, opts ...grpc.CallOption) (*SendAppMessageResponse, error)
 	SubscribeAppMessages(ctx context.Context, in *SubscribeAppMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppMessageEvent], error)
-	PrepareAppLifecycleIntent(ctx context.Context, in *PrepareAppLifecycleIntentRequest, opts ...grpc.CallOption) (*PrepareAppLifecycleIntentResponse, error)
-	GetAppLifecycleIntentStatus(ctx context.Context, in *GetAppLifecycleIntentStatusRequest, opts ...grpc.CallOption) (*GetAppLifecycleIntentStatusResponse, error)
-	// Frozen immutable-package seam. Mutation/job methods below are deny-all in
-	// 0K; GetAppPackageReadiness is callable only for typed unavailable.
-	InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error)
-	UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error)
 	GetAppStorage(ctx context.Context, in *GetAppStorageRequest, opts ...grpc.CallOption) (*GetAppStorageResponse, error)
 	ReadLocalAppStorageJson(ctx context.Context, in *ReadLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*ReadLocalAppStorageJsonResponse, error)
 	WriteLocalAppStorageJson(ctx context.Context, in *WriteLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*WriteLocalAppStorageJsonResponse, error)
 	RemoveLocalAppStorageJson(ctx context.Context, in *RemoveLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*RemoveLocalAppStorageJsonResponse, error)
-	GetAccountAppInventory(ctx context.Context, in *GetAccountAppInventoryRequest, opts ...grpc.CallOption) (*GetAccountAppInventoryResponse, error)
-	GetAppPackageReadiness(ctx context.Context, in *GetAppPackageReadinessRequest, opts ...grpc.CallOption) (*GetAppPackageReadinessResponse, error)
-	GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error)
-	ListAppInstallJobs(ctx context.Context, in *ListAppInstallJobsRequest, opts ...grpc.CallOption) (*ListAppInstallJobsResponse, error)
-	WatchAppInstallJobEvents(ctx context.Context, in *WatchAppInstallJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppInstallJobEvent], error)
-	// Frozen immutable update/repair seam; deny-all in 0K.
-	UpdateApp(ctx context.Context, in *UpdateAppRequest, opts ...grpc.CallOption) (*UpdateAppResponse, error)
-	HealthRepairApp(ctx context.Context, in *HealthRepairAppRequest, opts ...grpc.CallOption) (*HealthRepairAppResponse, error)
 	PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error)
 	BindLocalAppProcess(ctx context.Context, in *BindLocalAppProcessRequest, opts ...grpc.CallOption) (*BindLocalAppProcessResponse, error)
 }
@@ -105,46 +80,6 @@ func (c *runtimeAppServiceClient) SubscribeAppMessages(ctx context.Context, in *
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAppService_SubscribeAppMessagesClient = grpc.ServerStreamingClient[AppMessageEvent]
 
-func (c *runtimeAppServiceClient) PrepareAppLifecycleIntent(ctx context.Context, in *PrepareAppLifecycleIntentRequest, opts ...grpc.CallOption) (*PrepareAppLifecycleIntentResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PrepareAppLifecycleIntentResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_PrepareAppLifecycleIntent_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) GetAppLifecycleIntentStatus(ctx context.Context, in *GetAppLifecycleIntentStatusRequest, opts ...grpc.CallOption) (*GetAppLifecycleIntentStatusResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAppLifecycleIntentStatusResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_GetAppLifecycleIntentStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InstallAppResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_InstallApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UninstallAppResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_UninstallApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAppServiceClient) GetAppStorage(ctx context.Context, in *GetAppStorageRequest, opts ...grpc.CallOption) (*GetAppStorageResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetAppStorageResponse)
@@ -185,85 +120,6 @@ func (c *runtimeAppServiceClient) RemoveLocalAppStorageJson(ctx context.Context,
 	return out, nil
 }
 
-func (c *runtimeAppServiceClient) GetAccountAppInventory(ctx context.Context, in *GetAccountAppInventoryRequest, opts ...grpc.CallOption) (*GetAccountAppInventoryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAccountAppInventoryResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_GetAccountAppInventory_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) GetAppPackageReadiness(ctx context.Context, in *GetAppPackageReadinessRequest, opts ...grpc.CallOption) (*GetAppPackageReadinessResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAppPackageReadinessResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_GetAppPackageReadiness_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAppInstallJobResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_GetAppInstallJob_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) ListAppInstallJobs(ctx context.Context, in *ListAppInstallJobsRequest, opts ...grpc.CallOption) (*ListAppInstallJobsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListAppInstallJobsResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_ListAppInstallJobs_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) WatchAppInstallJobEvents(ctx context.Context, in *WatchAppInstallJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppInstallJobEvent], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAppService_ServiceDesc.Streams[1], RuntimeAppService_WatchAppInstallJobEvents_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[WatchAppInstallJobEventsRequest, AppInstallJobEvent]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAppService_WatchAppInstallJobEventsClient = grpc.ServerStreamingClient[AppInstallJobEvent]
-
-func (c *runtimeAppServiceClient) UpdateApp(ctx context.Context, in *UpdateAppRequest, opts ...grpc.CallOption) (*UpdateAppResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateAppResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_UpdateApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) HealthRepairApp(ctx context.Context, in *HealthRepairAppRequest, opts ...grpc.CallOption) (*HealthRepairAppResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(HealthRepairAppResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_HealthRepairApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAppServiceClient) PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PrepareLocalAppLaunchResponse)
@@ -290,24 +146,10 @@ func (c *runtimeAppServiceClient) BindLocalAppProcess(ctx context.Context, in *B
 type RuntimeAppServiceServer interface {
 	SendAppMessage(context.Context, *SendAppMessageRequest) (*SendAppMessageResponse, error)
 	SubscribeAppMessages(*SubscribeAppMessagesRequest, grpc.ServerStreamingServer[AppMessageEvent]) error
-	PrepareAppLifecycleIntent(context.Context, *PrepareAppLifecycleIntentRequest) (*PrepareAppLifecycleIntentResponse, error)
-	GetAppLifecycleIntentStatus(context.Context, *GetAppLifecycleIntentStatusRequest) (*GetAppLifecycleIntentStatusResponse, error)
-	// Frozen immutable-package seam. Mutation/job methods below are deny-all in
-	// 0K; GetAppPackageReadiness is callable only for typed unavailable.
-	InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error)
-	UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error)
 	GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error)
 	ReadLocalAppStorageJson(context.Context, *ReadLocalAppStorageJsonRequest) (*ReadLocalAppStorageJsonResponse, error)
 	WriteLocalAppStorageJson(context.Context, *WriteLocalAppStorageJsonRequest) (*WriteLocalAppStorageJsonResponse, error)
 	RemoveLocalAppStorageJson(context.Context, *RemoveLocalAppStorageJsonRequest) (*RemoveLocalAppStorageJsonResponse, error)
-	GetAccountAppInventory(context.Context, *GetAccountAppInventoryRequest) (*GetAccountAppInventoryResponse, error)
-	GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error)
-	GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error)
-	ListAppInstallJobs(context.Context, *ListAppInstallJobsRequest) (*ListAppInstallJobsResponse, error)
-	WatchAppInstallJobEvents(*WatchAppInstallJobEventsRequest, grpc.ServerStreamingServer[AppInstallJobEvent]) error
-	// Frozen immutable update/repair seam; deny-all in 0K.
-	UpdateApp(context.Context, *UpdateAppRequest) (*UpdateAppResponse, error)
-	HealthRepairApp(context.Context, *HealthRepairAppRequest) (*HealthRepairAppResponse, error)
 	PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error)
 	BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error)
 }
@@ -325,18 +167,6 @@ func (UnimplementedRuntimeAppServiceServer) SendAppMessage(context.Context, *Sen
 func (UnimplementedRuntimeAppServiceServer) SubscribeAppMessages(*SubscribeAppMessagesRequest, grpc.ServerStreamingServer[AppMessageEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAppMessages not implemented")
 }
-func (UnimplementedRuntimeAppServiceServer) PrepareAppLifecycleIntent(context.Context, *PrepareAppLifecycleIntentRequest) (*PrepareAppLifecycleIntentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method PrepareAppLifecycleIntent not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) GetAppLifecycleIntentStatus(context.Context, *GetAppLifecycleIntentStatusRequest) (*GetAppLifecycleIntentStatusResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAppLifecycleIntentStatus not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method InstallApp not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UninstallApp not implemented")
-}
 func (UnimplementedRuntimeAppServiceServer) GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppStorage not implemented")
 }
@@ -348,27 +178,6 @@ func (UnimplementedRuntimeAppServiceServer) WriteLocalAppStorageJson(context.Con
 }
 func (UnimplementedRuntimeAppServiceServer) RemoveLocalAppStorageJson(context.Context, *RemoveLocalAppStorageJsonRequest) (*RemoveLocalAppStorageJsonResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveLocalAppStorageJson not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) GetAccountAppInventory(context.Context, *GetAccountAppInventoryRequest) (*GetAccountAppInventoryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAccountAppInventory not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAppPackageReadiness not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAppInstallJob not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) ListAppInstallJobs(context.Context, *ListAppInstallJobsRequest) (*ListAppInstallJobsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListAppInstallJobs not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) WatchAppInstallJobEvents(*WatchAppInstallJobEventsRequest, grpc.ServerStreamingServer[AppInstallJobEvent]) error {
-	return status.Error(codes.Unimplemented, "method WatchAppInstallJobEvents not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) UpdateApp(context.Context, *UpdateAppRequest) (*UpdateAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateApp not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) HealthRepairApp(context.Context, *HealthRepairAppRequest) (*HealthRepairAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method HealthRepairApp not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PrepareLocalAppLaunch not implemented")
@@ -424,78 +233,6 @@ func _RuntimeAppService_SubscribeAppMessages_Handler(srv interface{}, stream grp
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAppService_SubscribeAppMessagesServer = grpc.ServerStreamingServer[AppMessageEvent]
-
-func _RuntimeAppService_PrepareAppLifecycleIntent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PrepareAppLifecycleIntentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).PrepareAppLifecycleIntent(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_PrepareAppLifecycleIntent_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).PrepareAppLifecycleIntent(ctx, req.(*PrepareAppLifecycleIntentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_GetAppLifecycleIntentStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAppLifecycleIntentStatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).GetAppLifecycleIntentStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_GetAppLifecycleIntentStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).GetAppLifecycleIntentStatus(ctx, req.(*GetAppLifecycleIntentStatusRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_InstallApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InstallAppRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).InstallApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_InstallApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).InstallApp(ctx, req.(*InstallAppRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_UninstallApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UninstallAppRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).UninstallApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_UninstallApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).UninstallApp(ctx, req.(*UninstallAppRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
 
 func _RuntimeAppService_GetAppStorage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAppStorageRequest)
@@ -569,125 +306,6 @@ func _RuntimeAppService_RemoveLocalAppStorageJson_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAppService_GetAccountAppInventory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAccountAppInventoryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).GetAccountAppInventory(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_GetAccountAppInventory_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).GetAccountAppInventory(ctx, req.(*GetAccountAppInventoryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_GetAppPackageReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAppPackageReadinessRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).GetAppPackageReadiness(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_GetAppPackageReadiness_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).GetAppPackageReadiness(ctx, req.(*GetAppPackageReadinessRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_GetAppInstallJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAppInstallJobRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).GetAppInstallJob(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_GetAppInstallJob_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).GetAppInstallJob(ctx, req.(*GetAppInstallJobRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_ListAppInstallJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListAppInstallJobsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).ListAppInstallJobs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_ListAppInstallJobs_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).ListAppInstallJobs(ctx, req.(*ListAppInstallJobsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_WatchAppInstallJobEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(WatchAppInstallJobEventsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RuntimeAppServiceServer).WatchAppInstallJobEvents(m, &grpc.GenericServerStream[WatchAppInstallJobEventsRequest, AppInstallJobEvent]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAppService_WatchAppInstallJobEventsServer = grpc.ServerStreamingServer[AppInstallJobEvent]
-
-func _RuntimeAppService_UpdateApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateAppRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).UpdateApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_UpdateApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).UpdateApp(ctx, req.(*UpdateAppRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_HealthRepairApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HealthRepairAppRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).HealthRepairApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_HealthRepairApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).HealthRepairApp(ctx, req.(*HealthRepairAppRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeAppService_PrepareLocalAppLaunch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PrepareLocalAppLaunchRequest)
 	if err := dec(in); err != nil {
@@ -736,22 +354,6 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppService_SendAppMessage_Handler,
 		},
 		{
-			MethodName: "PrepareAppLifecycleIntent",
-			Handler:    _RuntimeAppService_PrepareAppLifecycleIntent_Handler,
-		},
-		{
-			MethodName: "GetAppLifecycleIntentStatus",
-			Handler:    _RuntimeAppService_GetAppLifecycleIntentStatus_Handler,
-		},
-		{
-			MethodName: "InstallApp",
-			Handler:    _RuntimeAppService_InstallApp_Handler,
-		},
-		{
-			MethodName: "UninstallApp",
-			Handler:    _RuntimeAppService_UninstallApp_Handler,
-		},
-		{
 			MethodName: "GetAppStorage",
 			Handler:    _RuntimeAppService_GetAppStorage_Handler,
 		},
@@ -768,30 +370,6 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppService_RemoveLocalAppStorageJson_Handler,
 		},
 		{
-			MethodName: "GetAccountAppInventory",
-			Handler:    _RuntimeAppService_GetAccountAppInventory_Handler,
-		},
-		{
-			MethodName: "GetAppPackageReadiness",
-			Handler:    _RuntimeAppService_GetAppPackageReadiness_Handler,
-		},
-		{
-			MethodName: "GetAppInstallJob",
-			Handler:    _RuntimeAppService_GetAppInstallJob_Handler,
-		},
-		{
-			MethodName: "ListAppInstallJobs",
-			Handler:    _RuntimeAppService_ListAppInstallJobs_Handler,
-		},
-		{
-			MethodName: "UpdateApp",
-			Handler:    _RuntimeAppService_UpdateApp_Handler,
-		},
-		{
-			MethodName: "HealthRepairApp",
-			Handler:    _RuntimeAppService_HealthRepairApp_Handler,
-		},
-		{
 			MethodName: "PrepareLocalAppLaunch",
 			Handler:    _RuntimeAppService_PrepareLocalAppLaunch_Handler,
 		},
@@ -804,11 +382,6 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeAppMessages",
 			Handler:       _RuntimeAppService_SubscribeAppMessages_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "WatchAppInstallJobEvents",
-			Handler:       _RuntimeAppService_WatchAppInstallJobEvents_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -1350,13 +1350,12 @@ SDK 必须将 runtime 流式终帧（`done=true`）中的 `reason_code` 和 `usa
 - 终帧语义权威定义：`K-STREAM-002`（建流阶段边界）、`K-STREAM-003`（文本流事件约束，含 usage 与 done 语义）、`K-STREAM-004`（语音流事件约束）。
 - `SubscribeScenarioJobEvents` 不使用 `done=true` 语义（`K-STREAM-005`），终态后 server 关流。
 
-Mode B 投影规则（`SubscribeScenarioJobEvents`、`SubscribeWorkflowEvents`）：
+Mode B 投影规则（`SubscribeScenarioJobEvents`）：
 
 - 终态事件（`K-JOB-002` 定义的 `COMPLETED`/`FAILED`/`CANCELED`/`TIMEOUT`）到达后，server 以 gRPC OK 正常关闭流（`K-STREAM-005`）。
 - SDK 必须在收到终态事件后停止流读取，将终态事件作为最终结果投影给消费者。
 - SDK 不得将 gRPC OK close 视为错误——终态事件即为流的语义终止信号。
 - 当消费者随后通过 `GetScenarioJob` 轮询终态失败时，结构化失败细节投影遵循 `S-ERROR-016`。
-- `SubscribeWorkflowEvents` 为 Phase 2 服务，投影规则同上（`K-WF-004`）。
 
 Mode C 投影规则（`ExportAuditEvents`）：Phase 2 服务（`audit_service_projection`），当前不定义 SDK 投影规则。
 

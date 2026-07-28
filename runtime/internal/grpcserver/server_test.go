@@ -402,7 +402,7 @@ apps:
 	if eligibility.Eligible {
 		t.Fatalf("expected admitted example-app to remain install-required until verified")
 	}
-	if eligibility.Reason != "app-install-required" {
+	if eligibility.Reason != "app-deferred" {
 		t.Fatalf("expected install-required eligibility, reason=%s", eligibility.Reason)
 	}
 }

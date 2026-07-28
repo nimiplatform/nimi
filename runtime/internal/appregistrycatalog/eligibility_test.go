@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestCheckCallerEligibility_ExampleAppInstallRequired(t *testing.T) {
+func TestCheckCallerEligibility_OrdinaryAppRemainsDeferred(t *testing.T) {
 	r, _ := LoadRegistry(strings.NewReader(sampleRegistryYAML))
 	result, err := r.CheckCallerEligibility("nimi.example-app")
 	if err != nil {
@@ -15,8 +15,8 @@ func TestCheckCallerEligibility_ExampleAppInstallRequired(t *testing.T) {
 	if result.Eligible {
 		t.Error("example-app should not be executable from admission alone")
 	}
-	if result.Reason != string(EligibilityReasonInstallRequired) {
-		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonInstallRequired)
+	if result.Reason != string(EligibilityReasonAppDeferred) {
+		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonAppDeferred)
 	}
 }
 

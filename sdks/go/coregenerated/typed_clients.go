@@ -11,26 +11,6 @@ import (
 	sdkstypes "github.com/nimiplatform/nimi/sdks/go/types"
 )
 
-type AccountAppInstallState string
-
-const (
-	ACCOUNTAPPINSTALLSTATEUNSPECIFIED AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED"
-	ACCOUNTAPPINSTALLSTATENOTINSTALLED AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED"
-	ACCOUNTAPPINSTALLSTATEINSTALLED AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_INSTALLED"
-	ACCOUNTAPPINSTALLSTATEREMOVED AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_REMOVED"
-)
-
-type AccountAppInventoryState string
-
-const (
-	ACCOUNTAPPINVENTORYSTATEUNSPECIFIED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED"
-	ACCOUNTAPPINVENTORYSTATEVERIFIED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_VERIFIED"
-	ACCOUNTAPPINVENTORYSTATEENTITLED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_ENTITLED"
-	ACCOUNTAPPINVENTORYSTATEDISABLED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_DISABLED"
-	ACCOUNTAPPINVENTORYSTATEREMOVED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_REMOVED"
-	ACCOUNTAPPINVENTORYSTATEREVOKED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_REVOKED"
-)
-
 type AccountCallerMode string
 
 const (
@@ -404,87 +384,6 @@ const (
 	AGENTTURNCONTEXTTRUNCATIONREASONCONTEXTCAPACITYEXCEEDED AgentTurnContextTruncationReason = "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"
 )
 
-type AppHealthRepairAction string
-
-const (
-	APPHEALTHREPAIRACTIONUNSPECIFIED AppHealthRepairAction = "APP_HEALTH_REPAIR_ACTION_UNSPECIFIED"
-	APPHEALTHREPAIRACTIONCANCEL AppHealthRepairAction = "APP_HEALTH_REPAIR_ACTION_CANCEL"
-	APPHEALTHREPAIRACTIONRETRY AppHealthRepairAction = "APP_HEALTH_REPAIR_ACTION_RETRY"
-	APPHEALTHREPAIRACTIONREPAIR AppHealthRepairAction = "APP_HEALTH_REPAIR_ACTION_REPAIR"
-	APPHEALTHREPAIRACTIONREINSTALL AppHealthRepairAction = "APP_HEALTH_REPAIR_ACTION_REINSTALL"
-)
-
-type AppInstallJobPhase string
-
-const (
-	APPINSTALLJOBPHASEUNSPECIFIED AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_UNSPECIFIED"
-	APPINSTALLJOBPHASEQUEUED AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_QUEUED"
-	APPINSTALLJOBPHASERESOLVEDESCRIPTOR AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR"
-	APPINSTALLJOBPHASEDOWNLOAD AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_DOWNLOAD"
-	APPINSTALLJOBPHASEVERIFY AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_VERIFY"
-	APPINSTALLJOBPHASEMATERIALIZE AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_MATERIALIZE"
-	APPINSTALLJOBPHASEUNPACK AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_UNPACK"
-	APPINSTALLJOBPHASEEVIDENCE AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_EVIDENCE"
-	APPINSTALLJOBPHASEINSTALLED AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_INSTALLED"
-	APPINSTALLJOBPHASEFAILED AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_FAILED"
-	APPINSTALLJOBPHASESWAP AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_SWAP"
-	APPINSTALLJOBPHASECANCELLED AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_CANCELLED"
-	APPINSTALLJOBPHASEUNINSTALLED AppInstallJobPhase = "APP_INSTALL_JOB_PHASE_UNINSTALLED"
-)
-
-type AppInstallJobState string
-
-const (
-	APPINSTALLJOBSTATEUNSPECIFIED AppInstallJobState = "APP_INSTALL_JOB_STATE_UNSPECIFIED"
-	APPINSTALLJOBSTATEQUEUED AppInstallJobState = "APP_INSTALL_JOB_STATE_QUEUED"
-	APPINSTALLJOBSTATEINPROGRESS AppInstallJobState = "APP_INSTALL_JOB_STATE_IN_PROGRESS"
-	APPINSTALLJOBSTATEINSTALLED AppInstallJobState = "APP_INSTALL_JOB_STATE_INSTALLED"
-	APPINSTALLJOBSTATEFAILED AppInstallJobState = "APP_INSTALL_JOB_STATE_FAILED"
-	APPINSTALLJOBSTATECANCELLED AppInstallJobState = "APP_INSTALL_JOB_STATE_CANCELLED"
-	APPINSTALLJOBSTATEUNINSTALLED AppInstallJobState = "APP_INSTALL_JOB_STATE_UNINSTALLED"
-)
-
-type AppInstallSourceKind string
-
-const (
-	APPINSTALLSOURCEKINDUNSPECIFIED AppInstallSourceKind = "APP_INSTALL_SOURCE_KIND_UNSPECIFIED"
-	APPINSTALLSOURCEKINDBUNDLED AppInstallSourceKind = "APP_INSTALL_SOURCE_KIND_BUNDLED"
-	APPINSTALLSOURCEKINDEXTERNALARTIFACT AppInstallSourceKind = "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT"
-)
-
-type AppLifecycleIntentAction string
-
-const (
-	APPLIFECYCLEINTENTACTIONUNSPECIFIED AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED"
-	APPLIFECYCLEINTENTACTIONINSTALL AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_INSTALL"
-	APPLIFECYCLEINTENTACTIONUNINSTALL AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL"
-	APPLIFECYCLEINTENTACTIONUPDATE AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_UPDATE"
-	APPLIFECYCLEINTENTACTIONHEALTHREPAIR AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR"
-)
-
-type AppLifecycleIntentStatus string
-
-const (
-	APPLIFECYCLEINTENTSTATUSUNSPECIFIED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED"
-	APPLIFECYCLEINTENTSTATUSPREPARED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_PREPARED"
-	APPLIFECYCLEINTENTSTATUSCONSUMED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_CONSUMED"
-	APPLIFECYCLEINTENTSTATUSSIDEEFFECTSTARTED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED"
-	APPLIFECYCLEINTENTSTATUSSUCCEEDED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED"
-	APPLIFECYCLEINTENTSTATUSFAILED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_FAILED"
-	APPLIFECYCLEINTENTSTATUSCANCELLED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_CANCELLED"
-	APPLIFECYCLEINTENTSTATUSEXPIRED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_EXPIRED"
-)
-
-type AppLifecycleJobKind string
-
-const (
-	APPLIFECYCLEJOBKINDUNSPECIFIED AppLifecycleJobKind = "APP_LIFECYCLE_JOB_KIND_UNSPECIFIED"
-	APPLIFECYCLEJOBKINDINSTALL AppLifecycleJobKind = "APP_LIFECYCLE_JOB_KIND_INSTALL"
-	APPLIFECYCLEJOBKINDUPDATE AppLifecycleJobKind = "APP_LIFECYCLE_JOB_KIND_UPDATE"
-	APPLIFECYCLEJOBKINDREPAIR AppLifecycleJobKind = "APP_LIFECYCLE_JOB_KIND_REPAIR"
-	APPLIFECYCLEJOBKINDUNINSTALL AppLifecycleJobKind = "APP_LIFECYCLE_JOB_KIND_UNINSTALL"
-)
-
 type AppMessageEventType string
 
 const (
@@ -503,23 +402,11 @@ const (
 	APPMODEFULL AppMode = "APP_MODE_FULL"
 )
 
-type AppPackageReadinessState string
-
-const (
-	APPPACKAGEREADINESSSTATEUNSPECIFIED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_UNSPECIFIED"
-	APPPACKAGEREADINESSSTATEREADY AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_READY"
-	APPPACKAGEREADINESSSTATEINSTALLREQUIRED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED"
-	APPPACKAGEREADINESSSTATEUPDATEREQUIRED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED"
-	APPPACKAGEREADINESSSTATEREPAIRREQUIRED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED"
-	APPPACKAGEREADINESSSTATEBLOCKED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_BLOCKED"
-)
-
 type AppStorageState string
 
 const (
 	APPSTORAGESTATEUNSPECIFIED AppStorageState = "APP_STORAGE_STATE_UNSPECIFIED"
 	APPSTORAGESTATEREADY AppStorageState = "APP_STORAGE_STATE_READY"
-	APPSTORAGESTATEINSTALLREQUIRED AppStorageState = "APP_STORAGE_STATE_INSTALL_REQUIRED"
 	APPSTORAGESTATEREPAIRREQUIRED AppStorageState = "APP_STORAGE_STATE_REPAIR_REQUIRED"
 	APPSTORAGESTATESTORAGEUNAVAILABLE AppStorageState = "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"
 )
@@ -1557,21 +1444,6 @@ const (
 	APPMESSAGEPAYLOADTOOLARGE ReasonCode = "APP_MESSAGE_PAYLOAD_TOO_LARGE"
 	APPMESSAGERATELIMITED ReasonCode = "APP_MESSAGE_RATE_LIMITED"
 	APPMESSAGELOOPDETECTED ReasonCode = "APP_MESSAGE_LOOP_DETECTED"
-	APPINSTALLDESCRIPTORNOTFOUND ReasonCode = "APP_INSTALL_DESCRIPTOR_NOT_FOUND"
-	APPINSTALLDIGESTMISMATCH ReasonCode = "APP_INSTALL_DIGEST_MISMATCH"
-	APPINSTALLMANIFESTINVALID ReasonCode = "APP_INSTALL_MANIFEST_INVALID"
-	APPINSTALLSTORAGEVIOLATION ReasonCode = "APP_INSTALL_STORAGE_VIOLATION"
-	APPINSTALLDOWNLOADFAILED ReasonCode = "APP_INSTALL_DOWNLOAD_FAILED"
-	APPINSTALLUNPACKFAILED ReasonCode = "APP_INSTALL_UNPACK_FAILED"
-	APPINSTALLINTERNAL ReasonCode = "APP_INSTALL_INTERNAL"
-	APPUPDATENOTAVAILABLE ReasonCode = "APP_UPDATE_NOT_AVAILABLE"
-	APPUPDATENOTINSTALLED ReasonCode = "APP_UPDATE_NOT_INSTALLED"
-	APPUPDATECONFIRMATIONREQUIRED ReasonCode = "APP_UPDATE_CONFIRMATION_REQUIRED"
-	APPUPDATESWAPFAILED ReasonCode = "APP_UPDATE_SWAP_FAILED"
-	APPREPAIRACTIONINVALID ReasonCode = "APP_REPAIR_ACTION_INVALID"
-	APPREPAIRNORECOVERABLEJOB ReasonCode = "APP_REPAIR_NO_RECOVERABLE_JOB"
-	APPREPAIRNOTREPAIRABLE ReasonCode = "APP_REPAIR_NOT_REPAIRABLE"
-	APPLIFECYCLEJOBCANCELLED ReasonCode = "APP_LIFECYCLE_JOB_CANCELLED"
 	AILOCALSPEECHPREFLIGHTBLOCKED ReasonCode = "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED"
 	AILOCALSPEECHDOWNLOADCONFIRMATIONREQUIRED ReasonCode = "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED"
 	AILOCALSPEECHENVINITFAILED ReasonCode = "AI_LOCAL_SPEECH_ENV_INIT_FAILED"
@@ -1645,10 +1517,6 @@ const (
 	PROTECTEDLOCALCUSTODYBOUNDARYUNAVAILABLE ReasonCode = "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE"
 	PROTECTEDLOCALPRODUCTIONCONFIGOVERRIDEFORBIDDEN ReasonCode = "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN"
 	RUNTIMEEXECUTABLETRUSTRECORDINVALID ReasonCode = "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID"
-	LIFECYCLEINTENTREQUIRED ReasonCode = "LIFECYCLE_INTENT_REQUIRED"
-	LIFECYCLEINTENTMISMATCH ReasonCode = "LIFECYCLE_INTENT_MISMATCH"
-	LIFECYCLEINTENTREPLAY ReasonCode = "LIFECYCLE_INTENT_REPLAY"
-	LIFECYCLEINTENTEXPIRED ReasonCode = "LIFECYCLE_INTENT_EXPIRED"
 	LOCALAPPPRINCIPALREQUIRED ReasonCode = "LOCAL_APP_PRINCIPAL_REQUIRED"
 	LOCALAPPRECORDNOTFOUND ReasonCode = "LOCAL_APP_RECORD_NOT_FOUND"
 	LOCALAPPRECORDTOMBSTONED ReasonCode = "LOCAL_APP_RECORD_TOMBSTONED"
@@ -2051,24 +1919,6 @@ type AIProviderSubHealth struct {
 	ConsecutiveFailures int32 `json:"consecutive_failures,omitempty"`
 	LastChangedAt string `json:"last_changed_at,omitempty"`
 	LastCheckedAt string `json:"last_checked_at,omitempty"`
-}
-
-type AccountAppInventoryRecord struct {
-	SchemaVersion uint32 `json:"schema_version,omitempty"`
-	AccountId string `json:"account_id,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-	Apps []AccountAppInventoryRow `json:"apps,omitempty"`
-}
-
-type AccountAppInventoryRow struct {
-	AppId string `json:"app_id,omitempty"`
-	AccountState AccountAppInventoryState `json:"account_state,omitempty"`
-	InstallState AccountAppInstallState `json:"install_state,omitempty"`
-	LastOpenedAt string `json:"last_opened_at,omitempty"`
-	DataPolicy string `json:"data_policy,omitempty"`
-	VerifiedAt string `json:"verified_at,omitempty"`
-	Source string `json:"source,omitempty"`
-	Detail string `json:"detail,omitempty"`
 }
 
 type AccountCaller struct {
@@ -2527,58 +2377,6 @@ type AgentVoiceStreamEvent struct {
 	ReplayTruncated bool `json:"replay_truncated,omitempty"`
 }
 
-type AppInstallJob struct {
-	JobId string `json:"job_id,omitempty"`
-	AppId string `json:"app_id,omitempty"`
-	ReleaseDescriptorRef string `json:"release_descriptor_ref,omitempty"`
-	InstalledVersion string `json:"installed_version,omitempty"`
-	State AppInstallJobState `json:"state,omitempty"`
-	Phase AppInstallJobPhase `json:"phase,omitempty"`
-	SourceKind AppInstallSourceKind `json:"source_kind,omitempty"`
-	Sha256 string `json:"sha256,omitempty"`
-	ArtifactBytes int64 `json:"artifact_bytes,omitempty"`
-	Storage *AppInstallStorageProjection `json:"storage,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	FailureDetail string `json:"failure_detail,omitempty"`
-	Retryable bool `json:"retryable,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-	Kind AppLifecycleJobKind `json:"kind,omitempty"`
-	PreviousVersion string `json:"previous_version,omitempty"`
-}
-
-type AppInstallJobEvent struct {
-	Sequence uint64 `json:"sequence,omitempty"`
-	Job *AppInstallJob `json:"job,omitempty"`
-	Timestamp string `json:"timestamp,omitempty"`
-}
-
-type AppInstallStorageProjection struct {
-	AppRoot string `json:"app_root,omitempty"`
-	ReleaseRoot string `json:"release_root,omitempty"`
-	DurableDataRoot string `json:"durable_data_root,omitempty"`
-	CacheRoot string `json:"cache_root,omitempty"`
-	TempRoot string `json:"temp_root,omitempty"`
-}
-
-type AppLifecycleCanonicalImpact struct {
-	SchemaVersion uint32 `json:"schema_version,omitempty"`
-	Action AppLifecycleIntentAction `json:"action,omitempty"`
-	AppId string `json:"app_id,omitempty"`
-	AccountGeneration uint64 `json:"account_generation,omitempty"`
-	ReleaseRef string `json:"release_ref,omitempty"`
-	ArtifactDigest string `json:"artifact_digest,omitempty"`
-	DestructiveOptions *AppLifecycleDestructiveOptions `json:"destructive_options,omitempty"`
-	ImpactFlags []string `json:"impact_flags,omitempty"`
-	DisplayContractVersion uint32 `json:"display_contract_version,omitempty"`
-}
-
-type AppLifecycleDestructiveOptions struct {
-	DeleteDurableData bool `json:"delete_durable_data,omitempty"`
-	HealthRepairAction AppHealthRepairAction `json:"health_repair_action,omitempty"`
-	TargetJobId string `json:"target_job_id,omitempty"`
-}
-
 type AppMessageEvent struct {
 	EventType AppMessageEventType `json:"event_type,omitempty"`
 	Sequence uint64 `json:"sequence,omitempty"`
@@ -2600,20 +2398,6 @@ type AppModeManifest struct {
 	WorldRelation WorldRelation `json:"world_relation,omitempty"`
 }
 
-type AppPackageReadinessProjection struct {
-	AppId string `json:"app_id,omitempty"`
-	ReleaseDescriptorRef string `json:"release_descriptor_ref,omitempty"`
-	StoragePolicyRef string `json:"storage_policy_ref,omitempty"`
-	ExpectedVersion string `json:"expected_version,omitempty"`
-	ActiveVersion string `json:"active_version,omitempty"`
-	InstalledVersion string `json:"installed_version,omitempty"`
-	Sha256 string `json:"sha256,omitempty"`
-	VerificationState string `json:"verification_state,omitempty"`
-	State AppPackageReadinessState `json:"state,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	Detail string `json:"detail,omitempty"`
-}
-
 type AppPrivateBankOwner struct {
 	AccountId string `json:"account_id,omitempty"`
 	AppId string `json:"app_id,omitempty"`
@@ -2623,22 +2407,12 @@ type AppStorageProjection struct {
 	AppId string `json:"app_id,omitempty"`
 	State AppStorageState `json:"state,omitempty"`
 	AppRoot string `json:"app_root,omitempty"`
-	ActiveReleaseRoot string `json:"active_release_root,omitempty"`
 	DurableDataRoot string `json:"durable_data_root,omitempty"`
 	CacheRoot string `json:"cache_root,omitempty"`
 	TempRoot string `json:"temp_root,omitempty"`
-	ActiveVersion string `json:"active_version,omitempty"`
 	StoragePolicyRef string `json:"storage_policy_ref,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	Detail string `json:"detail,omitempty"`
-}
-
-type AppUninstallResult struct {
-	AppId string `json:"app_id,omitempty"`
-	ReleaseRemoved bool `json:"release_removed,omitempty"`
-	DurableDataRemoved bool `json:"durable_data_removed,omitempty"`
-	Storage *AppInstallStorageProjection `json:"storage,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type AppendInferenceAuditRequest struct {
@@ -3736,17 +3510,6 @@ type GatewayVerdictRefBlock struct {
 	GatewayVerdictId string `json:"gateway_verdict_id,omitempty"`
 }
 
-type GetAccountAppInventoryRequest struct {
-
-}
-
-type GetAccountAppInventoryResponse struct {
-	Exists bool `json:"exists,omitempty"`
-	Record *AccountAppInventoryRecord `json:"record,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	Detail string `json:"detail,omitempty"`
-}
-
 type GetAccountSessionStatusRequest struct {
 	Caller *AccountCaller `json:"caller,omitempty"`
 }
@@ -3793,35 +3556,6 @@ type GetAgentStateRequest struct {
 
 type GetAgentStateResponse struct {
 	State *AgentStateProjection `json:"state,omitempty"`
-}
-
-type GetAppInstallJobRequest struct {
-	JobId string `json:"job_id,omitempty"`
-}
-
-type GetAppInstallJobResponse struct {
-	Job *AppInstallJob `json:"job,omitempty"`
-}
-
-type GetAppLifecycleIntentStatusRequest struct {
-	IntentId string `json:"intent_id,omitempty"`
-}
-
-type GetAppLifecycleIntentStatusResponse struct {
-	IntentId string `json:"intent_id,omitempty"`
-	Status AppLifecycleIntentStatus `json:"status,omitempty"`
-	NonAuthorizingJobId string `json:"non_authorizing_job_id,omitempty"`
-	CanonicalResult string `json:"canonical_result,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	Retryability bool `json:"retryability,omitempty"`
-}
-
-type GetAppPackageReadinessRequest struct {
-	AppId string `json:"app_id,omitempty"`
-}
-
-type GetAppPackageReadinessResponse struct {
-	Projection *AppPackageReadinessProjection `json:"projection,omitempty"`
 }
 
 type GetAppStorageRequest struct {
@@ -4096,7 +3830,6 @@ type GetRuntimeHealthResponse struct {
 	Status RuntimeHealthStatus `json:"status,omitempty"`
 	Reason string `json:"reason,omitempty"`
 	QueueDepth int32 `json:"queue_depth,omitempty"`
-	ActiveWorkflows int32 `json:"active_workflows,omitempty"`
 	ActiveInferenceJobs int32 `json:"active_inference_jobs,omitempty"`
 	CpuMilli int64 `json:"cpu_milli,omitempty"`
 	MemoryBytes int64 `json:"memory_bytes,omitempty"`
@@ -4129,18 +3862,6 @@ type GetVoiceAssetRequest struct {
 
 type GetVoiceAssetResponse struct {
 	Asset *VoiceAsset `json:"asset,omitempty"`
-}
-
-type HealthRepairAppRequest struct {
-	AppId string `json:"app_id,omitempty"`
-	Action AppHealthRepairAction `json:"action,omitempty"`
-	JobId string `json:"job_id,omitempty"`
-	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
-	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
-}
-
-type HealthRepairAppResponse struct {
-	Job *AppInstallJob `json:"job,omitempty"`
 }
 
 type HistoryRequest struct {
@@ -4301,17 +4022,6 @@ type InspectMemoryEmbeddingRuntimeResponse struct {
 	BlockedReasonCode ReasonCode `json:"blocked_reason_code,omitempty"`
 	OperationReadiness *MemoryEmbeddingOperationReadiness `json:"operation_readiness,omitempty"`
 	ConfigRevision uint64 `json:"config_revision,omitempty"`
-}
-
-type InstallAppRequest struct {
-	AppId string `json:"app_id,omitempty"`
-	Confirmed bool `json:"confirmed,omitempty"`
-	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
-	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
-}
-
-type InstallAppResponse struct {
-	Job *AppInstallJob `json:"job,omitempty"`
 }
 
 type InstallLocalServiceRequest struct {
@@ -4543,14 +4253,6 @@ type ListAgentsRequest struct {
 type ListAgentsResponse struct {
 	Agents []AgentRecord `json:"agents,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
-}
-
-type ListAppInstallJobsRequest struct {
-	AppId string `json:"app_id,omitempty"`
-}
-
-type ListAppInstallJobsResponse struct {
-	Jobs []AppInstallJob `json:"jobs,omitempty"`
 }
 
 type ListAuditEventsRequest struct {
@@ -6316,22 +6018,6 @@ type PersonaCharacterSourceRefV3 struct {
 	SourceHash string `json:"source_hash,omitempty"`
 }
 
-type PrepareAppLifecycleIntentRequest struct {
-	Action AppLifecycleIntentAction `json:"action,omitempty"`
-	AppId string `json:"app_id,omitempty"`
-	ExpectedReleaseRef string `json:"expected_release_ref,omitempty"`
-	ExpectedArtifactDigest string `json:"expected_artifact_digest,omitempty"`
-	DestructiveOptions *AppLifecycleDestructiveOptions `json:"destructive_options,omitempty"`
-}
-
-type PrepareAppLifecycleIntentResponse struct {
-	IntentId string `json:"intent_id,omitempty"`
-	CanonicalImpact *AppLifecycleCanonicalImpact `json:"canonical_impact,omitempty"`
-	CanonicalImpactDigest string `json:"canonical_impact_digest,omitempty"`
-	Deadline string `json:"deadline,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type PrepareLocalAppLaunchRequest struct {
 	LocalAppHandle []byte `json:"local_app_handle,omitempty"`
 	SupervisorRunId []byte `json:"supervisor_run_id,omitempty"`
@@ -7159,7 +6845,6 @@ type RuntimeHealthEvent struct {
 	Status RuntimeHealthStatus `json:"status,omitempty"`
 	Reason string `json:"reason,omitempty"`
 	QueueDepth int32 `json:"queue_depth,omitempty"`
-	ActiveWorkflows int32 `json:"active_workflows,omitempty"`
 	ActiveInferenceJobs int32 `json:"active_inference_jobs,omitempty"`
 	CpuMilli int64 `json:"cpu_milli,omitempty"`
 	MemoryBytes int64 `json:"memory_bytes,omitempty"`
@@ -7897,19 +7582,6 @@ type TriggerMessageRefBlock struct {
 	MessageId string `json:"message_id,omitempty"`
 }
 
-type UninstallAppRequest struct {
-	AppId string `json:"app_id,omitempty"`
-	DeleteDurableData bool `json:"delete_durable_data,omitempty"`
-	DestructiveDataDeleteConfirmed bool `json:"destructive_data_delete_confirmed,omitempty"`
-	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
-	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
-}
-
-type UninstallAppResponse struct {
-	Result *AppUninstallResult `json:"result,omitempty"`
-	Job *AppInstallJob `json:"job,omitempty"`
-}
-
 type UpdateAgentStateRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -7918,17 +7590,6 @@ type UpdateAgentStateRequest struct {
 
 type UpdateAgentStateResponse struct {
 	State *AgentStateProjection `json:"state,omitempty"`
-}
-
-type UpdateAppRequest struct {
-	AppId string `json:"app_id,omitempty"`
-	Confirmed bool `json:"confirmed,omitempty"`
-	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
-	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
-}
-
-type UpdateAppResponse struct {
-	Job *AppInstallJob `json:"job,omitempty"`
 }
 
 type UpdateConnectorRequest struct {
@@ -8180,10 +7841,6 @@ type WarmLocalAssetResponse struct {
 	AlreadyWarm bool `json:"already_warm,omitempty"`
 	LatencyMs int64 `json:"latency_ms,omitempty"`
 	TraceId string `json:"trace_id,omitempty"`
-}
-
-type WatchAppInstallJobEventsRequest struct {
-	JobId string `json:"job_id,omitempty"`
 }
 
 type WatchLocalTransfersRequest struct {
@@ -9143,76 +8800,12 @@ func (c RuntimeTypedClient) BindLocalAppProcess(ctx context.Context, request Bin
 	return decodeRuntimeTypedResponse[BindLocalAppProcessResponse](raw, "BindLocalAppProcessResponse")
 }
 
-func (c RuntimeTypedClient) GetAccountAppInventory(ctx context.Context, request GetAccountAppInventoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountAppInventoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAccountAppInventoryResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAccountAppInventoryResponse](raw, "GetAccountAppInventoryResponse")
-}
-
-func (c RuntimeTypedClient) GetAppInstallJob(ctx context.Context, request GetAppInstallJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppInstallJobResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAppInstallJobResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAppInstallJobResponse](raw, "GetAppInstallJobResponse")
-}
-
-func (c RuntimeTypedClient) GetAppLifecycleIntentStatus(ctx context.Context, request GetAppLifecycleIntentStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppLifecycleIntentStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAppLifecycleIntentStatusResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAppLifecycleIntentStatusResponse](raw, "GetAppLifecycleIntentStatusResponse")
-}
-
-func (c RuntimeTypedClient) GetAppPackageReadiness(ctx context.Context, request GetAppPackageReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppPackageReadinessResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAppPackageReadinessResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAppPackageReadinessResponse](raw, "GetAppPackageReadinessResponse")
-}
-
 func (c RuntimeTypedClient) GetAppStorage(ctx context.Context, request GetAppStorageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppStorageResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppStorage", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAppStorageResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetAppStorageResponse](raw, "GetAppStorageResponse")
-}
-
-func (c RuntimeTypedClient) HealthRepairApp(ctx context.Context, request HealthRepairAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (HealthRepairAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp", request, metadata, timeoutMS)
-	if err != nil {
-		return HealthRepairAppResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[HealthRepairAppResponse](raw, "HealthRepairAppResponse")
-}
-
-func (c RuntimeTypedClient) InstallApp(ctx context.Context, request InstallAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/InstallApp", request, metadata, timeoutMS)
-	if err != nil {
-		return InstallAppResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[InstallAppResponse](raw, "InstallAppResponse")
-}
-
-func (c RuntimeTypedClient) ListAppInstallJobs(ctx context.Context, request ListAppInstallJobsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAppInstallJobsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs", request, metadata, timeoutMS)
-	if err != nil {
-		return ListAppInstallJobsResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListAppInstallJobsResponse](raw, "ListAppInstallJobsResponse")
-}
-
-func (c RuntimeTypedClient) PrepareAppLifecycleIntent(ctx context.Context, request PrepareAppLifecycleIntentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrepareAppLifecycleIntentResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent", request, metadata, timeoutMS)
-	if err != nil {
-		return PrepareAppLifecycleIntentResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[PrepareAppLifecycleIntentResponse](raw, "PrepareAppLifecycleIntentResponse")
 }
 
 func (c RuntimeTypedClient) PrepareLocalAppLaunch(ctx context.Context, request PrepareLocalAppLaunchRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrepareLocalAppLaunchResponse, error) {
@@ -9253,30 +8846,6 @@ func (c RuntimeTypedClient) SubscribeAppMessages(ctx context.Context, request Su
 		return nil, err
 	}
 	return &RuntimeTypedStream[AppMessageEvent]{reader: reader}, nil
-}
-
-func (c RuntimeTypedClient) UninstallApp(ctx context.Context, request UninstallAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UninstallAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/UninstallApp", request, metadata, timeoutMS)
-	if err != nil {
-		return UninstallAppResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[UninstallAppResponse](raw, "UninstallAppResponse")
-}
-
-func (c RuntimeTypedClient) UpdateApp(ctx context.Context, request UpdateAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/UpdateApp", request, metadata, timeoutMS)
-	if err != nil {
-		return UpdateAppResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[UpdateAppResponse](raw, "UpdateAppResponse")
-}
-
-func (c RuntimeTypedClient) WatchAppInstallJobEvents(ctx context.Context, request WatchAppInstallJobEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AppInstallJobEvent], error) {
-	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents", request, metadata, timeoutMS)
-	if err != nil {
-		return nil, err
-	}
-	return &RuntimeTypedStream[AppInstallJobEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) WriteLocalAppStorageJson(ctx context.Context, request WriteLocalAppStorageJsonRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteLocalAppStorageJsonResponse, error) {

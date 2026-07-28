@@ -139,7 +139,6 @@ function mapRuntimeHealthEventToSnapshot(event: RuntimeHealthEvent): GetRuntimeH
     status: event.status,
     reason: event.reason,
     queueDepth: event.queueDepth,
-    activeWorkflows: event.activeWorkflows,
     activeInferenceJobs: event.activeInferenceJobs,
     cpuMilli: event.cpuMilli,
     memoryBytes: event.memoryBytes,

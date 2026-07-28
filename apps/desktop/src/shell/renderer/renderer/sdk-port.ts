@@ -17,7 +17,6 @@ import type {
   DesktopHostRuntimeAgentClient,
   DesktopRuntimeAgentDiscoverySurface,
   getDesktopAiExecutionClient,
-  getDesktopAppLifecycleClient,
   getDesktopAuditAdminClient,
   getDesktopConnectorAdminClient,
   getDesktopExternalAgentClient,
@@ -42,7 +41,6 @@ export interface DesktopRendererSdkPort {
   appId(): string;
   machineProduct(): NimiDesktopMachineProductRuntimeClient;
   accountProduct(): NimiDesktopAccountProductRuntimeClient;
-  appLifecycle(): ReturnType<typeof getDesktopAppLifecycleClient>;
   connectorAdmin(): ReturnType<typeof getDesktopConnectorAdminClient>;
   localAssetAdmin(): ReturnType<typeof getDesktopLocalAssetAdminClient>;
   localAudit(): ReturnType<typeof getDesktopLocalAuditClient>;

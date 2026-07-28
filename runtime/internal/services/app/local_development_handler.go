@@ -74,7 +74,7 @@ func (s *Service) SetDeveloperMode(ctx context.Context, req *runtimev1.SetDevelo
 	if s == nil || s.localDevelopment == nil || req == nil {
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
+	account, generation, authenticated := s.authenticatedRuntimeAccount(ctx)
 	if !authenticated {
 		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
@@ -114,7 +114,7 @@ func (s *Service) EvaluateLocalDevelopmentProject(ctx context.Context, req *runt
 	if !ok {
 		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
 	}
-	account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
+	account, generation, authenticated := s.authenticatedRuntimeAccount(ctx)
 	if !authenticated {
 		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
@@ -175,7 +175,7 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 		if !req.GetRiskDisclosureAcknowledged() {
 			return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_RISK_DISCLOSURE_REQUIRED)
 		}
-		account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
+		account, generation, authenticated := s.authenticatedRuntimeAccount(ctx)
 		if !authenticated {
 			return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 		}
@@ -212,7 +212,7 @@ func (s *Service) ListLocalDevelopmentAuthorizations(ctx context.Context, _ *run
 	if s == nil || s.localDevelopment == nil {
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	account, _, authenticated := s.authenticatedLifecycleAccount(ctx)
+	account, _, authenticated := s.authenticatedRuntimeAccount(ctx)
 	if !authenticated {
 		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
@@ -240,7 +240,7 @@ func (s *Service) RevokeLocalDevelopmentAuthorization(ctx context.Context, req *
 	if !ok {
 		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
-	account, _, authenticated := s.authenticatedLifecycleAccount(ctx)
+	account, _, authenticated := s.authenticatedRuntimeAccount(ctx)
 	if !authenticated {
 		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
@@ -277,7 +277,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		// package evidence into this opaque seam.
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
+	account, generation, authenticated := s.authenticatedRuntimeAccount(ctx)
 	if !authenticated || account.GetAccountId() != authorization.Project.AccountID {
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
 	}
@@ -434,7 +434,7 @@ func (s *Service) localDevelopmentSessionOpenContext(ctx context.Context) (*prot
 	if !ok || connection == nil || !protectedlocal.IsLocalDevelopmentProcessTrustSet(connection.Process()) {
 		return nil, "", 0, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
 	}
-	account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
+	account, generation, authenticated := s.authenticatedRuntimeAccount(ctx)
 	if !authenticated {
 		return nil, "", 0, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
 	}

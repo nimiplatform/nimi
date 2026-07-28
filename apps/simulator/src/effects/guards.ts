@@ -7,9 +7,9 @@
  *
  * Guards are semantic containment, not a hostile-code sandbox: the closed
  * selected-source boundary, typed host ports, CSP, and these guards jointly
- * own the no-real-effects boundary. The runtime scope is intentionally
- * synchronous; framework code (React/scheduler) runs unscoped and passes
- * through instead of relying on a false ambient async attribution model.
+ * own the no-real-effects boundary. Calls made with no explicit scope,
+ * including reviewed framework code, pass through; an explicitly scoped
+ * callback retains its attribution until a returned Promise settles.
  */
 
 export type SimulatorEffectOwner =
@@ -262,15 +262,28 @@ function guardedDescriptor(
  */
 export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptions): SimulatorGuardHandle {
   const { catalog, target } = options;
-  const scopeStack: SimulatorEffectScope[] = [];
+  const scopeStack: { readonly scope: SimulatorEffectScope }[] = [];
   const privileged: Record<string, unknown> = {};
 
   function currentScope(): SimulatorEffectScope {
-    return scopeStack.length > 0 ? scopeStack[scopeStack.length - 1] : { owner: null, phase: null };
+    return scopeStack.length > 0
+      ? scopeStack[scopeStack.length - 1].scope
+      : { owner: null, phase: null };
+  }
+
+  function releaseScope(frame: { readonly scope: SimulatorEffectScope }): void {
+    const index = scopeStack.lastIndexOf(frame);
+    if (index >= 0) scopeStack.splice(index, 1);
+  }
+
+  function scopeDenies(row: SimulatorEffectCatalogRow, scope: SimulatorEffectScope): boolean {
+    return scope.phase === null
+      || resolveEffectAdmission(catalog, row.familyId, scope.owner ?? '', scope.phase) === 'deny';
   }
 
   function deny(row: SimulatorEffectCatalogRow, operation: string): never {
-    const scope = currentScope();
+    const scope = scopeStack.find((frame) => scopeDenies(row, frame.scope))?.scope
+      ?? currentScope();
     void operation;
     throw new SimulatorEffectForbiddenError(
       row.id,
@@ -280,13 +293,11 @@ export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptio
   }
 
   function decision(row: SimulatorEffectCatalogRow): 'allow' | 'deny' | 'passthrough' {
-    const scope = currentScope();
-    // React/scheduler and other reviewed framework code intentionally execute
-    // outside the synchronous selected-owner scope. This guard is not an
-    // ambient async security boundary.
-    if (scope.owner === null) return 'passthrough';
-    if (scope.phase === null) return 'deny';
-    return resolveEffectAdmission(catalog, row.familyId, scope.owner, scope.phase);
+    if (scopeStack.length === 0) return 'passthrough';
+    // Browser JavaScript has no trustworthy async-local owner context. While
+    // explicit scopes overlap, use their intersection so one admitted frame
+    // can never mask a denied frame.
+    return scopeStack.some((frame) => scopeDenies(row, frame.scope)) ? 'deny' : 'allow';
   }
 
   const plans: GuardInstallationPlan[] = [];
@@ -343,13 +354,22 @@ export function installSimulatorEffectGuards(options: SimulatorGuardInstallOptio
     catalog,
     privileged: Object.freeze(privileged),
     withScope(scope, run) {
-      // Deliberately do not retain scope across a returned Promise. Browser JS
-      // has no trustworthy ambient async owner context.
-      scopeStack.push(scope);
+      const frame = { scope };
+      scopeStack.push(frame);
       try {
-        return run();
-      } finally {
-        scopeStack.pop();
+        const result = run();
+        if (result && typeof (result as unknown as PromiseLike<unknown>).then === 'function') {
+          void Promise.resolve(result).then(
+            () => releaseScope(frame),
+            () => releaseScope(frame),
+          );
+          return result;
+        }
+        releaseScope(frame);
+        return result;
+      } catch (error) {
+        releaseScope(frame);
+        throw error;
       }
     },
     currentScope,

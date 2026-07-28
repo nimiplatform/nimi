@@ -214,11 +214,7 @@ pub enum ReasonCode {
     AiVoiceJobNotCancellable = 427,
     /// MODULE family (430+)
     AiModuleConfigInvalid = 430,
-    /// WORKFLOW family (440+)
-    WfDagInvalid = 440,
-    WfNodeConfigMismatch = 441,
-    WfTimeout = 442,
-    WfTaskNotFound = 443,
+    /// MEMORY family (444+)
     AiMemoryEmbeddingTargetRefInvalid = 444,
     /// APP_AUTH family (500+)
     AppModeDomainForbidden = 500,
@@ -229,27 +225,6 @@ pub enum ReasonCode {
     AppMessagePayloadTooLarge = 550,
     AppMessageRateLimited = 551,
     AppMessageLoopDetected = 552,
-    /// APP_INSTALL family (553+) — Nimi App install/uninstall lifecycle
-    /// fail-closed reasons. Each reason is distinct and is never collapsed
-    /// into a generic value.
-    AppInstallDescriptorNotFound = 553,
-    AppInstallDigestMismatch = 554,
-    AppInstallManifestInvalid = 555,
-    AppInstallStorageViolation = 556,
-    AppInstallDownloadFailed = 557,
-    AppInstallUnpackFailed = 558,
-    AppInstallInternal = 559,
-    /// APP_UPDATE / APP_REPAIR family (590+) — Nimi App update + health/repair
-    /// lifecycle fail-closed reasons. Each reason is distinct and is never
-    /// collapsed into a generic value (K-APP-015 / K-APP-016).
-    AppUpdateNotAvailable = 590,
-    AppUpdateNotInstalled = 591,
-    AppUpdateConfirmationRequired = 592,
-    AppUpdateSwapFailed = 593,
-    AppRepairActionInvalid = 594,
-    AppRepairNoRecoverableJob = 595,
-    AppRepairNotRepairable = 596,
-    AppLifecycleJobCancelled = 597,
     /// LOCAL_SPEECH family (560+)
     AiLocalSpeechPreflightBlocked = 560,
     AiLocalSpeechDownloadConfirmationRequired = 561,
@@ -319,8 +294,8 @@ pub enum ReasonCode {
     /// Runtime-owned presentation truth (K-AGCORE-023a).
     AgentPresentationRevisionConflict = 614,
     /// PROTECTED_LOCAL family (620+). These values are shared by protected
-    /// transport, verified Desktop origin, the anchored lifecycle-intent ledger,
-    /// and their sanitized fail-closed projections (K-PLOCAL-001..007/K-APP-026).
+    /// transport, verified Desktop origin, and their sanitized fail-closed
+    /// projections (K-PLOCAL-001..007).
     ProtectedLocalTransportUnsupported = 620,
     ProtectedLocalEndpointOwnershipFailed = 621,
     ProtectedLocalServerVerificationFailed = 622,
@@ -339,10 +314,6 @@ pub enum ReasonCode {
     ProtectedLocalCustodyBoundaryUnavailable = 635,
     ProtectedLocalProductionConfigOverrideForbidden = 636,
     RuntimeExecutableTrustRecordInvalid = 637,
-    LifecycleIntentRequired = 638,
-    LifecycleIntentMismatch = 639,
-    LifecycleIntentReplay = 640,
-    LifecycleIntentExpired = 641,
     /// LOCAL_APP family (642+). The third-party principal/record/session and
     /// product-permission evaluator uses one provenance-agnostic reason vocabulary.
     LocalAppPrincipalRequired = 642,
@@ -490,10 +461,6 @@ impl ReasonCode {
             Self::AiVoiceJobNotFound => "AI_VOICE_JOB_NOT_FOUND",
             Self::AiVoiceJobNotCancellable => "AI_VOICE_JOB_NOT_CANCELLABLE",
             Self::AiModuleConfigInvalid => "AI_MODULE_CONFIG_INVALID",
-            Self::WfDagInvalid => "WF_DAG_INVALID",
-            Self::WfNodeConfigMismatch => "WF_NODE_CONFIG_MISMATCH",
-            Self::WfTimeout => "WF_TIMEOUT",
-            Self::WfTaskNotFound => "WF_TASK_NOT_FOUND",
             Self::AiMemoryEmbeddingTargetRefInvalid => {
                 "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
             }
@@ -505,21 +472,6 @@ impl ReasonCode {
             Self::AppMessagePayloadTooLarge => "APP_MESSAGE_PAYLOAD_TOO_LARGE",
             Self::AppMessageRateLimited => "APP_MESSAGE_RATE_LIMITED",
             Self::AppMessageLoopDetected => "APP_MESSAGE_LOOP_DETECTED",
-            Self::AppInstallDescriptorNotFound => "APP_INSTALL_DESCRIPTOR_NOT_FOUND",
-            Self::AppInstallDigestMismatch => "APP_INSTALL_DIGEST_MISMATCH",
-            Self::AppInstallManifestInvalid => "APP_INSTALL_MANIFEST_INVALID",
-            Self::AppInstallStorageViolation => "APP_INSTALL_STORAGE_VIOLATION",
-            Self::AppInstallDownloadFailed => "APP_INSTALL_DOWNLOAD_FAILED",
-            Self::AppInstallUnpackFailed => "APP_INSTALL_UNPACK_FAILED",
-            Self::AppInstallInternal => "APP_INSTALL_INTERNAL",
-            Self::AppUpdateNotAvailable => "APP_UPDATE_NOT_AVAILABLE",
-            Self::AppUpdateNotInstalled => "APP_UPDATE_NOT_INSTALLED",
-            Self::AppUpdateConfirmationRequired => "APP_UPDATE_CONFIRMATION_REQUIRED",
-            Self::AppUpdateSwapFailed => "APP_UPDATE_SWAP_FAILED",
-            Self::AppRepairActionInvalid => "APP_REPAIR_ACTION_INVALID",
-            Self::AppRepairNoRecoverableJob => "APP_REPAIR_NO_RECOVERABLE_JOB",
-            Self::AppRepairNotRepairable => "APP_REPAIR_NOT_REPAIRABLE",
-            Self::AppLifecycleJobCancelled => "APP_LIFECYCLE_JOB_CANCELLED",
             Self::AiLocalSpeechPreflightBlocked => "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED",
             Self::AiLocalSpeechDownloadConfirmationRequired => {
                 "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED"
@@ -633,10 +585,6 @@ impl ReasonCode {
             Self::RuntimeExecutableTrustRecordInvalid => {
                 "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID"
             }
-            Self::LifecycleIntentRequired => "LIFECYCLE_INTENT_REQUIRED",
-            Self::LifecycleIntentMismatch => "LIFECYCLE_INTENT_MISMATCH",
-            Self::LifecycleIntentReplay => "LIFECYCLE_INTENT_REPLAY",
-            Self::LifecycleIntentExpired => "LIFECYCLE_INTENT_EXPIRED",
             Self::LocalAppPrincipalRequired => "LOCAL_APP_PRINCIPAL_REQUIRED",
             Self::LocalAppRecordNotFound => "LOCAL_APP_RECORD_NOT_FOUND",
             Self::LocalAppRecordTombstoned => "LOCAL_APP_RECORD_TOMBSTONED",
@@ -798,10 +746,6 @@ impl ReasonCode {
             "AI_VOICE_JOB_NOT_FOUND" => Some(Self::AiVoiceJobNotFound),
             "AI_VOICE_JOB_NOT_CANCELLABLE" => Some(Self::AiVoiceJobNotCancellable),
             "AI_MODULE_CONFIG_INVALID" => Some(Self::AiModuleConfigInvalid),
-            "WF_DAG_INVALID" => Some(Self::WfDagInvalid),
-            "WF_NODE_CONFIG_MISMATCH" => Some(Self::WfNodeConfigMismatch),
-            "WF_TIMEOUT" => Some(Self::WfTimeout),
-            "WF_TASK_NOT_FOUND" => Some(Self::WfTaskNotFound),
             "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID" => {
                 Some(Self::AiMemoryEmbeddingTargetRefInvalid)
             }
@@ -813,25 +757,6 @@ impl ReasonCode {
             "APP_MESSAGE_PAYLOAD_TOO_LARGE" => Some(Self::AppMessagePayloadTooLarge),
             "APP_MESSAGE_RATE_LIMITED" => Some(Self::AppMessageRateLimited),
             "APP_MESSAGE_LOOP_DETECTED" => Some(Self::AppMessageLoopDetected),
-            "APP_INSTALL_DESCRIPTOR_NOT_FOUND" => {
-                Some(Self::AppInstallDescriptorNotFound)
-            }
-            "APP_INSTALL_DIGEST_MISMATCH" => Some(Self::AppInstallDigestMismatch),
-            "APP_INSTALL_MANIFEST_INVALID" => Some(Self::AppInstallManifestInvalid),
-            "APP_INSTALL_STORAGE_VIOLATION" => Some(Self::AppInstallStorageViolation),
-            "APP_INSTALL_DOWNLOAD_FAILED" => Some(Self::AppInstallDownloadFailed),
-            "APP_INSTALL_UNPACK_FAILED" => Some(Self::AppInstallUnpackFailed),
-            "APP_INSTALL_INTERNAL" => Some(Self::AppInstallInternal),
-            "APP_UPDATE_NOT_AVAILABLE" => Some(Self::AppUpdateNotAvailable),
-            "APP_UPDATE_NOT_INSTALLED" => Some(Self::AppUpdateNotInstalled),
-            "APP_UPDATE_CONFIRMATION_REQUIRED" => {
-                Some(Self::AppUpdateConfirmationRequired)
-            }
-            "APP_UPDATE_SWAP_FAILED" => Some(Self::AppUpdateSwapFailed),
-            "APP_REPAIR_ACTION_INVALID" => Some(Self::AppRepairActionInvalid),
-            "APP_REPAIR_NO_RECOVERABLE_JOB" => Some(Self::AppRepairNoRecoverableJob),
-            "APP_REPAIR_NOT_REPAIRABLE" => Some(Self::AppRepairNotRepairable),
-            "APP_LIFECYCLE_JOB_CANCELLED" => Some(Self::AppLifecycleJobCancelled),
             "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED" => {
                 Some(Self::AiLocalSpeechPreflightBlocked)
             }
@@ -955,10 +880,6 @@ impl ReasonCode {
             "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID" => {
                 Some(Self::RuntimeExecutableTrustRecordInvalid)
             }
-            "LIFECYCLE_INTENT_REQUIRED" => Some(Self::LifecycleIntentRequired),
-            "LIFECYCLE_INTENT_MISMATCH" => Some(Self::LifecycleIntentMismatch),
-            "LIFECYCLE_INTENT_REPLAY" => Some(Self::LifecycleIntentReplay),
-            "LIFECYCLE_INTENT_EXPIRED" => Some(Self::LifecycleIntentExpired),
             "LOCAL_APP_PRINCIPAL_REQUIRED" => Some(Self::LocalAppPrincipalRequired),
             "LOCAL_APP_RECORD_NOT_FOUND" => Some(Self::LocalAppRecordNotFound),
             "LOCAL_APP_RECORD_TOMBSTONED" => Some(Self::LocalAppRecordTombstoned),
@@ -11751,881 +11672,6 @@ pub mod runtime_local_service_client {
         }
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WorkflowEdge {
-    #[prost(string, tag = "1")]
-    pub from_node_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub from_output: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub to_node_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub to_input: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AiGenerateNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "Modal", tag = "2")]
-    pub modal: i32,
-    #[prost(string, tag = "3")]
-    pub system_prompt: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "4")]
-    pub tools: ::prost::alloc::vec::Vec<ToolSpec>,
-    #[prost(float, tag = "5")]
-    pub temperature: f32,
-    #[prost(float, tag = "6")]
-    pub top_p: f32,
-    #[prost(int32, tag = "7")]
-    pub max_tokens: i32,
-    #[prost(enumeration = "RoutePolicy", tag = "8")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "9")]
-    pub fallback: i32,
-    #[prost(int32, tag = "10")]
-    pub timeout_ms: i32,
-    #[prost(string, tag = "11")]
-    pub prompt: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AiStreamNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "Modal", tag = "2")]
-    pub modal: i32,
-    #[prost(string, tag = "3")]
-    pub system_prompt: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "4")]
-    pub tools: ::prost::alloc::vec::Vec<ToolSpec>,
-    #[prost(float, tag = "5")]
-    pub temperature: f32,
-    #[prost(float, tag = "6")]
-    pub top_p: f32,
-    #[prost(int32, tag = "7")]
-    pub max_tokens: i32,
-    #[prost(enumeration = "RoutePolicy", tag = "8")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "9")]
-    pub fallback: i32,
-    #[prost(int32, tag = "10")]
-    pub timeout_ms: i32,
-    #[prost(string, tag = "11")]
-    pub prompt: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AiEmbedNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "2")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "3")]
-    pub fallback: i32,
-    #[prost(int32, tag = "4")]
-    pub timeout_ms: i32,
-    #[prost(string, repeated, tag = "5")]
-    pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AiImageNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "2")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "3")]
-    pub fallback: i32,
-    #[prost(int32, tag = "4")]
-    pub timeout_ms: i32,
-    #[prost(string, tag = "5")]
-    pub prompt: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AiVideoNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "2")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "3")]
-    pub fallback: i32,
-    #[prost(int32, tag = "4")]
-    pub timeout_ms: i32,
-    #[prost(string, tag = "5")]
-    pub prompt: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AiTtsNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "2")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "3")]
-    pub fallback: i32,
-    #[prost(int32, tag = "4")]
-    pub timeout_ms: i32,
-    #[prost(string, tag = "5")]
-    pub text: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AiSttNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub mime_type: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "3")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "4")]
-    pub fallback: i32,
-    #[prost(int32, tag = "5")]
-    pub timeout_ms: i32,
-    #[prost(bytes = "vec", tag = "6")]
-    pub audio_bytes: ::prost::alloc::vec::Vec<u8>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AiTtsCreateVoiceNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub target_model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "VoiceWorkflowType", tag = "3")]
-    pub workflow_type: i32,
-    #[prost(string, tag = "4")]
-    pub connector_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "5")]
-    pub timeout_ms: i32,
-    #[prost(string, tag = "6")]
-    pub preferred_name: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub reference_audio_uri: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub reference_audio_mime: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub instruction_text: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub preview_text: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub language: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub text: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "20")]
-    pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AiTtsSynthesizeNodeConfig {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub target_model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub text: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub voice_ref: ::core::option::Option<VoiceReference>,
-    #[prost(string, tag = "5")]
-    pub connector_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "6")]
-    pub timeout_ms: i32,
-    #[prost(string, tag = "7")]
-    pub audio_format: ::prost::alloc::string::String,
-    #[prost(int32, tag = "8")]
-    pub sample_rate_hz: i32,
-    #[prost(float, tag = "9")]
-    pub speed: f32,
-    #[prost(float, tag = "10")]
-    pub pitch: f32,
-    #[prost(float, tag = "11")]
-    pub volume: f32,
-    #[prost(string, tag = "12")]
-    pub emotion: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "20")]
-    pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ExtractNodeConfig {
-    #[prost(string, tag = "1")]
-    pub json_path: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub source_input: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TemplateNodeConfig {
-    #[prost(string, tag = "1")]
-    pub template: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub output_mime_type: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ScriptNodeConfig {
-    #[prost(string, tag = "1")]
-    pub runtime: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub code: ::prost::alloc::string::String,
-    #[prost(int32, tag = "3")]
-    pub timeout_ms: i32,
-    #[prost(int64, tag = "4")]
-    pub memory_limit_bytes: i64,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct BranchNodeConfig {
-    #[prost(string, tag = "1")]
-    pub condition: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub true_target: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub false_target: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MergeNodeConfig {
-    #[prost(enumeration = "MergeStrategy", tag = "1")]
-    pub strategy: i32,
-    #[prost(int32, tag = "2")]
-    pub min_completed: i32,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct NoopNodeConfig {}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct WorkflowNode {
-    #[prost(string, tag = "1")]
-    pub node_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "WorkflowNodeType", tag = "2")]
-    pub node_type: i32,
-    #[prost(string, repeated, tag = "3")]
-    pub depends_on: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int32, tag = "5")]
-    pub retry_max_attempts: i32,
-    #[prost(string, tag = "6")]
-    pub retry_backoff: ::prost::alloc::string::String,
-    #[prost(enumeration = "WorkflowExecutionMode", tag = "7")]
-    pub execution_mode: i32,
-    #[prost(enumeration = "WorkflowResumeStrategy", tag = "8")]
-    pub resume_strategy: i32,
-    #[prost(string, tag = "9")]
-    pub callback_ref: ::prost::alloc::string::String,
-    #[prost(
-        oneof = "workflow_node::TypeConfig",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 30, 31, 32"
-    )]
-    pub type_config: ::core::option::Option<workflow_node::TypeConfig>,
-}
-/// Nested message and enum types in `WorkflowNode`.
-pub mod workflow_node {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum TypeConfig {
-        #[prost(message, tag = "10")]
-        AiGenerateConfig(super::AiGenerateNodeConfig),
-        #[prost(message, tag = "11")]
-        AiStreamConfig(super::AiStreamNodeConfig),
-        #[prost(message, tag = "12")]
-        AiEmbedConfig(super::AiEmbedNodeConfig),
-        #[prost(message, tag = "13")]
-        AiImageConfig(super::AiImageNodeConfig),
-        #[prost(message, tag = "14")]
-        AiVideoConfig(super::AiVideoNodeConfig),
-        #[prost(message, tag = "15")]
-        AiTtsConfig(super::AiTtsNodeConfig),
-        #[prost(message, tag = "16")]
-        AiSttConfig(super::AiSttNodeConfig),
-        #[prost(message, tag = "17")]
-        AiTtsCreateVoiceConfig(super::AiTtsCreateVoiceNodeConfig),
-        #[prost(message, tag = "18")]
-        AiTtsSynthesizeConfig(super::AiTtsSynthesizeNodeConfig),
-        #[prost(message, tag = "20")]
-        ExtractConfig(super::ExtractNodeConfig),
-        #[prost(message, tag = "21")]
-        TemplateConfig(super::TemplateNodeConfig),
-        #[prost(message, tag = "22")]
-        ScriptConfig(super::ScriptNodeConfig),
-        #[prost(message, tag = "30")]
-        BranchConfig(super::BranchNodeConfig),
-        #[prost(message, tag = "31")]
-        MergeConfig(super::MergeNodeConfig),
-        #[prost(message, tag = "32")]
-        NoopConfig(super::NoopNodeConfig),
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct WorkflowDefinition {
-    #[prost(string, tag = "1")]
-    pub workflow_type: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "2")]
-    pub nodes: ::prost::alloc::vec::Vec<WorkflowNode>,
-    #[prost(message, repeated, tag = "3")]
-    pub edges: ::prost::alloc::vec::Vec<WorkflowEdge>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SubmitWorkflowRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub definition: ::core::option::Option<WorkflowDefinition>,
-    #[prost(int32, tag = "4")]
-    pub timeout_ms: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubmitWorkflowResponse {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub accepted: bool,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetWorkflowRequest {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WorkflowNodeStatus {
-    #[prost(string, tag = "1")]
-    pub node_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "WorkflowStatus", tag = "2")]
-    pub status: i32,
-    #[prost(int32, tag = "3")]
-    pub attempt: i32,
-    #[prost(string, tag = "4")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub provider_job_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub next_poll_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(int32, tag = "7")]
-    pub retry_count: i32,
-    #[prost(string, tag = "8")]
-    pub last_error: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetWorkflowResponse {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "WorkflowStatus", tag = "2")]
-    pub status: i32,
-    #[prost(message, repeated, tag = "3")]
-    pub nodes: ::prost::alloc::vec::Vec<WorkflowNodeStatus>,
-    #[prost(message, optional, tag = "4")]
-    pub output: ::core::option::Option<::prost_types::Struct>,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CancelWorkflowRequest {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct WorkflowEvent {
-    #[prost(enumeration = "WorkflowEventType", tag = "1")]
-    pub event_type: i32,
-    #[prost(uint64, tag = "2")]
-    pub sequence: u64,
-    #[prost(string, tag = "3")]
-    pub task_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub trace_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "5")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "6")]
-    pub node_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "7")]
-    pub progress_percent: i32,
-    #[prost(enumeration = "ReasonCode", tag = "8")]
-    pub reason_code: i32,
-    #[prost(message, optional, tag = "9")]
-    pub payload: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubscribeWorkflowEventsRequest {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorkflowStatus {
-    Unspecified = 0,
-    Accepted = 1,
-    Queued = 2,
-    Running = 3,
-    Completed = 4,
-    Failed = 5,
-    Canceled = 6,
-    Skipped = 7,
-}
-impl WorkflowStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORKFLOW_STATUS_UNSPECIFIED",
-            Self::Accepted => "WORKFLOW_STATUS_ACCEPTED",
-            Self::Queued => "WORKFLOW_STATUS_QUEUED",
-            Self::Running => "WORKFLOW_STATUS_RUNNING",
-            Self::Completed => "WORKFLOW_STATUS_COMPLETED",
-            Self::Failed => "WORKFLOW_STATUS_FAILED",
-            Self::Canceled => "WORKFLOW_STATUS_CANCELED",
-            Self::Skipped => "WORKFLOW_STATUS_SKIPPED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORKFLOW_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORKFLOW_STATUS_ACCEPTED" => Some(Self::Accepted),
-            "WORKFLOW_STATUS_QUEUED" => Some(Self::Queued),
-            "WORKFLOW_STATUS_RUNNING" => Some(Self::Running),
-            "WORKFLOW_STATUS_COMPLETED" => Some(Self::Completed),
-            "WORKFLOW_STATUS_FAILED" => Some(Self::Failed),
-            "WORKFLOW_STATUS_CANCELED" => Some(Self::Canceled),
-            "WORKFLOW_STATUS_SKIPPED" => Some(Self::Skipped),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorkflowEventType {
-    Unspecified = 0,
-    WorkflowEventStarted = 1,
-    WorkflowEventNodeStarted = 2,
-    WorkflowEventNodeProgress = 3,
-    WorkflowEventNodeCompleted = 4,
-    WorkflowEventNodeSkipped = 5,
-    WorkflowEventCompleted = 6,
-    WorkflowEventFailed = 7,
-    WorkflowEventCanceled = 8,
-    WorkflowEventNodeExternalSubmitted = 9,
-    WorkflowEventNodeExternalRunning = 10,
-    WorkflowEventNodeExternalCompleted = 11,
-    WorkflowEventNodeExternalFailed = 12,
-}
-impl WorkflowEventType {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORKFLOW_EVENT_TYPE_UNSPECIFIED",
-            Self::WorkflowEventStarted => "WORKFLOW_EVENT_STARTED",
-            Self::WorkflowEventNodeStarted => "WORKFLOW_EVENT_NODE_STARTED",
-            Self::WorkflowEventNodeProgress => "WORKFLOW_EVENT_NODE_PROGRESS",
-            Self::WorkflowEventNodeCompleted => "WORKFLOW_EVENT_NODE_COMPLETED",
-            Self::WorkflowEventNodeSkipped => "WORKFLOW_EVENT_NODE_SKIPPED",
-            Self::WorkflowEventCompleted => "WORKFLOW_EVENT_COMPLETED",
-            Self::WorkflowEventFailed => "WORKFLOW_EVENT_FAILED",
-            Self::WorkflowEventCanceled => "WORKFLOW_EVENT_CANCELED",
-            Self::WorkflowEventNodeExternalSubmitted => {
-                "WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED"
-            }
-            Self::WorkflowEventNodeExternalRunning => {
-                "WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING"
-            }
-            Self::WorkflowEventNodeExternalCompleted => {
-                "WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED"
-            }
-            Self::WorkflowEventNodeExternalFailed => {
-                "WORKFLOW_EVENT_NODE_EXTERNAL_FAILED"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORKFLOW_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORKFLOW_EVENT_STARTED" => Some(Self::WorkflowEventStarted),
-            "WORKFLOW_EVENT_NODE_STARTED" => Some(Self::WorkflowEventNodeStarted),
-            "WORKFLOW_EVENT_NODE_PROGRESS" => Some(Self::WorkflowEventNodeProgress),
-            "WORKFLOW_EVENT_NODE_COMPLETED" => Some(Self::WorkflowEventNodeCompleted),
-            "WORKFLOW_EVENT_NODE_SKIPPED" => Some(Self::WorkflowEventNodeSkipped),
-            "WORKFLOW_EVENT_COMPLETED" => Some(Self::WorkflowEventCompleted),
-            "WORKFLOW_EVENT_FAILED" => Some(Self::WorkflowEventFailed),
-            "WORKFLOW_EVENT_CANCELED" => Some(Self::WorkflowEventCanceled),
-            "WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED" => {
-                Some(Self::WorkflowEventNodeExternalSubmitted)
-            }
-            "WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING" => {
-                Some(Self::WorkflowEventNodeExternalRunning)
-            }
-            "WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED" => {
-                Some(Self::WorkflowEventNodeExternalCompleted)
-            }
-            "WORKFLOW_EVENT_NODE_EXTERNAL_FAILED" => {
-                Some(Self::WorkflowEventNodeExternalFailed)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorkflowNodeType {
-    Unspecified = 0,
-    WorkflowNodeAiGenerate = 1,
-    WorkflowNodeAiStream = 2,
-    WorkflowNodeAiEmbed = 3,
-    WorkflowNodeAiImage = 4,
-    WorkflowNodeAiVideo = 5,
-    WorkflowNodeAiTts = 6,
-    WorkflowNodeAiStt = 7,
-    WorkflowNodeAiTtsCreateVoice = 8,
-    WorkflowNodeAiTtsSynthesize = 9,
-    WorkflowNodeTransformExtract = 20,
-    WorkflowNodeTransformTemplate = 21,
-    WorkflowNodeTransformScript = 22,
-    WorkflowNodeControlBranch = 40,
-    WorkflowNodeControlMerge = 41,
-    WorkflowNodeControlNoop = 42,
-}
-impl WorkflowNodeType {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORKFLOW_NODE_TYPE_UNSPECIFIED",
-            Self::WorkflowNodeAiGenerate => "WORKFLOW_NODE_AI_GENERATE",
-            Self::WorkflowNodeAiStream => "WORKFLOW_NODE_AI_STREAM",
-            Self::WorkflowNodeAiEmbed => "WORKFLOW_NODE_AI_EMBED",
-            Self::WorkflowNodeAiImage => "WORKFLOW_NODE_AI_IMAGE",
-            Self::WorkflowNodeAiVideo => "WORKFLOW_NODE_AI_VIDEO",
-            Self::WorkflowNodeAiTts => "WORKFLOW_NODE_AI_TTS",
-            Self::WorkflowNodeAiStt => "WORKFLOW_NODE_AI_STT",
-            Self::WorkflowNodeAiTtsCreateVoice => "WORKFLOW_NODE_AI_TTS_CREATE_VOICE",
-            Self::WorkflowNodeAiTtsSynthesize => "WORKFLOW_NODE_AI_TTS_SYNTHESIZE",
-            Self::WorkflowNodeTransformExtract => "WORKFLOW_NODE_TRANSFORM_EXTRACT",
-            Self::WorkflowNodeTransformTemplate => "WORKFLOW_NODE_TRANSFORM_TEMPLATE",
-            Self::WorkflowNodeTransformScript => "WORKFLOW_NODE_TRANSFORM_SCRIPT",
-            Self::WorkflowNodeControlBranch => "WORKFLOW_NODE_CONTROL_BRANCH",
-            Self::WorkflowNodeControlMerge => "WORKFLOW_NODE_CONTROL_MERGE",
-            Self::WorkflowNodeControlNoop => "WORKFLOW_NODE_CONTROL_NOOP",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORKFLOW_NODE_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORKFLOW_NODE_AI_GENERATE" => Some(Self::WorkflowNodeAiGenerate),
-            "WORKFLOW_NODE_AI_STREAM" => Some(Self::WorkflowNodeAiStream),
-            "WORKFLOW_NODE_AI_EMBED" => Some(Self::WorkflowNodeAiEmbed),
-            "WORKFLOW_NODE_AI_IMAGE" => Some(Self::WorkflowNodeAiImage),
-            "WORKFLOW_NODE_AI_VIDEO" => Some(Self::WorkflowNodeAiVideo),
-            "WORKFLOW_NODE_AI_TTS" => Some(Self::WorkflowNodeAiTts),
-            "WORKFLOW_NODE_AI_STT" => Some(Self::WorkflowNodeAiStt),
-            "WORKFLOW_NODE_AI_TTS_CREATE_VOICE" => {
-                Some(Self::WorkflowNodeAiTtsCreateVoice)
-            }
-            "WORKFLOW_NODE_AI_TTS_SYNTHESIZE" => Some(Self::WorkflowNodeAiTtsSynthesize),
-            "WORKFLOW_NODE_TRANSFORM_EXTRACT" => Some(Self::WorkflowNodeTransformExtract),
-            "WORKFLOW_NODE_TRANSFORM_TEMPLATE" => {
-                Some(Self::WorkflowNodeTransformTemplate)
-            }
-            "WORKFLOW_NODE_TRANSFORM_SCRIPT" => Some(Self::WorkflowNodeTransformScript),
-            "WORKFLOW_NODE_CONTROL_BRANCH" => Some(Self::WorkflowNodeControlBranch),
-            "WORKFLOW_NODE_CONTROL_MERGE" => Some(Self::WorkflowNodeControlMerge),
-            "WORKFLOW_NODE_CONTROL_NOOP" => Some(Self::WorkflowNodeControlNoop),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum MergeStrategy {
-    Unspecified = 0,
-    All = 1,
-    Any = 2,
-    NOfM = 3,
-}
-impl MergeStrategy {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "MERGE_STRATEGY_UNSPECIFIED",
-            Self::All => "MERGE_STRATEGY_ALL",
-            Self::Any => "MERGE_STRATEGY_ANY",
-            Self::NOfM => "MERGE_STRATEGY_N_OF_M",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "MERGE_STRATEGY_UNSPECIFIED" => Some(Self::Unspecified),
-            "MERGE_STRATEGY_ALL" => Some(Self::All),
-            "MERGE_STRATEGY_ANY" => Some(Self::Any),
-            "MERGE_STRATEGY_N_OF_M" => Some(Self::NOfM),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorkflowExecutionMode {
-    Unspecified = 0,
-    Inline = 1,
-    ExternalAsync = 2,
-}
-impl WorkflowExecutionMode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORKFLOW_EXECUTION_MODE_UNSPECIFIED",
-            Self::Inline => "WORKFLOW_EXECUTION_MODE_INLINE",
-            Self::ExternalAsync => "WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORKFLOW_EXECUTION_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORKFLOW_EXECUTION_MODE_INLINE" => Some(Self::Inline),
-            "WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC" => Some(Self::ExternalAsync),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorkflowResumeStrategy {
-    Unspecified = 0,
-    Auto = 1,
-    Manual = 2,
-}
-impl WorkflowResumeStrategy {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORKFLOW_RESUME_STRATEGY_UNSPECIFIED",
-            Self::Auto => "WORKFLOW_RESUME_STRATEGY_AUTO",
-            Self::Manual => "WORKFLOW_RESUME_STRATEGY_MANUAL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORKFLOW_RESUME_STRATEGY_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORKFLOW_RESUME_STRATEGY_AUTO" => Some(Self::Auto),
-            "WORKFLOW_RESUME_STRATEGY_MANUAL" => Some(Self::Manual),
-            _ => None,
-        }
-    }
-}
-/// Generated client implementations.
-pub mod runtime_workflow_service_client {
-    #![allow(
-        unused_variables,
-        dead_code,
-        missing_docs,
-        clippy::wildcard_imports,
-        clippy::let_unit_value,
-    )]
-    use tonic::codegen::*;
-    use tonic::codegen::http::Uri;
-    #[derive(Debug, Clone)]
-    pub struct RuntimeWorkflowServiceClient<T> {
-        inner: tonic::client::Grpc<T>,
-    }
-    impl RuntimeWorkflowServiceClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> RuntimeWorkflowServiceClient<T>
-    where
-        T: tonic::client::GrpcService<tonic::body::Body>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
-    {
-        pub fn new(inner: T) -> Self {
-            let inner = tonic::client::Grpc::new(inner);
-            Self { inner }
-        }
-        pub fn with_origin(inner: T, origin: Uri) -> Self {
-            let inner = tonic::client::Grpc::with_origin(inner, origin);
-            Self { inner }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> RuntimeWorkflowServiceClient<InterceptedService<T, F>>
-        where
-            F: tonic::service::Interceptor,
-            T::ResponseBody: Default,
-            T: tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
-                >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
-        {
-            RuntimeWorkflowServiceClient::new(
-                InterceptedService::new(inner, interceptor),
-            )
-        }
-        /// Compress requests with the given encoding.
-        ///
-        /// This requires the server to support it otherwise it might respond with an
-        /// error.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.send_compressed(encoding);
-            self
-        }
-        /// Enable decompressing responses.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.accept_compressed(encoding);
-            self
-        }
-        /// Limits the maximum size of a decoded message.
-        ///
-        /// Default: `4MB`
-        #[must_use]
-        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_decoding_message_size(limit);
-            self
-        }
-        /// Limits the maximum size of an encoded message.
-        ///
-        /// Default: `usize::MAX`
-        #[must_use]
-        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_encoding_message_size(limit);
-            self
-        }
-        pub async fn submit_workflow(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SubmitWorkflowRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::SubmitWorkflowResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeWorkflowService",
-                        "SubmitWorkflow",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_workflow(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetWorkflowRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetWorkflowResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeWorkflowService",
-                        "GetWorkflow",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn cancel_workflow(
-            &mut self,
-            request: impl tonic::IntoRequest<super::CancelWorkflowRequest>,
-        ) -> std::result::Result<tonic::Response<super::Ack>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeWorkflowService",
-                        "CancelWorkflow",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn subscribe_workflow_events(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SubscribeWorkflowEventsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::WorkflowEvent>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeWorkflowService",
-                        "SubscribeWorkflowEvents",
-                    ),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
-    }
-}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ModelCapabilityProfile {
     #[prost(bool, tag = "1")]
@@ -13688,107 +12734,9 @@ pub struct AppMessageEvent {
     #[prost(message, optional, tag = "11")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// AppLifecycleDestructiveOptions reserves future immutable-package impact
-/// fields. Runtime does not resolve or issue such an intent in 0K.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppLifecycleDestructiveOptions {
-    #[prost(bool, tag = "1")]
-    pub delete_durable_data: bool,
-    #[prost(enumeration = "AppHealthRepairAction", tag = "2")]
-    pub health_repair_action: i32,
-    #[prost(string, tag = "3")]
-    pub target_job_id: ::prost::alloc::string::String,
-}
-/// AppLifecycleCanonicalImpact reserves a future canonical-impact shape. No
-/// canonical package impact is produced or projected in 0K.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppLifecycleCanonicalImpact {
-    #[prost(uint32, tag = "1")]
-    pub schema_version: u32,
-    #[prost(enumeration = "AppLifecycleIntentAction", tag = "2")]
-    pub action: i32,
-    #[prost(string, tag = "3")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "4")]
-    pub account_generation: u64,
-    #[prost(string, tag = "5")]
-    pub release_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub artifact_digest: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "8")]
-    pub destructive_options: ::core::option::Option<AppLifecycleDestructiveOptions>,
-    #[prost(string, repeated, tag = "9")]
-    pub impact_flags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(uint32, tag = "10")]
-    pub display_contract_version: u32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PrepareAppLifecycleIntentRequest {
-    #[prost(enumeration = "AppLifecycleIntentAction", tag = "1")]
-    pub action: i32,
-    #[prost(string, tag = "2")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub expected_release_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub expected_artifact_digest: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub destructive_options: ::core::option::Option<AppLifecycleDestructiveOptions>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PrepareAppLifecycleIntentResponse {
-    #[prost(string, tag = "1")]
-    pub intent_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub canonical_impact: ::core::option::Option<AppLifecycleCanonicalImpact>,
-    #[prost(string, tag = "3")]
-    pub canonical_impact_digest: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub deadline: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAppLifecycleIntentStatusRequest {
-    #[prost(string, tag = "1")]
-    pub intent_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAppLifecycleIntentStatusResponse {
-    #[prost(string, tag = "1")]
-    pub intent_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AppLifecycleIntentStatus", tag = "2")]
-    pub status: i32,
-    #[prost(string, tag = "3")]
-    pub non_authorizing_job_id: ::prost::alloc::string::String,
-    /// canonical_result is an RFC8785 JSON document with no credential,
-    /// process-tuple, boot-epoch, account-generation, or ledger-anchor material.
-    #[prost(string, tag = "4")]
-    pub canonical_result: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
-    #[prost(bool, tag = "6")]
-    pub retryability: bool,
-}
-/// AppInstallStorageProjection reserves future immutable-materialization roots.
-/// It is never positively populated in 0K.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppInstallStorageProjection {
-    #[prost(string, tag = "1")]
-    pub app_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub release_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub durable_data_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub cache_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub temp_root: ::prost::alloc::string::String,
-}
 /// AppStorageProjection is the stable Runtime-owned app-private storage truth
 /// surface (K-APP-022). data/cache/tmp are principal-partitioned roots under the
-/// selected nimi_data root. In 0K active_release_root and active_version remain
-/// empty because no immutable materialization is admitted.
+/// selected nimi_data root. Ordinary release roots and versions are deferred.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppStorageProjection {
     #[prost(string, tag = "1")]
@@ -13797,126 +12745,18 @@ pub struct AppStorageProjection {
     pub state: i32,
     #[prost(string, tag = "3")]
     pub app_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub active_release_root: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub durable_data_root: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub cache_root: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub temp_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub active_version: ::prost::alloc::string::String,
     #[prost(string, tag = "9")]
     pub storage_policy_ref: ::prost::alloc::string::String,
     #[prost(enumeration = "ReasonCode", tag = "10")]
     pub reason_code: i32,
     #[prost(string, tag = "11")]
     pub detail: ::prost::alloc::string::String,
-}
-/// AppPackageReadinessProjection is the frozen opaque package seam. In 0K it
-/// contains only BLOCKED, LOCAL_APP_OPERATION_UNAVAILABLE, and
-/// immutable_profile_unavailable; all identity, descriptor, version, digest,
-/// verification, and storage-policy fields remain empty.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppPackageReadinessProjection {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub release_descriptor_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub storage_policy_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub expected_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub active_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub installed_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub sha256: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub verification_state: ::prost::alloc::string::String,
-    #[prost(enumeration = "AppPackageReadinessState", tag = "9")]
-    pub state: i32,
-    #[prost(enumeration = "ReasonCode", tag = "10")]
-    pub reason_code: i32,
-    #[prost(string, tag = "11")]
-    pub detail: ::prost::alloc::string::String,
-}
-/// AppInstallJob reserves a future immutable-package job projection. No job id,
-/// descriptor, digest, storage, retry, or terminal success is emitted in 0K.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppInstallJob {
-    #[prost(string, tag = "1")]
-    pub job_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub release_descriptor_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub installed_version: ::prost::alloc::string::String,
-    #[prost(enumeration = "AppInstallJobState", tag = "5")]
-    pub state: i32,
-    #[prost(enumeration = "AppInstallJobPhase", tag = "6")]
-    pub phase: i32,
-    #[prost(enumeration = "AppInstallSourceKind", tag = "7")]
-    pub source_kind: i32,
-    /// sha256 is the digest computed over the downloaded/bundled artifact bytes.
-    /// It is populated only after the verify phase succeeds.
-    #[prost(string, tag = "8")]
-    pub sha256: ::prost::alloc::string::String,
-    #[prost(int64, tag = "9")]
-    pub artifact_bytes: i64,
-    #[prost(message, optional, tag = "10")]
-    pub storage: ::core::option::Option<AppInstallStorageProjection>,
-    /// reason_code is the typed fail-closed reason on a failed job. It is never
-    /// collapsed into a generic value.
-    #[prost(enumeration = "ReasonCode", tag = "11")]
-    pub reason_code: i32,
-    #[prost(string, tag = "12")]
-    pub failure_detail: ::prost::alloc::string::String,
-    #[prost(bool, tag = "13")]
-    pub retryable: bool,
-    #[prost(string, tag = "14")]
-    pub created_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "15")]
-    pub updated_at: ::prost::alloc::string::String,
-    /// kind distinguishes install / update / repair jobs. They share this shape
-    /// but the consumer never infers the lifecycle operation from the phase.
-    #[prost(enumeration = "AppLifecycleJobKind", tag = "16")]
-    pub kind: i32,
-    /// previous_version is the active release version before an update or repair
-    /// job ran. It is empty for an install job.
-    #[prost(string, tag = "17")]
-    pub previous_version: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct InstallAppRequest {
-    /// Reserved future package selector; it has no authority in 0K.
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    /// Reserved future confirmation slot; it cannot admit an install in 0K.
-    #[prost(bool, tag = "2")]
-    pub confirmed: bool,
-    #[prost(string, tag = "3")]
-    pub lifecycle_intent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub displayed_impact_digest: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct InstallAppResponse {
-    #[prost(message, optional, tag = "1")]
-    pub job: ::core::option::Option<AppInstallJob>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAppInstallJobRequest {
-    #[prost(string, tag = "1")]
-    pub job_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAppInstallJobResponse {
-    #[prost(message, optional, tag = "1")]
-    pub job: ::core::option::Option<AppInstallJob>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAppStorageRequest {
@@ -13975,180 +12815,10 @@ pub struct RemoveLocalAppStorageJsonResponse {
     #[prost(enumeration = "ReasonCode", tag = "2")]
     pub reason_code: i32,
 }
-/// AccountAppInventoryRow is one Runtime-owned account app inventory row.
-/// Consumers read it through GetAccountAppInventory; no renderer/app-supplied
-/// account_id is accepted.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AccountAppInventoryRow {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AccountAppInventoryState", tag = "2")]
-    pub account_state: i32,
-    #[prost(enumeration = "AccountAppInstallState", tag = "3")]
-    pub install_state: i32,
-    #[prost(string, tag = "4")]
-    pub last_opened_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub data_policy: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub verified_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub source: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub detail: ::prost::alloc::string::String,
-}
-/// AccountAppInventoryRecord is the authenticated account-scoped app inventory
-/// projection. Schema version 2 hard-cuts the previous install-after-write
-/// library shape: account visibility and local materialization are distinct.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AccountAppInventoryRecord {
-    #[prost(uint32, tag = "1")]
-    pub schema_version: u32,
-    #[prost(string, tag = "2")]
-    pub account_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub updated_at: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "4")]
-    pub apps: ::prost::alloc::vec::Vec<AccountAppInventoryRow>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAccountAppInventoryRequest {}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetAccountAppInventoryResponse {
-    #[prost(bool, tag = "1")]
-    pub exists: bool,
-    #[prost(message, optional, tag = "2")]
-    pub record: ::core::option::Option<AccountAppInventoryRecord>,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-    #[prost(string, tag = "4")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAppPackageReadinessRequest {
-    /// Reserved selector slot. 0K callers send it empty; Runtime ignores it and
-    /// returns one global typed-unavailable projection without reading package
-    /// files, descriptors, active-release pointers, or install evidence.
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAppPackageReadinessResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<AppPackageReadinessProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListAppInstallJobsRequest {
-    /// Reserved future selector. No local or global job enumeration exists in 0K.
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListAppInstallJobsResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub jobs: ::prost::alloc::vec::Vec<AppInstallJob>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WatchAppInstallJobEventsRequest {
-    /// Reserved future selector. No job event stream exists in 0K.
-    #[prost(string, tag = "1")]
-    pub job_id: ::prost::alloc::string::String,
-}
-/// AppInstallJobEvent reserves a future progress-frame shape. No frame is
-/// emitted in 0K.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppInstallJobEvent {
-    #[prost(uint64, tag = "1")]
-    pub sequence: u64,
-    #[prost(message, optional, tag = "2")]
-    pub job: ::core::option::Option<AppInstallJob>,
-    #[prost(message, optional, tag = "3")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UninstallAppRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    /// Reserved future destructive option; ignored because the RPC is deny-all.
-    #[prost(bool, tag = "2")]
-    pub delete_durable_data: bool,
-    /// Reserved future confirmation slot; it cannot authorize deletion in 0K.
-    #[prost(bool, tag = "3")]
-    pub destructive_data_delete_confirmed: bool,
-    #[prost(string, tag = "4")]
-    pub lifecycle_intent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub displayed_impact_digest: ::prost::alloc::string::String,
-}
-/// AppUninstallResult reserves a future immutable-package removal projection.
-/// It is never positively returned in 0K.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppUninstallResult {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub release_removed: bool,
-    #[prost(bool, tag = "3")]
-    pub durable_data_removed: bool,
-    #[prost(message, optional, tag = "4")]
-    pub storage: ::core::option::Option<AppInstallStorageProjection>,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UninstallAppResponse {
-    /// Reserved future result; absent in 0K typed-unavailable responses.
-    #[prost(message, optional, tag = "1")]
-    pub result: ::core::option::Option<AppUninstallResult>,
-    /// Reserved future job; no uninstall job exists in 0K.
-    #[prost(message, optional, tag = "2")]
-    pub job: ::core::option::Option<AppInstallJob>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateAppRequest {
-    /// Reserved future package selector; it has no authority in 0K.
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    /// Reserved future confirmation slot; it cannot admit an update in 0K.
-    #[prost(bool, tag = "2")]
-    pub confirmed: bool,
-    #[prost(string, tag = "3")]
-    pub lifecycle_intent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub displayed_impact_digest: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateAppResponse {
-    /// Reserved future job; no update job exists in 0K.
-    #[prost(message, optional, tag = "1")]
-    pub job: ::core::option::Option<AppInstallJob>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct HealthRepairAppRequest {
-    /// Reserved future package selector; it has no authority in 0K.
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    /// Reserved future repair action; no action is admitted in 0K.
-    #[prost(enumeration = "AppHealthRepairAction", tag = "2")]
-    pub action: i32,
-    /// Reserved future job selector; no recoverable job exists in 0K.
-    #[prost(string, tag = "3")]
-    pub job_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub lifecycle_intent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub displayed_impact_digest: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct HealthRepairAppResponse {
-    /// Reserved future job; no repair job exists in 0K.
-    #[prost(message, optional, tag = "1")]
-    pub job: ::core::option::Option<AppInstallJob>,
-}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PrepareLocalAppLaunchRequest {
-    /// Runtime-generated management handle. For local_development it resolves an
-    /// active authorization; immutable profiles remain typed unavailable in 0K.
+    /// Runtime-generated management handle resolving an active local_development
+    /// authorization. Ordinary package profiles are deferred and absent.
     /// It is not a principal id, app id, account selector, path, or credential.
     #[prost(bytes = "vec", tag = "1")]
     pub local_app_handle: ::prost::alloc::vec::Vec<u8>,
@@ -14213,329 +12883,13 @@ impl AppMessageEventType {
         }
     }
 }
-/// AppInstallJobPhase reserves the future immutable-package pipeline vocabulary.
-/// No value is positively emitted in 0K.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppInstallJobPhase {
-    Unspecified = 0,
-    Queued = 1,
-    ResolveDescriptor = 2,
-    Download = 3,
-    Verify = 4,
-    Materialize = 5,
-    Unpack = 6,
-    Evidence = 7,
-    Installed = 8,
-    Failed = 9,
-    /// APP_INSTALL_JOB_PHASE_SWAP is the atomic active-release pointer swap of an
-    /// update job. It runs only after the new release is fully materialized and
-    /// digest-verified; the old release stays usable until the swap commits.
-    Swap = 10,
-    /// APP_INSTALL_JOB_PHASE_CANCELLED is the terminal phase of a job cancelled
-    /// through HealthRepairApp(action=cancel).
-    Cancelled = 11,
-    /// APP_INSTALL_JOB_PHASE_UNINSTALLED is the terminal phase of a completed
-    /// uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
-    /// APP_LIFECYCLE_JOB_KIND_UNINSTALL after the release payload is removed.
-    Uninstalled = 12,
-}
-impl AppInstallJobPhase {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_INSTALL_JOB_PHASE_UNSPECIFIED",
-            Self::Queued => "APP_INSTALL_JOB_PHASE_QUEUED",
-            Self::ResolveDescriptor => "APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR",
-            Self::Download => "APP_INSTALL_JOB_PHASE_DOWNLOAD",
-            Self::Verify => "APP_INSTALL_JOB_PHASE_VERIFY",
-            Self::Materialize => "APP_INSTALL_JOB_PHASE_MATERIALIZE",
-            Self::Unpack => "APP_INSTALL_JOB_PHASE_UNPACK",
-            Self::Evidence => "APP_INSTALL_JOB_PHASE_EVIDENCE",
-            Self::Installed => "APP_INSTALL_JOB_PHASE_INSTALLED",
-            Self::Failed => "APP_INSTALL_JOB_PHASE_FAILED",
-            Self::Swap => "APP_INSTALL_JOB_PHASE_SWAP",
-            Self::Cancelled => "APP_INSTALL_JOB_PHASE_CANCELLED",
-            Self::Uninstalled => "APP_INSTALL_JOB_PHASE_UNINSTALLED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_INSTALL_JOB_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_INSTALL_JOB_PHASE_QUEUED" => Some(Self::Queued),
-            "APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR" => Some(Self::ResolveDescriptor),
-            "APP_INSTALL_JOB_PHASE_DOWNLOAD" => Some(Self::Download),
-            "APP_INSTALL_JOB_PHASE_VERIFY" => Some(Self::Verify),
-            "APP_INSTALL_JOB_PHASE_MATERIALIZE" => Some(Self::Materialize),
-            "APP_INSTALL_JOB_PHASE_UNPACK" => Some(Self::Unpack),
-            "APP_INSTALL_JOB_PHASE_EVIDENCE" => Some(Self::Evidence),
-            "APP_INSTALL_JOB_PHASE_INSTALLED" => Some(Self::Installed),
-            "APP_INSTALL_JOB_PHASE_FAILED" => Some(Self::Failed),
-            "APP_INSTALL_JOB_PHASE_SWAP" => Some(Self::Swap),
-            "APP_INSTALL_JOB_PHASE_CANCELLED" => Some(Self::Cancelled),
-            "APP_INSTALL_JOB_PHASE_UNINSTALLED" => Some(Self::Uninstalled),
-            _ => None,
-        }
-    }
-}
-/// AppInstallJobState reserves future immutable-package job states. No value is
-/// positively emitted in 0K.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppInstallJobState {
-    Unspecified = 0,
-    Queued = 1,
-    InProgress = 2,
-    Installed = 3,
-    Failed = 4,
-    /// APP_INSTALL_JOB_STATE_CANCELLED is the terminal state of a job cancelled
-    /// through HealthRepairApp(action=cancel). A cancelled job is recoverable via
-    /// retry and is never projected as success.
-    Cancelled = 5,
-    /// APP_INSTALL_JOB_STATE_UNINSTALLED is the terminal success state of an
-    /// uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
-    /// APP_LIFECYCLE_JOB_KIND_UNINSTALL; a successful uninstall is never
-    /// projected as APP_INSTALL_JOB_STATE_INSTALLED.
-    Uninstalled = 6,
-}
-impl AppInstallJobState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_INSTALL_JOB_STATE_UNSPECIFIED",
-            Self::Queued => "APP_INSTALL_JOB_STATE_QUEUED",
-            Self::InProgress => "APP_INSTALL_JOB_STATE_IN_PROGRESS",
-            Self::Installed => "APP_INSTALL_JOB_STATE_INSTALLED",
-            Self::Failed => "APP_INSTALL_JOB_STATE_FAILED",
-            Self::Cancelled => "APP_INSTALL_JOB_STATE_CANCELLED",
-            Self::Uninstalled => "APP_INSTALL_JOB_STATE_UNINSTALLED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_INSTALL_JOB_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_INSTALL_JOB_STATE_QUEUED" => Some(Self::Queued),
-            "APP_INSTALL_JOB_STATE_IN_PROGRESS" => Some(Self::InProgress),
-            "APP_INSTALL_JOB_STATE_INSTALLED" => Some(Self::Installed),
-            "APP_INSTALL_JOB_STATE_FAILED" => Some(Self::Failed),
-            "APP_INSTALL_JOB_STATE_CANCELLED" => Some(Self::Cancelled),
-            "APP_INSTALL_JOB_STATE_UNINSTALLED" => Some(Self::Uninstalled),
-            _ => None,
-        }
-    }
-}
-/// AppLifecycleJobKind reserves future immutable-package operation kinds. No
-/// lifecycle job exists in 0K.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppLifecycleJobKind {
-    Unspecified = 0,
-    Install = 1,
-    Update = 2,
-    Repair = 3,
-    /// APP_LIFECYCLE_JOB_KIND_UNINSTALL marks a watchable uninstall lifecycle
-    /// job (K-APP-017). UninstallApp emits a typed AppInstallJob of this kind so
-    /// the `uninstalling` Apps card state has a single live-job truth source. An
-    /// uninstall job never carries the install digest/download phases; it runs
-    /// through the materialize phase (release payload removal) to the installed
-    /// (completed) terminal phase, and a failed uninstall is recoverable.
-    Uninstall = 4,
-}
-impl AppLifecycleJobKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_LIFECYCLE_JOB_KIND_UNSPECIFIED",
-            Self::Install => "APP_LIFECYCLE_JOB_KIND_INSTALL",
-            Self::Update => "APP_LIFECYCLE_JOB_KIND_UPDATE",
-            Self::Repair => "APP_LIFECYCLE_JOB_KIND_REPAIR",
-            Self::Uninstall => "APP_LIFECYCLE_JOB_KIND_UNINSTALL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_LIFECYCLE_JOB_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_LIFECYCLE_JOB_KIND_INSTALL" => Some(Self::Install),
-            "APP_LIFECYCLE_JOB_KIND_UPDATE" => Some(Self::Update),
-            "APP_LIFECYCLE_JOB_KIND_REPAIR" => Some(Self::Repair),
-            "APP_LIFECYCLE_JOB_KIND_UNINSTALL" => Some(Self::Uninstall),
-            _ => None,
-        }
-    }
-}
-/// AppHealthRepairAction is a frozen future wire vocabulary. No repair action
-/// is admitted in 0K.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppHealthRepairAction {
-    Unspecified = 0,
-    Cancel = 1,
-    Retry = 2,
-    Repair = 3,
-    Reinstall = 4,
-}
-impl AppHealthRepairAction {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_HEALTH_REPAIR_ACTION_UNSPECIFIED",
-            Self::Cancel => "APP_HEALTH_REPAIR_ACTION_CANCEL",
-            Self::Retry => "APP_HEALTH_REPAIR_ACTION_RETRY",
-            Self::Repair => "APP_HEALTH_REPAIR_ACTION_REPAIR",
-            Self::Reinstall => "APP_HEALTH_REPAIR_ACTION_REINSTALL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_HEALTH_REPAIR_ACTION_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_HEALTH_REPAIR_ACTION_CANCEL" => Some(Self::Cancel),
-            "APP_HEALTH_REPAIR_ACTION_RETRY" => Some(Self::Retry),
-            "APP_HEALTH_REPAIR_ACTION_REPAIR" => Some(Self::Repair),
-            "APP_HEALTH_REPAIR_ACTION_REINSTALL" => Some(Self::Reinstall),
-            _ => None,
-        }
-    }
-}
-/// AppLifecycleIntentAction is a frozen future wire vocabulary. 0K has no
-/// lifecycle intent producer or consumer.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppLifecycleIntentAction {
-    Unspecified = 0,
-    Install = 1,
-    Uninstall = 2,
-    Update = 3,
-    HealthRepair = 4,
-}
-impl AppLifecycleIntentAction {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED",
-            Self::Install => "APP_LIFECYCLE_INTENT_ACTION_INSTALL",
-            Self::Uninstall => "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL",
-            Self::Update => "APP_LIFECYCLE_INTENT_ACTION_UPDATE",
-            Self::HealthRepair => "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_LIFECYCLE_INTENT_ACTION_INSTALL" => Some(Self::Install),
-            "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL" => Some(Self::Uninstall),
-            "APP_LIFECYCLE_INTENT_ACTION_UPDATE" => Some(Self::Update),
-            "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR" => Some(Self::HealthRepair),
-            _ => None,
-        }
-    }
-}
-/// AppLifecycleIntentStatus reserves a future reconciliation vocabulary. 0K
-/// has no durable lifecycle intent state; an id could never authorize a call.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppLifecycleIntentStatus {
-    Unspecified = 0,
-    Prepared = 1,
-    Consumed = 2,
-    SideEffectStarted = 3,
-    Succeeded = 4,
-    Failed = 5,
-    Cancelled = 6,
-    Expired = 7,
-}
-impl AppLifecycleIntentStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED",
-            Self::Prepared => "APP_LIFECYCLE_INTENT_STATUS_PREPARED",
-            Self::Consumed => "APP_LIFECYCLE_INTENT_STATUS_CONSUMED",
-            Self::SideEffectStarted => "APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED",
-            Self::Succeeded => "APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED",
-            Self::Failed => "APP_LIFECYCLE_INTENT_STATUS_FAILED",
-            Self::Cancelled => "APP_LIFECYCLE_INTENT_STATUS_CANCELLED",
-            Self::Expired => "APP_LIFECYCLE_INTENT_STATUS_EXPIRED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_LIFECYCLE_INTENT_STATUS_PREPARED" => Some(Self::Prepared),
-            "APP_LIFECYCLE_INTENT_STATUS_CONSUMED" => Some(Self::Consumed),
-            "APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED" => {
-                Some(Self::SideEffectStarted)
-            }
-            "APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED" => Some(Self::Succeeded),
-            "APP_LIFECYCLE_INTENT_STATUS_FAILED" => Some(Self::Failed),
-            "APP_LIFECYCLE_INTENT_STATUS_CANCELLED" => Some(Self::Cancelled),
-            "APP_LIFECYCLE_INTENT_STATUS_EXPIRED" => Some(Self::Expired),
-            _ => None,
-        }
-    }
-}
-/// AppInstallSourceKind reserves future immutable-package provenance mapping.
-/// It does not admit a bundled or external install in 0K.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppInstallSourceKind {
-    Unspecified = 0,
-    Bundled = 1,
-    ExternalArtifact = 2,
-}
-impl AppInstallSourceKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_INSTALL_SOURCE_KIND_UNSPECIFIED",
-            Self::Bundled => "APP_INSTALL_SOURCE_KIND_BUNDLED",
-            Self::ExternalArtifact => "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_INSTALL_SOURCE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_INSTALL_SOURCE_KIND_BUNDLED" => Some(Self::Bundled),
-            "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT" => Some(Self::ExternalArtifact),
-            _ => None,
-        }
-    }
-}
-/// AppStorageState describes app-private storage independently of the frozen
-/// package seam. Local-app data/cache/tmp may be READY without a release.
+/// AppStorageState describes current app-private storage independently of any
+/// deferred ordinary package lifecycle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppStorageState {
     Unspecified = 0,
     Ready = 1,
-    InstallRequired = 2,
     RepairRequired = 3,
     StorageUnavailable = 4,
 }
@@ -14548,7 +12902,6 @@ impl AppStorageState {
         match self {
             Self::Unspecified => "APP_STORAGE_STATE_UNSPECIFIED",
             Self::Ready => "APP_STORAGE_STATE_READY",
-            Self::InstallRequired => "APP_STORAGE_STATE_INSTALL_REQUIRED",
             Self::RepairRequired => "APP_STORAGE_STATE_REPAIR_REQUIRED",
             Self::StorageUnavailable => "APP_STORAGE_STATE_STORAGE_UNAVAILABLE",
         }
@@ -14558,126 +12911,8 @@ impl AppStorageState {
         match value {
             "APP_STORAGE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
             "APP_STORAGE_STATE_READY" => Some(Self::Ready),
-            "APP_STORAGE_STATE_INSTALL_REQUIRED" => Some(Self::InstallRequired),
             "APP_STORAGE_STATE_REPAIR_REQUIRED" => Some(Self::RepairRequired),
             "APP_STORAGE_STATE_STORAGE_UNAVAILABLE" => Some(Self::StorageUnavailable),
-            _ => None,
-        }
-    }
-}
-/// AppPackageReadinessState is the frozen package-readiness vocabulary. 0K
-/// emits only BLOCKED with LOCAL_APP_OPERATION_UNAVAILABLE and never reads an
-/// active release pointer or install evidence.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppPackageReadinessState {
-    Unspecified = 0,
-    Ready = 1,
-    InstallRequired = 2,
-    UpdateRequired = 3,
-    RepairRequired = 4,
-    Blocked = 5,
-}
-impl AppPackageReadinessState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_PACKAGE_READINESS_STATE_UNSPECIFIED",
-            Self::Ready => "APP_PACKAGE_READINESS_STATE_READY",
-            Self::InstallRequired => "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED",
-            Self::UpdateRequired => "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED",
-            Self::RepairRequired => "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED",
-            Self::Blocked => "APP_PACKAGE_READINESS_STATE_BLOCKED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_PACKAGE_READINESS_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_PACKAGE_READINESS_STATE_READY" => Some(Self::Ready),
-            "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED" => Some(Self::InstallRequired),
-            "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED" => Some(Self::UpdateRequired),
-            "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED" => Some(Self::RepairRequired),
-            "APP_PACKAGE_READINESS_STATE_BLOCKED" => Some(Self::Blocked),
-            _ => None,
-        }
-    }
-}
-/// AccountAppInventoryState is the account-side authority for an app row. It is
-/// not derived from local install evidence: a verified/entitled app may be
-/// visible before any package is installed or adopted on this machine.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AccountAppInventoryState {
-    Unspecified = 0,
-    Verified = 1,
-    Entitled = 2,
-    Disabled = 3,
-    Removed = 4,
-    Revoked = 5,
-}
-impl AccountAppInventoryState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED",
-            Self::Verified => "ACCOUNT_APP_INVENTORY_STATE_VERIFIED",
-            Self::Entitled => "ACCOUNT_APP_INVENTORY_STATE_ENTITLED",
-            Self::Disabled => "ACCOUNT_APP_INVENTORY_STATE_DISABLED",
-            Self::Removed => "ACCOUNT_APP_INVENTORY_STATE_REMOVED",
-            Self::Revoked => "ACCOUNT_APP_INVENTORY_STATE_REVOKED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "ACCOUNT_APP_INVENTORY_STATE_VERIFIED" => Some(Self::Verified),
-            "ACCOUNT_APP_INVENTORY_STATE_ENTITLED" => Some(Self::Entitled),
-            "ACCOUNT_APP_INVENTORY_STATE_DISABLED" => Some(Self::Disabled),
-            "ACCOUNT_APP_INVENTORY_STATE_REMOVED" => Some(Self::Removed),
-            "ACCOUNT_APP_INVENTORY_STATE_REVOKED" => Some(Self::Revoked),
-            _ => None,
-        }
-    }
-}
-/// AccountAppInstallState is a frozen future local-materialization overlay.
-/// Runtime has no positive materialization writer in 0K and never derives
-/// entitlement from this field.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AccountAppInstallState {
-    Unspecified = 0,
-    NotInstalled = 1,
-    Installed = 2,
-    Removed = 4,
-}
-impl AccountAppInstallState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED",
-            Self::NotInstalled => "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED",
-            Self::Installed => "ACCOUNT_APP_INSTALL_STATE_INSTALLED",
-            Self::Removed => "ACCOUNT_APP_INSTALL_STATE_REMOVED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED" => Some(Self::NotInstalled),
-            "ACCOUNT_APP_INSTALL_STATE_INSTALLED" => Some(Self::Installed),
-            "ACCOUNT_APP_INSTALL_STATE_REMOVED" => Some(Self::Removed),
             _ => None,
         }
     }
@@ -14831,118 +13066,6 @@ pub mod runtime_app_service_client {
                 );
             self.inner.server_streaming(req, path, codec).await
         }
-        pub async fn prepare_app_lifecycle_intent(
-            &mut self,
-            request: impl tonic::IntoRequest<super::PrepareAppLifecycleIntentRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::PrepareAppLifecycleIntentResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "PrepareAppLifecycleIntent",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_app_lifecycle_intent_status(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetAppLifecycleIntentStatusRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAppLifecycleIntentStatusResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "GetAppLifecycleIntentStatus",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Frozen immutable-package seam. Mutation/job methods below are deny-all in
-        /// 0K; GetAppPackageReadiness is callable only for typed unavailable.
-        pub async fn install_app(
-            &mut self,
-            request: impl tonic::IntoRequest<super::InstallAppRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::InstallAppResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/InstallApp",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "InstallApp"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn uninstall_app(
-            &mut self,
-            request: impl tonic::IntoRequest<super::UninstallAppRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::UninstallAppResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "UninstallApp"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
         pub async fn get_app_storage(
             &mut self,
             request: impl tonic::IntoRequest<super::GetAppStorageRequest>,
@@ -15052,207 +13175,6 @@ pub mod runtime_app_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppService",
                         "RemoveLocalAppStorageJson",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_account_app_inventory(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetAccountAppInventoryRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAccountAppInventoryResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "GetAccountAppInventory",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_app_package_readiness(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetAppPackageReadinessRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAppPackageReadinessResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "GetAppPackageReadiness",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_app_install_job(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetAppInstallJobRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAppInstallJobResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "GetAppInstallJob",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_app_install_jobs(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListAppInstallJobsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListAppInstallJobsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "ListAppInstallJobs",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn watch_app_install_job_events(
-            &mut self,
-            request: impl tonic::IntoRequest<super::WatchAppInstallJobEventsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::AppInstallJobEvent>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "WatchAppInstallJobEvents",
-                    ),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
-        /// Frozen immutable update/repair seam; deny-all in 0K.
-        pub async fn update_app(
-            &mut self,
-            request: impl tonic::IntoRequest<super::UpdateAppRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::UpdateAppResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "UpdateApp"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn health_repair_app(
-            &mut self,
-            request: impl tonic::IntoRequest<super::HealthRepairAppRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::HealthRepairAppResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "HealthRepairApp",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -15548,8 +13470,6 @@ pub struct GetRuntimeHealthResponse {
     pub reason: ::prost::alloc::string::String,
     #[prost(int32, tag = "3")]
     pub queue_depth: i32,
-    #[prost(int32, tag = "4")]
-    pub active_workflows: i32,
     #[prost(int32, tag = "5")]
     pub active_inference_jobs: i32,
     #[prost(int64, tag = "6")]
@@ -15573,8 +13493,6 @@ pub struct RuntimeHealthEvent {
     pub reason: ::prost::alloc::string::String,
     #[prost(int32, tag = "4")]
     pub queue_depth: i32,
-    #[prost(int32, tag = "5")]
-    pub active_workflows: i32,
     #[prost(int32, tag = "6")]
     pub active_inference_jobs: i32,
     #[prost(int64, tag = "7")]
@@ -16978,15 +14896,8 @@ pub struct DelegatedToolAllowlistEntry {
     pub tool_name: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub input_schema_digest: ::prost::alloc::string::String,
-    /// K-DELEG-006 capability-descriptor classification declared at profile
-    /// registration. effect_class is required on write (upsert fails closed on
-    /// UNSPECIFIED); records persisted before this field derive as UNSPECIFIED
-    /// and force approval-required handling instead of silently passing.
     #[prost(enumeration = "EffectClass", tag = "3")]
     pub effect_class: i32,
-    /// Expected sensitivity of the capability's output (K-DELEG-068). Optional
-    /// on write; UNSPECIFIED derives conservatively as UNKNOWN_SENSITIVE for
-    /// approval-requirement purposes.
     #[prost(enumeration = "SensitivityClass", tag = "4")]
     pub expected_sensitivity_class: i32,
 }
@@ -17018,10 +14929,6 @@ pub struct DelegatedProviderProfile {
     pub trust_tier: i32,
     #[prost(string, tag = "13")]
     pub lifecycle_reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "14")]
-    pub command: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "15")]
-    pub args: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DelegatedControlSurfaceSnapshot {
@@ -17051,38 +14958,6 @@ pub struct ListDelegatedProviderProfilesRequest {
 pub struct ListDelegatedProviderProfilesResponse {
     #[prost(message, repeated, tag = "1")]
     pub provider_profiles: ::prost::alloc::vec::Vec<DelegatedProviderProfile>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpsertDelegatedProviderProfileRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub provider_profile: ::core::option::Option<DelegatedProviderProfile>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpsertDelegatedProviderProfileResponse {
-    #[prost(message, optional, tag = "1")]
-    pub provider_profile: ::core::option::Option<DelegatedProviderProfile>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SetDelegatedProviderStateRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub provider_profile_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "DelegatedProviderState", tag = "4")]
-    pub state: i32,
-    #[prost(string, tag = "5")]
-    pub lifecycle_reason_code: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SetDelegatedProviderStateResponse {
-    #[prost(message, optional, tag = "1")]
-    pub provider_profile: ::core::option::Option<DelegatedProviderProfile>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DelegatedApprovalRequest {
@@ -17282,73 +15157,10 @@ pub struct GetDelegatedControlSurfaceSnapshotResponse {
     #[prost(message, optional, tag = "1")]
     pub snapshot: ::core::option::Option<DelegatedControlSurfaceSnapshot>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ExecuteDelegatedCapabilityRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub request_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub provider_profile_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub capability_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub tool_name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "10")]
-    pub arguments: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, tag = "11")]
-    pub descriptor_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub protocol_revision: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub output_kind: ::prost::alloc::string::String,
-    #[prost(bool, tag = "14")]
-    pub requires_approval: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ExecuteDelegatedCapabilityResponse {
-    #[prost(message, optional, tag = "1")]
-    pub diagnostic: ::core::option::Option<DelegatedDiagnostic>,
-    #[prost(message, optional, tag = "2")]
-    pub replay_trace: ::core::option::Option<DelegatedReplayTrace>,
-    #[prost(message, optional, tag = "3")]
-    pub model_output: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "4")]
-    pub approval_request: ::core::option::Option<DelegatedApprovalRequest>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ResumeDelegatedCapabilityRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub approval_request_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ResumeDelegatedCapabilityResponse {
-    #[prost(message, optional, tag = "1")]
-    pub diagnostic: ::core::option::Option<DelegatedDiagnostic>,
-    #[prost(message, optional, tag = "2")]
-    pub replay_trace: ::core::option::Option<DelegatedReplayTrace>,
-    #[prost(message, optional, tag = "3")]
-    pub model_output: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "4")]
-    pub approval_request: ::core::option::Option<DelegatedApprovalRequest>,
-}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum DelegatedProviderKind {
     Unspecified = 0,
-    McpToolProvider = 1,
     RemoteAgentSeam = 2,
     RuntimeNativeProvider = 3,
     ControlledTestProvider = 4,
@@ -17361,7 +15173,6 @@ impl DelegatedProviderKind {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "DELEGATED_PROVIDER_KIND_UNSPECIFIED",
-            Self::McpToolProvider => "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER",
             Self::RemoteAgentSeam => "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM",
             Self::RuntimeNativeProvider => {
                 "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER"
@@ -17375,7 +15186,6 @@ impl DelegatedProviderKind {
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "DELEGATED_PROVIDER_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER" => Some(Self::McpToolProvider),
             "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM" => Some(Self::RemoteAgentSeam),
             "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER" => {
                 Some(Self::RuntimeNativeProvider)
@@ -17476,7 +15286,6 @@ impl DelegatedProviderState {
 #[repr(i32)]
 pub enum DelegatedTransportKind {
     Unspecified = 0,
-    StdioCommand = 1,
 }
 impl DelegatedTransportKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -17486,14 +15295,12 @@ impl DelegatedTransportKind {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "DELEGATED_TRANSPORT_KIND_UNSPECIFIED",
-            Self::StdioCommand => "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "DELEGATED_TRANSPORT_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND" => Some(Self::StdioCommand),
             _ => None,
         }
     }
@@ -17619,9 +15426,8 @@ impl DelegatedApprovalDecision {
         }
     }
 }
-/// EffectClass enumerates the K-DELEG-007 effect classification consumed by the
-/// K-DELEG-091 approval request. Values mirror the effect_classes table in
-/// delegation-provider-profiles.yaml (source_rule K-DELEG-007).
+/// EffectClass enumerates the approval-gating classification owned by
+/// rule.nimi.runtime.delegation.r007.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum EffectClass {
@@ -18364,7 +16170,6 @@ pub enum ParticipationIdentitySource {
     Unspecified = 0,
     UserOwnedNimiAgent = 1,
     ExternalA2aAgent = 2,
-    McpBackedAiCapability = 3,
     SandboxProjection = 4,
     NpcWorldActor = 5,
 }
@@ -18380,9 +16185,6 @@ impl ParticipationIdentitySource {
                 "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT"
             }
             Self::ExternalA2aAgent => "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT",
-            Self::McpBackedAiCapability => {
-                "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY"
-            }
             Self::SandboxProjection => "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION",
             Self::NpcWorldActor => "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR",
         }
@@ -18396,9 +16198,6 @@ impl ParticipationIdentitySource {
             }
             "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT" => {
                 Some(Self::ExternalA2aAgent)
-            }
-            "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY" => {
-                Some(Self::McpBackedAiCapability)
             }
             "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION" => {
                 Some(Self::SandboxProjection)
@@ -18925,13 +16724,12 @@ impl ParticipationVerdictDecision {
     }
 }
 /// External payload protocol family for external_agent_entry context.
-/// Closed to the two admitted identity-source protocol families
-/// (K-AGCORE-065, K-AGCORE-079); K-DELEG remains reference-only boundary.
+/// Reserved for a future owner-admitted external-entry protocol family
+/// (K-AGCORE-065, K-AGCORE-079); K-DELEG remains a reference-only boundary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ParticipationExternalProtocolKind {
     Unspecified = 0,
-    Mcp = 1,
     A2a = 2,
 }
 impl ParticipationExternalProtocolKind {
@@ -18942,7 +16740,6 @@ impl ParticipationExternalProtocolKind {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED",
-            Self::Mcp => "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP",
             Self::A2a => "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A",
         }
     }
@@ -18950,7 +16747,6 @@ impl ParticipationExternalProtocolKind {
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP" => Some(Self::Mcp),
             "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A" => Some(Self::A2a),
             _ => None,
         }
@@ -24187,66 +21983,6 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn upsert_delegated_provider_profile(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::UpsertDelegatedProviderProfileRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::UpsertDelegatedProviderProfileResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "UpsertDelegatedProviderProfile",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn set_delegated_provider_state(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SetDelegatedProviderStateRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::SetDelegatedProviderStateResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "SetDelegatedProviderState",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
         pub async fn list_delegated_approval_requests(
             &mut self,
             request: impl tonic::IntoRequest<super::ListDelegatedApprovalRequestsRequest>,
@@ -24392,64 +22128,6 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "GetDelegatedControlSurfaceSnapshot",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn execute_delegated_capability(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ExecuteDelegatedCapabilityRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ExecuteDelegatedCapabilityResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "ExecuteDelegatedCapability",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn resume_delegated_capability(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ResumeDelegatedCapabilityRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ResumeDelegatedCapabilityResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "ResumeDelegatedCapability",
                     ),
                 );
             self.inner.unary(req, path, codec).await

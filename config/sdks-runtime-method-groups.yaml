@@ -360,32 +360,19 @@ groups:
       - SendAppMessage
       - SubscribeAppMessages
     source_rule: S-SURFACE-002
-  - group: app_lifecycle_service_projection
+  - group: app_storage_and_local_development_projection
     service: RuntimeAppService
     phase: 1
     status: active
     note: >
-      App account inventory, principal-keyed storage, typed-unavailable opaque
-      package seams, and protected local-app launch preparation are Runtime-owned
-      lifecycle surfaces. App message operations remain in
-      app_service_projection because they carry the app-message bus semantics.
+      Principal-keyed storage and protected local-development launch preparation
+      are current Runtime-owned surfaces. Ordinary lifecycle, account inventory,
+      package readiness, jobs, update, and repair are deferred and absent.
     source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
-      - GetAccountAppInventory
       - GetAppStorage
-      - GetAppPackageReadiness
       - PrepareLocalAppLaunch
       - BindLocalAppProcess
-    excluded_methods:
-      - { method: PrepareAppLifecycleIntent, authority_status: typed_unavailable_0k_no_sdk_export }
-      - { method: GetAppLifecycleIntentStatus, authority_status: typed_unavailable_0k_no_sdk_export }
-      - { method: InstallApp, authority_status: typed_unavailable_0k_no_sdk_export }
-      - { method: UninstallApp, authority_status: typed_unavailable_0k_no_sdk_export }
-      - { method: GetAppInstallJob, authority_status: typed_unavailable_0k_no_sdk_export }
-      - { method: ListAppInstallJobs, authority_status: typed_unavailable_0k_no_sdk_export }
-      - { method: WatchAppInstallJobEvents, authority_status: typed_unavailable_0k_no_sdk_export }
-      - { method: UpdateApp, authority_status: typed_unavailable_0k_no_sdk_export }
-      - { method: HealthRepairApp, authority_status: typed_unavailable_0k_no_sdk_export }
     source_rule: S-SURFACE-002
   - group: artifact_service_projection
     service: RuntimeArtifactService

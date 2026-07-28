@@ -20,14 +20,11 @@ import type {
   CoreStreamRequest,
   CoreUnaryRequest,
 } from '../types';
-import { createNimiRuntimeAppLifecycleClient, type NimiRuntimeAppLifecycleClient } from './app-lifecycle';
 import { createRuntimeElectronIpcTransport, type RuntimeElectronIpcTransportOptions } from './electron-ipc';
 import {
   RUNTIME_ACCOUNT_METHODS,
   RUNTIME_AGENT_METHODS,
   RUNTIME_AI_METHODS,
-  RUNTIME_APP_LIFECYCLE_METHODS,
-  RUNTIME_APP_LIFECYCLE_METHOD_SET,
   RUNTIME_APP_MESSAGE_METHODS,
   RUNTIME_ARTIFACT_METHODS,
   RUNTIME_AUDIT_METHODS,
@@ -40,7 +37,6 @@ import {
   RUNTIME_REALTIME_METHODS,
   RUNTIME_ROOT_AGENT_FACADE_METHODS,
   RUNTIME_SCHEDULING_METHODS,
-  type NimiRuntimeAppLifecycleGeneratedModule,
   type RuntimeAccountModule,
   type RuntimeAgentModule,
   type RuntimeAiModule,
@@ -74,7 +70,6 @@ export {
   RUNTIME_ACCOUNT_METHODS,
   RUNTIME_AGENT_METHODS,
   RUNTIME_AI_METHODS,
-  RUNTIME_APP_LIFECYCLE_METHODS,
   RUNTIME_APP_MESSAGE_METHODS,
   RUNTIME_ARTIFACT_METHODS,
   RUNTIME_AUDIT_METHODS,
@@ -89,7 +84,6 @@ export {
   RUNTIME_SCHEDULING_METHODS,
 } from './runtime-method-modules';
 export type {
-  NimiRuntimeAppLifecycleGeneratedModule,
   RuntimeAccountModule,
   RuntimeAgentModule,
   RuntimeAiModule,
@@ -131,8 +125,6 @@ export type {
 export * from './account-caller';
 export * from './bundled-avatar-runtime';
 export * from './desktop-first-party-runtime';
-export * from './app-lifecycle';
-export * from './app-storage';
 export * from './app-session';
 export * from './agent-local-identity';
 export * from './audit-projections';
@@ -377,7 +369,6 @@ export class Runtime {
   readonly memory: RuntimeMemoryModule;
   readonly local: RuntimeLocalModule;
   readonly appMessages: RuntimeAppMessageModule;
-  readonly appLifecycle: NimiRuntimeAppLifecycleClient;
   readonly artifacts: RuntimeArtifactModule;
   #runtimeVersion: string | null = null;
   #versionCompatibility: RuntimeVersionCompatibilityStatus = UNKNOWN_RUNTIME_VERSION_COMPATIBILITY;
@@ -405,9 +396,6 @@ export class Runtime {
     this.memory = bindRuntimeModule(generated, RUNTIME_MEMORY_METHODS);
     this.local = bindRuntimeModule(generated, RUNTIME_LOCAL_METHODS);
     this.appMessages = bindRuntimeModule(generated, RUNTIME_APP_MESSAGE_METHODS);
-    this.appLifecycle = createNimiRuntimeAppLifecycleClient({
-      client: bindRuntimeModule(generated, RUNTIME_APP_LIFECYCLE_METHODS),
-    });
     this.artifacts = bindRuntimeModule(this.generated, RUNTIME_ARTIFACT_METHODS);
   }
 
@@ -551,17 +539,6 @@ function createPublicRuntimeGeneratedClient(
       continue;
     }
     if (property === 'materializeRealmSource') {
-      continue;
-    }
-    if (RUNTIME_APP_LIFECYCLE_METHOD_SET.has(property)) {
-      publicClient[property] = async () => {
-        throw createNimiError({
-          message: `Runtime App lifecycle operation ${property} must run through NimiRuntimeAppLifecycleClient.`,
-          reasonCode: 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
-          actionHint: 'use_runtime_app_lifecycle_client',
-          source: 'sdk',
-        });
-      };
       continue;
     }
     if (RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS.has(property)) {

@@ -29,18 +29,16 @@ describe('renderer platform projection bridge', () => {
     await withElectronInvoke(async (command, payload) => {
       calls.push({ command, payload });
       return {
-        projectionId: 'apps-bridge',
+        projectionId: 'factory-profile-index',
         record: {
-          registryRows: [],
-          releaseDescriptors: [],
+          profiles: [],
         },
       };
     }, async () => {
-      await expect(getShellPlatformProjection({ projectionId: 'apps-bridge' })).resolves.toEqual({
-        projectionId: 'apps-bridge',
+      await expect(getShellPlatformProjection({ projectionId: 'factory-profile-index' })).resolves.toEqual({
+        projectionId: 'factory-profile-index',
         record: {
-          registryRows: [],
-          releaseDescriptors: [],
+          profiles: [],
         },
       });
     });
@@ -48,7 +46,7 @@ describe('renderer platform projection bridge', () => {
     expect(calls).toEqual([
       {
         command: NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
-        payload: { payload: { projectionId: 'apps-bridge' } },
+        payload: { payload: { projectionId: 'factory-profile-index' } },
       },
     ]);
   });

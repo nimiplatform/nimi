@@ -157,27 +157,6 @@ const (
 	ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE ReasonCode = 550
 	ReasonCode_APP_MESSAGE_RATE_LIMITED      ReasonCode = 551
 	ReasonCode_APP_MESSAGE_LOOP_DETECTED     ReasonCode = 552
-	// APP_INSTALL family (553+) — Nimi App install/uninstall lifecycle
-	// fail-closed reasons. Each reason is distinct and is never collapsed
-	// into a generic value.
-	ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND ReasonCode = 553
-	ReasonCode_APP_INSTALL_DIGEST_MISMATCH      ReasonCode = 554
-	ReasonCode_APP_INSTALL_MANIFEST_INVALID     ReasonCode = 555
-	ReasonCode_APP_INSTALL_STORAGE_VIOLATION    ReasonCode = 556
-	ReasonCode_APP_INSTALL_DOWNLOAD_FAILED      ReasonCode = 557
-	ReasonCode_APP_INSTALL_UNPACK_FAILED        ReasonCode = 558
-	ReasonCode_APP_INSTALL_INTERNAL             ReasonCode = 559
-	// APP_UPDATE / APP_REPAIR family (590+) — Nimi App update + health/repair
-	// lifecycle fail-closed reasons. Each reason is distinct and is never
-	// collapsed into a generic value (K-APP-015 / K-APP-016).
-	ReasonCode_APP_UPDATE_NOT_AVAILABLE         ReasonCode = 590
-	ReasonCode_APP_UPDATE_NOT_INSTALLED         ReasonCode = 591
-	ReasonCode_APP_UPDATE_CONFIRMATION_REQUIRED ReasonCode = 592
-	ReasonCode_APP_UPDATE_SWAP_FAILED           ReasonCode = 593
-	ReasonCode_APP_REPAIR_ACTION_INVALID        ReasonCode = 594
-	ReasonCode_APP_REPAIR_NO_RECOVERABLE_JOB    ReasonCode = 595
-	ReasonCode_APP_REPAIR_NOT_REPAIRABLE        ReasonCode = 596
-	ReasonCode_APP_LIFECYCLE_JOB_CANCELLED      ReasonCode = 597
 	// LOCAL_SPEECH family (560+)
 	ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED              ReasonCode = 560
 	ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED ReasonCode = 561
@@ -247,8 +226,8 @@ const (
 	// Runtime-owned presentation truth (K-AGCORE-023a).
 	ReasonCode_AGENT_PRESENTATION_REVISION_CONFLICT ReasonCode = 614
 	// PROTECTED_LOCAL family (620+). These values are shared by protected
-	// transport, verified Desktop origin, the anchored lifecycle-intent ledger,
-	// and their sanitized fail-closed projections (K-PLOCAL-001..007/K-APP-026).
+	// transport, verified Desktop origin, and their sanitized fail-closed
+	// projections (K-PLOCAL-001..007).
 	ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED                ReasonCode = 620
 	ReasonCode_PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED            ReasonCode = 621
 	ReasonCode_PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED           ReasonCode = 622
@@ -267,10 +246,6 @@ const (
 	ReasonCode_PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE         ReasonCode = 635
 	ReasonCode_PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN ReasonCode = 636
 	ReasonCode_RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID              ReasonCode = 637
-	ReasonCode_LIFECYCLE_INTENT_REQUIRED                            ReasonCode = 638
-	ReasonCode_LIFECYCLE_INTENT_MISMATCH                            ReasonCode = 639
-	ReasonCode_LIFECYCLE_INTENT_REPLAY                              ReasonCode = 640
-	ReasonCode_LIFECYCLE_INTENT_EXPIRED                             ReasonCode = 641
 	// LOCAL_APP family (642+). The third-party principal/record/session and
 	// product-permission evaluator uses one provenance-agnostic reason vocabulary.
 	ReasonCode_LOCAL_APP_PRINCIPAL_REQUIRED       ReasonCode = 642
@@ -416,21 +391,6 @@ var (
 		550: "APP_MESSAGE_PAYLOAD_TOO_LARGE",
 		551: "APP_MESSAGE_RATE_LIMITED",
 		552: "APP_MESSAGE_LOOP_DETECTED",
-		553: "APP_INSTALL_DESCRIPTOR_NOT_FOUND",
-		554: "APP_INSTALL_DIGEST_MISMATCH",
-		555: "APP_INSTALL_MANIFEST_INVALID",
-		556: "APP_INSTALL_STORAGE_VIOLATION",
-		557: "APP_INSTALL_DOWNLOAD_FAILED",
-		558: "APP_INSTALL_UNPACK_FAILED",
-		559: "APP_INSTALL_INTERNAL",
-		590: "APP_UPDATE_NOT_AVAILABLE",
-		591: "APP_UPDATE_NOT_INSTALLED",
-		592: "APP_UPDATE_CONFIRMATION_REQUIRED",
-		593: "APP_UPDATE_SWAP_FAILED",
-		594: "APP_REPAIR_ACTION_INVALID",
-		595: "APP_REPAIR_NO_RECOVERABLE_JOB",
-		596: "APP_REPAIR_NOT_REPAIRABLE",
-		597: "APP_LIFECYCLE_JOB_CANCELLED",
 		560: "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED",
 		561: "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED",
 		562: "AI_LOCAL_SPEECH_ENV_INIT_FAILED",
@@ -504,10 +464,6 @@ var (
 		635: "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE",
 		636: "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN",
 		637: "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID",
-		638: "LIFECYCLE_INTENT_REQUIRED",
-		639: "LIFECYCLE_INTENT_MISMATCH",
-		640: "LIFECYCLE_INTENT_REPLAY",
-		641: "LIFECYCLE_INTENT_EXPIRED",
 		642: "LOCAL_APP_PRINCIPAL_REQUIRED",
 		643: "LOCAL_APP_RECORD_NOT_FOUND",
 		644: "LOCAL_APP_RECORD_TOMBSTONED",
@@ -647,21 +603,6 @@ var (
 		"APP_MESSAGE_PAYLOAD_TOO_LARGE":                        550,
 		"APP_MESSAGE_RATE_LIMITED":                             551,
 		"APP_MESSAGE_LOOP_DETECTED":                            552,
-		"APP_INSTALL_DESCRIPTOR_NOT_FOUND":                     553,
-		"APP_INSTALL_DIGEST_MISMATCH":                          554,
-		"APP_INSTALL_MANIFEST_INVALID":                         555,
-		"APP_INSTALL_STORAGE_VIOLATION":                        556,
-		"APP_INSTALL_DOWNLOAD_FAILED":                          557,
-		"APP_INSTALL_UNPACK_FAILED":                            558,
-		"APP_INSTALL_INTERNAL":                                 559,
-		"APP_UPDATE_NOT_AVAILABLE":                             590,
-		"APP_UPDATE_NOT_INSTALLED":                             591,
-		"APP_UPDATE_CONFIRMATION_REQUIRED":                     592,
-		"APP_UPDATE_SWAP_FAILED":                               593,
-		"APP_REPAIR_ACTION_INVALID":                            594,
-		"APP_REPAIR_NO_RECOVERABLE_JOB":                        595,
-		"APP_REPAIR_NOT_REPAIRABLE":                            596,
-		"APP_LIFECYCLE_JOB_CANCELLED":                          597,
 		"AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED":                    560,
 		"AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED":       561,
 		"AI_LOCAL_SPEECH_ENV_INIT_FAILED":                      562,
@@ -735,10 +676,6 @@ var (
 		"PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE":         635,
 		"PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN": 636,
 		"RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID":              637,
-		"LIFECYCLE_INTENT_REQUIRED":                            638,
-		"LIFECYCLE_INTENT_MISMATCH":                            639,
-		"LIFECYCLE_INTENT_REPLAY":                              640,
-		"LIFECYCLE_INTENT_EXPIRED":                             641,
 		"LOCAL_APP_PRINCIPAL_REQUIRED":                         642,
 		"LOCAL_APP_RECORD_NOT_FOUND":                           643,
 		"LOCAL_APP_RECORD_TOMBSTONED":                          644,
@@ -1473,7 +1410,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xb3>\n" +
+	"actionHint*\xec=\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1587,22 +1524,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x11APP_SCOPE_REVOKED\x10\xf8\x03\x12\"\n" +
 	"\x1dAPP_MESSAGE_PAYLOAD_TOO_LARGE\x10\xa6\x04\x12\x1d\n" +
 	"\x18APP_MESSAGE_RATE_LIMITED\x10\xa7\x04\x12\x1e\n" +
-	"\x19APP_MESSAGE_LOOP_DETECTED\x10\xa8\x04\x12%\n" +
-	" APP_INSTALL_DESCRIPTOR_NOT_FOUND\x10\xa9\x04\x12 \n" +
-	"\x1bAPP_INSTALL_DIGEST_MISMATCH\x10\xaa\x04\x12!\n" +
-	"\x1cAPP_INSTALL_MANIFEST_INVALID\x10\xab\x04\x12\"\n" +
-	"\x1dAPP_INSTALL_STORAGE_VIOLATION\x10\xac\x04\x12 \n" +
-	"\x1bAPP_INSTALL_DOWNLOAD_FAILED\x10\xad\x04\x12\x1e\n" +
-	"\x19APP_INSTALL_UNPACK_FAILED\x10\xae\x04\x12\x19\n" +
-	"\x14APP_INSTALL_INTERNAL\x10\xaf\x04\x12\x1d\n" +
-	"\x18APP_UPDATE_NOT_AVAILABLE\x10\xce\x04\x12\x1d\n" +
-	"\x18APP_UPDATE_NOT_INSTALLED\x10\xcf\x04\x12%\n" +
-	" APP_UPDATE_CONFIRMATION_REQUIRED\x10\xd0\x04\x12\x1b\n" +
-	"\x16APP_UPDATE_SWAP_FAILED\x10\xd1\x04\x12\x1e\n" +
-	"\x19APP_REPAIR_ACTION_INVALID\x10\xd2\x04\x12\"\n" +
-	"\x1dAPP_REPAIR_NO_RECOVERABLE_JOB\x10\xd3\x04\x12\x1e\n" +
-	"\x19APP_REPAIR_NOT_REPAIRABLE\x10\xd4\x04\x12 \n" +
-	"\x1bAPP_LIFECYCLE_JOB_CANCELLED\x10\xd5\x04\x12&\n" +
+	"\x19APP_MESSAGE_LOOP_DETECTED\x10\xa8\x04\x12&\n" +
 	"!AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED\x10\xb0\x04\x123\n" +
 	".AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED\x10\xb1\x04\x12$\n" +
 	"\x1fAI_LOCAL_SPEECH_ENV_INIT_FAILED\x10\xb2\x04\x12%\n" +
@@ -1675,11 +1597,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"*PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED\x10\xfa\x04\x121\n" +
 	",PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE\x10\xfb\x04\x129\n" +
 	"4PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN\x10\xfc\x04\x12,\n" +
-	"'RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID\x10\xfd\x04\x12\x1e\n" +
-	"\x19LIFECYCLE_INTENT_REQUIRED\x10\xfe\x04\x12\x1e\n" +
-	"\x19LIFECYCLE_INTENT_MISMATCH\x10\xff\x04\x12\x1c\n" +
-	"\x17LIFECYCLE_INTENT_REPLAY\x10\x80\x05\x12\x1d\n" +
-	"\x18LIFECYCLE_INTENT_EXPIRED\x10\x81\x05\x12!\n" +
+	"'RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID\x10\xfd\x04\x12!\n" +
 	"\x1cLOCAL_APP_PRINCIPAL_REQUIRED\x10\x82\x05\x12\x1f\n" +
 	"\x1aLOCAL_APP_RECORD_NOT_FOUND\x10\x83\x05\x12 \n" +
 	"\x1bLOCAL_APP_RECORD_TOMBSTONED\x10\x84\x05\x12%\n" +
@@ -1704,8 +1622,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x12REALM_RATE_LIMITED\x10\x98\x05\x12\x1b\n" +
 	"\x16REALM_REQUEST_REJECTED\x10\x99\x05\x12\x1b\n" +
 	"\x16REALM_CONTRACT_INVALID\x10\x9a\x05\x12\x1b\n" +
-	"\x16REALM_OPERATION_FAILED\x10\x9b\x05\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
-	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\xa9\x01\n" +
+	"\x16REALM_OPERATION_FAILED\x10\x9b\x05\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
+	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND* APP_INSTALL_DESCRIPTOR_NOT_FOUND*\x1bAPP_INSTALL_DIGEST_MISMATCH*\x1cAPP_INSTALL_MANIFEST_INVALID*\x1dAPP_INSTALL_STORAGE_VIOLATION*\x1bAPP_INSTALL_DOWNLOAD_FAILED*\x19APP_INSTALL_UNPACK_FAILED*\x14APP_INSTALL_INTERNAL*\x18APP_UPDATE_NOT_AVAILABLE*\x18APP_UPDATE_NOT_INSTALLED* APP_UPDATE_CONFIRMATION_REQUIRED*\x16APP_UPDATE_SWAP_FAILED*\x19APP_REPAIR_ACTION_INVALID*\x1dAPP_REPAIR_NO_RECOVERABLE_JOB*\x19APP_REPAIR_NOT_REPAIRABLE*\x1bAPP_LIFECYCLE_JOB_CANCELLED*\x19LIFECYCLE_INTENT_REQUIRED*\x19LIFECYCLE_INTENT_MISMATCH*\x17LIFECYCLE_INTENT_REPLAY*\x18LIFECYCLE_INTENT_EXPIRED*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

@@ -546,7 +546,6 @@
     "sampled": "Sampled",
     "live": "Live",
     "off": "Off",
-    "workflows": "Workflows",
     "cpu": "CPU",
     "ram": "RAM",
     "runtime_service_unavailableMessage": "The independently installed Runtime service is not running or cannot be reached through its protected carrier.",

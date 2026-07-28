@@ -247,31 +247,6 @@ export const RUNTIME_APP_MESSAGE_METHODS = [
   'subscribeAppMessages',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
-export const RUNTIME_APP_LIFECYCLE_METHODS = [
-  'getAccountAppInventory',
-  'getAppStorage',
-  'getAppPackageReadiness',
-] as const satisfies readonly RuntimeTypedMethodName[];
-
-const RUNTIME_BLOCKED_APP_LIFECYCLE_METHODS = [
-  'prepareAppLifecycleIntent',
-  'getAppLifecycleIntentStatus',
-  'installApp',
-  'uninstallApp',
-  'getAppInstallJob',
-  'listAppInstallJobs',
-  'watchAppInstallJobEvents',
-  'updateApp',
-  'healthRepairApp',
-  'prepareLocalAppLaunch',
-  'bindLocalAppProcess',
-] as const satisfies readonly RuntimeTypedMethodName[];
-
-export const RUNTIME_APP_LIFECYCLE_METHOD_SET = new Set<string>([
-  ...RUNTIME_APP_LIFECYCLE_METHODS,
-  ...RUNTIME_BLOCKED_APP_LIFECYCLE_METHODS,
-]);
-
 export const RUNTIME_ARTIFACT_METHODS = [
   'readArtifactBytes',
   'cleanupGeneratedVoiceArtifacts',
@@ -290,5 +265,4 @@ export type RuntimeKnowledgeModule = RuntimeMethodModule<typeof RUNTIME_KNOWLEDG
 export type RuntimeMemoryModule = RuntimeMethodModule<typeof RUNTIME_MEMORY_METHODS>;
 export type RuntimeLocalModule = RuntimeMethodModule<typeof RUNTIME_LOCAL_METHODS>;
 export type RuntimeAppMessageModule = RuntimeMethodModule<typeof RUNTIME_APP_MESSAGE_METHODS>;
-export type NimiRuntimeAppLifecycleGeneratedModule = RuntimeMethodModule<typeof RUNTIME_APP_LIFECYCLE_METHODS>;
 export type RuntimeArtifactModule = RuntimeMethodModule<typeof RUNTIME_ARTIFACT_METHODS>;

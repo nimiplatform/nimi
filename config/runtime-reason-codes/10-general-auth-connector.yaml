@@ -166,22 +166,6 @@ codes:
     value: 637
     family: PROTECTED_LOCAL
     source_rule: K-PLOCAL-005
-  - name: LIFECYCLE_INTENT_REQUIRED
-    value: 638
-    family: PROTECTED_LOCAL
-    source_rule: K-APP-026
-  - name: LIFECYCLE_INTENT_MISMATCH
-    value: 639
-    family: PROTECTED_LOCAL
-    source_rule: K-APP-026
-  - name: LIFECYCLE_INTENT_REPLAY
-    value: 640
-    family: PROTECTED_LOCAL
-    source_rule: K-APP-026
-  - name: LIFECYCLE_INTENT_EXPIRED
-    value: 641
-    family: PROTECTED_LOCAL
-    source_rule: K-APP-026
   - { name: LOCAL_APP_PRINCIPAL_REQUIRED, value: 642, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_RECORD_NOT_FOUND, value: 643, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_RECORD_TOMBSTONED, value: 644, family: LOCAL_APP, source_rule: K-ERR-012 }

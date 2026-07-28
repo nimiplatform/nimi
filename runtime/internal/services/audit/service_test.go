@@ -125,7 +125,7 @@ func TestSubscribeAIProviderHealthEvents(t *testing.T) {
 func TestGetRuntimeHealthContract(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
-	state.SetActivity(3, 1, 2)
+	state.SetActivity(3, 2)
 	state.SetResource(123, 456, 789)
 
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
@@ -136,8 +136,8 @@ func TestGetRuntimeHealthContract(t *testing.T) {
 	if resp.GetStatus() != runtimev1.RuntimeHealthStatus_RUNTIME_HEALTH_STATUS_READY {
 		t.Fatalf("unexpected status: %v", resp.GetStatus())
 	}
-	if resp.GetQueueDepth() != 3 || resp.GetActiveInferenceJobs() != 2 || resp.GetActiveWorkflows() != 1 {
-		t.Fatalf("unexpected counters: queue=%d inf=%d wf=%d", resp.GetQueueDepth(), resp.GetActiveInferenceJobs(), resp.GetActiveWorkflows())
+	if resp.GetQueueDepth() != 3 || resp.GetActiveInferenceJobs() != 2 {
+		t.Fatalf("unexpected counters: queue=%d inf=%d", resp.GetQueueDepth(), resp.GetActiveInferenceJobs())
 	}
 	if resp.GetCpuMilli() != 123 || resp.GetMemoryBytes() != 456 || resp.GetVramBytes() != 789 {
 		t.Fatalf("unexpected resource snapshot: cpu=%d mem=%d vram=%d", resp.GetCpuMilli(), resp.GetMemoryBytes(), resp.GetVramBytes())
@@ -160,7 +160,7 @@ func TestSubscribeRuntimeHealthEvents(t *testing.T) {
 	}()
 
 	state.SetStatus(health.StatusStarting, "booting")
-	state.SetActivity(1, 0, 0)
+	state.SetActivity(1, 0)
 	if !waitForRuntimeHealthEvents(stream, 1, 500*time.Millisecond) {
 		t.Fatalf("expected at least one runtime health event")
 	}
@@ -417,7 +417,7 @@ func TestListAuditEventsPagination(t *testing.T) {
 func TestListUsageStatsBaseline(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
-	state.SetActivity(2, 1, 1)
+	state.SetActivity(2, 1)
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
 
 	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{})
@@ -591,7 +591,7 @@ func TestExportAuditEventsUsesZeroLengthChunkForEmptyPayload(t *testing.T) {
 
 func TestSyntheticAuditEventsUseSnakeCaseInferenceKey(t *testing.T) {
 	state := health.NewState()
-	state.SetActivity(3, 2, 0)
+	state.SetActivity(3, 0)
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
 
 	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
@@ -627,7 +627,7 @@ func TestSubscribeRuntimeHealthEventsSlowConsumerClosed(t *testing.T) {
 
 	time.Sleep(20 * time.Millisecond)
 	for i := 0; i < 32; i++ {
-		state.SetActivity(int32(i), 0, 0)
+		state.SetActivity(int32(i), 0)
 		time.Sleep(2 * time.Millisecond)
 	}
 	close(stream.gate)

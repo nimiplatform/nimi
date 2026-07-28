@@ -324,7 +324,6 @@ function createCanonicalBindings(input: {
       appId: sdkUnavailable,
       machineProduct: sdkUnavailable,
       accountProduct: sdkUnavailable,
-      appLifecycle: sdkUnavailable,
       connectorAdmin: sdkUnavailable,
       localAssetAdmin: sdkUnavailable,
       localAudit: sdkUnavailable,

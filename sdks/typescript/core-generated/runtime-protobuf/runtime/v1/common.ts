@@ -675,74 +675,6 @@ export enum ReasonCode {
      */
     APP_MESSAGE_LOOP_DETECTED = 552,
     /**
-     * APP_INSTALL family (553+) — Nimi App install/uninstall lifecycle
-     * fail-closed reasons. Each reason is distinct and is never collapsed
-     * into a generic value.
-     *
-     * @generated from protobuf enum value: APP_INSTALL_DESCRIPTOR_NOT_FOUND = 553;
-     */
-    APP_INSTALL_DESCRIPTOR_NOT_FOUND = 553,
-    /**
-     * @generated from protobuf enum value: APP_INSTALL_DIGEST_MISMATCH = 554;
-     */
-    APP_INSTALL_DIGEST_MISMATCH = 554,
-    /**
-     * @generated from protobuf enum value: APP_INSTALL_MANIFEST_INVALID = 555;
-     */
-    APP_INSTALL_MANIFEST_INVALID = 555,
-    /**
-     * @generated from protobuf enum value: APP_INSTALL_STORAGE_VIOLATION = 556;
-     */
-    APP_INSTALL_STORAGE_VIOLATION = 556,
-    /**
-     * @generated from protobuf enum value: APP_INSTALL_DOWNLOAD_FAILED = 557;
-     */
-    APP_INSTALL_DOWNLOAD_FAILED = 557,
-    /**
-     * @generated from protobuf enum value: APP_INSTALL_UNPACK_FAILED = 558;
-     */
-    APP_INSTALL_UNPACK_FAILED = 558,
-    /**
-     * @generated from protobuf enum value: APP_INSTALL_INTERNAL = 559;
-     */
-    APP_INSTALL_INTERNAL = 559,
-    /**
-     * APP_UPDATE / APP_REPAIR family (590+) — Nimi App update + health/repair
-     * lifecycle fail-closed reasons. Each reason is distinct and is never
-     * collapsed into a generic value (K-APP-015 / K-APP-016).
-     *
-     * @generated from protobuf enum value: APP_UPDATE_NOT_AVAILABLE = 590;
-     */
-    APP_UPDATE_NOT_AVAILABLE = 590,
-    /**
-     * @generated from protobuf enum value: APP_UPDATE_NOT_INSTALLED = 591;
-     */
-    APP_UPDATE_NOT_INSTALLED = 591,
-    /**
-     * @generated from protobuf enum value: APP_UPDATE_CONFIRMATION_REQUIRED = 592;
-     */
-    APP_UPDATE_CONFIRMATION_REQUIRED = 592,
-    /**
-     * @generated from protobuf enum value: APP_UPDATE_SWAP_FAILED = 593;
-     */
-    APP_UPDATE_SWAP_FAILED = 593,
-    /**
-     * @generated from protobuf enum value: APP_REPAIR_ACTION_INVALID = 594;
-     */
-    APP_REPAIR_ACTION_INVALID = 594,
-    /**
-     * @generated from protobuf enum value: APP_REPAIR_NO_RECOVERABLE_JOB = 595;
-     */
-    APP_REPAIR_NO_RECOVERABLE_JOB = 595,
-    /**
-     * @generated from protobuf enum value: APP_REPAIR_NOT_REPAIRABLE = 596;
-     */
-    APP_REPAIR_NOT_REPAIRABLE = 596,
-    /**
-     * @generated from protobuf enum value: APP_LIFECYCLE_JOB_CANCELLED = 597;
-     */
-    APP_LIFECYCLE_JOB_CANCELLED = 597,
-    /**
      * LOCAL_SPEECH family (560+)
      *
      * @generated from protobuf enum value: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED = 560;
@@ -986,8 +918,8 @@ export enum ReasonCode {
     AGENT_PRESENTATION_REVISION_CONFLICT = 614,
     /**
      * PROTECTED_LOCAL family (620+). These values are shared by protected
-     * transport, verified Desktop origin, the anchored lifecycle-intent ledger,
-     * and their sanitized fail-closed projections (K-PLOCAL-001..007/K-APP-026).
+     * transport, verified Desktop origin, and their sanitized fail-closed
+     * projections (K-PLOCAL-001..007).
      *
      * @generated from protobuf enum value: PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED = 620;
      */
@@ -1060,22 +992,6 @@ export enum ReasonCode {
      * @generated from protobuf enum value: RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID = 637;
      */
     RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID = 637,
-    /**
-     * @generated from protobuf enum value: LIFECYCLE_INTENT_REQUIRED = 638;
-     */
-    LIFECYCLE_INTENT_REQUIRED = 638,
-    /**
-     * @generated from protobuf enum value: LIFECYCLE_INTENT_MISMATCH = 639;
-     */
-    LIFECYCLE_INTENT_MISMATCH = 639,
-    /**
-     * @generated from protobuf enum value: LIFECYCLE_INTENT_REPLAY = 640;
-     */
-    LIFECYCLE_INTENT_REPLAY = 640,
-    /**
-     * @generated from protobuf enum value: LIFECYCLE_INTENT_EXPIRED = 641;
-     */
-    LIFECYCLE_INTENT_EXPIRED = 641,
     /**
      * LOCAL_APP family (642+). The third-party principal/record/session and
      * product-permission evaluator uses one provenance-agnostic reason vocabulary.

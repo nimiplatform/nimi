@@ -546,7 +546,6 @@
     "sampled": "已采样",
     "live": "实时",
     "off": "关闭",
-    "workflows": "工作流",
     "cpu": "CPU",
     "ram": "RAM",
     "runtime_service_unavailableMessage": "独立安装的 Runtime 服务未运行，或无法通过受保护 carrier 连接。",

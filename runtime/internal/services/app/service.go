@@ -84,7 +84,6 @@ type Service struct {
 	appStorageDataRoot        string
 	accountProjection         runtimeAccountProjectionProvider
 	accountSecurity           runtimeAccountSecurityContextProvider
-	accountInventory          *accountAppInventoryStore
 	localDevelopment          *localDevelopmentStore
 	localDevelopmentRegistry  *protectedlocal.LocalAppLaunchRegistry
 	localDevelopmentVerifier  protectedlocal.LocalDevelopmentProcessVerifier
@@ -126,8 +125,8 @@ func WithClock(now func() time.Time) Option {
 }
 
 // WithAppStorageDataRoot injects the product-selected nimi_data root used for
-// app-scoped storage projections. The active 0K path is local-development and
-// bundled component storage; immutable package release roots are absent.
+// app-scoped storage projections. The active path is local development;
+// ordinary package release roots are deferred and absent.
 func WithAppStorageDataRoot(dataRootRef string) Option {
 	return func(s *Service) {
 		s.appStorageDataRoot = strings.TrimSpace(dataRootRef)
@@ -158,12 +157,6 @@ func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
 	}
 }
 
-func WithAccountAppInventoryStoreForTest(store *accountAppInventoryStore) Option {
-	return func(s *Service) {
-		s.accountInventory = store
-	}
-}
-
 func New(logger *slog.Logger, opts ...Option) *Service {
 	svc := &Service{
 		logger:            logger,
@@ -177,9 +170,6 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		if opt != nil {
 			opt(svc)
 		}
-	}
-	if svc.accountInventory == nil {
-		svc.accountInventory = newAccountAppInventoryStore(defaultNimiDir)
 	}
 	return svc
 }

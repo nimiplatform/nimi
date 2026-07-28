@@ -192,7 +192,6 @@ type RuntimeHealthSnapshot struct {
 	StatusCode          int32
 	Reason              string
 	QueueDepth          int32
-	ActiveWorkflows     int32
 	ActiveInferenceJobs int32
 	CPUMilli            int64
 	MemoryBytes         int64

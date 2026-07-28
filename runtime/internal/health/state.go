@@ -43,7 +43,6 @@ type Snapshot struct {
 	Status              Status
 	Reason              string
 	QueueDepth          int32
-	ActiveWorkflows     int32
 	ActiveInferenceJobs int32
 	CPUMilli            int64
 	MemoryBytes         int64
@@ -85,11 +84,10 @@ func (s *State) SetStatus(status Status, reason string) {
 	s.broadcastLocked()
 }
 
-func (s *State) SetActivity(queueDepth int32, activeWorkflows int32, activeInferenceJobs int32) {
+func (s *State) SetActivity(queueDepth int32, activeInferenceJobs int32) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.snapshot.QueueDepth = clampInt32NonNegative(queueDepth)
-	s.snapshot.ActiveWorkflows = clampInt32NonNegative(activeWorkflows)
 	s.snapshot.ActiveInferenceJobs = clampInt32NonNegative(activeInferenceJobs)
 	s.snapshot.SampledAt = time.Now().UTC()
 	s.broadcastLocked()

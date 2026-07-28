@@ -156,10 +156,12 @@ message ListUsageStatsResponse {
 message GetRuntimeHealthRequest {}
 
 message GetRuntimeHealthResponse {
+  reserved 4;
+  reserved "active_workflows";
+
   RuntimeHealthStatus status = 1;
   string reason = 2;
   int32 queue_depth = 3;
-  int32 active_workflows = 4;
   int32 active_inference_jobs = 5;
   int64 cpu_milli = 6;
   int64 memory_bytes = 7;
@@ -170,11 +172,13 @@ message GetRuntimeHealthResponse {
 message SubscribeRuntimeHealthEventsRequest {}
 
 message RuntimeHealthEvent {
+  reserved 5;
+  reserved "active_workflows";
+
   uint64 sequence = 1;
   RuntimeHealthStatus status = 2;
   string reason = 3;
   int32 queue_depth = 4;
-  int32 active_workflows = 5;
   int32 active_inference_jobs = 6;
   int64 cpu_milli = 7;
   int64 memory_bytes = 8;
