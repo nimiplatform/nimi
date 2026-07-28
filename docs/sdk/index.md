@@ -6,7 +6,7 @@ aside: false
 
 The Nimi SDK is the app-facing boundary for Runtime, Realm, AI, agent,
 feature, and shared-type consumption. The active implementation lives under
-`sdks/typescript` and is the next major `@nimiplatform/sdk`.
+`sdks/typescript` and is the public `@nimiplatform/sdk` package.
 
 Apps should start from the root package:
 
@@ -35,7 +35,7 @@ Dedicated subpaths remain available for lower-level or domain-specific use.
 
 ## Public Surface Set
 
-The vNext TypeScript package has one base SDK package. External framework
+The TypeScript SDK has one base package. External framework
 adapters are independent packages, not base SDK subpaths.
 
 | Public entry | Role |
@@ -86,8 +86,5 @@ compatibility paths.
 
 ## Source Basis
 
-- [`docs/spec/sdks-root-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-root-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
-- [`config/sdks-typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-target-export-map.yaml)

@@ -1,7 +1,7 @@
 {
   "name": "@nimiplatform/sdk",
-  "version": "0.0.0-vnext.0",
-  "private": true,
+  "version": "0.6.0",
+  "private": false,
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,10 @@
     "type": "git",
     "url": "https://github.com/nimiplatform/nimi",
     "directory": "sdks/typescript"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "types": "./dist/index.d.ts",
   "exports": {
@@ -130,9 +134,7 @@
     "typescript": "^5.9.3"
   },
   "nimi": {
-    "preCutover": true,
     "targetPackage": "@nimiplatform/sdk",
-    "workspaceCutover": "active-local-hardcut",
     "adapterPackageNames": "independent-packages"
   }
 }

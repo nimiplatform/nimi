@@ -49,8 +49,8 @@ For an evaluation pass:
 4. [SDK Overview](/sdk/) and
    [SDK Boundaries](/sdk/boundaries) — the integration discipline
    expected of apps.
-5. [Nimi Coding Whitepaper](/nimicoding/whitepaper) — how AI-assisted
-   engineering is governed in this repository.
+5. [Nimi Coding Overview](/nimicoding/) — how canonical authority
+   tooling is integrated in this repository.
 
 This path takes about as long as reading a long blog post and gives a
 faithful picture of what the public surface contains today.
@@ -82,17 +82,14 @@ implication.
 
 ## If You Are Adopting Nimi Coding
 
-Nimi Coding is admitted as a host-agnostic methodology and a
+Nimi Coding is admitted as host-agnostic canonical-authority tooling and a
 publishable npm package. Read in this order:
 
-1. [Nimi Coding Overview](/nimicoding/) — the paradigm and the
-   package.
-2. [Run A Governed Codex Project](/nimicoding/tutorials/project-to-governed-execution) —
-   how Codex-owned execution uses spec, methodology, gates, and evidence.
-3. [Installation](/nimicoding/installation) — package install and
-   adoption path.
-4. [Verify The Nimi Governance Setup](/nimicoding/tutorials/project-bootstrap) —
-   check host ownership, projections, and canonical truth.
+1. [Nimi Coding Overview](/nimicoding/) — authority tooling and
+   repository boundaries.
+2. [Installation](/nimicoding/installation) — managed host integration.
+3. [CLI Reference](/nimicoding/cli-reference) — supported authority
+   commands.
 
 ## Reader Scenario: An App Author Walks Through The Docs
 
@@ -122,15 +119,11 @@ first walkthrough:
     because that is the workflow other contributors expect for
     high-risk or cross-surface changes.
 
-After that walkthrough, [Spec Map](/reference/spec-map) tells you
-where to read the underlying contracts when public prose is not
-precise enough.
+After that walkthrough, [Authority Domains](/reference/authority-domains)
+shows which product owner answers each class of question.
 
 ## Source Basis
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)

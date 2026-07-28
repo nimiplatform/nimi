@@ -22,7 +22,7 @@
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.0",
     "@mastra/core": "^1.41.0",
-    "@nimiplatform/sdk": "0.0.0-vnext.0"
+    "@nimiplatform/sdk": "^0.6.0"
   },
   "devDependencies": {
     "@ai-sdk/provider": "3.0.10",
@@ -40,7 +40,6 @@
     "test:upstream": "pnpm exec tsx --test mastra.upstream-compat.test.ts"
   },
   "nimi": {
-    "preCutover": true,
     "adapterId": "mastra",
     "targetPackage": "@nimiplatform/sdk-adapter-mastra",
     "basePackage": "@nimiplatform/sdk"

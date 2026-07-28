@@ -64,10 +64,10 @@ Avatar 窗口不知道是 Live2D 还是 VRM 已挂载。它只消费映射。
 | 关注点 | 所有者 | 接口/表面 |
 | --- | --- | --- |
 | 活动 / 情感 / 姿态真相 | 运行时 | `runtime.agent.*` 事件 |
-| 持久化呈现配置文件 | 运行时 | `agent-presentation-contract.md` |
-| 后端中立映射 API | Avatar | `embodiment-projection-contract.md` |
-| 后端特定执行 | 活动后端分支 | `backend-branch-contract.md` + 各后端契约 |
-| 处理器约定 | Avatar (NAS) | `agent-script-contract.md` |
+| 持久化呈现配置 | Runtime | 类型化的 Runtime 呈现配置 |
+| 后端无关接口 | Avatar | `BackendProjection` |
+| 后端执行 | 当前后端分支 | 封闭的 Live2D、VRM 或 Nimi2D 分支 |
+| 处理器约定 | Avatar (NAS) | Avatar 本地准入处理器 |
 | 桌面聊天智能体瞬态表面 | 桌面 | `.nimi/spec/desktop/agent-projection.authority.yaml` |
 
 ## 来源依据

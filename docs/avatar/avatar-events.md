@@ -1,150 +1,86 @@
 # Avatar Events
 
-> Status: Running today. The event taxonomy is admitted at the
-> kernel level; the event bus is shipped.
+Avatar events are typed, bounded observations of local presentation. They let
+Avatar-owned handlers and components react to rendering, playback,
+interaction, backend, and lifecycle results. They are not a public driver API,
+a cross-app event bus, or a source of Runtime LocalAgent truth.
 
-Avatar emits a typed event surface that NAS handlers, Avatar app
-components, and runtime components observe. The event families are admitted at
-the kernel level; they are not free-form.
+## Observation Families
 
-## Event Families
-
-| Family | What it covers |
+| Family | Local observation |
 | --- | --- |
-| `avatar.user.*` | User input — click, drag, hover |
-| `avatar.activity.*` | Activity events — typed action requests |
-| `avatar.motion.*` | Motion lifecycle |
-| `avatar.expression.*` | Expression changes |
-| `avatar.pose.*` | Pose changes |
-| `avatar.lookat.*` | Gaze direction |
-| `avatar.speak.*` | Speech / voice output lifecycle |
-| `avatar.lipsync.*` | Lipsync frame events |
-| `avatar.app.*` | App lifecycle (`start`, `ready`, etc.) |
-| `avatar.companion.*` | Companion surface events |
-| `avatar.composition.*` | Composition state transitions |
+| `avatar.user.*` | Bounded pointer interaction and hit-region results |
+| `avatar.activity.*` | Start, completion, or cancellation of Avatar-local activity handling |
+| `avatar.motion.*` | A validated backend motion result |
+| `avatar.expression.*` | A validated backend expression result |
+| `avatar.pose.*` | A validated backend pose result |
+| `avatar.lookat.*` | A validated backend look-at result |
+| `avatar.speak.*` | Avatar-local audio playback and interruption observations |
+| `avatar.lipsync.*` | Bounded lipsync phase observations, never per-frame public events |
+| `avatar.app.*` | Avatar application lifecycle observations |
+| `avatar.composition.*` | Closed shell lifecycle observations |
 
-Each family is admitted; new families require kernel admission.
+Each emitted event has one declared identity, a typed payload, an active Avatar
+instance, a validated backend result where applicable, and an owner-defined
+rate posture. Wildcard driver hooks and generic public cancellation are not
+part of the surface.
 
-## Admitted Family Examples
+## Runtime Input and Avatar Output
 
-### `avatar.user.*`
+Runtime owns participation, turns, presentation intent, emotion state, voice
+timing, continuity, and provenance. Avatar consumes those typed results through
+the SDK and may report what happened locally after a backend acts.
 
-| Event | Fires |
-| --- | --- |
-| `avatar.user.click` | User clicks (with hit region info) |
-| `avatar.user.drag` | User drags |
-| `avatar.user.hover` | User hovers |
+For example, a Runtime presentation activity can lead to an
+`avatar.activity.start` observation after Avatar accepts the activity. Avatar
+may later report completion or cancellation based on the local handler and
+backend result. It does not mirror the event as a new Runtime event or claim
+that rendering success changes Runtime state.
 
-### `avatar.activity.*`
+## Interaction Scenario
 
-Activities are typed action requests. NAS activity handlers fire
-on the matching event.
+1. The user clicks a visible part of the embodiment.
+2. The active backend returns a bounded hit-region result.
+3. Avatar emits a typed `avatar.user.click` observation for the active
+   instance.
+4. An admitted Avatar-local handler may react within the Avatar boundary.
 
-### `avatar.motion.*`, `avatar.expression.*`, `avatar.pose.*`, `avatar.lookat.*`
+The event does not grant another App raw motion, expression, renderer, or
+backend control.
 
-Lifecycle events: started, in-progress, completed.
+## Speech and Lipsync Scenario
 
-### `avatar.speak.*`, `avatar.lipsync.*`
+1. Runtime provides typed voice timing and audio playback input.
+2. Avatar attaches the audio source to the active Live2D, VRM, or Nimi2D
+   backend audio consumer.
+3. The backend derives bounded mouth weights and renders them locally.
+4. Avatar may report lifecycle or lipsync phase observations after local
+   playback results.
 
-Voice output lifecycle: speech requested, audio played back, lip
-movement frames synchronized.
+Per-frame mouth values stay inside the renderer path. Avatar does not publish
+deprecated per-frame lipsync events as product API and does not invent voice
+timeline truth.
 
-### `avatar.app.*`
+## Backend and Lifecycle Scenario
 
-| Event | Fires |
-| --- | --- |
-| `avatar.app.start` | Avatar app starts |
-| `avatar.app.ready` | Composition state reached `ready` |
+1. Avatar validates one backend branch: `live2d`, `vrm`, or `nimi2d`.
+2. The branch loads resources and produces visible output.
+3. Avatar reports the local backend or lifecycle result for the active
+   instance.
+4. If Runtime input, the instance, or the backend is stale or mismatched,
+   Avatar rejects the success-shaped event.
 
-### `avatar.composition.*`
-
-State transitions of the composition state machine
-(`loading → ready → degraded:* → relaunch-pending`).
-
-## Reader Scenario: A NAS Handler Subscribes To Avatar Events
-
-A NAS handler wants to react when the agent expresses an emotion.
-
-1. **Handler registers.** Through admitted Avatar handler discovery,
-   the handler subscribes to `avatar.expression.*`.
-2. **Avatar emits.** When the agent's runtime drives an
-   expression update, the projection emits
-   `avatar.expression.changed`.
-3. **Handler receives.** Typed event with old + new expression.
-4. **Handler acts.** Within the Avatar handler boundary.
-
-Avatar events are observable; the handler did not have to construct
-its own state inference loop.
-
-## Reader Scenario: A Cross-App Coordination
-
-Another app (not Avatar) wants to coordinate with Avatar — for
-example, sync visual emotion with chat UI.
-
-1. **Avatar emits expression event.** Across the runtime event
-   bus.
-2. **Other app subscribes.** Through admitted runtime event
-   subscription.
-3. **Apps coordinate.** Both reflect the same emotion at roughly
-   the same time.
-
-The `avatar_instance_registry` provides the cross-app coordination
-seam (admitted under the avatar app-shell contract).
-
-## Reader Scenario: APML Output Drives Avatar Events
-
-A model emits an APML response that includes typed activity and
-emotion intent. Avatar reflects both as event emissions.
-
-1. **Model emits APML.** Public wire: `<activity name="wave" />` plus
-   `<emotion name="happy" />`.
-2. **Runtime parses + validates.** The runtime owns APML parsing.
-   Typed projection events fire:
-   `runtime.agent.presentation.activity_requested` and
-   `runtime.agent.state.emotion_changed`.
-3. **Avatar receives via SDK.** Projection consumes the typed events.
-4. **Generated motion provider produces backend output.** Per
-   [Generated Motion Provider](/avatar/generated-motion-provider.md).
-5. **Avatar event bus emits.** `avatar.activity.started` /
-   `avatar.expression.changed` propagate to NAS handlers and
-   subscribing apps.
-6. **Backend renders.** Live2D plays the wave motion + happy
-   expression.
-
-The chain crosses runtime → SDK → projection → provider → backend →
-event bus, all through admitted seams. No raw APML reaches Avatar;
-no Avatar event invents semantic truth.
-
-## Reader Scenario: Lipsync Bridge
-
-The agent speaks; lip movement should sync with the audio.
-
-1. **Runtime emits voice playback events.** Through admitted
-   runtime presentation timeline.
-2. **`lipsync_frame_batch`.** Runtime emits frame batches with
-   typed timing.
-3. **Avatar consumes.** Through SDK queue, frames arrive at
-   Avatar.
-4. **Avatar bridges into Live2D.** Frames drive Live2D
-   `ParamMouthOpenY` parameter.
-5. **Visible result.** Lip movement synchronized to audio
-   playback.
-
-Lipsync is an admitted bridge; it is one of the more
-elaborate cross-domain choreography paths in the platform.
-
-## Boundary Summary
+## Ownership Summary
 
 | Concern | Owner |
 | --- | --- |
-| Event taxonomy | Avatar event contract |
-| Event emission | Avatar projection layer |
-| Event consumption | NAS handlers, Avatar app components, other apps |
-| Cross-instance coordination | `avatar_instance_registry` |
-| Lipsync bridge | Runtime presentation stream + SDK queue + Avatar `ParamMouthOpenY` |
+| Local rendering, playback, interaction, backend, and lifecycle observations | Avatar |
+| Local event handlers | Avatar |
+| LocalAgent participation, presentation, state, voice timing, continuity, and provenance | Runtime |
+| Backend-specific parameter execution | The active Avatar backend branch |
+| Cross-app product state | Its owning Realm or Runtime surface, not Avatar events |
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)

@@ -23,8 +23,8 @@ That's it. Readers don't need to read about how we govern our docs.
 
 The following classes of content are **not allowed** in
 reader-facing prose. If you find yourself writing one of these,
-move it here (this file) or to `.nimi/methodology/`, not into
-`docs/`.
+move contributor instructions here (this file). Product semantics
+belong only in `.nimi/spec/**`, not in `docs/`.
 
 ### 1. Self-referential governance segments
 
@@ -151,13 +151,16 @@ is a markdown link of shape:
 Do not link reader-facing pages to task execution-state or planning
 artifacts. Historical evidence belongs in Git history; active Source
 Basis links point to canonical `.nimi/spec/**`, admitted package source,
-or current contract and methodology surfaces.
+or current implementation surfaces. The managed
+`.nimi/methodology/authority-authoring.yaml` guide may be linked only
+when the page is specifically about authority authoring.
 
 ## When You Need To Document A Principle
 
-If a principle is genuinely useful for someone *building* Nimi
-or *adopting* Nimi Coding (the methodology), it belongs in
-`.nimi/methodology/` or `.nimi/contracts/`, not in `docs/`.
+If a principle changes product semantics, it belongs in canonical
+`.nimi/spec/**`. Nimi Coding host settings belong in `.nimi/config/**`.
+Do not create another methodology or contract document to restate
+either one.
 
 If a principle is for docs contributors (like the rules above),
 it belongs here in `docs/AGENTS.md`.
@@ -165,8 +168,7 @@ it belongs here in `docs/AGENTS.md`.
 If a principle is for the broader codebase, see the closest
 module's `AGENTS.md`.
 
-The published `docs/` site stays focused on the reader. The
-governance lives where authors and contributors look for it.
+The published `docs/` site stays focused on the reader.
 
 ## Translation-Tic Anti-Patterns (zh writers)
 

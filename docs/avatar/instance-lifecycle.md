@@ -1,184 +1,96 @@
 # Instance Lifecycle
 
-> Status: Running today. The Avatar app launch path, instance
-> registry, and bounded handoff semantics are shipped per
-> `app-shell-contract.md` and `nimi-avatar.md`.
+An Avatar instance is a running Avatar process that presents one
+Runtime-authorized LocalAgent. The launch may also select an existing Avatar
+instance. Runtime owns the active binding and continuity; Avatar owns only the
+local shell and rendering lifecycle.
 
-An Avatar **instance** is a running Avatar app process bound to one
-agent and (optionally) one explicit avatar instance id. The instance
-lifecycle covers how it starts, how Desktop hands off launch context,
-how multiple instances coordinate, and what state can survive across
-launches.
+## Minimal Launch Intent
 
-## What an Instance Is
+The default launch payload is deliberately small:
 
-| Concept | Meaning |
-| --- | --- |
-| Avatar instance | A running Avatar Tauri process |
-| Default Avatar app id | `nimi.avatar` |
-| `agent_id` | Required at launch; identifies the agent driving this instance |
-| `avatar_instance_id` | Optional at launch; identifies a specific persisted instance |
-| `launch_source` | Optional, non-authoritative trace of who launched it |
-
-Avatar is a Runtime-admitted local first-party app. It can use
-runtime account projection and runtime-issued short-lived access
-tokens like other first-party apps. It does not hold refresh tokens,
-durable auth sessions, or independent Realm auth truth.
-
-## Launch Intent
-
-Desktop launches Avatar with a minimal intent payload:
-
-| Field | Required? | Notes |
+| Field | Required? | Meaning |
 | --- | --- | --- |
-| `agent_id` | yes | Identifies the agent |
-| `avatar_instance_id` | optional | Targets a specific instance for replay |
-| `launch_source` | optional | Non-authoritative; trace only |
+| `agentId` | yes | A `local-agent:` reference selected by the caller |
+| `avatarInstanceId` | optional | The Avatar instance to resume |
+| `launchSource` | optional | Non-authoritative launch attribution |
 
-Desktop **must not** pass scoped binding truth, visual package truth,
-conversation anchor truth, account / user truth, or auth material
-into the default Avatar launch path. Avatar resolves what it needs
-through runtime account projection.
+Every field is untrusted until Runtime validation completes. Account and user
+identity, Realm endpoints, credentials, conversation anchors, visual packages,
+model selection, calibration, renderer settings, and raw filesystem paths are
+not launch inputs. The verified native host materializes only the visual
+package authorized by Runtime under the protected data root.
 
-Explicit binding-only / embedded / delegated Avatar mode remains
-admittable per `K-BIND-*`, but it is not the default Desktop launch
-path.
+Avatar does not read or store access tokens, refresh tokens, JWTs,
+authorization headers, or durable account sessions. Realm-mediated work goes
+through the protected first-party Runtime surface.
 
-## Instance Registry
+## Runtime Binding
 
-The `avatar_instance_registry` is the platform's projection that
-tracks live and persisted Avatar instances. It is the seam used for
-cross-app coordination.
+After launch, Avatar asks Runtime to resolve or register the typed
+`AvatarLiveInstanceBinding` for the selected LocalAgent and instance. That
+binding associates the active Avatar instance with Runtime-owned conversation
+continuity. It is not a public registry, a cross-app subscription surface, or
+an Avatar-owned source of agent truth.
 
-| Used by | What it provides |
-| --- | --- |
-| Desktop chat | "Is there a live Avatar instance for this agent?" |
-| Avatar companion surface | Health indicator: is this instance still admitted? |
-| Other apps subscribing to avatar events | Cross-instance correlation when multiple instances exist |
+Avatar accepts the binding only when its LocalAgent, Avatar instance, account
+context, and conversation snapshot agree. A missing or mismatched binding keeps
+the shell non-ready.
 
-The registry projection is a **projection**, not a remote control
-surface. The composition state of an Avatar instance is decided by
-the runtime carrier. The registry reports; it does not command.
+## Closed Shell Lifecycle
 
-## Composition State Machine
-
-An Avatar instance moves through composition states managed by the
-Avatar carrier:
-
-```
-loading → ready → degraded:* → relaunch-pending
-```
+The shell occupies exactly one of these states:
 
 | State | Meaning |
 | --- | --- |
-| `loading` | Backend mounting, model resolving, surface composition initializing |
-| `ready` | Embodiment stage + companion surface live; backend reports admitted bounds |
-| `degraded:*` | Specific degraded posture (typed reason code); degraded surface replaces embodiment + companion |
-| `relaunch-pending` | Instance scheduled to relaunch (e.g., backend restart required) |
+| `loading` | Bootstrap, Runtime binding, and visual carrier readiness are still in progress |
+| `ready` | Bootstrap is complete, the Runtime binding is valid, and the carrier has visible output |
+| `degraded:reauth-required` | The protected Runtime session requires the host to reauthenticate |
+| `degraded:cloud-offline` | Required cloud access is unavailable |
+| `degraded:runtime-unavailable` | The local Runtime cannot serve the required operation |
+| `degraded:launch-context-invalid` | The launch intent or resolved binding is invalid |
+| `error:bootstrap-fatal` | Bootstrap cannot continue |
+| `relaunch-pending` | A validated relaunch is pending |
 
-Transitions emit `avatar.composition.*` events. Companion surface
-must not self-decide ready / degraded — it consumes the projection.
+Only `ready` mounts the embodiment stage and explicitly opened transient
+overlays. Every other state unmounts the stage and shows only its bounded
+loading, degraded, error, or relaunch surface. Avatar does not infer readiness
+from cached or fixture state.
 
-## Cross-Surface Continuity
+## Reader Scenario: Desktop Opens an Avatar
 
-The same agent often appears in:
+1. Desktop sends `{ agentId: "local-agent:ren" }`.
+2. Avatar validates the payload shape and remains in `loading`.
+3. The protected Runtime surface resolves the LocalAgent, continuity snapshot,
+   and active instance binding.
+4. The native host materializes the exact Runtime-authorized visual package.
+5. Avatar creates one of the admitted backend branches and waits for visible
+   carrier output.
+6. The shell enters `ready`.
 
-- Desktop chat (via `kit/features/avatar` consuming
-  `.nimi/spec/desktop/agent-projection.authority.yaml`)
-- The standalone Avatar carrier (this app)
+Desktop and Avatar do not exchange package, credential, account, model, or
+conversation truth through the launch payload.
 
-These surfaces stay in sync because both consume the **same runtime
-projection**. They do not coordinate with each other; they consume
-the runtime event stream and the registry projection.
+## Reader Scenario: Runtime Becomes Unavailable
 
-## Bounded Handoff at Close
+1. A Runtime prerequisite fails while the Avatar is active.
+2. The shell enters `degraded:runtime-unavailable`.
+3. The embodiment and transient overlays unmount.
+4. Recovery requires a new valid Runtime result and visual readiness before the
+   shell can return to `ready`.
 
-When Avatar closes (user-initiated or Desktop-initiated), bounded
-handoff is allowed:
-
-| Field | Allowed in handoff |
-| --- | --- |
-| `avatar_instance_id` | yes |
-| `surface attribution` | yes |
-| `agent_id` | yes (re-asserted) |
-| package descriptor / paths | no |
-| auth material | no |
-| anchor truth | no |
-
-Persisted instance state is keyed by `avatar_instance_id` and is
-re-validated against runtime snapshot before reuse. Avatar does not
-trust local state to represent runtime authority across launches.
-
-## Reader Scenario: Desktop Launches Avatar for Agent X
-
-1. **Desktop emits launch intent.** `{ agent_id: 'agent-x' }`.
-   No package truth. No conversation anchor.
-2. **Avatar starts.** Resolves agent context through runtime account
-   projection. Acquires runtime-issued short-lived access token.
-3. **Backend mounts.** Composition state moves `loading → ready` once
-   the backend reports admitted bounds.
-4. **Registry updates.** `avatar_instance_registry` reflects the
-   live instance for agent-x.
-5. **Desktop chat surface updates.** Consumes the registry; renders a
-   "live instance" indicator without coordinating directly with the
-   Avatar process.
-
-Two surfaces, one source of truth.
-
-## Reader Scenario: Replaying a Specific Instance
-
-1. **Desktop emits launch intent.** `{ agent_id: 'agent-x',
-   avatar_instance_id: 'inst-7' }`.
-2. **Avatar resolves persisted state.** Persisted state is keyed by
-   `avatar_instance_id` and **must** be re-validated through runtime
-   snapshot before reuse.
-3. **Validation passes.** Backend mounts; previous bounds restore.
-4. **Composition reaches `ready`.** Registry updates.
-
-If snapshot validation fails, the instance does not silently start
-with stale state. Failure is typed; the instance either starts fresh
-or does not start.
-
-## Reader Scenario: Degraded Posture
-
-1. **Backend reports a typed degraded reason.** (e.g., asset tier
-   downgrade, audio bridge offline, generated motion provider
-   blocked).
-2. **Composition transitions to `degraded:<reason>`.**
-3. **Degraded surface activates.** Replaces embodiment + companion.
-   Companion surface does not stay live; the degraded surface owns
-   the entire visual region per the contract.
-4. **Registry updates.** Cross-app subscribers can render a degraded
-   indicator.
-5. **Recovery.** When the backend recovers, projection emits the
-   transition back to `ready`.
-
-Degraded is a typed posture, not a fallback.
-
-## What the Instance Lifecycle Does Not Do
-
-- It does not silently elevate Avatar to durable auth ownership.
-- It does not allow Desktop to seed package truth into the default
-  launch path.
-- It does not allow the companion surface to override composition
-  state.
-- It does not persist auth material across launches.
-- It does not silently relaunch on backend error — `relaunch-pending`
-  is an explicit composition state.
-
-## Boundary Summary
+## Ownership Summary
 
 | Concern | Owner |
 | --- | --- |
-| Launch intent shape | App shell contract (NAV-SHELL-*) |
-| Composition state machine | App shell contract |
-| Instance registry projection | Runtime / Avatar app shell |
-| Persisted instance keying | App shell contract |
-| Cross-surface continuity | Runtime account projection + registry |
-| Bounded handoff at close | App shell contract |
+| LocalAgent execution and continuity | Runtime |
+| Active `AvatarLiveInstanceBinding` | Runtime |
+| Launch intent validation | Avatar shell |
+| Protected package materialization | Verified Avatar native host |
+| Shell lifecycle and local presentation | Avatar |
+| Backend resources and shutdown | Avatar backend branch |
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)

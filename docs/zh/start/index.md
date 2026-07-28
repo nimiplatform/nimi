@@ -24,7 +24,7 @@
 2. [平台架构](/zh/platform/architecture/)：明确各组件权责边界的跨层架构图。
 3. [Runtime 概览](/zh/runtime/) 与 [Memory 与 Knowledge](/zh/runtime/memory-and-knowledge)：底层 AI 执行引擎的核心 owner 边界。
 4. [SDK 概览](/zh/sdk/) 与 [SDK 边界](/zh/sdk/boundaries)：外部应用接入平台时需遵守的规范与边界。
-5. [Nimi Coding 白皮书](/zh/nimicoding/whitepaper)：本项目中 AI 辅助工程的治理范式。
+5. [Nimi Coding 概览](/zh/nimicoding/)：本仓库如何集成 canonical authority 工具。
 
 上述内容的阅读量大致相当于一篇技术文章，能清晰呈现 Nimi 当前架构的全貌。
 
@@ -40,13 +40,13 @@
 
 了解原生外壳的具体行为，请查阅 [桌面端](/zh/desktop/)。关于网页端的受限呈现模式，请研读 [Web 模式](/zh/desktop/web-mode)。网页端不会自动继承桌面端的原生扩展能力。
 
-## 采用 Nimi Coding 方法论
+## 采用 Nimi Coding
 
-Nimi Coding 作为独立于宿主环境的方法论，已作为标准 npm 软件包发布。建议按照以下顺序了解：
+Nimi Coding 作为独立于宿主环境的 canonical-authority 工具，已作为标准 npm 软件包发布。建议按照以下顺序了解：
 
-1. [Nimi Coding 概览](/zh/nimicoding/)：核心范式及软件包的整体构成。
-2. [用 Codex 开展受治理开发](/zh/nimicoding/tutorials/project-to-governed-execution)：了解 Codex 自有执行如何结合规范、方法论、门禁和证据。
-3. [安装指南](/zh/nimicoding/installation)：软件包的安装步骤与采纳路径。
+1. [Nimi Coding 概览](/zh/nimicoding/)：authority 工具与仓库边界。
+2. [安装指南](/zh/nimicoding/installation)：受管宿主集成。
+3. [CLI 参考](/zh/nimicoding/cli-reference)：受支持的 authority 命令。
 
 ## 场景：应用开发者的阅读路径
 
@@ -60,13 +60,10 @@ Nimi Coding 作为独立于宿主环境的方法论，已作为标准 npm 软件
 6. 阅读 [桌面端](/zh/desktop/) 与 [Web 模式](/zh/desktop/web-mode)，明晰两种呈现形态的能力边界差异，以评估其对应用分发计划的影响。
 7. 准备进行代码贡献时，阅读 [Nimi Coding](/zh/nimicoding/)。处理高风险变更或跨模块重构时，需遵循此标准工作流。
 
-全景阅读完成后，如需查阅具体的技术细节，可借助 [规范地图](/zh/reference/spec-map) 定位到底层技术契约。
+全景阅读完成后，可通过 [权威域](/zh/reference/authority-domains) 确认每类问题应由哪个产品 owner 回答。
 
 ## 来源依据
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`nimi-coding/README.zh-CN.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.zh-CN.md)

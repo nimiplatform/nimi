@@ -138,8 +138,6 @@ const sdkGroups: DefaultTheme.SidebarItem[] = [
   {
     text: 'Client APIs',
     items: [
-      { text: 'Agent 参与客户端', link: '/zh/sdk/agent-participation-client' },
-      { text: 'Avatar 控制客户端', link: '/zh/sdk/avatar-control-client' },
       { text: '委派客户端', link: '/zh/sdk/delegation-client' },
       { text: '本地环境投影', link: '/zh/sdk/local-environment-projection' },
       { text: 'AI 配置界面', link: '/zh/sdk/ai-config-surface' },
@@ -264,65 +262,11 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
 
 const nimicodingGroups: DefaultTheme.SidebarItem[] = [
   {
-    text: '总览',
+    text: 'Nimi Coding',
     items: [
       { text: '总览', link: '/zh/nimicoding/' },
-      { text: 'Whitepaper', link: '/zh/nimicoding/whitepaper' },
-    ],
-  },
-  {
-    text: '范式',
-    items: [
-      { text: '范式', link: '/zh/nimicoding/the-paradigm' },
-      { text: '四个闭合', link: '/zh/nimicoding/four-closures' },
-      { text: '伪闭合分类', link: '/zh/nimicoding/false-closure-typology' },
-    ],
-  },
-  {
-    text: '角色',
-    items: [
-      { text: '角色分离', link: '/zh/nimicoding/role-separation' },
-    ],
-  },
-  {
-    text: '方法论与证据',
-    items: [
-      { text: '走查', link: '/zh/nimicoding/walkthrough' },
-    ],
-  },
-  {
-    text: '包',
-    items: [
-      { text: '包', link: '/zh/nimicoding/the-package' },
-      { text: '宿主无关边界', link: '/zh/nimicoding/host-agnostic' },
-      { text: 'CLI 界面', link: '/zh/nimicoding/cli' },
+      { text: 'Host 集成', link: '/zh/nimicoding/installation' },
       { text: 'CLI 参考', link: '/zh/nimicoding/cli-reference' },
-      { text: '安装', link: '/zh/nimicoding/installation' },
-    ],
-  },
-  {
-    text: '教程',
-    items: [
-      { text: '教程总览', link: '/zh/nimicoding/tutorials/' },
-      { text: '用 Codex 开展受治理开发', link: '/zh/nimicoding/tutorials/project-to-governed-execution' },
-      { text: '验证治理设置', link: '/zh/nimicoding/tutorials/project-bootstrap' },
-    ],
-  },
-  {
-    text: 'How-to',
-    items: [
-      { text: 'How-to 总览', link: '/zh/nimicoding/how-to/' },
-      { text: '编写故障关闭不变量', link: '/zh/nimicoding/how-to/write-fail-close-invariants' },
-      { text: '调和分歧审计', link: '/zh/nimicoding/how-to/reconcile-divergent-audits' },
-      { text: '准入外部宿主', link: '/zh/nimicoding/how-to/admit-an-external-host' },
-    ],
-  },
-  {
-    text: '参考',
-    items: [
-      { text: '参考总览', link: '/zh/nimicoding/reference/' },
-      { text: 'CLI 命令', link: '/zh/nimicoding/reference/cli-commands' },
-      { text: 'Schema', link: '/zh/nimicoding/reference/schemas' },
     ],
   },
 ]
@@ -394,7 +338,6 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '错误归属', link: '/zh/reference/error-ownership' },
         { text: '兼容性姿态', link: '/zh/reference/compatibility-posture' },
         { text: '禁用主张', link: '/zh/reference/forbidden-claims' },
-        { text: 'Spec Map', link: '/zh/reference/spec-map' },
       ],
     },
   ],

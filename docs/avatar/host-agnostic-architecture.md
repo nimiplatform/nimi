@@ -108,10 +108,10 @@ other. They both consume runtime.
 | Concern | Owner | Surface |
 | --- | --- | --- |
 | activity / emotion / posture truth | runtime | `runtime.agent.*` events |
-| persistent presentation profile | runtime | `agent-presentation-contract.md` |
-| backend-neutral projection API | Avatar | `embodiment-projection-contract.md` |
-| backend-specific execution | active backend branch | `backend-branch-contract.md` + per-backend contract |
-| handler convention | Avatar (NAS) | `agent-script-contract.md` |
+| persistent presentation profile | Runtime | typed Runtime presentation profile |
+| backend-neutral projection API | Avatar | `BackendProjection` |
+| backend-specific execution | active backend branch | closed Live2D, VRM, or Nimi2D branch |
+| handler convention | Avatar (NAS) | Avatar-local admitted handlers |
 | desktop chat avatar transient surface | Desktop | `.nimi/spec/desktop/agent-projection.authority.yaml` |
 
 ## Source Basis

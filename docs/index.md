@@ -13,8 +13,8 @@ Nimi is one open world platform. The platform contains several products
 that together make Characters able to live in long-lived worlds: Platform
 (the world model itself), Runtime (AI execution), SDK (app access),
 Desktop and Web (user surfaces), Realm (world truth), Avatar (embodied
-presentation), and Nimi Coding (the AI
-development methodology that ships with everything else).
+presentation), and Nimi Coding (the canonical-authority tooling used by
+the repository).
 
 Each product has its own section in these docs.
 
@@ -86,17 +86,10 @@ your head than to mix together.
 | Where world truth and history live | [Realm](/realm/) |
 | How embodied AI presentation is scoped | [Avatar](/avatar/) |
 | Where LocalAgent Memory and Knowledge live | [Runtime Memory And Knowledge](/runtime/memory-and-knowledge) |
-| The AI development paradigm and its host-agnostic package | [Nimi Coding](/nimicoding/) |
+| The canonical-authority tooling and its host-agnostic package | [Nimi Coding](/nimicoding/) |
 | The cross-domain vocabulary used in these pages | [Glossary](/reference/glossary) |
 
 ## Source Basis
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`docs/spec/desktop-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/desktop-domain-index.md)
-- [`docs/spec/avatar-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/avatar-domain-index.md)

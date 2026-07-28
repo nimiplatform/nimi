@@ -138,8 +138,6 @@ const sdkGroups: DefaultTheme.SidebarItem[] = [
   {
     text: 'Client APIs',
     items: [
-      { text: 'Agent Participation Client', link: '/sdk/agent-participation-client' },
-      { text: 'Avatar Control Client', link: '/sdk/avatar-control-client' },
       { text: 'Delegation Client', link: '/sdk/delegation-client' },
       { text: 'Local Environment Projection', link: '/sdk/local-environment-projection' },
       { text: 'AI Config Surface', link: '/sdk/ai-config-surface' },
@@ -264,65 +262,11 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
 
 const nimicodingGroups: DefaultTheme.SidebarItem[] = [
   {
-    text: 'Overview',
+    text: 'Nimi Coding',
     items: [
       { text: 'Overview', link: '/nimicoding/' },
-      { text: 'Whitepaper', link: '/nimicoding/whitepaper' },
-    ],
-  },
-  {
-    text: 'The Paradigm',
-    items: [
-      { text: 'The Paradigm', link: '/nimicoding/the-paradigm' },
-      { text: 'Four Closures', link: '/nimicoding/four-closures' },
-      { text: 'False Closure Typology', link: '/nimicoding/false-closure-typology' },
-    ],
-  },
-  {
-    text: 'Roles',
-    items: [
-      { text: 'Role Separation', link: '/nimicoding/role-separation' },
-    ],
-  },
-  {
-    text: 'Methodology And Evidence',
-    items: [
-      { text: 'Walkthrough', link: '/nimicoding/walkthrough' },
-    ],
-  },
-  {
-    text: 'The Package',
-    items: [
-      { text: 'The Package', link: '/nimicoding/the-package' },
-      { text: 'Host-Agnostic Boundary', link: '/nimicoding/host-agnostic' },
-      { text: 'CLI Surface', link: '/nimicoding/cli' },
+      { text: 'Host Integration', link: '/nimicoding/installation' },
       { text: 'CLI Reference', link: '/nimicoding/cli-reference' },
-      { text: 'Installation', link: '/nimicoding/installation' },
-    ],
-  },
-  {
-    text: 'Tutorials',
-    items: [
-      { text: 'Tutorials Overview', link: '/nimicoding/tutorials/' },
-      { text: 'Governed Codex Project', link: '/nimicoding/tutorials/project-to-governed-execution' },
-      { text: 'Verify Governance Setup', link: '/nimicoding/tutorials/project-bootstrap' },
-    ],
-  },
-  {
-    text: 'How-to',
-    items: [
-      { text: 'How-to Overview', link: '/nimicoding/how-to/' },
-      { text: 'Write Fail-Close Invariants', link: '/nimicoding/how-to/write-fail-close-invariants' },
-      { text: 'Reconcile Divergent Audits', link: '/nimicoding/how-to/reconcile-divergent-audits' },
-      { text: 'Admit An External Host', link: '/nimicoding/how-to/admit-an-external-host' },
-    ],
-  },
-  {
-    text: 'Reference',
-    items: [
-      { text: 'Reference Overview', link: '/nimicoding/reference/' },
-      { text: 'CLI Commands', link: '/nimicoding/reference/cli-commands' },
-      { text: 'Schemas', link: '/nimicoding/reference/schemas' },
     ],
   },
 ]
@@ -394,7 +338,6 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'Error Ownership', link: '/reference/error-ownership' },
         { text: 'Compatibility Posture', link: '/reference/compatibility-posture' },
         { text: 'Forbidden Claims', link: '/reference/forbidden-claims' },
-        { text: 'Spec Map', link: '/reference/spec-map' },
       ],
     },
   ],

@@ -15,8 +15,5 @@ Reference 是 Nimi 的产品概念字典。每页都是字段列表、表格或�
 | [错误归属](/zh/reference/error-ownership) | 哪一层持有哪份错误契约 |
 | [兼容姿态](/zh/reference/compatibility-posture) | 兼容形态的禁区 |
 | [Forbidden Claims](/zh/reference/forbidden-claims) | 公开文档禁止主张的清单与检测形态 |
-| [Spec Map](/zh/reference/spec-map) | 公开主张与规范位置之间的对应关系 |
 
 ## 来源依据
-
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)

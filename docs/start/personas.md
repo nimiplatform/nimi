@@ -14,8 +14,8 @@ project matters to you.
    contract surface that makes the platform a platform.
 3. [Platform → Architecture](/platform/architecture/) — the cross-layer
    map that says who owns what.
-4. [Nimi Coding → Overview](/nimicoding/) — the second co-positioned
-   product thesis: Nimi Coding as an AI development paradigm.
+4. [Nimi Coding → Overview](/nimicoding/) — the canonical-authority
+   tooling used by this repository.
 5. [Reference → Glossary](/reference/glossary) — keep this open as you
    read.
 
@@ -23,7 +23,7 @@ After this path you can describe Nimi to someone else.
 
 ## World Creator
 
-You want to design a world — its rules, lore, agents, scenes — and
+You want to design a world — its rules, lore, Characters, scenes — and
 publish it.
 
 1. [Platform → Vision](/platform/vision) — what a world is.
@@ -70,36 +70,31 @@ You want to integrate an external AI host as a participant.
 
 ## Nimi Coding Adopter
 
-You want to adopt Nimi Coding as your AI development methodology in a
+You want to adopt Nimi Coding as canonical-authority tooling in a
 project of your own.
 
-1. [Nimi Coding → Overview](/nimicoding/) — the paradigm and the
-   package.
-2. [Nimi Coding → Whitepaper](/nimicoding/whitepaper) — the paradigm
-   thesis.
-3. [Nimi Coding → Governed Codex Project](/nimicoding/tutorials/project-to-governed-execution) —
-   the boundary between host execution and project truth, gates, and evidence.
+1. [Nimi Coding → Overview](/nimicoding/) — the authority tooling and
+   its repository boundaries.
+2. [Nimi Coding → Host Integration](/nimicoding/installation) — the
+   managed host files and synchronization flow.
+3. [Nimi Coding → CLI Reference](/nimicoding/cli-reference) — the
+   supported authority commands.
 4. [Reference → Forbidden Claims](/reference/forbidden-claims) — the
    evidence-gated public-claim policy applied to docs.
-5. [Reference → Schemas](/nimicoding/reference/schemas) — the contracts
-   for reconstruction, evidence, and acceptance.
 
 ## Auditor / Reviewer
 
 You are reviewing Nimi against admitted authority. You need to trace
 public claims back to source.
 
-1. [Reference → Spec Map](/reference/spec-map) — the public-section
-   to spec-area mapping.
-2. [Reference → Authority Domains](/reference/authority-domains) — who
+1. [Reference → Authority Domains](/reference/authority-domains) — who
    owns what.
-3. [Reference → Glossary](/reference/glossary) — vocabulary alignment.
-4. [Nimi Coding → Governed Codex Project](/nimicoding/tutorials/project-to-governed-execution) —
-   how authority, gates, runtime checks, and evidence support review.
+2. [Reference → Glossary](/reference/glossary) — vocabulary alignment.
+3. [Nimi Coding → CLI Reference](/nimicoding/cli-reference) — the
+   supported authority diagnostics and validation commands.
 
 ## Source Basis
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
-- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
+- [`.nimi/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-authoring.yaml)

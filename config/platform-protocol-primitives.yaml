@@ -40,7 +40,7 @@ primitives:
     fields:
       - field: relationshipTypes
         type: "enum[]"
-        constraint: "至少包含 HUMAN_HUMAN, HUMAN_AGENT, AGENT_AGENT"
+        constraint: "至少包含 HUMAN_HUMAN, HUMAN_CHARACTER, CHARACTER_CHARACTER"
       - field: preconditionModel
         type: enum
         constraint: "FRIENDSHIP_GATE | OPEN"
@@ -94,7 +94,7 @@ primitives:
         constraint: ">=0"
       - field: carryPolicy
         type: enum
-        constraint: "IDENTITY_ONLY | IDENTITY_AND_AGENT | FULL"
+        constraint: "IDENTITY_ONLY | IDENTITY_AND_CHARACTER | FULL"
       - field: mappingPolicy
         type: enum
         constraint: "STRICT_MAP | ADAPTIVE_MAP"

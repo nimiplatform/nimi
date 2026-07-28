@@ -9,7 +9,7 @@ matching authority contract.
 
 ### Nimi Coding
 
-Nimi Coding is admitted as a host-agnostic methodology and is
+Nimi Coding is admitted as host-agnostic canonical-authority tooling and is
 distributed as the npm package
 [`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding).
 
@@ -19,10 +19,9 @@ For the Nimi workspace install and host compatibility checks, see
 A minimal first-run path:
 
 1. Install the Nimi workspace dependencies.
-2. Run the host-hardcut, projection, and doctor wrappers.
-3. Walk through
-   [Verify The Nimi Governance Setup](/nimicoding/tutorials/project-bootstrap)
-   to confirm ownership and truth surfaces end-to-end.
+2. Run `pnpm nimicoding:sync` and `pnpm nimicoding:doctor`.
+3. Use the [CLI Reference](/nimicoding/cli-reference) for bounded
+   authority context, formatting, and validation.
 
 The package remains host-agnostic; the Nimi repository applies its own
 explicit admission boundary around it.
@@ -47,7 +46,7 @@ installed-app update truth.
 | --- | --- | --- | --- |
 | `@nimiplatform/app-tools` | Public package with the `nimi-app` binary | `app-tools/` | Standalone scaffolds run it through `pnpm dlx --package`; workspace scaffolds may use `workspace:*`. |
 | `@nimiplatform/kit` | Public package | `kit/` | Kit is not a Runtime substitute; apps use its published subpath exports only. |
-| `@nimiplatform/sdk` | Public package for app consumers | `sdks/typescript/` private vNext workspace package | Generated standalone apps depend on the published SDK range from app-tools; repository development uses the workspace package. |
+| `@nimiplatform/sdk` | Public package for app consumers | `sdks/typescript/` active public package source | Generated standalone apps depend on the published `0.6.x` range from app-tools; repository development uses the same package through the workspace. |
 
 Do not assume a source checkout automatically opens every product release
 channel. Use npm packages for standalone app repositories, and use `workspace:*`
@@ -77,9 +76,7 @@ notes path, the corresponding section page is updated to expose it.
 
 ## Tracking Availability
 
-The [Spec Map](/reference/spec-map) lists which authority surface a
-public section traces to. The
-[Compatibility Posture](/reference/compatibility-posture) page lists
+The [Compatibility Posture](/reference/compatibility-posture) page lists
 the constraints that govern when a surface is allowed to publish
 install or release information.
 
@@ -90,7 +87,7 @@ to publish without admitted evidence.
 ## Source Basis
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
-- [`nimi-coding/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/bootstrap.yaml)
+- [`nimi-coding/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-authoring.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

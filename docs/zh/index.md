@@ -6,7 +6,7 @@ Nimi 是一个 AI 开放世界平台。它把 Character 视作长期世界中的
 
 ## 文档结构
 
-Nimi 作为一个开放世界平台，内含多个核心组件，共同支撑 Character 在长期世界中生存：平台（世界模型本身）、Runtime（LocalAgent 执行以及 Conversation、Memory、Knowledge）、SDK（App 接入层）、桌面端与网页端（用户界面）、Realm（世界真相层）、Avatar（形体呈现）以及 Nimi Coding（配套的 AI 开发方法论）。
+Nimi 作为一个开放世界平台，内含多个核心组件，共同支撑 Character 在长期世界中生存：平台（世界模型本身）、Runtime（LocalAgent 执行以及 Conversation、Memory、Knowledge）、SDK（App 接入层）、桌面端与网页端（用户界面）、Realm（世界真相层）、Avatar（形体呈现）以及 Nimi Coding（仓库使用的 canonical-authority 工具）。
 
 上述每个组件在文档中均有独立章节。
 
@@ -67,17 +67,10 @@ Nimi 平台在架构上可划分为三个层次。分层视角有助于清晰理
 | 世界真相与历史在哪 | [Realm](/zh/realm/) |
 | 形体化 AI 呈现的边界 | [Avatar](/zh/avatar/) |
 | LocalAgent Memory 与 Knowledge 在哪 | [Runtime Memory 与 Knowledge](/zh/runtime/memory-and-knowledge) |
-| AI 开发范式与宿主无关包 | [Nimi Coding](/zh/nimicoding/) |
+| Canonical-authority 工具与宿主无关包 | [Nimi Coding](/zh/nimicoding/) |
 | 跨域术语 | [术语表](/zh/reference/glossary) |
 
 ## 来源依据
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`docs/spec/runtime-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/runtime-domain-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
-- [`docs/spec/realm-readme.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-readme.md)
-- [`docs/spec/realm-external-anchor.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/realm-external-anchor.md)
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`docs/spec/desktop-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/desktop-domain-index.md)
-- [`docs/spec/avatar-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/avatar-domain-index.md)

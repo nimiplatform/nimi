@@ -2,7 +2,7 @@
 ## Scope
 - Applies to `sdks/**`.
 - `.nimi/spec/sdks/*.authority.yaml` owns the SDK family.
-- `sdks/typescript/**` is the TypeScript-first next major `@nimiplatform/sdk`.
+- `sdks/typescript/**` is the active TypeScript implementation of `@nimiplatform/sdk`.
 - Python/Go/Rust stay generated Runtime/Realm core until TypeScript stabilizes.
 ## Hard Boundaries
 - Do not restore active `sdk/**`; archived SDK history is baseline evidence only.
@@ -20,4 +20,3 @@
 - `node sdks/conformance/run.mjs --language all --profile typed-core`
 - `pnpm --filter @nimiplatform/sdk build`
 - `pnpm --filter @nimiplatform/sdk test`
-- `pnpm check:sdk-doctor` (required after editing `sdks/typescript/doctor/**`, adapter manifests, or `config/sdks-framework-api-capability-map.yaml`)

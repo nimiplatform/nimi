@@ -1,107 +1,76 @@
 # Avatar 事件
 
-## 状态：现在 (Running today)
+Avatar 事件用于描述类型明确、范围受限的本地呈现结果。Avatar 自己的处理器
+和组件可以据此响应渲染、播放、交互、后端与生命周期变化。它们不是公开驱动
+接口，不是跨 App 事件总线，也不保存 Runtime 的 LocalAgent 事实。
 
-事件分类法已在内核层级获得准入；事件总线已交付。
+## 观察事件族
 
-Avatar 对外暴露一组强类型事件，供 NAS 处理器、Avatar app 组件与 Runtime 组件订阅。事件家族在内核层准入，不接受自由格式。
-
-## 事件家族
-
-| 家族 | 覆盖范围 |
+| 事件族 | 本地观察内容 |
 | --- | --- |
-| `avatar.user.*` | 用户输入：点击、拖拽、悬停 |
-| `avatar.activity.*` | 活动事件：强类型动作请求 |
-| `avatar.motion.*` | 动作生命周期 |
-| `avatar.expression.*` | 表情变更 |
-| `avatar.pose.*` | 姿态变更 |
-| `avatar.lookat.*` | 视线方向 |
-| `avatar.speak.*` | 语音输出生命周期 |
-| `avatar.lipsync.*` | 唇形帧事件 |
-| `avatar.app.*` | App 生命周期（`start`、`ready` 等） |
-| `avatar.companion.*` | Companion 表面事件 |
-| `avatar.composition.*` | 合成态状态机迁移 |
+| `avatar.user.*` | 有频率限制的指针交互与命中区域结果 |
+| `avatar.activity.*` | Avatar 本地活动处理的开始、完成或取消 |
+| `avatar.motion.*` | 后端验证后的动作结果 |
+| `avatar.expression.*` | 后端验证后的表情结果 |
+| `avatar.pose.*` | 后端验证后的姿态结果 |
+| `avatar.lookat.*` | 后端验证后的注视结果 |
+| `avatar.speak.*` | Avatar 本地音频播放与中断结果 |
+| `avatar.lipsync.*` | 范围受限的口型同步阶段，不包含逐帧公开事件 |
+| `avatar.app.*` | Avatar 应用生命周期 |
+| `avatar.composition.*` | 封闭的外壳生命周期 |
 
-每个家族都需准入；新增家族走内核准入流程。
+每个事件都有明确名称、类型化载荷、活跃 Avatar 实例、必要时经过验证的后端
+结果，以及所有者规定的频率约束。这个接口不提供通配驱动钩子或通用公开取消
+能力。
 
-## 已准入家族示例
+## Runtime 输入与 Avatar 输出
 
-### `avatar.user.*`
+LocalAgent 参与、轮次、呈现意图、情绪状态、语音时间线、对话连续性和来源
+关系都由 Runtime 管理。Avatar 通过 SDK 消费这些类型化结果，并在后端执行后
+报告本地发生的事情。
 
-| 事件 | 触发时机 |
+例如，Runtime 的呈现活动到达后，Avatar 接受该活动，随后可以报告
+`avatar.activity.start`。本地处理器和后端给出结果后，Avatar 还可以报告完成
+或取消。它不会重新制造一条 Runtime 事件，也不会用渲染成功改写 Runtime
+状态。
+
+## 场景：用户点击 Avatar
+
+1. 用户点击具身呈现中可见的区域。
+2. 当前后端返回范围受限的命中区域结果。
+3. Avatar 为当前实例发出类型化的 `avatar.user.click`。
+4. 已支持的 Avatar 本地处理器可以在 Avatar 范围内响应。
+
+这个事件不会向其他 App 开放原始动作、表情、渲染器或后端控制。
+
+## 场景：语音与口型同步
+
+1. Runtime 提供类型化的语音时间信息和音频播放输入。
+2. Avatar 把音频源连接到当前 Live2D、VRM 或 Nimi2D 后端的音频消费者。
+3. 后端在本地计算范围受限的嘴部权重并完成渲染。
+4. 本地播放产生结果后，Avatar 可以报告播放生命周期或口型同步阶段。
+
+逐帧嘴部参数留在渲染路径中。Avatar 不会公开已退休的逐帧口型产品事件，也
+不会自行创建语音时间线事实。
+
+## 场景：后端进入就绪状态
+
+1. Avatar 验证 `live2d`、`vrm` 或 `nimi2d` 中的一个后端分支。
+2. 后端加载资源并产生可见输出。
+3. Avatar 为当前实例报告本地后端或生命周期结果。
+4. Runtime 输入、实例或后端不匹配时，Avatar 拒绝成功形态的事件。
+
+## 所有权一览
+
+| 事项 | 所有者 |
 | --- | --- |
-| `avatar.user.click` | 用户点击，附带命中区域信息 |
-| `avatar.user.drag` | 用户拖拽 |
-| `avatar.user.hover` | 用户悬停 |
-
-### `avatar.activity.*`
-
-活动是强类型动作请求。NAS 的 activity 处理器在对应事件上触发。
-
-### `avatar.motion.*`、`avatar.expression.*`、`avatar.pose.*`、`avatar.lookat.*`
-
-各自的生命周期事件：开始、进行中、完成。
-
-### `avatar.speak.*`、`avatar.lipsync.*`
-
-语音输出生命周期：语音请求触发、音频回放、唇形帧与音频对齐。
-
-### `avatar.app.*`
-
-| 事件 | 触发时机 |
-| --- | --- |
-| `avatar.app.start` | Avatar app 启动 |
-| `avatar.app.ready` | 合成态进入 `ready` |
-
-### `avatar.composition.*`
-
-合成态状态机的迁移事件（`loading → ready → degraded:* → relaunch-pending`）。
-
-## 场景：NAS 处理器订阅 Avatar 事件
-
-某个 NAS 处理器想在 Agent 表达情绪时做点反应。
-
-1. **处理器注册**。通过准入的 Avatar 处理器发现机制订阅 `avatar.expression.*`。
-2. **Avatar 发出事件**。Agent 的 Runtime 驱动一次表情更新时，Avatar 语义层发出 `avatar.expression.changed`。
-3. **处理器收到事件**。事件强类型，包含旧表情与新表情。
-4. **处理器在 Avatar handler 边界内行动**。
-
-处理器不需要自己推断 Avatar 状态——事件本身就是可观测面。
-
-## 场景：跨 App 协同
-
-另一个 App（不是 Avatar）希望与 Avatar 协同——例如把视觉情绪同步到聊天 UI。
-
-1. **Avatar 发出表情事件**。事件经由 Runtime 事件总线广播。
-2. **另一个 App 订阅**。通过准入的 Runtime 事件订阅接口接收。
-3. **两个 App 同步呈现**。在大致同一时刻反映出相同的情绪。
-
-跨实例协同的接缝由 `avatar_instance_registry` 提供（在 Avatar app-shell 契约中准入）。
-
-## 场景：唇形同步桥
-
-Agent 开口说话，唇形需要与音频对齐。
-
-1. **Runtime 发出语音回放事件**。通过准入的 Runtime 展示时间线。
-2. **`lipsync_frame_batch`**。Runtime 发出强类型时序的帧批次。
-3. **Avatar 消费帧**。帧通过 SDK 队列抵达 Avatar。
-4. **Avatar 桥接到 Live2D**。帧驱动 Live2D 的 `ParamMouthOpenY`。
-5. **可见结果**。唇形与音频对齐。
-
-唇形同步是一条已准入的桥接路径，也是平台中跨域编排链路较长的一条。
-
-## 边界归属
-
-| 关注点 | 归属 |
-| --- | --- |
-| 事件分类 | Avatar event 契约 |
-| 事件发出 | Avatar 语义层 |
-| 事件消费 | NAS 处理器、Avatar app 组件、其它 App |
-| 跨实例协同 | `avatar_instance_registry` |
-| 唇形同步桥 | Runtime 展示流 + SDK 队列 + Avatar `ParamMouthOpenY` |
+| 本地渲染、播放、交互、后端与生命周期观察 | Avatar |
+| 本地事件处理器 | Avatar |
+| LocalAgent 参与、呈现、状态、语音时间线、对话连续性和来源关系 | Runtime |
+| 后端参数执行 | 当前 Avatar 后端分支 |
+| 跨 App 产品状态 | 对应的 Realm 或 Runtime 接口 |
 
 ## 来源依据
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)

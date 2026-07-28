@@ -5,7 +5,7 @@ aside: false
 # SDK
 
 Nimi SDK 是 App 面向 Runtime、Realm、AI、Agent、feature 与共享类型的公开边界。
-当前实现位于 `sdks/typescript`，并将成为下一 major 的 `@nimiplatform/sdk`。
+当前实现位于 `sdks/typescript`，即公开的 `@nimiplatform/sdk` package。
 
 App 应优先从根包开始：
 
@@ -30,7 +30,7 @@ import { createNimiClient } from '@nimiplatform/sdk';
 
 ## 公开 surface
 
-vNext TypeScript SDK 只有一个 base SDK package。外部框架适配器是独立 package，不是 base SDK 子路径。
+TypeScript SDK 只有一个 base package。外部框架适配器是独立 package，不是 base SDK 子路径。
 
 | 公开入口 | 角色 |
 | --- | --- |
@@ -72,8 +72,5 @@ TypeScript API。它不自创 Runtime、Realm 或 Desktop 真值。
 
 ## 来源依据
 
-- [`docs/spec/sdks-root-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-root-index.md)
-- [`docs/spec/sdks-domain-index.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/sdks-domain-index.md)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
-- [`config/sdks-typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-target-export-map.yaml)

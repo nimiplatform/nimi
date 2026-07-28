@@ -1,7 +1,0 @@
-profile_id: nimi
-
-spec_governance:
-  canonical_root: .nimi/spec
-  validate_commands:
-    apps/avatar:
-      - pnpm check:apps-avatar-isolation

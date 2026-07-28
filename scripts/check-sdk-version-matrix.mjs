@@ -13,7 +13,6 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const SDK_PACKAGE_PATH = 'sdks/typescript';
-const ARCHIVED_SDK_PACKAGE_JSON = 'archive/sdk-pre-vnext-20260606/package.json';
 
 const SDK_PACKAGES = [
   { id: 'sdk', path: SDK_PACKAGE_PATH },
@@ -166,23 +165,14 @@ async function main() {
   const kitVersion = packageVersions.get('@nimiplatform/kit')?.version || '';
   const appToolsVersion = packageVersions.get('@nimiplatform/app-tools')?.version || '';
   const expectedSdkRange = sdkVersion ? `^${sdkVersion}` : '';
-  const sdkPreCutover = sdkPackage?.pkg?.nimi?.preCutover === true;
-  const archivedSdkPackage = JSON.parse(await fs.readFile(path.join(repoRoot, ARCHIVED_SDK_PACKAGE_JSON), 'utf8'));
-  const expectedPublicSdkRange = sdkPreCutover
-    ? `^${String(archivedSdkPackage.version || '').trim()}`
-    : expectedSdkRange;
   const expectedKitRange = kitVersion ? `^${kitVersion}` : '';
   const expectedAppToolsRange = appToolsVersion ? `^${appToolsVersion}` : '';
 
   const examplesAppTemplate = JSON.parse(await fs.readFile(path.join(repoRoot, 'examples/app-template/package.json'), 'utf8'));
   const examplesSdkRange = String(examplesAppTemplate.dependencies?.['@nimiplatform/sdk'] || '');
-  const allowedExampleSdkRanges = new Set([
-    expectedPublicSdkRange,
-    ...(sdkPreCutover ? ['workspace:*'] : []),
-  ]);
-  if (!allowedExampleSdkRanges.has(examplesSdkRange)) {
+  if (examplesSdkRange !== expectedSdkRange) {
     violations.push(
-      `examples/app-template/package.json must depend on @nimiplatform/sdk as one of ${JSON.stringify([...allowedExampleSdkRanges])}`,
+      `examples/app-template/package.json must depend on @nimiplatform/sdk as "${expectedSdkRange}"`,
     );
   }
 
@@ -190,8 +180,8 @@ async function main() {
   const sdkVersionMatch = appToolsSource.match(/const SDK_VERSION = '([^']+)';/);
   const kitVersionMatch = appToolsSource.match(/const KIT_VERSION = '([^']+)';/);
   const appToolsVersionMatch = appToolsSource.match(/const APP_TOOLS_VERSION = '([^']+)';/);
-  if (!sdkVersionMatch || sdkVersionMatch[1] !== expectedPublicSdkRange) {
-    violations.push(`app-tools/lib/index.mjs SDK_VERSION must be "${expectedPublicSdkRange}"`);
+  if (!sdkVersionMatch || sdkVersionMatch[1] !== expectedSdkRange) {
+    violations.push(`app-tools/lib/index.mjs SDK_VERSION must be "${expectedSdkRange}"`);
   }
   if (!kitVersionMatch || kitVersionMatch[1] !== expectedKitRange) {
     violations.push(`app-tools/lib/index.mjs KIT_VERSION must be "${expectedKitRange}"`);
@@ -200,7 +190,7 @@ async function main() {
     violations.push(`app-tools/lib/index.mjs APP_TOOLS_VERSION must be "${expectedAppToolsRange}"`);
   }
 
-  if (sdkPackage?.version && !sdkPreCutover) {
+  if (sdkPackage?.version) {
     const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(sdkPackage.version);
     if (
       runtimeSurfaceContext

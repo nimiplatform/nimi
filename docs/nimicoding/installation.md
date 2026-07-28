@@ -1,57 +1,42 @@
-# Nimi Host Integration
+# Nimi Coding Host Integration
 
-The Nimi repository pins `@nimiplatform/nimi-coding` as a development
-dependency and consumes it through a guarded host boundary. A normal
-workspace install provides the package; project wrappers verify the audited
-package release and its managed projections.
-
-## Prerequisites
-
-| Requirement | Purpose |
-| --- | --- |
-| Node.js 24 or newer | Workspace runtime |
-| pnpm | Repository package manager |
-| Git checkout of Nimi | Provides the admitted host projections and wrappers |
-| Codex or another admitted external host | Owns task execution |
-
-## Install Workspace Dependencies
+The Nimi workspace pins `@nimiplatform/nimi-coding` as a development
+dependency. A normal workspace install provides the CLI:
 
 ```bash
 pnpm install
 ```
 
-Do not run generic bootstrap or clear commands in this repository. Use the
-declared project wrappers so the host boundary is checked before a managed
-projection is refreshed.
-
-## Verify The Integration
+## Verify Managed Integration
 
 ```bash
-pnpm check:nimi-coding-seed-sync
+pnpm nimicoding:sync
 pnpm nimicoding:doctor
 ```
 
-Both checks must pass. `sync --check` verifies package-canonical files and required host-owned
-seed files without treating host-specific content as package drift.
+In this repository, `nimicoding:sync` runs `sync --check`; it verifies managed
+files without rewriting product authority or host task state.
 
 ## Verify Product Authority
 
 ```bash
-pnpm exec nimicoding validate-spec-tree .nimi/spec
+pnpm spec:authority:check
 ```
 
-For authority edits, use the repository-managed format command for each
-changed container, then run `pnpm spec:authority:check` and
-`pnpm spec:authority:compile`. These commands validate authority; they do not
-create or update host task state.
+For an authority edit, follow
+`.nimi/methodology/authority-authoring.yaml`: obtain bounded context, run
+semantic diff and impact with explicit budgets, format every changed
+authority file, and then check the complete `.nimi/spec` input set.
 
-## Projection Ownership
+## File Placement
 
-Most `.nimi/{config,contracts,methodology}/**` files are package-canonical.
-Repository-specific methodology and contract files remain host configuration,
-not product authority.
+Nimi Coding host configuration belongs under `.nimi/config/**`. The managed
+authoring guide remains under `.nimi/methodology/**`. Root `config/**` remains
+appropriate for product schemas, generator inputs, and implementation
+projections; referencing a canonical authority ID does not make such a file
+Nimi Coding configuration or a second authority.
 
 ## Source Basis
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
-- [`.nimi/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/bootstrap.yaml)
+- [`.nimi/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-authoring.yaml)

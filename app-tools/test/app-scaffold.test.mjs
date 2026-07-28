@@ -59,18 +59,14 @@ function createFileTree(baseDir, files) {
 function fakeNimicodingRunners() {
   return {
     runNimicodingSync(targetDir, mode) {
-      mkdirSync(path.join(targetDir, '.nimi', 'config'), { recursive: true });
-      mkdirSync(path.join(targetDir, '.nimi', 'contracts'), { recursive: true });
       mkdirSync(path.join(targetDir, '.nimi', 'methodology'), { recursive: true });
-      writeFileSync(path.join(targetDir, '.nimi', 'config', 'bootstrap.yaml'), 'source: fake-nimicoding-sync\n');
-      writeFileSync(path.join(targetDir, '.nimi', 'contracts', 'spec-layout.schema.yaml'), 'source: fake-nimicoding-sync\n');
-      writeFileSync(path.join(targetDir, '.nimi', 'methodology', 'core.yaml'), 'source: fake-nimicoding-sync\n');
+      writeFileSync(path.join(targetDir, '.nimi', 'methodology', 'authority-authoring.yaml'), 'source: fake-nimicoding-sync\n');
       return {
         ok: true,
         mode,
         summary: {
-          total: 3,
-          created: mode === 'apply' ? 3 : 0,
+          total: 1,
+          created: mode === 'apply' ? 1 : 0,
         },
       };
     },
@@ -130,11 +126,9 @@ function fakePnpmEnv(tempRoot) {
     [
       '#!/bin/sh',
       'if [ "$1" = "exec" ] && [ "$2" = "nimicoding" ] && [ "$3" = "sync" ]; then',
-      '  mkdir -p .nimi/config .nimi/contracts .nimi/methodology',
-      '  printf "source: fake-nimicoding-sync\\n" > .nimi/config/bootstrap.yaml',
-      '  printf "source: fake-nimicoding-sync\\n" > .nimi/contracts/spec-layout.schema.yaml',
-      '  printf "source: fake-nimicoding-sync\\n" > .nimi/methodology/core.yaml',
-      '  printf "{\\"ok\\":true,\\"summary\\":{\\"total\\":3,\\"created\\":3}}\\n"',
+      '  mkdir -p .nimi/methodology',
+      '  printf "source: fake-nimicoding-sync\\n" > .nimi/methodology/authority-authoring.yaml',
+      '  printf "{\\"ok\\":true,\\"summary\\":{\\"total\\":1,\\"created\\":1}}\\n"',
       '  exit 0',
       'fi',
       'printf "unexpected fake pnpm command: %s\\n" "$*" >&2',
@@ -148,13 +142,9 @@ function fakePnpmEnv(tempRoot) {
     [
       '@ECHO off',
       'IF "%~1"=="exec" IF "%~2"=="nimicoding" IF "%~3"=="sync" (',
-      '  MKDIR .nimi\\config 2>NUL',
-      '  MKDIR .nimi\\contracts 2>NUL',
       '  MKDIR .nimi\\methodology 2>NUL',
-      '  > .nimi\\config\\bootstrap.yaml ECHO source: fake-nimicoding-sync',
-      '  > .nimi\\contracts\\spec-layout.schema.yaml ECHO source: fake-nimicoding-sync',
-      '  > .nimi\\methodology\\core.yaml ECHO source: fake-nimicoding-sync',
-      '  ECHO {"ok":true,"summary":{"total":3,"created":3}}',
+      '  > .nimi\\methodology\\authority-authoring.yaml ECHO source: fake-nimicoding-sync',
+      '  ECHO {"ok":true,"summary":{"total":1,"created":1}}',
       '  EXIT /B 0',
       ')',
       'ECHO unexpected fake pnpm command: %* 1>&2',
@@ -530,7 +520,7 @@ test('cli standalone scaffold uses current public dependency version sources', (
     const appToolsPackageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
     const expectedAppToolsVersion = `^${appToolsPackageJson.version}`;
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.6.0');
-    assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.2.0');
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.3.0');
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], '0.2.5');
     assert.equal(packageJson.devDependencies.yaml, '^2.9.0');

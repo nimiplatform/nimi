@@ -664,7 +664,7 @@ units:
     kind: rule
     title: protocol-primitives P-PROTO-101 Social wire fields
     modality: must
-    statement: A Social primitive contract requires relationshipTypes containing HUMAN_HUMAN, HUMAN_AGENT, and AGENT_AGENT, preconditionModel FRIENDSHIP_GATE or OPEN, reputationScale with integer min and max satisfying zero at most min less than max at most 10000, decayWindowHours at least one, and blockPolicy HARD_DENY or SOFT_DENY.
+    statement: A Social primitive contract requires relationshipTypes containing HUMAN_HUMAN, HUMAN_CHARACTER, and CHARACTER_CHARACTER, preconditionModel FRIENDSHIP_GATE or OPEN, reputationScale with integer min and max satisfying zero at most min less than max at most 10000, decayWindowHours at least one, and blockPolicy HARD_DENY or SOFT_DENY.
     condition: Whenever a Social primitive contract is admitted or interpreted.
     failure: Reject the contract when a required field, required relationship type, valid range, or admitted enum value is absent.
     relations:
@@ -684,7 +684,7 @@ units:
     kind: rule
     title: protocol-primitives P-PROTO-103 Transit wire fields
     modality: must
-    statement: A Transit primitive contract requires nonnegative integer ingressUserQuotaPerDay and ingressWorldQuotaPerDay, carryPolicy IDENTITY_ONLY, IDENTITY_AND_AGENT, or FULL, mappingPolicy STRICT_MAP or ADAPTIVE_MAP, and transitStateModel fixed ACTIVE_COMPLETED_ONLY in version 0.1.
+    statement: A Transit primitive contract requires nonnegative integer ingressUserQuotaPerDay and ingressWorldQuotaPerDay, carryPolicy IDENTITY_ONLY, IDENTITY_AND_CHARACTER, or FULL, mappingPolicy STRICT_MAP or ADAPTIVE_MAP, and transitStateModel fixed ACTIVE_COMPLETED_ONLY in version 0.1.
     condition: Whenever a Transit primitive contract is admitted or interpreted.
     failure: Reject the contract when a required field, nonnegative quota, admitted enum value, or fixed state model is absent.
     relations:

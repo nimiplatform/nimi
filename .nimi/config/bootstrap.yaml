@@ -1,6 +1,0 @@
-version: 2
-initialized_by: "@nimiplatform/nimi-coding"
-cli_version: "0.3.1"
-bootstrap_contract: "nimicoding.bootstrap"
-bootstrap_contract_version: 2
-profile: governance

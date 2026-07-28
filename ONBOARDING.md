@@ -16,7 +16,7 @@
 | 组件 | 目录 | 语言 | 说明 |
 |---|---|---|---|
 | runtime | `runtime/` | Go | 本地 AI daemon 和 CLI |
-| sdk | `sdk/` | TypeScript | 统一 SDK (`@nimiplatform/sdk`) |
+| sdk | `sdks/typescript/` | TypeScript | 统一 SDK (`@nimiplatform/sdk`) |
 | kit | `kit/` | TypeScript + React | 跨 app 工具包：设计系统、auth、telemetry、feature 模块 |
 | proto | `proto/` | Protocol Buffers | gRPC 协议定义 |
 | spec | `spec/` | Markdown + YAML | 规范契约（normative） |
@@ -240,7 +240,6 @@ pnpm --filter @nimiplatform/sdk test
 
 ```bash
 pnpm generate:realm-sdk
-pnpm generate:scope-catalog
 pnpm proto:generate
 pnpm proto:lint
 ```
@@ -248,9 +247,7 @@ pnpm proto:lint
 Spec 一致性检查（PR 提交前必须通过）：
 
 ```bash
-pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
-pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency
-pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
+pnpm spec:authority:check
 ```
 
 ## 8. 必读规范（开始改代码前）
@@ -259,8 +256,8 @@ pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-con
 
 1. `AGENTS.md`（仓库级规则，最高优先级）
 2. 就近目录的 `*/AGENTS.md`（按改动路径匹配组件规则）
-3. `spec/AGENTS.md`（当改动 `spec/**` 时必须遵循）
-4. `spec/` 目录下对应域的规范文档（规则内容本体）
+3. `.nimi/methodology/authority-authoring.yaml`（当改动 `.nimi/spec/**` 时必须遵循）
+4. `.nimi/spec/` 目录下对应域的 canonical authority（规则内容本体）
 
 兼容说明（避免歧义）：
 
@@ -279,7 +276,7 @@ pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-con
 2. 先跑最小验证（runtime health + 目标组件 lint/test）。
 3. 修改代码并运行对应局部测试。
 4. 变更跨组件时再跑根目录 `pnpm lint` 与 `pnpm test`。
-5. 变更 spec/源码对齐关系时，跑 `pnpm check:*-spec-kernel-consistency`。
+5. 变更 `.nimi/spec/**` 时，按 authoring methodology 执行 context/diff/impact/fmt，并跑 `pnpm spec:authority:check`。
 6. 提交时按"可独立审查/可独立回滚"的边界拆 commit。
 
 ## 10. 常见问题
@@ -298,12 +295,12 @@ pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-con
 ## 11. 参考文档
 
 1. `README.md`
-2. `docs/getting-started/index.md`
+2. `docs/start/index.md`
 3. `runtime/README.md`
-4. `docs/reference/runtime.md`
-5. `docs/reference/sdk.md`
-6. `spec/runtime/connector.md`（Connector 领域规范）
-7. `.nimi/spec/runtime/security-core.authority.yaml`（Runtime 安全核与凭据路由规范）
+4. `docs/runtime/index.md`
+5. `docs/sdk/index.md`
+6. `.nimi/spec/runtime/ai-provider.authority.yaml`（Connector 与 Provider 领域 authority）
+7. `.nimi/spec/runtime/security-core.authority.yaml`（Runtime 安全核与凭据路由 authority）
 
 ## 12. 附：统一 Runtime 命令入口
 

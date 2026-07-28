@@ -1,123 +1,85 @@
 # Backend Branches
 
-> Status: Mixed. Per-section labels below: Live2D backend (running),
-> VRM backend (admitted contract; not a public app API), Generated motion provider
-> (running).
+Avatar has a closed backend union with exactly three kinds:
+`live2d | vrm | nimi2d`. One Avatar-owned factory validates the model and
+selects the matching branch exhaustively. A package or third-party App cannot
+register another renderer at runtime.
 
-Avatar's rendering backend is a **closed discriminated union**:
-`live2d | vrm`. Live2D runs today via Cubism SDK for Web; VRM is
-admitted as a backend branch that is not public app API today. Generated
-motion is admitted as a distinct provider concern under the same backend branch model
-(see [Generated Motion Provider](/avatar/generated-motion-provider.md)).
+## Shared Branch Contract
 
-## Closed Union, Not Open Plugin System
+Every branch exposes the same backend-neutral shape:
 
-| Property | Value |
+| Surface | Purpose |
 | --- | --- |
-| Backends | `live2d`, `vrm` (future) |
-| Closed | New backends require admitted contract |
-| Discriminated union | Type narrowing surfaces backend-specific extensions |
-| Live2D today | Running via Cubism SDK for Web |
-| VRM branch | Admitted backend branch; not a public app API today |
+| `kind` | The validated `live2d`, `vrm`, or `nimi2d` discriminator |
+| `nominalBounds` | Positive logical size and normalized body center |
+| `projection` | Activity, emotion, motion, expression, and reset operations |
+| `surface` | The Avatar-owned render component |
+| `metadata()` | Opaque branch diagnostics |
+| `shutdown()` | Release render, audio, and projection resources |
 
-A reader who hopes to "drop in another backend" cannot. The
-backend list is admitted; new backends are admitted at the kernel
-level, not by author convention.
+The carrier uses only this shared shape. Backend metadata does not become
+cross-backend product truth, and renderer identifiers do not escape through
+the backend-neutral projection.
 
-## Live2D Backend (running)
+## Live2D
 
-| Property | Value |
+The Live2D branch loads and validates a Cubism model, renders it on the Avatar
+surface, derives bounded hit regions, and consumes local audio for lipsync.
+Live2D alone exposes the branch-local `setParameter` extension. Only
+Avatar-owned projection translation may call that extension after narrowing
+the branch kind.
+
+## VRM
+
+The VRM branch loads a validated VRM model and its typed capability profile.
+The profile records humanoid bones, expressions, look-at support, pose limits,
+and supported deterministic motion routes. Unsupported routes fail closed;
+the branch does not pretend that missing bones or expressions succeeded.
+
+VRM is a current admitted Avatar backend branch, not a future placeholder and
+not a public third-party driver surface.
+
+## Nimi2D
+
+The Nimi2D branch loads a digest-validated Nimi2D package and its capability
+profile, creates the Nimi2D composer, and renders the admitted layer plan. Its
+profile determines whether expression, speech-mouth, idle-life, and gesture
+motion lanes are available.
+
+Nimi2D package internals remain owned by Nimi2D. Avatar consumes the validated
+package and profile without redefining their schema or content-governance
+meaning.
+
+## Backend-Neutral Projection
+
+A Runtime presentation result reaches Avatar as typed semantic input. Avatar
+first preserves that meaning in backend-neutral cues, then the active branch
+maps the cues to renderer-local operations:
+
+| Cue | Example branch operation |
 | --- | --- |
-| Tech | Cubism SDK for Web |
-| Status | Running today |
-| Asset compatibility | Per `live2d-asset-compatibility-contract.md` |
-| Render contract | Per `live2d-render-contract.md` |
-| Backend extensions | Live2D-specific API (e.g., `live2dExtension`) |
+| activity or motion | Live2D motion group, VRM deterministic route, or Nimi2D motion lane |
+| emotion or expression | Live2D parameter/expression stack, VRM expression manager, or Nimi2D expression lane |
+| speak | Branch audio consumer and renderer-local mouth weights |
+| surface bounds | Branch nominal bounds and hit-region protocol |
 
-Live2D is the production backend. Embodiment packages today are
-typically Live2D packages.
+Reset and shutdown clear only Avatar-owned local state. They do not alter
+Runtime presentation, continuity, participation, or provenance.
 
-## VRM Backend (Admitted Contract; Release-Gated Surface)
+## Reader Scenario: Selecting a Branch
 
-| Property | Value |
-| --- | --- |
-| Tech | VRM 3D asset standard (three-vrm + R3F) |
-| Status | Admitted backend branch; not a public app API today |
-| Backend extensions | VRM-specific when that surface is exposed |
+1. Runtime authorizes a visual package.
+2. The verified native host materializes it under the protected data root.
+3. Avatar validates the model manifest.
+4. The single branch factory selects `live2d`, `vrm`, or `nimi2d`.
+5. An unknown kind, an incomplete profile, or invalid bounds keeps the carrier
+   non-ready.
 
-VRM is admitted as a future backend so that NAS handlers can
-write portable code today without coupling to Live2D specifics
-that VRM cannot honor. The backend branch model exists exactly
-so future backends do not require rewriting handlers.
-
-## Generated Motion Provider (running)
-
-`generated-motion-provider-contract.md` describes how AI-generated
-motion can drive an embodiment. It is admitted as a provider
-under the same backend-branch model and is the runtime proof path
-that replaces hand-authored `.vrma` files.
-
-| Property | Value |
-| --- | --- |
-| Source | AI motion generation provider |
-| Output | Backend-specific motion calls |
-| Provider lifecycle | Admitted under the contract |
-
-This is what makes "the agent's motion is alive" go beyond
-hand-authored animation. Generated motion is a provider
-capability admitted into Avatar.
-
-## Live2D Asset Compatibility
-
-| Concern | What the contract handles |
-| --- | --- |
-| Asset version compatibility | Which Cubism versions are admitted |
-| Required parameters | Parameters the embodiment must declare |
-| Optional parameters | Parameters that enable richer rendering |
-| Failure mode | What happens when a required parameter is missing |
-
-A Live2D model that lacks required parameters fails closed at
-acceptance. Optional parameters enable richer rendering when
-present.
-
-## Reader Scenario: A NAS Handler Stays Portable
-
-A NAS handler animates an idle pose.
-
-1. **Use backend-agnostic API.** Handler calls embodiment
-   projection's idle pose method.
-2. **Live2D today.** Projection routes through Live2D
-   extension; idle pose is rendered via Live2D parameters.
-3. **VRM surface.** When VRM is exposed, the same handler routes
-   through VRM extension; idle pose is rendered via VRM
-   capabilities.
-4. **Same handler shape applies across backends.**
-
-Backend-agnostic handlers are portable across backends.
-
-## Reader Scenario: Live2D Asset Compatibility Mismatch
-
-A user installs a Live2D embodiment package built for an older
-Cubism version.
-
-1. **Asset compatibility check.** Per
-   `live2d-asset-compatibility-contract.md`.
-2. **Decision.** Either:
-   - Admit as compatible (within admitted version range), or
-   - Refuse with typed reason (out of admitted range).
-3. **Typed result.** User sees the decision; the platform does
-   not silently render an unsupported package.
-
-Compatibility is contract, not heuristic.
-
-## What Backend Branches Do Not Do
-
-| Concern | Why not |
-| --- | --- |
-| Allow free-form backends | Closed union by design |
-| Allow runtime-determined backend selection bypassing contract | Discriminated union enforces typed selection |
-| Allow cross-backend asset reuse without admission | Each backend's compatibility is admitted |
+Adding a fourth backend requires an explicit product decision and a complete
+typed implementation; there is no placeholder or plugin fallback.
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`.nimi/spec/nimi2d/asset-package.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)

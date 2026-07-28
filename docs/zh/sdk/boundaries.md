@@ -54,9 +54,8 @@ SDK 边界存在的目的，是让 App 接入既稳定又诚实。SDK 不只是�
 - 私有 Realm 内部；
 - Desktop internal，或 Runtime-private Memory 与 Knowledge 实现。
 
-边界本身记录在 `.nimi/spec/sdks/client-core.authority.yaml` 与 TypeScript target export map 中。
+边界本身由 canonical SDK authority 定义，并由实际发布的 package exports 与生成的公开类型声明向 Consumer 投影。
 
 ## 来源依据
 
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`config/sdks-typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-target-export-map.yaml)

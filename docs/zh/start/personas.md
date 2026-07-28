@@ -9,14 +9,14 @@
 1. [平台 → 愿景](/zh/platform/vision)：了解项目的核心目标与架构定位。
 2. [平台 → 六条基础协议](/zh/platform/protocol)：了解跨越不同“世界”的核心技术契约，这是 Nimi 作为平台的基础。
 3. [平台 → 架构](/zh/platform/architecture/)：查看跨越核心层的架构全景图，明确组件的权责归属。
-4. [Nimi Coding → 概览](/zh/nimicoding/)：了解 Nimi Coding 这一套 AI 驱动的开发方法论。
+4. [Nimi Coding → 概览](/zh/nimicoding/)：了解仓库使用的 canonical-authority 工具。
 5. [参考 → 术语表](/zh/reference/glossary)：阅读过程中的术语对照表。
 
 通过此路径，您将能够清晰概述 Nimi 平台的核心功能与架构理念。
 
 ## 世界创作者
 
-如果您的目标是架构并发布一个数字世界（包括规则、设定、Agent 及场景）：
+如果您的目标是架构并发布一个数字世界（包括规则、设定、Character 及场景）：
 
 1. [平台 → 愿景](/zh/platform/vision)：了解 Nimi 架构中“世界”的定义。
 2. [Realm](/zh/realm/)：掌握数字世界底座的三大核心要素：语义真相、世界状态及历史轨迹。
@@ -47,26 +47,23 @@
 
 ## Nimi Coding 采用者
 
-如果您希望将 Nimi Coding 方法论引入自有开发流程中：
+如果您希望将 Nimi Coding canonical-authority 工具引入自有开发流程中：
 
-1. [Nimi Coding → 概览](/zh/nimicoding/)：宏观了解该方法论及其对应的 npm 软件包。
-2. [Nimi Coding → 白皮书](/zh/nimicoding/whitepaper)：查阅支撑该方法论的工程治理理论基础。
-3. [Nimi Coding → 用 Codex 开展受治理开发](/zh/nimicoding/tutorials/project-to-governed-execution)：理解宿主执行与项目真相、门禁、证据之间的边界。
+1. [Nimi Coding → 概览](/zh/nimicoding/)：了解权威工具及其仓库边界。
+2. [Nimi Coding → 宿主集成](/zh/nimicoding/installation)：了解受管宿主文件和同步流程。
+3. [Nimi Coding → CLI 参考](/zh/nimicoding/cli-reference)：了解受支持的 authority 命令。
 4. [参考 → 禁止主张](/zh/reference/forbidden-claims)：了解开发规范中对“反模式”与“走捷径”做法的严格限制。
-5. [参考 → Schemas](/zh/nimicoding/reference/schemas)：了解规范重建、证据与验收契约。
 
 ## 审计与评审人员
 
 如果您负责依据权威基准对平台代码或主张进行评审和溯源：
 
-1. [参考 → 规范地图](/zh/reference/spec-map)：查看公开文档与底层技术契约之间的映射关系。
-2. [参考 → 权威域](/zh/reference/authority-domains)：核查系统中各项数据与权力的最终归属。
-3. [参考 → 术语表](/zh/reference/glossary)：利用统一的术语体系对齐技术语义。
-4. [Nimi Coding → 用 Codex 开展受治理开发](/zh/nimicoding/tutorials/project-to-governed-execution)：审查权威、门禁、runtime 验收与证据如何相互支撑。
+1. [参考 → 权威域](/zh/reference/authority-domains)：核查系统中各项数据与权力的最终归属。
+2. [参考 → 术语表](/zh/reference/glossary)：利用统一的术语体系对齐技术语义。
+3. [Nimi Coding → CLI 参考](/zh/nimicoding/cli-reference)：审查受支持的 authority 诊断与验证命令。
 
 ## 来源依据
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`nimi-coding/README.zh-CN.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.zh-CN.md)
-- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
+- [`.nimi/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-authoring.yaml)

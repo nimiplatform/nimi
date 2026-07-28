@@ -14,18 +14,10 @@ infer or bypass. Public export admission is closed; deviation fails closed.
 
 ## Export Boundary
 
-Admitted SDK public exports live in the TypeScript target export map. Each
-entry declares:
-
-| Field | Purpose |
-| --- | --- |
-| Export id | Stable identity |
-| Public entry | Explicit admitted import path or root-client surface |
-| Owner boundary | Which SDK surface owns the export |
-| Rationale | Why this boundary exists |
-
-The catalog is closed. Apps cannot invent new exports by
-convention.
+Admitted SDK public exports are the explicit package exports and typed
+root-client surfaces shipped by the SDK. Their product meaning comes from
+canonical SDK authority; package manifests and generated declarations project
+that meaning for consumers. Apps cannot invent new exports by convention.
 
 ## Key Forbidden Paths
 
@@ -48,8 +40,7 @@ An app author wants to show a Runtime-resolved local setup plan.
    projection state; it does not infer readiness from filesystem, Python, PATH,
    endpoint, package-manager, or local engine details.
 4. **Removed compatibility paths fail closed.** There is no public `local-env`
-   SDK subpath unless it is explicitly admitted in the TypeScript target export
-   map.
+   SDK subpath unless it is explicitly shipped as an admitted package export.
 
 If the app tried `import { internal } from '@nimiplatform/sdk/runtime/internal'`,
 the boundary check rejects.
@@ -65,5 +56,4 @@ the boundary check rejects.
 ## Source Basis
 
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
-- [`config/sdks-typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-target-export-map.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)

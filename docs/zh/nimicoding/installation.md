@@ -1,53 +1,40 @@
-# Nimi Host 集成
+# Nimi Coding Host 集成
 
-Nimi 仓库把 `@nimiplatform/nimi-coding` 固定为 development dependency，并通过
-受保护的宿主边界使用它。正常安装会带入软件包；项目命令负责核验已审计版本和
-受管文件。
-
-## 前置要求
-
-| 要求 | 用途 |
-| --- | --- |
-| Node.js 24 或更新 | Workspace runtime |
-| pnpm | 仓库 package manager |
-| Nimi Git checkout | 提供已准入 host projections 与 wrappers |
-| Codex 或其他已准入外部宿主 | 持有任务执行 |
-
-## 安装 Workspace Dependencies
+Nimi workspace 将 `@nimiplatform/nimi-coding` 固定为 development
+dependency。正常安装 workspace 后即可使用 CLI：
 
 ```bash
 pnpm install
 ```
 
-不要在本仓库直接运行通用 bootstrap 或 clear 命令。需要刷新受管文件时，只使用
-package.json 中声明的项目命令，让宿主边界先完成检查。
-
-## 验证集成
+## 验证受管集成
 
 ```bash
-pnpm check:nimi-coding-seed-sync
+pnpm nimicoding:sync
 pnpm nimicoding:doctor
 ```
 
-两项检查都必须通过。`sync --check` 核验 package-canonical 文件和必备的 host-owned
-seed，宿主自有内容不会被误判为包漂移。
+本仓库中的 `nimicoding:sync` 执行 `sync --check`；它只核验受管文件，不会
+改写产品 authority 或宿主任务状态。
 
-## 验证产品权威
+## 验证产品 Authority
 
 ```bash
-pnpm exec nimicoding validate-spec-tree .nimi/spec
+pnpm spec:authority:check
 ```
 
-Authority 编辑需要对每个 changed container 运行仓库管理的 format 命令，
-随后运行 `pnpm spec:authority:check` 与 `pnpm spec:authority:compile`。
-这些命令验证 authority，但不创建或更新宿主任务状态。
+修改 authority 时，必须遵守 `.nimi/methodology/authority-authoring.yaml`：
+先获取有界 context，使用带显式 budget 的 semantic diff 与 impact，逐个格式化
+changed authority file，最后检查完整 `.nimi/spec` 输入集。
 
-## 文件所有权
+## 文件位置
 
-多数 `.nimi/{config,contracts,methodology}/**` 文件以软件包为准。仓库专用的
-methodology 与 contract 是 host configuration，不是产品 authority。
+Nimi Coding host configuration 放在 `.nimi/config/**`。受管 authoring guide
+继续放在 `.nimi/methodology/**`。根 `config/**` 适合产品 schema、生成器输入
+和实现投影；引用 canonical authority ID 不会让它变成 Nimi Coding 配置，也不
+会让它成为第二套 authority。
 
 ## 来源依据
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
-- [`.nimi/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/bootstrap.yaml)
+- [`.nimi/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-authoring.yaml)

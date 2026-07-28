@@ -21,7 +21,7 @@
   ],
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.0",
-    "@nimiplatform/sdk": "0.0.0-vnext.0",
+    "@nimiplatform/sdk": "^0.6.0",
     "ai": "^6.0.0"
   },
   "devDependencies": {
@@ -40,7 +40,6 @@
     "test:upstream": "pnpm exec tsx --test vercel-ai.upstream-compat.test.ts"
   },
   "nimi": {
-    "preCutover": true,
     "adapterId": "vercel-ai",
     "targetPackage": "@nimiplatform/sdk-adapter-vercel-ai",
     "basePackage": "@nimiplatform/sdk"

@@ -13,30 +13,6 @@ interface Surface {
 
 const surfaces: Surface[] = [
   {
-    slug: 'agent-participation-client',
-    tier: 'buildout',
-    zh: {
-      title: '智能体接入',
-      desc: '把智能体接入正在运行的世界 —— 一次编写、跨会话与跨应用共享。',
-    },
-    en: {
-      title: 'Agent Participation',
-      desc: 'Plug agents into the running world — write once, share across sessions and apps.',
-    },
-  },
-  {
-    slug: 'avatar-control-client',
-    tier: 'buildout',
-    zh: {
-      title: '形象控制',
-      desc: '通过单个客户端用多模态输入与脚本化动作驱动有形象的智能体。',
-    },
-    en: {
-      title: 'Avatar Control',
-      desc: 'Drive an embodied agent from one client with multimodal input and scripted actions.',
-    },
-  },
-  {
     slug: 'delegation-client',
     tier: 'buildout',
     zh: {

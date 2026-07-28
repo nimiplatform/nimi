@@ -10,16 +10,9 @@
 
 ## 导出边界
 
-已准入的 SDK 公开导出位于 TypeScript target export map 中。每个条目声明如下：
-
-| 字段 | 目的 |
-| --- | --- |
-| 导出 ID | 稳定身份 |
-| 公开入口 | 明确准入的导入路径或 root-client surface |
-| Owner 边界 | 该导出归属的 SDK surface |
-| 理由 | 该边界存在的原因 |
-
-目录是封闭的。应用不能通过约定发明新的导出。
+已准入的 SDK 公开导出，是 SDK 实际发布的显式 package exports 与类型化
+root-client surface。其产品语义来自 canonical SDK authority；package manifest
+和生成的类型声明只向 Consumer 投影该语义。应用不能通过约定发明新的导出。
 
 ## 关键禁止路径
 
@@ -39,7 +32,7 @@
    selected sources、activation gate 或 dependency jobs。
 3. **SDK 保留 Runtime 真值。** Helper 返回类型化 Runtime 投影状态；它不从
    文件系统、Python、PATH、endpoint、包管理器或本地引擎细节推断 ready。
-4. **已删除兼容路径 fail closed。** 除非 TypeScript target export map 明确准入，
+4. **已删除兼容路径 fail closed。** 除非 SDK 实际发布并准入该 package export，
    否则不存在公开的 `local-env` SDK 子路径。
 
 如果应用尝试 `import { internal } from '@nimiplatform/sdk/runtime/internal'`，边界检查将拒绝。
@@ -54,5 +47,4 @@
 ## 来源依据
 
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
-- [`config/sdks-typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-target-export-map.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)

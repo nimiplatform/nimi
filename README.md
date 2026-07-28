@@ -48,18 +48,18 @@ must fit these six.
 Nimi is one open world platform with several products inside it. The
 platform defines the world model and the rules; the products inside
 cover execution, integration, surfaces, world truth, embodiment,
-memory, and the AI development methodology that ships with all of them.
+memory, and the authority tooling used to maintain those boundaries.
 
 | Product | What it owns |
 | --- | --- |
 | **Platform** | The open world model, the six protocol primitives, the cross-domain authority rules. |
-| **Runtime** | AI execution: providers, model catalogs, workflows, streaming, multimodal output, local routing, delegated capabilities, audit, Runtime Agent Service chat, and narrow follow-up-turn hooks. |
-| **SDK** | The TypeScript app boundary into Runtime, Realm, world semantics, AI providers, and governed scopes, without importing private internals. |
-| **Desktop and Web** | First-party user surfaces. Desktop is the native shell for local runtime interaction; Web is the constrained browser projection. |
+| **Runtime** | LocalAgent execution and lifecycle, Conversation continuity, operational Memory and Knowledge, providers, model catalogs, streaming, multimodal output, local routing, protected access, and audit. Workflow, MCP, and World Evolution are not Runtime-core prerequisites. |
+| **SDK** | The public app boundary into Runtime and Realm without importing private internals. Scaffolded local apps use Runtime-mediated Realm access; direct SDK consumers retain the standard Auth path. |
+| **Nimi Home, Desktop, and Web** | First-party user surfaces. Nimi Home is the product contract; Desktop is its current replaceable native host, while Web is a constrained projection. |
 | **Realm** | Semantic truth — world state, world history, chat, social and economy, asset binding, transit, creator economy. |
-| **Avatar** | Embodied LocalAgent presentation as its own first-class authority surface. |
-| **Cognition** | Standalone memory, knowledge, prompt serving, references, and completion. |
-| **Nimi Coding** | The AI-native development methodology and the host-agnostic npm package that delivers it. |
+| **Avatar** | An embodied LocalAgent projection; it does not own LocalAgent execution, Memory, Knowledge, or Conversation truth. |
+| **Cognition** | An independent capability domain whose complete product design is deferred. Runtime may consume it only through a public bridge; Cognition does not take over Runtime-owned LocalAgent truth. |
+| **Nimi Coding** | Host-agnostic canonical-authority tooling. It operates on project-owned `.nimi/spec/**`; it is not another product authority. |
 
 Each product has its own section in the docs.
 
@@ -77,10 +77,9 @@ than to mix together.
                               v
 +---------------------------------------------------------------+
 |  Execution Substrate                                          |
-|    Runtime    : providers, workflows, streaming,              |
-|                 multimodal, delegation, audit                 |
-|    Cognition  : memory, knowledge, prompt serving,            |
-|                 references, completion                        |
+|    Runtime    : LocalAgent, Conversation, Memory, Knowledge,  |
+|                 providers, streaming, protected access        |
+|    Cognition  : independent deferred domain, public bridge    |
 +---------------------------------------------------------------+
                               |
                               v
@@ -196,7 +195,7 @@ organized by product.
 | Where world truth and history live | [docs/realm/index.md](docs/realm/index.md) |
 | How embodied AI presentation is scoped | [docs/avatar/index.md](docs/avatar/index.md) |
 | Where memory and knowledge authority live | [docs/cognition/index.md](docs/cognition/index.md) |
-| The AI development methodology and its package | [docs/nimicoding/index.md](docs/nimicoding/index.md) |
+| The canonical-authority tooling and its package | [docs/nimicoding/index.md](docs/nimicoding/index.md) |
 | Cross-domain vocabulary | [docs/reference/glossary.md](docs/reference/glossary.md) |
 | Reference tables (six primitives, authority domains, fields) | [docs/reference/index.md](docs/reference/index.md) |
 
@@ -215,8 +214,7 @@ original Chinese content, not sentence-by-sentence translation.
 | Area | Purpose |
 | --- | --- |
 | `.nimi/spec/` | Active product, architecture, and behavior contracts |
-| `.nimi/methodology/` | Nimi Coding methodology and governance material |
-| `.nimi/contracts/` | Machine contracts for reconstruction, audit, admission |
+| `.nimi/methodology/` | Managed canonical-authority authoring instructions |
 | `runtime/` | Go runtime daemon and CLI (`runtime/cmd/nimi`) |
 | `sdks/` | SDK family root; TypeScript vNext package target is `@nimiplatform/sdk` |
 | `kit/` | Cross-app design system, auth, telemetry, and feature modules |

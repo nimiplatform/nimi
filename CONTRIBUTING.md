@@ -60,7 +60,9 @@ If you use AI coding tools, follow the AGENTS hierarchy as the single rule sourc
 
 1. [`AGENTS.md`](./AGENTS.md) for repo-wide rules
 2. The nearest path-scoped `*/AGENTS.md` for component rules
-3. [`spec/AGENTS.md`](./spec/AGENTS.md) for any `spec/**` changes
+
+For `.nimi/spec/**` changes, also follow
+[`.nimi/methodology/authority-authoring.yaml`](./.nimi/methodology/authority-authoring.yaml).
 
 Compatibility files such as `CLAUDE.md`, `.github/copilot-instructions.md`, and `*context.md` are navigation shims only. They must not be treated as independent rule definitions.
 

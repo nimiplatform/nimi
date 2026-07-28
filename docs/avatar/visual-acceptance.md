@@ -116,9 +116,9 @@ hides which path actually works.
 
 | Concern | Owner |
 | --- | --- |
-| Evidence taxonomy + fail-closed boundary | Avatar (this contract) |
-| Backend-specific pixel write paths | Backend branch contract + per-backend (Live2D / VRM) |
-| Asset tier requirements driving acceptance | `live2d-asset-compatibility-contract.md` |
+| Observable visual result + fail-closed boundary | Avatar |
+| Backend-specific pixel write paths | Active Live2D, VRM, or Nimi2D branch |
+| Asset capability requirements | Validated backend capability profile |
 | Desktop chat Live2D renderer | Desktop (separate; never Avatar carrier proof) |
 
 ## Source Basis

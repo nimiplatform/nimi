@@ -40,11 +40,12 @@ Avatar 应用的载体——由 `apps/avatar` 拥有的 canvas / WebGL 表面—
 
 -   桌面聊天 Live2D 像素测试，即使它们通过桌面渲染器执行 Cubism WebGL
 -   没有非占位符像素证据的静态 `<canvas>` 存在
--   仅基于夹具的场景回放，并被报告为真实的运行时载体路径
+-   只用夹具回放，却声称它是真实 Runtime 载体路径
 -   已关闭主题的演示截图、检查清单或工作器结果
 -   不执行绘制/像素输出的仅命令状态测试
 
-故障关闭的姿态是刻意的。没有已准入证据的成功声明被视为 `placeholder_success` 捷径，并将被拒绝。
+故障关闭是明确要求。没有已准入证据的成功声明属于
+`placeholder_success` 捷径，系统会拒绝。
 
 ## 多后端视觉证明
 
@@ -82,9 +83,9 @@ recordCarrierVisualProof(input: {
 
 | 关注点 | 所有者 |
 | --- | --- |
-| 证据分类体系 + 故障关闭边界 | Avatar（本契约） |
-| 后端特定的像素写入路径 | 后端分支契约 + 按后端划分（Live2D / VRM） |
-| 驱动验收的资产层级要求 | `live2d-asset-compatibility-contract.md` |
+| 可观察视觉结果与故障关闭边界 | Avatar |
+| 后端像素写入路径 | 当前 Live2D、VRM 或 Nimi2D 分支 |
+| 视觉包能力要求 | 经过验证的后端能力配置 |
 | 桌面聊天 Live2D 渲染器 | 桌面（独立；绝不作为 Avatar 载体证明） |
 
 ## 来源依据

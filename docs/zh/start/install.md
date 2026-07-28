@@ -6,15 +6,15 @@ Nimi 平台包含多个公开层（Surface），每层均有独立的分发渠�
 
 ### Nimi Coding
 
-Nimi Coding 作为独立于宿主环境（Host-agnostic）的方法论，已获得官方准入，并以 npm 软件包形式发布：[`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding)。
+Nimi Coding 是独立于宿主环境（Host-agnostic）的 canonical-authority 工具，并以 npm 软件包形式发布：[`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding)。
 
 Nimi workspace 安装与 host compatibility 检查见 [Nimi Coding → Host 集成](/zh/nimicoding/installation)。
 
 最小化的首次验证路径如下：
 
 1. 安装 Nimi workspace dependencies。
-2. 运行 host-hardcut、projection 和 doctor wrappers。
-3. 参照[验证 Nimi 治理设置](/zh/nimicoding/tutorials/project-bootstrap)，验证所有权与真相表面完整可用。
+2. 运行 `pnpm nimicoding:sync` 和 `pnpm nimicoding:doctor`。
+3. 通过 [CLI 参考](/zh/nimicoding/cli-reference)执行收窄的 authority context、格式化与验证。
 
 软件包仍然保持宿主无关；Nimi 仓库在它外围应用自己的明确准入边界。
 
@@ -34,7 +34,7 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
 | --- | --- | --- | --- |
 | `@nimiplatform/app-tools` | 带 `nimi-app` binary 的公开 package | `app-tools/` | Standalone scaffold 通过 `pnpm dlx --package` 运行；workspace scaffold 可以使用 `workspace:*`。 |
 | `@nimiplatform/kit` | 公开 package | `kit/` | Kit 不是 Runtime 替代品；App 只使用已发布的 subpath exports。 |
-| `@nimiplatform/sdk` | 面向 App consumer 的公开 package | `sdks/typescript/` private vNext workspace package | 生成的 standalone app 使用 app-tools 写入的 published SDK range；本仓库开发使用 workspace package。 |
+| `@nimiplatform/sdk` | 面向 App consumer 的公开 package | `sdks/typescript/` active public package source | 生成的 standalone app 使用 app-tools 写入的 `0.6.x` published range；本仓库通过 workspace 使用同一个 package。 |
 
 不要假设 source checkout 会自动打开所有产品 release channel。Standalone App 仓库使用 npm package；只有在本 monorepo 或生成的 workspace-app scaffold 中才使用 `workspace:*`。
 
@@ -59,14 +59,14 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
 
 ## 跟踪可用性状态
 
-[规范地图](/zh/reference/spec-map) 标明了各公开章节对应的权威面。[兼容姿态](/zh/reference/compatibility-posture) 明确了各层在何种条件下才被允许发布安装或版本信息。
+[兼容姿态](/zh/reference/compatibility-posture) 明确了各层在何种条件下才被允许发布安装或版本信息。
 
 此外，[禁止主张](/zh/reference/forbidden-claims) 页面列出了在缺乏准入证据时，公开文档严禁使用的安装类与发布类宣传语。
 
 ## 来源依据
 
 - [`nimi-coding/README.zh-CN.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.zh-CN.md)
-- [`nimi-coding/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/bootstrap.yaml)
+- [`nimi-coding/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-authoring.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

@@ -323,8 +323,6 @@ scopes:
       - kind: path_glob
         value: "runtime/catalog/source/providers/**/*.yaml"
       - kind: path_glob
-        value: "runtime/internal/services/workflow/**/*.go"
-      - kind: path_glob
         value: "runtime/internal/services/ai/*voice*.go"
   - scope: sdks.client-core
     bindings:
@@ -342,8 +340,6 @@ scopes:
         value: "sdks/typescript/adapters/**/*"
       - kind: path_glob
         value: "sdks/typescript/features/**/*"
-      - kind: path_glob
-        value: "sdks/typescript/doctor/**/*"
   - scope: sdks.realm-consumer
     bindings:
       - kind: path_glob
@@ -396,8 +392,6 @@ scopes:
         value: "apps/simulator/**"
       - kind: path_glob
         value: "app-tools/lib/simulator-*"
-      - kind: path_glob
-        value: "app-tools/scripts/*simulator*"
   - scope: platform.app-ecosystem
     bindings:
       - kind: path_glob
@@ -418,8 +412,6 @@ scopes:
         value: "apps/desktop/src-tauri/src/**/*.rs"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/chat/**/*"
-      - kind: path_glob
-        value: "apps/desktop/src/shell/renderer/features/agents/**/*"
       - kind: path_glob
         value: "kit/shell/protected-local/src/**/*"
       - kind: path_glob

@@ -1,11 +1,11 @@
 # SDKS Core Family
 
-`sdks/` is the active SDK family source. `sdks/typescript` is the vNext
-implementation target for the next major `@nimiplatform/sdk` package.
+`sdks/` is the active SDK family source. `sdks/typescript` is the active
+TypeScript implementation of the public `@nimiplatform/sdk` package.
 
-The archived pre-vNext TypeScript SDK lives under
-`archive/sdk-pre-vnext-20260606/` as baseline evidence only. It is not an active
-package root and must not regain implementation or authority ownership.
+Retired pre-vNext TypeScript SDK source remains available only through Git
+history. It is not an active package root and must not regain implementation or
+authority ownership.
 
 Current scope:
 

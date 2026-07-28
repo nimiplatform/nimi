@@ -80,10 +80,9 @@ implementation reasons:
 - private realm internals;
 - Desktop internals or Runtime-private Memory and Knowledge implementation.
 
-The boundary itself is documented in `.nimi/spec/sdks/client-core.authority.yaml`
-and the TypeScript target export map.
+The boundary itself is defined by canonical SDK authority and projected by the
+package exports and generated public declarations shipped to consumers.
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`config/sdks-typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-typescript-target-export-map.yaml)

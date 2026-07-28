@@ -150,6 +150,5 @@ Backlog 条目通过 `RESEARCH-*` id 引用研究来源。来源注册表准许�
 
 ## 来源依据
 
-- [`docs/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/docs/spec/INDEX.md)
 - `.nimi/spec/<domain>/kernel/**` 下的 active product domain specs
 - 路线图规划记录和已准入的 graduation events
