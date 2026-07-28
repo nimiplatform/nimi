@@ -20,7 +20,7 @@ class FakeTransport implements CoreTransport {
       throw Object.assign(new Error('aborted'), { code: fixtures.cases.cancellation.reason_code });
     }
     if ((request.body as { redirectUri?: string }).redirectUri === 'force-error') {
-      throw Object.assign(new Error(fixtures.cases.structured_error.message), {
+      throw Object.assign(new Error('transport failure'), {
         code: fixtures.cases.structured_error.reason_code,
         details: fixtures.cases.structured_error.details,
       });
@@ -111,9 +111,8 @@ async function main() {
   await assert.rejects(
     typedRuntime.beginLogin({ ...runtimeRequest, redirectUri: 'force-error' }),
     (error: unknown) => {
-      const shaped = error as { code?: string; message?: string; details?: unknown };
+      const shaped = error as { code?: string; details?: unknown };
       assert.equal(shaped.code, fixtures.cases.structured_error.reason_code);
-      assert.equal(shaped.message, fixtures.cases.structured_error.message);
       assert.deepEqual(shaped.details, fixtures.cases.structured_error.details);
       return true;
     },

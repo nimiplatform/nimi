@@ -2,7 +2,7 @@
 
 Profile: `standalone`
 
-This repository is a Nimi App authoring scaffold. `nimi.app.yaml`, the build profile, and permission declarations are developer-owned release submission inputs. Development commands do not constitute product acceptance.
+This repository is a local-development Nimi App reference. `nimi.app.yaml` carries the app identity and permission declarations used by the supervised development path. Development commands do not constitute product acceptance.
 
 ## Development
 
@@ -15,7 +15,7 @@ pnpm run doctor
 pnpm run update
 ```
 
-`init` runs the pinned local `nimicoding sync --apply` projection and writes app-scaffold admission/build-profile/lock state. It is explicit after install; package installation does not mutate `.nimi/**` by itself.
+`init` runs the pinned local `nimicoding sync --apply` projection and writes app-scaffold lock state. It is explicit after install; package installation does not mutate `.nimi/**` by itself.
 
 `dev` uses the same official launcher as every generated local app and selects Electron for the current local-development path. `pnpm dev:electron` is the explicit equivalent. `pnpm dev:tauri` retains the dual-shell intent and existing Kit Tauri carrier. Nimi Desktop owns the confirmation, dev server, and native host. Renderer HMR and Desktop-controlled native rebuilds reuse an unchanged project authorization; app id, root, shell, account, or capability changes require a new decision.
 
@@ -23,6 +23,4 @@ The Tester local-development manifest declares no Nimi permissions. Its Local ap
 
 `doctor` and `update` are developer scaffold checks for this source repository. They do not update a product release, publish admission truth, create release descriptors, or grant permissions.
 
-For Nimi listing review, keep `nimi.app.yaml`, `.nimi/admission/submission.yaml`, `.nimi/admission/build-profile.yaml`, and `ADMISSION.md` in sync with the product behavior under `src/shell/routes/product-area.tsx`.
-
-Upstream Platform/Runtime review produces release descriptors, ordinary visibility, install truth, and scope authorization. This scaffold does not mint those outcomes.
+Public distribution, listing, release descriptors, ordinary visibility, install truth, and scope authorization are deferred platform contracts. This reference app neither generates nor validates their inputs or outcomes.

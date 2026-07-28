@@ -43,7 +43,7 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 		}
 		if emotionEvent != nil {
 			events = append(events, emotionEvent)
-			presentationEvent, perr := r.svc.emitPresentationExpressionEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, mood, 0, now)
+			presentationEvent, perr := r.svc.emitPresentationExpressionEvent(entry.Agent.GetLocalAgentRef(), anchorID, turnID, streamID, mood, 0, now)
 			if perr != nil {
 				if r.svc.logger != nil {
 					r.svc.logger.Warn("skip presentation.expression_requested; envelope invalid", "agent_id", session.AgentID, "error", perr)
@@ -61,7 +61,7 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 			}
 			return
 		}
-		activityEvent, aerr := r.svc.emitPresentationActivityEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, activityName, category, intensity, "apml_output", now)
+		activityEvent, aerr := r.svc.emitPresentationActivityEvent(entry.Agent.GetLocalAgentRef(), anchorID, turnID, streamID, activityName, category, intensity, "apml_output", now)
 		if aerr != nil {
 			if r.svc.logger != nil {
 				r.svc.logger.Warn("skip presentation.activity_requested; envelope invalid", "agent_id", session.AgentID, "error", aerr)

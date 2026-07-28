@@ -19,8 +19,8 @@ func TestM1DelegatedControlOwnershipAndAuditMatrix(t *testing.T) {
 	svc.agents["agent-1"].Agent.OwnerUserId = "user-1"
 	svc.agents["agent-1"].Agent.RuntimeSourceRef = "agent-1"
 	svc.agents["agent-1"].Agent.LocalAgentRef = "local-agent:agent-1"
-	svc.agents["agent-other"] = &agentEntry{Agent: &runtimev1.AgentRecord{
-		AgentId: "agent-other", OwnerUserId: "user-2", RuntimeSourceRef: "agent-other", LocalAgentRef: "local-agent:agent-other",
+	svc.agents["agent-other"] = &agentEntry{Agent: &runtimev1.LocalAgentRecord{
+		OwnerUserId: "user-2", RuntimeSourceRef: "agent-other", LocalAgentRef: "local-agent:agent-other",
 	}, State: &runtimev1.AgentStateProjection{ActiveUserId: "user-2"}}
 	callContext := desktopAccountProductTestPrincipalContext("user-1", make(chan struct{}))
 	selector := func() *runtimev1.AgentRequestContext { return &runtimev1.AgentRequestContext{AppId: "nimi.desktop"} }
@@ -540,8 +540,7 @@ func testDelegatedControlSurfaceServiceWithoutAudit() *Service {
 	svc := &Service{
 		agents: map[string]*agentEntry{
 			"agent-1": {
-				Agent: &runtimev1.AgentRecord{
-					AgentId:          "agent-1",
+				Agent: &runtimev1.LocalAgentRecord{
 					OwnerUserId:      "user-1",
 					RuntimeSourceRef: "agent-1",
 					LocalAgentRef:    "local-agent:agent-1",

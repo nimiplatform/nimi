@@ -24,10 +24,6 @@
   ],
   "files": [
     {
-      "path": "ADMISSION.md",
-      "class": "scaffold-managed glue"
-    },
-    {
       "path": "AGENTS.md",
       "class": "scaffold-managed glue"
     },

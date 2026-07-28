@@ -263,11 +263,11 @@ func cloneAutonomy(input *runtimev1.AgentAutonomyState) *runtimev1.AgentAutonomy
 	return proto.Clone(input).(*runtimev1.AgentAutonomyState)
 }
 
-func cloneAgentRecord(input *runtimev1.AgentRecord) *runtimev1.AgentRecord {
+func cloneLocalAgentRecord(input *runtimev1.LocalAgentRecord) *runtimev1.LocalAgentRecord {
 	if input == nil {
 		return nil
 	}
-	return proto.Clone(input).(*runtimev1.AgentRecord)
+	return proto.Clone(input).(*runtimev1.LocalAgentRecord)
 }
 
 func cloneAgentState(input *runtimev1.AgentStateProjection) *runtimev1.AgentStateProjection {
@@ -361,7 +361,7 @@ func cloneAgentEntry(input *agentEntry) *agentEntry {
 		return nil
 	}
 	cloned := &agentEntry{
-		Agent: cloneAgentRecord(input.Agent),
+		Agent: cloneLocalAgentRecord(input.Agent),
 		State: cloneAgentState(input.State),
 		Hooks: make(map[string]*runtimev1.PendingHook, len(input.Hooks)),
 	}

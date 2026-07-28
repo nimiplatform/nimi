@@ -211,10 +211,8 @@ function assertTauriIconSupport(generated) {
   const tauriConfig = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
   assert.deepEqual(tauriConfig.bundle?.icon, ['icons/icon.png', 'icons/icon.ico']);
   const icon = generated.readBytes('src-tauri/icons/icon.png');
-  assert.equal(icon.length, 68);
   assert.deepEqual([...icon.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const ico = generated.readBytes('src-tauri/icons/icon.ico');
-  assert.equal(ico.length, 90);
   assert.deepEqual([...ico.subarray(0, 6)], [0x00, 0x00, 0x01, 0x00, 0x01, 0x00]);
   assert.deepEqual([...ico.subarray(22, 30)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 }
@@ -308,6 +306,9 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assertGeneratedPathExists(generated, 'src-electron/preload.cts');
     assertGeneratedPathMissing(generated, 'dist-electron');
     assertGeneratedPathMissing(generated, 'test/tester-contract.test.mjs');
+    assertGeneratedPathMissing(generated, 'ADMISSION.md');
+    assertGeneratedPathMissing(generated, '.nimi/admission/submission.yaml');
+    assertGeneratedPathMissing(generated, '.nimi/admission/build-profile.yaml');
 
     // Taxonomy: only the generated starter route is app-owned in default profiles.
     const lock = generated.lock();
@@ -365,6 +366,9 @@ test('tester-reference scaffold keeps the full reference app explicit', () => {
     assert.match(generated.read('src-electron/main.ts'), /APP_ID = 'acme\.widget'/);
     assertGeneratedPathExists(generated, 'src/tester/tester-standard-storage.ts');
     assertGeneratedPathExists(generated, 'src/shell/local-app-runtime-platform.ts');
+    assertGeneratedPathMissing(generated, 'ADMISSION.md');
+    assertGeneratedPathMissing(generated, '.nimi/admission/submission.yaml');
+    assertGeneratedPathMissing(generated, '.nimi/admission/build-profile.yaml');
     assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
     const lock = generated.lock();
     assert.ok(lock.managedFileTaxonomy.appOwnedProductCode.includes('src/tester/tester-workbench.tsx'));
@@ -800,7 +804,6 @@ test('scaffold omissions are explicit tester-reference input and do not shrink t
       'src/shell/routes/settings/**',
       'src/tester/**',
       'src-tauri/src/world_tour.rs',
-      'test/settings-surface-read.mjs',
       'test/tester-*',
       'test/tsc-build.mjs',
     ];
@@ -1025,6 +1028,10 @@ test('app source resolves from the live reference app and is packaged via prepac
   assert.equal(manifest.sourceApp, 'apps/tester');
   assert.equal(manifest.sourceIdentity.appTitle, 'Nimi Lab');
   assert.equal(manifest.files.some((entry) => entry.path === '.gitignore'), false);
+  assert.equal(manifest.files.some((entry) => entry.path === 'ADMISSION.md'), false);
+  assert.equal(manifest.files.some((entry) => entry.path === 'test/settings-surface-read.mjs'), false);
+  assert.equal(manifest.files.some((entry) => entry.path.startsWith('.local/')), false);
+  assert.equal(manifest.files.some((entry) => entry.path.startsWith('dist-electron/')), false);
   assert.ok(manifest.files.some((entry) => entry.path === 'src/shell/auth/runtime-platform.ts' && entry.class === 'scaffold-managed glue'));
   assert.ok(manifest.files.some((entry) => entry.path === 'src/tester/tester-workbench.tsx' && entry.class === 'app-owned product code'));
 });

@@ -62,7 +62,7 @@ func TestPublicChatCommittedTurnSkipsVoiceLipsyncProjectionWithoutAvatarAutoplay
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"request_id":             "lipsync-request-1",
 			"messages": []any{
@@ -163,7 +163,7 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"request_id":             "lipsync-request-2",
 			"messages": []any{

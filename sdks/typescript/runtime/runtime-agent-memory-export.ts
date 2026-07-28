@@ -33,8 +33,9 @@ import {
 /**
  * Canonical memory export helper.
  *
- * Authority posture (S-SURFACE-015 / S-SURFACE-016, `.nimi/spec/sdks/client-core.authority.yaml`;
- * canonical: `.nimi/spec/sdks/client-core.authority.yaml`):
+ * Authority posture (`rule.nimi.sdks.client-core.r004` and
+ * `rule.nimi.sdks.client-core.r005`,
+ * `.nimi/spec/sdks/client-core.authority.yaml`):
  * this module is a developer-experience composition over the admitted
  * RuntimeAgentService read projection (`queryAgentMemory` + `getAgentState`).
  * It owns no platform truth, writes nothing, and never presents client-side
@@ -131,8 +132,8 @@ export interface NimiHostRuntimeAgentMemoryExportClient {
 export interface NimiRuntimeAgentMemoryExportInput extends RuntimeLocalAgentIdentityInput {
   /**
    * Caller-supplied export clock (ISO-8601). The SDK never stamps wall time
-   * itself for the envelope: per S-SURFACE-016 the helper owns no time
-   * authority, so the host app decides what "exported at" means.
+   * itself for the envelope: per `rule.nimi.sdks.client-core.r005` the helper
+   * owns no time authority, so the host app decides what "exported at" means.
    */
   readonly exportedAt: string;
   /**

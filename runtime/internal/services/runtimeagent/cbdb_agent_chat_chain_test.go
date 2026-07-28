@@ -14,12 +14,13 @@ import (
 )
 
 const (
-	cbdbChainVerifierOwnerID       = "cbdb-chain-agent-chat-verifier-user"
-	cbdbChainSuZheRuntimeSourceRef = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
-	cbdbChainSuZheLocalAgentRef    = "local-agent:runtime-8af2c5ca8af2c5ca8af2c5ca8af2c5ca"
-	cbdbChainDesktopCallerAppID    = "nimi.desktop.test.cbdb-agent-chat-runtime-chain"
-	cbdbChainValidationRequestID   = "cbdb-chain-validation-request"
+	cbdbChainVerifierOwnerID     = "cbdb-chain-agent-chat-verifier-user"
+	cbdbChainSuZheLocalAgentRef  = "local-agent:runtime-8af2c5ca8af2c5ca8af2c5ca8af2c5ca"
+	cbdbChainDesktopCallerAppID  = "nimi.desktop.test.cbdb-agent-chat-runtime-chain"
+	cbdbChainValidationRequestID = "cbdb-chain-validation-request"
 )
+
+var cbdbChainSuZheRuntimeSourceRef = testRuntimeAgentSourceRef("cbdb-song-slice-real-20260614-agent-8af2c5ca8a")
 
 func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -27,15 +28,14 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	ctx.AppId = cbdbChainDesktopCallerAppID
 	ctx.LocalAgentRef = cbdbChainSuZheLocalAgentRef
 
-	initResp, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	initResp, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context:          ctx,
 		LocalAgentRef:    cbdbChainSuZheLocalAgentRef,
 		OwnerUserId:      cbdbChainVerifierOwnerID,
 		RuntimeSourceRef: cbdbChainSuZheRuntimeSourceRef,
-		DisplayName:      "CBDB Su Zhe",
 	})
 	if err != nil {
-		t.Fatalf("InitializeAgent(CBDB Su Zhe): %v", err)
+		t.Fatalf("RealmSourceMaterialization(CBDB Su Zhe): %v", err)
 	}
 	if got := initResp.GetAgent().GetLocalAgentRef(); got != cbdbChainSuZheLocalAgentRef {
 		t.Fatalf("expected CBDB local_agent_ref %q, got %q", cbdbChainSuZheLocalAgentRef, got)

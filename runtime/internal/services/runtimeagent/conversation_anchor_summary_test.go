@@ -18,8 +18,8 @@ func TestListAgentConversationSummariesProjectsRuntimeOwnedAnchorsAcrossApps(t *
 	oldAnchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	newAnchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	otherAppAnchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "web.app", "user-1")
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: testRuntimeAgentIdentityContext("agent-beta"), DisplayName: "Beta"}); err != nil {
-		t.Fatalf("InitializeAgent beta: %v", err)
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext("agent-beta")}); err != nil {
+		t.Fatalf("RealmSourceMaterialization beta: %v", err)
 	}
 	_ = openPublicChatTestAnchor(t, svc, "agent-beta", "desktop.app", "user-1")
 	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-alpha"))

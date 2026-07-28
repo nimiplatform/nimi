@@ -33,7 +33,7 @@ func (r publicChatRuntime) reserveTurn(
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
 	}
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {

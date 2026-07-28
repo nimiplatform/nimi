@@ -58,13 +58,13 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	if err != nil {
 		return fail(fmt.Errorf("construct macOS local-development process verifier: %w", err))
 	}
-	platformAppRegistryPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
+	platformAppIdentityProjectionPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
 	if err != nil {
 		return fail(fmt.Errorf("resolve macOS protected Platform app resources: %w", err))
 	}
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot, PlatformAppRegistryPath: platformAppRegistryPath,
+			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot, PlatformAppIdentityProjectionPath: platformAppIdentityProjectionPath,
 			LocalDevelopmentConsentStorePath: filepath.Join(stateRoot, "local-development.db"),
 			PlatformBundledAppsRoot:          platformBundledAppsRoot,
 			AccountCustody:                   accountCustody, AccountPartition: accountPartition,

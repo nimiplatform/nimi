@@ -20,7 +20,6 @@ type RealmOperationDescriptor struct {
 var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "addFriend", Service: "User", Method: "POST", Path: "/api/human/accounts/{id}/friends"},
 	{OperationID: "addGroupParticipant", Service: "Group Chats", Method: "POST", Path: "/api/human/group-chats/{chatId}/participants"},
-	{OperationID: "addGroupSourceParticipant", Service: "Group Chats", Method: "POST", Path: "/api/human/group-chats/{chatId}/source-participants"},
 	{OperationID: "archiveBundle", Service: "Bundles", Method: "POST", Path: "/api/bundles/{bundleId}/archive"},
 	{OperationID: "bindEmail", Service: "Auth", Method: "POST", Path: "/api/auth/me/email"},
 	{OperationID: "bindWallet", Service: "Me", Method: "POST", Path: "/api/human/me/wallets"},
@@ -29,7 +28,6 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "checkEmail", Service: "Auth", Method: "POST", Path: "/api/auth/email/check"},
 	{OperationID: "checkHandle", Service: "User", Method: "GET", Path: "/api/human/check-handle"},
 	{OperationID: "cloneAsset", Service: "Assets", Method: "POST", Path: "/api/assets/{assetId}/clone"},
-	{OperationID: "commitRealmGroupSourceMessageCandidate", Service: "Group Chats", Method: "POST", Path: "/api/human/group-chats/{chatId}/source-message-candidate-commits"},
 	{OperationID: "createAsset", Service: "Assets", Method: "POST", Path: "/api/assets"},
 	{OperationID: "createAudioDirectUpload", Service: "Resources", Method: "POST", Path: "/api/resources/audio/direct-upload"},
 	{OperationID: "createBundle", Service: "Bundles", Method: "POST", Path: "/api/bundles"},
@@ -145,7 +143,6 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "RelationshipController_updateRelationship", Service: "Relationships (Meta-Graph)", Method: "PATCH", Path: "/api/human/relationships/{id}"},
 	{OperationID: "removeFriend", Service: "User", Method: "DELETE", Path: "/api/human/accounts/{id}/friends"},
 	{OperationID: "removeGroupParticipant", Service: "Group Chats", Method: "DELETE", Path: "/api/human/group-chats/{chatId}/participants/{accountId}"},
-	{OperationID: "removeGroupSourceParticipant", Service: "Group Chats", Method: "DELETE", Path: "/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"},
 	{OperationID: "ReportController_createReport", Service: "Governance", Method: "POST", Path: "/api/reports"},
 	{OperationID: "requestAccountDeletion", Service: "MeAccountData", Method: "POST", Path: "/api/auth/me/account-deletion"},
 	{OperationID: "requestDataExport", Service: "MeAccountData", Method: "POST", Path: "/api/auth/me/data-export"},

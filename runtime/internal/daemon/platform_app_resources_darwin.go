@@ -14,22 +14,14 @@ const macOSNimiBundleRoot = "/Applications/Nimi.app"
 
 func protectedPlatformAppResourceBindings() (string, string, error) {
 	resourcesRoot := filepath.Join(macOSNimiBundleRoot, "Contents", "Resources")
-	registryPath := filepath.Join(resourcesRoot, "nimi-app-registry.yaml")
-	descriptorPath := filepath.Join(resourcesRoot, "nimi-app-release-descriptors.yaml")
+	identityProjectionPath := filepath.Join(resourcesRoot, "nimi-app-identity-surfaces.yaml")
 	bundledAppsRoot := filepath.Join(resourcesRoot, "nimi-apps")
-	registryExists, err := validateMacOSProtectedResourcePath(registryPath, false)
+	identityProjectionExists, err := validateMacOSProtectedResourcePath(identityProjectionPath, false)
 	if err != nil {
-		return "", "", fmt.Errorf("validate macOS Platform app registry: %w", err)
+		return "", "", fmt.Errorf("validate macOS Platform app identity projection: %w", err)
 	}
-	descriptorExists, err := validateMacOSProtectedResourcePath(descriptorPath, false)
-	if err != nil {
-		return "", "", fmt.Errorf("validate macOS Platform app release descriptors: %w", err)
-	}
-	if !registryExists && !descriptorExists {
+	if !identityProjectionExists {
 		return "", "", nil
-	}
-	if registryExists != descriptorExists {
-		return "", "", fmt.Errorf("macOS Platform app registry and release descriptors must be installed atomically")
 	}
 	bundledExists, err := validateMacOSProtectedResourcePath(bundledAppsRoot, true)
 	if err != nil {
@@ -38,7 +30,7 @@ func protectedPlatformAppResourceBindings() (string, string, error) {
 	if !bundledExists {
 		bundledAppsRoot = ""
 	}
-	return registryPath, bundledAppsRoot, nil
+	return identityProjectionPath, bundledAppsRoot, nil
 }
 
 func validateMacOSProtectedResourcePath(target string, directory bool) (bool, error) {

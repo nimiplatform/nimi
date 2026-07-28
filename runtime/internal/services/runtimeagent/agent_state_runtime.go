@@ -108,7 +108,7 @@ func (r agentStateRuntime) snapshotAgentPresentationProfile(
 	if current == nil {
 		return nil, status.Error(codes.NotFound, "agent not found")
 	}
-	if err := validateAgentRecordIdentity(current.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
 		return nil, err
 	}
 	if err := validatePersistedAgentPresentationProfile(current.Agent); err != nil {
@@ -139,7 +139,7 @@ func (r agentStateRuntime) commitAgentPresentationProfile(
 	if current == nil {
 		return nil, 0, status.Error(codes.NotFound, "agent not found")
 	}
-	if err := validateAgentRecordIdentity(current.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
 		return nil, 0, err
 	}
 	if err := validatePersistedAgentPresentationProfile(current.Agent); err != nil {

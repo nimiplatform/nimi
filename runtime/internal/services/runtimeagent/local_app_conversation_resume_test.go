@@ -87,7 +87,7 @@ func initializeLocalAppConversationAgentFixture(t *testing.T, svc *Service) loca
 		ownerUserID:   "local-app-conversation-owner",
 		localAgentRef: "local-agent:runtime-1f2e3d4c5b6a79800123456789abcdef",
 	}
-	response, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	response, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: &runtimev1.AgentRequestContext{
 			AppId:            "runtime",
 			SubjectUserId:    fixture.ownerUserID,
@@ -98,7 +98,6 @@ func initializeLocalAppConversationAgentFixture(t *testing.T, svc *Service) loca
 		LocalAgentRef:    fixture.localAgentRef,
 		OwnerUserId:      fixture.ownerUserID,
 		RuntimeSourceRef: "local-app-conversation-source",
-		DisplayName:      "Local app conversation agent",
 	})
 	if err != nil {
 		t.Fatalf("initialize local-app conversation agent: %v", err)

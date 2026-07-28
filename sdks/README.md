@@ -47,7 +47,7 @@ Realm-backed LocalAgents use one typed workflow: a consumer supplies only a
 `CharacterSourceRefV3` and request id to Runtime `MaterializeRealmSource`.
 Runtime privately owns the Realm grant lifecycle, Packet v3 acquisition,
 current-key verification, and atomic immutable SnapshotV2 plus LocalAgent
-commit. `InitializeAgent` is not a second Realm materialization step.
+commit. Public consumers cannot create a LocalAgent outside that materialization.
 
 Public consumers receive only the strict SDK projections
 `NimiRuntimeAgentSourceContextStatus` and

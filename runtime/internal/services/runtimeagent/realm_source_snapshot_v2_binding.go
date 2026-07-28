@@ -19,10 +19,10 @@ func (s *Service) validateLoadedSourceSnapshotBindings(ctx context.Context) erro
 		return fmt.Errorf("Realm source SnapshotV2 store is unavailable")
 	}
 	s.mu.RLock()
-	agents := make([]*runtimev1.AgentRecord, 0, len(s.agents))
+	agents := make([]*runtimev1.LocalAgentRecord, 0, len(s.agents))
 	for _, entry := range s.agents {
 		if entry != nil && entry.Agent != nil {
-			agents = append(agents, cloneAgentRecord(entry.Agent))
+			agents = append(agents, cloneLocalAgentRecord(entry.Agent))
 		}
 	}
 	s.mu.RUnlock()

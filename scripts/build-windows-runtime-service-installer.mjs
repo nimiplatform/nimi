@@ -24,8 +24,7 @@ const source = path.join(scriptDir, 'install-windows-runtime-service.ps1');
 const outputDir = path.join(repoRoot, 'dist', 'windows-runtime-service-installer');
 const output = path.join(outputDir, 'install-nimi-runtime.ps1');
 const resourceOutputDir = path.join(outputDir, 'resources');
-const registrySource = path.join(repoRoot, 'config', 'platform-nimi-app-registry.yaml');
-const releaseDescriptorsSource = path.join(repoRoot, 'config', 'platform-nimi-app-release-descriptors.yaml');
+const appIdentityProjectionSource = path.join(repoRoot, 'config', 'platform-nimi-app-identity-surfaces.yaml');
 const runtimeCandidateSource = path.join(repoRoot, 'dist', 'nimi.exe');
 const runtimeBuildRecordSource = path.join(repoRoot, 'dist', 'nimi-build-record.json');
 const identity = requireWindowsDevSigningIdentity({ cwd: repoRoot });
@@ -34,8 +33,7 @@ rmSync(outputDir, { recursive: true, force: true });
 mkdirSync(outputDir, { recursive: true });
 mkdirSync(resourceOutputDir, { recursive: true });
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
-const registrySha256 = sha256(registrySource);
-const releaseDescriptorsSha256 = sha256(releaseDescriptorsSource);
+const appIdentityProjectionSha256 = sha256(appIdentityProjectionSource);
 const runtimeSha256 = sha256(runtimeCandidateSource);
 const runtimeBuildRecord = JSON.parse(readFileSync(runtimeBuildRecordSource, 'utf8'));
 validateRuntimeBuildRecord(runtimeBuildRecord, {
@@ -45,16 +43,14 @@ validateRuntimeBuildRecord(runtimeBuildRecord, {
 });
 const runtimeBuildRecordSha256 = fileSha256(runtimeBuildRecordSource);
 const installerSource = readFileSync(source, 'utf8')
-  .replace('__BUILD_REGISTRY_SHA256__', registrySha256)
-  .replace('__BUILD_RELEASE_DESCRIPTORS_SHA256__', releaseDescriptorsSha256)
+  .replace('__BUILD_APP_IDENTITY_PROJECTION_SHA256__', appIdentityProjectionSha256)
   .replace('__BUILD_RUNTIME_SHA256__', runtimeSha256)
   .replace('__BUILD_RUNTIME_RECORD_SHA256__', runtimeBuildRecordSha256);
 if (installerSource.includes('__BUILD_')) {
   throw new Error('Windows Runtime installer resource hash substitution is incomplete');
 }
 writeFileSync(output, installerSource, 'utf8');
-copyFileSync(registrySource, path.join(resourceOutputDir, 'nimi-app-registry.yaml'));
-copyFileSync(releaseDescriptorsSource, path.join(resourceOutputDir, 'nimi-app-release-descriptors.yaml'));
+copyFileSync(appIdentityProjectionSource, path.join(resourceOutputDir, 'nimi-app-identity-surfaces.yaml'));
 copyFileSync(runtimeBuildRecordSource, path.join(resourceOutputDir, 'runtime-build-record.json'));
 const signed = signWindowsDevFiles([output], { cwd: repoRoot });
 if (signed.certificateSha256 !== identity.certificateSha256) {
@@ -65,8 +61,7 @@ process.stdout.write(`${JSON.stringify({
   status: 'signed',
   installerPath: output,
   signerCertificateSha256: identity.certificateSha256,
-  registrySha256,
-  releaseDescriptorsSha256,
+  appIdentityProjectionSha256,
   runtimeSha256,
   runtimeBuildRecordSha256,
   runtimeCandidateId: runtimeBuildRecord.candidateId,

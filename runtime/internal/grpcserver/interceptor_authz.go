@@ -240,8 +240,6 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.knowledge.write", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask":
 		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent":
-		return "runtime.agent.admin", true
 	case "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource":
 		return "runtime.agent.admin", true
 	case "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent":

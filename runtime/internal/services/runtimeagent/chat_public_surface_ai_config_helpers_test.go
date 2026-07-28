@@ -51,7 +51,7 @@ func publicChatTestAIConfigContext(t *testing.T, svc *Service) *runtimev1.AgentR
 	}
 	svc.mu.RLock()
 	defer svc.mu.RUnlock()
-	var selected *runtimev1.AgentRecord
+	var selected *runtimev1.LocalAgentRecord
 	preferred := testRuntimeAgentLocalRef("agent-alpha")
 	if entry := svc.agents[preferred]; entry != nil {
 		selected = entry.Agent

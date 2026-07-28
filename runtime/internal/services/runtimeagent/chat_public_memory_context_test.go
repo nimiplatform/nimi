@@ -103,7 +103,7 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-memory-context",
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
@@ -165,7 +165,7 @@ func TestPublicChatTurnRequestFailsClosedWhenPreTurnMemoryReadFails(t *testing.T
 	req := publicChatTurnRequestPayload{
 		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserID:          "user-1",
-		RuntimeSourceRef:     "agent-alpha",
+		RuntimeSourceRef:     testRuntimeAgentSourceRef("agent-alpha"),
 		ConversationAnchorID: anchorID,
 		RequestID:            "desktop-turn-memory-read-fails",
 		ThreadID:             publicChatTestAnchorThreadID(t, svc, anchorID),
@@ -206,7 +206,7 @@ func TestPublicChatPreTurnMemoryRequiresSubjectContext(t *testing.T) {
 		AgentID:          testRuntimeAgentLocalRef("agent-alpha"),
 		LocalAgentRef:    testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserID:      "user-1",
-		RuntimeSourceRef: "agent-alpha",
+		RuntimeSourceRef: testRuntimeAgentSourceRef("agent-alpha"),
 		CallerAppID:      "desktop.app",
 	}, publicChatTurnRequestPayload{
 		Messages: []publicChatMessagePayload{

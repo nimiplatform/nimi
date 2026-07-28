@@ -33,9 +33,6 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
         async getAgent() {
           throw new Error('listLocalAgents must not require caller localAgentRef');
         },
-        async initializeAgent() {
-          throw new Error('listLocalAgents must not materialize');
-        },
         async listAgents(request: unknown, options?: RuntimeTypedCallOptions) {
           calls.push({ method: 'listAgents', request, options });
           return {

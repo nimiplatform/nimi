@@ -15,7 +15,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/appidentityprojection"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
@@ -92,66 +92,29 @@ func validFullAppModeManifest() *runtimev1.AppModeManifest {
 	}
 }
 
-func TestNormalizeNimiAppRegistryIDRejectsBundleNamespace(t *testing.T) {
-	cases := map[string]string{
-		"nimi.avatar":           "nimi.avatar",
-		"app.nimi.avatar":       "nimi.avatar",
-		"ai.nimi.apps.avatar":   "ai.nimi.apps.avatar",
-		"ai.nimi.apps.parentos": "ai.nimi.apps.parentos",
-		"third.party.runtime":   "third.party.runtime",
+func TestForbiddenNimiSideNamespaces(t *testing.T) {
+	cases := map[string]bool{
+		"nimi.avatar":           false,
+		"app.nimi.avatar":       true,
+		"dev.nimi.avatar":       true,
+		"ai.nimi.apps.avatar":   false,
+		"ai.nimi.apps.parentos": false,
+		"third.party.runtime":   false,
 	}
 	for input, expected := range cases {
-		if actual := normalizeNimiAppRegistryID(input); actual != expected {
-			t.Fatalf("normalizeNimiAppRegistryID(%q) = %q, want %q", input, actual, expected)
+		if actual := isForbiddenNimiSideNamespace(input); actual != expected {
+			t.Fatalf("isForbiddenNimiSideNamespace(%q) = %v, want %v", input, actual, expected)
 		}
 	}
 }
 
-func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
-	return &appregistrycatalog.Registry{
-		Version:     1,
-		TableFamily: "product_catalog",
-		Owner:       "platform",
-		CatalogID:   "test_nimi_app_registry",
-		Apps: []appregistrycatalog.App{
-			{
-				AppID:                   "nimi.example-app",
-				DisplayLabel:            "Example App",
-				Publisher:               "nimi-first-party",
-				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
-				PackageKind:             appregistrycatalog.PackageKindNimiApp,
-				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
-				OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityOrdinaryVisible,
-				ReleaseDescriptorRef:    "nimi.example-app.bundled-with-nimi",
-				InstallStoragePolicyRef: "nimi-data-app-roots",
-				AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
-				SourceRule:              "P-NAPP-011",
-			},
-			{
-				AppID:                   "nimi.avatar",
-				DisplayLabel:            "Avatar",
-				Publisher:               "nimi-first-party",
-				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
-				PackageKind:             appregistrycatalog.PackageKindNimiApp,
-				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
-				OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityHiddenInternal,
-				ReleaseDescriptorRef:    "nimi.avatar.bundled-with-nimi",
-				InstallStoragePolicyRef: "nimi-data-app-roots",
-				AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
-				SourceRule:              "P-NAPP-011",
-			},
-		},
+func testNimiAppIdentityProjection(t *testing.T) *appidentityprojection.Projection {
+	t.Helper()
+	projection, err := appidentityprojection.NewLocalFirstParty("nimi.avatar", "nimi.zhiyu")
+	if err != nil {
+		t.Fatalf("build app identity projection: %v", err)
 	}
-}
-
-func testNimiAppRegistryCatalogWithAvatarGated() *appregistrycatalog.Registry {
-	registry := testNimiAppRegistryCatalog()
-	for index := range registry.Apps {
-		if registry.Apps[index].AppID == "nimi.avatar" {
-			registry.Apps[index].AdmissionStatus = appregistrycatalog.AdmissionStatusGatedByAvatarMasterGate
-		}
-	}
-	return registry
+	return projection
 }
 
 func TestAppSessionLifecycle(t *testing.T) {
@@ -223,10 +186,11 @@ func TestAppSessionLifecycle(t *testing.T) {
 
 func TestOpenSessionLocalFirstPartyRejectsCallerProvidedSubject(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetNimiAppIdentityProjection(testNimiAppIdentityProjection(t))
 	ctx := context.Background()
 
 	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
-		AppId:        "nimi.desktop",
+		AppId:        "nimi.avatar",
 		DeviceId:     "local-device",
 		ModeManifest: validFullAppModeManifest(),
 	})
@@ -238,7 +202,7 @@ func TestOpenSessionLocalFirstPartyRejectsCallerProvidedSubject(t *testing.T) {
 	}
 
 	rejected, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.desktop",
+		AppId:         "nimi.avatar",
 		AppInstanceId: registerResp.GetAppInstanceId(),
 		DeviceId:      "local-device",
 		SubjectUserId: "caller-user-001",
@@ -255,7 +219,7 @@ func TestOpenSessionLocalFirstPartyRejectsCallerProvidedSubject(t *testing.T) {
 	}
 
 	accepted, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.desktop",
+		AppId:         "nimi.avatar",
 		AppInstanceId: registerResp.GetAppInstanceId(),
 		DeviceId:      "local-device",
 		TtlSeconds:    600,
@@ -302,7 +266,7 @@ func TestRegisterAppMaintainsPerAppIndexOncePerInstance(t *testing.T) {
 	}
 }
 
-func TestRegisterAppFailsClosedForNimiAppWithoutRegistryProjection(t *testing.T) {
+func TestRegisterAppFailsClosedForNimiAppWithoutIdentityProjection(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
@@ -313,94 +277,66 @@ func TestRegisterAppFailsClosedForNimiAppWithoutRegistryProjection(t *testing.T)
 		t.Fatalf("register app: %v", err)
 	}
 	if resp.GetAccepted() {
-		t.Fatalf("expected Platform-governed Nimi App to fail closed without registry projection")
+		t.Fatalf("expected Platform-governed Nimi App to fail closed without identity projection")
 	}
 	if resp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
 		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
 	}
 }
 
-func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
+func TestRegisterAppChecksNimiAppIdentityProjection(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
+	svc.SetNimiAppIdentityProjection(testNimiAppIdentityProjection(t))
 
-	ordinaryResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:         "app.nimi.example-app",
-		AppInstanceId: "app.nimi.example-app.local-first-party",
-		DeviceId:      "local-first-party-device",
-		ModeManifest:  validFullAppModeManifest(),
-	})
-	if err != nil {
-		t.Fatalf("register ordinary example app: %v", err)
-	}
-	if ordinaryResp.GetAccepted() {
-		t.Fatalf("ordinary-visible app must fail closed until descriptor install is verified")
-	}
-	if ordinaryResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("unexpected ordinary app reason code: %v", ordinaryResp.GetReasonCode())
-	}
-
-	platformSessionResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:         "app.nimi.example-app",
-		AppInstanceId: "app.nimi.example-app.platform-runtime-session",
-		DeviceId:      "platform-runtime-session",
-		ModeManifest:  validFullAppModeManifest(),
-	})
-	if err != nil {
-		t.Fatalf("register ordinary example platform runtime session: %v", err)
-	}
-	if platformSessionResp.GetAccepted() {
-		t.Fatalf("ordinary-visible platform runtime session must fail closed until descriptor install is verified")
-	}
-
-	genericResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "app.nimi.example-app",
+	sideNamespaceResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "app.nimi.avatar",
 		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register generic example-app: %v", err)
+		t.Fatalf("register side-namespace app: %v", err)
 	}
-	if genericResp.GetAccepted() {
-		t.Fatalf("generic Example App app registration must still fail closed until descriptor install is verified")
+	if sideNamespaceResp.GetAccepted() {
+		t.Fatal("app.nimi.* side namespace must be rejected")
 	}
-	if genericResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("unexpected generic Example App reason code: %v", genericResp.GetReasonCode())
+	if sideNamespaceResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("unexpected side-namespace reason code: %v", sideNamespaceResp.GetReasonCode())
 	}
 
-	avatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "nimi.avatar",
+	unknownResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "nimi.example-app",
 		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register avatar: %v", err)
+		t.Fatalf("register unknown governed app: %v", err)
 	}
-	if !avatarResp.GetAccepted() {
-		t.Fatalf("expected internal admitted Avatar row to register, reason=%v", avatarResp.GetReasonCode())
+	if unknownResp.GetAccepted() {
+		t.Fatal("unknown nimi.* app must fail closed")
+	}
+	if unknownResp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
+		t.Fatalf("unexpected unknown governed-app reason code: %v", unknownResp.GetReasonCode())
 	}
 
-	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalogWithAvatarGated())
-	gatedAvatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "nimi.avatar",
-		ModeManifest: validFullAppModeManifest(),
-	})
-	if err != nil {
-		t.Fatalf("register gated avatar: %v", err)
-	}
-	if gatedAvatarResp.GetAccepted() {
-		t.Fatalf("expected explicitly gated Avatar row to be rejected")
-	}
-	if gatedAvatarResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("unexpected gated avatar reason code: %v", gatedAvatarResp.GetReasonCode())
+	for _, appID := range []string{"nimi.avatar", "nimi.zhiyu"} {
+		resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+			AppId:        appID,
+			ModeManifest: validFullAppModeManifest(),
+		})
+		if err != nil {
+			t.Fatalf("register %s: %v", appID, err)
+		}
+		if !resp.GetAccepted() {
+			t.Fatalf("identity-projected %s was rejected: %v", appID, resp.GetReasonCode())
+		}
 	}
 }
 
 func TestRegisterAppUnadmittedGovernedAppFailsClosedAndAuditsEligibility(t *testing.T) {
 	store := auditlog.New(16, 16)
 	svc := NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, 60, 86400)
-	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
+	svc.SetNimiAppIdentityProjection(testNimiAppIdentityProjection(t))
 
 	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "app.nimi.shijing",
+		AppId:        "nimi.shijing",
 		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
@@ -418,15 +354,15 @@ func TestRegisterAppUnadmittedGovernedAppFailsClosedAndAuditsEligibility(t *test
 		t.Fatalf("expected one audit event, got %d", len(events.GetEvents()))
 	}
 	payload := events.GetEvents()[0].GetPayload().AsMap()
-	if payload["registry_app_id"] != "nimi.shijing" {
-		t.Fatalf("expected normalized registry_app_id, got %#v", payload["registry_app_id"])
+	if payload["identity_app_id"] != "nimi.shijing" {
+		t.Fatalf("expected identity_app_id, got %#v", payload["identity_app_id"])
 	}
-	if payload["eligibility_reason"] != "app-not-registered" {
-		t.Fatalf("expected registry eligibility reason, got %#v", payload["eligibility_reason"])
+	if payload["eligibility_reason"] != "app-identity-not-admitted" {
+		t.Fatalf("expected identity eligibility reason, got %#v", payload["eligibility_reason"])
 	}
 }
 
-func TestRegisterAppKeepsDesktopHostOutsideNimiAppRegistry(t *testing.T) {
+func TestRegisterAppKeepsDesktopHostOutsideAppIdentityProjection(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{

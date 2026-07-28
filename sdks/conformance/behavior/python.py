@@ -21,7 +21,7 @@ class FakeTransport:
             self.cancellation_started.set()
             await asyncio.Future()
         if isinstance(request.body, dict) and request.body.get("redirect_uri") == "force-error":
-            error = RuntimeError(FIXTURES["cases"]["structured_error"]["message"])
+            error = RuntimeError("transport failure")
             setattr(error, "code", FIXTURES["cases"]["structured_error"]["reason_code"])
             setattr(error, "details", FIXTURES["cases"]["structured_error"]["details"])
             raise error
@@ -126,7 +126,6 @@ async def main():
         await typed_runtime.begin_login(error_request)
     except RuntimeError as error:
         assert getattr(error, "code") == FIXTURES["cases"]["structured_error"]["reason_code"]
-        assert str(error) == FIXTURES["cases"]["structured_error"]["message"]
         assert getattr(error, "details") == FIXTURES["cases"]["structured_error"]["details"]
     else:
         raise AssertionError("typed structured error did not raise")

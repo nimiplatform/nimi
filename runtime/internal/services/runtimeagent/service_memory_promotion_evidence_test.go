@@ -14,9 +14,9 @@ func TestWriteAgentMemoryRejectsMissingPromotionEvidence(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-promotion-missing")}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	resp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
@@ -44,9 +44,9 @@ func TestWriteAgentMemoryAcceptsCompletePromotionEvidence(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-promotion-complete")}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	resp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
@@ -67,9 +67,9 @@ func TestWriteAgentMemoryAcceptsCanonicalAgentChatPromotionEvidence(t *testing.T
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-promotion-canonical-chat")}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	evidence := completePromotionEvidenceWithSourceProfile(t, svc, "canonical_agent_chat")

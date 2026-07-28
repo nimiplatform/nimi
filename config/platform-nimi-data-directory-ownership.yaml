@@ -6,11 +6,16 @@ table_family: owner_matrix
 owner: platform
 matrix_id: platform_nimi_data_directory_ownership
 description: >-
-  Canonical nimi_data data-root directory ownership matrix. Source authority is
-  local-config-migration-contract.md (P-MIG-006). Mirrors the product manual
-  nimi_data Directory Ownership table. The nimi_data layout itself is recorded
-  in cold-start-authority-contract.md P-COLD-010; this table adds the
-  per-directory owner and cleanup-rule authority.
+  Non-authoritative host projection of the nimi_data data-root directory
+  ownership boundary. Source authority is
+  .nimi/spec/platform/product-lifecycle.authority.yaml:
+  definition.nimi.platform.product-lifecycle.nimi-data-ownership,
+  rule.nimi.platform.product-lifecycle.p-mig-006a,
+  rule.nimi.platform.product-lifecycle.p-mig-006b,
+  rule.nimi.platform.product-lifecycle.p-mig-006c, and
+  rule.nimi.platform.product-lifecycle.p-mig-006-directory-declarations.
+  This file supplies owner and cleanup-rule inputs to the host implementation;
+  it does not define product semantics.
 rows:
   - directories_1
   - directories_2

@@ -19,16 +19,14 @@ $InstallRoot = Join-Path $env:ProgramFiles 'Nimi\Runtime'
 $StateRoot = Join-Path $env:ProgramData 'Nimi\Runtime\Protected'
 $DesktopPipeName = 'nimi-runtime-protected-v1'
 $LocalAppPipeName = 'nimi-runtime-local-app-v1'
-$ExpectedRegistrySha256 = '__BUILD_REGISTRY_SHA256__'
-$ExpectedReleaseDescriptorsSha256 = '__BUILD_RELEASE_DESCRIPTORS_SHA256__'
+$ExpectedAppIdentityProjectionSha256 = '__BUILD_APP_IDENTITY_PROJECTION_SHA256__'
 $ExpectedRuntimeSha256 = '__BUILD_RUNTIME_SHA256__'
 $ExpectedRuntimeBuildRecordSha256 = '__BUILD_RUNTIME_RECORD_SHA256__'
 $CandidateVersionId = "$ExpectedRuntimeSha256-$ExpectedRuntimeBuildRecordSha256"
 $InstalledVersionRoot = Join-Path $InstallRoot "versions\$CandidateVersionId"
 $InstalledBinary = Join-Path $InstalledVersionRoot 'nimi.exe'
 $ResourcesRoot = Join-Path $InstalledVersionRoot 'resources'
-$InstalledRegistry = Join-Path $ResourcesRoot 'nimi-app-registry.yaml'
-$InstalledReleaseDescriptors = Join-Path $ResourcesRoot 'nimi-app-release-descriptors.yaml'
+$InstalledAppIdentityProjection = Join-Path $ResourcesRoot 'nimi-app-identity-surfaces.yaml'
 $InstalledRuntimeBuildRecord = Join-Path $ResourcesRoot 'runtime-build-record.json'
 $RuntimeStartupStages = @{
   42240 = 'unclassified'
@@ -162,22 +160,17 @@ function Assert-FileSha256 {
 function Copy-PlatformResources {
   param([Parameter(Mandatory = $true)] [string] $DestinationRoot)
   $payloadRoot = Join-Path $PSScriptRoot 'resources'
-  $sourceRegistry = Join-Path $payloadRoot 'nimi-app-registry.yaml'
-  $sourceDescriptors = Join-Path $payloadRoot 'nimi-app-release-descriptors.yaml'
+  $sourceAppIdentityProjection = Join-Path $payloadRoot 'nimi-app-identity-surfaces.yaml'
   $sourceRuntimeBuildRecord = Join-Path $payloadRoot 'runtime-build-record.json'
-  Assert-FileSha256 -Path $sourceRegistry -Expected $ExpectedRegistrySha256
-  Assert-FileSha256 -Path $sourceDescriptors -Expected $ExpectedReleaseDescriptorsSha256
+  Assert-FileSha256 -Path $sourceAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $sourceRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   $destinationResources = Join-Path $DestinationRoot 'resources'
   New-Item -ItemType Directory -Path $destinationResources -Force | Out-Null
-  $destinationRegistry = Join-Path $destinationResources 'nimi-app-registry.yaml'
-  $destinationDescriptors = Join-Path $destinationResources 'nimi-app-release-descriptors.yaml'
+  $destinationAppIdentityProjection = Join-Path $destinationResources 'nimi-app-identity-surfaces.yaml'
   $destinationBuildRecord = Join-Path $destinationResources 'runtime-build-record.json'
-  Copy-Item -LiteralPath $sourceRegistry -Destination $destinationRegistry
-  Copy-Item -LiteralPath $sourceDescriptors -Destination $destinationDescriptors
+  Copy-Item -LiteralPath $sourceAppIdentityProjection -Destination $destinationAppIdentityProjection
   Copy-Item -LiteralPath $sourceRuntimeBuildRecord -Destination $destinationBuildRecord
-  Assert-FileSha256 -Path $destinationRegistry -Expected $ExpectedRegistrySha256
-  Assert-FileSha256 -Path $destinationDescriptors -Expected $ExpectedReleaseDescriptorsSha256
+  Assert-FileSha256 -Path $destinationAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $destinationBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
 }
 
@@ -209,8 +202,7 @@ function Read-RuntimeBuildRecord {
 function Assert-InstalledCandidate {
   param([Parameter(Mandatory = $true)] [string] $ExpectedSignerCertificateSha256)
   Assert-FileSha256 -Path $InstalledBinary -Expected $ExpectedRuntimeSha256
-  Assert-FileSha256 -Path $InstalledRegistry -Expected $ExpectedRegistrySha256
-  Assert-FileSha256 -Path $InstalledReleaseDescriptors -Expected $ExpectedReleaseDescriptorsSha256
+  Assert-FileSha256 -Path $InstalledAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $InstalledRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   $certificate = Assert-SignedFile -Path $InstalledBinary
   if ((Get-CertificateSha256 -Certificate $certificate) -ne $ExpectedSignerCertificateSha256) {

@@ -30,7 +30,7 @@ type CanonicalReviewExecutionResult struct {
 }
 
 type CanonicalReviewExecutorRequest struct {
-	Agent           *runtimev1.AgentRecord
+	Agent           *runtimev1.LocalAgentRecord
 	State           *runtimev1.AgentStateProjection
 	Bank            *runtimev1.MemoryBankLocator
 	CheckpointBasis string

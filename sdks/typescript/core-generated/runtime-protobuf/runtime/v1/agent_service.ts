@@ -2,22 +2,6 @@
 // @generated from protobuf file "runtime/v1/agent_service.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
-import { GetParticipationReplayResponse } from "./agent_participation";
-import { GetParticipationReplayRequest } from "./agent_participation";
-import { ListParticipationAuditEventsResponse } from "./agent_participation";
-import { ListParticipationAuditEventsRequest } from "./agent_participation";
-import { GetParticipationVerdictsResponse } from "./agent_participation";
-import { GetParticipationVerdictsRequest } from "./agent_participation";
-import { GetParticipationCandidateResponse } from "./agent_participation";
-import { GetParticipationCandidateRequest } from "./agent_participation";
-import { ExecuteParticipationResponse } from "./agent_participation";
-import { ExecuteParticipationRequest } from "./agent_participation";
-import { ValidateParticipationResponse } from "./agent_participation";
-import { ValidateParticipationRequest } from "./agent_participation";
-import { DescribeParticipationContextBlocksResponse } from "./agent_participation";
-import { DescribeParticipationContextBlocksRequest } from "./agent_participation";
-import { DescribeParticipationProfilesResponse } from "./agent_participation";
-import { DescribeParticipationProfilesRequest } from "./agent_participation";
 import { GetDelegatedControlSurfaceSnapshotResponse } from "./delegated_control";
 import { GetDelegatedControlSurfaceSnapshotRequest } from "./delegated_control";
 import { GetDelegatedReplayTraceResponse } from "./delegated_control";
@@ -30,10 +14,6 @@ import { ListDelegatedApprovalRequestsResponse } from "./delegated_control";
 import { ListDelegatedApprovalRequestsRequest } from "./delegated_control";
 import { ListDelegatedProviderProfilesResponse } from "./delegated_control";
 import { ListDelegatedProviderProfilesRequest } from "./delegated_control";
-import { GetRealmGroupMessageCandidateEvidenceResponse } from "./agent_group_message_candidate";
-import { GetRealmGroupMessageCandidateEvidenceRequest } from "./agent_group_message_candidate";
-import { CreateRealmGroupMessageCandidateResponse } from "./agent_group_message_candidate";
-import { CreateRealmGroupMessageCandidateRequest } from "./agent_group_message_candidate";
 import { OpenCompanionParticipationReplayResponse } from "./agent_companion";
 import { OpenCompanionParticipationReplayRequest } from "./agent_companion";
 import { CancelCompanionParticipationResponse } from "./agent_companion";
@@ -136,13 +116,13 @@ export interface AgentAutonomyState {
     suspendedUntil?: Timestamp;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.AgentRecord
+ * @generated from protobuf message nimi.runtime.v1.LocalAgentRecord
  */
-export interface AgentRecord {
+export interface LocalAgentRecord {
     /**
-     * @generated from protobuf field: string agent_id = 1
+     * @generated from protobuf field: string local_agent_ref = 1
      */
-    agentId: string;
+    localAgentRef: string;
     /**
      * @generated from protobuf field: string display_name = 2
      */
@@ -175,10 +155,6 @@ export interface AgentRecord {
      * @generated from protobuf field: uint64 presentation_profile_revision = 9
      */
     presentationProfileRevision: string;
-    /**
-     * @generated from protobuf field: string local_agent_ref = 20
-     */
-    localAgentRef: string;
     /**
      * @generated from protobuf field: string owner_user_id = 21
      */
@@ -1153,60 +1129,6 @@ export interface AgentEvent {
     };
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.InitializeAgentRequest
- */
-export interface InitializeAgentRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
-     * @generated from protobuf field: string display_name = 3
-     */
-    displayName: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentAutonomyConfig autonomy_config = 4
-     */
-    autonomyConfig?: AgentAutonomyConfig;
-    /**
-     * @generated from protobuf field: string world_id = 5
-     */
-    worldId: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct metadata = 6
-     */
-    metadata?: Struct;
-    /**
-     * @generated from protobuf field: string local_agent_ref = 20
-     */
-    localAgentRef: string;
-    /**
-     * @generated from protobuf field: string owner_user_id = 21
-     */
-    ownerUserId: string;
-    /**
-     * @generated from protobuf field: string runtime_source_ref = 22
-     */
-    runtimeSourceRef: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.InitializeAgentResponse
- */
-export interface InitializeAgentResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRecord agent = 1
-     */
-    agent?: AgentRecord;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentStateProjection state = 2
-     */
-    state?: AgentStateProjection;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.TerminateAgentRequest
  */
 export interface TerminateAgentRequest {
@@ -1250,9 +1172,9 @@ export interface GetAgentRequest {
  */
 export interface GetAgentResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRecord agent = 1
+     * @generated from protobuf field: nimi.runtime.v1.LocalAgentRecord agent = 1
      */
-    agent?: AgentRecord;
+    agent?: LocalAgentRecord;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListAgentsRequest
@@ -1284,9 +1206,9 @@ export interface ListAgentsRequest {
  */
 export interface ListAgentsResponse {
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.AgentRecord agents = 1
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAgentRecord agents = 1
      */
-    agents: AgentRecord[];
+    agents: LocalAgentRecord[];
     /**
      * @generated from protobuf field: string next_page_token = 2
      */
@@ -3557,10 +3479,10 @@ class AgentAutonomyState$Type extends MessageType<AgentAutonomyState> {
  */
 export const AgentAutonomyState = new AgentAutonomyState$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class AgentRecord$Type extends MessageType<AgentRecord> {
+class LocalAgentRecord$Type extends MessageType<LocalAgentRecord> {
     constructor() {
-        super("nimi.runtime.v1.AgentRecord", [
-            { no: 1, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+        super("nimi.runtime.v1.LocalAgentRecord", [
+            { no: 1, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "lifecycle_status", kind: "enum", T: () => ["nimi.runtime.v1.AgentLifecycleStatus", AgentLifecycleStatus, "AGENT_LIFECYCLE_STATUS_"] },
             { no: 4, name: "autonomy", kind: "message", T: () => AgentAutonomyState },
@@ -3569,32 +3491,30 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
             { no: 7, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 8, name: "presentation_profile", kind: "message", T: () => AgentPresentationProfile },
             { no: 9, name: "presentation_profile_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 22, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 23, name: "source_context_status", kind: "message", T: () => LocalAgentSourceContextStatus }
         ]);
     }
-    create(value?: PartialMessage<AgentRecord>): AgentRecord {
+    create(value?: PartialMessage<LocalAgentRecord>): LocalAgentRecord {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
+        message.localAgentRef = "";
         message.displayName = "";
         message.lifecycleStatus = 0;
         message.presentationProfileRevision = "0";
-        message.localAgentRef = "";
         message.ownerUserId = "";
         message.runtimeSourceRef = "";
         if (value !== undefined)
-            reflectionMergePartial<AgentRecord>(this, message, value);
+            reflectionMergePartial<LocalAgentRecord>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentRecord): AgentRecord {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAgentRecord): LocalAgentRecord {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string agent_id */ 1:
-                    message.agentId = reader.string();
+                case /* string local_agent_ref */ 1:
+                    message.localAgentRef = reader.string();
                     break;
                 case /* string display_name */ 2:
                     message.displayName = reader.string();
@@ -3620,9 +3540,6 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
                 case /* uint64 presentation_profile_revision */ 9:
                     message.presentationProfileRevision = reader.uint64().toString();
                     break;
-                case /* string local_agent_ref */ 20:
-                    message.localAgentRef = reader.string();
-                    break;
                 case /* string owner_user_id */ 21:
                     message.ownerUserId = reader.string();
                     break;
@@ -3643,10 +3560,10 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
         }
         return message;
     }
-    internalBinaryWrite(message: AgentRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string agent_id = 1; */
-        if (message.agentId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.agentId);
+    internalBinaryWrite(message: LocalAgentRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_agent_ref = 1; */
+        if (message.localAgentRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localAgentRef);
         /* string display_name = 2; */
         if (message.displayName !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.displayName);
@@ -3671,9 +3588,6 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
         /* uint64 presentation_profile_revision = 9; */
         if (message.presentationProfileRevision !== "0")
             writer.tag(9, WireType.Varint).uint64(message.presentationProfileRevision);
-        /* string local_agent_ref = 20; */
-        if (message.localAgentRef !== "")
-            writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
         /* string owner_user_id = 21; */
         if (message.ownerUserId !== "")
             writer.tag(21, WireType.LengthDelimited).string(message.ownerUserId);
@@ -3690,9 +3604,9 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.AgentRecord
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAgentRecord
  */
-export const AgentRecord = new AgentRecord$Type();
+export const LocalAgentRecord = new LocalAgentRecord$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentStateProjection$Type extends MessageType<AgentStateProjection> {
     constructor() {
@@ -6345,167 +6259,6 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
  */
 export const AgentEvent = new AgentEvent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class InitializeAgentRequest$Type extends MessageType<InitializeAgentRequest> {
-    constructor() {
-        super("nimi.runtime.v1.InitializeAgentRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "autonomy_config", kind: "message", T: () => AgentAutonomyConfig },
-            { no: 5, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "metadata", kind: "message", T: () => Struct },
-            { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 22, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<InitializeAgentRequest>): InitializeAgentRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
-        message.displayName = "";
-        message.worldId = "";
-        message.localAgentRef = "";
-        message.ownerUserId = "";
-        message.runtimeSourceRef = "";
-        if (value !== undefined)
-            reflectionMergePartial<InitializeAgentRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InitializeAgentRequest): InitializeAgentRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
-                case /* string display_name */ 3:
-                    message.displayName = reader.string();
-                    break;
-                case /* nimi.runtime.v1.AgentAutonomyConfig autonomy_config */ 4:
-                    message.autonomyConfig = AgentAutonomyConfig.internalBinaryRead(reader, reader.uint32(), options, message.autonomyConfig);
-                    break;
-                case /* string world_id */ 5:
-                    message.worldId = reader.string();
-                    break;
-                case /* google.protobuf.Struct metadata */ 6:
-                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
-                    break;
-                case /* string local_agent_ref */ 20:
-                    message.localAgentRef = reader.string();
-                    break;
-                case /* string owner_user_id */ 21:
-                    message.ownerUserId = reader.string();
-                    break;
-                case /* string runtime_source_ref */ 22:
-                    message.runtimeSourceRef = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: InitializeAgentRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* string display_name = 3; */
-        if (message.displayName !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.displayName);
-        /* nimi.runtime.v1.AgentAutonomyConfig autonomy_config = 4; */
-        if (message.autonomyConfig)
-            AgentAutonomyConfig.internalBinaryWrite(message.autonomyConfig, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* string world_id = 5; */
-        if (message.worldId !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.worldId);
-        /* google.protobuf.Struct metadata = 6; */
-        if (message.metadata)
-            Struct.internalBinaryWrite(message.metadata, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        /* string local_agent_ref = 20; */
-        if (message.localAgentRef !== "")
-            writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
-        /* string owner_user_id = 21; */
-        if (message.ownerUserId !== "")
-            writer.tag(21, WireType.LengthDelimited).string(message.ownerUserId);
-        /* string runtime_source_ref = 22; */
-        if (message.runtimeSourceRef !== "")
-            writer.tag(22, WireType.LengthDelimited).string(message.runtimeSourceRef);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.InitializeAgentRequest
- */
-export const InitializeAgentRequest = new InitializeAgentRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class InitializeAgentResponse$Type extends MessageType<InitializeAgentResponse> {
-    constructor() {
-        super("nimi.runtime.v1.InitializeAgentResponse", [
-            { no: 1, name: "agent", kind: "message", T: () => AgentRecord },
-            { no: 2, name: "state", kind: "message", T: () => AgentStateProjection }
-        ]);
-    }
-    create(value?: PartialMessage<InitializeAgentResponse>): InitializeAgentResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<InitializeAgentResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InitializeAgentResponse): InitializeAgentResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRecord agent */ 1:
-                    message.agent = AgentRecord.internalBinaryRead(reader, reader.uint32(), options, message.agent);
-                    break;
-                case /* nimi.runtime.v1.AgentStateProjection state */ 2:
-                    message.state = AgentStateProjection.internalBinaryRead(reader, reader.uint32(), options, message.state);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: InitializeAgentResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRecord agent = 1; */
-        if (message.agent)
-            AgentRecord.internalBinaryWrite(message.agent, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.AgentStateProjection state = 2; */
-        if (message.state)
-            AgentStateProjection.internalBinaryWrite(message.state, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.InitializeAgentResponse
- */
-export const InitializeAgentResponse = new InitializeAgentResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class TerminateAgentRequest$Type extends MessageType<TerminateAgentRequest> {
     constructor() {
         super("nimi.runtime.v1.TerminateAgentRequest", [
@@ -6671,7 +6424,7 @@ export const GetAgentRequest = new GetAgentRequest$Type();
 class GetAgentResponse$Type extends MessageType<GetAgentResponse> {
     constructor() {
         super("nimi.runtime.v1.GetAgentResponse", [
-            { no: 1, name: "agent", kind: "message", T: () => AgentRecord }
+            { no: 1, name: "agent", kind: "message", T: () => LocalAgentRecord }
         ]);
     }
     create(value?: PartialMessage<GetAgentResponse>): GetAgentResponse {
@@ -6685,8 +6438,8 @@ class GetAgentResponse$Type extends MessageType<GetAgentResponse> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRecord agent */ 1:
-                    message.agent = AgentRecord.internalBinaryRead(reader, reader.uint32(), options, message.agent);
+                case /* nimi.runtime.v1.LocalAgentRecord agent */ 1:
+                    message.agent = LocalAgentRecord.internalBinaryRead(reader, reader.uint32(), options, message.agent);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6700,9 +6453,9 @@ class GetAgentResponse$Type extends MessageType<GetAgentResponse> {
         return message;
     }
     internalBinaryWrite(message: GetAgentResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRecord agent = 1; */
+        /* nimi.runtime.v1.LocalAgentRecord agent = 1; */
         if (message.agent)
-            AgentRecord.internalBinaryWrite(message.agent, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            LocalAgentRecord.internalBinaryWrite(message.agent, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6794,7 +6547,7 @@ export const ListAgentsRequest = new ListAgentsRequest$Type();
 class ListAgentsResponse$Type extends MessageType<ListAgentsResponse> {
     constructor() {
         super("nimi.runtime.v1.ListAgentsResponse", [
-            { no: 1, name: "agents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AgentRecord },
+            { no: 1, name: "agents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAgentRecord },
             { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -6811,8 +6564,8 @@ class ListAgentsResponse$Type extends MessageType<ListAgentsResponse> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.AgentRecord agents */ 1:
-                    message.agents.push(AgentRecord.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.LocalAgentRecord agents */ 1:
+                    message.agents.push(LocalAgentRecord.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* string next_page_token */ 2:
                     message.nextPageToken = reader.string();
@@ -6829,9 +6582,9 @@ class ListAgentsResponse$Type extends MessageType<ListAgentsResponse> {
         return message;
     }
     internalBinaryWrite(message: ListAgentsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.AgentRecord agents = 1; */
+        /* repeated nimi.runtime.v1.LocalAgentRecord agents = 1; */
         for (let i = 0; i < message.agents.length; i++)
-            AgentRecord.internalBinaryWrite(message.agents[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            LocalAgentRecord.internalBinaryWrite(message.agents[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         /* string next_page_token = 2; */
         if (message.nextPageToken !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);

@@ -25,12 +25,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/group-chats/{chatId}/participants"
   },
   {
-    "operationId": "addGroupSourceParticipant",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/source-participants"
-  },
-  {
     "operationId": "archiveBundle",
     "service": "Bundles",
     "method": "POST",
@@ -77,12 +71,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Assets",
     "method": "POST",
     "path": "/api/assets/{assetId}/clone"
-  },
-  {
-    "operationId": "commitRealmGroupSourceMessageCandidate",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/source-message-candidate-commits"
   },
   {
     "operationId": "createAsset",
@@ -773,12 +761,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Group Chats",
     "method": "DELETE",
     "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
-  },
-  {
-    "operationId": "removeGroupSourceParticipant",
-    "service": "Group Chats",
-    "method": "DELETE",
-    "path": "/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"
   },
   {
     "operationId": "ReportController_createReport",

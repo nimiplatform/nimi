@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.cold-start-state
     kind: definition
     title: Cold-start projection state
-    meaning: A cold-start projection state describes product posture after process start and before every required account, Runtime, local dependency, app-registry, and factory-AI-profile-selection authority is ready; its closed fail-closed values are unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, and stale-projection.
+    meaning: A cold-start projection state describes product posture after process start and before every required account, Runtime, local dependency, current local-development App, and factory-AI-profile-selection authority is ready; retained public registry, trust, release, distribution, and ordinary-user lifecycle designs never become cold-start prerequisites before separate lifecycle activation; its closed fail-closed values are unavailable, setup-required, needs-confirmation, in-progress, failed, unsupported, and stale-projection.
   - id: definition.nimi.platform.product-lifecycle.product-control-record
     kind: definition
     title: Canonical product-control record
@@ -414,7 +414,7 @@ units:
     kind: rule
     title: P-COLD upstream authority remains fail closed
     modality: must_not
-    statement: Home predicts or defaults any required upstream account, Runtime, app-registry, permission, AI-profile, or first-party integration authority to ready before that owner projects readiness.
+    statement: Home predicts or defaults any required upstream account, Runtime, current local-development App identity or admission, permission, AI-profile, or first-party integration authority to ready before that owner projects readiness.
     condition: When a required upstream authority is not ready.
     failure: Project the corresponding precise non-ready state.
     relations:
@@ -800,12 +800,14 @@ units:
     meaning: The Web release surface consists of the first-party Nimi site and web-shell adapters under apps/web and the release-distribution gateway under apps/install-gateway, while the independently owned Simulator remains a separate product and artifact.
   - id: definition.nimi.platform.product-lifecycle.first-party-app-registration
     kind: definition
+    lifecycle: removed
     title: First-party app registration
-    meaning: First-party app registration is the single registry-backed launch relationship in which an admitted first-party app is launched through the typed Nimi App client and Runtime registers the app instance in the registry-declared mode before protected product state is read.
+    reason: Removed because public App registry, trust, distribution, and ordinary-user lifecycle are deferred; current local first-party identity and admission do not reserve a registry-backed lifecycle contract.
   - id: definition.nimi.platform.product-lifecycle.first-party-migration-state
     kind: definition
+    lifecycle: removed
     title: First-party migration state
-    meaning: The closed first-party migration state set is migration-pending, migration-in-progress, migration-failed, migration-blocked, migration-recoverable, and migration-completed.
+    reason: Removed because the pre-release hard cut retains no first-party dual track or migration product state, while ordinary-user App lifecycle remains deferred.
   - id: rule.nimi.platform.product-lifecycle.p-supd-001
     kind: rule
     title: P-SUPD-001 Platform owns self-update policy
@@ -1088,138 +1090,69 @@ units:
         target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: rule.nimi.platform.product-lifecycle.p-fpi-001
     kind: rule
+    lifecycle: removed
     title: P-FPI-001 registered first-party hardcut targets only
-    modality: must
-    statement: First-party hardcut closure uses only currently admitted registry rows, presently nimi.avatar, and does not substitute a deferred first-party app for an admitted target.
-    condition: Whenever first-party hardcut scope or closure is evaluated.
-    failure: Reject an unadmitted or deferred target.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed with registry-backed first-party lifecycle; current local first-party identities are admitted by their owning identity projection rather than registry rows.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-002
     kind: rule
+    lifecycle: removed
     title: P-FPI-002 single registry and typed lifecycle client
-    modality: must
-    statement: First-party installation, launch, update, uninstall, health, and repair consume one admitted registry row through the typed Nimi App client; Desktop and first-party apps do not create a second lifecycle truth or app-local installer.
-    condition: Whenever a first-party app lifecycle operation runs.
-    failure: Reject the parallel truth or local installer and route the operation through the registry-backed client.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.home-apps
+    reason: Removed because ordinary-user App installation, update, uninstall, health, and repair are deferred and no registry-backed lifecycle client is current.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-003
     kind: rule
+    lifecycle: removed
     title: P-FPI-003 first-party AI profile hint consumption
-    modality: must
-    statement: A first-party app applies its registry AI-profile selection reference to a scope-bound typed AI configuration and does not embed provider, connector, engine, or model constants as factory binding truth.
-    condition: When first-party AI configuration is selected or applied.
-    failure: Reject the embedded binding and require the registry reference and explicit scope.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed with the deferred registry row and AI-profile hint contract; current AI configuration remains governed by its owning typed configuration authority.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-004
     kind: rule
+    lifecycle: removed
     title: P-FPI-004 first-party permission classification
-    modality: must_not
-    statement: First-party publisher or review status creates a seed grant, expands third-party permission, disguises account, session, metering, profile, or storage as a grant, or proxies a protected operation through ad hoc IPC; registry permissions declare only admitted user-facing public permissions, while built-in operations, app-private storage, and app-owned commands retain their owning contracts.
-    condition: Whenever a first-party app requests or receives authority.
-    failure: Reject the grant, permission expansion, disguise, or proxy before execution.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed as a registry-specific duplicate; current protected operations and permissions remain fail closed under their owning Runtime and Platform authorities.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-005
     kind: rule
+    lifecycle: removed
     title: P-FPI-005 Runtime registration relationship
-    modality: must
-    statement: Typed app launch with app identity and scope triggers Runtime registration in the registry-declared app-managed mode; the app neither calls a private registration RPC nor sandboxes or supervises the process in its launch path.
-    condition: Whenever a first-party app launches.
-    failure: Reject launch until typed registration succeeds in the declared mode.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed because no current registry-declared app-managed launch relationship is admitted; local first-party identity and protected session ownership remain separate current contracts.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-006a
     kind: rule
+    lifecycle: removed
     title: P-FPI-006 Avatar admission and visibility
-    modality: must
-    statement: The default nimi.avatar row remains admitted while ordinary Apps visibility remains hidden-internal.
-    condition: Whenever Avatar admission or ordinary visibility is projected.
-    failure: Reject a non-admitted registration or ordinary-visible projection.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.home-apps
+    reason: Removed with the registry row and ordinary Apps visibility contract; Avatar remains a local first-party projection Consumer under its owning authority.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-006b
     kind: rule
+    lifecycle: removed
     title: P-FPI-006 Avatar registers before protected reads
-    modality: must
-    statement: Avatar launch registers the local first-party Runtime app instance before reading account-session status, and account, agent, permission, and storage checks continue to fail closed through owning Runtime and Platform registry truth without standalone, parallel-admission, or app-local session-shim bypass.
-    condition: Whenever the default Avatar app launches or reads protected state.
-    failure: Reject the read or launch until registration and owning projections succeed.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed because registry-backed launch registration is not current; protected reads still require verified local first-party identity and owning fail-closed projections.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-007
     kind: rule
+    lifecycle: removed
     title: P-FPI-007 no standalone ordinary-user truth
-    modality: must_not
-    statement: After hard cut, Avatar retains a standalone ordinary-user install, launch, update, or package channel outside the Nimi App registry; source-development launch remains allowed only under the explicit developer marker boundary.
-    condition: Whenever Avatar is packaged, installed, launched, or updated after hard cut.
-    failure: Reject the standalone ordinary-user path and require registry-owned lifecycle truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed because ordinary-user App lifecycle and registry ownership are deferred; current scope admits only the explicit local-development flow.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-008
     kind: rule
+    lifecycle: removed
     title: P-FPI-008 Avatar kernel authority stays canonical
-    modality: must
-    statement: Avatar kernel authority remains under the canonical Avatar specification, while first-party integration adds only registry, typed-client, and migration relationships and never reclassifies the kernel as app-local subordinate truth.
-    condition: Whenever Avatar authority or integration ownership is organized.
-    failure: Reject relocation or app-slice reclassification and preserve canonical Avatar ownership.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed as a registry and migration integration duplicate; canonical Avatar ownership remains governed directly by the Avatar authority.
   - id: rule.nimi.platform.product-lifecycle.p-fpm-002
     kind: rule
+    lifecycle: removed
     title: P-FPM-002 closed fail-closed migration states
-    modality: must
-    statement: UI, SDK, and app projections use and distinguish only the closed first-party migration state set and never collapse failure reasons into unavailable or project silent success.
-    condition: Whenever first-party migration state is entered or projected.
-    failure: Reject the invalid or collapsed state and retain the precise fail-closed migration state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-migration-state
+    reason: Removed with the first-party migration state set; no migration projection remains current.
   - id: rule.nimi.platform.product-lifecycle.p-fpm-003
     kind: rule
+    lifecycle: removed
     title: P-FPM-003 no silent user-state reset
-    modality: must_not
-    statement: Migration failure silently resets, clears, or rewrites existing standalone user state, creates a fresh app identity, reports empty success, or leaves orphaned user state without a recovery path.
-    condition: When first-party migration fails or is interrupted.
-    failure: Preserve existing state and enter an explicit recoverable, failed, or blocked state with a reconciliation path.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-migration-state
+    reason: Removed with the migration path; the pre-release hard cut does not retain a reset, compatibility loader, or automatic migration product behavior.
   - id: rule.nimi.platform.product-lifecycle.p-fpm-004
     kind: rule
+    lifecycle: removed
     title: P-FPM-004 source-development marker boundary
-    modality: must
-    statement: Standalone source-development launch requires an explicit developer execution marker and never appears in an ordinary-user package, a release-channel default, or a staging channel as ordinary-user product truth.
-    condition: Whenever a first-party app launches from source development.
-    failure: Reject the launch or package when the marker is absent or leaks into ordinary-user truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed as a registry-migration rule; current local-development admission is governed directly by host and protected-session configuration.
   - id: rule.nimi.platform.product-lifecycle.p-fpm-005
     kind: rule
+    lifecycle: removed
     title: P-FPM-005 zero dual-track after cutover
-    modality: must_not
-    statement: A standalone first-party variant remains an ordinary-user product entry after its hard cut while the Nimi-managed variant is active.
-    condition: After the first-party target's cutover condition is met.
-    failure: Disable the standalone ordinary-user entry and preserve only Nimi-managed product truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.first-party-app-registration
+    reason: Removed because no ordinary-user dual track or Nimi-managed registry variant remains current after the pre-release hard cut.
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-not-logged-in
     kind: rule
     title: P-COLD-014 not_logged_in transition closure from first-run-state-machine

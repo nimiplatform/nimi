@@ -34,10 +34,6 @@ export interface CompanionParticipationProjection {
      */
     profileRef: string;
     /**
-     * @generated from protobuf field: string room_orchestration_ref = 5
-     */
-    roomOrchestrationRef: string;
-    /**
      * @generated from protobuf field: nimi.runtime.v1.CompanionParticipationTriggerSource trigger_source = 6
      */
     triggerSource: CompanionParticipationTriggerSource;
@@ -111,10 +107,6 @@ export interface GetCompanionParticipationProjectionRequest {
      */
     profileRef: string;
     /**
-     * @generated from protobuf field: string room_orchestration_ref = 7
-     */
-    roomOrchestrationRef: string;
-    /**
      * @generated from protobuf field: string request_id = 8
      */
     requestId: string;
@@ -156,10 +148,6 @@ export interface RequestCompanionParticipationRequest {
      * @generated from protobuf field: string profile_ref = 6
      */
     profileRef: string;
-    /**
-     * @generated from protobuf field: string room_orchestration_ref = 7
-     */
-    roomOrchestrationRef: string;
     /**
      * @generated from protobuf field: string request_id = 8
      */
@@ -219,10 +207,6 @@ export interface CancelCompanionParticipationRequest {
      */
     profileRef: string;
     /**
-     * @generated from protobuf field: string room_orchestration_ref = 7
-     */
-    roomOrchestrationRef: string;
-    /**
      * @generated from protobuf field: string projection_id = 8
      */
     projectionId: string;
@@ -276,10 +260,6 @@ export interface OpenCompanionParticipationReplayRequest {
      * @generated from protobuf field: string profile_ref = 6
      */
     profileRef: string;
-    /**
-     * @generated from protobuf field: string room_orchestration_ref = 7
-     */
-    roomOrchestrationRef: string;
     /**
      * @generated from protobuf field: string projection_id = 8
      */
@@ -393,7 +373,6 @@ class CompanionParticipationProjection$Type extends MessageType<CompanionPartici
             { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "surface_kind", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationSurfaceKind", CompanionParticipationSurfaceKind, "COMPANION_PARTICIPATION_SURFACE_KIND_"] },
             { no: 4, name: "profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "room_orchestration_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "trigger_source", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationTriggerSource", CompanionParticipationTriggerSource, "COMPANION_PARTICIPATION_TRIGGER_SOURCE_"] },
             { no: 7, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationStatus", CompanionParticipationStatus, "COMPANION_PARTICIPATION_STATUS_"] },
             { no: 8, name: "candidate_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -413,7 +392,6 @@ class CompanionParticipationProjection$Type extends MessageType<CompanionPartici
         message.agentId = "";
         message.surfaceKind = 0;
         message.profileRef = "";
-        message.roomOrchestrationRef = "";
         message.triggerSource = 0;
         message.status = 0;
         message.candidateRef = "";
@@ -444,9 +422,6 @@ class CompanionParticipationProjection$Type extends MessageType<CompanionPartici
                     break;
                 case /* string profile_ref */ 4:
                     message.profileRef = reader.string();
-                    break;
-                case /* string room_orchestration_ref */ 5:
-                    message.roomOrchestrationRef = reader.string();
                     break;
                 case /* nimi.runtime.v1.CompanionParticipationTriggerSource trigger_source */ 6:
                     message.triggerSource = reader.int32();
@@ -505,9 +480,6 @@ class CompanionParticipationProjection$Type extends MessageType<CompanionPartici
         /* string profile_ref = 4; */
         if (message.profileRef !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.profileRef);
-        /* string room_orchestration_ref = 5; */
-        if (message.roomOrchestrationRef !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.roomOrchestrationRef);
         /* nimi.runtime.v1.CompanionParticipationTriggerSource trigger_source = 6; */
         if (message.triggerSource !== 0)
             writer.tag(6, WireType.Varint).int32(message.triggerSource);
@@ -561,7 +533,6 @@ class GetCompanionParticipationProjectionRequest$Type extends MessageType<GetCom
             { no: 4, name: "surface_kind", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationSurfaceKind", CompanionParticipationSurfaceKind, "COMPANION_PARTICIPATION_SURFACE_KIND_"] },
             { no: 5, name: "trigger_source", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationTriggerSource", CompanionParticipationTriggerSource, "COMPANION_PARTICIPATION_TRIGGER_SOURCE_"] },
             { no: 6, name: "profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "room_orchestration_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -572,7 +543,6 @@ class GetCompanionParticipationProjectionRequest$Type extends MessageType<GetCom
         message.surfaceKind = 0;
         message.triggerSource = 0;
         message.profileRef = "";
-        message.roomOrchestrationRef = "";
         message.requestId = "";
         if (value !== undefined)
             reflectionMergePartial<GetCompanionParticipationProjectionRequest>(this, message, value);
@@ -600,9 +570,6 @@ class GetCompanionParticipationProjectionRequest$Type extends MessageType<GetCom
                     break;
                 case /* string profile_ref */ 6:
                     message.profileRef = reader.string();
-                    break;
-                case /* string room_orchestration_ref */ 7:
-                    message.roomOrchestrationRef = reader.string();
                     break;
                 case /* string request_id */ 8:
                     message.requestId = reader.string();
@@ -637,9 +604,6 @@ class GetCompanionParticipationProjectionRequest$Type extends MessageType<GetCom
         /* string profile_ref = 6; */
         if (message.profileRef !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.profileRef);
-        /* string room_orchestration_ref = 7; */
-        if (message.roomOrchestrationRef !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.roomOrchestrationRef);
         /* string request_id = 8; */
         if (message.requestId !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.requestId);
@@ -709,7 +673,6 @@ class RequestCompanionParticipationRequest$Type extends MessageType<RequestCompa
             { no: 4, name: "surface_kind", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationSurfaceKind", CompanionParticipationSurfaceKind, "COMPANION_PARTICIPATION_SURFACE_KIND_"] },
             { no: 5, name: "trigger_source", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationTriggerSource", CompanionParticipationTriggerSource, "COMPANION_PARTICIPATION_TRIGGER_SOURCE_"] },
             { no: 6, name: "profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "room_orchestration_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "thread_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -724,7 +687,6 @@ class RequestCompanionParticipationRequest$Type extends MessageType<RequestCompa
         message.surfaceKind = 0;
         message.triggerSource = 0;
         message.profileRef = "";
-        message.roomOrchestrationRef = "";
         message.requestId = "";
         message.text = "";
         message.threadId = "";
@@ -756,9 +718,6 @@ class RequestCompanionParticipationRequest$Type extends MessageType<RequestCompa
                     break;
                 case /* string profile_ref */ 6:
                     message.profileRef = reader.string();
-                    break;
-                case /* string room_orchestration_ref */ 7:
-                    message.roomOrchestrationRef = reader.string();
                     break;
                 case /* string request_id */ 8:
                     message.requestId = reader.string();
@@ -805,9 +764,6 @@ class RequestCompanionParticipationRequest$Type extends MessageType<RequestCompa
         /* string profile_ref = 6; */
         if (message.profileRef !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.profileRef);
-        /* string room_orchestration_ref = 7; */
-        if (message.roomOrchestrationRef !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.roomOrchestrationRef);
         /* string request_id = 8; */
         if (message.requestId !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.requestId);
@@ -889,7 +845,6 @@ class CancelCompanionParticipationRequest$Type extends MessageType<CancelCompani
             { no: 4, name: "surface_kind", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationSurfaceKind", CompanionParticipationSurfaceKind, "COMPANION_PARTICIPATION_SURFACE_KIND_"] },
             { no: 5, name: "trigger_source", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationTriggerSource", CompanionParticipationTriggerSource, "COMPANION_PARTICIPATION_TRIGGER_SOURCE_"] },
             { no: 6, name: "profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "room_orchestration_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "projection_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -903,7 +858,6 @@ class CancelCompanionParticipationRequest$Type extends MessageType<CancelCompani
         message.surfaceKind = 0;
         message.triggerSource = 0;
         message.profileRef = "";
-        message.roomOrchestrationRef = "";
         message.projectionId = "";
         message.turnId = "";
         message.reason = "";
@@ -934,9 +888,6 @@ class CancelCompanionParticipationRequest$Type extends MessageType<CancelCompani
                     break;
                 case /* string profile_ref */ 6:
                     message.profileRef = reader.string();
-                    break;
-                case /* string room_orchestration_ref */ 7:
-                    message.roomOrchestrationRef = reader.string();
                     break;
                 case /* string projection_id */ 8:
                     message.projectionId = reader.string();
@@ -980,9 +931,6 @@ class CancelCompanionParticipationRequest$Type extends MessageType<CancelCompani
         /* string profile_ref = 6; */
         if (message.profileRef !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.profileRef);
-        /* string room_orchestration_ref = 7; */
-        if (message.roomOrchestrationRef !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.roomOrchestrationRef);
         /* string projection_id = 8; */
         if (message.projectionId !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.projectionId);
@@ -1061,7 +1009,6 @@ class OpenCompanionParticipationReplayRequest$Type extends MessageType<OpenCompa
             { no: 4, name: "surface_kind", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationSurfaceKind", CompanionParticipationSurfaceKind, "COMPANION_PARTICIPATION_SURFACE_KIND_"] },
             { no: 5, name: "trigger_source", kind: "enum", T: () => ["nimi.runtime.v1.CompanionParticipationTriggerSource", CompanionParticipationTriggerSource, "COMPANION_PARTICIPATION_TRIGGER_SOURCE_"] },
             { no: 6, name: "profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "room_orchestration_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "projection_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -1073,7 +1020,6 @@ class OpenCompanionParticipationReplayRequest$Type extends MessageType<OpenCompa
         message.surfaceKind = 0;
         message.triggerSource = 0;
         message.profileRef = "";
-        message.roomOrchestrationRef = "";
         message.projectionId = "";
         message.requestId = "";
         if (value !== undefined)
@@ -1102,9 +1048,6 @@ class OpenCompanionParticipationReplayRequest$Type extends MessageType<OpenCompa
                     break;
                 case /* string profile_ref */ 6:
                     message.profileRef = reader.string();
-                    break;
-                case /* string room_orchestration_ref */ 7:
-                    message.roomOrchestrationRef = reader.string();
                     break;
                 case /* string projection_id */ 8:
                     message.projectionId = reader.string();
@@ -1142,9 +1085,6 @@ class OpenCompanionParticipationReplayRequest$Type extends MessageType<OpenCompa
         /* string profile_ref = 6; */
         if (message.profileRef !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.profileRef);
-        /* string room_orchestration_ref = 7; */
-        if (message.roomOrchestrationRef !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.roomOrchestrationRef);
         /* string projection_id = 8; */
         if (message.projectionId !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.projectionId);

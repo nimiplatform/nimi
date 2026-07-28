@@ -29,7 +29,7 @@ const (
 )
 
 type agentEntry struct {
-	Agent *runtimev1.AgentRecord
+	Agent *runtimev1.LocalAgentRecord
 	State *runtimev1.AgentStateProjection
 	Hooks map[string]*runtimev1.PendingHook
 }

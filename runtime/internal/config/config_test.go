@@ -118,8 +118,8 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.ModelCatalogCustomDir != expectedCatalogCustomDir {
 		t.Fatalf("model catalog custom dir mismatch: got=%q want=%q", cfg.ModelCatalogCustomDir, expectedCatalogCustomDir)
 	}
-	if cfg.AppRegistryPath != "" {
-		t.Fatalf("app registry path should default empty, got=%q", cfg.AppRegistryPath)
+	if cfg.AppIdentityProjectionPath != "" {
+		t.Fatalf("app identity projection path should default empty, got=%q", cfg.AppIdentityProjectionPath)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "httpAddr": "127.0.0.1:50002",
   "shutdownTimeoutSeconds": 13,
   "localStatePath": "~/runtime/custom-state.json",
-  "appRegistryPath": "~/runtime/nimi-app-registry.yaml",
+  "appIdentityProjectionPath": "~/runtime/nimi-app-identity-surfaces.yaml",
   "defaultCloudProvider": "gemini",
   "aiHttpTimeoutSeconds": 21,
   "aiHealthIntervalSeconds": 3,
@@ -174,8 +174,8 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 		cfg.ManagedRoots != (ManagedRootsConfig{}) {
 		t.Fatalf("portable Runtime config must not select Product Control roots: %+v", cfg)
 	}
-	if cfg.AppRegistryPath != filepath.Join(homeDir, "runtime/nimi-app-registry.yaml") {
-		t.Fatalf("app registry path mismatch: %q", cfg.AppRegistryPath)
+	if cfg.AppIdentityProjectionPath != filepath.Join(homeDir, "runtime/nimi-app-identity-surfaces.yaml") {
+		t.Fatalf("app identity projection path mismatch: %q", cfg.AppIdentityProjectionPath)
 	}
 	if cfg.DefaultCloudProvider != "gemini" {
 		t.Fatalf("defaultCloudProvider mismatch: %q", cfg.DefaultCloudProvider)

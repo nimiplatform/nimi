@@ -29,7 +29,6 @@ import {
   type AgentVoiceStreamEvent,
   type AppMessageEvent,
   type GetAgentRequest,
-  type InitializeAgentRequest,
   type InterruptAgentVoicePlaybackRequest,
   type InterruptAgentVoicePlaybackResponse,
   type ReadArtifactBytesRequest,

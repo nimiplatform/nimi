@@ -55,7 +55,7 @@ def _validate_companion_participation_response(model_name: str, decoded: object)
     projection = getattr(decoded, "projection", None)
     if projection is None:
         raise _runtime_decode_error("companion participation projection is missing")
-    required = ("projection_id", "agent_id", "profile_ref", "room_orchestration_ref", "audit_ref", "conversation_anchor_id")
+    required = ("projection_id", "agent_id", "profile_ref", "audit_ref", "conversation_anchor_id")
     if any(not str(getattr(projection, field_name, "") or "").strip() for field_name in required):
         raise _runtime_decode_error("companion participation projection is missing required refs")
     if getattr(projection, "surface_kind", None) not in {
@@ -203,24 +203,8 @@ Modal = Literal["MODAL_UNSPECIFIED", "MODAL_TEXT", "MODAL_IMAGE", "MODAL_VIDEO",
 ModelCatalogProviderSource = Literal["MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED", "MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN", "MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM", "MODEL_CATALOG_PROVIDER_SOURCE_REMOTE", "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN"]
 ModelHealthStatus = Literal["MODEL_HEALTH_STATUS_UNSPECIFIED", "MODEL_HEALTH_STATUS_HEALTHY", "MODEL_HEALTH_STATUS_DEGRADED", "MODEL_HEALTH_STATUS_UNSUPPORTED", "MODEL_HEALTH_STATUS_UNREACHABLE"]
 ModelStatus = Literal["MODEL_STATUS_UNSPECIFIED", "MODEL_STATUS_INSTALLED", "MODEL_STATUS_PULLING", "MODEL_STATUS_FAILED", "MODEL_STATUS_REMOVED"]
-ParticipationCapabilityScope = Literal["PARTICIPATION_CAPABILITY_SCOPE_UNSPECIFIED", "PARTICIPATION_CAPABILITY_SCOPE_CANONICAL_AGENT_SCOPE", "PARTICIPATION_CAPABILITY_SCOPE_PROFILE_LIMITED", "PARTICIPATION_CAPABILITY_SCOPE_DOMAIN_LIMITED", "PARTICIPATION_CAPABILITY_SCOPE_DIAGNOSTIC_READ_ONLY", "PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED", "PARTICIPATION_CAPABILITY_SCOPE_NONE"]
-ParticipationExecutionConcurrency = Literal["PARTICIPATION_EXECUTION_CONCURRENCY_UNSPECIFIED", "PARTICIPATION_EXECUTION_CONCURRENCY_CANONICAL_CHAT_BUDGET", "PARTICIPATION_EXECUTION_CONCURRENCY_PER_AGENT_PARTICIPATION_QUEUE", "PARTICIPATION_EXECUTION_CONCURRENCY_PROFILE_ISOLATED_BUDGET", "PARTICIPATION_EXECUTION_CONCURRENCY_DOMAIN_TRIGGER_QUEUE", "PARTICIPATION_EXECUTION_CONCURRENCY_REJECT_WHILE_ACTIVE", "PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE", "PARTICIPATION_EXECUTION_CONCURRENCY_LOW_PRIORITY_CANCELABLE"]
-ParticipationExecutionOwner = Literal["PARTICIPATION_EXECUTION_OWNER_UNSPECIFIED", "PARTICIPATION_EXECUTION_OWNER_RUNTIME", "PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY", "PARTICIPATION_EXECUTION_OWNER_NOT_ADMITTED"]
-ParticipationExternalProtocolKind = Literal["PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED", "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A"]
-ParticipationIdentitySource = Literal["PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED", "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT", "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT", "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION", "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR"]
-ParticipationInputTrust = Literal["PARTICIPATION_INPUT_TRUST_UNSPECIFIED", "PARTICIPATION_INPUT_TRUST_TRUSTED_USER", "PARTICIPATION_INPUT_TRUST_UNTRUSTED_MULTI_PARTY_TRANSCRIPT", "PARTICIPATION_INPUT_TRUST_SANDBOX_SCRIPT", "PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD", "PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD", "PARTICIPATION_INPUT_TRUST_WORLD_CONTEXT", "PARTICIPATION_INPUT_TRUST_DIAGNOSTIC_INPUT"]
-ParticipationMemoryReadScope = Literal["PARTICIPATION_MEMORY_READ_SCOPE_UNSPECIFIED", "PARTICIPATION_MEMORY_READ_SCOPE_CANONICAL_OWNER_POLICY", "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_ALLOWED", "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_EXCLUDED", "PARTICIPATION_MEMORY_READ_SCOPE_PUBLIC_SHARED_ONLY", "PARTICIPATION_MEMORY_READ_SCOPE_DOMAIN_SHARED_ONLY", "PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ"]
-ParticipationMemoryWriteDefault = Literal["PARTICIPATION_MEMORY_WRITE_DEFAULT_UNSPECIFIED", "PARTICIPATION_MEMORY_WRITE_DEFAULT_CANONICAL_WRITE_ALLOWED", "PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE", "PARTICIPATION_MEMORY_WRITE_DEFAULT_PROMOTION_GATED"]
-ParticipationOutputDestination = Literal["PARTICIPATION_OUTPUT_DESTINATION_UNSPECIFIED", "PARTICIPATION_OUTPUT_DESTINATION_CANONICAL_CHAT", "PARTICIPATION_OUTPUT_DESTINATION_REALM_GROUP_MESSAGE_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_SCENARIO_TURN_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_WORLD_EVENT_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_EPHEMERAL"]
-ParticipationProfileKind = Literal["PARTICIPATION_PROFILE_KIND_UNSPECIFIED", "PARTICIPATION_PROFILE_KIND_CANONICAL_AGENT_CHAT", "PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT", "PARTICIPATION_PROFILE_KIND_SCENARIO_SANDBOX", "PARTICIPATION_PROFILE_KIND_OASIS_WORLD_PARTICIPATION", "PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY", "PARTICIPATION_PROFILE_KIND_DEBUG_OR_PROBE"]
-ParticipationPromotionPosture = Literal["PARTICIPATION_PROMOTION_POSTURE_UNSPECIFIED", "PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED", "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_CANDIDATE", "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_COMMIT_FLOW", "PARTICIPATION_PROMOTION_POSTURE_EXISTING_CANONICAL_POLICY"]
-ParticipationReplayOutcome = Literal["PARTICIPATION_REPLAY_OUTCOME_UNSPECIFIED", "PARTICIPATION_REPLAY_OUTCOME_COMPLETED", "PARTICIPATION_REPLAY_OUTCOME_PARTIAL_REDACTED", "PARTICIPATION_REPLAY_OUTCOME_FAILED"]
-ParticipationStatus = Literal["PARTICIPATION_STATUS_UNSPECIFIED", "PARTICIPATION_STATUS_ADMISSION_PENDING", "PARTICIPATION_STATUS_BLOCKED", "PARTICIPATION_STATUS_RUNNING", "PARTICIPATION_STATUS_CANDIDATE_READY", "PARTICIPATION_STATUS_COMMITTED_BY_OWNER", "PARTICIPATION_STATUS_FAILED", "PARTICIPATION_STATUS_CANCELED"]
-ParticipationTranscriptOwner = Literal["PARTICIPATION_TRANSCRIPT_OWNER_UNSPECIFIED", "PARTICIPATION_TRANSCRIPT_OWNER_RUNTIME", "PARTICIPATION_TRANSCRIPT_OWNER_REALM", "PARTICIPATION_TRANSCRIPT_OWNER_SCENARIO_MODULE", "PARTICIPATION_TRANSCRIPT_OWNER_OASIS_WORLD_DOMAIN", "PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN", "PARTICIPATION_TRANSCRIPT_OWNER_EPHEMERAL"]
-ParticipationVerdictDecision = Literal["PARTICIPATION_VERDICT_DECISION_UNSPECIFIED", "PARTICIPATION_VERDICT_DECISION_ALLOW", "PARTICIPATION_VERDICT_DECISION_DENY"]
 PresenceVerificationMethod = Literal["PRESENCE_VERIFICATION_METHOD_UNSPECIFIED", "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL", "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH", "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS"]
 PresenceVerificationState = Literal["PRESENCE_VERIFICATION_STATE_UNSPECIFIED", "PRESENCE_VERIFICATION_STATE_REJECTED", "PRESENCE_VERIFICATION_STATE_VERIFIED", "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"]
-RealmGroupMessageCandidateCommitDisposition = Literal["REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_UNSPECIFIED", "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE", "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE"]
 RealmSourceMaterializationReasonCode = Literal["REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"]
 RealtimeEventType = Literal["REALTIME_EVENT_TYPE_UNSPECIFIED", "REALTIME_EVENT_OPENED", "REALTIME_EVENT_TEXT_DELTA", "REALTIME_EVENT_AUDIO_CHUNK", "REALTIME_EVENT_COMPLETED", "REALTIME_EVENT_FAILED"]
 ReasonCode = Literal["REASON_CODE_UNSPECIFIED", "ACTION_EXECUTED", "PROTOCOL_ENVELOPE_INVALID", "PROTOCOL_DOMAIN_FIELD_CONFLICT", "CAPABILITY_CATALOG_MISMATCH", "APP_NOT_REGISTERED", "EXTERNAL_PRINCIPAL_NOT_REGISTERED", "SESSION_EXPIRED", "PRINCIPAL_UNAUTHORIZED", "APP_AUTHORIZATION_DENIED", "APP_GRANT_INVALID", "APP_TOKEN_EXPIRED", "APP_TOKEN_REVOKED", "APP_SCOPE_CATALOG_UNPUBLISHED", "APP_DELEGATION_FORBIDDEN", "APP_DELEGATION_DEPTH_EXCEEDED", "APP_RESOURCE_SELECTOR_INVALID", "APP_RESOURCE_OUT_OF_SCOPE", "APP_CONSENT_MISSING", "APP_CONSENT_INVALID", "EXTERNAL_PRINCIPAL_PROOF_MISSING", "EXTERNAL_PRINCIPAL_PROOF_INVALID", "APP_MODE_WORLD_RELATION_FORBIDDEN", "AI_MODEL_NOT_FOUND", "AI_MODEL_NOT_READY", "AI_PROVIDER_UNAVAILABLE", "AI_ROUTE_UNSUPPORTED", "AI_ROUTE_FALLBACK_DENIED", "AI_INPUT_INVALID", "AI_OUTPUT_INVALID", "AI_STREAM_BROKEN", "AI_CONTENT_FILTER_BLOCKED", "AI_REQUEST_CREDENTIAL_REQUIRED", "AI_REQUEST_CREDENTIAL_MISSING", "AI_REQUEST_CREDENTIAL_INVALID", "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN", "AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED", "AUTH_UNSUPPORTED_PROOF_TYPE", "AUTH_REVOCATION_UNAVAILABLE", "AI_CONNECTOR_NOT_FOUND", "AI_CONNECTOR_DISABLED", "AI_CONNECTOR_CREDENTIAL_MISSING", "AI_CONNECTOR_INVALID", "AI_CONNECTOR_IMMUTABLE", "AI_CONNECTOR_LIMIT_EXCEEDED", "AI_CONNECTOR_ID_REQUIRED", "AI_LOCAL_CONNECTOR_RETIRED", "AI_REQUEST_CREDENTIAL_CONFLICT", "AI_APP_ID_REQUIRED", "AI_APP_ID_CONFLICT", "AI_MODEL_ID_REQUIRED", "AI_MODALITY_NOT_SUPPORTED", "AI_LOCAL_MODEL_UNAVAILABLE", "AI_LOCAL_MODEL_PROFILE_MISSING", "AI_LOCAL_MODEL_ALREADY_INSTALLED", "AI_LOCAL_ENDPOINT_REQUIRED", "AI_LOCAL_TEMPLATE_NOT_FOUND", "AI_LOCAL_MANIFEST_INVALID", "AI_LOCAL_MODEL_INVALID_TRANSITION", "AI_LOCAL_DOWNLOAD_FAILED", "AI_LOCAL_DOWNLOAD_HASH_MISMATCH", "AI_LOCAL_HF_REPO_INVALID", "AI_LOCAL_HF_SEARCH_FAILED", "AI_LOCAL_MANIFEST_SCHEMA_INVALID", "AI_LOCAL_SERVICE_UNAVAILABLE", "AI_LOCAL_SERVICE_ALREADY_INSTALLED", "AI_LOCAL_SERVICE_INVALID_TRANSITION", "AI_LOCAL_ASSET_ALREADY_INSTALLED", "AI_LOCAL_ASSET_SLOT_MISSING", "AI_LOCAL_ASSET_SLOT_FORBIDDEN", "AI_FINISH_LENGTH", "AI_FINISH_CONTENT_FILTER", "AI_LOCAL_PROFILE_SLOT_CONFLICT", "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN", "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN", "AI_LOCAL_COMPONENT_INCOMPATIBLE", "AI_MODEL_PROVIDER_MISMATCH", "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED", "AI_REMOTE_MODEL_CATALOG_STALE", "AI_PROVIDER_ENDPOINT_FORBIDDEN", "AI_PROVIDER_AUTH_FAILED", "AI_PROVIDER_INTERNAL", "AI_PROVIDER_RATE_LIMITED", "AI_PROVIDER_TIMEOUT", "AI_MEDIA_SPEC_INVALID", "AI_MEDIA_OPTION_UNSUPPORTED", "AI_MEDIA_JOB_NOT_FOUND", "AI_MEDIA_JOB_NOT_CANCELLABLE", "AI_MEDIA_IDEMPOTENCY_CONFLICT", "AI_ARTIFACT_UPLOAD_INVALID", "AI_ARTIFACT_UPLOAD_TOO_LARGE", "AI_REALTIME_SESSION_NOT_FOUND", "AI_REALTIME_SESSION_CLOSED", "AI_VOICE_INPUT_INVALID", "AI_VOICE_WORKFLOW_UNSUPPORTED", "AI_VOICE_ASSET_NOT_FOUND", "AI_VOICE_ASSET_EXPIRED", "AI_VOICE_ASSET_SCOPE_FORBIDDEN", "AI_VOICE_TARGET_MODEL_MISMATCH", "AI_VOICE_JOB_NOT_FOUND", "AI_VOICE_JOB_NOT_CANCELLABLE", "AI_MODULE_CONFIG_INVALID", "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID", "APP_MODE_DOMAIN_FORBIDDEN", "APP_MODE_SCOPE_FORBIDDEN", "APP_MODE_MANIFEST_INVALID", "APP_SCOPE_FORBIDDEN", "APP_SCOPE_REVOKED", "APP_MESSAGE_PAYLOAD_TOO_LARGE", "APP_MESSAGE_RATE_LIMITED", "APP_MESSAGE_LOOP_DETECTED", "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED", "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED", "AI_LOCAL_SPEECH_ENV_INIT_FAILED", "AI_LOCAL_SPEECH_HOST_INIT_FAILED", "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED", "AI_LOCAL_SPEECH_BUNDLE_DEGRADED", "APP_STORAGE_PATH_INVALID", "APP_STORAGE_ENTRY_NOT_FOUND", "APP_STORAGE_QUOTA_EXCEEDED", "APP_STORAGE_UNAVAILABLE", "WORKSPACE_BINDING_MISSING", "WORKSPACE_BINDING_MALFORMED", "WORKSPACE_BINDING_NOT_FOUND", "WORKSPACE_BINDING_REVOKED", "WORKSPACE_BINDING_EXPIRED", "WORKSPACE_BINDING_REPLAY", "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE", "WORKSPACE_BINDING_CALLER_MISMATCH", "WORKSPACE_BINDING_WORKSPACE_MISMATCH", "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH", "WORKSPACE_BINDING_SCOPE_MISSING", "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", "GRANT_TOKEN_CHAIN_ROOT_REQUIRED", "PAGE_TOKEN_INVALID", "KNOWLEDGE_BANK_ALREADY_EXISTS", "KNOWLEDGE_BANK_NOT_FOUND", "KNOWLEDGE_BANK_SCOPE_INVALID", "KNOWLEDGE_BANK_ACCESS_DENIED", "KNOWLEDGE_PAGE_NOT_FOUND", "KNOWLEDGE_PAGE_SLUG_CONFLICT", "KNOWLEDGE_PAGE_ACCESS_DENIED", "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE", "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE", "KNOWLEDGE_VECTOR_INDEX_NOT_READY", "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS", "KNOWLEDGE_LINK_NOT_FOUND", "KNOWLEDGE_LINK_ALREADY_EXISTS", "KNOWLEDGE_LINK_INVALID", "KNOWLEDGE_GRAPH_DEPTH_INVALID", "KNOWLEDGE_INGEST_TASK_NOT_FOUND", "ARTIFACT_INVALID_INPUT", "ARTIFACT_NOT_FOUND", "ARTIFACT_TOO_LARGE", "ARTIFACT_FORBIDDEN", "ARTIFACT_MIME_MISMATCH", "APP_OPEN_SCOPE_REF_REQUIRED", "APP_OPEN_SCOPE_REF_INVALID", "APP_OPEN_PACKAGE_NOT_VERIFIED", "APP_OPEN_LIBRARY_STATE_INVALID", "APP_OPEN_APP_DATA_INVALID", "APP_OPEN_PERMISSION_NOT_GRANTED", "APP_OPEN_AICONFIG_UNRESOLVED", "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED", "APP_OPEN_LAUNCH_FAILED", "AGENT_PRESENTATION_REVISION_CONFLICT", "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED", "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED", "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED", "DESKTOP_CONTROL_TRANSPORT_REQUIRED", "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE", "DESKTOP_EXECUTABLE_TRUST_FAILED", "DESKTOP_TEST_TRUST_FORBIDDEN", "PROTECTED_ORIGIN_ROLE_MISMATCH", "LIFECYCLE_CHALLENGE_REQUIRED", "LIFECYCLE_CHALLENGE_MISMATCH", "LIFECYCLE_CHALLENGE_REPLAY", "PROTECTED_LOCAL_LEDGER_UNAVAILABLE", "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED", "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH", "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED", "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE", "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN", "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID", "LOCAL_APP_PRINCIPAL_REQUIRED", "LOCAL_APP_RECORD_NOT_FOUND", "LOCAL_APP_RECORD_TOMBSTONED", "LOCAL_APP_PROVENANCE_UNAVAILABLE", "LOCAL_APP_LAUNCH_LEASE_REQUIRED", "LOCAL_APP_LAUNCH_LEASE_MISMATCH", "LOCAL_APP_LAUNCH_LEASE_REPLAY", "LOCAL_APP_PROCESS_MISMATCH", "LOCAL_APP_SESSION_REVOKED", "LOCAL_APP_PERMISSION_REQUIRED", "LOCAL_APP_PERMISSION_DENIED", "LOCAL_APP_PERMISSION_REVOKED", "LOCAL_APP_ACCOUNT_CHANGED", "LOCAL_APP_OPERATION_UNAVAILABLE", "LOCAL_APP_PRESENCE_REQUIRED", "LOCAL_APP_PRESENCE_EXPIRED", "LOCAL_APP_DEVELOPER_MODE_DISABLED", "LOCAL_APP_RISK_DISCLOSURE_REQUIRED", "REALM_UNAVAILABLE", "REALM_NOT_FOUND", "REALM_CONFLICT", "REALM_RATE_LIMITED", "REALM_REQUEST_REJECTED", "REALM_CONTRACT_INVALID", "REALM_OPERATION_FAILED"]
@@ -572,22 +556,6 @@ class AgentProactiveInterruptibilityProjection:
     unsupported_fields: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class AgentRecord:
-    agent_id: str | None = None
-    display_name: str | None = None
-    lifecycle_status: AgentLifecycleStatus | None = None
-    autonomy: AgentAutonomyState | None = None
-    metadata: Mapping[str, object] | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-    presentation_profile: AgentPresentationProfile | None = None
-    presentation_profile_revision: int | None = None
-    local_agent_ref: str | None = None
-    owner_user_id: str | None = None
-    runtime_source_ref: str | None = None
-    source_context_status: LocalAgentSourceContextStatus | None = None
-
-@dataclass(frozen=True)
 class AgentReplicationEventDetail:
     memory_id: str | None = None
     replication: MemoryReplicationState | None = None
@@ -599,11 +567,6 @@ class AgentRequestContext:
     owner_user_id: str | None = None
     runtime_source_ref: str | None = None
     local_agent_ref: str | None = None
-
-@dataclass(frozen=True)
-class AgentSlotProjectionBlock:
-    agent_id: str | None = None
-    slot_ref: str | None = None
 
 @dataclass(frozen=True)
 class AgentStateClearDyadicContext:
@@ -965,7 +928,6 @@ class CancelCompanionParticipationRequest:
     surface_kind: CompanionParticipationSurfaceKind | None = None
     trigger_source: CompanionParticipationTriggerSource | None = None
     profile_ref: str | None = None
-    room_orchestration_ref: str | None = None
     projection_id: str | None = None
     turn_id: str | None = None
     reason: str | None = None
@@ -1254,7 +1216,6 @@ class CompanionParticipationProjection:
     agent_id: str | None = None
     surface_kind: CompanionParticipationSurfaceKind | None = None
     profile_ref: str | None = None
-    room_orchestration_ref: str | None = None
     trigger_source: CompanionParticipationTriggerSource | None = None
     status: CompanionParticipationStatus | None = None
     candidate_ref: str | None = None
@@ -1387,26 +1348,6 @@ class CreateKnowledgeBankRequest:
 @dataclass(frozen=True)
 class CreateKnowledgeBankResponse:
     bank: KnowledgeBank | None = None
-
-@dataclass(frozen=True)
-class CreateRealmGroupMessageCandidateRequest:
-    context: AgentRequestContext | None = None
-    realm_group_thread_id: str | None = None
-    runtime_participant_slot: str | None = None
-    owner_user_id: str | None = None
-    runtime_source_ref: str | None = None
-    local_agent_ref: str | None = None
-    trigger_ref: str | None = None
-    membership_snapshot_ref: str | None = None
-    read_cursor_ref: str | None = None
-    reply_target_ref: str | None = None
-    room_orchestration_ref: str | None = None
-    idempotency_key: str | None = None
-    context_refs: Mapping[str, str] = field(default_factory=dict)
-
-@dataclass(frozen=True)
-class CreateRealmGroupMessageCandidateResponse:
-    candidate: RealmGroupMessageCandidateCommitHandle | None = None
 
 @dataclass(frozen=True)
 class DecideLocalDevelopmentProjectRequest:
@@ -1592,22 +1533,6 @@ class DeleteVoiceAssetResponse:
     ack: Ack | None = None
 
 @dataclass(frozen=True)
-class DescribeParticipationContextBlocksRequest:
-    profile_kind: ParticipationProfileKind | None = None
-
-@dataclass(frozen=True)
-class DescribeParticipationContextBlocksResponse:
-    context_blocks: tuple[ParticipationContextBlockDescriptor, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class DescribeParticipationProfilesRequest:
-    pass
-
-@dataclass(frozen=True)
-class DescribeParticipationProfilesResponse:
-    profiles: tuple[ParticipationProfileDescriptor, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class DesktopAuditEventProjection:
     audit_id: str | None = None
     request_id: str | None = None
@@ -1620,11 +1545,6 @@ class DesktopAuditEventProjection:
     caller_kind: CallerKind | None = None
 
 @dataclass(frozen=True)
-class DiagnosticProbeRefBlock:
-    probe_id: str | None = None
-    probe_kind: str | None = None
-
-@dataclass(frozen=True)
 class DisableAutonomyRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -1633,11 +1553,6 @@ class DisableAutonomyRequest:
 @dataclass(frozen=True)
 class DisableAutonomyResponse:
     autonomy: AgentAutonomyState | None = None
-
-@dataclass(frozen=True)
-class DomainContextRefBlock:
-    domain_ref: str | None = None
-    transcript_owner: ParticipationTranscriptOwner | None = None
 
 @dataclass(frozen=True)
 class EmbeddingVector:
@@ -1713,18 +1628,6 @@ class ExecuteLocalStateCutoverRequest:
 class ExecuteLocalStateCutoverResponse:
     plan: LocalStateReconciliationPlan | None = None
     transfer: LocalTransferSessionSummary | None = None
-
-@dataclass(frozen=True)
-class ExecuteParticipationRequest:
-    spec: ParticipationRequestSpec | None = None
-
-@dataclass(frozen=True)
-class ExecuteParticipationResponse:
-    participation_id: str | None = None
-    status: ParticipationStatus | None = None
-    candidate_ref: str | None = None
-    refusal_reason: str | None = None
-    audit_id: str | None = None
 
 @dataclass(frozen=True)
 class ExecuteScenarioRequest:
@@ -1861,20 +1764,6 @@ class ExternalAgentTokenRecord:
     issuer: str | None = None
 
 @dataclass(frozen=True)
-class ExternalParticipantIdentityRefBlock:
-    external_participant_id: str | None = None
-    identity_source: ParticipationIdentitySource | None = None
-
-@dataclass(frozen=True)
-class ExternalPayloadRefBlock:
-    payload_ref: str | None = None
-    protocol_kind: ParticipationExternalProtocolKind | None = None
-
-@dataclass(frozen=True)
-class GatewayVerdictRefBlock:
-    gateway_verdict_id: str | None = None
-
-@dataclass(frozen=True)
 class GetAccountSessionStatusRequest:
     caller: AccountCaller | None = None
 
@@ -1911,7 +1800,7 @@ class GetAgentRequest:
 
 @dataclass(frozen=True)
 class GetAgentResponse:
-    agent: AgentRecord | None = None
+    agent: LocalAgentRecord | None = None
 
 @dataclass(frozen=True)
 class GetAgentStateRequest:
@@ -1985,7 +1874,6 @@ class GetCompanionParticipationProjectionRequest:
     surface_kind: CompanionParticipationSurfaceKind | None = None
     trigger_source: CompanionParticipationTriggerSource | None = None
     profile_ref: str | None = None
-    room_orchestration_ref: str | None = None
     request_id: str | None = None
 
 @dataclass(frozen=True)
@@ -2099,32 +1987,6 @@ class GetPageResponse:
     page: KnowledgePage | None = None
 
 @dataclass(frozen=True)
-class GetParticipationCandidateRequest:
-    participation_id: str | None = None
-
-@dataclass(frozen=True)
-class GetParticipationCandidateResponse:
-    candidate: ParticipationCandidateRecord | None = None
-    status: ParticipationStatus | None = None
-
-@dataclass(frozen=True)
-class GetParticipationReplayRequest:
-    participation_id: str | None = None
-
-@dataclass(frozen=True)
-class GetParticipationReplayResponse:
-    replay: ParticipationReplay | None = None
-
-@dataclass(frozen=True)
-class GetParticipationVerdictsRequest:
-    participation_id: str | None = None
-
-@dataclass(frozen=True)
-class GetParticipationVerdictsResponse:
-    verdicts: ParticipationVerdictSet | None = None
-    policy_verdict_ref: str | None = None
-
-@dataclass(frozen=True)
 class GetProductControlRecordRequest:
     pass
 
@@ -2143,23 +2005,6 @@ class GetPublicChatSessionSnapshotRequest:
 @dataclass(frozen=True)
 class GetPublicChatSessionSnapshotResponse:
     snapshot: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class GetRealmGroupMessageCandidateEvidenceRequest:
-    context: AgentRequestContext | None = None
-    candidate_id: str | None = None
-    candidate_kind: str | None = None
-    candidate_evidence_ref: str | None = None
-    evidence_hash: str | None = None
-    runtime_trace_ref: str | None = None
-    expected_runtime_participant_slot: str | None = None
-    expected_local_agent_ref: str | None = None
-    trigger_ref: str | None = None
-    target_realm_group_thread_id: str | None = None
-
-@dataclass(frozen=True)
-class GetRealmGroupMessageCandidateEvidenceResponse:
-    evidence: RealmGroupMessageCandidateEvidence | None = None
 
 @dataclass(frozen=True)
 class GetRecommendationFeedRequest:
@@ -2354,23 +2199,6 @@ class IngestDocumentResponse:
     task_id: str | None = None
     accepted: bool | None = None
     reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class InitializeAgentRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    display_name: str | None = None
-    autonomy_config: AgentAutonomyConfig | None = None
-    world_id: str | None = None
-    metadata: Mapping[str, object] | None = None
-    local_agent_ref: str | None = None
-    owner_user_id: str | None = None
-    runtime_source_ref: str | None = None
-
-@dataclass(frozen=True)
-class InitializeAgentResponse:
-    agent: AgentRecord | None = None
-    state: AgentStateProjection | None = None
 
 @dataclass(frozen=True)
 class InspectMemoryEmbeddingRuntimeRequest:
@@ -2600,7 +2428,7 @@ class ListAgentsRequest:
 
 @dataclass(frozen=True)
 class ListAgentsResponse:
-    agents: tuple[AgentRecord, ...] = field(default_factory=tuple)
+    agents: tuple[LocalAgentRecord, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
@@ -2912,18 +2740,6 @@ class ListPagesResponse:
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
-class ListParticipationAuditEventsRequest:
-    participation_id: str | None = None
-    agent_id: str | None = None
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListParticipationAuditEventsResponse:
-    events: tuple[ParticipationAuditEvent, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
-
-@dataclass(frozen=True)
 class ListPendingHooksRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -3014,6 +2830,21 @@ class ListVoiceAssetsRequest:
 class ListVoiceAssetsResponse:
     assets: tuple[VoiceAsset, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
+
+@dataclass(frozen=True)
+class LocalAgentRecord:
+    local_agent_ref: str | None = None
+    display_name: str | None = None
+    lifecycle_status: AgentLifecycleStatus | None = None
+    autonomy: AgentAutonomyState | None = None
+    metadata: Mapping[str, object] | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    presentation_profile: AgentPresentationProfile | None = None
+    presentation_profile_revision: int | None = None
+    owner_user_id: str | None = None
+    runtime_source_ref: str | None = None
+    source_context_status: LocalAgentSourceContextStatus | None = None
 
 @dataclass(frozen=True)
 class LocalAgentSourceContextStatus:
@@ -4121,7 +3952,6 @@ class OpenCompanionParticipationReplayRequest:
     surface_kind: CompanionParticipationSurfaceKind | None = None
     trigger_source: CompanionParticipationTriggerSource | None = None
     profile_ref: str | None = None
-    room_orchestration_ref: str | None = None
     projection_id: str | None = None
     request_id: str | None = None
 
@@ -4209,129 +4039,6 @@ class OpenSessionResponse:
     expires_at: str | None = None
     session_token: str | None = None
     reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class ParticipantProjectionBlock:
-    participant_ref: str | None = None
-    identity_source: ParticipationIdentitySource | None = None
-
-@dataclass(frozen=True)
-class ParticipationAuditEvent:
-    audit_id: str | None = None
-    participation_id: str | None = None
-    event_kind: str | None = None
-    reason_code: str | None = None
-    actor_ref: str | None = None
-    observed_at: str | None = None
-
-@dataclass(frozen=True)
-class ParticipationCandidateRecord:
-    participation_id: str | None = None
-    profile_kind: ParticipationProfileKind | None = None
-    identity_source: ParticipationIdentitySource | None = None
-    participant_ref: str | None = None
-    trigger_ref: str | None = None
-    context_block_refs: tuple[str, ...] = field(default_factory=tuple)
-    output_destination: ParticipationOutputDestination | None = None
-    candidate_ref: str | None = None
-    policy_verdict_ref: str | None = None
-    memory_read_verdict: ParticipationVerdict | None = None
-    memory_write_verdict: ParticipationVerdict | None = None
-    capability_scope_verdict: ParticipationVerdict | None = None
-    audit_id: str | None = None
-    created_at: str | None = None
-
-@dataclass(frozen=True)
-class ParticipationContextBlock:
-    runtime_conversation_anchor_ref: RuntimeConversationAnchorRefBlock | None = None
-    realm_group_thread_ref: RealmGroupThreadRefBlock | None = None
-    trigger_message_ref: TriggerMessageRefBlock | None = None
-    participant_projection: ParticipantProjectionBlock | None = None
-    recent_group_transcript_projection: RecentGroupTranscriptProjectionBlock | None = None
-    agent_slot_projection: AgentSlotProjectionBlock | None = None
-    scenario_package_ref: ScenarioPackageRefBlock | None = None
-    scenario_run_ref: ScenarioRunRefBlock | None = None
-    scenario_branch_ref: ScenarioBranchRefBlock | None = None
-    visible_scene_state: VisibleSceneStateBlock | None = None
-    recent_sandbox_transcript_projection: RecentSandboxTranscriptProjectionBlock | None = None
-    world_context_ref: WorldContextRefBlock | None = None
-    world_event_ref: WorldEventRefBlock | None = None
-    visible_world_state_projection: VisibleWorldStateProjectionBlock | None = None
-    recent_world_transcript_or_event_projection: RecentWorldTranscriptOrEventProjectionBlock | None = None
-    external_participant_identity_ref: ExternalParticipantIdentityRefBlock | None = None
-    external_payload_ref: ExternalPayloadRefBlock | None = None
-    gateway_verdict_ref: GatewayVerdictRefBlock | None = None
-    domain_context_ref: DomainContextRefBlock | None = None
-    tool_or_capability_projection: ToolOrCapabilityProjectionBlock | None = None
-    diagnostic_probe_ref: DiagnosticProbeRefBlock | None = None
-
-@dataclass(frozen=True)
-class ParticipationContextBlockDescriptor:
-    block_kind: str | None = None
-    allowed_profile_kinds: tuple[ParticipationProfileKind, ...] = field(default_factory=tuple)
-    required_fields: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class ParticipationProfileDescriptor:
-    profile_kind: ParticipationProfileKind | None = None
-    transcript_owner: ParticipationTranscriptOwner | None = None
-    identity_source: ParticipationIdentitySource | None = None
-    additional_identity_sources: tuple[ParticipationIdentitySource, ...] = field(default_factory=tuple)
-    execution_owner: ParticipationExecutionOwner | None = None
-    memory_read_scope: ParticipationMemoryReadScope | None = None
-    memory_write_default: ParticipationMemoryWriteDefault | None = None
-    capability_scope: ParticipationCapabilityScope | None = None
-    input_trust: ParticipationInputTrust | None = None
-    additional_input_trust: tuple[ParticipationInputTrust, ...] = field(default_factory=tuple)
-    output_destination: ParticipationOutputDestination | None = None
-    promotion_posture: ParticipationPromotionPosture | None = None
-    execution_concurrency: ParticipationExecutionConcurrency | None = None
-    posture: str | None = None
-
-@dataclass(frozen=True)
-class ParticipationReplay:
-    replay_id: str | None = None
-    participation_id: str | None = None
-    agent_id: str | None = None
-    profile_kind: ParticipationProfileKind | None = None
-    outcome: ParticipationReplayOutcome | None = None
-    reason_code: str | None = None
-    stages: tuple[ParticipationReplayStage, ...] = field(default_factory=tuple)
-    redacted: bool | None = None
-    observed_at: str | None = None
-
-@dataclass(frozen=True)
-class ParticipationReplayStage:
-    stage_id: str | None = None
-    state: str | None = None
-    reason_code: str | None = None
-    redacted_summary: str | None = None
-    observed_at: str | None = None
-
-@dataclass(frozen=True)
-class ParticipationRequestSpec:
-    profile_kind: ParticipationProfileKind | None = None
-    agent_id: str | None = None
-    participant_ref: str | None = None
-    trigger_ref: str | None = None
-    context_blocks: tuple[ParticipationContextBlock, ...] = field(default_factory=tuple)
-    request_id: str | None = None
-
-@dataclass(frozen=True)
-class ParticipationVerdict:
-    decision: ParticipationVerdictDecision | None = None
-    reason_code: str | None = None
-
-@dataclass(frozen=True)
-class ParticipationVerdictSet:
-    memory_read: ParticipationVerdict | None = None
-    memory_write: ParticipationVerdict | None = None
-    capability_scope: ParticipationVerdict | None = None
-    concurrency: ParticipationVerdict | None = None
-    resolved_memory_read_scope: ParticipationMemoryReadScope | None = None
-    resolved_memory_write_default: ParticipationMemoryWriteDefault | None = None
-    resolved_capability_scope: ParticipationCapabilityScope | None = None
-    resolved_concurrency: ParticipationExecutionConcurrency | None = None
 
 @dataclass(frozen=True)
 class PauseLocalTransferRequest:
@@ -4502,73 +4209,6 @@ class ReadRealtimeEventsRequest:
     after_sequence: int | None = None
 
 @dataclass(frozen=True)
-class RealmGroupMessageCandidateCommitHandle:
-    candidate_id: str | None = None
-    candidate_kind: str | None = None
-    candidate_evidence_ref: str | None = None
-    evidence_hash: str | None = None
-    runtime_trace_ref: str | None = None
-    realm_group_thread_id: str | None = None
-    runtime_participant_slot: str | None = None
-    owner_user_id: str | None = None
-    runtime_source_ref: str | None = None
-    local_agent_ref: str | None = None
-    trigger_ref: str | None = None
-    output_candidate_ref: str | None = None
-    audit_lineage_ref: str | None = None
-    policy_verdict_ref: str | None = None
-    created_at: str | None = None
-    expires_at: str | None = None
-    commit_disposition: RealmGroupMessageCandidateCommitDisposition | None = None
-    profile_kind: str | None = None
-    identity_source: str | None = None
-    participant_ref: str | None = None
-    context_block_refs: tuple[str, ...] = field(default_factory=tuple)
-    output_destination: str | None = None
-    memory_read_verdict: str | None = None
-    memory_write_verdict: str | None = None
-    capability_scope_verdict: str | None = None
-    audit_id: str | None = None
-
-@dataclass(frozen=True)
-class RealmGroupMessageCandidateEvidence:
-    candidate_id: str | None = None
-    candidate_kind: str | None = None
-    realm_group_thread_id: str | None = None
-    runtime_participant_slot: str | None = None
-    owner_user_id: str | None = None
-    runtime_source_ref: str | None = None
-    local_agent_ref: str | None = None
-    trigger_ref: str | None = None
-    output_candidate_ref: str | None = None
-    evidence_hash: str | None = None
-    runtime_trace_ref: str | None = None
-    audit_lineage_ref: str | None = None
-    policy_verdict_ref: str | None = None
-    created_at: str | None = None
-    expires_at: str | None = None
-    commit_disposition: RealmGroupMessageCandidateCommitDisposition | None = None
-    message_type: str | None = None
-    body: str | None = None
-    body_hash: str | None = None
-    refusal_code: str | None = None
-    refusal_reason: str | None = None
-    refusal_hash: str | None = None
-    profile_kind: str | None = None
-    identity_source: str | None = None
-    participant_ref: str | None = None
-    context_block_refs: tuple[str, ...] = field(default_factory=tuple)
-    output_destination: str | None = None
-    memory_read_verdict: str | None = None
-    memory_write_verdict: str | None = None
-    capability_scope_verdict: str | None = None
-    audit_id: str | None = None
-
-@dataclass(frozen=True)
-class RealmGroupThreadRefBlock:
-    thread_id: str | None = None
-
-@dataclass(frozen=True)
 class RealtimeAudioChunk:
     chunk: bytes | None = None
     mime_type: str | None = None
@@ -4641,22 +4281,6 @@ class RecallRequest:
 class RecallResponse:
     hits: tuple[MemoryRecallHit, ...] = field(default_factory=tuple)
     narrative_hits: tuple[NarrativeRecallHit, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RecentGroupTranscriptProjectionBlock:
-    transcript_ref: str | None = None
-    trust_posture: ParticipationInputTrust | None = None
-
-@dataclass(frozen=True)
-class RecentSandboxTranscriptProjectionBlock:
-    transcript_ref: str | None = None
-    branch_ref: str | None = None
-    trust_posture: ParticipationInputTrust | None = None
-
-@dataclass(frozen=True)
-class RecentWorldTranscriptOrEventProjectionBlock:
-    event_or_transcript_ref: str | None = None
-    trust_posture: ParticipationInputTrust | None = None
 
 @dataclass(frozen=True)
 class ReconcileProductControlFirstRunSetupStateRequest:
@@ -4820,7 +4444,6 @@ class RequestCompanionParticipationRequest:
     surface_kind: CompanionParticipationSurfaceKind | None = None
     trigger_source: CompanionParticipationTriggerSource | None = None
     profile_ref: str | None = None
-    room_orchestration_ref: str | None = None
     request_id: str | None = None
     text: str | None = None
     thread_id: str | None = None
@@ -5152,10 +4775,6 @@ class RuntimeBaselineReadinessRef:
     runtime_audit_sequence: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class RuntimeConversationAnchorRefBlock:
-    conversation_anchor_id: str | None = None
-
-@dataclass(frozen=True)
 class RuntimeDurableCloudTargetRef:
     version: str | None = None
     connector_id: str | None = None
@@ -5251,10 +4870,6 @@ class ScenarioArtifact:
     metadata: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
-class ScenarioBranchRefBlock:
-    scenario_branch_id: str | None = None
-
-@dataclass(frozen=True)
 class ScenarioExtension:
     namespace: str | None = None
     payload: Mapping[str, object] | None = None
@@ -5304,10 +4919,6 @@ class ScenarioOutput:
     world_generate: WorldGenerateResult | None = None
 
 @dataclass(frozen=True)
-class ScenarioPackageRefBlock:
-    scenario_package_id: str | None = None
-
-@dataclass(frozen=True)
 class ScenarioProfile:
     scenario_type: ScenarioType | None = None
     supported_execution_modes: tuple[ExecutionMode, ...] = field(default_factory=tuple)
@@ -5323,10 +4934,6 @@ class ScenarioRequestHead:
     timeout_ms: int | None = None
     connector_id: str | None = None
     target_ref: RuntimeDurableTargetRef | None = None
-
-@dataclass(frozen=True)
-class ScenarioRunRefBlock:
-    scenario_run_id: str | None = None
 
 @dataclass(frozen=True)
 class ScenarioSpec:
@@ -5842,11 +5449,6 @@ class ToolCall:
     provider_metadata: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
-class ToolOrCapabilityProjectionBlock:
-    capability_ref: str | None = None
-    effect_class: EffectClass | None = None
-
-@dataclass(frozen=True)
 class ToolResult:
     tool_call_id: str | None = None
     tool_name: str | None = None
@@ -5880,10 +5482,6 @@ class TraverseGraphRequest:
 class TraverseGraphResponse:
     nodes: tuple[KnowledgeGraphNode, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
-
-@dataclass(frozen=True)
-class TriggerMessageRefBlock:
-    message_id: str | None = None
 
 @dataclass(frozen=True)
 class UpdateAgentStateRequest:
@@ -5993,17 +5591,6 @@ class UsageStats:
     reasoning_output_tokens: int | None = None
 
 @dataclass(frozen=True)
-class ValidateParticipationRequest:
-    spec: ParticipationRequestSpec | None = None
-
-@dataclass(frozen=True)
-class ValidateParticipationResponse:
-    admitted: bool | None = None
-    verdicts: ParticipationVerdictSet | None = None
-    resolved_output_destination: ParticipationOutputDestination | None = None
-    refusal_reason: str | None = None
-
-@dataclass(frozen=True)
 class VideoContentAudioURL:
     url: str | None = None
 
@@ -6051,14 +5638,6 @@ class VideoGenerationOptions:
     service_tier: str | None = None
     execution_expires_after_sec: int | None = None
     return_last_frame: bool | None = None
-
-@dataclass(frozen=True)
-class VisibleSceneStateBlock:
-    scene_state_ref: str | None = None
-
-@dataclass(frozen=True)
-class VisibleWorldStateProjectionBlock:
-    world_state_ref: str | None = None
 
 @dataclass(frozen=True)
 class VoiceAsset:
@@ -6197,18 +5776,10 @@ class WorldCharacterSourceRefV3:
     source_hash: str | None = None
 
 @dataclass(frozen=True)
-class WorldContextRefBlock:
-    world_context_id: str | None = None
-
-@dataclass(frozen=True)
 class WorldEntityRefV3:
     kind: WorldEntityRefKindV3 | None = None
     world_id: str | None = None
     entity_id: str | None = None
-
-@dataclass(frozen=True)
-class WorldEventRefBlock:
-    world_event_id: str | None = None
 
 @dataclass(frozen=True)
 class WorldGenerateAssetSource:
@@ -6351,18 +5922,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelHookResponse, raw)
 
-    async def create_realm_group_message_candidate(self, request: CreateRealmGroupMessageCandidateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateRealmGroupMessageCandidateResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreateRealmGroupMessageCandidateResponse, raw)
-
-    async def describe_participation_context_blocks(self, request: DescribeParticipationContextBlocksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DescribeParticipationContextBlocksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DescribeParticipationContextBlocksResponse, raw)
-
-    async def describe_participation_profiles(self, request: DescribeParticipationProfilesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DescribeParticipationProfilesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DescribeParticipationProfilesResponse, raw)
-
     async def disable_autonomy(self, request: DisableAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DisableAutonomyResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DisableAutonomyResponse, raw)
@@ -6370,10 +5929,6 @@ class RuntimeTypedClient:
     async def enable_autonomy(self, request: EnableAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> EnableAutonomyResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(EnableAutonomyResponse, raw)
-
-    async def execute_participation(self, request: ExecuteParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteParticipationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ExecuteParticipationResponse, raw)
 
     async def get_agent(self, request: GetAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6415,25 +5970,9 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetDelegatedReplayTraceResponse, raw)
 
-    async def get_participation_candidate(self, request: GetParticipationCandidateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetParticipationCandidateResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetParticipationCandidateResponse, raw)
-
-    async def get_participation_replay(self, request: GetParticipationReplayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetParticipationReplayResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetParticipationReplayResponse, raw)
-
-    async def get_participation_verdicts(self, request: GetParticipationVerdictsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetParticipationVerdictsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetParticipationVerdictsResponse, raw)
-
     async def get_public_chat_session_snapshot(self, request: GetPublicChatSessionSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetPublicChatSessionSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetPublicChatSessionSnapshotResponse, raw)
-
-    async def get_realm_group_message_candidate_evidence(self, request: GetRealmGroupMessageCandidateEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRealmGroupMessageCandidateEvidenceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetRealmGroupMessageCandidateEvidenceResponse, raw)
 
     async def get_runtime_agent_aiconfig(self, request: GetRuntimeAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRuntimeAgentAIConfigResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6442,10 +5981,6 @@ class RuntimeTypedClient:
     async def get_runtime_agent_aiconfig_readiness(self, request: GetRuntimeAgentAIConfigReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRuntimeAgentAIConfigReadinessResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetRuntimeAgentAIConfigReadinessResponse, raw)
-
-    async def initialize_agent(self, request: InitializeAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InitializeAgentResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InitializeAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(InitializeAgentResponse, raw)
 
     async def interrupt_agent_voice_playback(self, request: InterruptAgentVoicePlaybackRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptAgentVoicePlaybackResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6474,10 +6009,6 @@ class RuntimeTypedClient:
     async def list_delegated_provider_profiles(self, request: ListDelegatedProviderProfilesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDelegatedProviderProfilesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListDelegatedProviderProfilesResponse, raw)
-
-    async def list_participation_audit_events(self, request: ListParticipationAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListParticipationAuditEventsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListParticipationAuditEventsResponse, raw)
 
     async def list_pending_hooks(self, request: ListPendingHooksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPendingHooksResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6555,10 +6086,6 @@ class RuntimeTypedClient:
     async def upsert_runtime_agent_aiconfig(self, request: UpsertRuntimeAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpsertRuntimeAgentAIConfigResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpsertRuntimeAgentAIConfigResponse, raw)
-
-    async def validate_participation(self, request: ValidateParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ValidateParticipationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ValidateParticipationResponse, raw)
 
     async def write_agent_memory(self, request: WriteAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> WriteAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

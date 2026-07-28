@@ -31,7 +31,7 @@ func (s *Service) admitPendingHook(agentID string, hook *runtimev1.PendingHook) 
 	// Stamp agent_id onto intent if caller omitted it (runtime truth binds
 	// HookIntent to the agent it was admitted under).
 	if strings.TrimSpace(normalized.Intent.GetAgentId()) == "" {
-		normalized.Intent.AgentId = entry.Agent.GetAgentId()
+		normalized.Intent.AgentId = entry.Agent.GetLocalAgentRef()
 	}
 	entry.Hooks[intentID] = normalized
 	stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(normalized), now)
@@ -39,11 +39,11 @@ func (s *Service) admitPendingHook(agentID string, hook *runtimev1.PendingHook) 
 	proposedIntent := cloneHookIntent(normalized.GetIntent())
 	proposedIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
 	events := []*runtimev1.AgentEvent{
-		hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+		hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 			Intent:     proposedIntent,
 			ObservedAt: timestamppb.New(now),
 		}, now),
-		hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+		hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 			Intent:     cloneHookIntent(normalized.GetIntent()),
 			ObservedAt: timestamppb.New(now),
 		}, now),
@@ -107,7 +107,7 @@ func (s *Service) transitionHookAt(agentID string, intentID string, now time.Tim
 	stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(hook), now)
 	events := make([]*runtimev1.AgentEvent, 0, len(extraEvents)+1)
 	if outcome != nil {
-		events = append(events, hookEventAt(entry.Agent.GetAgentId(), outcome, now))
+		events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), outcome, now))
 	}
 	events = append(events, extraEvents...)
 	if stateEvent != nil {
@@ -139,7 +139,7 @@ func (s *Service) completeHookAt(agentID string, intentID string, summary string
 			ObservedAt: timestamppb.New(now),
 			Message:    strings.TrimSpace(summary),
 		}
-		return outcome, optionalEvents(budgetEventForTransition(entry.Agent.GetAgentId(), beforeBudget, entry.Agent.GetAutonomy(), now)), nil
+		return outcome, optionalEvents(budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), now)), nil
 	})
 }
 
@@ -162,7 +162,7 @@ func (s *Service) failHookAt(agentID string, intentID string, reasonCode runtime
 			ReasonCode: reasonCode,
 			Message:    strings.TrimSpace(message),
 		}
-		return outcome, optionalEvents(budgetEventForTransition(entry.Agent.GetAgentId(), beforeBudget, entry.Agent.GetAutonomy(), now)), nil
+		return outcome, optionalEvents(budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), now)), nil
 	})
 }
 
@@ -210,7 +210,7 @@ func (s *Service) rescheduleHookAt(agentID string, intentID string, nextIntent *
 		// Normalize follow-up intent: stamp agent_id, admission_state, unique intent_id.
 		followupIntent := cloneHookIntent(nextIntent)
 		if strings.TrimSpace(followupIntent.GetAgentId()) == "" {
-			followupIntent.AgentId = entry.Agent.GetAgentId()
+			followupIntent.AgentId = entry.Agent.GetLocalAgentRef()
 		}
 		if strings.TrimSpace(followupIntent.GetIntentId()) == "" {
 			followupIntent.IntentId = "hook_" + ulid.Make().String()
@@ -227,15 +227,15 @@ func (s *Service) rescheduleHookAt(agentID string, intentID string, nextIntent *
 			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(transitionTime),
 		}
-		events := optionalEvents(budgetEventForTransition(entry.Agent.GetAgentId(), beforeBudget, entry.Agent.GetAutonomy(), transitionTime))
+		events := optionalEvents(budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), transitionTime))
 		proposedFollowup := cloneHookIntent(followupIntent)
 		proposedFollowup.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
 		events = append(events,
-			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 				Intent:     proposedFollowup,
 				ObservedAt: timestamppb.New(transitionTime),
 			}, transitionTime),
-			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 				Intent:     cloneHookIntent(followupIntent),
 				ObservedAt: timestamppb.New(transitionTime),
 			}, transitionTime),
@@ -254,7 +254,7 @@ func (s *Service) cancelActiveHooks(entry *agentEntry, canceledBy string, reason
 			continue
 		}
 		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
-		events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+		events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
 			Reason:     firstNonEmpty(strings.TrimSpace(reason), "agent terminated"),

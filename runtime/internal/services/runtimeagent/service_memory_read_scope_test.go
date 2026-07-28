@@ -15,9 +15,9 @@ func TestQueryAgentMemoryRejectsDyadicReadWithoutOwnerContext(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-read-scope")}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
 		Context: testRuntimeAgentIdentityContext("agent-read-scope"),
@@ -58,7 +58,7 @@ func TestQueryAgentMemoryRejectsDyadicReadWithoutOwnerContext(t *testing.T) {
 	}
 
 	_, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          &runtimev1.AgentRequestContext{OwnerUserId: "user-1", RuntimeSourceRef: "agent-read-scope", LocalAgentRef: testRuntimeAgentLocalRef("agent-read-scope")},
+		Context:          &runtimev1.AgentRequestContext{OwnerUserId: "user-1", RuntimeSourceRef: testRuntimeAgentSourceRef("agent-read-scope"), LocalAgentRef: testRuntimeAgentLocalRef("agent-read-scope")},
 		AgentId:          "agent-read-scope",
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
 	})
@@ -70,7 +70,7 @@ func TestQueryAgentMemoryRejectsDyadicReadWithoutOwnerContext(t *testing.T) {
 	}
 
 	_, err = svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          &runtimev1.AgentRequestContext{SubjectUserId: "user-2", OwnerUserId: "user-1", RuntimeSourceRef: "agent-read-scope", LocalAgentRef: testRuntimeAgentLocalRef("agent-read-scope")},
+		Context:          &runtimev1.AgentRequestContext{SubjectUserId: "user-2", OwnerUserId: "user-1", RuntimeSourceRef: testRuntimeAgentSourceRef("agent-read-scope"), LocalAgentRef: testRuntimeAgentLocalRef("agent-read-scope")},
 		AgentId:          "agent-read-scope",
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
 	})

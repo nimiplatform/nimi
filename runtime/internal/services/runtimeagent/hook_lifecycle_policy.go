@@ -331,7 +331,7 @@ func gateHookExecution(entry *agentEntry, hook *runtimev1.PendingHook, now time.
 		if delay < 0 {
 			delay = 0
 		}
-		return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetAgentId(), delay, "autonomy suspended"), 0)
+		return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetLocalAgentRef(), delay, "autonomy suspended"), 0)
 	}
 	if autonomy.GetBudgetExhausted() {
 		resumeAt := nextAutonomyWindowStart(autonomy, now)
@@ -339,7 +339,7 @@ func gateHookExecution(entry *agentEntry, hook *runtimev1.PendingHook, now time.
 		if delay < 0 {
 			delay = 0
 		}
-		return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetAgentId(), delay, "autonomy budget exhausted"), 0)
+		return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetLocalAgentRef(), delay, "autonomy budget exhausted"), 0)
 	}
 	if policy, ok := resolveCadencePolicy(autonomy.GetConfig()); ok {
 		if anchor, ok := latestLifeTurnAnchor(entry); ok {
@@ -353,7 +353,7 @@ func gateHookExecution(entry *agentEntry, hook *runtimev1.PendingHook, now time.
 				if reason == "" {
 					reason = "min spacing gate"
 				}
-				return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetAgentId(), delay, reason), 0)
+				return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetLocalAgentRef(), delay, reason), 0)
 			}
 		}
 	}
@@ -575,7 +575,7 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 		events := make([]*runtimev1.AgentEvent, 0, len(hooks))
 		for _, hook := range hooks {
 			hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
-			events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 				Intent:     cloneHookIntent(hook.GetIntent()),
 				ObservedAt: timestamppb.New(now),
 				Reason:     firstNonEmpty(strings.TrimSpace(reason), autonomyCadenceHookCancelReason),
@@ -601,14 +601,14 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 	}
 
 	if len(pendingCadence) == 0 {
-		intent := cadenceTickHookIntent(entry.Agent.GetAgentId(), scheduledAt, now)
+		intent := cadenceTickHookIntent(entry.Agent.GetLocalAgentRef(), scheduledAt, now)
 		hook := &runtimev1.PendingHook{
 			Intent:       intent,
 			ScheduledFor: timestamppb.New(scheduledAt),
 			AdmittedAt:   timestamppb.New(now),
 		}
 		entry.Hooks[intent.GetIntentId()] = hook
-		events := []*runtimev1.AgentEvent{hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+		events := []*runtimev1.AgentEvent{hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 			Intent:     cloneHookIntent(intent),
 			ObservedAt: timestamppb.New(now),
 		}, now)}

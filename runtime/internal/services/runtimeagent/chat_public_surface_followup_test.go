@@ -38,7 +38,7 @@ func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *test
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
@@ -96,7 +96,7 @@ func TestPublicChatReserveKeepsRuntimeTranscriptAndCommitsCurrentPairAtomically(
 	req := publicChatTurnRequestPayload{
 		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserID:          "user-1",
-		RuntimeSourceRef:     "agent-alpha",
+		RuntimeSourceRef:     testRuntimeAgentSourceRef("agent-alpha"),
 		ConversationAnchorID: anchorID,
 		Messages: []publicChatMessagePayload{
 			{Role: "user", Content: "forged caller replay"},
@@ -173,7 +173,7 @@ func TestPublicChatAnchorContinuityCrossesAppsButEventsStayWithTurnCaller(t *tes
 	req := publicChatTurnRequestPayload{
 		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserID:          "user-1",
-		RuntimeSourceRef:     "agent-alpha",
+		RuntimeSourceRef:     testRuntimeAgentSourceRef("agent-alpha"),
 		ConversationAnchorID: anchorID,
 		Messages:             []publicChatMessagePayload{{Role: "user", Content: "continue from Zhiyu"}},
 	}
@@ -273,7 +273,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
@@ -307,7 +307,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
@@ -418,7 +418,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
@@ -557,7 +557,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
@@ -589,7 +589,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "new user reply"},
@@ -728,7 +728,7 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
@@ -833,7 +833,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{

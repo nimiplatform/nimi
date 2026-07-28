@@ -39,7 +39,7 @@ impl CoreTransport for FakeTransport {
         if body.contains("redirect_uri=force-error") {
             return Err(CoreErrorShape {
                 code: "SDK_RUNTIME_METHOD_UNAVAILABLE".to_string(),
-                message: "typed conformance error".to_string(),
+                message: "transport failure".to_string(),
                 details: Some(b"fixture=typed-core".to_vec()),
             });
         }

@@ -33,11 +33,10 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 	closeRuntimeAgentServiceForTest(t, svc)
 
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context:     testRuntimeAgentIdentityContext("agent-feedback"),
-		DisplayName: "Feedback Agent",
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
+		Context: testRuntimeAgentIdentityContext("agent-feedback"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
@@ -150,11 +149,10 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackRejectsMismatchedBank(t *tes
 	closeRuntimeAgentServiceForTest(t, svc)
 
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context:     testRuntimeAgentIdentityContext("agent-feedback-boundary"),
-		DisplayName: "Feedback Boundary Agent",
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
+		Context: testRuntimeAgentIdentityContext("agent-feedback-boundary"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	err = svc.RecordAgentMemoryRecallFeedback(ctx, AgentMemoryRecallFeedback{

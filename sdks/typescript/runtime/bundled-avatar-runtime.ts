@@ -11,7 +11,7 @@ import {
   RuntimeTypedClient,
   type AccountSessionEvent,
   type AccountSessionSnapshot,
-  type AgentRecord,
+  type LocalAgentRecord,
   type GetRuntimeHealthResponse,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client.js';
@@ -47,8 +47,8 @@ export type NimiBundledAvatarRuntimeClient = {
     ) => AsyncIterable<AccountSessionEvent>;
   };
   readonly currentAgent: {
-    readonly get: (agentId: string, options?: RuntimeTypedCallOptions) => Promise<AgentRecord>;
-    readonly list: (options?: RuntimeTypedCallOptions) => Promise<readonly AgentRecord[]>;
+    readonly get: (agentId: string, options?: RuntimeTypedCallOptions) => Promise<LocalAgentRecord>;
+    readonly list: (options?: RuntimeTypedCallOptions) => Promise<readonly LocalAgentRecord[]>;
   };
   readonly realm: {
     readonly listPersonaCharacters: (
@@ -142,7 +142,7 @@ export function createNimiBundledAvatarRuntimeClient(): NimiBundledAvatarRuntime
           pageSize: 200,
           pageToken: '',
         }, options);
-        return Object.freeze(response.agents.map((agent) => requireCurrentAgent(agent, agent.agentId)));
+        return Object.freeze(response.agents.map((agent) => requireCurrentAgent(agent, agent.localAgentRef)));
       },
     }),
     realm: Object.freeze({
@@ -234,9 +234,8 @@ function normalizeAgentID(value: unknown): string {
   return agentId;
 }
 
-function requireCurrentAgent(agent: AgentRecord | undefined, expectedAgentID: string): AgentRecord {
+function requireCurrentAgent(agent: LocalAgentRecord | undefined, expectedAgentID: string): LocalAgentRecord {
   if (!agent
-    || agent.agentId !== expectedAgentID
     || agent.localAgentRef !== expectedAgentID
     || !agent.ownerUserId.trim()
     || !agent.runtimeSourceRef.trim()) {

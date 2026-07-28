@@ -211,7 +211,7 @@ test('presentation request admits only Runtime-owned voice reference kinds with 
   assert.doesNotThrow(() => buildProfileRequest({ defaultVoiceReference: 'voice_asset_id:voice-1' }));
 });
 
-test('presentation projection reads typed AgentRecord fields and committed revision', () => {
+test('presentation projection reads typed LocalAgentRecord fields and committed revision', () => {
   const agent = {
     lifecycleStatus: AgentLifecycleStatus.ACTIVE,
     presentationProfileRevision: '7',

@@ -20,7 +20,6 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	RuntimeAgentService_MaterializeRealmSource_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource"
-	RuntimeAgentService_InitializeAgent_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent"
 	RuntimeAgentService_TerminateAgent_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
 	RuntimeAgentService_GetAgent_FullMethodName                               = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
 	RuntimeAgentService_ListAgents_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
@@ -75,7 +74,6 @@ type RuntimeAgentServiceClient interface {
 	// privately acquires and verifies Packet v3; transport/auth material is not
 	// accepted from callers.
 	MaterializeRealmSource(ctx context.Context, in *MaterializeRealmSourceRequest, opts ...grpc.CallOption) (*MaterializeRealmSourceResponse, error)
-	InitializeAgent(ctx context.Context, in *InitializeAgentRequest, opts ...grpc.CallOption) (*InitializeAgentResponse, error)
 	TerminateAgent(ctx context.Context, in *TerminateAgentRequest, opts ...grpc.CallOption) (*TerminateAgentResponse, error)
 	GetAgent(ctx context.Context, in *GetAgentRequest, opts ...grpc.CallOption) (*GetAgentResponse, error)
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
@@ -135,16 +133,6 @@ func (c *runtimeAgentServiceClient) MaterializeRealmSource(ctx context.Context, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MaterializeRealmSourceResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_MaterializeRealmSource_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) InitializeAgent(ctx context.Context, in *InitializeAgentRequest, opts ...grpc.CallOption) (*InitializeAgentResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InitializeAgentResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_InitializeAgent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -626,7 +614,6 @@ type RuntimeAgentServiceServer interface {
 	// privately acquires and verifies Packet v3; transport/auth material is not
 	// accepted from callers.
 	MaterializeRealmSource(context.Context, *MaterializeRealmSourceRequest) (*MaterializeRealmSourceResponse, error)
-	InitializeAgent(context.Context, *InitializeAgentRequest) (*InitializeAgentResponse, error)
 	TerminateAgent(context.Context, *TerminateAgentRequest) (*TerminateAgentResponse, error)
 	GetAgent(context.Context, *GetAgentRequest) (*GetAgentResponse, error)
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
@@ -683,9 +670,6 @@ type UnimplementedRuntimeAgentServiceServer struct{}
 
 func (UnimplementedRuntimeAgentServiceServer) MaterializeRealmSource(context.Context, *MaterializeRealmSourceRequest) (*MaterializeRealmSourceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MaterializeRealmSource not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) InitializeAgent(context.Context, *InitializeAgentRequest) (*InitializeAgentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method InitializeAgent not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) TerminateAgent(context.Context, *TerminateAgentRequest) (*TerminateAgentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TerminateAgent not implemented")
@@ -853,24 +837,6 @@ func _RuntimeAgentService_MaterializeRealmSource_Handler(srv interface{}, ctx co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).MaterializeRealmSource(ctx, req.(*MaterializeRealmSourceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_InitializeAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InitializeAgentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).InitializeAgent(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_InitializeAgent_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).InitializeAgent(ctx, req.(*InitializeAgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1656,10 +1622,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MaterializeRealmSource",
 			Handler:    _RuntimeAgentService_MaterializeRealmSource_Handler,
-		},
-		{
-			MethodName: "InitializeAgent",
-			Handler:    _RuntimeAgentService_InitializeAgent_Handler,
 		},
 		{
 			MethodName: "TerminateAgent",

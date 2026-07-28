@@ -4,9 +4,7 @@ import test from 'node:test';
 import type { CoreTransport } from '../core-client';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import {
-  addNimiRealmGroupSourceParticipant,
   addNimiRealmGroupParticipant,
-  commitNimiRealmGroupSourceMessageCandidate,
   createNimiRealmGroupChat,
   createNimiRealmGroupTextMessageInput,
   createRealm,
@@ -15,7 +13,6 @@ import {
   loadNimiRealmGroupMessages,
   markNimiRealmGroupRead,
   removeNimiRealmGroupParticipant,
-  removeNimiRealmGroupSourceParticipant,
   sendNimiRealmGroupMessage,
   syncNimiRealmGroupEvents,
 } from './index';
@@ -43,22 +40,12 @@ class FakeRealmTransport implements CoreTransport {
     if (request.methodId === 'addGroupParticipant') {
       return { accountId: 'user-2', type: 'human' } as Response;
     }
-    if (request.methodId === 'addGroupSourceParticipant') {
-      return { accountId: 'slot-1', type: 'source' } as Response;
-    }
-    if (request.methodId === 'commitRealmGroupSourceMessageCandidate') {
-      return { status: 'committed', message: { id: 'message-2' } } as Response;
-    }
     return {} as Response;
   }
 
   async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
     throw new Error('Realm group chat helper must not use stream transport');
   }
-}
-
-function hasReasonCode(reasonCode: string): (error: unknown) => boolean {
-  return (error: unknown) => (error as { reasonCode?: string }).reasonCode === reasonCode;
 }
 
 test('Realm group chat helpers normalize inputs and fail closed', () => {
@@ -102,44 +89,6 @@ test('Realm group chat helpers build generated request envelopes', async () => {
   });
   await addNimiRealmGroupParticipant(realm, 'group-1', ' user-2 ');
   await removeNimiRealmGroupParticipant(realm, 'group-1', ' user-2 ');
-  await addNimiRealmGroupSourceParticipant(realm, 'group-1', {
-    sourceRef: {
-      kind: 'worldCharacter',
-      worldId: 'world-1',
-      sourceId: 'char-1',
-      sourceContentHash: 'sha256:source',
-    },
-    runtimeSourceRef: 'runtime-source:worldCharacter:world-1:char-1:sha256:source',
-    displayName: 'Source One',
-    handle: 'source-one',
-  });
-  await commitNimiRealmGroupSourceMessageCandidate(realm, 'group-1', {
-    candidateId: 'candidate-1',
-    candidateKind: 'REALM_GROUP_MESSAGE_CANDIDATE',
-    candidateEvidenceRef: 'runtime-candidate-evidence://candidate-1',
-    evidenceHash: 'sha256:evidence',
-    runtimeTraceRef: 'runtime-trace://trace-1',
-    expectedRuntimeParticipantSlotId: 'slot-1',
-    expectedRuntimeSourceRef: 'runtime-source:worldCharacter:world-1:char-1:sha256:source',
-    triggerEvidence: {
-      kind: 'mention',
-      triggerRef: 'realm://group-chats/group-1/messages/message-1',
-      actorId: 'user-1',
-      chatId: 'group-1',
-      messageId: 'message-1',
-    },
-    outputCandidateRef: 'runtime-output://candidate-1',
-    auditLineageRef: 'runtime-audit://candidate-1',
-    policyVerdictRef: 'runtime-policy://candidate-1',
-    createdAt: '2026-06-18T00:00:00.000Z',
-    expiresAt: '2026-06-18T00:05:00.000Z',
-    commitDisposition: 'MESSAGE_CANDIDATE',
-    messageType: 'TEXT',
-    body: 'hello from source',
-    bodyHash: 'sha256:body',
-    idempotencyKey: 'rgmc-1',
-  });
-  await removeNimiRealmGroupSourceParticipant(realm, 'group-1', ' slot-1 ');
   await syncNimiRealmGroupEvents(realm, 'group-1', 3.9, 999);
 
   assert.deepEqual(transport.unaryCalls.map((call) => call.methodId), [
@@ -151,9 +100,6 @@ test('Realm group chat helpers build generated request envelopes', async () => {
     'createGroup',
     'addGroupParticipant',
     'removeGroupParticipant',
-    'addGroupSourceParticipant',
-    'commitRealmGroupSourceMessageCandidate',
-    'removeGroupSourceParticipant',
     'syncGroupEvents',
   ]);
   assert.deepEqual(transport.unaryCalls[0]?.body, { path: {}, query: { limit: 100 } });
@@ -189,108 +135,6 @@ test('Realm group chat helpers build generated request envelopes', async () => {
   });
   assert.deepEqual(transport.unaryCalls[8]?.body, {
     path: { chatId: 'group-1' },
-    body: {
-      sourceRef: {
-        kind: 'worldCharacter',
-        worldId: 'world-1',
-        sourceId: 'char-1',
-        sourceContentHash: 'sha256:source',
-      },
-      runtimeSourceRef: 'runtime-source:worldCharacter:world-1:char-1:sha256:source',
-      displayName: 'Source One',
-      handle: 'source-one',
-    },
-  });
-  assert.deepEqual(transport.unaryCalls[9]?.body, {
-    path: { chatId: 'group-1' },
-    body: {
-      candidateId: 'candidate-1',
-      candidateKind: 'REALM_GROUP_MESSAGE_CANDIDATE',
-      candidateEvidenceRef: 'runtime-candidate-evidence://candidate-1',
-      evidenceHash: 'sha256:evidence',
-      runtimeTraceRef: 'runtime-trace://trace-1',
-      expectedRuntimeParticipantSlotId: 'slot-1',
-      expectedRuntimeSourceRef: 'runtime-source:worldCharacter:world-1:char-1:sha256:source',
-      triggerEvidence: {
-        kind: 'mention',
-        triggerRef: 'realm://group-chats/group-1/messages/message-1',
-        actorId: 'user-1',
-        chatId: 'group-1',
-        messageId: 'message-1',
-      },
-      outputCandidateRef: 'runtime-output://candidate-1',
-      auditLineageRef: 'runtime-audit://candidate-1',
-      policyVerdictRef: 'runtime-policy://candidate-1',
-      createdAt: '2026-06-18T00:00:00.000Z',
-      expiresAt: '2026-06-18T00:05:00.000Z',
-      commitDisposition: 'MESSAGE_CANDIDATE',
-      messageType: 'TEXT',
-      body: 'hello from source',
-      bodyHash: 'sha256:body',
-      idempotencyKey: 'rgmc-1',
-    },
-  });
-  assert.deepEqual(transport.unaryCalls[10]?.body, {
-    path: { chatId: 'group-1', runtimeParticipantSlotId: 'slot-1' },
-  });
-  assert.deepEqual(transport.unaryCalls[11]?.body, {
-    path: { chatId: 'group-1' },
     query: { limit: 500, afterSeq: 3 },
   });
-});
-
-test('Realm group source helpers fail closed before transport calls', async () => {
-  const transport = new FakeRealmTransport();
-  const realm = createRealm({ transport });
-  const sourceParticipantInput = {
-    sourceRef: {
-      kind: 'worldCharacter',
-      worldId: 'world-1',
-      sourceId: 'char-1',
-      sourceContentHash: 'sha256:source',
-    },
-    runtimeSourceRef: 'runtime-source:worldCharacter:world-1:char-1:sha256:source',
-    displayName: 'Source One',
-    handle: 'source-one',
-  } as const;
-  const sourceMessageCandidateInput = {
-    candidateId: 'candidate-1',
-    candidateKind: 'REALM_GROUP_MESSAGE_CANDIDATE',
-    candidateEvidenceRef: 'runtime-candidate-evidence://candidate-1',
-    evidenceHash: 'sha256:evidence',
-    runtimeTraceRef: 'runtime-trace://trace-1',
-    expectedRuntimeParticipantSlotId: 'slot-1',
-    expectedRuntimeSourceRef: 'runtime-source:worldCharacter:world-1:char-1:sha256:source',
-    triggerEvidence: {
-      kind: 'mention',
-      triggerRef: 'realm://group-chats/group-1/messages/message-1',
-      actorId: 'user-1',
-      chatId: 'group-1',
-      messageId: 'message-1',
-    },
-    outputCandidateRef: 'runtime-output://candidate-1',
-    auditLineageRef: 'runtime-audit://candidate-1',
-    policyVerdictRef: 'runtime-policy://candidate-1',
-    createdAt: '2026-06-18T00:00:00.000Z',
-    expiresAt: '2026-06-18T00:05:00.000Z',
-    commitDisposition: 'MESSAGE_CANDIDATE',
-    messageType: 'TEXT',
-    body: 'hello from source',
-    bodyHash: 'sha256:body',
-    idempotencyKey: 'rgmc-1',
-  } as const;
-
-  await assert.rejects(
-    () => addNimiRealmGroupSourceParticipant(realm, ' ', sourceParticipantInput),
-    hasReasonCode('SDK_REALM_GROUP_CHAT_ID_REQUIRED'),
-  );
-  await assert.rejects(
-    () => commitNimiRealmGroupSourceMessageCandidate(realm, '', sourceMessageCandidateInput),
-    hasReasonCode('SDK_REALM_GROUP_CHAT_ID_REQUIRED'),
-  );
-  await assert.rejects(
-    () => removeNimiRealmGroupSourceParticipant(realm, 'group-1', ' '),
-    hasReasonCode('SDK_REALM_GROUP_RUNTIME_PARTICIPANT_SLOT_REQUIRED'),
-  );
-  assert.equal(transport.unaryCalls.length, 0);
 });

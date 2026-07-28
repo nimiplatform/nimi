@@ -147,7 +147,7 @@ export async function ensureRuntimeAgentExists(
       agentId: context.localAgentRef,
     }, callOptions),
   );
-  const returnedLocalAgentRef = normalizeText(response.agent?.localAgentRef || response.agent?.agentId);
+  const returnedLocalAgentRef = normalizeText(response.agent?.localAgentRef);
   if (returnedLocalAgentRef !== context.localAgentRef) {
     throw new Error('Runtime LocalAgent inventory did not return the selected opaque localAgentRef.');
   }

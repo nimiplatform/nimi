@@ -5,7 +5,7 @@
 - Treat `.nimi/{config,contracts,methodology}/**` as `@nimiplatform/nimi-coding` managed projections created by `pnpm run init`.
 - Keep auth, Runtime, permission, manifest, and Tauri shell glue in scaffold-managed files.
 - In a generated app, the app-owned area is src/shell/routes/product-area.tsx plus product-specific screens, view models, tests, and bounded native helpers.
-- `.nimi/admission/**` and `ADMISSION.md` are developer-owned release submission inputs, not product acceptance truth.
+- The current scaffold is local-development-only and must not generate public admission, listing, release, registry, or install truth.
 
 ## Hard Boundaries
 - Follow `Runtime / Realm truth -> @nimiplatform/sdk interface -> app consumer`.

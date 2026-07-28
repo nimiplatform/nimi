@@ -1108,168 +1108,6 @@ const (
 	MODELSTATUSREMOVED ModelStatus = "MODEL_STATUS_REMOVED"
 )
 
-type ParticipationCapabilityScope string
-
-const (
-	PARTICIPATIONCAPABILITYSCOPEUNSPECIFIED ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_UNSPECIFIED"
-	PARTICIPATIONCAPABILITYSCOPECANONICALAGENTSCOPE ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_CANONICAL_AGENT_SCOPE"
-	PARTICIPATIONCAPABILITYSCOPEPROFILELIMITED ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_PROFILE_LIMITED"
-	PARTICIPATIONCAPABILITYSCOPEDOMAINLIMITED ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_DOMAIN_LIMITED"
-	PARTICIPATIONCAPABILITYSCOPEDIAGNOSTICREADONLY ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_DIAGNOSTIC_READ_ONLY"
-	PARTICIPATIONCAPABILITYSCOPEEXTERNALGATEWAYLIMITED ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED"
-	PARTICIPATIONCAPABILITYSCOPENONE ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_NONE"
-)
-
-type ParticipationExecutionConcurrency string
-
-const (
-	PARTICIPATIONEXECUTIONCONCURRENCYUNSPECIFIED ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_UNSPECIFIED"
-	PARTICIPATIONEXECUTIONCONCURRENCYCANONICALCHATBUDGET ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_CANONICAL_CHAT_BUDGET"
-	PARTICIPATIONEXECUTIONCONCURRENCYPERAGENTPARTICIPATIONQUEUE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_PER_AGENT_PARTICIPATION_QUEUE"
-	PARTICIPATIONEXECUTIONCONCURRENCYPROFILEISOLATEDBUDGET ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_PROFILE_ISOLATED_BUDGET"
-	PARTICIPATIONEXECUTIONCONCURRENCYDOMAINTRIGGERQUEUE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_DOMAIN_TRIGGER_QUEUE"
-	PARTICIPATIONEXECUTIONCONCURRENCYREJECTWHILEACTIVE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_REJECT_WHILE_ACTIVE"
-	PARTICIPATIONEXECUTIONCONCURRENCYGATEWAYBUDGETQUEUE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE"
-	PARTICIPATIONEXECUTIONCONCURRENCYLOWPRIORITYCANCELABLE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_LOW_PRIORITY_CANCELABLE"
-)
-
-type ParticipationExecutionOwner string
-
-const (
-	PARTICIPATIONEXECUTIONOWNERUNSPECIFIED ParticipationExecutionOwner = "PARTICIPATION_EXECUTION_OWNER_UNSPECIFIED"
-	PARTICIPATIONEXECUTIONOWNERRUNTIME ParticipationExecutionOwner = "PARTICIPATION_EXECUTION_OWNER_RUNTIME"
-	PARTICIPATIONEXECUTIONOWNEREXTERNALRUNTIMEVIAADMITTEDGATEWAY ParticipationExecutionOwner = "PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY"
-	PARTICIPATIONEXECUTIONOWNERNOTADMITTED ParticipationExecutionOwner = "PARTICIPATION_EXECUTION_OWNER_NOT_ADMITTED"
-)
-
-type ParticipationExternalProtocolKind string
-
-const (
-	PARTICIPATIONEXTERNALPROTOCOLKINDUNSPECIFIED ParticipationExternalProtocolKind = "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED"
-	PARTICIPATIONEXTERNALPROTOCOLKINDA2A ParticipationExternalProtocolKind = "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A"
-)
-
-type ParticipationIdentitySource string
-
-const (
-	PARTICIPATIONIDENTITYSOURCEUNSPECIFIED ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED"
-	PARTICIPATIONIDENTITYSOURCEUSEROWNEDNIMIAGENT ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT"
-	PARTICIPATIONIDENTITYSOURCEEXTERNALA2AAGENT ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT"
-	PARTICIPATIONIDENTITYSOURCESANDBOXPROJECTION ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION"
-	PARTICIPATIONIDENTITYSOURCENPCWORLDACTOR ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR"
-)
-
-type ParticipationInputTrust string
-
-const (
-	PARTICIPATIONINPUTTRUSTUNSPECIFIED ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_UNSPECIFIED"
-	PARTICIPATIONINPUTTRUSTTRUSTEDUSER ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_TRUSTED_USER"
-	PARTICIPATIONINPUTTRUSTUNTRUSTEDMULTIPARTYTRANSCRIPT ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_UNTRUSTED_MULTI_PARTY_TRANSCRIPT"
-	PARTICIPATIONINPUTTRUSTSANDBOXSCRIPT ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_SANDBOX_SCRIPT"
-	PARTICIPATIONINPUTTRUSTEXTERNALA2APAYLOAD ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD"
-	PARTICIPATIONINPUTTRUSTTOOLPROVIDERPAYLOAD ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD"
-	PARTICIPATIONINPUTTRUSTWORLDCONTEXT ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_WORLD_CONTEXT"
-	PARTICIPATIONINPUTTRUSTDIAGNOSTICINPUT ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_DIAGNOSTIC_INPUT"
-)
-
-type ParticipationMemoryReadScope string
-
-const (
-	PARTICIPATIONMEMORYREADSCOPEUNSPECIFIED ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_UNSPECIFIED"
-	PARTICIPATIONMEMORYREADSCOPECANONICALOWNERPOLICY ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_CANONICAL_OWNER_POLICY"
-	PARTICIPATIONMEMORYREADSCOPEDYADICPRIVATEALLOWED ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_ALLOWED"
-	PARTICIPATIONMEMORYREADSCOPEDYADICPRIVATEEXCLUDED ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_EXCLUDED"
-	PARTICIPATIONMEMORYREADSCOPEPUBLICSHAREDONLY ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_PUBLIC_SHARED_ONLY"
-	PARTICIPATIONMEMORYREADSCOPEDOMAINSHAREDONLY ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_DOMAIN_SHARED_ONLY"
-	PARTICIPATIONMEMORYREADSCOPENOMEMORYREAD ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ"
-)
-
-type ParticipationMemoryWriteDefault string
-
-const (
-	PARTICIPATIONMEMORYWRITEDEFAULTUNSPECIFIED ParticipationMemoryWriteDefault = "PARTICIPATION_MEMORY_WRITE_DEFAULT_UNSPECIFIED"
-	PARTICIPATIONMEMORYWRITEDEFAULTCANONICALWRITEALLOWED ParticipationMemoryWriteDefault = "PARTICIPATION_MEMORY_WRITE_DEFAULT_CANONICAL_WRITE_ALLOWED"
-	PARTICIPATIONMEMORYWRITEDEFAULTWRITENONE ParticipationMemoryWriteDefault = "PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE"
-	PARTICIPATIONMEMORYWRITEDEFAULTPROMOTIONGATED ParticipationMemoryWriteDefault = "PARTICIPATION_MEMORY_WRITE_DEFAULT_PROMOTION_GATED"
-)
-
-type ParticipationOutputDestination string
-
-const (
-	PARTICIPATIONOUTPUTDESTINATIONUNSPECIFIED ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_UNSPECIFIED"
-	PARTICIPATIONOUTPUTDESTINATIONCANONICALCHAT ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_CANONICAL_CHAT"
-	PARTICIPATIONOUTPUTDESTINATIONREALMGROUPMESSAGECANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_REALM_GROUP_MESSAGE_CANDIDATE"
-	PARTICIPATIONOUTPUTDESTINATIONSCENARIOTURNCANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_SCENARIO_TURN_CANDIDATE"
-	PARTICIPATIONOUTPUTDESTINATIONWORLDEVENTCANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_WORLD_EVENT_CANDIDATE"
-	PARTICIPATIONOUTPUTDESTINATIONEXTERNALREPLYCANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE"
-	PARTICIPATIONOUTPUTDESTINATIONDIAGNOSTICCANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE"
-	PARTICIPATIONOUTPUTDESTINATIONEPHEMERAL ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_EPHEMERAL"
-)
-
-type ParticipationProfileKind string
-
-const (
-	PARTICIPATIONPROFILEKINDUNSPECIFIED ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_UNSPECIFIED"
-	PARTICIPATIONPROFILEKINDCANONICALAGENTCHAT ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_CANONICAL_AGENT_CHAT"
-	PARTICIPATIONPROFILEKINDREALMGROUPAGENT ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT"
-	PARTICIPATIONPROFILEKINDSCENARIOSANDBOX ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_SCENARIO_SANDBOX"
-	PARTICIPATIONPROFILEKINDOASISWORLDPARTICIPATION ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_OASIS_WORLD_PARTICIPATION"
-	PARTICIPATIONPROFILEKINDEXTERNALAGENTENTRY ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY"
-	PARTICIPATIONPROFILEKINDDEBUGORPROBE ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_DEBUG_OR_PROBE"
-)
-
-type ParticipationPromotionPosture string
-
-const (
-	PARTICIPATIONPROMOTIONPOSTUREUNSPECIFIED ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_UNSPECIFIED"
-	PARTICIPATIONPROMOTIONPOSTURENOTALLOWED ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED"
-	PARTICIPATIONPROMOTIONPOSTUREEXPLICITCANDIDATE ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_CANDIDATE"
-	PARTICIPATIONPROMOTIONPOSTUREEXPLICITCOMMITFLOW ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_COMMIT_FLOW"
-	PARTICIPATIONPROMOTIONPOSTUREEXISTINGCANONICALPOLICY ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_EXISTING_CANONICAL_POLICY"
-)
-
-type ParticipationReplayOutcome string
-
-const (
-	PARTICIPATIONREPLAYOUTCOMEUNSPECIFIED ParticipationReplayOutcome = "PARTICIPATION_REPLAY_OUTCOME_UNSPECIFIED"
-	PARTICIPATIONREPLAYOUTCOMECOMPLETED ParticipationReplayOutcome = "PARTICIPATION_REPLAY_OUTCOME_COMPLETED"
-	PARTICIPATIONREPLAYOUTCOMEPARTIALREDACTED ParticipationReplayOutcome = "PARTICIPATION_REPLAY_OUTCOME_PARTIAL_REDACTED"
-	PARTICIPATIONREPLAYOUTCOMEFAILED ParticipationReplayOutcome = "PARTICIPATION_REPLAY_OUTCOME_FAILED"
-)
-
-type ParticipationStatus string
-
-const (
-	PARTICIPATIONSTATUSUNSPECIFIED ParticipationStatus = "PARTICIPATION_STATUS_UNSPECIFIED"
-	PARTICIPATIONSTATUSADMISSIONPENDING ParticipationStatus = "PARTICIPATION_STATUS_ADMISSION_PENDING"
-	PARTICIPATIONSTATUSBLOCKED ParticipationStatus = "PARTICIPATION_STATUS_BLOCKED"
-	PARTICIPATIONSTATUSRUNNING ParticipationStatus = "PARTICIPATION_STATUS_RUNNING"
-	PARTICIPATIONSTATUSCANDIDATEREADY ParticipationStatus = "PARTICIPATION_STATUS_CANDIDATE_READY"
-	PARTICIPATIONSTATUSCOMMITTEDBYOWNER ParticipationStatus = "PARTICIPATION_STATUS_COMMITTED_BY_OWNER"
-	PARTICIPATIONSTATUSFAILED ParticipationStatus = "PARTICIPATION_STATUS_FAILED"
-	PARTICIPATIONSTATUSCANCELED ParticipationStatus = "PARTICIPATION_STATUS_CANCELED"
-)
-
-type ParticipationTranscriptOwner string
-
-const (
-	PARTICIPATIONTRANSCRIPTOWNERUNSPECIFIED ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_UNSPECIFIED"
-	PARTICIPATIONTRANSCRIPTOWNERRUNTIME ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_RUNTIME"
-	PARTICIPATIONTRANSCRIPTOWNERREALM ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_REALM"
-	PARTICIPATIONTRANSCRIPTOWNERSCENARIOMODULE ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_SCENARIO_MODULE"
-	PARTICIPATIONTRANSCRIPTOWNEROASISWORLDDOMAIN ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_OASIS_WORLD_DOMAIN"
-	PARTICIPATIONTRANSCRIPTOWNEREXTERNALDOMAIN ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN"
-	PARTICIPATIONTRANSCRIPTOWNEREPHEMERAL ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_EPHEMERAL"
-)
-
-type ParticipationVerdictDecision string
-
-const (
-	PARTICIPATIONVERDICTDECISIONUNSPECIFIED ParticipationVerdictDecision = "PARTICIPATION_VERDICT_DECISION_UNSPECIFIED"
-	PARTICIPATIONVERDICTDECISIONALLOW ParticipationVerdictDecision = "PARTICIPATION_VERDICT_DECISION_ALLOW"
-	PARTICIPATIONVERDICTDECISIONDENY ParticipationVerdictDecision = "PARTICIPATION_VERDICT_DECISION_DENY"
-)
-
 type PresenceVerificationMethod string
 
 const (
@@ -1286,14 +1124,6 @@ const (
 	PRESENCEVERIFICATIONSTATEREJECTED PresenceVerificationState = "PRESENCE_VERIFICATION_STATE_REJECTED"
 	PRESENCEVERIFICATIONSTATEVERIFIED PresenceVerificationState = "PRESENCE_VERIFICATION_STATE_VERIFIED"
 	PRESENCEVERIFICATIONSTATEUNAVAILABLE PresenceVerificationState = "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"
-)
-
-type RealmGroupMessageCandidateCommitDisposition string
-
-const (
-	REALMGROUPMESSAGECANDIDATECOMMITDISPOSITIONUNSPECIFIED RealmGroupMessageCandidateCommitDisposition = "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_UNSPECIFIED"
-	REALMGROUPMESSAGECANDIDATECOMMITDISPOSITIONMESSAGECANDIDATE RealmGroupMessageCandidateCommitDisposition = "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE"
-	REALMGROUPMESSAGECANDIDATECOMMITDISPOSITIONREFUSALCANDIDATE RealmGroupMessageCandidateCommitDisposition = "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE"
 )
 
 type RealmSourceMaterializationReasonCode string
@@ -2183,22 +2013,6 @@ type AgentProactiveInterruptibilityProjection struct {
 	UnsupportedFields []string `json:"unsupported_fields,omitempty"`
 }
 
-type AgentRecord struct {
-	AgentId string `json:"agent_id,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	LifecycleStatus AgentLifecycleStatus `json:"lifecycle_status,omitempty"`
-	Autonomy *AgentAutonomyState `json:"autonomy,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-	PresentationProfile *AgentPresentationProfile `json:"presentation_profile,omitempty"`
-	PresentationProfileRevision uint64 `json:"presentation_profile_revision,omitempty"`
-	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
-	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
-}
-
 type AgentReplicationEventDetail struct {
 	MemoryId string `json:"memory_id,omitempty"`
 	Replication *MemoryReplicationState `json:"replication,omitempty"`
@@ -2210,11 +2024,6 @@ type AgentRequestContext struct {
 	OwnerUserId string `json:"owner_user_id,omitempty"`
 	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-}
-
-type AgentSlotProjectionBlock struct {
-	AgentId string `json:"agent_id,omitempty"`
-	SlotRef string `json:"slot_ref,omitempty"`
 }
 
 type AgentStateClearDyadicContext struct {
@@ -2576,7 +2385,6 @@ type CancelCompanionParticipationRequest struct {
 	SurfaceKind CompanionParticipationSurfaceKind `json:"surface_kind,omitempty"`
 	TriggerSource CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
 	ProfileRef string `json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string `json:"room_orchestration_ref,omitempty"`
 	ProjectionId string `json:"projection_id,omitempty"`
 	TurnId string `json:"turn_id,omitempty"`
 	Reason string `json:"reason,omitempty"`
@@ -2865,7 +2673,6 @@ type CompanionParticipationProjection struct {
 	AgentId string `json:"agent_id,omitempty"`
 	SurfaceKind CompanionParticipationSurfaceKind `json:"surface_kind,omitempty"`
 	ProfileRef string `json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string `json:"room_orchestration_ref,omitempty"`
 	TriggerSource CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
 	Status CompanionParticipationStatus `json:"status,omitempty"`
 	CandidateRef string `json:"candidate_ref,omitempty"`
@@ -2998,26 +2805,6 @@ type CreateKnowledgeBankRequest struct {
 
 type CreateKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
-}
-
-type CreateRealmGroupMessageCandidateRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	RealmGroupThreadId string `json:"realm_group_thread_id,omitempty"`
-	RuntimeParticipantSlot string `json:"runtime_participant_slot,omitempty"`
-	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
-	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	TriggerRef string `json:"trigger_ref,omitempty"`
-	MembershipSnapshotRef string `json:"membership_snapshot_ref,omitempty"`
-	ReadCursorRef string `json:"read_cursor_ref,omitempty"`
-	ReplyTargetRef string `json:"reply_target_ref,omitempty"`
-	RoomOrchestrationRef string `json:"room_orchestration_ref,omitempty"`
-	IdempotencyKey string `json:"idempotency_key,omitempty"`
-	ContextRefs map[string]string `json:"context_refs,omitempty"`
-}
-
-type CreateRealmGroupMessageCandidateResponse struct {
-	Candidate *RealmGroupMessageCandidateCommitHandle `json:"candidate,omitempty"`
 }
 
 type DecideLocalDevelopmentProjectRequest struct {
@@ -3203,22 +2990,6 @@ type DeleteVoiceAssetResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
 }
 
-type DescribeParticipationContextBlocksRequest struct {
-	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
-}
-
-type DescribeParticipationContextBlocksResponse struct {
-	ContextBlocks []ParticipationContextBlockDescriptor `json:"context_blocks,omitempty"`
-}
-
-type DescribeParticipationProfilesRequest struct {
-
-}
-
-type DescribeParticipationProfilesResponse struct {
-	Profiles []ParticipationProfileDescriptor `json:"profiles,omitempty"`
-}
-
 type DesktopAuditEventProjection struct {
 	AuditId string `json:"audit_id,omitempty"`
 	RequestId string `json:"request_id,omitempty"`
@@ -3231,11 +3002,6 @@ type DesktopAuditEventProjection struct {
 	CallerKind CallerKind `json:"caller_kind,omitempty"`
 }
 
-type DiagnosticProbeRefBlock struct {
-	ProbeId string `json:"probe_id,omitempty"`
-	ProbeKind string `json:"probe_kind,omitempty"`
-}
-
 type DisableAutonomyRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -3244,11 +3010,6 @@ type DisableAutonomyRequest struct {
 
 type DisableAutonomyResponse struct {
 	Autonomy *AgentAutonomyState `json:"autonomy,omitempty"`
-}
-
-type DomainContextRefBlock struct {
-	DomainRef string `json:"domain_ref,omitempty"`
-	TranscriptOwner ParticipationTranscriptOwner `json:"transcript_owner,omitempty"`
 }
 
 type EmbeddingVector struct {
@@ -3324,18 +3085,6 @@ type ExecuteLocalStateCutoverRequest struct {
 type ExecuteLocalStateCutoverResponse struct {
 	Plan *LocalStateReconciliationPlan `json:"plan,omitempty"`
 	Transfer *LocalTransferSessionSummary `json:"transfer,omitempty"`
-}
-
-type ExecuteParticipationRequest struct {
-	Spec *ParticipationRequestSpec `json:"spec,omitempty"`
-}
-
-type ExecuteParticipationResponse struct {
-	ParticipationId string `json:"participation_id,omitempty"`
-	Status ParticipationStatus `json:"status,omitempty"`
-	CandidateRef string `json:"candidate_ref,omitempty"`
-	RefusalReason string `json:"refusal_reason,omitempty"`
-	AuditId string `json:"audit_id,omitempty"`
 }
 
 type ExecuteScenarioRequest struct {
@@ -3472,20 +3221,6 @@ type ExternalAgentTokenRecord struct {
 	Issuer string `json:"issuer,omitempty"`
 }
 
-type ExternalParticipantIdentityRefBlock struct {
-	ExternalParticipantId string `json:"external_participant_id,omitempty"`
-	IdentitySource ParticipationIdentitySource `json:"identity_source,omitempty"`
-}
-
-type ExternalPayloadRefBlock struct {
-	PayloadRef string `json:"payload_ref,omitempty"`
-	ProtocolKind ParticipationExternalProtocolKind `json:"protocol_kind,omitempty"`
-}
-
-type GatewayVerdictRefBlock struct {
-	GatewayVerdictId string `json:"gateway_verdict_id,omitempty"`
-}
-
 type GetAccountSessionStatusRequest struct {
 	Caller *AccountCaller `json:"caller,omitempty"`
 }
@@ -3522,7 +3257,7 @@ type GetAgentRequest struct {
 }
 
 type GetAgentResponse struct {
-	Agent *AgentRecord `json:"agent,omitempty"`
+	Agent *LocalAgentRecord `json:"agent,omitempty"`
 }
 
 type GetAgentStateRequest struct {
@@ -3596,7 +3331,6 @@ type GetCompanionParticipationProjectionRequest struct {
 	SurfaceKind CompanionParticipationSurfaceKind `json:"surface_kind,omitempty"`
 	TriggerSource CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
 	ProfileRef string `json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string `json:"room_orchestration_ref,omitempty"`
 	RequestId string `json:"request_id,omitempty"`
 }
 
@@ -3710,32 +3444,6 @@ type GetPageResponse struct {
 	Page *KnowledgePage `json:"page,omitempty"`
 }
 
-type GetParticipationCandidateRequest struct {
-	ParticipationId string `json:"participation_id,omitempty"`
-}
-
-type GetParticipationCandidateResponse struct {
-	Candidate *ParticipationCandidateRecord `json:"candidate,omitempty"`
-	Status ParticipationStatus `json:"status,omitempty"`
-}
-
-type GetParticipationReplayRequest struct {
-	ParticipationId string `json:"participation_id,omitempty"`
-}
-
-type GetParticipationReplayResponse struct {
-	Replay *ParticipationReplay `json:"replay,omitempty"`
-}
-
-type GetParticipationVerdictsRequest struct {
-	ParticipationId string `json:"participation_id,omitempty"`
-}
-
-type GetParticipationVerdictsResponse struct {
-	Verdicts *ParticipationVerdictSet `json:"verdicts,omitempty"`
-	PolicyVerdictRef string `json:"policy_verdict_ref,omitempty"`
-}
-
 type GetProductControlRecordRequest struct {
 
 }
@@ -3754,23 +3462,6 @@ type GetPublicChatSessionSnapshotRequest struct {
 
 type GetPublicChatSessionSnapshotResponse struct {
 	Snapshot map[string]any `json:"snapshot,omitempty"`
-}
-
-type GetRealmGroupMessageCandidateEvidenceRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	CandidateId string `json:"candidate_id,omitempty"`
-	CandidateKind string `json:"candidate_kind,omitempty"`
-	CandidateEvidenceRef string `json:"candidate_evidence_ref,omitempty"`
-	EvidenceHash string `json:"evidence_hash,omitempty"`
-	RuntimeTraceRef string `json:"runtime_trace_ref,omitempty"`
-	ExpectedRuntimeParticipantSlot string `json:"expected_runtime_participant_slot,omitempty"`
-	ExpectedLocalAgentRef string `json:"expected_local_agent_ref,omitempty"`
-	TriggerRef string `json:"trigger_ref,omitempty"`
-	TargetRealmGroupThreadId string `json:"target_realm_group_thread_id,omitempty"`
-}
-
-type GetRealmGroupMessageCandidateEvidenceResponse struct {
-	Evidence *RealmGroupMessageCandidateEvidence `json:"evidence,omitempty"`
 }
 
 type GetRecommendationFeedRequest struct {
@@ -3965,23 +3656,6 @@ type IngestDocumentResponse struct {
 	TaskId string `json:"task_id,omitempty"`
 	Accepted bool `json:"accepted,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type InitializeAgentRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	AutonomyConfig *AgentAutonomyConfig `json:"autonomy_config,omitempty"`
-	WorldId string `json:"world_id,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
-}
-
-type InitializeAgentResponse struct {
-	Agent *AgentRecord `json:"agent,omitempty"`
-	State *AgentStateProjection `json:"state,omitempty"`
 }
 
 type InspectMemoryEmbeddingRuntimeRequest struct {
@@ -4211,7 +3885,7 @@ type ListAgentsRequest struct {
 }
 
 type ListAgentsResponse struct {
-	Agents []AgentRecord `json:"agents,omitempty"`
+	Agents []LocalAgentRecord `json:"agents,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
@@ -4523,18 +4197,6 @@ type ListPagesResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
-type ListParticipationAuditEventsRequest struct {
-	ParticipationId string `json:"participation_id,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type ListParticipationAuditEventsResponse struct {
-	Events []ParticipationAuditEvent `json:"events,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
-}
-
 type ListPendingHooksRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -4625,6 +4287,21 @@ type ListVoiceAssetsRequest struct {
 type ListVoiceAssetsResponse struct {
 	Assets []VoiceAsset `json:"assets,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+type LocalAgentRecord struct {
+	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	LifecycleStatus AgentLifecycleStatus `json:"lifecycle_status,omitempty"`
+	Autonomy *AgentAutonomyState `json:"autonomy,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	PresentationProfile *AgentPresentationProfile `json:"presentation_profile,omitempty"`
+	PresentationProfileRevision uint64 `json:"presentation_profile_revision,omitempty"`
+	OwnerUserId string `json:"owner_user_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
+	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
 }
 
 type LocalAgentSourceContextStatus struct {
@@ -5732,7 +5409,6 @@ type OpenCompanionParticipationReplayRequest struct {
 	SurfaceKind CompanionParticipationSurfaceKind `json:"surface_kind,omitempty"`
 	TriggerSource CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
 	ProfileRef string `json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string `json:"room_orchestration_ref,omitempty"`
 	ProjectionId string `json:"projection_id,omitempty"`
 	RequestId string `json:"request_id,omitempty"`
 }
@@ -5820,129 +5496,6 @@ type OpenSessionResponse struct {
 	ExpiresAt string `json:"expires_at,omitempty"`
 	SessionToken string `json:"session_token,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type ParticipantProjectionBlock struct {
-	ParticipantRef string `json:"participant_ref,omitempty"`
-	IdentitySource ParticipationIdentitySource `json:"identity_source,omitempty"`
-}
-
-type ParticipationAuditEvent struct {
-	AuditId string `json:"audit_id,omitempty"`
-	ParticipationId string `json:"participation_id,omitempty"`
-	EventKind string `json:"event_kind,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	ActorRef string `json:"actor_ref,omitempty"`
-	ObservedAt string `json:"observed_at,omitempty"`
-}
-
-type ParticipationCandidateRecord struct {
-	ParticipationId string `json:"participation_id,omitempty"`
-	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
-	IdentitySource ParticipationIdentitySource `json:"identity_source,omitempty"`
-	ParticipantRef string `json:"participant_ref,omitempty"`
-	TriggerRef string `json:"trigger_ref,omitempty"`
-	ContextBlockRefs []string `json:"context_block_refs,omitempty"`
-	OutputDestination ParticipationOutputDestination `json:"output_destination,omitempty"`
-	CandidateRef string `json:"candidate_ref,omitempty"`
-	PolicyVerdictRef string `json:"policy_verdict_ref,omitempty"`
-	MemoryReadVerdict *ParticipationVerdict `json:"memory_read_verdict,omitempty"`
-	MemoryWriteVerdict *ParticipationVerdict `json:"memory_write_verdict,omitempty"`
-	CapabilityScopeVerdict *ParticipationVerdict `json:"capability_scope_verdict,omitempty"`
-	AuditId string `json:"audit_id,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-}
-
-type ParticipationContextBlock struct {
-	RuntimeConversationAnchorRef *RuntimeConversationAnchorRefBlock `json:"runtime_conversation_anchor_ref,omitempty"`
-	RealmGroupThreadRef *RealmGroupThreadRefBlock `json:"realm_group_thread_ref,omitempty"`
-	TriggerMessageRef *TriggerMessageRefBlock `json:"trigger_message_ref,omitempty"`
-	ParticipantProjection *ParticipantProjectionBlock `json:"participant_projection,omitempty"`
-	RecentGroupTranscriptProjection *RecentGroupTranscriptProjectionBlock `json:"recent_group_transcript_projection,omitempty"`
-	AgentSlotProjection *AgentSlotProjectionBlock `json:"agent_slot_projection,omitempty"`
-	ScenarioPackageRef *ScenarioPackageRefBlock `json:"scenario_package_ref,omitempty"`
-	ScenarioRunRef *ScenarioRunRefBlock `json:"scenario_run_ref,omitempty"`
-	ScenarioBranchRef *ScenarioBranchRefBlock `json:"scenario_branch_ref,omitempty"`
-	VisibleSceneState *VisibleSceneStateBlock `json:"visible_scene_state,omitempty"`
-	RecentSandboxTranscriptProjection *RecentSandboxTranscriptProjectionBlock `json:"recent_sandbox_transcript_projection,omitempty"`
-	WorldContextRef *WorldContextRefBlock `json:"world_context_ref,omitempty"`
-	WorldEventRef *WorldEventRefBlock `json:"world_event_ref,omitempty"`
-	VisibleWorldStateProjection *VisibleWorldStateProjectionBlock `json:"visible_world_state_projection,omitempty"`
-	RecentWorldTranscriptOrEventProjection *RecentWorldTranscriptOrEventProjectionBlock `json:"recent_world_transcript_or_event_projection,omitempty"`
-	ExternalParticipantIdentityRef *ExternalParticipantIdentityRefBlock `json:"external_participant_identity_ref,omitempty"`
-	ExternalPayloadRef *ExternalPayloadRefBlock `json:"external_payload_ref,omitempty"`
-	GatewayVerdictRef *GatewayVerdictRefBlock `json:"gateway_verdict_ref,omitempty"`
-	DomainContextRef *DomainContextRefBlock `json:"domain_context_ref,omitempty"`
-	ToolOrCapabilityProjection *ToolOrCapabilityProjectionBlock `json:"tool_or_capability_projection,omitempty"`
-	DiagnosticProbeRef *DiagnosticProbeRefBlock `json:"diagnostic_probe_ref,omitempty"`
-}
-
-type ParticipationContextBlockDescriptor struct {
-	BlockKind string `json:"block_kind,omitempty"`
-	AllowedProfileKinds []ParticipationProfileKind `json:"allowed_profile_kinds,omitempty"`
-	RequiredFields []string `json:"required_fields,omitempty"`
-}
-
-type ParticipationProfileDescriptor struct {
-	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
-	TranscriptOwner ParticipationTranscriptOwner `json:"transcript_owner,omitempty"`
-	IdentitySource ParticipationIdentitySource `json:"identity_source,omitempty"`
-	AdditionalIdentitySources []ParticipationIdentitySource `json:"additional_identity_sources,omitempty"`
-	ExecutionOwner ParticipationExecutionOwner `json:"execution_owner,omitempty"`
-	MemoryReadScope ParticipationMemoryReadScope `json:"memory_read_scope,omitempty"`
-	MemoryWriteDefault ParticipationMemoryWriteDefault `json:"memory_write_default,omitempty"`
-	CapabilityScope ParticipationCapabilityScope `json:"capability_scope,omitempty"`
-	InputTrust ParticipationInputTrust `json:"input_trust,omitempty"`
-	AdditionalInputTrust []ParticipationInputTrust `json:"additional_input_trust,omitempty"`
-	OutputDestination ParticipationOutputDestination `json:"output_destination,omitempty"`
-	PromotionPosture ParticipationPromotionPosture `json:"promotion_posture,omitempty"`
-	ExecutionConcurrency ParticipationExecutionConcurrency `json:"execution_concurrency,omitempty"`
-	Posture string `json:"posture,omitempty"`
-}
-
-type ParticipationReplay struct {
-	ReplayId string `json:"replay_id,omitempty"`
-	ParticipationId string `json:"participation_id,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
-	Outcome ParticipationReplayOutcome `json:"outcome,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	Stages []ParticipationReplayStage `json:"stages,omitempty"`
-	Redacted bool `json:"redacted,omitempty"`
-	ObservedAt string `json:"observed_at,omitempty"`
-}
-
-type ParticipationReplayStage struct {
-	StageId string `json:"stage_id,omitempty"`
-	State string `json:"state,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	RedactedSummary string `json:"redacted_summary,omitempty"`
-	ObservedAt string `json:"observed_at,omitempty"`
-}
-
-type ParticipationRequestSpec struct {
-	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	ParticipantRef string `json:"participant_ref,omitempty"`
-	TriggerRef string `json:"trigger_ref,omitempty"`
-	ContextBlocks []ParticipationContextBlock `json:"context_blocks,omitempty"`
-	RequestId string `json:"request_id,omitempty"`
-}
-
-type ParticipationVerdict struct {
-	Decision ParticipationVerdictDecision `json:"decision,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-}
-
-type ParticipationVerdictSet struct {
-	MemoryRead *ParticipationVerdict `json:"memory_read,omitempty"`
-	MemoryWrite *ParticipationVerdict `json:"memory_write,omitempty"`
-	CapabilityScope *ParticipationVerdict `json:"capability_scope,omitempty"`
-	Concurrency *ParticipationVerdict `json:"concurrency,omitempty"`
-	ResolvedMemoryReadScope ParticipationMemoryReadScope `json:"resolved_memory_read_scope,omitempty"`
-	ResolvedMemoryWriteDefault ParticipationMemoryWriteDefault `json:"resolved_memory_write_default,omitempty"`
-	ResolvedCapabilityScope ParticipationCapabilityScope `json:"resolved_capability_scope,omitempty"`
-	ResolvedConcurrency ParticipationExecutionConcurrency `json:"resolved_concurrency,omitempty"`
 }
 
 type PauseLocalTransferRequest struct {
@@ -6113,73 +5666,6 @@ type ReadRealtimeEventsRequest struct {
 	AfterSequence uint64 `json:"after_sequence,omitempty"`
 }
 
-type RealmGroupMessageCandidateCommitHandle struct {
-	CandidateId string `json:"candidate_id,omitempty"`
-	CandidateKind string `json:"candidate_kind,omitempty"`
-	CandidateEvidenceRef string `json:"candidate_evidence_ref,omitempty"`
-	EvidenceHash string `json:"evidence_hash,omitempty"`
-	RuntimeTraceRef string `json:"runtime_trace_ref,omitempty"`
-	RealmGroupThreadId string `json:"realm_group_thread_id,omitempty"`
-	RuntimeParticipantSlot string `json:"runtime_participant_slot,omitempty"`
-	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
-	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	TriggerRef string `json:"trigger_ref,omitempty"`
-	OutputCandidateRef string `json:"output_candidate_ref,omitempty"`
-	AuditLineageRef string `json:"audit_lineage_ref,omitempty"`
-	PolicyVerdictRef string `json:"policy_verdict_ref,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	CommitDisposition RealmGroupMessageCandidateCommitDisposition `json:"commit_disposition,omitempty"`
-	ProfileKind string `json:"profile_kind,omitempty"`
-	IdentitySource string `json:"identity_source,omitempty"`
-	ParticipantRef string `json:"participant_ref,omitempty"`
-	ContextBlockRefs []string `json:"context_block_refs,omitempty"`
-	OutputDestination string `json:"output_destination,omitempty"`
-	MemoryReadVerdict string `json:"memory_read_verdict,omitempty"`
-	MemoryWriteVerdict string `json:"memory_write_verdict,omitempty"`
-	CapabilityScopeVerdict string `json:"capability_scope_verdict,omitempty"`
-	AuditId string `json:"audit_id,omitempty"`
-}
-
-type RealmGroupMessageCandidateEvidence struct {
-	CandidateId string `json:"candidate_id,omitempty"`
-	CandidateKind string `json:"candidate_kind,omitempty"`
-	RealmGroupThreadId string `json:"realm_group_thread_id,omitempty"`
-	RuntimeParticipantSlot string `json:"runtime_participant_slot,omitempty"`
-	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
-	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	TriggerRef string `json:"trigger_ref,omitempty"`
-	OutputCandidateRef string `json:"output_candidate_ref,omitempty"`
-	EvidenceHash string `json:"evidence_hash,omitempty"`
-	RuntimeTraceRef string `json:"runtime_trace_ref,omitempty"`
-	AuditLineageRef string `json:"audit_lineage_ref,omitempty"`
-	PolicyVerdictRef string `json:"policy_verdict_ref,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	CommitDisposition RealmGroupMessageCandidateCommitDisposition `json:"commit_disposition,omitempty"`
-	MessageType string `json:"message_type,omitempty"`
-	Body string `json:"body,omitempty"`
-	BodyHash string `json:"body_hash,omitempty"`
-	RefusalCode string `json:"refusal_code,omitempty"`
-	RefusalReason string `json:"refusal_reason,omitempty"`
-	RefusalHash string `json:"refusal_hash,omitempty"`
-	ProfileKind string `json:"profile_kind,omitempty"`
-	IdentitySource string `json:"identity_source,omitempty"`
-	ParticipantRef string `json:"participant_ref,omitempty"`
-	ContextBlockRefs []string `json:"context_block_refs,omitempty"`
-	OutputDestination string `json:"output_destination,omitempty"`
-	MemoryReadVerdict string `json:"memory_read_verdict,omitempty"`
-	MemoryWriteVerdict string `json:"memory_write_verdict,omitempty"`
-	CapabilityScopeVerdict string `json:"capability_scope_verdict,omitempty"`
-	AuditId string `json:"audit_id,omitempty"`
-}
-
-type RealmGroupThreadRefBlock struct {
-	ThreadId string `json:"thread_id,omitempty"`
-}
-
 type RealtimeAudioChunk struct {
 	Chunk []byte `json:"chunk,omitempty"`
 	MimeType string `json:"mime_type,omitempty"`
@@ -6252,22 +5738,6 @@ type RecallRequest struct {
 type RecallResponse struct {
 	Hits []MemoryRecallHit `json:"hits,omitempty"`
 	NarrativeHits []NarrativeRecallHit `json:"narrative_hits,omitempty"`
-}
-
-type RecentGroupTranscriptProjectionBlock struct {
-	TranscriptRef string `json:"transcript_ref,omitempty"`
-	TrustPosture ParticipationInputTrust `json:"trust_posture,omitempty"`
-}
-
-type RecentSandboxTranscriptProjectionBlock struct {
-	TranscriptRef string `json:"transcript_ref,omitempty"`
-	BranchRef string `json:"branch_ref,omitempty"`
-	TrustPosture ParticipationInputTrust `json:"trust_posture,omitempty"`
-}
-
-type RecentWorldTranscriptOrEventProjectionBlock struct {
-	EventOrTranscriptRef string `json:"event_or_transcript_ref,omitempty"`
-	TrustPosture ParticipationInputTrust `json:"trust_posture,omitempty"`
 }
 
 type ReconcileProductControlFirstRunSetupStateRequest struct {
@@ -6431,7 +5901,6 @@ type RequestCompanionParticipationRequest struct {
 	SurfaceKind CompanionParticipationSurfaceKind `json:"surface_kind,omitempty"`
 	TriggerSource CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
 	ProfileRef string `json:"profile_ref,omitempty"`
-	RoomOrchestrationRef string `json:"room_orchestration_ref,omitempty"`
 	RequestId string `json:"request_id,omitempty"`
 	Text string `json:"text,omitempty"`
 	ThreadId string `json:"thread_id,omitempty"`
@@ -6763,10 +6232,6 @@ type RuntimeBaselineReadinessRef struct {
 	RuntimeAuditSequence []string `json:"runtime_audit_sequence,omitempty"`
 }
 
-type RuntimeConversationAnchorRefBlock struct {
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-}
-
 type RuntimeDurableCloudTargetRef struct {
 	Version string `json:"version,omitempty"`
 	ConnectorId string `json:"connector_id,omitempty"`
@@ -6862,10 +6327,6 @@ type ScenarioArtifact struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
-type ScenarioBranchRefBlock struct {
-	ScenarioBranchId string `json:"scenario_branch_id,omitempty"`
-}
-
 type ScenarioExtension struct {
 	Namespace string `json:"namespace,omitempty"`
 	Payload map[string]any `json:"payload,omitempty"`
@@ -6915,10 +6376,6 @@ type ScenarioOutput struct {
 	WorldGenerate *WorldGenerateResult `json:"world_generate,omitempty"`
 }
 
-type ScenarioPackageRefBlock struct {
-	ScenarioPackageId string `json:"scenario_package_id,omitempty"`
-}
-
 type ScenarioProfile struct {
 	ScenarioType ScenarioType `json:"scenario_type,omitempty"`
 	SupportedExecutionModes []ExecutionMode `json:"supported_execution_modes,omitempty"`
@@ -6934,10 +6391,6 @@ type ScenarioRequestHead struct {
 	TimeoutMs int32 `json:"timeout_ms,omitempty"`
 	ConnectorId string `json:"connector_id,omitempty"`
 	TargetRef *RuntimeDurableTargetRef `json:"target_ref,omitempty"`
-}
-
-type ScenarioRunRefBlock struct {
-	ScenarioRunId string `json:"scenario_run_id,omitempty"`
 }
 
 type ScenarioSpec struct {
@@ -7453,11 +6906,6 @@ type ToolCall struct {
 	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
 
-type ToolOrCapabilityProjectionBlock struct {
-	CapabilityRef string `json:"capability_ref,omitempty"`
-	EffectClass EffectClass `json:"effect_class,omitempty"`
-}
-
 type ToolResult struct {
 	ToolCallId string `json:"tool_call_id,omitempty"`
 	ToolName string `json:"tool_name,omitempty"`
@@ -7491,10 +6939,6 @@ type TraverseGraphRequest struct {
 type TraverseGraphResponse struct {
 	Nodes []KnowledgeGraphNode `json:"nodes,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
-}
-
-type TriggerMessageRefBlock struct {
-	MessageId string `json:"message_id,omitempty"`
 }
 
 type UpdateAgentStateRequest struct {
@@ -7604,17 +7048,6 @@ type UsageStats struct {
 	ReasoningOutputTokens int64 `json:"reasoning_output_tokens,omitempty"`
 }
 
-type ValidateParticipationRequest struct {
-	Spec *ParticipationRequestSpec `json:"spec,omitempty"`
-}
-
-type ValidateParticipationResponse struct {
-	Admitted bool `json:"admitted,omitempty"`
-	Verdicts *ParticipationVerdictSet `json:"verdicts,omitempty"`
-	ResolvedOutputDestination ParticipationOutputDestination `json:"resolved_output_destination,omitempty"`
-	RefusalReason string `json:"refusal_reason,omitempty"`
-}
-
 type VideoContentAudioURL struct {
 	Url string `json:"url,omitempty"`
 }
@@ -7662,14 +7095,6 @@ type VideoGenerationOptions struct {
 	ServiceTier string `json:"service_tier,omitempty"`
 	ExecutionExpiresAfterSec int32 `json:"execution_expires_after_sec,omitempty"`
 	ReturnLastFrame bool `json:"return_last_frame,omitempty"`
-}
-
-type VisibleSceneStateBlock struct {
-	SceneStateRef string `json:"scene_state_ref,omitempty"`
-}
-
-type VisibleWorldStateProjectionBlock struct {
-	WorldStateRef string `json:"world_state_ref,omitempty"`
 }
 
 type VoiceAsset struct {
@@ -7808,18 +7233,10 @@ type WorldCharacterSourceRefV3 struct {
 	SourceHash string `json:"source_hash,omitempty"`
 }
 
-type WorldContextRefBlock struct {
-	WorldContextId string `json:"world_context_id,omitempty"`
-}
-
 type WorldEntityRefV3 struct {
 	Kind WorldEntityRefKindV3 `json:"kind,omitempty"`
 	WorldId string `json:"world_id,omitempty"`
 	EntityId string `json:"entity_id,omitempty"`
-}
-
-type WorldEventRefBlock struct {
-	WorldEventId string `json:"world_event_id,omitempty"`
 }
 
 type WorldGenerateAssetSource struct {
@@ -7978,7 +7395,7 @@ func validateCompanionParticipationProjection(projection *CompanionParticipation
 	if projection == nil {
 		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing")
 	}
-	if projection.ProjectionId == "" || projection.AgentId == "" || projection.ProfileRef == "" || projection.RoomOrchestrationRef == "" || projection.AuditRef == "" || projection.ConversationAnchorId == "" {
+	if projection.ProjectionId == "" || projection.AgentId == "" || projection.ProfileRef == "" || projection.AuditRef == "" || projection.ConversationAnchorId == "" {
 		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing required refs")
 	}
 	switch projection.SurfaceKind {
@@ -8119,30 +7536,6 @@ func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRe
 	return decodeRuntimeTypedResponse[CancelHookResponse](raw, "CancelHookResponse")
 }
 
-func (c RuntimeTypedClient) CreateRealmGroupMessageCandidate(ctx context.Context, request CreateRealmGroupMessageCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateRealmGroupMessageCandidateResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", request, metadata, timeoutMS)
-	if err != nil {
-		return CreateRealmGroupMessageCandidateResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CreateRealmGroupMessageCandidateResponse](raw, "CreateRealmGroupMessageCandidateResponse")
-}
-
-func (c RuntimeTypedClient) DescribeParticipationContextBlocks(ctx context.Context, request DescribeParticipationContextBlocksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DescribeParticipationContextBlocksResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks", request, metadata, timeoutMS)
-	if err != nil {
-		return DescribeParticipationContextBlocksResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DescribeParticipationContextBlocksResponse](raw, "DescribeParticipationContextBlocksResponse")
-}
-
-func (c RuntimeTypedClient) DescribeParticipationProfiles(ctx context.Context, request DescribeParticipationProfilesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DescribeParticipationProfilesResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles", request, metadata, timeoutMS)
-	if err != nil {
-		return DescribeParticipationProfilesResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DescribeParticipationProfilesResponse](raw, "DescribeParticipationProfilesResponse")
-}
-
 func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request DisableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DisableAutonomyResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", request, metadata, timeoutMS)
 	if err != nil {
@@ -8157,14 +7550,6 @@ func (c RuntimeTypedClient) EnableAutonomy(ctx context.Context, request EnableAu
 		return EnableAutonomyResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[EnableAutonomyResponse](raw, "EnableAutonomyResponse")
-}
-
-func (c RuntimeTypedClient) ExecuteParticipation(ctx context.Context, request ExecuteParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteParticipationResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation", request, metadata, timeoutMS)
-	if err != nil {
-		return ExecuteParticipationResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ExecuteParticipationResponse](raw, "ExecuteParticipationResponse")
 }
 
 func (c RuntimeTypedClient) GetAgent(ctx context.Context, request GetAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentResponse, error) {
@@ -8247,44 +7632,12 @@ func (c RuntimeTypedClient) GetDelegatedReplayTrace(ctx context.Context, request
 	return decodeRuntimeTypedResponse[GetDelegatedReplayTraceResponse](raw, "GetDelegatedReplayTraceResponse")
 }
 
-func (c RuntimeTypedClient) GetParticipationCandidate(ctx context.Context, request GetParticipationCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationCandidateResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate", request, metadata, timeoutMS)
-	if err != nil {
-		return GetParticipationCandidateResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetParticipationCandidateResponse](raw, "GetParticipationCandidateResponse")
-}
-
-func (c RuntimeTypedClient) GetParticipationReplay(ctx context.Context, request GetParticipationReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationReplayResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay", request, metadata, timeoutMS)
-	if err != nil {
-		return GetParticipationReplayResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetParticipationReplayResponse](raw, "GetParticipationReplayResponse")
-}
-
-func (c RuntimeTypedClient) GetParticipationVerdicts(ctx context.Context, request GetParticipationVerdictsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationVerdictsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts", request, metadata, timeoutMS)
-	if err != nil {
-		return GetParticipationVerdictsResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetParticipationVerdictsResponse](raw, "GetParticipationVerdictsResponse")
-}
-
 func (c RuntimeTypedClient) GetPublicChatSessionSnapshot(ctx context.Context, request GetPublicChatSessionSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPublicChatSessionSnapshotResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", request, metadata, timeoutMS)
 	if err != nil {
 		return GetPublicChatSessionSnapshotResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetPublicChatSessionSnapshotResponse](raw, "GetPublicChatSessionSnapshotResponse")
-}
-
-func (c RuntimeTypedClient) GetRealmGroupMessageCandidateEvidence(ctx context.Context, request GetRealmGroupMessageCandidateEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRealmGroupMessageCandidateEvidenceResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence", request, metadata, timeoutMS)
-	if err != nil {
-		return GetRealmGroupMessageCandidateEvidenceResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetRealmGroupMessageCandidateEvidenceResponse](raw, "GetRealmGroupMessageCandidateEvidenceResponse")
 }
 
 func (c RuntimeTypedClient) GetRuntimeAgentAIConfig(ctx context.Context, request GetRuntimeAgentAIConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRuntimeAgentAIConfigResponse, error) {
@@ -8301,14 +7654,6 @@ func (c RuntimeTypedClient) GetRuntimeAgentAIConfigReadiness(ctx context.Context
 		return GetRuntimeAgentAIConfigReadinessResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetRuntimeAgentAIConfigReadinessResponse](raw, "GetRuntimeAgentAIConfigReadinessResponse")
-}
-
-func (c RuntimeTypedClient) InitializeAgent(ctx context.Context, request InitializeAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InitializeAgentResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return InitializeAgentResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[InitializeAgentResponse](raw, "InitializeAgentResponse")
 }
 
 func (c RuntimeTypedClient) InterruptAgentVoicePlayback(ctx context.Context, request InterruptAgentVoicePlaybackRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptAgentVoicePlaybackResponse, error) {
@@ -8365,14 +7710,6 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 		return ListDelegatedProviderProfilesResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListDelegatedProviderProfilesResponse](raw, "ListDelegatedProviderProfilesResponse")
-}
-
-func (c RuntimeTypedClient) ListParticipationAuditEvents(ctx context.Context, request ListParticipationAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListParticipationAuditEventsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents", request, metadata, timeoutMS)
-	if err != nil {
-		return ListParticipationAuditEventsResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListParticipationAuditEventsResponse](raw, "ListParticipationAuditEventsResponse")
 }
 
 func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPendingHooksResponse, error) {
@@ -8533,14 +7870,6 @@ func (c RuntimeTypedClient) UpsertRuntimeAgentAIConfig(ctx context.Context, requ
 		return UpsertRuntimeAgentAIConfigResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UpsertRuntimeAgentAIConfigResponse](raw, "UpsertRuntimeAgentAIConfigResponse")
-}
-
-func (c RuntimeTypedClient) ValidateParticipation(ctx context.Context, request ValidateParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ValidateParticipationResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation", request, metadata, timeoutMS)
-	if err != nil {
-		return ValidateParticipationResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ValidateParticipationResponse](raw, "ValidateParticipationResponse")
 }
 
 func (c RuntimeTypedClient) WriteAgentMemory(ctx context.Context, request WriteAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteAgentMemoryResponse, error) {
@@ -9951,10 +9280,6 @@ type AddGroupParticipantInputDto struct {
 	AccountId string `json:"accountId,omitempty"`
 }
 
-type AddGroupSourceParticipantInputDto struct {
-	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
-}
-
 type AssetDetailDto struct {
 	AuthorId string `json:"authorId,omitempty"`
 	ClonePolicy string `json:"clonePolicy,omitempty"`
@@ -10402,30 +9727,6 @@ type CloneAssetDto struct {
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
 }
 
-type CommitRealmGroupSourceMessageCandidateInputDto struct {
-	AuditLineageRef string `json:"auditLineageRef,omitempty"`
-	Body string `json:"body,omitempty"`
-	BodyHash string `json:"bodyHash,omitempty"`
-	CandidateEvidenceRef string `json:"candidateEvidenceRef,omitempty"`
-	CandidateId string `json:"candidateId,omitempty"`
-	CandidateKind string `json:"candidateKind,omitempty"`
-	CommitDisposition string `json:"commitDisposition,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	EvidenceHash string `json:"evidenceHash,omitempty"`
-	ExpectedRuntimeParticipantSlotId string `json:"expectedRuntimeParticipantSlotId,omitempty"`
-	ExpectedRuntimeSourceRef string `json:"expectedRuntimeSourceRef,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	IdempotencyKey string `json:"idempotencyKey,omitempty"`
-	MessageType string `json:"messageType,omitempty"`
-	OutputCandidateRef string `json:"outputCandidateRef,omitempty"`
-	PolicyVerdictRef string `json:"policyVerdictRef,omitempty"`
-	RefusalCode string `json:"refusalCode,omitempty"`
-	RefusalHash string `json:"refusalHash,omitempty"`
-	RefusalReason string `json:"refusalReason,omitempty"`
-	RuntimeTraceRef string `json:"runtimeTraceRef,omitempty"`
-	TriggerEvidence *GroupSourceTriggerEvidenceDto `json:"triggerEvidence,omitempty"`
-}
-
 type ConnectDashboardLinkDto struct {
 	Url string `json:"url,omitempty"`
 }
@@ -10834,10 +10135,6 @@ type GroupMessageAuthorDto struct {
 	AccountId string `json:"accountId,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
-	RuntimeParticipantSlot string `json:"runtimeParticipantSlot,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
-	SourceAuthorityAccountId string `json:"sourceAuthorityAccountId,omitempty"`
-	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
 	Type string `json:"type,omitempty"`
 }
 
@@ -10864,23 +10161,7 @@ type GroupParticipantDto struct {
 	IsOnline bool `json:"isOnline,omitempty"`
 	JoinedAt string `json:"joinedAt,omitempty"`
 	Role string `json:"role,omitempty"`
-	RuntimeParticipantSlot string `json:"runtimeParticipantSlot,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
-	SourceAuthorityAccountId string `json:"sourceAuthorityAccountId,omitempty"`
-	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
 	Type string `json:"type,omitempty"`
-}
-
-type GroupSourceRefDto struct {
-
-}
-
-type GroupSourceTriggerEvidenceDto struct {
-	ActorId string `json:"actorId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	MessageId string `json:"messageId,omitempty"`
-	TriggerRef string `json:"triggerRef,omitempty"`
 }
 
 type HandleAvailabilityDto struct {
@@ -11492,12 +10773,6 @@ type RealmCoreOriginDto struct {
 	SourceContentHash string `json:"sourceContentHash,omitempty"`
 	SourceId string `json:"sourceId,omitempty"`
 	SourceVersion string `json:"sourceVersion,omitempty"`
-}
-
-type RealmGroupMessageCandidateCommitResultDto struct {
-	CandidateId string `json:"candidateId,omitempty"`
-	Message *GroupMessageViewDto `json:"message,omitempty"`
-	Status string `json:"status,omitempty"`
 }
 
 type RealmSourceCapabilitiesDto struct {
@@ -12952,25 +12227,6 @@ type RealmAddGroupParticipantOperationRequest struct {
 	Body    AddGroupParticipantInputDto `json:"body,omitempty"`
 }
 
-type RealmAddGroupSourceParticipantOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmAddGroupSourceParticipantOperationQuery struct {
-
-}
-
-type RealmAddGroupSourceParticipantOperationHeaders struct {
-
-}
-
-type RealmAddGroupSourceParticipantOperationRequest struct {
-	Path    RealmAddGroupSourceParticipantOperationPath `json:"path,omitempty"`
-	Query   RealmAddGroupSourceParticipantOperationQuery `json:"query,omitempty"`
-	Headers RealmAddGroupSourceParticipantOperationHeaders `json:"headers,omitempty"`
-	Body    AddGroupSourceParticipantInputDto `json:"body,omitempty"`
-}
-
 type RealmArchiveBundleOperationPath struct {
 	BundleId string `json:"bundleId,omitempty"`
 }
@@ -13121,25 +12377,6 @@ type RealmCloneAssetOperationRequest struct {
 	Query   RealmCloneAssetOperationQuery `json:"query,omitempty"`
 	Headers RealmCloneAssetOperationHeaders `json:"headers,omitempty"`
 	Body    CloneAssetDto `json:"body,omitempty"`
-}
-
-type RealmCommitRealmGroupSourceMessageCandidateOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmCommitRealmGroupSourceMessageCandidateOperationQuery struct {
-
-}
-
-type RealmCommitRealmGroupSourceMessageCandidateOperationHeaders struct {
-
-}
-
-type RealmCommitRealmGroupSourceMessageCandidateOperationRequest struct {
-	Path    RealmCommitRealmGroupSourceMessageCandidateOperationPath `json:"path,omitempty"`
-	Query   RealmCommitRealmGroupSourceMessageCandidateOperationQuery `json:"query,omitempty"`
-	Headers RealmCommitRealmGroupSourceMessageCandidateOperationHeaders `json:"headers,omitempty"`
-	Body    CommitRealmGroupSourceMessageCandidateInputDto `json:"body,omitempty"`
 }
 
 type RealmCreateAssetOperationPath struct {
@@ -15383,26 +14620,6 @@ type RealmRemoveGroupParticipantOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmRemoveGroupSourceParticipantOperationPath struct {
-	RuntimeParticipantSlotId string `json:"runtimeParticipantSlotId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmRemoveGroupSourceParticipantOperationQuery struct {
-
-}
-
-type RealmRemoveGroupSourceParticipantOperationHeaders struct {
-
-}
-
-type RealmRemoveGroupSourceParticipantOperationRequest struct {
-	Path    RealmRemoveGroupSourceParticipantOperationPath `json:"path,omitempty"`
-	Query   RealmRemoveGroupSourceParticipantOperationQuery `json:"query,omitempty"`
-	Headers RealmRemoveGroupSourceParticipantOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmReportControllerCreateReportOperationPath struct {
 
 }
@@ -16957,14 +16174,6 @@ func (c RealmTypedClient) AddGroupParticipant(ctx context.Context, request Realm
 	return decodeTypedResponse[GroupParticipantDto](raw)
 }
 
-func (c RealmTypedClient) AddGroupSourceParticipant(ctx context.Context, request RealmAddGroupSourceParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupParticipantDto, error) {
-	raw, err := c.operationTyped(ctx, "addGroupSourceParticipant", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupParticipantDto{}, err
-	}
-	return decodeTypedResponse[GroupParticipantDto](raw)
-}
-
 func (c RealmTypedClient) ArchiveBundle(ctx context.Context, request RealmArchiveBundleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BundleDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "archiveBundle", request, metadata, timeoutMS)
 	if err != nil {
@@ -17027,14 +16236,6 @@ func (c RealmTypedClient) CloneAsset(ctx context.Context, request RealmCloneAsse
 		return AssetDetailDto{}, err
 	}
 	return decodeTypedResponse[AssetDetailDto](raw)
-}
-
-func (c RealmTypedClient) CommitRealmGroupSourceMessageCandidate(ctx context.Context, request RealmCommitRealmGroupSourceMessageCandidateOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmGroupMessageCandidateCommitResultDto, error) {
-	raw, err := c.operationTyped(ctx, "commitRealmGroupSourceMessageCandidate", request, metadata, timeoutMS)
-	if err != nil {
-		return RealmGroupMessageCandidateCommitResultDto{}, err
-	}
-	return decodeTypedResponse[RealmGroupMessageCandidateCommitResultDto](raw)
 }
 
 func (c RealmTypedClient) CreateAsset(ctx context.Context, request RealmCreateAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
@@ -17951,14 +17152,6 @@ func (c RealmTypedClient) RemoveFriend(ctx context.Context, request RealmRemoveF
 
 func (c RealmTypedClient) RemoveGroupParticipant(ctx context.Context, request RealmRemoveGroupParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "removeGroupParticipant", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) RemoveGroupSourceParticipant(ctx context.Context, request RealmRemoveGroupSourceParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "removeGroupSourceParticipant", request, metadata, timeoutMS)
 	if err != nil {
 		return struct{}{}, err
 	}

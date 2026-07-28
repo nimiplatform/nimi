@@ -80,11 +80,11 @@ func resolveModelCatalogCustomDir(fileCfg FileConfig) string {
 	return filepath.Join(home, defaultModelCatalogCustomRelPath)
 }
 
-func resolveAppRegistryPath(fileCfg FileConfig) string {
-	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_APP_REGISTRY_PATH")); value != "" {
+func resolveAppIdentityProjectionPath(fileCfg FileConfig) string {
+	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_APP_IDENTITY_PROJECTION_PATH")); value != "" {
 		return expandUserPath(value)
 	}
-	if value := strings.TrimSpace(fileCfg.AppRegistryPath); value != "" {
+	if value := strings.TrimSpace(fileCfg.AppIdentityProjectionPath); value != "" {
 		return expandUserPath(value)
 	}
 	return ""

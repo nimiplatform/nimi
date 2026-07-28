@@ -8,17 +8,33 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func testLocalAgentContext(ownerUserID string, runtimeSourceRef string) *runtimev1.AgentRequestContext {
+	fixtureKey := runtimeSourceRef
+	canonicalRuntimeSourceRef := testRuntimeAgentSourceRef(fixtureKey)
 	return &runtimev1.AgentRequestContext{
 		AppId:            "runtime-agent-boundary-test",
 		SubjectUserId:    ownerUserID,
 		OwnerUserId:      ownerUserID,
-		RuntimeSourceRef: runtimeSourceRef,
-		LocalAgentRef:    testOpaqueLocalAgentRef(ownerUserID, runtimeSourceRef),
+		RuntimeSourceRef: canonicalRuntimeSourceRef,
+		LocalAgentRef:    testOpaqueLocalAgentRef(ownerUserID, fixtureKey),
 	}
+}
+
+func testRuntimeAgentSourceRef(_ string) string {
+	verifiedSourceRef := sourceMaterializationCharacterSourceRefV3{
+		Kind:           "personaCharacter",
+		ID:             "persona-materialization-v3",
+		WorldID:        "world-materialization-v3",
+		OwnerAccountID: "source-owner-1",
+		SourceHash:     "4a96c360850c8434b1144e127c04eee19e12acfdff18958f640a6c905a97b98c",
+	}
+	canonicalRuntimeSourceRef, err := runtimeSourceRefForRealmSourceV3(verifiedSourceRef)
+	if err != nil {
+		panic(err)
+	}
+	return canonicalRuntimeSourceRef
 }
 
 func testRuntimeAgentIdentityContext(runtimeSourceRef string) *runtimev1.AgentRequestContext {
@@ -37,18 +53,17 @@ func testOpaqueLocalAgentRef(ownerUserID string, runtimeSourceRef string) string
 	return runtimeGeneratedLocalAgentRefPrefix + digest[:32]
 }
 
-func testInitializeLocalAgent(t *testing.T, svc *Service, ownerUserID string, runtimeSourceRef string) string {
+func testMaterializeLocalAgent(t *testing.T, svc *Service, ownerUserID string, runtimeSourceRef string) string {
 	t.Helper()
 	ctx := testLocalAgentContext(ownerUserID, runtimeSourceRef)
-	resp, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	resp, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context:          ctx,
 		LocalAgentRef:    ctx.GetLocalAgentRef(),
 		OwnerUserId:      ownerUserID,
 		RuntimeSourceRef: runtimeSourceRef,
-		DisplayName:      ownerUserID + " local fork",
 	})
 	if err != nil {
-		t.Fatalf("InitializeAgent(%s,%s): %v", ownerUserID, runtimeSourceRef, err)
+		t.Fatalf("RealmSourceMaterialization(%s,%s): %v", ownerUserID, runtimeSourceRef, err)
 	}
 	if resp.GetAgent().GetLocalAgentRef() != ctx.GetLocalAgentRef() {
 		t.Fatalf("local_agent_ref mismatch: got %q want %q", resp.GetAgent().GetLocalAgentRef(), ctx.GetLocalAgentRef())
@@ -61,8 +76,8 @@ func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRuntimeSource(t *testi
 
 	svc := newRuntimeAgentTestService(t)
 	runtimeSourceRef := "runtime-source-shared"
-	userALocalRef := testInitializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
-	userBLocalRef := testInitializeLocalAgent(t, svc, "user-b", runtimeSourceRef)
+	userALocalRef := testMaterializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
+	userBLocalRef := testMaterializeLocalAgent(t, svc, "user-b", runtimeSourceRef)
 	if userALocalRef == userBLocalRef {
 		t.Fatalf("expected distinct local refs for two owners, got %q", userALocalRef)
 	}
@@ -98,7 +113,7 @@ func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRuntimeSource(t *testi
 		Context:          ctxA,
 		LocalAgentRef:    userALocalRef,
 		OwnerUserId:      "user-a",
-		RuntimeSourceRef: runtimeSourceRef,
+		RuntimeSourceRef: ctxA.GetRuntimeSourceRef(),
 		SubjectUserId:    "user-a",
 	})
 	if err != nil {
@@ -108,7 +123,7 @@ func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRuntimeSource(t *testi
 		Context:          ctxB,
 		LocalAgentRef:    userBLocalRef,
 		OwnerUserId:      "user-b",
-		RuntimeSourceRef: runtimeSourceRef,
+		RuntimeSourceRef: ctxB.GetRuntimeSourceRef(),
 		SubjectUserId:    "user-b",
 	})
 	if err != nil {
@@ -147,45 +162,6 @@ func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRuntimeSource(t *testi
 	}
 }
 
-func TestInitializeAgentRejectsRealmSourceAndRetiredPacketMetadata(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	realmSourceRef := "runtime-source:worldCharacter:world-1:character-1:hash-1"
-	realmContext := testLocalAgentContext("user-a", realmSourceRef)
-	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          realmContext,
-		LocalAgentRef:    realmContext.GetLocalAgentRef(),
-		OwnerUserId:      "user-a",
-		RuntimeSourceRef: realmSourceRef,
-	})
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("Realm source InitializeAgent status = %s, want FailedPrecondition (%v)", status.Code(err), err)
-	}
-
-	ordinarySourceRef := "runtime-source-local-fixture"
-	ordinaryContext := testLocalAgentContext("user-a", ordinarySourceRef)
-	metadata, metadataErr := structpb.NewStruct(map[string]any{
-		"sourceMaterializationPacket": map[string]any{"packetSchemaVersion": "retired"},
-	})
-	if metadataErr != nil {
-		t.Fatalf("build retired packet metadata: %v", metadataErr)
-	}
-	_, err = svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          ordinaryContext,
-		LocalAgentRef:    ordinaryContext.GetLocalAgentRef(),
-		OwnerUserId:      "user-a",
-		RuntimeSourceRef: ordinarySourceRef,
-		Metadata:         metadata,
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("retired packet metadata status = %s, want InvalidArgument (%v)", status.Code(err), err)
-	}
-	if _, getErr := svc.GetAgent(context.Background(), &runtimev1.GetAgentRequest{Context: ordinaryContext}); status.Code(getErr) != codes.NotFound {
-		t.Fatalf("retired packet metadata created an agent: %v", getErr)
-	}
-}
-
 func TestRuntimeAgentLocalAgentIdentityNegativeGates(t *testing.T) {
 	t.Parallel()
 
@@ -213,56 +189,12 @@ func TestRuntimeAgentLocalAgentIdentityNegativeGates(t *testing.T) {
 	}
 }
 
-func TestInitializeAgentIdempotencyRejectsExistingIdentityMismatch(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	runtimeSourceRef := "runtime-source-existing-idempotency"
-	localRef := testInitializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
-
-	ownerMismatchCtx := &runtimev1.AgentRequestContext{
-		AppId:            "runtime-agent-boundary-test",
-		SubjectUserId:    "user-b",
-		OwnerUserId:      "user-b",
-		RuntimeSourceRef: runtimeSourceRef,
-		LocalAgentRef:    localRef,
-	}
-	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          ownerMismatchCtx,
-		LocalAgentRef:    localRef,
-		OwnerUserId:      "user-b",
-		RuntimeSourceRef: runtimeSourceRef,
-		DisplayName:      "owner mismatch",
-	})
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("owner mismatch status = %s, want %s (%v)", status.Code(err), codes.FailedPrecondition, err)
-	}
-
-	runtimeSourceMismatchCtx := &runtimev1.AgentRequestContext{
-		AppId:            "runtime-agent-boundary-test",
-		SubjectUserId:    "user-a",
-		OwnerUserId:      "user-a",
-		RuntimeSourceRef: "runtime-source-other",
-		LocalAgentRef:    localRef,
-	}
-	_, err = svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          runtimeSourceMismatchCtx,
-		LocalAgentRef:    localRef,
-		OwnerUserId:      "user-a",
-		RuntimeSourceRef: "runtime-source-other",
-		DisplayName:      "source mismatch",
-	})
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("runtime source mismatch status = %s, want %s (%v)", status.Code(err), codes.FailedPrecondition, err)
-	}
-}
-
 func TestRuntimeAgentConversationAnchorRejectsOwnerMismatch(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
 	runtimeSourceRef := "runtime-source-anchor"
-	localRef := testInitializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
+	localRef := testMaterializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
 	_, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
 		Context:          testLocalAgentContext("user-a", runtimeSourceRef),
 		LocalAgentRef:    localRef,

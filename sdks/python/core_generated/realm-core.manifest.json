@@ -12,7 +12,6 @@
     ".nimi/spec/sdks/realm-consumer.authority.yaml"
   ],
   "provenance": {
-    "source_rule": "S-SURFACE-019",
     "notes": [
       "Realm core operation truth is derived from Realm OpenAPI when available.",
       "Configured Realm OpenAPI absence is fail-closed by the SDK generator; spec tables are not REST schema fallback authority."
@@ -123,75 +122,6 @@
         "ref_name": "AddGroupParticipantInputDto"
       },
       "request_schema_ref": "#/components/schemas/AddGroupParticipantInputDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/GroupParticipantDto",
-            "ref_name": "GroupParticipantDto"
-          },
-          "schema_ref": "#/components/schemas/GroupParticipantDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/GroupParticipantDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "addGroupSourceParticipant",
-      "method": "POST",
-      "path": "/api/human/group-chats/{chatId}/source-participants",
-      "service": "Group Chats",
-      "tags": [
-        "Group Chats"
-      ],
-      "parameters": [
-        {
-          "name": "chatId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "chatId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/AddGroupSourceParticipantInputDto",
-        "ref_name": "AddGroupSourceParticipantInputDto"
-      },
-      "request_schema_ref": "#/components/schemas/AddGroupSourceParticipantInputDto",
       "request_content_type": "application/json",
       "response_schemas": [
         {
@@ -583,75 +513,6 @@
         {
           "status": "201",
           "schema_ref": "#/components/schemas/AssetDetailDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "commitRealmGroupSourceMessageCandidate",
-      "method": "POST",
-      "path": "/api/human/group-chats/{chatId}/source-message-candidate-commits",
-      "service": "Group Chats",
-      "tags": [
-        "Group Chats"
-      ],
-      "parameters": [
-        {
-          "name": "chatId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "chatId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/CommitRealmGroupSourceMessageCandidateInputDto",
-        "ref_name": "CommitRealmGroupSourceMessageCandidateInputDto"
-      },
-      "request_schema_ref": "#/components/schemas/CommitRealmGroupSourceMessageCandidateInputDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RealmGroupMessageCandidateCommitResultDto",
-            "ref_name": "RealmGroupMessageCandidateCommitResultDto"
-          },
-          "schema_ref": "#/components/schemas/RealmGroupMessageCandidateCommitResultDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/RealmGroupMessageCandidateCommitResultDto"
         }
       ]
     },
@@ -8923,88 +8784,6 @@
       "response_schema_refs": []
     },
     {
-      "operation_id": "removeGroupSourceParticipant",
-      "method": "DELETE",
-      "path": "/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}",
-      "service": "Group Chats",
-      "tags": [
-        "Group Chats"
-      ],
-      "parameters": [
-        {
-          "name": "runtimeParticipantSlotId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "chatId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "runtimeParticipantSlotId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "chatId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
-    },
-    {
       "operation_id": "ReportController_createReport",
       "method": "POST",
       "path": "/api/reports",
@@ -15202,12 +14981,6 @@
       "path": "/api/human/group-chats/{chatId}/participants"
     },
     {
-      "operation_id": "addGroupSourceParticipant",
-      "service": "Group Chats",
-      "method": "POST",
-      "path": "/api/human/group-chats/{chatId}/source-participants"
-    },
-    {
       "operation_id": "archiveBundle",
       "service": "Bundles",
       "method": "POST",
@@ -15254,12 +15027,6 @@
       "service": "Assets",
       "method": "POST",
       "path": "/api/assets/{assetId}/clone"
-    },
-    {
-      "operation_id": "commitRealmGroupSourceMessageCandidate",
-      "service": "Group Chats",
-      "method": "POST",
-      "path": "/api/human/group-chats/{chatId}/source-message-candidate-commits"
     },
     {
       "operation_id": "createAsset",
@@ -15952,12 +15719,6 @@
       "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
     },
     {
-      "operation_id": "removeGroupSourceParticipant",
-      "service": "Group Chats",
-      "method": "DELETE",
-      "path": "/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"
-    },
-    {
       "operation_id": "ReportController_createReport",
       "service": "Governance",
       "method": "POST",
@@ -16523,8 +16284,6 @@
       "name": "Group Chats",
       "operation_ids": [
         "addGroupParticipant",
-        "addGroupSourceParticipant",
-        "commitRealmGroupSourceMessageCandidate",
         "createGroup",
         "editGroupMessage",
         "getGroup",
@@ -16533,7 +16292,6 @@
         "markGroupRead",
         "recallGroupMessage",
         "removeGroupParticipant",
-        "removeGroupSourceParticipant",
         "sendGroupMessage",
         "syncGroupEvents",
         "updateGroup",
@@ -16781,9 +16539,6 @@
       "name": "AddGroupParticipantInputDto"
     },
     {
-      "name": "AddGroupSourceParticipantInputDto"
-    },
-    {
       "name": "AssetDetailDto"
     },
     {
@@ -16949,9 +16704,6 @@
       "name": "CloneAssetDto"
     },
     {
-      "name": "CommitRealmGroupSourceMessageCandidateInputDto"
-    },
-    {
       "name": "ConnectDashboardLinkDto"
     },
     {
@@ -17097,12 +16849,6 @@
     },
     {
       "name": "GroupParticipantDto"
-    },
-    {
-      "name": "GroupSourceRefDto"
-    },
-    {
-      "name": "GroupSourceTriggerEvidenceDto"
     },
     {
       "name": "HandleAvailabilityDto"
@@ -17331,9 +17077,6 @@
     },
     {
       "name": "RealmCoreOriginDto"
-    },
-    {
-      "name": "RealmGroupMessageCandidateCommitResultDto"
     },
     {
       "name": "RealmSourceCapabilitiesDto"
@@ -17890,28 +17633,6 @@
         ],
         "required_properties": [
           "accountId"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "AddGroupSourceParticipantInputDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "sourceRef",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/GroupSourceRefDto",
-              "ref_name": "GroupSourceRefDto"
-            }
-          }
-        ],
-        "required_properties": [
-          "sourceRef"
         ],
         "closed": false,
         "additional_properties": null
@@ -23009,314 +22730,6 @@
           }
         ],
         "required_properties": [],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "CommitRealmGroupSourceMessageCandidateInputDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "auditLineageRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "body",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "bodyHash",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "candidateEvidenceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "candidateId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "candidateKind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "REALM_GROUP_MESSAGE_CANDIDATE"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "commitDisposition",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "MESSAGE_CANDIDATE",
-                "REFUSAL_CANDIDATE"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "createdAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "evidenceHash",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "expectedRuntimeParticipantSlotId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "expectedRuntimeSourceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "expiresAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "idempotencyKey",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "messageType",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "TEXT"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "outputCandidateRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "policyVerdictRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "refusalCode",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "refusalHash",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "refusalReason",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "runtimeTraceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "triggerEvidence",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/GroupSourceTriggerEvidenceDto",
-              "ref_name": "GroupSourceTriggerEvidenceDto"
-            }
-          }
-        ],
-        "required_properties": [
-          "candidateId",
-          "candidateKind",
-          "candidateEvidenceRef",
-          "evidenceHash",
-          "runtimeTraceRef",
-          "expectedRuntimeParticipantSlotId",
-          "expectedRuntimeSourceRef",
-          "triggerEvidence",
-          "outputCandidateRef",
-          "auditLineageRef",
-          "policyVerdictRef",
-          "createdAt",
-          "expiresAt",
-          "commitDisposition",
-          "idempotencyKey"
-        ],
         "closed": false,
         "additional_properties": null
       }
@@ -30349,68 +29762,12 @@
             }
           },
           {
-            "name": "runtimeParticipantSlot",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "runtimeSourceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "sourceAuthorityAccountId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "sourceRef",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/GroupSourceRefDto",
-              "ref_name": "GroupSourceRefDto",
-              "nullable": true
-            }
-          },
-          {
             "name": "type",
             "required": true,
             "schema": {
               "kind": "enum",
               "values": [
-                "human",
-                "source"
+                "human"
               ],
               "type": "string"
             }
@@ -30420,11 +29777,7 @@
           "type",
           "accountId",
           "displayName",
-          "avatarUrl",
-          "sourceAuthorityAccountId",
-          "runtimeParticipantSlot",
-          "sourceRef",
-          "runtimeSourceRef"
+          "avatarUrl"
         ],
         "closed": false,
         "additional_properties": null
@@ -30754,68 +30107,12 @@
             }
           },
           {
-            "name": "runtimeParticipantSlot",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "runtimeSourceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "sourceAuthorityAccountId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "sourceRef",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/GroupSourceRefDto",
-              "ref_name": "GroupSourceRefDto",
-              "nullable": true
-            }
-          },
-          {
             "name": "type",
             "required": true,
             "schema": {
               "kind": "enum",
               "values": [
-                "human",
-                "source"
+                "human"
               ],
               "type": "string"
             }
@@ -30828,109 +30125,8 @@
           "displayName",
           "handle",
           "avatarUrl",
-          "sourceAuthorityAccountId",
-          "runtimeParticipantSlot",
-          "sourceRef",
-          "runtimeSourceRef",
           "joinedAt",
           "isOnline"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "GroupSourceRefDto",
-      "schema": {
-        "kind": "object",
-        "properties": [],
-        "required_properties": [],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "GroupSourceTriggerEvidenceDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "actorId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "chatId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "mention",
-                "explicitUserAction",
-                "admittedAutomation",
-                "productDisabled"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "messageId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "triggerRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "kind",
-          "triggerRef",
-          "actorId",
-          "chatId",
-          "messageId"
         ],
         "closed": false,
         "additional_properties": null
@@ -36802,56 +35998,6 @@
           "kind"
         ],
         "closed": true,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "RealmGroupMessageCandidateCommitResultDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "candidateId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "message",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/GroupMessageViewDto",
-              "ref_name": "GroupMessageViewDto"
-            }
-          },
-          {
-            "name": "status",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "committed",
-                "duplicate"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "required_properties": [
-          "candidateId",
-          "status",
-          "message"
-        ],
-        "closed": false,
         "additional_properties": null
       }
     },

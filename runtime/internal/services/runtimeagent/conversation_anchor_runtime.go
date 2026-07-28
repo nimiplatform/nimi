@@ -71,7 +71,7 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	if subjectUserID != identity.OwnerUserID {
 		return nil, status.Error(codes.FailedPrecondition, "conversation anchor owner_user_id mismatch")
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {

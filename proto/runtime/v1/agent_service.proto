@@ -95,8 +95,10 @@ message AgentAutonomyState {
   bool budget_exhausted = 5;
   google.protobuf.Timestamp suspended_until = 6;
 }
-message AgentRecord {
-  string agent_id = 1;
+message LocalAgentRecord {
+  reserved 20;
+  reserved "agent_id";
+  string local_agent_ref = 1;
   string display_name = 2;
   AgentLifecycleStatus lifecycle_status = 3;
   AgentAutonomyState autonomy = 4;
@@ -105,7 +107,6 @@ message AgentRecord {
   google.protobuf.Timestamp updated_at = 7;
   AgentPresentationProfile presentation_profile = 8;
   uint64 presentation_profile_revision = 9;
-  string local_agent_ref = 20;
   string owner_user_id = 21;
   string runtime_source_ref = 22;
   LocalAgentSourceContextStatus source_context_status = 23;
@@ -349,21 +350,6 @@ message AgentEvent {
     AgentProactiveEventDetail proactive = 18;
   }
 }
-message InitializeAgentRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
-  string display_name = 3;
-  AgentAutonomyConfig autonomy_config = 4;
-  string world_id = 5;
-  google.protobuf.Struct metadata = 6;
-  string local_agent_ref = 20;
-  string owner_user_id = 21;
-  string runtime_source_ref = 22;
-}
-message InitializeAgentResponse {
-  AgentRecord agent = 1;
-  AgentStateProjection state = 2;
-}
 message TerminateAgentRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -377,7 +363,7 @@ message GetAgentRequest {
   string agent_id = 2;
 }
 message GetAgentResponse {
-  AgentRecord agent = 1;
+  LocalAgentRecord agent = 1;
 }
 message ListAgentsRequest {
   AgentRequestContext context = 1;
@@ -387,7 +373,7 @@ message ListAgentsRequest {
   string page_token = 5;
 }
 message ListAgentsResponse {
-  repeated AgentRecord agents = 1;
+  repeated LocalAgentRecord agents = 1;
   string next_page_token = 2;
 }
 message GetAgentStateRequest {
@@ -750,7 +736,6 @@ service RuntimeAgentService {
   // privately acquires and verifies Packet v3; transport/auth material is not
   // accepted from callers.
   rpc MaterializeRealmSource(MaterializeRealmSourceRequest) returns (MaterializeRealmSourceResponse);
-  rpc InitializeAgent(InitializeAgentRequest) returns (InitializeAgentResponse);
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);

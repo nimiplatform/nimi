@@ -613,8 +613,8 @@ func (s *Service) prepareRealmSourceMaterializationProductV3(
 	capturedAt, _ := time.Parse(time.RFC3339Nano, snapshot.CapturedAt)
 	status := localAgentSourceContextStatusV2(snapshot)
 	identity := localAgentIdentity{OwnerUserID: accountID, RuntimeSourceRef: runtimeSourceRef, LocalAgentRef: localAgentRef}
-	agent := &runtimev1.AgentRecord{
-		AgentId: localAgentRef, LocalAgentRef: localAgentRef, OwnerUserId: accountID,
+	agent := &runtimev1.LocalAgentRecord{
+		LocalAgentRef: localAgentRef, OwnerUserId: accountID,
 		RuntimeSourceRef: runtimeSourceRef, DisplayName: localAgentRealmSourceDisplayNameV3(snapshot),
 		LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
 		Autonomy:        buildInitialAutonomyState(nil, capturedAt), SourceContextStatus: proto.Clone(status).(*runtimev1.LocalAgentSourceContextStatus),

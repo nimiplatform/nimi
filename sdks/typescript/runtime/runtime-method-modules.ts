@@ -20,7 +20,6 @@ export const RUNTIME_ACCOUNT_METHODS = [
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_AGENT_METHODS = [
-  'initializeAgent',
   'terminateAgent',
   'getAgent',
   'listAgents',
@@ -34,8 +33,6 @@ export const RUNTIME_AGENT_METHODS = [
   'requestCompanionParticipation',
   'cancelCompanionParticipation',
   'openCompanionParticipationReplay',
-  'createRealmGroupMessageCandidate',
-  'getRealmGroupMessageCandidateEvidence',
   'getAvatarDebugSnapshot',
   'requestAvatarDebugProbe',
   'submitAvatarDebugProbeResult',

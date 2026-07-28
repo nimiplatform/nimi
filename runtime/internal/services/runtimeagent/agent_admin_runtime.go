@@ -11,7 +11,6 @@ import (
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -21,130 +20,6 @@ type agentAdminRuntime struct {
 
 func (s *Service) agentAdminRuntime() agentAdminRuntime {
 	return agentAdminRuntime{svc: s}
-}
-
-func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.InitializeAgentRequest) (*runtimev1.InitializeAgentResponse, error) {
-	identity, err := localAgentIdentityFromInitializeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-	localAgentRef := identity.LocalAgentRef
-	if realmSourceRefRequiresCommittedMaterialization(identity.RuntimeSourceRef) {
-		return nil, status.Error(codes.FailedPrecondition, "Realm source LocalAgents must be created by MaterializeRealmSource")
-	}
-	agentMetadata, err := sanitizeOrdinaryInitializeAgentMetadata(req.GetMetadata())
-	if err != nil {
-		return nil, err
-	}
-
-	// K-AGCORE-141: TerminateAgent hard-deletes the LocalAgent projection and
-	// never retains a TERMINATED tombstone, so any present in-memory entry is
-	// a live projection. A present ref is the ordinary K-AGCORE-139 idempotency
-	// gate; a re-add after removal re-materializes from an absent ref.
-	r.svc.mu.RLock()
-	if existing := r.svc.agents[localAgentRef]; existing != nil {
-		agent := cloneAgentRecord(existing.Agent)
-		r.svc.mu.RUnlock()
-		if err := validateAgentRecordIdentity(agent, identity); err != nil {
-			return nil, err
-		}
-		if err := validatePersistedAgentPresentationProfile(agent); err != nil {
-			return nil, err
-		}
-		if _, err := r.svc.ensureRuntimeAgentAIConfigForIdentity(identity); err != nil {
-			return nil, err
-		}
-		return &runtimev1.InitializeAgentResponse{Agent: agent}, nil
-	}
-	r.svc.mu.RUnlock()
-
-	now := time.Now().UTC()
-	agentBank := &runtimev1.MemoryBankLocator{
-		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: localAgentRef},
-		},
-	}
-	if _, err := r.svc.memorySvc.EnsureCanonicalBank(ctx, agentBank, "Agent Memory", nil); err != nil {
-		return nil, err
-	}
-
-	autonomy := buildInitialAutonomyState(req.GetAutonomyConfig(), now)
-	agent := &runtimev1.AgentRecord{
-		AgentId:          localAgentRef,
-		LocalAgentRef:    localAgentRef,
-		OwnerUserId:      identity.OwnerUserID,
-		RuntimeSourceRef: identity.RuntimeSourceRef,
-		DisplayName:      firstNonEmpty(strings.TrimSpace(req.GetDisplayName()), localAgentRef),
-		LifecycleStatus:  runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
-		Autonomy:         autonomy,
-		Metadata:         agentMetadata,
-		CreatedAt:        timestamppb.New(now),
-		UpdatedAt:        timestamppb.New(now),
-	}
-	state := &runtimev1.AgentStateProjection{
-		ExecutionState: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE,
-		StatusText:     "",
-		ActiveWorldId:  strings.TrimSpace(req.GetWorldId()),
-		Attributes:     map[string]string{},
-		UpdatedAt:      timestamppb.New(now),
-	}
-	entry := &agentEntry{
-		Agent: cloneAgentRecord(agent),
-		State: cloneAgentState(state),
-		Hooks: make(map[string]*runtimev1.PendingHook),
-	}
-	lifecycleEvent := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_LIFECYCLE, &runtimev1.AgentEvent_Lifecycle{
-		Lifecycle: &runtimev1.AgentLifecycleEventDetail{
-			PreviousStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_UNSPECIFIED,
-			CurrentStatus:  runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
-		},
-	})
-	events := []*runtimev1.AgentEvent{lifecycleEvent}
-	if autonomy.GetEnabled() {
-		events = append(events, r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
-			Budget: &runtimev1.AgentBudgetEventDetail{
-				BudgetExhausted: autonomy.GetBudgetExhausted(),
-				RemainingTokens: remainingTokens(autonomy),
-				WindowStartedAt: cloneTimestamp(autonomy.GetWindowStartedAt()),
-			},
-		}))
-	}
-	if err := r.svc.insertAgent(entry, events...); err != nil {
-		return nil, err
-	}
-	if _, err := r.svc.ensureRuntimeAgentAIConfigForIdentity(identity); err != nil {
-		return nil, err
-	}
-	return &runtimev1.InitializeAgentResponse{
-		Agent: cloneAgentRecord(agent),
-		State: cloneAgentState(state),
-	}, nil
-}
-
-func realmSourceRefRequiresCommittedMaterialization(runtimeSourceRef string) bool {
-	return strings.HasPrefix(strings.TrimSpace(runtimeSourceRef), "runtime-source:")
-}
-
-func sanitizeOrdinaryInitializeAgentMetadata(metadata *structpb.Struct) (*structpb.Struct, error) {
-	if metadata == nil {
-		return nil, nil
-	}
-	values := metadata.AsMap()
-	for _, key := range []string{
-		"presentationProfile",
-		"presentationProfileRevision",
-		"sourceMaterializationPacket",
-	} {
-		if _, exists := values[key]; exists {
-			return nil, status.Errorf(codes.InvalidArgument, "initialize agent metadata key %q is reserved", key)
-		}
-	}
-	cloned, err := structpb.NewStruct(values)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "initialize agent metadata is invalid: %v", err)
-	}
-	return cloned, nil
 }
 
 // terminate is the K-AGCORE-141 atomic LocalAgent hard-delete lifecycle.
@@ -171,7 +46,7 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		r.svc.mu.Unlock()
 		return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
 	}
-	if err := validateAgentRecordIdentity(current.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
 		r.svc.mu.Unlock()
 		return nil, err
 	}
@@ -274,10 +149,10 @@ func (r agentAdminRuntime) get(req *runtimev1.GetAgentRequest) (*runtimev1.GetAg
 	if err != nil {
 		return nil, err
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
-	return &runtimev1.GetAgentResponse{Agent: cloneAgentRecord(entry.Agent)}, nil
+	return &runtimev1.GetAgentResponse{Agent: cloneLocalAgentRecord(entry.Agent)}, nil
 }
 
 func (r agentAdminRuntime) setPresentationProfile(ctx context.Context, req *runtimev1.SetAgentPresentationProfileRequest) (*runtimev1.SetAgentPresentationProfileResponse, error) {
@@ -327,7 +202,7 @@ func (r agentAdminRuntime) setPresentationProfile(ctx context.Context, req *runt
 
 func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest, ownerUserID string) (*runtimev1.ListAgentsResponse, error) {
 	r.svc.mu.RLock()
-	items := make([]*runtimev1.AgentRecord, 0, len(r.svc.agents))
+	items := make([]*runtimev1.LocalAgentRecord, 0, len(r.svc.agents))
 	for _, entry := range r.svc.agents {
 		if ownerUserID != "" && strings.TrimSpace(entry.Agent.GetOwnerUserId()) != ownerUserID {
 			continue
@@ -339,7 +214,7 @@ func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest, ownerUserID st
 		if req.AutonomyEnabled != nil && entry.Agent.GetAutonomy().GetEnabled() != req.GetAutonomyEnabled() {
 			continue
 		}
-		agent := cloneAgentRecord(entry.Agent)
+		agent := cloneLocalAgentRecord(entry.Agent)
 		if err := validatePersistedAgentPresentationProfile(agent); err != nil {
 			r.svc.mu.RUnlock()
 			return nil, err
@@ -351,7 +226,7 @@ func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest, ownerUserID st
 		left := items[i].GetCreatedAt().AsTime()
 		right := items[j].GetCreatedAt().AsTime()
 		if left.Equal(right) {
-			return items[i].GetAgentId() < items[j].GetAgentId()
+			return items[i].GetLocalAgentRef() < items[j].GetLocalAgentRef()
 		}
 		return left.After(right)
 	})
@@ -371,7 +246,7 @@ func (r agentAdminRuntime) getState(req *runtimev1.GetAgentStateRequest) (*runti
 	if err != nil {
 		return nil, err
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	return &runtimev1.GetAgentStateResponse{State: cloneAgentState(entry.State)}, nil
@@ -389,7 +264,7 @@ func (r agentAdminRuntime) updateState(req *runtimev1.UpdateAgentStateRequest) (
 	if err != nil {
 		return nil, err
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	nextState := cloneAgentState(entry.State)
@@ -432,7 +307,7 @@ func (r agentAdminRuntime) updateState(req *runtimev1.UpdateAgentStateRequest) (
 	newStatusText := strings.TrimSpace(nextState.GetStatusText())
 	if newStatusText != previousStatusText {
 		events = append(events, r.svc.stateStatusTextChangedEvent(
-			entry.Agent.GetAgentId(),
+			entry.Agent.GetLocalAgentRef(),
 			newStatusText,
 			previousStatusText,
 			hadPreviousStatusText,

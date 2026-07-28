@@ -136,8 +136,6 @@ pub const RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_I
 pub const RUNTIME_APP_GET_APP_STORAGE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage";
 pub const RUNTIME_AGENT_GET_AGENT_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAgentService/GetAgent";
-pub const RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent";
 pub const RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile";
 pub const RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID: &str =

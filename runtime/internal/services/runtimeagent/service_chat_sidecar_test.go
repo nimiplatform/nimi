@@ -18,10 +18,10 @@ func TestRuntimeAgentApplyChatTrackSidecarPersistsBehavioralPosture(t *testing.T
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-posture"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-posture"), "chat-turn-posture", ChatTrackSidecarResult{
@@ -66,10 +66,10 @@ func TestRuntimeAgentApplyChatTrackSidecarOmitsUnprovenOriginLinkage(t *testing.
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-origin"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	svc.mu.RLock()
@@ -125,10 +125,10 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsInvalidBehavioralPosture(t *tes
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-invalid"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-invalid"), "chat-turn-invalid", ChatTrackSidecarResult{
@@ -157,10 +157,10 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-combined"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	now := time.Now()
@@ -251,10 +251,10 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-exec"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	now := time.Now()
@@ -344,10 +344,10 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIE
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-caller-app"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	fakeAI := &fakeLifeTurnAI{
@@ -395,10 +395,10 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorFailsClosedOnInv
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-exec-invalid"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(&fakeLifeTurnAI{
@@ -437,7 +437,7 @@ func TestChatTrackSidecarPromptsFrameTranscriptAsEvidence(t *testing.T) {
 	t.Parallel()
 
 	systemPrompt, _, err := chatTrackSidecarPrompts(&ChatTrackSidecarExecutorRequest{
-		Agent: &runtimev1.AgentRecord{AgentId: "agent-chat-prompt"},
+		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-chat-prompt"},
 		State: &runtimev1.AgentStateProjection{},
 		Messages: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "I like cats. Actually, I like dogs."},
@@ -472,7 +472,7 @@ func TestLifeTurnPromptsFrameEvidenceAsStabilizedCandidateInput(t *testing.T) {
 	t.Parallel()
 
 	systemPrompt, _, err := lifeTurnPrompts(&lifeTurnRequest{
-		Agent:    &runtimev1.AgentRecord{AgentId: "agent-life-prompt"},
+		Agent:    &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-life-prompt"},
 		State:    &runtimev1.AgentStateProjection{},
 		Hook:     &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-life-prompt"}},
 		Autonomy: &runtimev1.AgentAutonomyState{},
@@ -495,7 +495,7 @@ func TestChatTrackSidecarPromptsFrameCadenceInteractionAsBoundedHostOwnedHint(t 
 	t.Parallel()
 
 	systemPrompt, _, err := chatTrackSidecarPrompts(&ChatTrackSidecarExecutorRequest{
-		Agent: &runtimev1.AgentRecord{AgentId: "agent-chat-cadence-prompt"},
+		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-chat-cadence-prompt"},
 		State: &runtimev1.AgentStateProjection{},
 	})
 	if err != nil {
@@ -516,7 +516,7 @@ func TestLifeTurnPromptsFrameCadenceInteractionAsBoundedHostOwnedHint(t *testing
 	t.Parallel()
 
 	systemPrompt, _, err := lifeTurnPrompts(&lifeTurnRequest{
-		Agent:    &runtimev1.AgentRecord{AgentId: "agent-life-cadence-prompt"},
+		Agent:    &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-life-cadence-prompt"},
 		State:    &runtimev1.AgentStateProjection{},
 		Hook:     &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-life-prompt"}},
 		Autonomy: &runtimev1.AgentAutonomyState{},
@@ -537,10 +537,10 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-ingress"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	fakeAI := &fakeLifeTurnAI{
@@ -595,10 +595,10 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsSameBatchSemanticContradiction(
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-contradiction"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-contradiction"), "chat-turn-contradiction", ChatTrackSidecarResult{

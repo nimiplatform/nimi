@@ -252,19 +252,13 @@ export function initializeBuiltInChatScopesFromProductControl(): Promise<void> {
  * Desktop host NimiAIConfig persistence:
  *  - the init scope is the canonical `P-AISC-007` app shape;
  *  - an existing per-app NimiAIConfig is returned unchanged and NEVER overwritten
- *    on any later launch — a changed Default Profile or registry
- *    `ai_profile_selection_ref` cannot re-initialize it;
- *  - first launch materializes the scope's NimiAIConfig from the recommended
- *    factory profile when declared + resolvable + manifest-satisfied, else
- *    from the Account Default Profile (`P-AIPS-013`), via the typed
- *    atomic-overwrite apply path (`commitConfig`);
- *  - when neither resolves, it fails closed with a typed error — no
+ *    on any later launch when the Account Default Profile changes;
+ *  - first launch materializes the scope's NimiAIConfig only from the Account
+ *    Default Profile (`P-AIPS-013`) via the typed atomic-overwrite apply path
+ *    (`commitConfig`); future registry or package metadata is not an input;
+ *  - when the Account Default Profile does not resolve, it fails closed — no
  *    synthesized, empty, or placeholder NimiAIConfig and no launch;
  *  - unmet manifest requirements surface as a typed setup/repair plan.
- *
- * The runtime install path does not call this — install handles package
- * readiness only and must not mutate NimiAIConfig (S-AICONF-009 `MUST NOT`,
- * `K-APP-011`). The app Open / launch path is the caller.
  */
 export async function ensureAppFirstLaunchAIConfig(
   input: EnsureAppFirstLaunchAIConfigInput,

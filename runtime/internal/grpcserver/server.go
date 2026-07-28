@@ -136,23 +136,23 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 // principal, state root, and secure store have been verified. No field is
 // sourced from argv, environment, renderer IPC, or user-writable config.
 type ProtectedServiceBindings struct {
-	ServiceStateRoot                 string
-	ProductControlRoot               string
-	RuntimeServiceSID                string
-	LocalDevelopmentConsentStorePath string
-	PlatformAppRegistryPath          string
-	PlatformBundledAppsRoot          string
-	AccountCustody                   accountservice.Custody
-	AccountPartition                 string
-	LocalOSUserIdentity              localappkernel.VerifiedLocalOSUserIdentity
-	AccountRealmBaseURL              string
-	AccountAuthorizationURL          string
-	AccountTokenURL                  string
-	ConnectorSecrets                 connectorservice.SecretStore
-	DesktopSessions                  *protectedlocal.DesktopSessionManager
-	LocalAppLaunches                 *protectedlocal.LocalAppLaunchRegistry
-	LocalDevelopmentVerifier         protectedlocal.LocalDevelopmentProcessVerifier
-	RuntimeRestartRequester          runtimecontrolservice.RestartRequester
+	ServiceStateRoot                  string
+	ProductControlRoot                string
+	RuntimeServiceSID                 string
+	LocalDevelopmentConsentStorePath  string
+	PlatformAppIdentityProjectionPath string
+	PlatformBundledAppsRoot           string
+	AccountCustody                    accountservice.Custody
+	AccountPartition                  string
+	LocalOSUserIdentity               localappkernel.VerifiedLocalOSUserIdentity
+	AccountRealmBaseURL               string
+	AccountAuthorizationURL           string
+	AccountTokenURL                   string
+	ConnectorSecrets                  connectorservice.SecretStore
+	DesktopSessions                   *protectedlocal.DesktopSessionManager
+	LocalAppLaunches                  *protectedlocal.LocalAppLaunchRegistry
+	LocalDevelopmentVerifier          protectedlocal.LocalDevelopmentProcessVerifier
+	RuntimeRestartRequester           runtimecontrolservice.RestartRequester
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -207,7 +207,7 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if err != nil {
 		return nil, err
 	}
-	registryPath, err := normalizeOptionalProtectedResourcePath("Platform app registry", bindings.PlatformAppRegistryPath)
+	identityProjectionPath, err := normalizeOptionalProtectedResourcePath("Platform app identity projection", bindings.PlatformAppIdentityProjectionPath)
 	if err != nil {
 		return nil, err
 	}
@@ -221,13 +221,13 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	bindings.ServiceStateRoot = stateRoot
 	bindings.ProductControlRoot = productControlRoot
 	bindings.LocalDevelopmentConsentStorePath = consentStorePath
-	bindings.PlatformAppRegistryPath = registryPath
+	bindings.PlatformAppIdentityProjectionPath = identityProjectionPath
 	bindings.PlatformBundledAppsRoot = bundledAppsRoot
 	cfg.LocalStatePath = filepath.Join(stateRoot, "runtime", "local-state.json")
-	// Production catalog/release selection is a native bootstrap binding. The
-	// portable config/env fields remain available only to non-production
-	// harnesses and cannot select protected app admission or bundled code.
-	cfg.AppRegistryPath = registryPath
+	// Production first-party identity selection is a native bootstrap binding.
+	// The portable config/env field remains available only to non-production
+	// harnesses and cannot select protected app identity or bundled code.
+	cfg.AppIdentityProjectionPath = identityProjectionPath
 	cfg.AppBundledArtifactsRoot = bundledAppsRoot
 	serviceConfigPath, err := config.ServiceOwnedConfigPath(cfg.LocalStatePath)
 	if err != nil {
@@ -416,7 +416,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			_ = localAppKernel.Close()
 		}
 	}()
-	nimiAppRegistry, _, err := loadNimiAppRegistryCatalog(cfg.AppRegistryPath)
+	nimiAppIdentityProjection, err := loadNimiAppIdentityProjection(cfg.AppIdentityProjectionPath)
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +445,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		int32(cfg.SessionTTLMinSeconds), int32(cfg.SessionTTLMaxSeconds),
 		authOptions...,
 	)
-	authSvc.SetNimiAppRegistryCatalog(nimiAppRegistry)
+	authSvc.SetNimiAppIdentityProjection(nimiAppIdentityProjection)
 	var protectedGRPCServer *grpc.Server
 	var localAppGRPCServer *grpc.Server
 	accountSvc := accountservice.New(logger)

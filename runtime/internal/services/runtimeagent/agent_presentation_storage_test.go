@@ -13,47 +13,15 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestInitializeAgentRejectsReservedPresentationMetadataWithoutCreatingAgent(t *testing.T) {
-	t.Parallel()
-
-	for _, key := range []string{"presentationProfile", "presentationProfileRevision"} {
-		key := key
-		t.Run(key, func(t *testing.T) {
-			t.Parallel()
-			svc := newRuntimeAgentTestService(t)
-			agentID := "reserved-" + key
-			metadata, err := structpb.NewStruct(map[string]any{key: "bypass"})
-			if err != nil {
-				t.Fatalf("structpb.NewStruct: %v", err)
-			}
-
-			_, initializeErr := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-				Context:  testRuntimeAgentIdentityContext(agentID),
-				Metadata: metadata,
-			})
-			if status.Code(initializeErr) != codes.InvalidArgument {
-				t.Errorf("InitializeAgent(%s) code = %s, want InvalidArgument", key, status.Code(initializeErr))
-			}
-
-			_, getErr := svc.GetAgent(context.Background(), &runtimev1.GetAgentRequest{
-				Context: testRuntimeAgentIdentityContext(agentID),
-			})
-			if status.Code(getErr) != codes.NotFound {
-				t.Errorf("GetAgent after rejected InitializeAgent(%s) code = %s, want NotFound", key, status.Code(getErr))
-			}
-		})
-	}
-}
-
 func TestAgentPresentationProfileRevisionIsMonotonicAcrossSetPatchAndClear(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
 	agentID := "presentation-monotonic"
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(agentID),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	setResp, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
@@ -135,10 +103,10 @@ func TestAgentPresentationProfileConcurrentPatchesUseSingleCASBoundary(t *testin
 
 	svc := newRuntimeAgentTestService(t)
 	agentID := "presentation-concurrent-cas"
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(agentID),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	if _, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext(agentID),
@@ -212,10 +180,10 @@ func TestSetAgentPresentationProfileRequiresExpectedRevision(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	agentID := "presentation-cas-required"
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(agentID),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
@@ -308,8 +276,8 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 
 			t.Run("full profile", func(t *testing.T) {
 				ctx := testRuntimeAgentIdentityContext("invalid-full-" + strings.ReplaceAll(name, " ", "-"))
-				if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
-					t.Fatalf("InitializeAgent: %v", err)
+				if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
+					t.Fatalf("RealmSourceMaterialization: %v", err)
 				}
 				_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 					Context:          ctx,
@@ -324,8 +292,8 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 
 			t.Run("merged patch", func(t *testing.T) {
 				ctx := testRuntimeAgentIdentityContext("invalid-patch-" + strings.ReplaceAll(name, " ", "-"))
-				if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
-					t.Fatalf("InitializeAgent: %v", err)
+				if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
+					t.Fatalf("RealmSourceMaterialization: %v", err)
 				}
 				_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 					Context:          ctx,
@@ -339,8 +307,8 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 
 			t.Run("typed persisted read", func(t *testing.T) {
 				ctx := testRuntimeAgentIdentityContext("invalid-read-" + strings.ReplaceAll(name, " ", "-"))
-				if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
-					t.Fatalf("InitializeAgent: %v", err)
+				if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
+					t.Fatalf("RealmSourceMaterialization: %v", err)
 				}
 				svc.mu.Lock()
 				entry := svc.agents[ctx.GetLocalAgentRef()]
@@ -383,8 +351,8 @@ func TestAgentPresentationOpaqueRefGrammarAcceptsKitAndProfileMediaRefs(t *testi
 			t.Parallel()
 			svc := newRuntimeAgentTestService(t)
 			ctx := testRuntimeAgentIdentityContext("valid-ref")
-			if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
-				t.Fatalf("InitializeAgent: %v", err)
+			if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
+				t.Fatalf("RealmSourceMaterialization: %v", err)
 			}
 			resp, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 				Context:          ctx,
@@ -414,8 +382,8 @@ func TestClearedAgentPresentationProfileDoesNotFallbackToAnchorMetadataPolicy(t 
 	svc := newRuntimeAgentTestService(t)
 	agentID := "presentation-no-anchor-fallback"
 	ctx := testRuntimeAgentIdentityContext(agentID)
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, agentID, "desktop.app", "user-1", publicChatVoicePolicyMetadata(t, true))
 	if _, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
@@ -473,8 +441,8 @@ func TestPersistedAgentPresentationReadAndLoadRejectReservedMetadataStorage(t *t
 			t.Run("read", func(t *testing.T) {
 				svc := newRuntimeAgentTestService(t)
 				ctx := testRuntimeAgentIdentityContext("persisted-reserved-read-" + key)
-				if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
-					t.Fatalf("InitializeAgent: %v", err)
+				if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
+					t.Fatalf("RealmSourceMaterialization: %v", err)
 				}
 				metadata, err := structpb.NewStruct(map[string]any{key: "legacy-bypass"})
 				if err != nil {
@@ -497,8 +465,8 @@ func TestPersistedAgentPresentationReadAndLoadRejectReservedMetadataStorage(t *t
 			t.Run("load", func(t *testing.T) {
 				svc := newRuntimeAgentTestService(t)
 				ctx := testRuntimeAgentIdentityContext("persisted-reserved-load-" + key)
-				if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
-					t.Fatalf("InitializeAgent: %v", err)
+				if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
+					t.Fatalf("RealmSourceMaterialization: %v", err)
 				}
 				metadata, err := structpb.NewStruct(map[string]any{key: "legacy-bypass"})
 				if err != nil {
@@ -524,8 +492,8 @@ func TestPersistedAgentPresentationLoadRejectsInvalidTypedRef(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	requestContext := testRuntimeAgentIdentityContext("persisted-invalid-typed-ref")
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: requestContext}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: requestContext}); err != nil {
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	svc.mu.Lock()
 	entry := svc.agents[requestContext.GetLocalAgentRef()]

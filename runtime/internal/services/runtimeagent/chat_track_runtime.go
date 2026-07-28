@@ -69,7 +69,7 @@ func (c chatTrackRuntime) runSidecarExecution(ctx context.Context, req ChatTrack
 	}
 	result, err := c.currentSidecarExecutor().ExecuteChatTrackSidecar(ctx, &ChatTrackSidecarExecutorRequest{
 		CallerAppID:      strings.TrimSpace(req.CallerAppID),
-		Agent:            cloneAgentRecord(entry.Agent),
+		Agent:            cloneLocalAgentRecord(entry.Agent),
 		State:            cloneAgentState(entry.State),
 		SourceEventID:    strings.TrimSpace(req.SourceEventID),
 		Messages:         cloneChatMessages(req.Messages),
@@ -82,7 +82,7 @@ func (c chatTrackRuntime) runSidecarExecution(ctx context.Context, req ChatTrack
 	if result == nil {
 		result = &ChatTrackSidecarResult{}
 	}
-	return c.applySidecar(ctx, entry.Agent.GetAgentId(), req.SourceEventID, *result)
+	return c.applySidecar(ctx, entry.Agent.GetLocalAgentRef(), req.SourceEventID, *result)
 }
 
 func (c chatTrackRuntime) applySidecarResult(ctx context.Context, agentID string, sourceEventID string, result ChatTrackSidecarResult) error {
@@ -99,7 +99,7 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 
 	var posture *BehavioralPosture
 	if result.PosturePatch != nil {
-		normalized, err := normalizeBehavioralPosturePatch(entry.Agent.GetAgentId(), *result.PosturePatch)
+		normalized, err := normalizeBehavioralPosturePatch(entry.Agent.GetLocalAgentRef(), *result.PosturePatch)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
@@ -137,7 +137,7 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 	// Sidecar state linkage must be proven from committed runtime chat truth.
 	// Arbitrary source_event_id must not be fabricated into
 	// originating_turn_id when no unique committed turn provenance exists.
-	postureOrigin := c.svc.resolveCommittedChatTurnOrigin(entry.Agent.GetAgentId(), sourceEventID)
+	postureOrigin := c.svc.resolveCommittedChatTurnOrigin(entry.Agent.GetLocalAgentRef(), sourceEventID)
 	events := make([]*runtimev1.AgentEvent, 0, len(cancelHookIDs)+6)
 	if posture != nil {
 		stateEvents, err := c.svc.applyBehavioralPostureUpdate(ctx, entry, *posture, postureOrigin, now)
@@ -152,7 +152,7 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 	for _, hookID := range cancelHookIDs {
 		hook := entry.Hooks[hookID]
 		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
-		events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+		events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
 			Reason:     "chat sidecar",
@@ -166,7 +166,7 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 		}
 		followupIntent := cloneHookIntent(result.NextHookIntent)
 		if strings.TrimSpace(followupIntent.GetAgentId()) == "" {
-			followupIntent.AgentId = entry.Agent.GetAgentId()
+			followupIntent.AgentId = entry.Agent.GetLocalAgentRef()
 		}
 		if strings.TrimSpace(followupIntent.GetIntentId()) == "" {
 			followupIntent.IntentId = "hook_" + ulid.Make().String()
@@ -181,11 +181,11 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 		proposedFollowup := cloneHookIntent(followupIntent)
 		proposedFollowup.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
 		events = append(events,
-			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 				Intent:     proposedFollowup,
 				ObservedAt: timestamppb.New(now),
 			}, now),
-			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 				Intent:     cloneHookIntent(followupIntent),
 				ObservedAt: timestamppb.New(now),
 			}, now),
@@ -193,7 +193,7 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 		scheduledHookID = followupIntent.GetIntentId()
 	}
 	if len(accepted) > 0 {
-		events = append(events, c.svc.newEventAt(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
+		events = append(events, c.svc.newEventAt(entry.Agent.GetLocalAgentRef(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
 			Memory: &runtimev1.AgentMemoryEventDetail{
 				Accepted: cloneCanonicalMemoryViews(accepted),
 			},

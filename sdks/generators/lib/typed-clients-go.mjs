@@ -277,7 +277,7 @@ func validateCompanionParticipationProjection(projection *CompanionParticipation
 	if projection == nil {
 		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing")
 	}
-	if projection.ProjectionId == "" || projection.AgentId == "" || projection.ProfileRef == "" || projection.RoomOrchestrationRef == "" || projection.AuditRef == "" || projection.ConversationAnchorId == "" {
+	if projection.ProjectionId == "" || projection.AgentId == "" || projection.ProfileRef == "" || projection.AuditRef == "" || projection.ConversationAnchorId == "" {
 		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing required refs")
 	}
 	switch projection.SurfaceKind {

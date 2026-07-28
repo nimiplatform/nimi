@@ -8,7 +8,6 @@ import {
   type NimiAppFirstLaunchAIConfigResult,
   type NimiAppManifestRequirementGap,
 } from '@nimiplatform/sdk/ai';
-import { loadNimiAppAIProfileFactoryCatalog } from '@nimiplatform/sdk/app';
 import { getAccountDefaultProfileForScopeInit } from '../../bridge/runtime-bridge/product-control.js';
 
 export interface EnsureAppFirstLaunchAIConfigInput {
@@ -16,19 +15,6 @@ export interface EnsureAppFirstLaunchAIConfigInput {
   readonly appId: string;
   /** Optional app-manifest-declared stable AI feature surface id. */
   readonly surfaceId?: string;
-  /**
-   * The app registry row `ai_profile_selection_ref`. Pass the value from the
-   * Nimi App registry projection; `null`/omitted when the app declares no
-   * recommended profile, which routes init to the Account Default Profile.
-   */
-  readonly recommendedProfileRef?: string | null;
-  /**
-   * Whether the app validates its manifest requirements as satisfied by the
-   * recommended profile. Defaults to `true` when a recommended profile is
-   * resolvable; pass `false` to force the Account Default Profile fallback
-   * when the app's manifest requirements are not met by the recommended one.
-   */
-  readonly recommendedProfileManifestSatisfied?: boolean;
   readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
   /**
    * Optional manifest validation of the materialized AIConfig. Returns the
@@ -42,9 +28,6 @@ export interface EnsureAppFirstLaunchAIConfigInput {
 }
 
 export interface EnsureAppFirstLaunchAIConfigDepsOverride {
-  readonly resolveRecommendedFactoryProfile?: (
-    recommendedProfileRef: string | null | undefined,
-  ) => NimiAIProfile | null;
   readonly resolveAccountDefaultProfile?: () => Promise<NimiAIProfile | null> | NimiAIProfile | null;
 }
 
@@ -53,16 +36,6 @@ export type DesktopAppFirstLaunchAIConfigHost = {
   getConfigForScope: (scopeRef: NimiAIScopeRef) => NimiAIConfig;
   commitConfig: (config: NimiAIConfig) => void;
 };
-
-function resolveRecommendedFactoryProfile(
-  recommendedProfileRef: string | null | undefined,
-): NimiAIProfile | null {
-  const ref = String(recommendedProfileRef || '').trim();
-  if (!ref) {
-    return null;
-  }
-  return loadNimiAppAIProfileFactoryCatalog().find((profile) => profile.profileId === ref) ?? null;
-}
 
 async function resolveAccountDefaultProfile(): Promise<NimiAIProfile> {
   return getAccountDefaultProfileForScopeInit();
@@ -79,8 +52,6 @@ export async function ensureDesktopAppFirstLaunchAIConfig(
       : { kind: 'app', ownerId: input.appId },
   );
 
-  const resolveRecommended =
-    deps?.resolveRecommendedFactoryProfile ?? resolveRecommendedFactoryProfile;
   const resolveAccountDefault =
     deps?.resolveAccountDefaultProfile ?? resolveAccountDefaultProfile;
 
@@ -88,16 +59,6 @@ export async function ensureDesktopAppFirstLaunchAIConfig(
     scopeRef,
     getExistingAppAIConfig: (ref) =>
       host.scopeHasPersistedConfig(ref) ? host.getConfigForScope(ref) : null,
-    resolveRecommendedProfile: () => {
-      const profile = resolveRecommended(input.recommendedProfileRef);
-      if (!profile) {
-        return null;
-      }
-      return {
-        profile,
-        manifestSatisfied: input.recommendedProfileManifestSatisfied !== false,
-      };
-    },
     resolveAccountDefaultProfile: resolveAccountDefault,
     resolveRequirementDeclarations: () => input.requirementDeclarations,
     applyHostAIConfig: (ref, config) => {

@@ -86,11 +86,6 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.memory.write",
 		},
 		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
-			request:    &runtimev1.InitializeAgentRequest{},
-			capability: "runtime.agent.admin",
-		},
-		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
 			request:    &runtimev1.MaterializeRealmSourceRequest{},
 			capability: "runtime.agent.admin",

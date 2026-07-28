@@ -404,8 +404,7 @@ func testAvatarDebugService() *Service {
 	svc := &Service{
 		agents: map[string]*agentEntry{
 			agentID: {
-				Agent: &runtimev1.AgentRecord{
-					AgentId:          agentID,
+				Agent: &runtimev1.LocalAgentRecord{
 					OwnerUserId:      "user-1",
 					RuntimeSourceRef: "agent-1",
 					LocalAgentRef:    agentID,

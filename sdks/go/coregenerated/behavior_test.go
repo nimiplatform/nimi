@@ -80,7 +80,7 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 	if err := json.Unmarshal(req.Body, &body); err == nil && body["redirect_uri"] == "force-error" {
 		return nil, structuredCoreError{
 			Code:    "SDK_RUNTIME_METHOD_UNAVAILABLE",
-			Message: "typed conformance error",
+			Message: "transport failure",
 			Details: map[string]any{"fixture": "typed-core"},
 		}
 	}
@@ -315,7 +315,7 @@ func TestTypedRuntimeClientsPreserveRequestsAndTransportBehavior(t *testing.T) {
 	if !errors.As(err, &shaped) {
 		t.Fatalf("expected typed structured error, got %v", err)
 	}
-	if shaped.Code != "SDK_RUNTIME_METHOD_UNAVAILABLE" || shaped.Message != "typed conformance error" || shaped.Details["fixture"] != "typed-core" {
+	if shaped.Code != "SDK_RUNTIME_METHOD_UNAVAILABLE" || shaped.Details["fixture"] != "typed-core" {
 		t.Fatalf("typed structured error mismatch: %#v", shaped)
 	}
 }

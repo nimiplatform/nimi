@@ -41,11 +41,10 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(svc.AuthorizeMemoryEmbeddingTarget)
 
 	agentCtx := testRuntimeAgentIdentityContext("agent-memory-bank")
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context:     agentCtx,
-		DisplayName: "Memory Bank",
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
+		Context: agentCtx,
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	initial, err := svc.GetAgentCanonicalMemoryBankStatus(ctx, &runtimev1.GetAgentCanonicalMemoryBankStatusRequest{

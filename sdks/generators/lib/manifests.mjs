@@ -13,9 +13,6 @@ export function extractErrorCodes() {
     generated_by: generatedBy,
     source_kind: 'sdks_spec_table',
     source_paths: ['config/sdks-error-codes.yaml'],
-    provenance: {
-      source_rule: 'S-SURFACE-019',
-    },
     values,
     codes,
   };

@@ -16,9 +16,9 @@ import (
 const (
 	runtimeAgentAIConfigTestOwner      = "user-ai-config"
 	runtimeAgentAIConfigTestSource     = "runtime-source-ai-config"
-	runtimeAgentAIConfigTestLocalRef   = "local-agent:test-user-ai-config-runtime-source-ai-config"
+	runtimeAgentAIConfigTestLocalRef   = "local-agent:runtime-6b7ec37dccd1b515d333027d5a639723"
 	runtimeAgentAIConfigSecondSource   = "runtime-source-ai-config-second"
-	runtimeAgentAIConfigSecondLocalRef = "local-agent:test-user-ai-config-runtime-source-ai-config-second"
+	runtimeAgentAIConfigSecondLocalRef = "local-agent:runtime-8164585e6e9c32cbf090dd24f1571f2a"
 )
 
 func agentAIConfigTestContext(appID string) *runtimev1.AgentRequestContext {
@@ -26,7 +26,7 @@ func agentAIConfigTestContext(appID string) *runtimev1.AgentRequestContext {
 		AppId:            appID,
 		SubjectUserId:    runtimeAgentAIConfigTestOwner,
 		OwnerUserId:      runtimeAgentAIConfigTestOwner,
-		RuntimeSourceRef: runtimeAgentAIConfigTestSource,
+		RuntimeSourceRef: testRuntimeAgentSourceRef(runtimeAgentAIConfigTestSource),
 		LocalAgentRef:    runtimeAgentAIConfigTestLocalRef,
 	}
 }
@@ -36,7 +36,7 @@ func agentAIConfigTestContextFor(appID string, sourceRef string, localRef string
 		AppId:            appID,
 		SubjectUserId:    runtimeAgentAIConfigTestOwner,
 		OwnerUserId:      runtimeAgentAIConfigTestOwner,
-		RuntimeSourceRef: sourceRef,
+		RuntimeSourceRef: testRuntimeAgentSourceRef(sourceRef),
 		LocalAgentRef:    localRef,
 	}
 }
@@ -62,7 +62,7 @@ func newAgentAIConfigTestServiceWithClose(t *testing.T, localStatePath string) (
 		closeFn()
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
-	initializeAgentAIConfigTestAgent(t, svc, agentAIConfigTestContext("runtime-agent-ai-config-test"))
+	materializeAgentAIConfigTestAgent(t, svc, agentAIConfigTestContext("runtime-agent-ai-config-test"))
 	return svc, closeFn
 }
 
@@ -73,16 +73,15 @@ func newAgentAIConfigTestService(t *testing.T) *Service {
 	return svc
 }
 
-func initializeAgentAIConfigTestAgent(t *testing.T, svc *Service, ctx *runtimev1.AgentRequestContext) {
+func materializeAgentAIConfigTestAgent(t *testing.T, svc *Service, ctx *runtimev1.AgentRequestContext) {
 	t.Helper()
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context:          ctx,
 		LocalAgentRef:    ctx.GetLocalAgentRef(),
 		OwnerUserId:      ctx.GetOwnerUserId(),
 		RuntimeSourceRef: ctx.GetRuntimeSourceRef(),
-		DisplayName:      ctx.GetRuntimeSourceRef(),
 	}); err != nil {
-		t.Fatalf("InitializeAgent(%s): %v", ctx.GetLocalAgentRef(), err)
+		t.Fatalf("RealmSourceMaterialization(%s): %v", ctx.GetLocalAgentRef(), err)
 	}
 }
 
@@ -150,7 +149,7 @@ func TestRuntimeAgentAIConfigPerAgentIsolation(t *testing.T) {
 	t.Parallel()
 	svc := newAgentAIConfigTestService(t)
 	secondCtx := agentAIConfigTestContextFor("runtime-agent-ai-config-test", runtimeAgentAIConfigSecondSource, runtimeAgentAIConfigSecondLocalRef)
-	initializeAgentAIConfigTestAgent(t, svc, secondCtx)
+	materializeAgentAIConfigTestAgent(t, svc, secondCtx)
 
 	resp, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
 		Context:          agentAIConfigTestContext("nimi.desktop"),

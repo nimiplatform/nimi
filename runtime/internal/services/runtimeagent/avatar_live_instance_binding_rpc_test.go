@@ -60,11 +60,10 @@ func TestAvatarLiveInstanceBindingFailsClosedWithoutRegistration(t *testing.T) {
 func TestAvatarLiveInstanceBindingRejectsCrossAgentAnchor(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:     testRuntimeAgentIdentityContext("agent-beta"),
-		DisplayName: "Beta",
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
+		Context: testRuntimeAgentIdentityContext("agent-beta"),
 	}); err != nil && status.Code(err) != codes.AlreadyExists {
-		t.Fatalf("InitializeAgent(beta): %v", err)
+		t.Fatalf("RealmSourceMaterialization(beta): %v", err)
 	}
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	betaCtx := testRuntimeAgentIdentityContext("agent-beta")

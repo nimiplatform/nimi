@@ -10,8 +10,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appidentityprojection"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
-	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -94,13 +94,13 @@ func WithDesktopSessionManager(manager *protectedlocal.DesktopSessionManager) Op
 // Service implements RuntimeAuthService with in-memory session storage.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAuthServiceServer
-	logger          *slog.Logger
-	registry        *appregistry.Registry
-	nimiApps        *appregistrycatalog.Registry
-	auditStore      *auditlog.Store
-	desktopSessions *protectedlocal.DesktopSessionManager
-	accountSecurity runtimeAccountSecurityContextProvider
-	localAppOpener  localAppSessionOpener
+	logger            *slog.Logger
+	registry          *appregistry.Registry
+	nimiAppIdentities *appidentityprojection.Projection
+	auditStore        *auditlog.Store
+	desktopSessions   *protectedlocal.DesktopSessionManager
+	accountSecurity   runtimeAccountSecurityContextProvider
+	localAppOpener    localAppSessionOpener
 
 	// TTL bounds (K-AUTHSVC-004).
 	ttlMinSeconds int32
@@ -153,8 +153,8 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, au
 	return service
 }
 
-func (s *Service) SetNimiAppRegistryCatalog(registry *appregistrycatalog.Registry) {
-	s.nimiApps = registry
+func (s *Service) SetNimiAppIdentityProjection(projection *appidentityprojection.Projection) {
+	s.nimiAppIdentities = projection
 }
 
 func (s *Service) SetRuntimeAccountSecurityContextProvider(provider runtimeAccountSecurityContextProvider) {
@@ -259,10 +259,10 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 			ReasonCode: reasonCode,
 		}, nil
 	}
-	if reasonCode, eligibilityReason, ok := s.checkNimiAppRegistryEligibility(appID); !ok {
+	if reasonCode, eligibilityReason, ok := s.checkNimiAppIdentityEligibility(appID); !ok {
 		payload := map[string]any{
 			"eligibility_reason": eligibilityReason,
-			"registry_app_id":    normalizeNimiAppRegistryID(appID),
+			"identity_app_id":    appID,
 		}
 		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, payload)
 		return &runtimev1.RegisterAppResponse{
@@ -312,50 +312,42 @@ func (s *Service) registrationCapabilities(_ string, _ []string) []string {
 	return nil
 }
 
-func (s *Service) checkNimiAppRegistryEligibility(appID string) (runtimev1.ReasonCode, string, bool) {
+func (s *Service) checkNimiAppIdentityEligibility(appID string) (runtimev1.ReasonCode, string, bool) {
 	appID = strings.TrimSpace(appID)
-	registryAppID := normalizeNimiAppRegistryID(appID)
-	if !isPlatformGovernedNimiAppID(registryAppID) {
+	if isForbiddenNimiSideNamespace(appID) {
+		return runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, "app-id-namespace-forbidden", false
+	}
+	if !isPlatformGovernedNimiAppID(appID) {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
 	}
-	if registryAppID == "nimi.desktop" {
+	if appID == "nimi.desktop" {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
 	}
-
-	return s.evaluateNimiAppRegistryEligibility(registryAppID)
-}
-
-func (s *Service) evaluateNimiAppRegistryEligibility(registryAppID string) (runtimev1.ReasonCode, string, bool) {
-	if s.nimiApps == nil {
-		return runtimev1.ReasonCode_APP_NOT_REGISTERED, "app-registry-projection-missing", false
+	if s.nimiAppIdentities == nil {
+		return runtimev1.ReasonCode_APP_NOT_REGISTERED, "app-identity-projection-missing", false
 	}
-	eligibility, err := s.nimiApps.CheckCallerEligibility(registryAppID)
-	if err != nil {
-		return runtimev1.ReasonCode_APP_NOT_REGISTERED, err.Error(), false
+	if s.nimiAppIdentities.IsLocalFirstParty(appID) {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
 	}
-	if eligibility.Eligible {
-		return runtimev1.ReasonCode_ACTION_EXECUTED, eligibility.Reason, true
-	}
-	return mapNimiAppEligibilityReason(eligibility.Reason), eligibility.Reason, false
-}
-
-func normalizeNimiAppRegistryID(appID string) string {
-	appID = strings.TrimSpace(appID)
-	if strings.HasPrefix(appID, "app.nimi.") {
-		return "nimi." + strings.TrimPrefix(appID, "app.nimi.")
-	}
-	return appID
+	return runtimev1.ReasonCode_APP_NOT_REGISTERED, "app-identity-not-admitted", false
 }
 
 func isPlatformGovernedNimiAppID(appID string) bool {
 	return strings.HasPrefix(strings.TrimSpace(appID), "nimi.")
 }
 
-func mapNimiAppEligibilityReason(reason string) runtimev1.ReasonCode {
-	if reason == string(appregistrycatalog.EligibilityReasonAppNotRegistered) {
-		return runtimev1.ReasonCode_APP_NOT_REGISTERED
-	}
-	return runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED
+func isForbiddenNimiSideNamespace(appID string) bool {
+	appID = strings.TrimSpace(appID)
+	return appID == "app.nimi" ||
+		strings.HasPrefix(appID, "app.nimi.") ||
+		appID == "dev.nimi" ||
+		strings.HasPrefix(appID, "dev.nimi.")
+}
+
+func (s *Service) isLocalFirstPartyAppID(appID string) bool {
+	appID = strings.TrimSpace(appID)
+	return appID == "nimi.desktop" ||
+		(s.nimiAppIdentities != nil && s.nimiAppIdentities.IsLocalFirstParty(appID))
 }
 
 func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionRequest) (*runtimev1.OpenSessionResponse, error) {
@@ -376,7 +368,7 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_APP_NOT_REGISTERED)
 		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_NOT_REGISTERED}, nil
 	}
-	localFirstParty := isPlatformGovernedNimiAppID(normalizeNimiAppRegistryID(appID)) &&
+	localFirstParty := s.isLocalFirstPartyAppID(appID) &&
 		isLocalFirstPartyModeManifest(registration.ModeManifest)
 	if localFirstParty && subjectUserID != "" {
 		s.emitAuditWithPayload(ctx, "OpenSession", appID, "", runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, map[string]any{

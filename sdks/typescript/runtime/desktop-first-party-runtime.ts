@@ -1,8 +1,4 @@
 import type {
-  CreateRealmGroupMessageCandidateRequest,
-  CreateRealmGroupMessageCandidateResponse,
-  GetRealmGroupMessageCandidateEvidenceRequest,
-  GetRealmGroupMessageCandidateEvidenceResponse,
   RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import {
@@ -137,16 +133,8 @@ export type NimiDesktopAccountProductRuntimeClient = {
 export type NimiDesktopRuntimeAiScenarioJobClient = NimiRuntimeScenarioJobClient;
 
 /** Exact Agent methods exercised by active Desktop product consumers. */
-export type NimiDesktopRuntimeAgentPurposeClient = NimiDesktopAccountProductRuntimeClient['agents'] & {
-  readonly createRealmGroupMessageCandidate: (
-    request: CreateRealmGroupMessageCandidateRequest,
-    options?: RuntimeTypedCallOptions,
-  ) => Promise<CreateRealmGroupMessageCandidateResponse>;
-  readonly getRealmGroupMessageCandidateEvidence: (
-    request: GetRealmGroupMessageCandidateEvidenceRequest,
-    options?: RuntimeTypedCallOptions,
-  ) => Promise<GetRealmGroupMessageCandidateEvidenceResponse>;
-};
+export type NimiDesktopRuntimeAgentPurposeClient =
+  NimiDesktopAccountProductRuntimeClient['agents'];
 
 export type NimiDesktopFirstPartyRuntimeClients = {
   readonly machineProduct: NimiDesktopMachineProductRuntimeClient;
@@ -243,11 +231,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     getDelegatedReplayTrace: protectedAgent(runtime.agents.getDelegatedReplayTrace),
     submitDelegatedApprovalDecision: protectedAgent(runtime.agents.submitDelegatedApprovalDecision),
   });
-  const agentPurpose: NimiDesktopRuntimeAgentPurposeClient = Object.freeze({
-    ...accountAgents,
-    createRealmGroupMessageCandidate: runtime.agents.createRealmGroupMessageCandidate,
-    getRealmGroupMessageCandidateEvidence: runtime.agents.getRealmGroupMessageCandidateEvidence,
-  });
+  const agentPurpose: NimiDesktopRuntimeAgentPurposeClient = accountAgents;
   return Object.freeze({
     machineProduct: Object.freeze({
       local: Object.freeze({

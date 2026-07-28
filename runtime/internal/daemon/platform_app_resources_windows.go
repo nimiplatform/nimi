@@ -42,23 +42,15 @@ func resolveWindowsProtectedPlatformAppResources(executablePath, programFilesRoo
 	}
 
 	resourcesRoot := filepath.Join(filepath.Dir(executablePath), "resources")
-	registryPath := filepath.Join(resourcesRoot, "nimi-app-registry.yaml")
-	descriptorPath := filepath.Join(resourcesRoot, "nimi-app-release-descriptors.yaml")
+	identityProjectionPath := filepath.Join(resourcesRoot, "nimi-app-identity-surfaces.yaml")
 	bundledAppsRoot := filepath.Join(resourcesRoot, "nimi-apps")
 
-	registryExists, registryErr := validateWindowsProtectedResourcePath(programFilesRoot, registryPath, false)
-	if registryErr != nil {
-		return "", "", fmt.Errorf("validate Platform app registry resource: %w", registryErr)
+	identityProjectionExists, identityProjectionErr := validateWindowsProtectedResourcePath(programFilesRoot, identityProjectionPath, false)
+	if identityProjectionErr != nil {
+		return "", "", fmt.Errorf("validate Platform app identity projection resource: %w", identityProjectionErr)
 	}
-	descriptorExists, descriptorErr := validateWindowsProtectedResourcePath(programFilesRoot, descriptorPath, false)
-	if descriptorErr != nil {
-		return "", "", fmt.Errorf("validate Platform app release resource: %w", descriptorErr)
-	}
-	if !registryExists && !descriptorExists {
+	if !identityProjectionExists {
 		return "", "", nil
-	}
-	if registryExists != descriptorExists {
-		return "", "", fmt.Errorf("fixed Platform app registry and release descriptor resources must be installed atomically")
 	}
 
 	bundledExists, bundledErr := validateWindowsProtectedResourcePath(programFilesRoot, bundledAppsRoot, true)
@@ -68,7 +60,7 @@ func resolveWindowsProtectedPlatformAppResources(executablePath, programFilesRoo
 	if !bundledExists {
 		bundledAppsRoot = ""
 	}
-	return registryPath, bundledAppsRoot, nil
+	return identityProjectionPath, bundledAppsRoot, nil
 }
 
 func validateWindowsProtectedResourcePath(root, target string, directory bool) (bool, error) {

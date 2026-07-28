@@ -21,7 +21,7 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if strings.TrimSpace(before.DataRootRef) != strings.TrimSpace(after.DataRootRef) {
 		return true
 	}
-	if strings.TrimSpace(before.AppRegistryPath) != strings.TrimSpace(after.AppRegistryPath) {
+	if strings.TrimSpace(before.AppIdentityProjectionPath) != strings.TrimSpace(after.AppIdentityProjectionPath) {
 		return true
 	}
 	if !fileConfigManagedRootsEqual(before.ManagedRoots, after.ManagedRoots) {

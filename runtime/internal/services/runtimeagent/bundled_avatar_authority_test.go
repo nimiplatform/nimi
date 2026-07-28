@@ -73,8 +73,8 @@ func TestDesktopAccountProductIdentityRejectsWrongOwnerAndInvalidation(t *testin
 
 func TestM1DesktopAccountRuntimeAgentOwnershipMatrix(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
-	currentAgentID := testInitializeLocalAgent(t, svc, "account-current", "m1-current-agent")
-	otherAgentID := testInitializeLocalAgent(t, svc, "account-other", "m1-other-agent")
+	currentAgentID := testMaterializeLocalAgent(t, svc, "account-current", "m1-current-agent")
+	otherAgentID := testMaterializeLocalAgent(t, svc, "account-other", "m1-other-agent")
 	callContext := desktopAccountProductTestPrincipalContext("account-current", make(chan struct{}))
 	selector := func() *runtimev1.AgentRequestContext { return &runtimev1.AgentRequestContext{AppId: "nimi.desktop"} }
 	assertWrongOwner := func(t *testing.T, err error) {

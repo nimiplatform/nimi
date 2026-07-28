@@ -151,8 +151,8 @@ func (s *Service) commitProactiveInterruptibilityDecision(ctx context.Context, d
 		projection.LastDeliveredEvent = final
 	}
 	events := []*runtimev1.AgentEvent{
-		s.proactiveEvent(entry.Agent.GetAgentId(), suggested, observedAt),
-		s.proactiveEvent(entry.Agent.GetAgentId(), final, observedAt),
+		s.proactiveEvent(entry.Agent.GetLocalAgentRef(), suggested, observedAt),
+		s.proactiveEvent(entry.Agent.GetLocalAgentRef(), final, observedAt),
 	}
 	entry.State.ProactiveInterruptibility = cloneProactiveProjection(projection)
 	entry.State.UpdatedAt = timestamppb.New(observedAt)

@@ -98,7 +98,6 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
 
   assert.equal(typeof runtime.ai.executeScenario, 'function');
   assert.equal(typeof runtime.account.beginLogin, 'function');
-  assert.equal(typeof runtime.agents.initializeAgent, 'function');
   assert.equal(typeof runtime.connectors.listProviderCatalog, 'function');
   assert.equal(typeof runtime.scheduling.peekScheduling, 'function');
   assert.equal(typeof runtime.knowledge.searchHybrid, 'function');

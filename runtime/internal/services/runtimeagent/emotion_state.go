@@ -82,7 +82,7 @@ func (s *Service) applyCurrentEmotionTransition(entry *agentEntry, current strin
 	entry.State.CurrentEmotion = nextEmotion
 	entry.State.UpdatedAt = timestamppb.New(observedAt.UTC())
 	return s.stateEmotionChangedEvent(
-		entry.Agent.GetAgentId(),
+		entry.Agent.GetLocalAgentRef(),
 		nextEmotion,
 		previousEmotion,
 		emotionSource,

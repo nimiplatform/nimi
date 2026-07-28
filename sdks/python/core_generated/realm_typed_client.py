@@ -46,10 +46,6 @@ class AddGroupParticipantInputDto:
     accountId: str | None = None
 
 @dataclass(frozen=True)
-class AddGroupSourceParticipantInputDto:
-    sourceRef: GroupSourceRefDto | None = None
-
-@dataclass(frozen=True)
 class AssetDetailDto:
     authorId: str | None = None
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
@@ -448,30 +444,6 @@ class CloneAssetDto:
     status: Literal["DRAFT", "READY", "ARCHIVED", "DELETED"] | None = None
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     usePolicy: UsePolicyDto | None = None
-
-@dataclass(frozen=True)
-class CommitRealmGroupSourceMessageCandidateInputDto:
-    auditLineageRef: str | None = None
-    body: str | None = None
-    bodyHash: str | None = None
-    candidateEvidenceRef: str | None = None
-    candidateId: str | None = None
-    candidateKind: Literal["REALM_GROUP_MESSAGE_CANDIDATE"] | None = None
-    commitDisposition: Literal["MESSAGE_CANDIDATE", "REFUSAL_CANDIDATE"] | None = None
-    createdAt: str | None = None
-    evidenceHash: str | None = None
-    expectedRuntimeParticipantSlotId: str | None = None
-    expectedRuntimeSourceRef: str | None = None
-    expiresAt: str | None = None
-    idempotencyKey: str | None = None
-    messageType: Literal["TEXT"] | None = None
-    outputCandidateRef: str | None = None
-    policyVerdictRef: str | None = None
-    refusalCode: str | None = None
-    refusalHash: str | None = None
-    refusalReason: str | None = None
-    runtimeTraceRef: str | None = None
-    triggerEvidence: GroupSourceTriggerEvidenceDto | None = None
 
 @dataclass(frozen=True)
 class ConnectDashboardLinkDto:
@@ -882,11 +854,7 @@ class GroupMessageAuthorDto:
     accountId: str | None = None
     avatarUrl: str | None = None
     displayName: str | None = None
-    runtimeParticipantSlot: str | None = None
-    runtimeSourceRef: str | None = None
-    sourceAuthorityAccountId: str | None = None
-    sourceRef: GroupSourceRefDto | None = None
-    type: Literal["human", "source"] | None = None
+    type: Literal["human"] | None = None
 
 @dataclass(frozen=True)
 class GroupMessageViewDto:
@@ -912,23 +880,7 @@ class GroupParticipantDto:
     isOnline: bool | None = None
     joinedAt: str | None = None
     role: Literal["admin", "member"] | None = None
-    runtimeParticipantSlot: str | None = None
-    runtimeSourceRef: str | None = None
-    sourceAuthorityAccountId: str | None = None
-    sourceRef: GroupSourceRefDto | None = None
-    type: Literal["human", "source"] | None = None
-
-@dataclass(frozen=True)
-class GroupSourceRefDto:
-    pass
-
-@dataclass(frozen=True)
-class GroupSourceTriggerEvidenceDto:
-    actorId: str | None = None
-    chatId: str | None = None
-    kind: Literal["mention", "explicitUserAction", "admittedAutomation", "productDisabled"] | None = None
-    messageId: str | None = None
-    triggerRef: str | None = None
+    type: Literal["human"] | None = None
 
 @dataclass(frozen=True)
 class HandleAvailabilityDto:
@@ -1493,12 +1445,6 @@ class RealmCoreOriginDto:
     sourceContentHash: str | None = None
     sourceId: str | None = None
     sourceVersion: str | None = None
-
-@dataclass(frozen=True)
-class RealmGroupMessageCandidateCommitResultDto:
-    candidateId: str | None = None
-    message: GroupMessageViewDto | None = None
-    status: Literal["committed", "duplicate"] | None = None
 
 @dataclass(frozen=True)
 class RealmSourceCapabilitiesDto:
@@ -2918,28 +2864,6 @@ class RealmAddGroupParticipantOperationRequest:
     body: AddGroupParticipantInputDto | None = None
 
 @dataclass(frozen=True)
-class RealmAddGroupSourceParticipantOperationPath:
-    chatId: str
-
-
-@dataclass(frozen=True)
-class RealmAddGroupSourceParticipantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAddGroupSourceParticipantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAddGroupSourceParticipantOperationRequest:
-    path: RealmAddGroupSourceParticipantOperationPath
-    query: RealmAddGroupSourceParticipantOperationQuery | None = None
-    headers: RealmAddGroupSourceParticipantOperationHeaders | None = None
-    body: AddGroupSourceParticipantInputDto | None = None
-
-@dataclass(frozen=True)
 class RealmArchiveBundleOperationPath:
     bundleId: str
 
@@ -3114,28 +3038,6 @@ class RealmCloneAssetOperationRequest:
     query: RealmCloneAssetOperationQuery | None = None
     headers: RealmCloneAssetOperationHeaders | None = None
     body: CloneAssetDto | None = None
-
-@dataclass(frozen=True)
-class RealmCommitRealmGroupSourceMessageCandidateOperationPath:
-    chatId: str
-
-
-@dataclass(frozen=True)
-class RealmCommitRealmGroupSourceMessageCandidateOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCommitRealmGroupSourceMessageCandidateOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCommitRealmGroupSourceMessageCandidateOperationRequest:
-    path: RealmCommitRealmGroupSourceMessageCandidateOperationPath
-    query: RealmCommitRealmGroupSourceMessageCandidateOperationQuery | None = None
-    headers: RealmCommitRealmGroupSourceMessageCandidateOperationHeaders | None = None
-    body: CommitRealmGroupSourceMessageCandidateInputDto | None = None
 
 @dataclass(frozen=True)
 class RealmCreateAssetOperationPath:
@@ -5724,29 +5626,6 @@ class RealmRemoveGroupParticipantOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmRemoveGroupSourceParticipantOperationPath:
-    runtimeParticipantSlotId: str
-    chatId: str
-
-
-@dataclass(frozen=True)
-class RealmRemoveGroupSourceParticipantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRemoveGroupSourceParticipantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRemoveGroupSourceParticipantOperationRequest:
-    path: RealmRemoveGroupSourceParticipantOperationPath
-    query: RealmRemoveGroupSourceParticipantOperationQuery | None = None
-    headers: RealmRemoveGroupSourceParticipantOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmReportControllerCreateReportOperationPath:
     pass
 
@@ -7524,16 +7403,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="addGroupParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GroupParticipantDto, raw)
 
-    async def add_group_source_participant(self, request: RealmAddGroupSourceParticipantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAddGroupSourceParticipantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="addGroupSourceParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GroupParticipantDto, raw)
-
     async def archive_bundle(self, request: RealmArchiveBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmArchiveBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7613,16 +7482,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="cloneAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
-
-    async def commit_realm_group_source_message_candidate(self, request: RealmCommitRealmGroupSourceMessageCandidateOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCommitRealmGroupSourceMessageCandidateOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="commitRealmGroupSourceMessageCandidate", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmGroupMessageCandidateCommitResultDto, raw)
 
     async def create_asset(self, request: RealmCreateAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateAssetOperationResponse:
         envelope: dict[str, object] = {
@@ -8772,16 +8631,6 @@ class RealmTypedClient:
             "body": _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="removeGroupParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
-    async def remove_group_source_participant(self, request: RealmRemoveGroupSourceParticipantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRemoveGroupSourceParticipantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="removeGroupSourceParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
     async def report_controller_create_report(self, request: RealmReportControllerCreateReportOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReportControllerCreateReportOperationResponse:

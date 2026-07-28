@@ -1,7 +1,10 @@
 //! `nimi_data` directory ownership matrix — `P-MIG-006`.
 //!
-//! Spec authority: `local-config-migration-contract.md` `P-MIG-006` and the
-//! canonical table `tables/nimi-data-directory-ownership.yaml`.
+//! Spec authority:
+//! `.nimi/spec/platform/product-lifecycle.authority.yaml`
+//! `definition.nimi.platform.product-lifecycle.nimi-data-ownership` and the
+//! `P-MIG-006` rules. Host input projection:
+//! `config/platform-nimi-data-directory-ownership.yaml`.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DirectoryOwner {

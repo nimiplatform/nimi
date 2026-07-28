@@ -113,7 +113,7 @@ func buildCanonicalReviewScenarioRequest(req *CanonicalReviewExecutorRequest) (*
 	}
 	subjectUserID := strings.TrimSpace(req.State.GetActiveUserId())
 	if subjectUserID == "" {
-		subjectUserID = strings.TrimSpace(req.Agent.GetAgentId())
+		subjectUserID = strings.TrimSpace(req.Agent.GetLocalAgentRef())
 	}
 	if err := validateRuntimePrivateExecutorBinding("canonical review", req.ExecutionBinding); err != nil {
 		return nil, err

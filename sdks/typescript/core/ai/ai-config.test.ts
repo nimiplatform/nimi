@@ -1236,8 +1236,7 @@ test('Nimi AI first-launch app config initializes through explicit host authorit
   const initialized = await ensureNimiAppFirstLaunchAIConfig({
     scopeRef,
     getExistingAppAIConfig: () => stored,
-    resolveRecommendedProfile: () => ({ profile: READY_PROFILE, manifestSatisfied: true }),
-    resolveAccountDefaultProfile: () => null,
+    resolveAccountDefaultProfile: () => READY_PROFILE,
     resolveRequirementDeclarations: () => [requirementDeclaration(['text.generate'], scopeRef)],
     applyHostAIConfig: (_scope, config) => {
       committed.push(READY_PROFILE);
@@ -1249,13 +1248,12 @@ test('Nimi AI first-launch app config initializes through explicit host authorit
   });
 
   assert.equal(initialized.outcome, 'initialized');
-  assert.equal(initialized.outcome === 'initialized' ? initialized.profileSource : '', 'recommended-profile');
+  assert.equal(initialized.outcome === 'initialized' ? initialized.profileSource : '', 'account-default-profile');
   assert.equal(committed.length, 1);
 
   const already = await ensureNimiAppFirstLaunchAIConfig({
     scopeRef,
     getExistingAppAIConfig: () => stored,
-    resolveRecommendedProfile: () => null,
     resolveAccountDefaultProfile: () => READY_PROFILE,
     resolveRequirementDeclarations: () => [requirementDeclaration(['text.generate'], scopeRef)],
     applyHostAIConfig: (_scope, config) => config,
@@ -1265,15 +1263,11 @@ test('Nimi AI first-launch app config initializes through explicit host authorit
   const setupRequired = await ensureNimiAppFirstLaunchAIConfig({
     scopeRef: createNimiAppAIScopeRef('dev.nimi.other', 'chat'),
     getExistingAppAIConfig: () => null,
-    resolveRecommendedProfile: () => ({
-      profile: {
-        profileId: 'needs-setup',
-        title: 'Needs setup',
-        capabilities: { 'text.generate': { readinessPolicy: 'required' } },
-      },
-      manifestSatisfied: true,
+    resolveAccountDefaultProfile: () => ({
+      profileId: 'needs-setup',
+      title: 'Needs setup',
+      capabilities: { 'text.generate': { readinessPolicy: 'required' } },
     }),
-    resolveAccountDefaultProfile: () => null,
     resolveRequirementDeclarations: ({ scopeRef: setupScope }) => [requirementDeclaration(['text.generate'], setupScope)],
     applyHostAIConfig: (_scope, config) => config,
   });
@@ -1283,8 +1277,7 @@ test('Nimi AI first-launch app config initializes through explicit host authorit
   const manifestGap = await ensureNimiAppFirstLaunchAIConfig({
     scopeRef: createNimiAppAIScopeRef('dev.nimi.gap', 'chat'),
     getExistingAppAIConfig: () => null,
-    resolveRecommendedProfile: () => ({ profile: READY_PROFILE, manifestSatisfied: true }),
-    resolveAccountDefaultProfile: () => null,
+    resolveAccountDefaultProfile: () => READY_PROFILE,
     resolveRequirementDeclarations: ({ scopeRef: gapScope }) => [requirementDeclaration(['text.generate'], gapScope)],
     applyHostAIConfig: (_scope, config) => {
       appliedAfterGap = true;

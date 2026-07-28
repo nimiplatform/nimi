@@ -5,17 +5,15 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestRuntimeAgentCurrentEmotionTransitionRules(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-emotion-state"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-emotion-state"))
 	if err != nil {
@@ -96,10 +94,10 @@ func TestRuntimeAgentCurrentEmotionOntologyMatchesActivityEmotionCategory(t *tes
 func TestRuntimeAgentEmotionDecayDoesNotOverrideNewerTruth(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-emotion-decay"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-emotion-decay"))
 	if err != nil {

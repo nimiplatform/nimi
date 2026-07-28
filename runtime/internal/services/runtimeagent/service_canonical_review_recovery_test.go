@@ -39,16 +39,19 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesAdmissionF
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-canonical-review-ai"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
 			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-canonical-review-ai")},
 		},
+	}
+	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
 	}
 	if _, err := memorySvc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile: %v", err)
@@ -181,10 +184,10 @@ func TestRuntimeAgentRecoversMemoryCommittedReviewRunWithoutRecommittingMemory(t
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-review-committed"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
@@ -386,10 +389,10 @@ func TestRuntimeAgentRecoveryWritesFollowUpExactlyOnceAcrossRestarts(t *testing.
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-followup-once"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,

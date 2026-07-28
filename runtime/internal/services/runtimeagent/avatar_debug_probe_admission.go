@@ -48,7 +48,7 @@ func (s *Service) validateAvatarDebugAnchor(identity localAgentIdentity, entry *
 	if entry == nil {
 		return status.Error(codes.NotFound, "agent not found")
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return err
 	}
 	s.chatSurfaceMu.Lock()

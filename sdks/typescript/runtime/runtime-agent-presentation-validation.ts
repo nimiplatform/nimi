@@ -1,7 +1,7 @@
 import {
   AgentPresentationBackendKind,
   type AgentPresentationProfile,
-  type AgentRecord,
+  type LocalAgentRecord,
 } from '../core-generated/runtime-typed-client';
 import type {
   NimiRuntimeAgentPresentationProfileProjection,
@@ -96,7 +96,7 @@ export function normalizeNimiRuntimeAgentPresentationVoiceReference(value: unkno
 }
 
 export function projectNimiRuntimeAgentPresentationRecord(
-  value: Pick<AgentRecord, 'presentationProfile' | 'presentationProfileRevision'> | unknown,
+  value: Pick<LocalAgentRecord, 'presentationProfile' | 'presentationProfileRevision'> | unknown,
 ): NimiRuntimeAgentPresentationProfileReadProjection {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { profile: null, committedRevision: null };

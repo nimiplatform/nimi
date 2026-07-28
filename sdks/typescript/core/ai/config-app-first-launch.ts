@@ -4,7 +4,6 @@ import type {
   NimiAppFirstLaunchProfileSource,
   NimiEnsureAppFirstLaunchAIConfigOptions,
   NimiAIProfile,
-  NimiAIScopeRef,
 } from './config-types';
 import { aiConfigError, formatNimiAIValidationIssues } from './config-internal';
 import {
@@ -30,7 +29,7 @@ export async function ensureNimiAppFirstLaunchAIConfig(
     };
   }
 
-  const selected = await selectFirstLaunchProfile(options, scopeRef);
+  const selected = await selectFirstLaunchProfile(options);
   const concurrent = await options.getExistingAppAIConfig(scopeRef);
   if (concurrent) {
     return {
@@ -116,7 +115,6 @@ export async function ensureNimiAppFirstLaunchAIConfig(
 
 function assertFirstLaunchAuthorities(options: NimiEnsureAppFirstLaunchAIConfigOptions): void {
   if (typeof options.getExistingAppAIConfig !== 'function'
-    || typeof options.resolveRecommendedProfile !== 'function'
     || typeof options.resolveAccountDefaultProfile !== 'function'
     || typeof options.resolveRequirementDeclarations !== 'function'
     || typeof options.applyHostAIConfig !== 'function') {
@@ -130,14 +128,7 @@ function assertFirstLaunchAuthorities(options: NimiEnsureAppFirstLaunchAIConfigO
 
 async function selectFirstLaunchProfile(
   options: NimiEnsureAppFirstLaunchAIConfigOptions,
-  scopeRef: NimiAIScopeRef,
 ): Promise<{ readonly profile: NimiAIProfile; readonly profileSource: NimiAppFirstLaunchProfileSource }> {
-  const recommended = await options.resolveRecommendedProfile(scopeRef);
-  if (recommended?.manifestSatisfied) {
-    assertValidFirstLaunchProfile(recommended.profile, 'app recommended AIProfile');
-    return { profile: recommended.profile, profileSource: 'recommended-profile' };
-  }
-
   const accountDefault = await options.resolveAccountDefaultProfile();
   if (accountDefault) {
     assertValidFirstLaunchProfile(accountDefault, 'Account Default Profile');
@@ -146,8 +137,8 @@ async function selectFirstLaunchProfile(
 
   throw aiConfigError(
     'SDK_AI_CONFIG_INIT_PROFILE_UNRESOLVED',
-    'app first-launch AIConfig cannot initialize: no satisfied recommended profile or Account Default Profile is available',
-    'resolve_recommended_profile_or_account_default_profile',
+    'app first-launch AIConfig cannot initialize: no Account Default Profile is available',
+    'resolve_account_default_profile',
   );
 }
 

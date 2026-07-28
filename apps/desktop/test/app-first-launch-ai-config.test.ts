@@ -12,10 +12,9 @@ import type { NimiError } from '@nimiplatform/sdk/types';
  *
  * Exercises the Desktop host wiring `ensureAppFirstLaunchAIConfig`, which binds
  * the host-agnostic SDK helper to the Desktop host AIConfig persistence
- * (`commitConfig` write path + scope-keyed localStorage). The recommended /
- * Account Default Profile resolvers are injected so the test does not need the
- * Tauri layer; the persistence + never-overwrite + fail-closed behavior is
- * real.
+ * (`commitConfig` write path + scope-keyed localStorage). The Account Default
+ * Profile resolver is injected so the test does not need the Tauri layer; the
+ * persistence + never-overwrite + fail-closed behavior is real.
  */
 
 // ---------------------------------------------------------------------------
@@ -58,22 +57,6 @@ test.afterEach(() => {
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
-
-const RECOMMENDED_PROFILE: NimiAIProfile = {
-  profileId: 'factory:app-recommended',
-  title: 'App Recommended',
-  description: "The app's declared recommended factory profile.",
-  tags: ['factory-ai-profile'],
-  capabilities: {
-    'text.generate': {
-      targetRef: {
-        kind: 'local-runtime',
-        version: 'v2',
-        readinessRef: 'readiness:app-recommended:text',
-      },
-    },
-  },
-};
 
 const ACCOUNT_DEFAULT_PROFILE: NimiAIProfile = {
   profileId: 'default',
@@ -122,7 +105,7 @@ function freshAppId(): string {
 // First-launch initialization (S-AICONF-009)
 // ---------------------------------------------------------------------------
 
-test('desktop first launch initializes the app scope from the recommended profile', async () => {
+test('desktop first launch initializes the app scope from the Account Default Profile', async () => {
   installFreshStorage();
   const { ensureAppFirstLaunchAIConfig, getDesktopAIConfigService } = await loadService();
   const appId = freshAppId();
@@ -130,36 +113,9 @@ test('desktop first launch initializes the app scope from the recommended profil
   const result = await ensureAppFirstLaunchAIConfig(
     {
       appId,
-      recommendedProfileRef: RECOMMENDED_PROFILE.profileId,
       requirementDeclarations: requirementDeclarations(appId),
     },
     {
-      resolveRecommendedFactoryProfile: (ref) =>
-        ref === RECOMMENDED_PROFILE.profileId ? RECOMMENDED_PROFILE : null,
-      resolveAccountDefaultProfile: () => ACCOUNT_DEFAULT_PROFILE,
-    },
-  );
-
-  assert.equal(result.outcome, 'initialized');
-  if (result.outcome !== 'initialized') return;
-  assert.equal(result.profileSource, 'recommended-profile');
-  assert.equal(result.config.scopeRef.kind, 'app');
-  assert.equal(result.config.scopeRef.ownerId, appId);
-
-  // The config is persisted under the canonical app scope and readable back.
-  const persisted = getDesktopAIConfigService().aiConfig.get({ kind: 'app', ownerId: appId });
-  assert.equal(persisted.profileOrigin?.profileId, RECOMMENDED_PROFILE.profileId);
-});
-
-test('desktop first launch falls back to the Account Default Profile when no recommended profile is declared', async () => {
-  installFreshStorage();
-  const { ensureAppFirstLaunchAIConfig } = await loadService();
-  const appId = freshAppId();
-
-  const result = await ensureAppFirstLaunchAIConfig(
-    { appId, recommendedProfileRef: null, requirementDeclarations: requirementDeclarations(appId) },
-    {
-      resolveRecommendedFactoryProfile: () => null,
       resolveAccountDefaultProfile: () => ACCOUNT_DEFAULT_PROFILE,
     },
   );
@@ -167,10 +123,15 @@ test('desktop first launch falls back to the Account Default Profile when no rec
   assert.equal(result.outcome, 'initialized');
   if (result.outcome !== 'initialized') return;
   assert.equal(result.profileSource, 'account-default-profile');
-  assert.equal(result.profileId, ACCOUNT_DEFAULT_PROFILE.profileId);
+  assert.equal(result.config.scopeRef.kind, 'app');
+  assert.equal(result.config.scopeRef.ownerId, appId);
+
+  // The config is persisted under the canonical app scope and readable back.
+  const persisted = getDesktopAIConfigService().aiConfig.get({ kind: 'app', ownerId: appId });
+  assert.equal(persisted.profileOrigin?.profileId, ACCOUNT_DEFAULT_PROFILE.profileId);
 });
 
-test('desktop first launch fails closed when neither profile resolves', async () => {
+test('desktop first launch fails closed when the Account Default Profile does not resolve', async () => {
   installFreshStorage();
   const { ensureAppFirstLaunchAIConfig, getDesktopAIConfigService } = await loadService();
   const appId = freshAppId();
@@ -180,7 +141,6 @@ test('desktop first launch fails closed when neither profile resolves', async ()
       ensureAppFirstLaunchAIConfig(
         { appId, requirementDeclarations: requirementDeclarations(appId) },
         {
-          resolveRecommendedFactoryProfile: () => null,
           resolveAccountDefaultProfile: () => null,
         },
       ),
@@ -203,28 +163,22 @@ test('desktop never overwrites an existing per-app AIConfig on a later launch', 
   const first = await ensureAppFirstLaunchAIConfig(
     {
       appId,
-      recommendedProfileRef: RECOMMENDED_PROFILE.profileId,
       requirementDeclarations: requirementDeclarations(appId),
     },
     {
-      resolveRecommendedFactoryProfile: () => RECOMMENDED_PROFILE,
       resolveAccountDefaultProfile: () => ACCOUNT_DEFAULT_PROFILE,
     },
   );
   assert.equal(first.outcome, 'initialized');
 
-  // Later launch with a CHANGED recommended profile and a CHANGED Default
-  // Profile — neither may re-initialize the existing scope.
-  const changedRecommended: NimiAIProfile = { ...RECOMMENDED_PROFILE, profileId: 'factory:changed' };
+  // A changed Account Default Profile cannot re-initialize the existing scope.
   const changedDefault: NimiAIProfile = { ...ACCOUNT_DEFAULT_PROFILE, profileId: 'default-v2' };
   const second = await ensureAppFirstLaunchAIConfig(
     {
       appId,
-      recommendedProfileRef: changedRecommended.profileId,
       requirementDeclarations: requirementDeclarations(appId),
     },
     {
-      resolveRecommendedFactoryProfile: () => changedRecommended,
       resolveAccountDefaultProfile: () => changedDefault,
     },
   );
@@ -232,7 +186,7 @@ test('desktop never overwrites an existing per-app AIConfig on a later launch', 
   assert.equal(second.outcome, 'already-initialized');
   if (second.outcome !== 'already-initialized') return;
   // The config is still the first-launch config — untouched.
-  assert.equal(second.config.profileOrigin?.profileId, RECOMMENDED_PROFILE.profileId);
+  assert.equal(second.config.profileOrigin?.profileId, ACCOUNT_DEFAULT_PROFILE.profileId);
 });
 
 test('desktop unmet manifest requirements surface a typed setup/repair plan', async () => {
@@ -243,14 +197,12 @@ test('desktop unmet manifest requirements surface a typed setup/repair plan', as
   const result = await ensureAppFirstLaunchAIConfig(
     {
       appId,
-      recommendedProfileRef: RECOMMENDED_PROFILE.profileId,
       requirementDeclarations: requirementDeclarations(appId),
       validateManifestRequirements: () => [
         { requirementId: 'local-pack.text', detail: 'local text pack not installed' },
       ],
     },
     {
-      resolveRecommendedFactoryProfile: () => RECOMMENDED_PROFILE,
       resolveAccountDefaultProfile: () => ACCOUNT_DEFAULT_PROFILE,
     },
   );
@@ -260,7 +212,7 @@ test('desktop unmet manifest requirements surface a typed setup/repair plan', as
   assert.ok(result.setupRepairPlan);
   assert.equal(result.setupRepairPlan?.unmetRequirements[0]?.requirementId, 'local-pack.text');
   assert.equal(result.config, null);
-  assert.equal(result.profileId, RECOMMENDED_PROFILE.profileId);
+  assert.equal(result.profileId, ACCOUNT_DEFAULT_PROFILE.profileId);
 });
 
 test('desktop first-launch init builds the canonical P-AISC-007 app scope and rejects a blank app id', async () => {
@@ -272,7 +224,6 @@ test('desktop first-launch init builds the canonical P-AISC-007 app scope and re
       ensureAppFirstLaunchAIConfig(
         { appId: '   ', requirementDeclarations: [] },
         {
-          resolveRecommendedFactoryProfile: () => null,
           resolveAccountDefaultProfile: () => ACCOUNT_DEFAULT_PROFILE,
         },
       ),

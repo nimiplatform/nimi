@@ -935,7 +935,6 @@ test('Runtime Agent consume client decodes companion participation projection an
           agentId: 'local-agent:test-owner-1-agent-1',
           surfaceKind: CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH,
           profileRef: 'runtime.agent.profile/local-agent:test-owner-1-agent-1',
-          roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
           triggerSource: CompanionParticipationTriggerSource.USER_EXPLICIT,
           status: CompanionParticipationStatus.BLOCKED,
           candidateRef: '',
@@ -958,7 +957,6 @@ test('Runtime Agent consume client decodes companion participation projection an
     surfaceKind: 'avatar_debug_workbench',
     triggerSource: 'user_explicit',
     profileRef: 'runtime.agent.profile/local-agent:test-owner-1-agent-1',
-    roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
     requestId: 'request-1',
   }, callOptions);
 
@@ -981,7 +979,6 @@ test('Runtime Agent consume client decodes companion participation projection an
         surfaceKind: CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH,
         triggerSource: CompanionParticipationTriggerSource.USER_EXPLICIT,
         profileRef: 'runtime.agent.profile/local-agent:test-owner-1-agent-1',
-        roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
         requestId: 'request-1',
       },
       options: callOptions,
@@ -998,7 +995,6 @@ test('Runtime Agent consume client fails closed on invalid companion participati
           agentId: 'local-agent:test-owner-1-agent-1',
           surfaceKind: CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH,
           profileRef: 'runtime.agent.profile/local-agent:test-owner-1-agent-1',
-          roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
           triggerSource: CompanionParticipationTriggerSource.USER_EXPLICIT,
           status: 999 as CompanionParticipationStatus,
           candidateRef: '',

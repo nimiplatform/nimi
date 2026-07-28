@@ -122,7 +122,6 @@ export {
   MemoryReplicationOutcome,
   ModelCatalogProviderSource,
   ReasonCode,
-  RealmGroupMessageCandidateCommitDisposition,
   RoutePolicy,
   RuntimeHealthStatus,
   ScenarioJobEventType,

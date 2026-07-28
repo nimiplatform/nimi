@@ -164,8 +164,7 @@ func writeRuntimeLocalAgentState(localStatePath string, runtimeSourceRef string,
 		return err
 	}
 	defer func() { _ = backend.Close() }()
-	agentRaw, err := protojson.Marshal(&runtimev1.AgentRecord{
-		AgentId:          localAgentRef,
+	agentRaw, err := protojson.Marshal(&runtimev1.LocalAgentRecord{
 		LocalAgentRef:    localAgentRef,
 		OwnerUserId:      ownerUserID,
 		RuntimeSourceRef: runtimeSourceRef,

@@ -1201,7 +1201,6 @@ test('Runtime Agent companion participation and avatar debug clients cover reque
     agentId: 'local-agent:owner-1:agent-1',
     surfaceKind: CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL,
     profileRef: 'runtime.agent.profile/local-agent:owner-1:agent-1',
-    roomOrchestrationRef: 'runtime.room_orchestration/panel',
     triggerSource: CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE,
     status: CompanionParticipationStatus.CANDIDATE_READY,
     candidateRef: 'candidate-1',

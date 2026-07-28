@@ -47,10 +47,10 @@ func TestAgentStatePostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	closeRuntimeAgentServiceForTest(t, svc)
 
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-exec-pack-3"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-exec-pack-3"))
@@ -248,7 +248,7 @@ func TestPublicChatCommittedPresentationReachesTypedStream(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "show emotion"},
@@ -363,7 +363,7 @@ func TestPublicChatCommittedAPMLActivityReachesTypedStream(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "show activity"},

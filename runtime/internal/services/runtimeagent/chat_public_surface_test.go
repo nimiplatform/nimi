@@ -169,7 +169,7 @@ func publicChatScenarioSystemPromptForImageConfig(t *testing.T, imageBinding *ru
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-image-prompt",
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
@@ -338,12 +338,11 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
 	svc.SetRuntimeAccountProjectionProvider(bundledAvatarTestProjectionProvider{accountID: "user-1"})
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:     testRuntimeAgentIdentityContext("agent-alpha"),
-		DisplayName: "Alpha",
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"),
 	}); err != nil {
 		if status.Code(err) != codes.AlreadyExists {
-			t.Fatalf("InitializeAgent: %v", err)
+			t.Fatalf("RealmSourceMaterialization: %v", err)
 		}
 	}
 	vector := loadSourceMaterializationReferenceVectorV3(t, "world-character")

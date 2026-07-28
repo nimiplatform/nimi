@@ -8,7 +8,7 @@
 ## Hard Boundaries
 - Consume Runtime and Realm only through SDK and reusable UI through Kit; do not create app-local platform truth, private transport, provider/model constants, or admission truth.
 - Do not add app-local persistence commands or modules; history, export, artifacts, and storage use admitted Kit shell capabilities.
-- `.nimi/admission/**` is developer-owned release submission input, not product acceptance truth.
+- The current reference app is local-development-only and must not carry public admission, listing, release, registry, or install truth.
 
 ## Retrieval Defaults
 - Read the affected tester route, its direct SDK/Kit or shell dependency, and the matching tester contract test.

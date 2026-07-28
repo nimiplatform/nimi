@@ -274,7 +274,7 @@ func TestRunRuntimeConfigRejectsFullDocumentDataRootMutation(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeConfigPreservesAppRegistryPath(t *testing.T) {
+func TestRunRuntimeConfigPreservesAppIdentityProjectionPath(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
@@ -284,16 +284,16 @@ func TestRunRuntimeConfigPreservesAppRegistryPath(t *testing.T) {
 		t.Fatalf("init config: %v", err)
 	}
 
-	registryPath := filepath.Join(homeDir, "runtime", "nimi-app-registry.yaml")
+	projectionPath := filepath.Join(homeDir, "runtime", "nimi-app-identity-surfaces.yaml")
 	setOutput, err := captureStdoutFromRun(func() error {
 		return runRuntimeConfig([]string{
 			"set",
-			"--set", "appRegistryPath=" + registryPath,
+			"--set", "appIdentityProjectionPath=" + projectionPath,
 			"--json",
 		})
 	})
 	if err != nil {
-		t.Fatalf("runRuntimeConfig set appRegistryPath: %v", err)
+		t.Fatalf("runRuntimeConfig set appIdentityProjectionPath: %v", err)
 	}
 	setPayload := parseJSONMap(t, setOutput)
 	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
@@ -305,8 +305,8 @@ func TestRunRuntimeConfigPreservesAppRegistryPath(t *testing.T) {
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
 	}
-	if cfg.AppRegistryPath != registryPath {
-		t.Fatalf("appRegistryPath mismatch: got=%q want=%q", cfg.AppRegistryPath, registryPath)
+	if cfg.AppIdentityProjectionPath != projectionPath {
+		t.Fatalf("appIdentityProjectionPath mismatch: got=%q want=%q", cfg.AppIdentityProjectionPath, projectionPath)
 	}
 
 	getOutput, err := captureStdoutFromRun(func() error {
@@ -320,25 +320,25 @@ func TestRunRuntimeConfigPreservesAppRegistryPath(t *testing.T) {
 	if !ok {
 		t.Fatalf("config payload missing: %s", getOutput)
 	}
-	if asString(getConfig["appRegistryPath"]) != registryPath {
-		t.Fatalf("get appRegistryPath mismatch: %s", getOutput)
+	if asString(getConfig["appIdentityProjectionPath"]) != projectionPath {
+		t.Fatalf("get appIdentityProjectionPath mismatch: %s", getOutput)
 	}
 }
 
-func TestParseConfigInputJSONPreservesAppRegistryPath(t *testing.T) {
+func TestParseConfigInputJSONPreservesAppIdentityProjectionPath(t *testing.T) {
 	raw := []byte(`{
   "schemaVersion": 1,
   "grpcAddr": "127.0.0.1:50051",
   "httpAddr": "127.0.0.1:50080",
-  "appRegistryPath": "/tmp/nimi-e2e-data/runtime/nimi-app-registry.yaml"
+  "appIdentityProjectionPath": "/tmp/nimi-e2e-data/runtime/nimi-app-identity-surfaces.yaml"
 }`)
 
 	cfg, err := parseConfigInputJSON(raw)
 	if err != nil {
 		t.Fatalf("parseConfigInputJSON: %v", err)
 	}
-	if cfg.AppRegistryPath != "/tmp/nimi-e2e-data/runtime/nimi-app-registry.yaml" {
-		t.Fatalf("appRegistryPath mismatch: got=%q", cfg.AppRegistryPath)
+	if cfg.AppIdentityProjectionPath != "/tmp/nimi-e2e-data/runtime/nimi-app-identity-surfaces.yaml" {
+		t.Fatalf("appIdentityProjectionPath mismatch: got=%q", cfg.AppIdentityProjectionPath)
 	}
 }
 
@@ -728,7 +728,7 @@ func clearRuntimeConfigCommandEnv(t *testing.T) {
 		"NIMI_RUNTIME_SHUTDOWN_TIMEOUT",
 		"NIMI_RUNTIME_LOCAL_STATE_PATH",
 		"NIMI_RUNTIME_LOCAL_MODELS_PATH",
-		"NIMI_RUNTIME_APP_REGISTRY_PATH",
+		"NIMI_RUNTIME_APP_IDENTITY_PROJECTION_PATH",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT",
 		"NIMI_RUNTIME_AI_HEALTH_INTERVAL",
 		"NIMI_RUNTIME_LOCAL_AI_BASE_URL",

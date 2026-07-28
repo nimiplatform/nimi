@@ -72,7 +72,6 @@ export type DesktopHostRuntimeAgentClient = {
 
 type DesktopLifecycleCompatibleHostRuntimeAgentClient = DesktopHostRuntimeAgentClient & {
   readonly agent: NimiDesktopRuntimeAgentPurposeClient & {
-    readonly initializeAgent: never;
     readonly terminateAgent: never;
   };
 };

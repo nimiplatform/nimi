@@ -406,7 +406,6 @@ export function extractRealmCore() {
     source_paths: sourcePaths,
     authority_refs: source.config.authority_refs || ['.nimi/spec/sdks/realm-consumer.authority.yaml'],
     provenance: {
-      source_rule: 'S-SURFACE-019',
       notes: [
         'Realm core operation truth is derived from Realm OpenAPI when available.',
         'Configured Realm OpenAPI absence is fail-closed by the SDK generator; spec tables are not REST schema fallback authority.',

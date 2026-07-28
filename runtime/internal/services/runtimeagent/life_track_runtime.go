@@ -147,7 +147,7 @@ func (c lifeTrackController) executePendingHook(ctx context.Context, agentID str
 		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), now)
 	}
 	result, err := executor(ctx, &lifeTurnRequest{
-		Agent:            cloneAgentRecord(executionEntry.Agent),
+		Agent:            cloneLocalAgentRecord(executionEntry.Agent),
 		State:            cloneAgentState(executionEntry.State),
 		Hook:             clonePendingHook(runningHook),
 		Recall:           cloneCanonicalMemoryViews(recall),
@@ -266,7 +266,7 @@ func (c lifeTrackController) applyResult(ctx context.Context, agentID string, in
 	previousStatusText := strings.TrimSpace(entry.State.GetStatusText())
 	hadPreviousStatus := previousStatusText != ""
 	if result.PosturePatch != nil {
-		posture, err := normalizeBehavioralPosturePatch(entry.Agent.GetAgentId(), *result.PosturePatch)
+		posture, err := normalizeBehavioralPosturePatch(entry.Agent.GetLocalAgentRef(), *result.PosturePatch)
 		if err != nil {
 			return c.svc.failHookAt(agentID, intentID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err.Error(), false, result.TokensUsed, now)
 		}
@@ -283,7 +283,7 @@ func (c lifeTrackController) applyResult(ctx context.Context, agentID string, in
 		entry.State.UpdatedAt = timestamppb.New(now)
 		if newStatus := strings.TrimSpace(*result.StatusText); newStatus != previousStatusText {
 			postureStateEvents = []*runtimev1.AgentEvent{
-				c.svc.stateStatusTextChangedEvent(entry.Agent.GetAgentId(), newStatus, previousStatusText, hadPreviousStatus, lifePostureOrigin, now),
+				c.svc.stateStatusTextChangedEvent(entry.Agent.GetLocalAgentRef(), newStatus, previousStatusText, hadPreviousStatus, lifePostureOrigin, now),
 			}
 		}
 	}
@@ -307,7 +307,7 @@ func (c lifeTrackController) applyResult(ctx context.Context, agentID string, in
 		// Admit follow-up HookIntent as new PendingHook.
 		followupIntent := cloneHookIntent(result.NextHookIntent)
 		if strings.TrimSpace(followupIntent.GetAgentId()) == "" {
-			followupIntent.AgentId = entry.Agent.GetAgentId()
+			followupIntent.AgentId = entry.Agent.GetLocalAgentRef()
 		}
 		if strings.TrimSpace(followupIntent.GetIntentId()) == "" {
 			followupIntent.IntentId = "hook_" + ulid.Make().String()
@@ -326,11 +326,11 @@ func (c lifeTrackController) applyResult(ctx context.Context, agentID string, in
 		proposedFollowup := cloneHookIntent(followupIntent)
 		proposedFollowup.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
 		followupEvents = []*runtimev1.AgentEvent{
-			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 				Intent:     proposedFollowup,
 				ObservedAt: timestamppb.New(now),
 			}, now),
-			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 				Intent:     cloneHookIntent(followupIntent),
 				ObservedAt: timestamppb.New(now),
 			}, now),
@@ -346,20 +346,20 @@ func (c lifeTrackController) applyResult(ctx context.Context, agentID string, in
 
 	executionStateEvent := c.svc.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(hook), now)
 	events = append(events, postureStateEvents...)
-	events = append(events, hookEventAt(entry.Agent.GetAgentId(), outcome, now))
+	events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), outcome, now))
 	events = append(events, followupEvents...)
 	if executionStateEvent != nil {
 		events = append(events, executionStateEvent)
 	}
 	if len(accepted) > 0 || len(rejected) > 0 {
-		events = append(events, c.svc.newEventAt(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
+		events = append(events, c.svc.newEventAt(entry.Agent.GetLocalAgentRef(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
 			Memory: &runtimev1.AgentMemoryEventDetail{
 				Accepted: cloneCanonicalMemoryViews(accepted),
 				Rejected: cloneCanonicalMemoryRejections(rejected),
 			},
 		}, now))
 	}
-	if event := budgetEventForTransition(entry.Agent.GetAgentId(), beforeBudget, entry.Agent.GetAutonomy(), now); event != nil {
+	if event := budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), now); event != nil {
 		events = append(events, event)
 	}
 	if err := c.svc.updateAgent(entry, events...); err != nil {

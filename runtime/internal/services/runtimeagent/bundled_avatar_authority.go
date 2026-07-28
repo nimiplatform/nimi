@@ -192,7 +192,7 @@ func (s *Service) getProtectedAccountAgent(ctx context.Context, req *runtimev1.G
 	if !principal.Owns(entry.Agent.GetOwnerUserId()) {
 		return nil, status.Error(codes.NotFound, "agent not found")
 	}
-	agent := cloneAgentRecord(entry.Agent)
+	agent := cloneLocalAgentRecord(entry.Agent)
 	if err := validatePersistedAgentPresentationProfile(agent); err != nil {
 		return nil, err
 	}

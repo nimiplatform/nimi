@@ -633,7 +633,7 @@ export interface NimiAccountProfileLibraryProjection {
   readonly profiles: readonly NimiAccountProfileLibraryProfile[];
 }
 
-export type NimiAppFirstLaunchProfileSource = 'recommended-profile' | 'account-default-profile';
+export type NimiAppFirstLaunchProfileSource = 'account-default-profile';
 
 export interface NimiAppManifestRequirementGap {
   readonly requirementId: string;
@@ -668,17 +668,11 @@ export type NimiAppFirstLaunchAIConfigResult =
     readonly setupRepairPlan: NimiAppAIConfigSetupRepairPlan;
   };
 
-export interface NimiResolvedRecommendedAIProfile {
-  readonly profile: NimiAIProfile;
-  readonly manifestSatisfied: boolean;
-}
-
 type Awaitable<T> = T | Promise<T>;
 
 export interface NimiEnsureAppFirstLaunchAIConfigOptions {
   readonly scopeRef: NimiAIScopeRef;
   readonly getExistingAppAIConfig: (scopeRef: NimiAIScopeRef) => Awaitable<NimiAIConfig | null>;
-  readonly resolveRecommendedProfile: (scopeRef: NimiAIScopeRef) => Awaitable<NimiResolvedRecommendedAIProfile | null>;
   readonly resolveAccountDefaultProfile: () => Awaitable<NimiAIProfile | null>;
   readonly resolveRequirementDeclarations: (input: {
     readonly scopeRef: NimiAIScopeRef;

@@ -157,7 +157,7 @@ def _validate_companion_participation_response(model_name: str, decoded: object)
     projection = getattr(decoded, "projection", None)
     if projection is None:
         raise _runtime_decode_error("companion participation projection is missing")
-    required = ("projection_id", "agent_id", "profile_ref", "room_orchestration_ref", "audit_ref", "conversation_anchor_id")
+    required = ("projection_id", "agent_id", "profile_ref", "audit_ref", "conversation_anchor_id")
     if any(not str(getattr(projection, field_name, "") or "").strip() for field_name in required):
         raise _runtime_decode_error("companion participation projection is missing required refs")
     if getattr(projection, "surface_kind", None) not in {

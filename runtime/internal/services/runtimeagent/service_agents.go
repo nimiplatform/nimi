@@ -8,10 +8,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *Service) InitializeAgent(ctx context.Context, req *runtimev1.InitializeAgentRequest) (*runtimev1.InitializeAgentResponse, error) {
-	return s.agentAdminRuntime().initialize(ctx, req)
-}
-
 func (s *Service) TerminateAgent(ctx context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
 	return s.agentAdminRuntime().terminate(ctx, req)
 }

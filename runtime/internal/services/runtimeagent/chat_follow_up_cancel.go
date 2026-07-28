@@ -99,7 +99,7 @@ func (s *Service) emitPublicChatFollowUpCanceled(
 		return err
 	}
 	now := time.Now().UTC()
-	return s.updateAgent(entry, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+	return s.updateAgent(entry, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 		Intent:     intent,
 		ObservedAt: timestamppb.New(now),
 		Reason:     strings.TrimSpace(reason),

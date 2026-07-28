@@ -138,7 +138,7 @@ func (s *Service) emitPublicChatFollowUpHookEvents(
 		if err != nil {
 			return err
 		}
-		events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+		events = append(events, hookEventAt(entry.Agent.GetLocalAgentRef(), &runtimev1.HookExecutionOutcome{
 			Intent:     intent,
 			ObservedAt: timestamppb.New(now),
 			ReasonCode: transition.reasonCode,

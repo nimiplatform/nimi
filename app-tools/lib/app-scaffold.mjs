@@ -11,12 +11,10 @@ import {
 export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
-export const SCAFFOLD_VERSION = '2026-07-18.permission-model-v1';
+export const SCAFFOLD_VERSION = '2026-07-28.local-development-v1';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
-export const SCAFFOLD_SUBMISSION_PATH = '.nimi/admission/submission.yaml';
-export const SCAFFOLD_BUILD_PROFILE_PATH = '.nimi/admission/build-profile.yaml';
 const LOCKFILE_POLICY = 'author-install-generates-lockfile';
 const GENERATED_GITIGNORE = [
   'node_modules/',
@@ -74,7 +72,7 @@ export function isScaffoldOmittedPath(relativePath, omissions = [], matched = nu
 }
 
 const CI_WORKFLOW = [
-  'name: pre-submission-self-check',
+  'name: local-development-check',
   'on:',
   '  pull_request:',
   '  push:',
@@ -470,57 +468,6 @@ function buildScaffoldIntentFile(identity, versions) {
   };
 }
 
-function buildScaffoldSubmissionFile(identity) {
-  return {
-    path: SCAFFOLD_SUBMISSION_PATH,
-    content: [
-      `app_id: ${identity.appId}`,
-      `display_name: ${identity.appTitle}`,
-      `profile: ${identity.profile}`,
-      'submission_role: developer-submitted-input',
-      'publish_readiness:',
-      '  install_command: pnpm install',
-      '  init_command: pnpm run init',
-      '  dev_command: pnpm dev',
-      '  build_command: pnpm run build',
-      'review_inputs:',
-      '  manifest: nimi.app.yaml',
-      `  build_profile: ${SCAFFOLD_BUILD_PROFILE_PATH}`,
-      `  scaffold_lock: ${SCAFFOLD_LOCK_PATH}`,
-      'admission_truth: platform-owned-after-review',
-      '',
-    ].join('\n'),
-    mutationClass: 'scaffold-managed glue',
-  };
-}
-
-function buildScaffoldBuildProfileFile() {
-  return {
-    path: SCAFFOLD_BUILD_PROFILE_PATH,
-    content: [
-      'build_profile_ref: tauri-pnpm-vite',
-      'toolchain_version: node>=20;pnpm>=9;rust>=1.80;tauri=2',
-      'install_command: pnpm install',
-      'init_command: pnpm run init',
-      'build_command: pnpm run build',
-      'output_path: src-tauri/target/release',
-      'lockfile_path: pnpm-lock.yaml',
-      `lockfile_policy: ${LOCKFILE_POLICY}`,
-      'ci_install_command: pnpm install --no-frozen-lockfile',
-      'profile_role: developer-workflow-input',
-      '',
-    ].join('\n'),
-    mutationClass: 'scaffold-managed glue',
-  };
-}
-
-function buildInitProjectionFiles(identity) {
-  return [
-    buildScaffoldSubmissionFile(identity),
-    buildScaffoldBuildProfileFile(),
-  ];
-}
-
 function buildScaffoldFiles(identity, versions) {
   return [
     ...buildStructuredFiles(identity, identity.profile, versions),
@@ -656,14 +603,9 @@ export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, p
     ...buildScaffoldFiles(identity, versions),
     buildScaffoldIntentFile(identity, versions),
   ];
-  const initProjectionFiles = buildInitProjectionFiles(identity);
-  const filesWithoutLock = [
-    ...createFiles,
-    ...initProjectionFiles,
-  ];
+  const filesWithoutLock = [...createFiles];
   const lock = buildScaffoldLock(identity, versions, filesWithoutLock);
   const initFiles = [
-    ...initProjectionFiles,
     {
       path: SCAFFOLD_LOCK_PATH,
       content: jsonFile(lock),

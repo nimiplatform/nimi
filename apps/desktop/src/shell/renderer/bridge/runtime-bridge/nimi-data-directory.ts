@@ -2,7 +2,10 @@
  * Renderer bridge for `nimi_data` directory ownership and cleanup.
  *
  * Backend authority: `apps/desktop/src-tauri/src/nimi_data_directory/**`,
- * spec `P-MIG-006/008` in `local-config-migration-contract.md`.
+ * canonical product authority:
+ * `.nimi/spec/platform/product-lifecycle.authority.yaml`
+ * (`definition.nimi.platform.product-lifecycle.nimi-data-ownership`,
+ * `P-MIG-006`, and `P-MIG-008`).
  *
  * This is the typed renderer surface for the admitted `P-MIG-008`
  * destructive-cleanup flow. Data-root relocation is not exposed in this

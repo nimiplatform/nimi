@@ -72,7 +72,7 @@ func (r reviewRuntime) execute(ctx context.Context, req CanonicalReviewRequest) 
 		return nil, err
 	}
 	reviewResult, err := r.currentExecutor().ExecuteCanonicalReview(ctx, &CanonicalReviewExecutorRequest{
-		Agent:            cloneAgentRecord(entry.Agent),
+		Agent:            cloneLocalAgentRecord(entry.Agent),
 		State:            cloneAgentState(entry.State),
 		Bank:             cloneLocator(locator),
 		CheckpointBasis:  checkpointBasis,
@@ -92,7 +92,7 @@ func (r reviewRuntime) execute(ctx context.Context, req CanonicalReviewRequest) 
 	reviewRunID := "review_" + ulid.Make().String()
 	run := ReviewRunRecord{
 		ReviewRunID:      reviewRunID,
-		AgentID:          entry.Agent.GetAgentId(),
+		AgentID:          entry.Agent.GetLocalAgentRef(),
 		BankLocatorKey:   memoryservice.LocatorKey(locator),
 		CheckpointBasis:  canonicalReviewCheckpointBasis(clusters, checkpointBasis),
 		PreparedOutcomes: reviewResult.Outcomes,
@@ -144,17 +144,17 @@ func (r reviewRuntime) resolveTarget(req CanonicalReviewRequest) (*agentEntry, *
 		locator = &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: entry.Agent.GetAgentId()},
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: entry.Agent.GetLocalAgentRef()},
 			},
 		}
 	}
 	switch locator.GetScope() {
 	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE:
-		if locator.GetAgentCore() == nil || strings.TrimSpace(locator.GetAgentCore().GetAgentId()) != strings.TrimSpace(entry.Agent.GetAgentId()) {
+		if locator.GetAgentCore() == nil || strings.TrimSpace(locator.GetAgentCore().GetAgentId()) != strings.TrimSpace(entry.Agent.GetLocalAgentRef()) {
 			return nil, nil, fmt.Errorf("agent_core review bank must match agent_id")
 		}
 	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC:
-		if locator.GetAgentDyadic() == nil || strings.TrimSpace(locator.GetAgentDyadic().GetAgentId()) != strings.TrimSpace(entry.Agent.GetAgentId()) {
+		if locator.GetAgentDyadic() == nil || strings.TrimSpace(locator.GetAgentDyadic().GetAgentId()) != strings.TrimSpace(entry.Agent.GetLocalAgentRef()) {
 			return nil, nil, fmt.Errorf("agent_dyadic review bank must match agent_id")
 		}
 	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORLD_SHARED:
@@ -212,7 +212,7 @@ func (r reviewRuntime) schedulingTargets() []scheduledCanonicalReviewTarget {
 	entries := make([]*agentEntry, 0, len(r.svc.agents))
 	for _, entry := range r.svc.agents {
 		entries = append(entries, &agentEntry{
-			Agent: cloneAgentRecord(entry.Agent),
+			Agent: cloneLocalAgentRecord(entry.Agent),
 			State: cloneAgentState(entry.State),
 		})
 	}
@@ -234,7 +234,7 @@ func (r reviewRuntime) schedulingTargets() []scheduledCanonicalReviewTarget {
 				continue
 			}
 			targets = append(targets, scheduledCanonicalReviewTarget{
-				agentID: entry.Agent.GetAgentId(),
+				agentID: entry.Agent.GetLocalAgentRef(),
 				locator: cloneLocator(locator),
 			})
 		}

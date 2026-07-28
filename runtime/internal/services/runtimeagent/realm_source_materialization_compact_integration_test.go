@@ -775,7 +775,7 @@ func compactRealmMaterializationAgentEntry(t *testing.T, svc *Service, localAgen
 	if entry == nil || entry.Agent == nil {
 		t.Fatalf("compact LocalAgent %s is not hydrated", localAgentRef)
 	}
-	return &agentEntry{Agent: cloneAgentRecord(entry.Agent), State: cloneAgentState(entry.State)}
+	return &agentEntry{Agent: cloneLocalAgentRecord(entry.Agent), State: cloneAgentState(entry.State)}
 }
 
 func assertCompactRealmMaterializationNoOrphansOrRawResidue(t *testing.T, svc *Service) {

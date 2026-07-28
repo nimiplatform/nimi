@@ -144,16 +144,15 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	closeRuntimeAgentServiceForTest(t, svc)
 
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context:     testRuntimeAgentIdentityContext("agent-alpha"),
-		DisplayName: "Alpha",
+	initResp, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 100,
 			MaxTokensPerHook: 20,
 		},
 	})
 	if err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	if initResp.GetAgent().GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
 		t.Fatalf("unexpected lifecycle status: %s", initResp.GetAgent().GetLifecycleStatus())
@@ -325,10 +324,10 @@ func TestRuntimeAgentSubscribeAgentEventsSendsHeadersBeforeFirstEvent(t *testing
 	svc := newRuntimeAgentTestService(t)
 	ctx, cancel := context.WithCancel(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"))
 	defer cancel()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-empty-stream"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	stream := newAgentEventCaptureStreamLimit(ctx, 0)
@@ -365,14 +364,14 @@ func TestRuntimeAgentAutonomyDefaultsOffWithoutImplicitEnable(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	initResp, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-autonomy-default-off"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
 	})
 	if err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	if initResp.GetAgent().GetAutonomy().GetEnabled() {
 		t.Fatalf("expected default-off autonomy, got %#v", initResp.GetAgent().GetAutonomy())
@@ -387,10 +386,10 @@ func TestRuntimeAgentSetAutonomyConfigDoesNotImplicitlyEnable(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-autonomy-config"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	resp, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
@@ -417,10 +416,10 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsTypedFields(t *testi
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
@@ -508,10 +507,10 @@ func TestRuntimeAgentPatchPresentationProfileAllowsNonAvatarFields(t *testing.T)
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
@@ -588,10 +587,10 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	_, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
@@ -678,10 +677,10 @@ func TestRuntimeAgentEnableAutonomyNoopWhenModeOff(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-autonomy-noop"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	resp, err := svc.EnableAutonomy(ctx, &runtimev1.EnableAutonomyRequest{
@@ -704,10 +703,10 @@ func TestRuntimeAgentEnableAutonomyActivatesConfiguredMode(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-autonomy-enable"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	if _, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
 		Context: testRuntimeAgentIdentityContext("agent-autonomy-enable"),
@@ -756,13 +755,13 @@ func TestRuntimeAgentRunLifeTrackSweepAdmitsCadenceTickByMode(t *testing.T) {
 			svc := newRuntimeAgentTestService(t)
 			ctx := context.Background()
 			agentID := "agent-cadence-" + tc.name
-			if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+			if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 				Context: testRuntimeAgentIdentityContext(agentID),
 				AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 					Mode: tc.mode,
 				},
 			}); err != nil {
-				t.Fatalf("InitializeAgent: %v", err)
+				t.Fatalf("RealmSourceMaterialization: %v", err)
 			}
 			mustEnableAutonomy(t, svc, ctx, agentID)
 
@@ -784,13 +783,13 @@ func TestRuntimeAgentRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *t
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-earlier-callback"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 		},
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	mustEnableAutonomy(t, svc, ctx, "agent-earlier-callback")
 
@@ -819,13 +818,13 @@ func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testin
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-min-spacing"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 		},
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	mustEnableAutonomy(t, svc, ctx, "agent-min-spacing")
 
@@ -943,10 +942,10 @@ func TestRuntimeAgentExecuteDueHooksRejectsOffModeAgent(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-off-mode-gate"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-off-mode-gate"))
 	if err != nil {

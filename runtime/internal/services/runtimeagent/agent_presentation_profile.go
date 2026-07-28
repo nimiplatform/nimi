@@ -289,7 +289,7 @@ func normalizeMergedAgentPresentationProfile(input *runtimev1.AgentPresentationP
 	return normalized, nil
 }
 
-func validatePersistedAgentPresentationProfile(agent *runtimev1.AgentRecord) error {
+func validatePersistedAgentPresentationProfile(agent *runtimev1.LocalAgentRecord) error {
 	if agent == nil {
 		return nil
 	}

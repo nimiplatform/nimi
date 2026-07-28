@@ -8,4 +8,5 @@ This file intentionally defines no independent workflow rules.
 
 - Runtime rules: [`runtime/AGENTS.md`](AGENTS.md)
 - Runtime usage/operations: [`runtime/README.md`](README.md)
-- Spec workflow (when touching `spec/**`): [`spec/AGENTS.md`](../spec/AGENTS.md)
+- Canonical product authority: [`.nimi/spec/**`](../.nimi/spec)
+- Authority authoring methodology: [`.nimi/methodology/authority-authoring.yaml`](../.nimi/methodology/authority-authoring.yaml)

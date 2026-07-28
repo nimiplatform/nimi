@@ -9,15 +9,15 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app doctor --dir path/to/app
 pnpm dlx --package @nimiplatform/app-tools nimi-app update --dir path/to/app
 ```
 
-`nimi-app create` emits a publishable Tauri app-authoring scaffold. The
+`nimi-app create` emits a local-development Tauri app-authoring scaffold. The
 generated project is designed to install its own dependencies with
-`pnpm install`, initialize with `pnpm run init`, run with `pnpm dev`, run local checks, produce a
-developer-submitted Nimi listing packet, and remain directly usable without
+`pnpm install`, initialize with `pnpm run init`, run with `pnpm dev`, run local
+checks, and remain directly usable without
 hand-editing scaffold-managed glue.
 
 `nimi-app init` is the explicit post-install activation step. It runs the
 pinned local `nimicoding sync --apply` projection for `.nimi/{config,contracts,methodology}/**`
-and writes app-scaffold admission/build-profile/lock state. It does not use
+and writes app-scaffold lock state. It does not use
 `npx` or mutate `.nimi/**` from package install side effects.
 
 `pnpm dev` enters the official `nimi-app dev` launcher and selects Tauri by

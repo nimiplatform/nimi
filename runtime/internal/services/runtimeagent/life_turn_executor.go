@@ -19,7 +19,7 @@ const (
 )
 
 type lifeTurnRequest struct {
-	Agent    *runtimev1.AgentRecord
+	Agent    *runtimev1.LocalAgentRecord
 	State    *runtimev1.AgentStateProjection
 	Hook     *runtimev1.PendingHook
 	Recall   []*runtimev1.CanonicalMemoryView
@@ -140,7 +140,7 @@ func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScena
 	}
 	subjectUserID := strings.TrimSpace(req.State.GetActiveUserId())
 	if subjectUserID == "" {
-		subjectUserID = strings.TrimSpace(req.Agent.GetAgentId())
+		subjectUserID = strings.TrimSpace(req.Agent.GetLocalAgentRef())
 	}
 	if err := validateRuntimePrivateExecutorBinding("life turn", req.ExecutionBinding); err != nil {
 		return nil, err
@@ -466,7 +466,7 @@ func targetBankForLifeTurnCanonicalClass(entry *agentEntry, canonicalClass runti
 		return &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: entry.Agent.GetAgentId()},
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: entry.Agent.GetLocalAgentRef()},
 			},
 		}, nil
 	case runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED:
@@ -489,7 +489,7 @@ func targetBankForLifeTurnCanonicalClass(entry *agentEntry, canonicalClass runti
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC,
 			Owner: &runtimev1.MemoryBankLocator_AgentDyadic{
 				AgentDyadic: &runtimev1.AgentDyadicBankOwner{
-					AgentId: entry.Agent.GetAgentId(),
+					AgentId: entry.Agent.GetLocalAgentRef(),
 					UserId:  userID,
 				},
 			},

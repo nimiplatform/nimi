@@ -46,7 +46,7 @@ func (r publicChatRuntime) setExecutionStateWithOrigin(agentID string, subjectUs
 	entry.State.UpdatedAt = timestamppb.New(now)
 	events := make([]*runtimev1.AgentEvent, 0, 1)
 	if executionChanged {
-		events = append(events, r.svc.stateExecutionStateChangedEvent(entry.Agent.GetAgentId(), state, previousExecution, origin, now))
+		events = append(events, r.svc.stateExecutionStateChangedEvent(entry.Agent.GetLocalAgentRef(), state, previousExecution, origin, now))
 	}
 	return r.svc.updateAgent(entry, events...)
 }

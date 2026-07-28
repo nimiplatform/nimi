@@ -193,7 +193,7 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		if err := rows.Scan(&localAgentRef, &agentRaw); err != nil {
 			return err
 		}
-		agent := &runtimev1.AgentRecord{}
+		agent := &runtimev1.LocalAgentRecord{}
 		if err := protojson.Unmarshal([]byte(agentRaw), agent); err != nil {
 			return fmt.Errorf("parse persisted agent %s: %w", localAgentRef, err)
 		}
@@ -320,7 +320,7 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 		return err
 	}
 	for _, item := range persisted.Agents {
-		agent := &runtimev1.AgentRecord{}
+		agent := &runtimev1.LocalAgentRecord{}
 		if err := protojson.Unmarshal(item.Agent, agent); err != nil {
 			return err
 		}

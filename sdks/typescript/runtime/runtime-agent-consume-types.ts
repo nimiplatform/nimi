@@ -277,7 +277,6 @@ export interface NimiRuntimeAgentCompanionParticipationProjection {
   readonly agentId: string;
   readonly surfaceKind: NimiRuntimeAgentCompanionParticipationSurfaceKind;
   readonly profileRef: string;
-  readonly roomOrchestrationRef: string;
   readonly triggerSource: NimiRuntimeAgentCompanionParticipationTriggerSource;
   readonly status: NimiRuntimeAgentCompanionParticipationStatus;
   readonly candidateRef?: string;
@@ -301,7 +300,6 @@ export interface NimiRuntimeAgentCompanionParticipationBaseInput extends NimiRun
   readonly surfaceKind?: NimiRuntimeAgentCompanionParticipationSurfaceKind | CompanionParticipationSurfaceKind;
   readonly triggerSource?: NimiRuntimeAgentCompanionParticipationTriggerSource | CompanionParticipationTriggerSource;
   readonly profileRef?: unknown;
-  readonly roomOrchestrationRef?: unknown;
   readonly requestId?: unknown;
 }
 

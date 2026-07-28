@@ -18,9 +18,6 @@ export interface AddFriendBodyDto {
 export interface AddGroupParticipantInputDto {
   readonly accountId: string;
 }
-export interface AddGroupSourceParticipantInputDto {
-  readonly sourceRef: GroupSourceRefDto;
-}
 export interface AssetDetailDto {
   readonly authorId: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -367,29 +364,6 @@ export interface CloneAssetDto {
   readonly status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
   readonly transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly usePolicy?: UsePolicyDto | null;
-}
-export interface CommitRealmGroupSourceMessageCandidateInputDto {
-  readonly auditLineageRef: string;
-  readonly body?: string;
-  readonly bodyHash?: string;
-  readonly candidateEvidenceRef: string;
-  readonly candidateId: string;
-  readonly candidateKind: "REALM_GROUP_MESSAGE_CANDIDATE";
-  readonly commitDisposition: "MESSAGE_CANDIDATE" | "REFUSAL_CANDIDATE";
-  readonly createdAt: string;
-  readonly evidenceHash: string;
-  readonly expectedRuntimeParticipantSlotId: string;
-  readonly expectedRuntimeSourceRef: string;
-  readonly expiresAt: string;
-  readonly idempotencyKey: string;
-  readonly messageType?: "TEXT";
-  readonly outputCandidateRef: string;
-  readonly policyVerdictRef: string;
-  readonly refusalCode?: string;
-  readonly refusalHash?: string;
-  readonly refusalReason?: string;
-  readonly runtimeTraceRef: string;
-  readonly triggerEvidence: GroupSourceTriggerEvidenceDto;
 }
 export interface ConnectDashboardLinkDto {
   readonly url: string;
@@ -753,11 +727,7 @@ export interface GroupMessageAuthorDto {
   readonly accountId: string;
   readonly avatarUrl: string | null;
   readonly displayName: string;
-  readonly runtimeParticipantSlot: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly sourceAuthorityAccountId: string | null;
-  readonly sourceRef: GroupSourceRefDto | null;
-  readonly type: "human" | "source";
+  readonly type: "human";
 }
 export interface GroupMessageViewDto {
   readonly author: GroupMessageAuthorDto;
@@ -781,21 +751,7 @@ export interface GroupParticipantDto {
   readonly isOnline: boolean;
   readonly joinedAt: string;
   readonly role: "admin" | "member";
-  readonly runtimeParticipantSlot: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly sourceAuthorityAccountId: string | null;
-  readonly sourceRef: GroupSourceRefDto | null;
-  readonly type: "human" | "source";
-}
-export interface GroupSourceRefDto {
-
-}
-export interface GroupSourceTriggerEvidenceDto {
-  readonly actorId: string;
-  readonly chatId: string;
-  readonly kind: "mention" | "explicitUserAction" | "admittedAutomation" | "productDisabled";
-  readonly messageId: string;
-  readonly triggerRef: string;
+  readonly type: "human";
 }
 export interface HandleAvailabilityDto {
   readonly available: boolean;
@@ -1286,11 +1242,6 @@ export interface RealmCoreOriginDto {
   readonly sourceContentHash?: string;
   readonly sourceId?: string;
   readonly sourceVersion?: string;
-}
-export interface RealmGroupMessageCandidateCommitResultDto {
-  readonly candidateId: string;
-  readonly message: GroupMessageViewDto;
-  readonly status: "committed" | "duplicate";
 }
 export interface RealmSourceCapabilitiesDto {
   readonly canCreatePersonaCharacter: boolean;
@@ -2767,7 +2718,6 @@ export interface RealmTypedModelMap {
   readonly "AccountStatus": AccountStatus;
   readonly "AddFriendBodyDto": AddFriendBodyDto;
   readonly "AddGroupParticipantInputDto": AddGroupParticipantInputDto;
-  readonly "AddGroupSourceParticipantInputDto": AddGroupSourceParticipantInputDto;
   readonly "AssetDetailDto": AssetDetailDto;
   readonly "AssetListDto": AssetListDto;
   readonly "AttachmentDisplayKind": AttachmentDisplayKind;
@@ -2823,7 +2773,6 @@ export interface RealmTypedModelMap {
   readonly "CheckEmailDto": CheckEmailDto;
   readonly "CheckEmailResponseDto": CheckEmailResponseDto;
   readonly "CloneAssetDto": CloneAssetDto;
-  readonly "CommitRealmGroupSourceMessageCandidateInputDto": CommitRealmGroupSourceMessageCandidateInputDto;
   readonly "ConnectDashboardLinkDto": ConnectDashboardLinkDto;
   readonly "ConnectOnboardingResponseDto": ConnectOnboardingResponseDto;
   readonly "ContentRatingString": ContentRatingString;
@@ -2873,8 +2822,6 @@ export interface RealmTypedModelMap {
   readonly "GroupMessageAuthorDto": GroupMessageAuthorDto;
   readonly "GroupMessageViewDto": GroupMessageViewDto;
   readonly "GroupParticipantDto": GroupParticipantDto;
-  readonly "GroupSourceRefDto": GroupSourceRefDto;
-  readonly "GroupSourceTriggerEvidenceDto": GroupSourceTriggerEvidenceDto;
   readonly "HandleAvailabilityDto": HandleAvailabilityDto;
   readonly "ImportPolicyDto": ImportPolicyDto;
   readonly "IntrospectSessionErrorDto": IntrospectSessionErrorDto;
@@ -2951,7 +2898,6 @@ export interface RealmTypedModelMap {
   readonly "ReadinessBlockerDto": ReadinessBlockerDto;
   readonly "ReadinessResultDto": ReadinessResultDto;
   readonly "RealmCoreOriginDto": RealmCoreOriginDto;
-  readonly "RealmGroupMessageCandidateCommitResultDto": RealmGroupMessageCandidateCommitResultDto;
   readonly "RealmSourceCapabilitiesDto": RealmSourceCapabilitiesDto;
   readonly "ReceivedGiftsResponseDto": ReceivedGiftsResponseDto;
   readonly "RefreshTokenDto": RefreshTokenDto;
@@ -3143,19 +3089,6 @@ export interface RealmAddGroupParticipantOperationRequest {
   readonly body: AddGroupParticipantInputDto;
 }
 export type RealmAddGroupParticipantOperationResponse = GroupParticipantDto;
-export interface RealmAddGroupSourceParticipantOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: AddGroupSourceParticipantInputDto;
-}
-export type RealmAddGroupSourceParticipantOperationResponse = GroupParticipantDto;
 export interface RealmArchiveBundleOperationRequest {
   readonly path: {
     readonly bundleId: string;
@@ -3260,19 +3193,6 @@ export interface RealmCloneAssetOperationRequest {
   readonly body: CloneAssetDto;
 }
 export type RealmCloneAssetOperationResponse = AssetDetailDto;
-export interface RealmCommitRealmGroupSourceMessageCandidateOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CommitRealmGroupSourceMessageCandidateInputDto;
-}
-export type RealmCommitRealmGroupSourceMessageCandidateOperationResponse = RealmGroupMessageCandidateCommitResultDto;
 export interface RealmCreateAssetOperationRequest {
   readonly path: {
 
@@ -4824,20 +4744,6 @@ export interface RealmRemoveGroupParticipantOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmRemoveGroupParticipantOperationResponse = Record<string, never>;
-export interface RealmRemoveGroupSourceParticipantOperationRequest {
-  readonly path: {
-    readonly runtimeParticipantSlotId: string;
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmRemoveGroupSourceParticipantOperationResponse = Record<string, never>;
 export interface RealmReportControllerCreateReportOperationRequest {
   readonly path: {
 
@@ -5924,17 +5830,6 @@ export class RealmTypedClient {
     });
   }
 
-  async addGroupSourceParticipant(request: RealmAddGroupSourceParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddGroupSourceParticipantOperationResponse> {
-    return this.core.unary<RealmAddGroupSourceParticipantOperationResponse, RealmAddGroupSourceParticipantOperationRequest>({
-      methodId: "addGroupSourceParticipant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async archiveBundle(request: RealmArchiveBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmArchiveBundleOperationResponse> {
     return this.core.unary<RealmArchiveBundleOperationResponse, RealmArchiveBundleOperationRequest>({
       methodId: "archiveBundle",
@@ -6015,17 +5910,6 @@ export class RealmTypedClient {
   async cloneAsset(request: RealmCloneAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCloneAssetOperationResponse> {
     return this.core.unary<RealmCloneAssetOperationResponse, RealmCloneAssetOperationRequest>({
       methodId: "cloneAsset",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async commitRealmGroupSourceMessageCandidate(request: RealmCommitRealmGroupSourceMessageCandidateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCommitRealmGroupSourceMessageCandidateOperationResponse> {
-    return this.core.unary<RealmCommitRealmGroupSourceMessageCandidateOperationResponse, RealmCommitRealmGroupSourceMessageCandidateOperationRequest>({
-      methodId: "commitRealmGroupSourceMessageCandidate",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -7291,17 +7175,6 @@ export class RealmTypedClient {
   async removeGroupParticipant(request: RealmRemoveGroupParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRemoveGroupParticipantOperationResponse> {
     return this.core.unary<RealmRemoveGroupParticipantOperationResponse, RealmRemoveGroupParticipantOperationRequest>({
       methodId: "removeGroupParticipant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async removeGroupSourceParticipant(request: RealmRemoveGroupSourceParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRemoveGroupSourceParticipantOperationResponse> {
-    return this.core.unary<RealmRemoveGroupSourceParticipantOperationResponse, RealmRemoveGroupSourceParticipantOperationRequest>({
-      methodId: "removeGroupSourceParticipant",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

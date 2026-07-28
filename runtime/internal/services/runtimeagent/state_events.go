@@ -96,7 +96,7 @@ func (s *Service) applyExecutionStateTransition(entry *agentEntry, next runtimev
 	}
 	entry.State.ExecutionState = next
 	entry.State.UpdatedAt = timestamppb.New(observedAt)
-	return s.stateExecutionStateChangedEvent(entry.Agent.GetAgentId(), next, previous, origin, observedAt)
+	return s.stateExecutionStateChangedEvent(entry.Agent.GetLocalAgentRef(), next, previous, origin, observedAt)
 }
 
 func (s *Service) refreshLifeTrackExecutionState(entry *agentEntry, origin stateEventOrigin, observedAt time.Time) *runtimev1.AgentEvent {
@@ -289,7 +289,7 @@ func (s *Service) applyBehavioralPostureUpdate(
 	previousStatusText := strings.TrimSpace(entry.State.GetStatusText())
 	hadPreviousStatus := previousStatusText != ""
 	if s.postures != nil {
-		prior, err := s.postures.GetBehavioralPosture(ctx, entry.Agent.GetAgentId())
+		prior, err := s.postures.GetBehavioralPosture(ctx, entry.Agent.GetLocalAgentRef())
 		if err == nil && prior != nil {
 			previousPosture = postureProjectionFromBehavioral(*prior)
 			if text := strings.TrimSpace(prior.StatusText); text != "" {
@@ -307,7 +307,7 @@ func (s *Service) applyBehavioralPostureUpdate(
 	}
 	events := make([]*runtimev1.AgentEvent, 0, 2)
 	events = append(events, s.statePostureChangedEvent(
-		entry.Agent.GetAgentId(),
+		entry.Agent.GetLocalAgentRef(),
 		currentPosture,
 		previousPosture,
 		origin,
@@ -316,7 +316,7 @@ func (s *Service) applyBehavioralPostureUpdate(
 	newStatus := strings.TrimSpace(posture.StatusText)
 	if newStatus != "" && newStatus != previousStatusText {
 		events = append(events, s.stateStatusTextChangedEvent(
-			entry.Agent.GetAgentId(),
+			entry.Agent.GetLocalAgentRef(),
 			newStatus,
 			previousStatusText,
 			hadPreviousStatus,

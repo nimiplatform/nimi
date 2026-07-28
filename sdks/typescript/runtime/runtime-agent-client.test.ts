@@ -5,7 +5,6 @@ import {
   AgentLifecycleStatus,
   type GetAgentCanonicalMemoryBankStatusRequest,
   type GetAgentRequest,
-  type InitializeAgentRequest,
   type ListAgentsRequest,
   type ListAgentConversationSummariesRequest,
   type OpenConversationAnchorRequest,
@@ -80,10 +79,6 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
       async getAgent(request: GetAgentRequest, options?: RuntimeTypedCallOptions) {
         calls.push({ method: 'getAgent', request, options });
         return { agent: { lifecycleStatus: AgentLifecycleStatus.ACTIVE } };
-      },
-      async initializeAgent(request: InitializeAgentRequest, options?: RuntimeTypedCallOptions) {
-        calls.push({ method: 'initializeAgent', request, options });
-        return {};
       },
       async terminateAgent() {
         return {};
@@ -180,7 +175,6 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
     localAgentRef: 'local-agent:test-user-1-agent-1',
   };
 
-  await client.ensureInitialized(identity);
   await client.openConversation(identity);
   const summaries = await client.listConversationSummaries({
     ...identity,
@@ -197,31 +191,30 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   await client.getCanonicalMemoryStatus(identity);
 
   assert.deepEqual(calls.map((call) => call.method), [
-    'getAgent',
     'openConversationAnchor',
     'listAgentConversationSummaries',
     'sendAppMessage',
     'queryAgentMemory',
     'getAgentCanonicalMemoryBankStatus',
   ]);
-  assert.equal((calls[1]?.request as OpenConversationAnchorRequest).context?.appId, 'desktop');
-  assert.equal((calls[1]?.request as OpenConversationAnchorRequest).agentId, '');
-  assert.equal((calls[1]?.request as OpenConversationAnchorRequest).localAgentRef, identity.localAgentRef);
-  assert.equal(calls[1]?.options?.metadata?.scopes, 'runtime.agent.write');
+  assert.equal((calls[0]?.request as OpenConversationAnchorRequest).context?.appId, 'desktop');
+  assert.equal((calls[0]?.request as OpenConversationAnchorRequest).agentId, '');
+  assert.equal((calls[0]?.request as OpenConversationAnchorRequest).localAgentRef, identity.localAgentRef);
+  assert.equal(calls[0]?.options?.metadata?.scopes, 'runtime.agent.write');
   assert.equal(summaries.summaries[0]?.anchor?.conversationAnchorId, 'anchor-1');
-  assert.equal((calls[2]?.request as ListAgentConversationSummariesRequest).agentId, identity.localAgentRef);
-  assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.read');
-  assert.equal((calls[3]?.request as SendAppMessageRequest).toAppId, 'runtime.agent');
-  assert.equal((calls[3]?.request as SendAppMessageRequest).messageType, 'runtime.agent.turn.request');
-  assert.equal(calls[3]?.options?.metadata?.scopes, 'runtime.agent.turn.write');
+  assert.equal((calls[1]?.request as ListAgentConversationSummariesRequest).agentId, identity.localAgentRef);
+  assert.equal(calls[1]?.options?.metadata?.scopes, 'runtime.agent.read');
+  assert.equal((calls[2]?.request as SendAppMessageRequest).toAppId, 'runtime.agent');
+  assert.equal((calls[2]?.request as SendAppMessageRequest).messageType, 'runtime.agent.turn.request');
+  assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.turn.write');
   // Atomic hard cut: turn requests never carry execution_bindings; the
   // runtime resolves the committed Runtime Agent AI Config (K-AGCORE-147).
   assert.equal(
-    'execution_bindings' in fromNimiRuntimeProtoStruct((calls[3]?.request as SendAppMessageRequest).payload),
+    'execution_bindings' in fromNimiRuntimeProtoStruct((calls[2]?.request as SendAppMessageRequest).payload),
     false,
   );
-  assert.equal((calls[4]?.request as QueryAgentMemoryRequest).agentId, identity.localAgentRef);
-  assert.equal(calls[4]?.options?.metadata?.scopes, 'runtime.agent.read');
+  assert.equal((calls[3]?.request as QueryAgentMemoryRequest).agentId, identity.localAgentRef);
+  assert.equal(calls[3]?.options?.metadata?.scopes, 'runtime.agent.read');
 });
 
 test('runtime agent client discovers existing LocalAgents by Runtime inventory provenance', async () => {
@@ -241,9 +234,6 @@ test('runtime agent client discovers existing LocalAgents by Runtime inventory p
       agents: {
         async getAgent() {
           throw new Error('discoverBySource must not require caller localAgentRef');
-        },
-        async initializeAgent() {
-          throw new Error('discoverBySource must not materialize');
         },
         async listAgents(request: ListAgentsRequest, options?: RuntimeTypedCallOptions) {
           calls.push({ method: 'listAgents', request, options });
@@ -339,9 +329,6 @@ test('runtime agent client lists existing LocalAgents from Runtime inventory', a
       agents: {
         async getAgent() {
           throw new Error('listLocalAgents must not require caller localAgentRef');
-        },
-        async initializeAgent() {
-          throw new Error('listLocalAgents must not materialize');
         },
         async listAgents(request: ListAgentsRequest, options?: RuntimeTypedCallOptions) {
           calls.push({ method: 'listAgents', request, options });

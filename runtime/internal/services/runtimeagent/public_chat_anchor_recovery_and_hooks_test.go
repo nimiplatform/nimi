@@ -36,7 +36,7 @@ func TestConversationAnchorMetadataCommittedAndRecovered(t *testing.T) {
 		Context:          testRuntimeAgentIdentityContext("agent-alpha"),
 		LocalAgentRef:    testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserId:      "user-1",
-		RuntimeSourceRef: "agent-alpha",
+		RuntimeSourceRef: testRuntimeAgentSourceRef("agent-alpha"),
 		SubjectUserId:    "user-1",
 		Metadata:         metadata,
 	})
@@ -97,11 +97,10 @@ func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	svc, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	var err error
 
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:     testRuntimeAgentIdentityContext("agent-beta"),
-		DisplayName: "Beta",
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
+		Context: testRuntimeAgentIdentityContext("agent-beta"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent(agent-beta): %v", err)
+		t.Fatalf("RealmSourceMaterialization(agent-beta): %v", err)
 	}
 
 	anchorA1 := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -175,7 +174,7 @@ func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorA1,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorA1),
 			"messages": []any{
@@ -225,7 +224,7 @@ func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-beta"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-beta",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-beta"),
 			"conversation_anchor_id": anchorB1,
 			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorB1),
 			"messages": []any{
@@ -356,7 +355,7 @@ func TestPublicChatInterruptIsolationRejectsWrongAnchor(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorA1,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hold"},
@@ -419,10 +418,10 @@ func TestExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *testing.
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-pack4-hook-origin"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	now := time.Now().UTC()
@@ -509,10 +508,10 @@ func TestPublicChatTrackHookProposalUsesCanonicalHookLifecycle(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-pack4-chat-track"),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{
@@ -633,7 +632,7 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "propose follow up"},
@@ -722,7 +721,7 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "missing agent id"},

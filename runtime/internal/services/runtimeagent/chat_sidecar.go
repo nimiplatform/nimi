@@ -92,7 +92,7 @@ func normalizeChatTrackSidecarCandidates(entry *agentEntry, values []*runtimev1.
 		if candidate.GetRecord() == nil || candidate.GetTargetBank() == nil {
 			return nil, status.Error(codes.InvalidArgument, "chat sidecar canonical memory candidate target_bank and record are required")
 		}
-		if err := validateCandidateLocator(entry.Agent.GetAgentId(), candidate); err != nil {
+		if err := validateCandidateLocator(entry.Agent.GetLocalAgentRef(), candidate); err != nil {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 		if rejection := validateWorldSharedCandidateAdmission(entry, candidate); rejection != nil {

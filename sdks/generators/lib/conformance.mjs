@@ -29,7 +29,6 @@ export function writeConformanceFixtures(runtime, realm) {
       },
       structured_error: {
         reason_code: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
-        message: 'typed conformance error',
         details: { fixture: 'typed-core' },
       },
     },

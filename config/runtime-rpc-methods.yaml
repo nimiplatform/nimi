@@ -513,8 +513,6 @@ services:
     methods:
       - name: MaterializeRealmSource
         type: unary
-      - name: InitializeAgent
-        type: unary
       - name: TerminateAgent
         type: unary
       - name: GetAgent

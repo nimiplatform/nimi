@@ -67,19 +67,19 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 	const runtimeSourceRef = "agent-hard-delete"
 	localRef := testRuntimeAgentLocalRef(runtimeSourceRef)
 
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	// Materialize a second agent so the delete is provably scoped.
 	const survivorRuntimeSourceRef = "agent-hard-delete-survivor"
 	survivorRef := testRuntimeAgentLocalRef(survivorRuntimeSourceRef)
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(survivorRuntimeSourceRef),
 	}); err != nil {
-		t.Fatalf("InitializeAgent(survivor): %v", err)
+		t.Fatalf("RealmSourceMaterialization(survivor): %v", err)
 	}
 
 	// Set a dyadic context and write a dyadic memory record so the agent owns
@@ -134,6 +134,29 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: survivorRef}},
 	})
+	for _, bank := range []struct {
+		locator *runtimev1.MemoryBankLocator
+		name    string
+	}{
+		{
+			locator: &runtimev1.MemoryBankLocator{
+				Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+				Owner: &runtimev1.MemoryBankLocator_AgentCore{AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: localRef}},
+			},
+			name: "target Agent Memory",
+		},
+		{
+			locator: &runtimev1.MemoryBankLocator{
+				Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+				Owner: &runtimev1.MemoryBankLocator_AgentCore{AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: survivorRef}},
+			},
+			name: "survivor Agent Memory",
+		},
+	} {
+		if _, err := memorySvc.EnsureCanonicalBank(ctx, bank.locator, bank.name, nil); err != nil {
+			t.Fatalf("EnsureCanonicalBank(%s): %v", bank.name, err)
+		}
+	}
 
 	// Seed every bank_locator_key / locator_key projection table the snapshot
 	// rewrite does NOT cover, for both the target's core+dyadic banks and the
@@ -232,10 +255,10 @@ func TestTerminateAgentSnapshotDoesNotReinsertDeletedRef(t *testing.T) {
 	svc, _ := newRuntimeAgentHardDeleteTestService(t)
 	ctx := context.Background()
 	const runtimeSourceRef = "agent-snapshot-delete"
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
 		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
@@ -273,10 +296,10 @@ func TestTerminateAgentIdempotentTypedNoOpForAbsentRef(t *testing.T) {
 
 	// And idempotent after a real delete: a second terminate is still a no-op.
 	const runtimeSourceRef = "agent-idempotent-delete"
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	for i := 0; i < 2; i++ {
 		resp, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
@@ -303,10 +326,18 @@ func TestTerminateAgentSubstrateFailureFailsClosed(t *testing.T) {
 	ctx := context.Background()
 	const runtimeSourceRef = "agent-fail-closed"
 	localRef := testRuntimeAgentLocalRef(runtimeSourceRef)
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
+	}
+	if _, err := memorySvc.EnsureCanonicalBank(ctx, &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: localRef},
+		},
+	}, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
 	}
 
 	// Close the shared persistence backend so the deletion transaction fails.

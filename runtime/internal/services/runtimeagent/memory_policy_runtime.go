@@ -149,7 +149,7 @@ func (m memoryPolicyRuntime) write(ctx context.Context, req *runtimev1.WriteAgen
 		}
 	}
 	if len(accepted) > 0 || len(rejected) > 0 {
-		events := []*runtimev1.AgentEvent{m.svc.newEvent(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
+		events := []*runtimev1.AgentEvent{m.svc.newEvent(entry.Agent.GetLocalAgentRef(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
 			Memory: &runtimev1.AgentMemoryEventDetail{
 				Accepted: cloneCanonicalMemoryViews(accepted),
 				Rejected: cloneCanonicalMemoryRejections(rejected),
@@ -344,7 +344,7 @@ func (m memoryPolicyRuntime) writeCandidate(ctx context.Context, entry *agentEnt
 	if candidate == nil || candidate.GetRecord() == nil || candidate.GetTargetBank() == nil {
 		return nil, rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "candidate target_bank and record are required")
 	}
-	if err := validateCandidateLocator(entry.Agent.GetAgentId(), candidate); err != nil {
+	if err := validateCandidateLocator(entry.Agent.GetLocalAgentRef(), candidate); err != nil {
 		return nil, rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, err.Error())
 	}
 	if _, err := m.svc.memorySvc.EnsureCanonicalBank(ctx, cloneLocator(candidate.GetTargetBank()), canonicalBankDisplayName(candidate.GetTargetBank()), nil); err != nil {
@@ -386,7 +386,7 @@ func (m memoryPolicyRuntime) queryLocators(entry *agentEntry, classes []runtimev
 		locators = append(locators, &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: entry.Agent.GetAgentId()},
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: entry.Agent.GetLocalAgentRef()},
 			},
 		})
 	}
@@ -395,7 +395,7 @@ func (m memoryPolicyRuntime) queryLocators(entry *agentEntry, classes []runtimev
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC,
 			Owner: &runtimev1.MemoryBankLocator_AgentDyadic{
 				AgentDyadic: &runtimev1.AgentDyadicBankOwner{
-					AgentId: entry.Agent.GetAgentId(),
+					AgentId: entry.Agent.GetLocalAgentRef(),
 					UserId:  entry.State.GetActiveUserId(),
 				},
 			},

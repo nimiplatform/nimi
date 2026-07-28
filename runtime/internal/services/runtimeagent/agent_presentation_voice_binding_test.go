@@ -68,8 +68,8 @@ func setVoiceAssetTargetRefs(asset *runtimev1.VoiceAsset, targetRef *runtimev1.R
 func initializePresentationVoiceTestAgent(t *testing.T, svc *Service, runtimeSourceRef string) *runtimev1.AgentRequestContext {
 	t.Helper()
 	requestContext := testRuntimeAgentIdentityContext(runtimeSourceRef)
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: requestContext}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: requestContext}); err != nil {
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	return requestContext
 }
@@ -100,8 +100,8 @@ func TestSetAgentPresentationProfileVoiceAssetFailsClosedWithoutResolver(t *test
 
 	svc := newRuntimeAgentTestService(t)
 	requestContext := testRuntimeAgentIdentityContext("voice-asset-resolver-required")
-	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: requestContext}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: requestContext}); err != nil {
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
 	_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{

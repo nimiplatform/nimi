@@ -51,27 +51,6 @@ func localAgentIdentityFromContext(ctx *runtimev1.AgentRequestContext) (localAge
 	return validateLocalAgentIdentity(ctx.GetOwnerUserId(), ctx.GetRuntimeSourceRef(), ctx.GetLocalAgentRef())
 }
 
-func localAgentIdentityFromInitializeRequest(req *runtimev1.InitializeAgentRequest) (localAgentIdentity, error) {
-	if req == nil {
-		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "initialize agent request is required")
-	}
-	ownerUserID := firstNonEmpty(strings.TrimSpace(req.GetOwnerUserId()), strings.TrimSpace(req.GetContext().GetOwnerUserId()))
-	runtimeSourceRef := firstNonEmpty(strings.TrimSpace(req.GetRuntimeSourceRef()), strings.TrimSpace(req.GetContext().GetRuntimeSourceRef()))
-	providedLocalAgentRef := firstNonEmpty(strings.TrimSpace(req.GetLocalAgentRef()), strings.TrimSpace(req.GetContext().GetLocalAgentRef()))
-	if strings.TrimSpace(req.GetAgentId()) != "" {
-		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "agent_id is not local execution identity; use local_agent_ref")
-	}
-	localAgentRef := providedLocalAgentRef
-	if localAgentRef == "" {
-		generated, err := generateRuntimeLocalAgentRef()
-		if err != nil {
-			return localAgentIdentity{}, err
-		}
-		localAgentRef = generated
-	}
-	return validateLocalAgentIdentity(ownerUserID, runtimeSourceRef, localAgentRef)
-}
-
 func generateRuntimeLocalAgentRef() (string, error) {
 	var nonce [16]byte
 	if _, err := rand.Read(nonce[:]); err != nil {
@@ -93,7 +72,7 @@ func localAgentIdentityFromOpenAnchorRequest(req *runtimev1.OpenConversationAnch
 	return validateLocalAgentIdentity(ownerUserID, runtimeSourceRef, localAgentRef)
 }
 
-func validateAgentRecordIdentity(agent *runtimev1.AgentRecord, identity localAgentIdentity) error {
+func validateLocalAgentRecordIdentity(agent *runtimev1.LocalAgentRecord, identity localAgentIdentity) error {
 	if agent == nil {
 		return status.Error(codes.NotFound, "agent not found")
 	}
@@ -118,7 +97,7 @@ func (s *Service) agentEntryForIdentityContext(ctx *runtimev1.AgentRequestContex
 	if err != nil {
 		return localAgentIdentity{}, nil, err
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return localAgentIdentity{}, nil, err
 	}
 	return identity, entry, nil

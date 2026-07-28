@@ -67,8 +67,8 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		return fmt.Errorf("localModelsPath is Product Control-derived and cannot be set")
 	case "dataRootRef":
 		return fmt.Errorf("dataRootRef is Product Control-owned and cannot be set")
-	case "appRegistryPath":
-		cfg.AppRegistryPath = value
+	case "appIdentityProjectionPath":
+		cfg.AppIdentityProjectionPath = value
 		return nil
 	case "managedRoots.models":
 		return fmt.Errorf("managedRoots.models is Product Control-derived and cannot be set")
@@ -286,8 +286,8 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return fmt.Errorf("localModelsPath is Product Control-derived and cannot be unset")
 	case "dataRootRef":
 		return fmt.Errorf("dataRootRef is Product Control-owned and cannot be unset")
-	case "appRegistryPath":
-		cfg.AppRegistryPath = defaultCfg.AppRegistryPath
+	case "appIdentityProjectionPath":
+		cfg.AppIdentityProjectionPath = defaultCfg.AppIdentityProjectionPath
 		return nil
 	case "managedRoots.models":
 		return fmt.Errorf("managedRoots.models is Product Control-derived and cannot be unset")

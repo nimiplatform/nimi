@@ -1,8 +1,9 @@
+# Non-authoritative SDK connector acquisition configuration.
+# Normative authority: .nimi/spec/sdks/feature-clients.authority.yaml#definition.nimi.sdks.feature-clients.connector-auth-plane
 version: 1
 table_family: product_catalog
 owner: sdks
 catalog_id: sdks_connector_auth_acquisition_profiles
-source_rule: S-RUNTIME-121
 entries:
   - openai_codex
 profiles:

@@ -259,14 +259,14 @@ func TestProactiveInterruptibilityRejectsAppOwnedDeliveryTruth(t *testing.T) {
 
 func mustInitializeProactiveAgent(t *testing.T, svc *Service, ctx context.Context, agentID string, mode runtimev1.AgentAutonomyMode, enable bool) {
 	t.Helper()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext(agentID),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             mode,
 			DailyTokenBudget: 20,
 		},
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	if enable {
 		mustEnableAutonomy(t, svc, ctx, agentID)

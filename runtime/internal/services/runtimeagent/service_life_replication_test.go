@@ -15,32 +15,32 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-replication-a"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
 		WorldId: "world-1",
 	}); err != nil {
-		t.Fatalf("InitializeAgent(agent-replication-a): %v", err)
+		t.Fatalf("RealmSourceMaterialization(agent-replication-a): %v", err)
 	}
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-replication-b"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
 		WorldId: "world-1",
 	}); err != nil {
-		t.Fatalf("InitializeAgent(agent-replication-b): %v", err)
+		t.Fatalf("RealmSourceMaterialization(agent-replication-b): %v", err)
 	}
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-replication-c"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
 		WorldId: "world-2",
 	}); err != nil {
-		t.Fatalf("InitializeAgent(agent-replication-c): %v", err)
+		t.Fatalf("RealmSourceMaterialization(agent-replication-c): %v", err)
 	}
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
 		Context: testRuntimeAgentIdentityContext("agent-replication-a"),
@@ -263,13 +263,13 @@ func TestRuntimeAgentIgnoresNonCanonicalMemoryReplicationUpdates(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-replication-ignore"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	svc.mu.RLock()
 	beforeSequence := svc.sequence
@@ -332,23 +332,23 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-bridge-a"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
 		WorldId: "world-1",
 	}); err != nil {
-		t.Fatalf("InitializeAgent(agent-bridge-a): %v", err)
+		t.Fatalf("RealmSourceMaterialization(agent-bridge-a): %v", err)
 	}
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-bridge-b"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
 		WorldId: "world-1",
 	}); err != nil {
-		t.Fatalf("InitializeAgent(agent-bridge-b): %v", err)
+		t.Fatalf("RealmSourceMaterialization(agent-bridge-b): %v", err)
 	}
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
 		Context: testRuntimeAgentIdentityContext("agent-bridge-a"),
@@ -531,14 +531,14 @@ func TestRuntimeAgentLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-loop-reschedule"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
 		},
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-reschedule")
 
@@ -607,14 +607,14 @@ func TestRuntimeAgentLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testi
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-loop-posture"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
 		},
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-posture")
 
@@ -682,14 +682,14 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-loop-invalid"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
 		},
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-invalid")
 
@@ -767,14 +767,14 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidBehavioralPostureOutput(t *testi
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-loop-invalid-posture"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
 		},
 	}); err != nil {
-		t.Fatalf("InitializeAgent: %v", err)
+		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-invalid-posture")
 

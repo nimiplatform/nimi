@@ -26,7 +26,7 @@ type ChatTrackSidecarExecutionRequest struct {
 
 type ChatTrackSidecarExecutorRequest struct {
 	CallerAppID   string
-	Agent         *runtimev1.AgentRecord
+	Agent         *runtimev1.LocalAgentRecord
 	State         *runtimev1.AgentStateProjection
 	SourceEventID string
 	Messages      []*runtimev1.ChatMessage
@@ -103,7 +103,7 @@ func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) 
 	}
 	subjectUserID := strings.TrimSpace(req.State.GetActiveUserId())
 	if subjectUserID == "" {
-		subjectUserID = strings.TrimSpace(req.Agent.GetAgentId())
+		subjectUserID = strings.TrimSpace(req.Agent.GetLocalAgentRef())
 	}
 	if err := validateRuntimePrivateExecutorBinding("chat track sidecar", req.ExecutionBinding); err != nil {
 		return nil, err
@@ -287,7 +287,7 @@ func buildChatTrackCanonicalMemoryCandidate(req *ChatTrackSidecarExecutorRequest
 	if err := validateLifeTurnRecordInput(record); err != nil {
 		return nil, err
 	}
-	entry := &agentEntry{Agent: cloneAgentRecord(req.Agent), State: cloneAgentState(req.State)}
+	entry := &agentEntry{Agent: cloneLocalAgentRecord(req.Agent), State: cloneAgentState(req.State)}
 	targetBank, err := targetBankForLifeTurnCanonicalClass(entry, canonicalClass)
 	if err != nil {
 		return nil, err

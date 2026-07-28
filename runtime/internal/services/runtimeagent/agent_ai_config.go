@@ -78,7 +78,7 @@ func (s *Service) validateRuntimeAgentAIConfigIdentity(identity localAgentIdenti
 	if err != nil {
 		return err
 	}
-	return validateAgentRecordIdentity(entry.Agent, identity)
+	return validateLocalAgentRecordIdentity(entry.Agent, identity)
 }
 
 func (s *Service) committedRuntimeAgentAIConfigByAgentInstanceID(agentInstanceID string) (*runtimev1.RuntimeAgentAIConfig, error) {

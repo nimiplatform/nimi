@@ -26,12 +26,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/group-chats/{chatId}/participants"),
     },
     RealmOperationDescriptor {
-        operation_id: "addGroupSourceParticipant",
-        service: "Group Chats",
-        method: "POST",
-        path: Some("/api/human/group-chats/{chatId}/source-participants"),
-    },
-    RealmOperationDescriptor {
         operation_id: "archiveBundle",
         service: "Bundles",
         method: "POST",
@@ -78,12 +72,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Assets",
         method: "POST",
         path: Some("/api/assets/{assetId}/clone"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "commitRealmGroupSourceMessageCandidate",
-        service: "Group Chats",
-        method: "POST",
-        path: Some("/api/human/group-chats/{chatId}/source-message-candidate-commits"),
     },
     RealmOperationDescriptor {
         operation_id: "createAsset",
@@ -774,12 +762,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Group Chats",
         method: "DELETE",
         path: Some("/api/human/group-chats/{chatId}/participants/{accountId}"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "removeGroupSourceParticipant",
-        service: "Group Chats",
-        method: "DELETE",
-        path: Some("/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"),
     },
     RealmOperationDescriptor {
         operation_id: "ReportController_createReport",

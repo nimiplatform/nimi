@@ -375,7 +375,6 @@ export function decodeNimiRuntimeAgentCompanionParticipationProjection(
     agentId: requiredProjectionText(projection.agentId, 'agentId'),
     surfaceKind: companionSurfaceKindId(projection.surfaceKind),
     profileRef: requiredProjectionText(projection.profileRef, 'profileRef'),
-    roomOrchestrationRef: requiredProjectionText(projection.roomOrchestrationRef, 'roomOrchestrationRef'),
     triggerSource: companionTriggerSourceId(projection.triggerSource),
     status,
     ...(candidateRef ? { candidateRef } : {}),
@@ -484,7 +483,6 @@ function companionParticipationRequest(
     surfaceKind: companionSurfaceKind(input.surfaceKind),
     triggerSource: companionTriggerSource(input.triggerSource),
     profileRef: normalizeText(input.profileRef),
-    roomOrchestrationRef: normalizeText(input.roomOrchestrationRef),
     requestId: normalizeText(input.requestId),
   };
 }

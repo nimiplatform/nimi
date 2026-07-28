@@ -31,7 +31,7 @@ func TestAIBackedLifeTrackExecutorUsesCommittedConfigBinding(t *testing.T) {
 	}
 	executor := NewAIBackedLifeTrackExecutor(fakeAI)
 	_, err := executor.ExecuteLifeTrackHook(context.Background(), &lifeTurnRequest{
-		Agent:            &runtimev1.AgentRecord{AgentId: "agent-route"},
+		Agent:            &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-route"},
 		State:            &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
 		Hook:             &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-route"}},
 		ExecutionBinding: committedConfigTestBinding,
@@ -57,7 +57,7 @@ func TestAIBackedLifeTrackExecutorFailsClosedWithoutConfigBinding(t *testing.T) 
 	fakeAI := &fakeLifeTurnAI{}
 	executor := NewAIBackedLifeTrackExecutor(fakeAI)
 	_, err := executor.ExecuteLifeTrackHook(context.Background(), &lifeTurnRequest{
-		Agent: &runtimev1.AgentRecord{AgentId: "agent-route"},
+		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-route"},
 		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
 		Hook:  &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-route"}},
 	})
@@ -83,7 +83,7 @@ func TestAIBackedCanonicalReviewExecutorUsesCommittedConfigBinding(t *testing.T)
 	}
 	executor := NewAIBackedCanonicalReviewExecutor(fakeAI)
 	_, err := executor.ExecuteCanonicalReview(context.Background(), &CanonicalReviewExecutorRequest{
-		Agent: &runtimev1.AgentRecord{AgentId: "agent-review-route"},
+		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-review-route"},
 		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
 		Bank: &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
@@ -117,7 +117,7 @@ func TestAIBackedCanonicalReviewExecutorFailsClosedWithoutConfigBinding(t *testi
 	fakeAI := &fakeLifeTurnAI{}
 	executor := NewAIBackedCanonicalReviewExecutor(fakeAI)
 	_, err := executor.ExecuteCanonicalReview(context.Background(), &CanonicalReviewExecutorRequest{
-		Agent: &runtimev1.AgentRecord{AgentId: "agent-review-route"},
+		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-review-route"},
 		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
 		Bank: &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
@@ -148,7 +148,7 @@ func TestAIBackedChatTrackSidecarExecutorUsesCommittedConfigBinding(t *testing.T
 	}
 	executor := NewAIBackedChatTrackSidecarExecutor(fakeAI)
 	_, err := executor.ExecuteChatTrackSidecar(context.Background(), &ChatTrackSidecarExecutorRequest{
-		Agent: &runtimev1.AgentRecord{AgentId: "agent-chat-route"},
+		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-chat-route"},
 		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
 		Messages: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
@@ -179,7 +179,7 @@ func TestAIBackedChatTrackSidecarExecutorFailsClosedWithoutConfigBinding(t *test
 	fakeAI := &fakeLifeTurnAI{}
 	executor := NewAIBackedChatTrackSidecarExecutor(fakeAI)
 	_, err := executor.ExecuteChatTrackSidecar(context.Background(), &ChatTrackSidecarExecutorRequest{
-		Agent: &runtimev1.AgentRecord{AgentId: "agent-chat-route"},
+		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-chat-route"},
 		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
 		Messages: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
