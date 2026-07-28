@@ -52,6 +52,7 @@ func newLocalAppAuthorityFixture(t *testing.T) *localAppAuthorityFixture {
 		t.Fatal("authenticated account context unavailable")
 	}
 	binding := localAppCallerBindingFixture(t, generation)
+	binding.LocalOSUserAnchor = principal.LocalOSUserAnchor
 	binding.LocalAppPrincipalID = principal.LocalAppPrincipalID
 	binding.LocalAppRecordID = record.LocalAppRecordID
 	binding.ProvenanceRevision = record.ProvenanceRevision

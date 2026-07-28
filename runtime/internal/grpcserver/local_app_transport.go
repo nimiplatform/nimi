@@ -25,6 +25,10 @@ const (
 	protectedReadLocalAppStorageJSONMethod     = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
 	protectedWriteLocalAppStorageJSONMethod    = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
 	protectedRemoveLocalAppStorageJSONMethod   = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
+	protectedOpenConversationMethod            = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
+	protectedSendConversationTurnMethod        = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	protectedSubscribeConversationMethod       = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	protectedConversationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
 )
 
 type protectedLocalAppMethodPolicy struct {
@@ -49,9 +53,14 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedReadLocalAppStorageJSONMethod:     localAppSessionMethodPolicy(),
 	protectedWriteLocalAppStorageJSONMethod:    localAppSessionMethodPolicy(),
 	protectedRemoveLocalAppStorageJSONMethod:   localAppSessionMethodPolicy(),
+	protectedOpenConversationMethod:            localAppSessionMethodPolicy(),
+	protectedSendConversationTurnMethod:        localAppSessionMethodPolicy(),
+	protectedConversationSnapshotMethod:        localAppSessionMethodPolicy(),
 }
 
-var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{}
+var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
+	protectedSubscribeConversationMethod: localAppSessionMethodPolicy(),
+}
 
 func localAppSessionMethodPolicy() protectedLocalAppMethodPolicy {
 	return protectedLocalAppMethodPolicy{
@@ -147,6 +156,7 @@ func newProtectedLocalAppRPCServer(
 	runtimeControlService runtimev1.RuntimeServiceControlServiceServer,
 	authService runtimev1.RuntimeAuthServiceServer,
 	accountService runtimev1.RuntimeAccountServiceServer,
+	agentService runtimev1.RuntimeAgentServiceServer,
 	appService runtimev1.RuntimeAppServiceServer,
 ) *grpc.Server {
 	server := grpc.NewServer(
@@ -160,6 +170,7 @@ func newProtectedLocalAppRPCServer(
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
 	runtimev1.RegisterRuntimeAccountServiceServer(server, accountService)
+	runtimev1.RegisterRuntimeAgentServiceServer(server, agentService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
 	return server
 }
@@ -202,13 +213,42 @@ func newUnaryProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Unar
 
 type protectedLocalAppServerStream struct {
 	grpc.ServerStream
-	ctx context.Context
+	ctx                 context.Context
+	method              string
+	operationAuthorizer protectedLocalAppOperationAuthorizer
+	authorized          bool
 }
 
 func (stream *protectedLocalAppServerStream) Context() context.Context { return stream.ctx }
 
+func (stream *protectedLocalAppServerStream) RecvMsg(message any) error {
+	if err := stream.ServerStream.RecvMsg(message); err != nil {
+		return err
+	}
+	if stream.authorized {
+		return nil
+	}
+	operation, selector, selected := selectedLocalAppStreamOperation(stream.method, message)
+	if !selected {
+		return nil
+	}
+	if stream.operationAuthorizer == nil {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	}
+	decision, err := stream.operationAuthorizer.AuthorizeLocalAppProtectedOperation(stream.ctx, operation, selector)
+	if err != nil {
+		return protectedLocalAppOperationFailure(accountservice.LocalAppOperationAuthorizationReason(err))
+	}
+	stream.ctx = accountservice.ContextWithAuthorizedLocalAppDecision(stream.ctx, decision)
+	stream.authorized = true
+	return nil
+}
+
 func newStreamProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.StreamServerInterceptor {
-	_ = authorizers
+	var operationAuthorizer protectedLocalAppOperationAuthorizer
+	if len(authorizers) > 0 {
+		operationAuthorizer, _ = authorizers[0].(protectedLocalAppOperationAuthorizer)
+	}
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if info == nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
@@ -225,7 +265,9 @@ func newStreamProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Str
 			return protectedLocalAppRoleError(policy.missingRoleReason)
 		}
 		ctx := protectedlocal.ContextWithLocalAppConnection(stream.Context(), connection)
-		return handler(srv, &protectedLocalAppServerStream{ServerStream: stream, ctx: ctx})
+		return handler(srv, &protectedLocalAppServerStream{
+			ServerStream: stream, ctx: ctx, method: info.FullMethod, operationAuthorizer: operationAuthorizer,
+		})
 	}
 }
 
@@ -249,9 +291,43 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 			return "", localappop.Selector{}, true
 		}
 		return accountservice.LocalAppOperationStorageJSONRemove, localappop.Selector{StorageRelativePath: req.GetRelativePath()}, true
+	case protectedOpenConversationMethod:
+		req, ok := request.(*runtimev1.OpenConversationAnchorRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationOpenConversation, localappop.Selector{AgentID: req.GetAgentId()}, true
+	case protectedSendConversationTurnMethod:
+		req, ok := request.(*runtimev1.SendAppMessageRequest)
+		if !ok || req.GetPayload() == nil {
+			return "", localappop.Selector{}, true
+		}
+		fields := req.GetPayload().GetFields()
+		return accountservice.LocalAppOperationSendConversationTurn, localappop.Selector{
+			AgentID: fields["local_agent_ref"].GetStringValue(), ConversationAnchorID: fields["conversation_anchor_id"].GetStringValue(), TurnID: fields["turn_id"].GetStringValue(),
+		}, true
+	case protectedConversationSnapshotMethod:
+		req, ok := request.(*runtimev1.GetPublicChatSessionSnapshotRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: req.GetAgentId(), ConversationAnchorID: req.GetConversationAnchorId()}, true
 	default:
 		return "", localappop.Selector{}, false
 	}
+}
+
+func selectedLocalAppStreamOperation(method string, request any) (accountservice.LocalAppOperation, localappop.Selector, bool) {
+	if method != protectedSubscribeConversationMethod {
+		return "", localappop.Selector{}, false
+	}
+	req, ok := request.(*runtimev1.SubscribeAppMessagesRequest)
+	if !ok {
+		return "", localappop.Selector{}, true
+	}
+	return accountservice.LocalAppOperationSubscribeConversation, localappop.Selector{
+		AgentID: req.GetLocalAgentRef(), ConversationAnchorID: req.GetConversationAnchorId(),
+	}, true
 }
 
 func protectedLocalAppOperationFailure(reason runtimev1.ReasonCode) error {

@@ -94,13 +94,42 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		caller, binding, err = s.localAppBaseEntitlementCallerBinding(ctx, string(operation), resourceRef)
 	case localappop.AuthorityClassUserPermission:
 		permission, mapped := apppermission.ForOperation(string(operation))
-		if !mapped || !apppermission.IsAdmitted(permission.ID) {
+		if !mapped || s.permissionAdmitted == nil || !s.permissionAdmitted(permission.ID) || !permission.ManifestAllowed {
 			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 		}
-		// Catalog admission alone can never create authority. The positive path
-		// must arrive atomically with the owner selector, lifecycle, endpoint
-		// enforcement, audit, revoke, UI and evidence slice.
-		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		caller, err = s.AuthorizeLocalAppOperation(ctx, operation)
+		if err != nil {
+			return LocalAppCallerDecision{}, localAppOperationDenied(localAppAuthorityErrorReason(err))
+		}
+		resolvedSelector, resolveErr := s.ResolveLocalAppAgentSelectorHandle(ctx, selector.AgentID, permission.ID)
+		if resolveErr != nil {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
+		}
+		selector.AgentID = resolvedSelector.LocalAgentID
+		resourceRef, err = localAppOperationResourceRef(operation, selector)
+		if err != nil {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
+		grantKey := localappkernel.PermissionGrantKey{
+			LocalOSUserAnchor: caller.LocalOSUserAnchor, AccountID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID,
+			PermissionID: permission.ID, OwnerSelectorDigest: resolvedSelector.OwnerSelectorDigest,
+		}
+		grant, grantErr := s.localAppKernel.PermissionGrants().Get(ctx, grantKey)
+		if grantErr != nil {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED)
+		}
+		posture := apppermission.EvaluatePosture(s.now().UTC(), true, true, grantKey, &grant)
+		if !posture.Usable {
+			reason := runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED
+			if posture.Reason == apppermission.PostureReasonGrantRevoked {
+				reason = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED
+			} else if posture.Posture == apppermission.PosturePending || posture.Posture == apppermission.PosturePrompt {
+				reason = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
+			}
+			return LocalAppCallerDecision{}, localAppOperationDenied(reason)
+		}
+		binding = localAppOperationBinding{operationID: string(operation), resourceRef: resourceRef, capability: permission.ID, fingerprint: resolvedSelector.OwnerSelectorDigest}
+		caller.OwnerSelectedAgentID = resolvedSelector.LocalAgentID
 	default:
 		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
@@ -158,9 +187,15 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 			ResourceImpactDigest: binding.fingerprint,
 		},
 	}
+	coordinatorOptions := make([]localappop.CoordinatorOption, 0, 1)
+	if authorityClass == localappop.AuthorityClassUserPermission {
+		coordinatorOptions = append(coordinatorOptions, localappop.WithUserPermissionAdmission(func(candidate localappop.Operation) bool {
+			return candidate == localappop.Operation(operation)
+		}))
+	}
 	coordinator := localappop.NewCoordinator(localappop.SnapshotResolverFunc(func(context.Context, localappop.Request) (localappop.Snapshot, error) {
 		return snapshot, nil
-	}))
+	}), coordinatorOptions...)
 	result := coordinator.Evaluate(ctx, localappop.Request{NativeConnectionRef: connectionRef, Operation: localappop.Operation(operation), Selector: selector})
 	if result.Outcome != localappop.OutcomeAllowed || result.Authorization == nil || result.Authorization.AuthorityClass != authorityClass {
 		return LocalAppCallerDecision{}, localAppOperationDenied(localAppOperationRuntimeReason(result.Reason))
@@ -168,6 +203,27 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 	caller.Operation = operation
 	caller.AuthorityClass = authorityClass
 	caller.OperationCapability = binding.capability
+	if authorityClass == localappop.AuthorityClassUserPermission {
+		permission, _ := apppermission.ForOperation(string(operation))
+		grantKey := localappkernel.PermissionGrantKey{
+			LocalOSUserAnchor: caller.LocalOSUserAnchor, AccountID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID,
+			PermissionID: permission.ID, OwnerSelectorDigest: binding.fingerprint,
+		}
+		grant, grantErr := s.localAppKernel.PermissionGrants().Get(ctx, grantKey)
+		if grantErr != nil {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
+		}
+		auditBinding := apppermission.AuditBinding{
+			OwnerSubjectID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID, DisplayAppID: caller.AppID,
+			PermissionID: permission.ID, SelectorDigest: binding.fingerprint, OldPosture: apppermission.PostureGranted,
+			NewPosture: apppermission.PostureGranted, Trigger: "operation_use", Timestamp: s.now().UTC(), OwnerRevision: grant.Revision,
+		}
+		if auditErr := apppermission.NewAuditEmitter(s.auditStore).EmitOperationUse(ctx, apppermission.OperationUseAudit{
+			Binding: auditBinding, ProtectedOperation: string(operation), ProtectedResourceID: resourceRef,
+		}); auditErr != nil {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
+	}
 	return caller, nil
 }
 

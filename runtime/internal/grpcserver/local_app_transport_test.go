@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -14,9 +15,12 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestProtectedLocalAppTransportRejectsOrdinaryConnection(t *testing.T) {
@@ -32,6 +36,92 @@ func TestProtectedLocalAppTransportRejectsOrdinaryConnection(t *testing.T) {
 			_ = accepted.Close()
 		}
 		t.Fatal("ordinary listener connection was promoted to local-app authority")
+	}
+}
+
+func TestProtectedLocalAppNativeCarrierConversationOperationsRemainTypedUnavailable(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x91)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x92), SessionProof: grpcLocalAppIdentifier(0x93)}); err != nil {
+		t.Fatal(err)
+	}
+	accountService := &reservedLocalAppAccountTestService{}
+	server := newProtectedLocalAppRPCServer(
+		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
+		&runtimev1.UnimplementedRuntimeAuthServiceServer{},
+		accountService,
+		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
+		&runtimev1.UnimplementedRuntimeAppServiceServer{},
+	)
+	if _, registered := server.GetServiceInfo()["nimi.runtime.v1.RuntimeAgentService"]; !registered {
+		t.Fatal("local-app carrier did not register RuntimeAgentService")
+	}
+	baseListener := bufconn.Listen(1024 * 1024)
+	listener := &protectedLocalAppTestListener{Listener: baseListener, connection: connection}
+	serveDone := make(chan error, 1)
+	go func() { serveDone <- server.Serve(listener) }()
+	t.Cleanup(func() {
+		server.Stop()
+		_ = baseListener.Close()
+		<-serveDone
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	clientConn, err := grpc.DialContext(
+		ctx,
+		"passthrough:///protected-local-app-test",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return baseListener.Dial() }),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		t.Fatalf("dial protected local-app carrier: %v", err)
+	}
+	defer func() { _ = clientConn.Close() }()
+
+	payload, err := structpb.NewStruct(map[string]any{
+		"local_agent_ref": "opaque-agent-handle", "conversation_anchor_id": "anchor-a", "turn_id": "turn-a",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agentClient := runtimev1.NewRuntimeAgentServiceClient(clientConn)
+	appClient := runtimev1.NewRuntimeAppServiceClient(clientConn)
+	calls := []struct {
+		name string
+		call func() error
+	}{
+		{"open", func() error {
+			_, callErr := agentClient.OpenConversationAnchor(ctx, &runtimev1.OpenConversationAnchorRequest{AgentId: "opaque-agent-handle"})
+			return callErr
+		}},
+		{"send", func() error {
+			_, callErr := appClient.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{Payload: payload})
+			return callErr
+		}},
+		{"snapshot", func() error {
+			_, callErr := agentClient.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{AgentId: "opaque-agent-handle", ConversationAnchorId: "anchor-a"})
+			return callErr
+		}},
+		{"subscribe", func() error {
+			stream, callErr := appClient.SubscribeAppMessages(ctx, &runtimev1.SubscribeAppMessagesRequest{LocalAgentRef: "opaque-agent-handle", ConversationAnchorId: "anchor-a"})
+			if callErr != nil {
+				return callErr
+			}
+			_, callErr = stream.Recv()
+			return callErr
+		}},
+	}
+	for _, test := range calls {
+		if reason := localAppTransportReason(test.call()); reason != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+			t.Fatalf("%s reserved carrier reason = %s", test.name, reason)
+		}
+	}
+
+	authClient := runtimev1.NewRuntimeAuthServiceClient(clientConn)
+	_, err = authClient.RegisterApp(ctx, &runtimev1.RegisterAppRequest{})
+	if reason := localAppTransportReason(err); reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
+		t.Fatalf("forbidden auth method reason = %s, err=%v", reason, err)
 	}
 }
 
@@ -155,7 +245,7 @@ func TestLocalAppPermissionPreflightDistinguishesRawUncarriedFromStaleProcess(t 
 	}
 }
 
-func TestProtectedLocalAppPoliciesExposeOnlyBaseEntitlementsAndPermissionPosture(t *testing.T) {
+func TestProtectedLocalAppPoliciesExposeOnlyNamedLocalAppOperations(t *testing.T) {
 	for _, method := range []string{
 		protectedOpenLocalAppSessionMethod,
 		protectedRenewLocalAppSessionMethod,
@@ -164,6 +254,9 @@ func TestProtectedLocalAppPoliciesExposeOnlyBaseEntitlementsAndPermissionPosture
 		protectedReadLocalAppStorageJSONMethod,
 		protectedWriteLocalAppStorageJSONMethod,
 		protectedRemoveLocalAppStorageJSONMethod,
+		protectedOpenConversationMethod,
+		protectedSendConversationTurnMethod,
+		protectedConversationSnapshotMethod,
 	} {
 		if !protectedLocalAppUnaryMethodAllowed(method) {
 			t.Fatalf("admitted local-app unary operation is missing: %s", method)
@@ -173,18 +266,18 @@ func TestProtectedLocalAppPoliciesExposeOnlyBaseEntitlementsAndPermissionPosture
 		"/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
 		"/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
 		"/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
-		"/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
-		"/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
+		"/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
 		"/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
 		"/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
-		"/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
-		"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
 		"/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
 	} {
 		if protectedLocalAppUnaryMethodAllowed(method) || protectedLocalAppStreamMethodAllowed(method) {
 			t.Fatalf("unadmitted Runtime method reached local-app transport: %s", method)
 		}
+	}
+	if !protectedLocalAppStreamMethodAllowed(protectedSubscribeConversationMethod) {
+		t.Fatalf("admitted local-app stream operation is missing: %s", protectedSubscribeConversationMethod)
 	}
 }
 
@@ -220,7 +313,35 @@ func TestSelectedProtectedLocalAppStorageOperationsCarryOnlyExactPath(t *testing
 	}
 }
 
-func TestProtectedLocalAppTransportAdmitsNoStreams(t *testing.T) {
+func TestSelectedProtectedLocalAppConversationOperationsCarryOnlyExactSelectors(t *testing.T) {
+	payload, err := structpb.NewStruct(map[string]any{
+		"local_agent_ref": "agent-handle", "conversation_anchor_id": "anchor-a", "turn_id": "turn-a", "text": "private payload",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		method    string
+		request   any
+		operation accountservice.LocalAppOperation
+		selector  localappop.Selector
+	}{
+		{protectedOpenConversationMethod, &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-handle"}, accountservice.LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent-handle"}},
+		{protectedSendConversationTurnMethod, &runtimev1.SendAppMessageRequest{Payload: payload}, accountservice.LocalAppOperationSendConversationTurn, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a", TurnID: "turn-a"}},
+		{protectedConversationSnapshotMethod, &runtimev1.GetPublicChatSessionSnapshotRequest{AgentId: "agent-handle", ConversationAnchorId: "anchor-a"}, accountservice.LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a"}},
+	} {
+		operation, selector, selected := selectedLocalAppUnaryOperation(test.method, test.request)
+		if !selected || operation != test.operation || selector != test.selector {
+			t.Fatalf("selected conversation operation = (%q, %+v, %v), want (%q, %+v, true)", operation, selector, selected, test.operation, test.selector)
+		}
+	}
+	operation, selector, selected := selectedLocalAppStreamOperation(protectedSubscribeConversationMethod, &runtimev1.SubscribeAppMessagesRequest{LocalAgentRef: "agent-handle", ConversationAnchorId: "anchor-a"})
+	if !selected || operation != accountservice.LocalAppOperationSubscribeConversation || selector != (localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a"}) {
+		t.Fatalf("selected subscription operation = (%q, %+v, %v)", operation, selector, selected)
+	}
+}
+
+func TestProtectedLocalAppTransportRejectsUnadmittedStreams(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0xb1)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0xb2), SessionProof: grpcLocalAppIdentifier(0xb3)}); err != nil {
 		t.Fatal(err)
@@ -228,7 +349,6 @@ func TestProtectedLocalAppTransportAdmitsNoStreams(t *testing.T) {
 	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
 	interceptor := newStreamProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{})
 	for _, method := range []string{
-		"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
 		"/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
 	} {
 		handlerCalled := false
@@ -239,6 +359,23 @@ func TestProtectedLocalAppTransportAdmitsNoStreams(t *testing.T) {
 		if handlerCalled || localAppTransportReason(err) != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
 			t.Fatalf("unadmitted local-app stream %s: called=%v reason=%v err=%v", method, handlerCalled, localAppTransportReason(err), err)
 		}
+	}
+}
+
+func TestProtectedLocalAppSubscriptionChecksReservedAdmissionBeforeHandler(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0xb4)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0xb5), SessionProof: grpcLocalAppIdentifier(0xb6)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	interceptor := newStreamProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{err: localAppTransportReasonError{reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE}})
+	handlerCalled := false
+	err := interceptor(nil, &localAppTransportTestStream{ctx: ctx}, &grpc.StreamServerInfo{FullMethod: protectedSubscribeConversationMethod}, func(_ any, stream grpc.ServerStream) error {
+		handlerCalled = true
+		return stream.RecvMsg(&runtimev1.SubscribeAppMessagesRequest{})
+	})
+	if !handlerCalled || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+		t.Fatalf("reserved subscription admission = called=%v reason=%v err=%v", handlerCalled, localAppTransportReason(err), err)
 	}
 }
 
@@ -298,6 +435,27 @@ func TestProtectedLocalAppSelectedOperationsFailClosedWithoutAuthorizer(t *testi
 	if got := localAppTransportReason(err); got != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
 		t.Fatalf("missing authorizer reason = %s", got)
 	}
+}
+
+type reservedLocalAppAccountTestService struct {
+	runtimev1.UnimplementedRuntimeAccountServiceServer
+}
+
+func (*reservedLocalAppAccountTestService) AuthorizeLocalAppProtectedOperation(context.Context, accountservice.LocalAppOperation, localappop.Selector) (accountservice.LocalAppCallerDecision, error) {
+	return accountservice.LocalAppCallerDecision{}, localAppTransportReasonError{reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE}
+}
+
+type protectedLocalAppTestListener struct {
+	*bufconn.Listener
+	connection *protectedlocal.LocalAppConnection
+}
+
+func (listener *protectedLocalAppTestListener) Accept() (net.Conn, error) {
+	connection, err := listener.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &protectedLocalAppNetConn{Conn: connection, connection: listener.connection}, nil
 }
 
 type localAppTransportReasonError struct{ reason runtimev1.ReasonCode }

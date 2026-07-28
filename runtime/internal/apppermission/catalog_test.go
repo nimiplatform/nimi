@@ -1,6 +1,12 @@
 package apppermission
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"gopkg.in/yaml.v3"
+)
 
 func TestPublicPermissionCatalogIsClosedAndReservedUntilCompleteAdmission(t *testing.T) {
 	known := []string{
@@ -29,8 +35,6 @@ func TestProtectedOperationsMapToProductPermissionsWithoutAdmittingThem(t *testi
 		"runtime_agent.conversation.turn_send":      "agents.interact",
 		"runtime_agent.conversation.turn_subscribe": "agents.interact",
 		"runtime_agent.conversation.snapshot":       "agents.interact",
-		"runtime_agent.voice.transcribe":            "agents.interact",
-		"runtime_agent.voice.stream_subscribe":      "agents.interact",
 	}
 	for operationID, permissionID := range operations {
 		descriptor, ok := ForOperation(operationID)
@@ -38,7 +42,52 @@ func TestProtectedOperationsMapToProductPermissionsWithoutAdmittingThem(t *testi
 			t.Fatalf("operation %q mapping = %+v, known=%v", operationID, descriptor, ok)
 		}
 	}
-	if _, ok := ForOperation("app_storage.json.write"); ok {
-		t.Fatal("app-private storage must not map to a user permission")
+	for _, operationID := range []string{"app_storage.json.write", "runtime_agent.voice.transcribe", "runtime_agent.voice.stream_subscribe"} {
+		if _, ok := ForOperation(operationID); ok {
+			t.Fatalf("operation %q must remain typed-unavailable without a user permission mapping", operationID)
+		}
+	}
+}
+
+type permissionCatalogFile struct {
+	PublicPermissions []struct {
+		PermissionID    string `yaml:"permission_id"`
+		Admission       string `yaml:"admission"`
+		ManifestAllowed bool   `yaml:"manifest_allowed"`
+	} `yaml:"public_permissions"`
+}
+
+func TestRuntimeCatalogMatchesProductCatalogWithExplicitAtomicPublicationHold(t *testing.T) {
+	path := filepath.Clean(filepath.Join("..", "..", "..", "config", "platform-nimi-app-permission-catalog.yaml"))
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var source permissionCatalogFile
+	if err := yaml.Unmarshal(raw, &source); err != nil {
+		t.Fatal(err)
+	}
+	if len(source.PublicPermissions) != len(catalog) {
+		t.Fatalf("catalog size drift: Runtime=%d config=%d", len(catalog), len(source.PublicPermissions))
+	}
+	seen := make(map[string]struct{}, len(source.PublicPermissions))
+	for _, row := range source.PublicPermissions {
+		if _, duplicate := seen[row.PermissionID]; duplicate {
+			t.Fatalf("duplicate config catalog row %q", row.PermissionID)
+		}
+		seen[row.PermissionID] = struct{}{}
+		descriptor, ok := Lookup(row.PermissionID)
+		if !ok || descriptor.ManifestAllowed != row.ManifestAllowed {
+			t.Fatalf("catalog row drift for %q: Runtime=%+v config manifest_allowed=%v", row.PermissionID, descriptor, row.ManifestAllowed)
+		}
+		if row.PermissionID == "agents.interact" {
+			if row.Admission != string(AdmissionAdmitted) || descriptor.Admission != AdmissionReserved {
+				t.Fatalf("agents.interact must remain on the explicit W3-W5 atomic publication hold: Runtime=%s config=%s", descriptor.Admission, row.Admission)
+			}
+			continue
+		}
+		if descriptor.Admission != Admission(row.Admission) {
+			t.Fatalf("admission drift for %q: Runtime=%s config=%s", row.PermissionID, descriptor.Admission, row.Admission)
+		}
 	}
 }

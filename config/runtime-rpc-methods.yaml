@@ -335,6 +335,15 @@ services:
       - name: RequestLocalAppPermission
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission
+      - name: IssueLocalAppAgentSelectorHandle
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/IssueLocalAppAgentSelectorHandle
+      - name: DecideLocalAppPermission
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission
+      - name: RevokeLocalAppPermission
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission
       - name: IssueWorkspaceBinding
         type: unary
         authority_status: blocked_pending_separate_authority

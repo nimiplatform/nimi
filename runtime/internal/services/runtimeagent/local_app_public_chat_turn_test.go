@@ -14,10 +14,11 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
 	decision := accountservice.LocalAppCallerDecision{
-		AppID:               "nimi.zhiyu",
-		AccountID:           "user-1",
-		LocalAppPrincipalID: "principal-a",
-		LocalAppRecordID:    "record-a",
+		AppID:                "nimi.zhiyu",
+		AccountID:            "user-1",
+		LocalAppPrincipalID:  "principal-a",
+		LocalAppRecordID:     "record-a",
+		OwnerSelectedAgentID: localAgentRef,
 	}
 	metadata, err := structpb.NewStruct(map[string]any{"local_app_anchor_disposition": "create-new"})
 	if err != nil {

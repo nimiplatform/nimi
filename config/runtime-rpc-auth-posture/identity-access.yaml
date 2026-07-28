@@ -42,6 +42,12 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/IssueLocalAppAgentSelectorHandle
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
     posture: authenticated_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages

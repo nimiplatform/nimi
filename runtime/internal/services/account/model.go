@@ -201,6 +201,8 @@ type Service struct {
 	appSessionValidator     AppSessionValidator
 	localAppSessions        LocalAppSessionResolver
 	accountAuthorityRevoker AccountAuthorityRevoker
+	localAgentOwnership     LocalAgentOwnershipResolver
+	permissionAdmitted      func(string) bool
 	localAppKernel          *localappkernel.Kernel
 	auditStore              *auditlog.Store
 

@@ -11,13 +11,14 @@ import (
 )
 
 var (
-	ErrInvalidArgument     = errors.New("local-app kernel invalid argument")
-	ErrNotFound            = errors.New("local-app kernel record not found")
-	ErrPartitionMismatch   = errors.New("local-app kernel OS-user partition mismatch")
-	ErrStateConflict       = errors.New("local-app kernel state conflict")
-	ErrPrincipalTombstoned = errors.New("local-app principal tombstoned")
-	ErrRevisionConflict    = errors.New("local-app provenance revision conflict")
-	ErrRandomExhausted     = errors.New("local-app identifier allocation exhausted")
+	ErrInvalidArgument            = errors.New("local-app kernel invalid argument")
+	ErrNotFound                   = errors.New("local-app kernel record not found")
+	ErrPartitionMismatch          = errors.New("local-app kernel OS-user partition mismatch")
+	ErrStateConflict              = errors.New("local-app kernel state conflict")
+	ErrPrincipalTombstoned        = errors.New("local-app principal tombstoned")
+	ErrRevisionConflict           = errors.New("local-app provenance revision conflict")
+	ErrPermissionRevisionConflict = errors.New("local-app permission revision conflict")
+	ErrRandomExhausted            = errors.New("local-app identifier allocation exhausted")
 )
 
 type PrincipalKind string
@@ -128,10 +129,101 @@ type ProvenanceInvalidationFact struct {
 	RecordedAt              time.Time
 }
 
+type PermissionGrantState string
+
+const (
+	PermissionGrantStatePending PermissionGrantState = "pending"
+	PermissionGrantStateGranted PermissionGrantState = "granted"
+	PermissionGrantStateDenied  PermissionGrantState = "denied"
+	PermissionGrantStateExpired PermissionGrantState = "expired"
+	PermissionGrantStateRevoked PermissionGrantState = "revoked"
+)
+
+// PermissionGrantKey is the complete owner-held identity required by R046.
+// Display app ids, sessions, operations, and portable proofs are deliberately
+// excluded from the durable key.
+type PermissionGrantKey struct {
+	LocalOSUserAnchor   string
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+	OwnerSelectorDigest string
+}
+
+type PermissionGrant struct {
+	Key       PermissionGrantKey
+	State     PermissionGrantState
+	Revision  uint64
+	ExpiresAt *time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type CreatePermissionGrantInput struct {
+	Key       PermissionGrantKey
+	ExpiresAt *time.Time
+}
+
+type TransitionPermissionGrantInput struct {
+	Key              PermissionGrantKey
+	ExpectedRevision uint64
+	State            PermissionGrantState
+	ExpiresAt        *time.Time
+}
+
+type AgentSelectorHandle struct {
+	Handle              string
+	LocalOSUserAnchor   string
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+	OwnerSelectorDigest string
+	LocalAgentID        string
+	IssuedAt            time.Time
+}
+
+type IssueAgentSelectorHandleInput struct {
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+	LocalAgentID        string
+}
+
+type ResolveAgentSelectorHandleInput struct {
+	Handle              string
+	AccountID           string
+	LocalAppPrincipalID string
+	PermissionID        string
+}
+
 type SecurityKeys struct {
 	StoragePartitionKey string
 	AudienceKey         string
 	AuditSubjectKey     string
+}
+
+func validPermissionGrantState(state PermissionGrantState) bool {
+	switch state {
+	case PermissionGrantStatePending, PermissionGrantStateGranted, PermissionGrantStateDenied, PermissionGrantStateExpired, PermissionGrantStateRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+func validatePermissionGrantKey(key PermissionGrantKey) error {
+	for name, value := range map[string]string{
+		"local_os_user_anchor":   key.LocalOSUserAnchor,
+		"account_id":             key.AccountID,
+		"local_app_principal_id": key.LocalAppPrincipalID,
+		"permission_id":          key.PermissionID,
+		"owner_selector_digest":  key.OwnerSelectorDigest,
+	} {
+		if err := requireExactText(name, value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func validatePrincipalInput(input CreatePrincipalInput) error {

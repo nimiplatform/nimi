@@ -406,6 +406,50 @@ message RequestLocalAppPermissionResponse {
   LocalAppPermissionProjection projection = 1;
 }
 
+// Protected Runtime-owner management plane. These messages are never carried
+// by the third-party local-app transport.
+message IssueLocalAppAgentSelectorHandleRequest {
+  AccountCaller caller = 1;
+  string local_app_principal_id = 2;
+  string permission_id = 3;
+  string local_agent_id = 4;
+}
+
+message IssueLocalAppAgentSelectorHandleResponse {
+  bool accepted = 1;
+  string selector_handle = 2;
+  ReasonCode reason_code = 3;
+}
+
+message DecideLocalAppPermissionRequest {
+  AccountCaller caller = 1;
+  string local_app_principal_id = 2;
+  string permission_id = 3;
+  string selector_handle = 4;
+  bool approved = 5;
+}
+
+message DecideLocalAppPermissionResponse {
+  bool accepted = 1;
+  LocalAppPermissionPosture posture = 2;
+  uint64 owner_revision = 3;
+  ReasonCode reason_code = 4;
+}
+
+message RevokeLocalAppPermissionRequest {
+  AccountCaller caller = 1;
+  string local_app_principal_id = 2;
+  string permission_id = 3;
+  string selector_handle = 4;
+}
+
+message RevokeLocalAppPermissionResponse {
+  bool accepted = 1;
+  LocalAppPermissionPosture posture = 2;
+  uint64 owner_revision = 3;
+  ReasonCode reason_code = 4;
+}
+
 service RuntimeAccountService {
   rpc GetAccountSessionStatus(GetAccountSessionStatusRequest) returns (GetAccountSessionStatusResponse);
   rpc SubscribeAccountSessionEvents(SubscribeAccountSessionEventsRequest) returns (stream AccountSessionEvent);
@@ -419,4 +463,7 @@ service RuntimeAccountService {
   rpc RevokeWorkspaceBinding(RevokeWorkspaceBindingRequest) returns (RevokeWorkspaceBindingResponse);
   rpc GetLocalAppPermissionStatus(GetLocalAppPermissionStatusRequest) returns (GetLocalAppPermissionStatusResponse);
   rpc RequestLocalAppPermission(RequestLocalAppPermissionRequest) returns (RequestLocalAppPermissionResponse);
+  rpc IssueLocalAppAgentSelectorHandle(IssueLocalAppAgentSelectorHandleRequest) returns (IssueLocalAppAgentSelectorHandleResponse);
+  rpc DecideLocalAppPermission(DecideLocalAppPermissionRequest) returns (DecideLocalAppPermissionResponse);
+  rpc RevokeLocalAppPermission(RevokeLocalAppPermissionRequest) returns (RevokeLocalAppPermissionResponse);
 }

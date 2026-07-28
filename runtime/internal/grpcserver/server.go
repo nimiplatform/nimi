@@ -614,6 +614,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	agentSvc.SetRuntimeAccountProjectionProvider(accountSvc)
+	accountSvc.SetLocalAgentOwnershipResolver(agentSvc)
+	agentSvc.SetLocalAppOperationAuthorizer(accountSvc)
 	agentSvc.SetAuditStore(auditStore)
 	// K-AGCORE-146: Runtime Agent AI Config readiness recomputes on provider health
 	// change evidence.
@@ -769,7 +771,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	)
 	if protected != nil {
 		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc)
-		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, appSvc)
+		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, agentSvc, appSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)

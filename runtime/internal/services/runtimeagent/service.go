@@ -69,6 +69,7 @@ type Service struct {
 	sourceMaterializationNow                 func() time.Time
 	chatAppEmit                              publicChatAppMessageEmitter
 	runtimeAccountProjection                 runtimeAccountProjectionProvider
+	localAppOperationAuth                    localAppOperationAuthorizer
 	voiceAssetResolverMu                     sync.RWMutex
 	voiceAssetResolver                       VoiceAssetResolver
 	aiBridgeMu                               sync.RWMutex

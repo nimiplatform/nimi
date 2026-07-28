@@ -8,15 +8,8 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 )
-
-var localDevelopmentKnownPublicPermissions = map[string]struct{}{
-	"agents.interact": {}, "artifacts.open": {}, "account.profile.read": {},
-	"memory.read": {}, "memory.write": {}, "knowledge.read": {}, "knowledge.write": {},
-	"notifications.send": {}, "notifications.receive": {}, "files.open": {}, "files.save": {},
-	"realm.library.read": {}, "realm.library.manage": {}, "realm.publish": {},
-	"ai.background": {}, "shared_resources.open": {},
-}
 
 func resolveLocalDevelopmentProject(rootPath string, expectedAppID string, shellKind runtimev1.LocalDevelopmentShellKind, accountID string, accountGeneration uint64) (localDevelopmentProjectSnapshot, error) {
 	root, manifestPath, manifest, err := loadLocalAppManifest(rootPath)
@@ -56,8 +49,15 @@ func resolveLocalDevelopmentProject(rootPath string, expectedAppID string, shell
 }
 
 func normalizeLocalDevelopmentPermissionRequests(requests []localAppManifestPermissionRequest, legacyRuntimeBindingRequests any) ([]localDevelopmentPermissionRequirement, error) {
+	return normalizeLocalDevelopmentPermissionRequestsWithCatalog(requests, legacyRuntimeBindingRequests, apppermission.Lookup)
+}
+
+func normalizeLocalDevelopmentPermissionRequestsWithCatalog(requests []localAppManifestPermissionRequest, legacyRuntimeBindingRequests any, lookup func(string) (apppermission.Descriptor, bool)) ([]localDevelopmentPermissionRequirement, error) {
 	if legacyRuntimeBindingRequests != nil {
 		return nil, errors.New("local-development runtime_scoped_binding_requests is retired")
+	}
+	if lookup == nil {
+		return nil, errors.New("local-development permission catalog is unavailable")
 	}
 	permissions := make([]localDevelopmentPermissionRequirement, 0, len(requests))
 	seen := make(map[string]struct{}, len(requests))
@@ -67,13 +67,21 @@ func normalizeLocalDevelopmentPermissionRequests(requests []localAppManifestPerm
 		if permissionID == "" || permissionID != request.PermissionID || reason == "" || reason != request.Reason || len([]byte(reason)) > 240 {
 			return nil, fmt.Errorf("local-development permission request %d is not canonical", index)
 		}
-		if _, known := localDevelopmentKnownPublicPermissions[permissionID]; !known {
+		descriptor, known := lookup(permissionID)
+		if !known || descriptor.ID != permissionID {
 			return nil, fmt.Errorf("local-development permission request %d uses unknown id %s", index, permissionID)
 		}
 		if _, duplicate := seen[permissionID]; duplicate {
 			return nil, fmt.Errorf("local-development permission %s is duplicated", permissionID)
 		}
-		return nil, fmt.Errorf("local-development permission %s is reserved and not admitted", permissionID)
+		if !descriptor.ManifestAllowed {
+			return nil, fmt.Errorf("local-development permission %s is forbidden in manifests", permissionID)
+		}
+		if descriptor.Admission != apppermission.AdmissionAdmitted {
+			return nil, fmt.Errorf("local-development permission %s is reserved and not admitted", permissionID)
+		}
+		seen[permissionID] = struct{}{}
+		permissions = append(permissions, localDevelopmentPermissionRequirement{PermissionID: permissionID, Reason: reason})
 	}
 	sort.Slice(permissions, func(left, right int) bool {
 		return permissions[left].PermissionID < permissions[right].PermissionID

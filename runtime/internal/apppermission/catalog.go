@@ -11,12 +11,13 @@ const (
 )
 
 type Descriptor struct {
-	ID        string
-	Admission Admission
+	ID              string
+	Admission       Admission
+	ManifestAllowed bool
 }
 
 var catalog = map[string]Descriptor{
-	"agents.interact":       {ID: "agents.interact", Admission: AdmissionReserved},
+	"agents.interact":       {ID: "agents.interact", Admission: AdmissionReserved, ManifestAllowed: true},
 	"artifacts.open":        {ID: "artifacts.open", Admission: AdmissionReserved},
 	"account.profile.read":  {ID: "account.profile.read", Admission: AdmissionReserved},
 	"memory.read":           {ID: "memory.read", Admission: AdmissionReserved},
@@ -43,8 +44,6 @@ var operationPermissions = map[string]string{
 	"runtime_agent.conversation.turn_send":      "agents.interact",
 	"runtime_agent.conversation.turn_subscribe": "agents.interact",
 	"runtime_agent.conversation.snapshot":       "agents.interact",
-	"runtime_agent.voice.transcribe":            "agents.interact",
-	"runtime_agent.voice.stream_subscribe":      "agents.interact",
 }
 
 func Lookup(id string) (Descriptor, bool) {
@@ -55,6 +54,11 @@ func Lookup(id string) (Descriptor, bool) {
 func IsAdmitted(id string) bool {
 	descriptor, ok := Lookup(id)
 	return ok && descriptor.Admission == AdmissionAdmitted
+}
+
+func IsManifestAllowed(id string) bool {
+	descriptor, ok := Lookup(id)
+	return ok && descriptor.ManifestAllowed
 }
 
 func ForOperation(operationID string) (Descriptor, bool) {

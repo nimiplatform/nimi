@@ -8,6 +8,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -29,6 +31,20 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		return nil, status.Error(codes.InvalidArgument, "open conversation anchor request is required")
 	}
 	decision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+	if !localAppAuthorized {
+		if connection, protected := protectedlocal.LocalAppConnectionFromContext(ctx); protected && connection != nil {
+			if s.localAppOperationAuth == nil {
+				return nil, status.Error(codes.PermissionDenied, "local-app operation authorizer unavailable")
+			}
+			var authorizeErr error
+			decision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(ctx, accountservice.LocalAppOperationOpenConversation, localappop.Selector{AgentID: strings.TrimSpace(req.GetAgentId())})
+			if authorizeErr != nil {
+				return nil, status.Error(codes.PermissionDenied, "local-app conversation permission denied")
+			}
+			ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision)
+			localAppAuthorized = true
+		}
+	}
 	localAppDisposition := ""
 	var identity localAgentIdentity
 	var entry *agentEntry
@@ -41,7 +57,7 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		if err != nil {
 			return nil, err
 		}
-		entry, err = s.agentByID(strings.TrimSpace(req.GetAgentId()))
+		entry, err = s.agentByID(decision.OwnerSelectedAgentID)
 		if err == nil && entry != nil && entry.Agent != nil {
 			identity, err = validateLocalAgentIdentity(entry.Agent.GetOwnerUserId(), entry.Agent.GetRuntimeSourceRef(), entry.Agent.GetLocalAgentRef())
 			if err == nil && identity.OwnerUserID != decision.AccountID {

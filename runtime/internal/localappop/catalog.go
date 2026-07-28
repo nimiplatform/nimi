@@ -9,7 +9,6 @@ const (
 	selectorAgent
 	selectorAgentAnchor
 	selectorAgentAnchorTurn
-	selectorAgentAnchorTurnVoice
 	selectorStorage
 )
 
@@ -27,8 +26,6 @@ var operationSpecs = map[Operation]operationSpec{
 	OperationStorageJSONRead:       {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
 	OperationStorageJSONWrite:      {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
 	OperationStorageJSONRemove:     {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
-	OperationVoiceTranscribe:       {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
-	OperationVoiceStreamSubscribe:  {selector: selectorAgentAnchorTurnVoice, authorityClass: AuthorityClassUserPermission},
 }
 
 // AuthorityClassForOperation returns the Runtime-owned authority path for an
@@ -78,8 +75,6 @@ func selectorMatches(shape selectorShape, selector Selector) bool {
 		return !artifact && agent && anchor && !turn && !voiceStream && !storage
 	case selectorAgentAnchorTurn:
 		return !artifact && agent && anchor && turn && !voiceStream && !storage
-	case selectorAgentAnchorTurnVoice:
-		return !artifact && agent && anchor && turn && voiceStream && !storage
 	case selectorStorage:
 		return !artifact && !agent && !anchor && !turn && !voiceStream && storage
 	default:

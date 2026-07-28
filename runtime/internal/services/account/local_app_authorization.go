@@ -72,6 +72,10 @@ type AccountAuthorityRevoker interface {
 	RevokeAccountAuthority(context.Context, string) error
 }
 
+type LocalAgentOwnershipResolver interface {
+	OwnsActiveLocalAgent(context.Context, string, string) (bool, error)
+}
+
 // LocalAppCallerDecision is an immutable per-call origin/account decision.
 // The operation coordinator extends this Account-owned boundary with exactly
 // one Runtime-derived authority class; consumers must not add independent
@@ -90,6 +94,7 @@ type LocalAppCallerDecision struct {
 	Operation               LocalAppOperation
 	AuthorityClass          localappop.AuthorityClass
 	OperationCapability     string
+	OwnerSelectedAgentID    string
 	TrustClass              LocalAppTrustClass
 	AuthorizationID         protectedlocal.Identifier
 	AuthorizationGeneration uint64
@@ -111,6 +116,12 @@ func (s *Service) SetLocalAppSessionResolver(resolver LocalAppSessionResolver) {
 func (s *Service) SetAccountAuthorityRevoker(revoker AccountAuthorityRevoker) {
 	if s != nil {
 		s.accountAuthorityRevoker = revoker
+	}
+}
+
+func (s *Service) SetLocalAgentOwnershipResolver(resolver LocalAgentOwnershipResolver) {
+	if s != nil {
+		s.localAgentOwnership = resolver
 	}
 }
 
@@ -249,10 +260,9 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 	switch operation {
 	case LocalAppOperationReadArtifactBytes:
 		return "data.scope.read#runtime.artifacts", true
-	case LocalAppOperationOpenConversation, LocalAppOperationSendConversationTurn:
-		return "runtime.agent.turn.write", true
-	case LocalAppOperationSubscribeConversation, LocalAppOperationConversationSnapshot:
-		return "runtime.agent.turn.read", true
+	case LocalAppOperationOpenConversation, LocalAppOperationSendConversationTurn,
+		LocalAppOperationSubscribeConversation, LocalAppOperationConversationSnapshot:
+		return localAppAgentPermissionID, true
 	case LocalAppOperationStorageJSONRead, LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
 		return appstorage.LocalAppPrivateStorageEntitlement, true
 	case LocalAppOperationVoiceTranscribe:

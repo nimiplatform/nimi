@@ -59,6 +59,34 @@ func TestCoordinatorKeepsReservedUserPermissionOperationsUnavailable(t *testing.
 	}
 }
 
+func TestCoordinatorAdmittedUserPermissionDefersToCurrentOwnerSnapshot(t *testing.T) {
+	t.Parallel()
+	req, snapshot := allowedFixture(OperationConversationOpen)
+	coordinator := NewCoordinator(SnapshotResolverFunc(func(_ context.Context, got Request) (Snapshot, error) {
+		if got != req {
+			t.Fatalf("resolver request = %+v, want %+v", got, req)
+		}
+		return snapshot, nil
+	}), WithUserPermissionAdmission(func(operation Operation) bool { return operation == OperationConversationOpen }))
+	decision := coordinator.Evaluate(context.Background(), req)
+	assertDecision(t, decision, OutcomeAllowed, ReasonActionExecuted)
+	if decision.Authorization == nil || decision.Authorization.AuthorityClass != AuthorityClassUserPermission {
+		t.Fatalf("user-permission authorization = %+v", decision.Authorization)
+	}
+}
+
+func TestVoiceOperationsRemainOutsideAgentsInteractPermissionMapping(t *testing.T) {
+	t.Parallel()
+	for _, operation := range []Operation{OperationVoiceTranscribe, OperationVoiceStreamSubscribe} {
+		if _, ok := AuthorityClassForOperation(operation); ok {
+			t.Fatalf("voice operation %q entered the user-permission mapping", operation)
+		}
+		req, snapshot := allowedFixture(operation)
+		decision := evaluateThroughCoordinator(t, req, snapshot)
+		assertDecision(t, decision, OutcomeUnavailable, ReasonLocalAppOperationUnavailable)
+	}
+}
+
 func TestCoordinatorIsProvenanceAgnosticAfterStructuralValidation(t *testing.T) {
 	t.Parallel()
 

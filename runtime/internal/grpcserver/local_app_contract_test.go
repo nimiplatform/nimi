@@ -68,14 +68,26 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		protectedReadLocalAppStorageJSONMethod,
 		protectedWriteLocalAppStorageJSONMethod,
 		protectedRemoveLocalAppStorageJSONMethod,
+		protectedOpenConversationMethod,
+		protectedSendConversationTurnMethod,
+		protectedConversationSnapshotMethod,
 	} {
 		assertProtectedLocalAppMethodPolicy(t, method, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
 		if _, blocked := publicTransportDenial(method); !blocked {
 			t.Fatalf("host local-app method %s is reachable from public transport", method)
 		}
 	}
-	if len(protectedLocalAppStreamMethodPolicies) != 0 {
-		t.Fatalf("third-party local-app transport unexpectedly admits streams: %+v", protectedLocalAppStreamMethodPolicies)
+	assertProtectedLocalAppStreamMethodPolicy(t, protectedSubscribeConversationMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
+}
+
+func assertProtectedLocalAppStreamMethodPolicy(t testing.TB, method string, transport protectedlocal.TransportClass, role protectedlocal.OriginRole) {
+	t.Helper()
+	policy, ok := protectedLocalAppStreamMethodPolicies[method]
+	if !ok {
+		t.Fatalf("missing local-app stream policy for %s", method)
+	}
+	if policy.transport != transport || policy.role != role {
+		t.Fatalf("local-app stream policy for %s = %+v, want transport=%q role=%q", method, policy, transport, role)
 	}
 }
 

@@ -63,6 +63,22 @@ func New(maxEvents int, maxUsage int) *Store {
 	}
 }
 
+// AppendEventChecked is the fail-closed write contract used by security
+// decision planes. Legacy best-effort emitters may continue to use AppendEvent.
+func (s *Store) AppendEventChecked(event *runtimev1.AuditEventRecord) error {
+	if s == nil {
+		return fmt.Errorf("audit store is unavailable")
+	}
+	if event == nil || event.GetTimestamp() == nil {
+		return fmt.Errorf("audit event and timestamp are required")
+	}
+	if err := event.GetTimestamp().CheckValid(); err != nil {
+		return fmt.Errorf("audit event timestamp: %w", err)
+	}
+	s.AppendEvent(event)
+	return nil
+}
+
 func (s *Store) AppendEvent(event *runtimev1.AuditEventRecord) {
 	if event == nil {
 		return

@@ -82,10 +82,6 @@ func evaluate(req Request, snapshot Snapshot) Decision {
 	if !ok {
 		return unavailable(ReasonLocalAppOperationUnavailable)
 	}
-	if authorityClass == AuthorityClassUserPermission {
-		return unavailable(ReasonLocalAppOperationUnavailable)
-	}
-
 	if policy.Status != OwnerPolicyAllowed {
 		reason := policy.Reason
 		if reason == "" || reason == ReasonActionExecuted {

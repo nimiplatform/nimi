@@ -9,6 +9,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
@@ -36,6 +37,7 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		workspaceBindings:            make(map[string]workspaceBindingRecord),
 		subscribers:                  make(map[uint64]subscriber),
 		accountGenerationInvalidated: make(chan struct{}),
+		permissionAdmitted:           apppermission.IsAdmitted,
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -59,6 +61,14 @@ func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
 func WithAuditStore(store *auditlog.Store) Option {
 	return func(s *Service) {
 		s.auditStore = store
+	}
+}
+
+func WithLocalAppPermissionAdmissionResolver(resolver func(string) bool) Option {
+	return func(s *Service) {
+		if resolver != nil {
+			s.permissionAdmitted = resolver
+		}
 	}
 }
 
