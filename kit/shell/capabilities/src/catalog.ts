@@ -35,6 +35,8 @@ export type NimiStandardShellNegativeState =
   | 'runtime-restarted'
   | 'revoked'
   | 'permission-unavailable'
+  | 'permission-denied'
+  | 'permission-revoked'
   | 'request-pending';
 
 export interface NimiStandardShellOperation {
@@ -152,6 +154,10 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'sessionStatus', command: 'nimi.shell.localApp.sessionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'revoked'] },
       { id: 'permissionStatus', command: 'nimi.shell.localApp.permissionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'permission-unavailable', 'account-changed', 'runtime-restarted'] },
       { id: 'permissionRequest', command: 'nimi.shell.localApp.permissionRequest', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'invalid-payload', 'permission-unavailable', 'request-pending', 'account-changed', 'runtime-restarted'] },
+      { id: 'conversationOpen', command: 'nimi.shell.localApp.conversationOpen', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'conversationSendTurn', command: 'nimi.shell.localApp.conversationSendTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'conversationSubscribe', command: 'nimi.shell.localApp.conversationSubscribe', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'resource-exhausted', 'not-found', 'host-internal-error'] },
+      { id: 'conversationSnapshot', command: 'nimi.shell.localApp.conversationSnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'not-found', 'host-internal-error'] },
     ],
   },
   {
@@ -257,6 +263,10 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'local-app.sessionStatus',
   'local-app.permissionStatus',
   'local-app.permissionRequest',
+  'local-app.conversationOpen',
+  'local-app.conversationSendTurn',
+  'local-app.conversationSubscribe',
+  'local-app.conversationSnapshot',
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',

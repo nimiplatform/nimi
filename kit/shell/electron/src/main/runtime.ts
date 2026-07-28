@@ -498,13 +498,14 @@ export async function probeElectronRuntimeStatus(input: {
     throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
   }
 }
-export function resolveElectronRuntimeDefaults(): Record<string, unknown> {
-  const realmBaseUrl = normalizeLoopbackHttpUrl(
-    electronEnvValue('NIMI_REALM_URL', 'http://localhost:3002'),
-    3002,
-    true,
-  );
-  const realmDefaultPort = resolveRealmDefaultPort(realmBaseUrl);
+export function resolveElectronRuntimeDefaults(
+  deploymentProfile: 'production' | 'local-development' = 'production',
+): Record<string, unknown> {
+  // This projection mirrors the protected Runtime deployment profile. The
+  // renderer and ordinary process environment never select Realm authority.
+  const realmBaseUrl = deploymentProfile === 'local-development'
+    ? 'http://127.0.0.1:3002'
+    : 'https://realm.nimi.ai';
   const normalizedRealmBaseUrl = trimTrailingSlash(realmBaseUrl);
   const defaultJwksUrl = normalizedRealmBaseUrl
     ? `${normalizedRealmBaseUrl}/api/auth/jwks`
@@ -516,23 +517,11 @@ export function resolveElectronRuntimeDefaults(): Record<string, unknown> {
   return {
     realm: {
       realmBaseUrl,
-      realtimeUrl: electronEnvValue('NIMI_REALTIME_URL', ''),
-      jwksUrl: normalizeLoopbackHttpUrl(
-        electronEnvValue('NIMI_REALM_JWKS_URL', defaultJwksUrl),
-        realmDefaultPort,
-        true,
-      ),
-      revocationUrl: normalizeLoopbackHttpUrl(
-        electronEnvValue('NIMI_REALM_REVOCATION_URL', defaultRevocationUrl),
-        realmDefaultPort,
-        true,
-      ),
-      jwtIssuer: normalizeLoopbackHttpUrl(
-        electronEnvValue('NIMI_REALM_JWT_ISSUER', realmBaseUrl),
-        realmDefaultPort,
-        true,
-      ),
-      jwtAudience: electronEnvValue('NIMI_REALM_JWT_AUDIENCE', 'nimi-runtime'),
+      realtimeUrl: '',
+      jwksUrl: defaultJwksUrl,
+      revocationUrl: defaultRevocationUrl,
+      jwtIssuer: realmBaseUrl,
+      jwtAudience: 'nimi-runtime',
     },
     runtime: {
       targetType: electronEnvValue('NIMI_TARGET_TYPE', ''),
@@ -545,42 +534,6 @@ export function resolveElectronRuntimeDefaults(): Record<string, unknown> {
 }
 function electronEnvValue(key: string, fallback: string): string {
   return normalizeText(process.env[key]) || fallback;
-}
-function normalizeLoopbackHttpUrl(raw: string, defaultPort: number, trimTrailing: boolean): string {
-  const value = normalizeText(raw);
-  if (!value) {
-    return '';
-  }
-  let normalized = value;
-  try {
-    const parsed = new URL(value);
-    const host = parsed.hostname.toLowerCase();
-    const isLoopbackHttp = parsed.protocol === 'http:' && (host === 'localhost' || host === '127.0.0.1');
-    if (isLoopbackHttp && !parsed.port) {
-      parsed.port = String(defaultPort);
-    }
-    normalized = parsed.toString();
-  } catch {
-    normalized = value;
-  }
-  return trimTrailing ? trimTrailingSlash(normalized) : normalized;
-}
-function resolveRealmDefaultPort(realmBaseUrl: string): number {
-  try {
-    const parsed = new URL(realmBaseUrl);
-    if (parsed.port) {
-      return Number(parsed.port);
-    }
-    if (parsed.protocol === 'http:') {
-      return 80;
-    }
-    if (parsed.protocol === 'https:') {
-      return 443;
-    }
-  } catch {
-    return 3002;
-  }
-  return 3002;
 }
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/u, '');

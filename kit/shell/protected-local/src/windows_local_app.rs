@@ -1,3 +1,4 @@
+mod conversation;
 mod permission;
 mod storage;
 
@@ -20,11 +21,14 @@ use crate::windows_peer_trust::VerifiedRuntimePeer;
 #[cfg(target_os = "windows")]
 use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
-    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionStatus,
-    LocalAppPermissionStatusRequest, LocalAppReasonCode, LocalAppSessionState,
-    LocalAppSessionStatus, LocalAppStorageDocument, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
-    NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
+    LocalAppConversationSendRequest, LocalAppConversationSendResult,
+    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
+    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
+    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppSessionState, LocalAppSessionStatus, LocalAppStorageDocument,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
+    LocalAppStorageWriteRequest, NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
 #[cfg(target_os = "windows")]
@@ -201,6 +205,69 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             storage::remove_local_app_storage_json(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_open(
+        &self,
+        request: LocalAppConversationOpenRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppConversationOpenResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::open_conversation(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_send_turn(
+        &self,
+        request: LocalAppConversationSendRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppConversationSendResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::send_turn(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_subscribe(
+        &self,
+        request: LocalAppConversationSubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        LocalAppConversationSubscriptionReceiver,
+                        LocalAppOperationError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::subscribe(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_snapshot(
+        &self,
+        request: LocalAppConversationSnapshotRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::conversation_snapshot(self.checked_channel()?, request).await
         })
     }
 }

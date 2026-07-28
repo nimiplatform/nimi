@@ -35,7 +35,7 @@ import {
 } from './electron-shell-test-utils.js';
 
 describe('registerNimiElectronRuntimeBridge', () => {
-  it('does not project environment access tokens through Electron runtime defaults', async () => {
+  it('does not project environment Realm authority or access tokens through Electron runtime defaults', async () => {
     await withEnvVars({
       NIMI_REALM_URL: 'http://localhost',
       NIMI_REALM_JWKS_URL: undefined,
@@ -66,11 +66,11 @@ describe('registerNimiElectronRuntimeBridge', () => {
         payload: {},
       })).resolves.toEqual({
         realm: {
-          realmBaseUrl: 'http://localhost:3002',
-          realtimeUrl: 'ws://localhost:3003',
-          jwksUrl: 'http://localhost:3002/api/auth/jwks',
-          revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
-          jwtIssuer: 'http://localhost:3002',
+          realmBaseUrl: 'https://realm.nimi.ai',
+          realtimeUrl: '',
+          jwksUrl: 'https://realm.nimi.ai/api/auth/jwks',
+          revocationUrl: 'https://realm.nimi.ai/api/auth/sessions/introspect',
+          jwtIssuer: 'https://realm.nimi.ai',
           jwtAudience: 'nimi-runtime',
         },
         runtime: {
@@ -79,6 +79,48 @@ describe('registerNimiElectronRuntimeBridge', () => {
           agentId: 'agent-1',
           worldId: 'world-1',
           userConfirmedUpload: true,
+        },
+      });
+    });
+  });
+
+  it('projects fixed local Realm authority for a host-owned local-development profile', async () => {
+    await withEnvVars({
+      NIMI_REALM_URL: 'https://realm.nimi.ai',
+      NIMI_REALM_JWKS_URL: 'https://evil.example.test/jwks',
+      NIMI_REALM_REVOCATION_URL: 'https://evil.example.test/introspect',
+      NIMI_REALM_JWT_ISSUER: 'https://evil.example.test',
+    }, async () => {
+      const ipcMain = new FakeIpcMain();
+      registerNimiElectronRuntimeBridge({
+        appId: 'nimi.desktop',
+        runtimeEndpoint: 'protected-desktop-control',
+        runtimeDeploymentProfile: 'local-development',
+        allowedOrigins: ['http://127.0.0.1:1420'],
+        ipcMain,
+        createGrpcClient: async () => {
+          throw new Error('not used');
+        },
+      });
+
+      await expect(invokeBridge(ipcMain, createInvokeEvent('http://127.0.0.1:1420').event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'],
+        payload: {},
+      })).resolves.toEqual({
+        realm: {
+          realmBaseUrl: 'http://127.0.0.1:3002',
+          realtimeUrl: '',
+          jwksUrl: 'http://127.0.0.1:3002/api/auth/jwks',
+          revocationUrl: 'http://127.0.0.1:3002/api/auth/sessions/introspect',
+          jwtIssuer: 'http://127.0.0.1:3002',
+          jwtAudience: 'nimi-runtime',
+        },
+        runtime: {
+          targetType: '',
+          targetAccountId: '',
+          agentId: '',
+          worldId: '',
+          userConfirmedUpload: false,
         },
       });
     });

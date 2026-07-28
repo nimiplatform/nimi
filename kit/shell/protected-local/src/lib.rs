@@ -70,12 +70,16 @@ pub use bundled_avatar::{
     BundledAvatarRuntimeStreamReceiver,
 };
 pub use carrier::{
-    DesktopControlFuture, LocalAppOperationError, LocalAppPermissionRequest,
-    LocalAppPermissionState, LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
-    LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus,
-    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiDesktopControl,
-    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
+    DesktopControlFuture, LocalAppConversationEvent, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
+    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
+    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionState,
+    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus, LocalAppStorageDocument,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
+    LocalAppStorageWriteRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
+    NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,

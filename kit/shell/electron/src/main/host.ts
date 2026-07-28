@@ -335,7 +335,9 @@ export function registerNimiElectronRuntimeBridge(
         throw createElectronRuntimeEndpointUnavailableError(command, runtimeEndpoint, error);
       }
     }
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get']) return resolveElectronRuntimeDefaults();
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get']) {
+      return resolveElectronRuntimeDefaults(input.runtimeDeploymentProfile);
+    }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']) return resolveElectronDiagnosticsRendererEntryProbe({ event, payload, appId: effectiveAppId });
     if (isElectronExternallyManagedRuntimeCommand(command, commandNames)) {
       if (fixedRuntimeLifecycleHost) {
@@ -349,6 +351,9 @@ export function registerNimiElectronRuntimeBridge(
         host: effectiveStandardShellHost.localAppHost,
         payload: standardPayload,
         command,
+        sendEvent: event.sender?.send
+          ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
+          : undefined,
       });
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return resolveElectronStandardDataPath(effectiveStandardShellHost, standardPayload, command);
@@ -378,6 +383,9 @@ export function registerNimiElectronRuntimeBridge(
         host: effectiveStandardShellHost?.localAppHost,
         payload: standardPayload,
         command,
+        sendEvent: event.sender?.send
+          ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
+          : undefined,
       });
     }
     if (isElectronAgentCenterCommand(command)) {

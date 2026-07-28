@@ -39,6 +39,7 @@ pub enum LocalAppReasonCode {
     PermissionRevoked,
     PresenceExpired,
     RuntimePermissionDenied,
+    OperationUnavailable,
     InvalidPayload,
     InvalidPath,
     NotFound,
@@ -64,6 +65,7 @@ impl LocalAppReasonCode {
             Self::PermissionRevoked => "permission-revoked",
             Self::PresenceExpired => "presence-expired",
             Self::RuntimePermissionDenied => "runtime-permission-denied",
+            Self::OperationUnavailable => "local-app-operation-unavailable",
             Self::InvalidPayload => "invalid-payload",
             Self::InvalidPath => "invalid-path",
             Self::NotFound => "not-found",
@@ -189,6 +191,59 @@ pub struct LocalAppStorageDocument {
 pub struct LocalAppStorageRemoveResult {
     pub removed: bool,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationOpenRequest {
+    pub selected_agent_handle: String,
+    pub disposition: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationOpenResult {
+    pub conversation_anchor_id: String,
+    pub active_turn_id: Option<String>,
+    pub active_stream_id: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationSendRequest {
+    pub selected_agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub request_id: String,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationSendResult {
+    pub message_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationSubscribeRequest {
+    pub selected_agent_handle: String,
+    pub conversation_anchor_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationSnapshotRequest {
+    pub selected_agent_handle: String,
+    pub conversation_anchor_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppConversationEvent {
+    pub event_type: i32,
+    pub sequence: u64,
+    pub message_id: String,
+    pub message_type: String,
+    pub payload: JsonValue,
+    pub reason_code: LocalAppReasonCode,
+    pub trace_id: String,
+    pub timestamp_unix_ms: Option<i64>,
+}
+
+pub type LocalAppConversationSubscriptionReceiver =
+    tokio::sync::mpsc::Receiver<Result<LocalAppConversationEvent, LocalAppOperationError>>;
 
 /// Opaque host-only handle for one connection-bound protected Desktop session.
 /// The handle carries only explicit typed operations and cannot proxy an
@@ -489,6 +544,48 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn conversation_open(
+        &self,
+        request: LocalAppConversationOpenRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppConversationOpenResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn conversation_send_turn(
+        &self,
+        request: LocalAppConversationSendRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppConversationSendResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn conversation_subscribe(
+        &self,
+        request: LocalAppConversationSubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        LocalAppConversationSubscriptionReceiver,
+                        LocalAppOperationError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn conversation_snapshot(
+        &self,
+        request: LocalAppConversationSnapshotRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 }
 
 pub type LocalAppSessionFuture<'a> = Pin<

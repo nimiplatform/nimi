@@ -172,6 +172,10 @@ export type NimiElectronRuntimeTrustedCallerMode =
   | 'local-first-party-app'
   | 'desktop-shell';
 
+export type NimiElectronRuntimeDeploymentProfile =
+  | 'production'
+  | 'local-development';
+
 export type NimiElectronRuntimeTrustedCallerInput = {
   readonly mode: NimiElectronRuntimeTrustedCallerMode;
   readonly appInstanceId?: string;
@@ -393,6 +397,8 @@ export type NimiElectronBundledAvatarHost = {
 export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly appId: string;
   readonly runtimeEndpoint: string;
+  /** Host-build-owned Realm authority projection; renderer and environment cannot select it. */
+  readonly runtimeDeploymentProfile?: NimiElectronRuntimeDeploymentProfile;
   readonly allowedOrigins: readonly string[];
   readonly allowedRendererUrls?: readonly string[];
   readonly ipcMain: NimiElectronIpcMain;

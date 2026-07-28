@@ -86,9 +86,10 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
     Some(match value {
         1 => LocalAppReasonCode::ActionExecuted,
         633 => LocalAppReasonCode::RuntimeRestarted,
-        642 | 643 | 644 | 645 | 655 | 656 | 658 | 659 | 660 => {
+        642 | 643 | 644 | 645 | 656 | 658 | 659 | 660 => {
             LocalAppReasonCode::RuntimePermissionDenied
         }
+        655 => LocalAppReasonCode::OperationUnavailable,
         646..=648 => LocalAppReasonCode::RuntimeUnauthenticated,
         649 => LocalAppReasonCode::ProcessReplaced,
         650 => LocalAppReasonCode::Revoked,
@@ -131,10 +132,10 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED" | "PROTECTED_LOCAL_LEDGER_UNAVAILABLE" => {
             LocalAppReasonCode::RuntimeServiceUnavailable
         }
+        "LOCAL_APP_OPERATION_UNAVAILABLE" => LocalAppReasonCode::OperationUnavailable,
         "LOCAL_APP_RECORD_NOT_FOUND"
         | "LOCAL_APP_RECORD_TOMBSTONED"
         | "LOCAL_APP_PROVENANCE_UNAVAILABLE"
-        | "LOCAL_APP_OPERATION_UNAVAILABLE"
         | "LOCAL_APP_PRESENCE_REQUIRED"
         | "LOCAL_APP_DEVELOPER_MODE_DISABLED"
         | "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"

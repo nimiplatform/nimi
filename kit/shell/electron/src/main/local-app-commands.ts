@@ -14,12 +14,21 @@ const FORBIDDEN_RENDERER_FIELDS = new Set([
   'sessionId', 'sessionProof', 'accountId', 'grantId', 'runtimeBootEpoch',
 ]);
 
-type RendererLocalAppHostMethod = Exclude<keyof NimiElectronLocalAppHost, 'renewTechnicalSession'>;
+type RendererLocalAppHostMethod = Exclude<
+  keyof NimiElectronLocalAppHost,
+  'renewTechnicalSession' | 'conversationStreamNext' | 'conversationStreamClose'
+>;
+
+const ACTIVE_CONVERSATION_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
 
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'], 'permissionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], 'storageReadJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], 'storageWriteJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], 'storageRemoveJson'],
@@ -33,6 +42,7 @@ export async function dispatchElectronLocalAppCommand(input: {
   readonly host: NimiElectronLocalAppHost | undefined;
   readonly command: string;
   readonly payload: Readonly<Record<string, unknown>>;
+  readonly sendEvent?: (eventName: string, payload: NimiElectronLocalAppRecord) => void;
 }): Promise<unknown> {
   const method = COMMAND_METHODS.get(input.command);
   if (!method) throw invalidPayload(input.command, 'unknown local-app operation');
@@ -44,6 +54,24 @@ export async function dispatchElectronLocalAppCommand(input: {
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
+    if (method === 'conversationSubscribe') {
+      if (payload.action === 'cancel') {
+        const subscriptionId = String(payload.subscriptionId);
+        activeConversationStreams(input.host).delete(subscriptionId);
+        const result = await input.host.conversationStreamClose({ streamId: subscriptionId });
+        return { subscriptionId, closed: result.closed };
+      }
+      if (!input.sendEvent) throw carrierRequired(input.command);
+      const opened = await input.host.conversationSubscribe(payload);
+      const subscriptionId = String(opened.streamId);
+      const eventName = `local-app-conversation.${subscriptionId}`;
+      activeConversationStreams(input.host).add(subscriptionId);
+      const pumpTimer = setTimeout(() => {
+        void pumpConversationStream(input.host!, subscriptionId, eventName, input.sendEvent!, input.command);
+      }, 0);
+      pumpTimer.unref?.();
+      return { subscriptionId, eventName };
+    }
     return await input.host[method](payload);
   } catch (error) {
     if (error instanceof NimiElectronLocalAppHostError) throw mapHostError(error, input.command);
@@ -74,6 +102,32 @@ function validatePayload(
         permissionId: requiredText(payload.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH),
         reason: requiredUtf8Text(payload.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
       };
+    case 'conversationOpen':
+      assertExactKeys(payload, ['selectedAgentHandle', 'disposition'], command);
+      if (payload.disposition !== 'create-or-resume' && payload.disposition !== 'create-new') {
+        throw invalidPayload(command, 'disposition is invalid');
+      }
+      return {
+        selectedAgentHandle: requiredText(payload.selectedAgentHandle, 'selectedAgentHandle', command, MAX_IDENTIFIER_LENGTH),
+        disposition: payload.disposition,
+      };
+    case 'conversationSendTurn':
+      assertExactKeys(payload, ['selectedAgentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
+      return {
+        ...identifiers(payload, ['selectedAgentHandle', 'conversationAnchorId', 'requestId'], command,
+          new Set(), ['selectedAgentHandle', 'conversationAnchorId', 'requestId', 'text']),
+        text: requiredUtf8Text(payload.text, 'text', command, 64 * 1024),
+      };
+    case 'conversationSubscribe':
+      if (payload.action === 'cancel') {
+        return {
+          ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']),
+          action: 'cancel',
+        };
+      }
+      return identifiers(payload, ['selectedAgentHandle', 'conversationAnchorId'], command);
+    case 'conversationSnapshot':
+      return identifiers(payload, ['selectedAgentHandle', 'conversationAnchorId'], command);
     case 'storageReadJson':
     case 'storageRemoveJson':
       return storagePathPayload(payload, command);
@@ -181,6 +235,63 @@ function requiredUtf8Text(value: unknown, field: string, command: string, maxByt
     throw invalidPayload(command, `${field} is invalid`);
   }
   return normalized;
+}
+
+function activeConversationStreams(host: NimiElectronLocalAppHost): Set<string> {
+  let streams = ACTIVE_CONVERSATION_STREAMS.get(host);
+  if (!streams) {
+    streams = new Set();
+    ACTIVE_CONVERSATION_STREAMS.set(host, streams);
+  }
+  return streams;
+}
+
+async function pumpConversationStream(
+  host: NimiElectronLocalAppHost,
+  subscriptionId: string,
+  eventName: string,
+  sendEvent: (eventName: string, payload: NimiElectronLocalAppRecord) => void,
+  command: string,
+): Promise<void> {
+  const streams = activeConversationStreams(host);
+  try {
+    while (streams.has(subscriptionId)) {
+      const next = await host.conversationStreamNext({ streamId: subscriptionId });
+      if (!streams.has(subscriptionId)) return;
+      if (next.completed === true) {
+        streams.delete(subscriptionId);
+        sendEvent(eventName, { subscriptionId, eventType: 'completed' });
+        return;
+      }
+      sendEvent(eventName, { subscriptionId, eventType: 'next', event: next.event ?? null });
+    }
+  } catch (error) {
+    if (!streams.delete(subscriptionId)) return;
+    const mapped = error instanceof NimiElectronLocalAppHostError
+      ? mapHostError(error, command)
+      : new NimiElectronShellHostError({
+          code: 'runtime-service-untrusted',
+          message: 'Electron local-app stream returned an untrusted failure',
+          reasonCode: 'runtime-service-untrusted',
+          actionHint: 'restart_fixed_runtime_service',
+          details: { command },
+        });
+    sendEvent(eventName, {
+      subscriptionId,
+      eventType: 'error',
+      error: {
+        code: mapped.code,
+        reasonCode: mapped.reasonCode,
+        actionHint: mapped.actionHint,
+        source: mapped.source,
+        details: { command, retryable: error instanceof NimiElectronLocalAppHostError && error.retryable },
+      },
+    });
+  } finally {
+    if (!streams.has(subscriptionId)) {
+      await host.conversationStreamClose({ streamId: subscriptionId }).catch(() => undefined);
+    }
+  }
 }
 
 function mapHostError(error: NimiElectronLocalAppHostError, command: string): NimiElectronShellHostError {

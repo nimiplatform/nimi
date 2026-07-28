@@ -4,7 +4,10 @@ import {
   NIMI_STANDARD_SHELL_COMMANDS,
 } from '@nimiplatform/kit/shell/capabilities';
 
-import { registerNimiElectronRuntimeBridge } from '../src/main/index.js';
+import {
+  NimiElectronLocalAppHostError,
+  registerNimiElectronRuntimeBridge,
+} from '../src/main/index.js';
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
@@ -45,15 +48,73 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([]);
   });
 
-  it('keeps protected Agent commands outside the admitted host set', async () => {
+  it('reaches all four conversation operations but preserves reserved typed-unavailable', async () => {
+    const requests = [
+      ['local-app.conversationOpen', { selectedAgentHandle: 'lash_one', disposition: 'create-new' }],
+      ['local-app.conversationSendTurn', { selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }],
+      ['local-app.conversationSubscribe', { selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
+      ['local-app.conversationSnapshot', { selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
+    ] as const;
+    for (const [operation, payload] of requests) {
+      const ipcMain = new FakeIpcMain();
+      const calls: unknown[] = [];
+      registerBridge(ipcMain, calls);
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS[operation],
+        payload: { payload },
+      })).rejects.toMatchObject({
+        code: 'runtime-permission-denied',
+        reasonCode: 'local-app-operation-unavailable',
+      });
+      expect(calls).toHaveLength(1);
+    }
+  });
+
+  it('cancels a bounded conversation event pump through the subscribe lifecycle command', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
-    registerBridge(ipcMain, calls);
+    let completeNext: (() => void) | undefined;
+    const host = {
+      ...localAppHost(calls),
+      conversationSubscribe: async (input: unknown) => {
+        calls.push(['conversationSubscribe', input]);
+        return { streamId: 'conversation-1' };
+      },
+      conversationStreamNext: async (input: unknown) => {
+        calls.push(['conversationStreamNext', input]);
+        await new Promise<void>((resolve) => { completeNext = resolve; });
+        return { completed: true };
+      },
+      conversationStreamClose: async (input: unknown) => {
+        calls.push(['conversationStreamClose', input]);
+        completeNext?.();
+        return { closed: true };
+      },
+    };
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.thirdparty.fixture',
+      runtimeEndpoint: 'local-app-protected-carrier-only',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: () => { throw new Error('ordinary gRPC must not be constructed'); },
+      standardShellHost: {
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        localAppHost: host,
+      },
+    });
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'];
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: 'nimi.shell.localApp.agent.sendTurn',
-      payload: { payload: { agentId: 'agent-a' } },
-    })).rejects.toMatchObject({ code: 'capability-unavailable' });
-    expect(calls).toEqual([]);
+      command,
+      payload: { payload: { selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' } },
+    })).resolves.toEqual({
+      subscriptionId: 'conversation-1',
+      eventName: 'local-app-conversation.conversation-1',
+    });
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command,
+      payload: { payload: { action: 'cancel', subscriptionId: 'conversation-1' } },
+    })).resolves.toEqual({ subscriptionId: 'conversation-1', closed: true });
+    expect(calls).toContainEqual(['conversationStreamClose', { streamId: 'conversation-1' }]);
   });
 
   it('routes app-private storage through the protected host without generic filesystem fallback', async () => {
@@ -110,5 +171,19 @@ function localAppHost(calls: unknown[]) {
     storageReadJson: async (input: unknown) => { calls.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },
     storageWriteJson: async (input: unknown) => { calls.push(['storageWriteJson', input]); return { value: { version: 2 }, sizeBytes: 13 }; },
     storageRemoveJson: async (input: unknown) => { calls.push(['storageRemoveJson', input]); return { removed: true }; },
+    conversationOpen: unavailable('conversationOpen', calls),
+    conversationSendTurn: unavailable('conversationSendTurn', calls),
+    conversationSubscribe: unavailable('conversationSubscribe', calls),
+    conversationSnapshot: unavailable('conversationSnapshot', calls),
+    conversationStreamNext: async () => ({ completed: true }),
+    conversationStreamClose: async () => ({ closed: true }),
+    renewTechnicalSession: async () => ({ state: 'ready' }),
+  };
+}
+
+function unavailable(method: string, calls: unknown[]) {
+  return async (input: unknown) => {
+    calls.push([method, input]);
+    throw new NimiElectronLocalAppHostError('local-app-operation-unavailable', false);
   };
 }

@@ -11,6 +11,12 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppStorageReadJson',
   'localAppStorageWriteJson',
   'localAppStorageRemoveJson',
+  'localAppConversationOpen',
+  'localAppConversationSendTurn',
+  'localAppConversationSubscribe',
+  'localAppConversationStreamNext',
+  'localAppConversationStreamClose',
+  'localAppConversationSnapshot',
 ] as const;
 
 const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
@@ -25,8 +31,13 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'revoked',
   'project-changed',
   'permission-unavailable',
+  'permission-required',
+  'permission-denied',
+  'permission-revoked',
+  'presence-expired',
   'request-pending',
   'runtime-permission-denied',
+  'local-app-operation-unavailable',
   'invalid-payload',
   'not-found',
   'resource-exhausted',
@@ -75,6 +86,12 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
 };
 
 export type NimiElectronLocalAppHost = {
@@ -85,6 +102,12 @@ export type NimiElectronLocalAppHost = {
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
 };
 
 export type NimiElectronLocalAppMaintenanceFailure = {
@@ -137,6 +160,30 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeStorageRemove(() => this.binding.localAppStorageRemoveJson(input));
   }
 
+  conversationOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeConversationOpen(() => this.binding.localAppConversationOpen(input));
+  }
+
+  conversationSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppConversationSendTurn(input), ['messageId']);
+  }
+
+  conversationSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppConversationSubscribe(input), ['streamId']);
+  }
+
+  conversationStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeConversationStreamNext(() => this.binding.localAppConversationStreamNext(input));
+  }
+
+  conversationStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeConversationStreamClose(() => this.binding.localAppConversationStreamClose(input));
+  }
+
+  conversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppConversationSnapshot(input));
+  }
+
 }
 
 class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
@@ -173,6 +220,30 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   storageRemoveJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().storageRemoveJson(input);
+  }
+
+  conversationOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationOpen(input);
+  }
+
+  conversationSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationSendTurn(input);
+  }
+
+  conversationSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationSubscribe(input);
+  }
+
+  conversationStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationStreamNext(input);
+  }
+
+  conversationStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationStreamClose(input);
+  }
+
+  conversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationSnapshot(input);
   }
 
 }
@@ -320,6 +391,74 @@ async function invokeStorageRemove(call: () => Promise<NativeLocalAppOutcome>): 
     throw untrustedRuntimeError();
   }
   return Object.freeze({ removed: value.removed });
+}
+
+async function invokeConversationOpen(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['conversationAnchorId', 'activeTurnId', 'activeStreamId'])) {
+    throw untrustedRuntimeError();
+  }
+  const conversationAnchorId = exactText(value.conversationAnchorId);
+  const activeTurnId = optionalExactText(value.activeTurnId);
+  const activeStreamId = optionalExactText(value.activeStreamId);
+  return Object.freeze({ conversationAnchorId, activeTurnId, activeStreamId });
+}
+
+async function invokeExactTextRecord(
+  call: () => Promise<NativeLocalAppOutcome>,
+  keys: readonly string[],
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, keys)) throw untrustedRuntimeError();
+  return Object.freeze(Object.fromEntries(keys.map((key) => [key, exactText(value[key])]))) as NimiElectronLocalAppRecord;
+}
+
+async function invokeConversationStreamNext(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || typeof value.completed !== 'boolean') throw untrustedRuntimeError();
+  if (value.completed) {
+    if (!hasExactKeys(value, ['completed'])) throw untrustedRuntimeError();
+    return Object.freeze({ completed: true });
+  }
+  if (!hasExactKeys(value, ['completed', 'event']) || !isPlainRecord(value.event)) throw untrustedRuntimeError();
+  const event = validateConversationEvent(value.event);
+  return Object.freeze({ completed: false, event });
+}
+
+async function invokeConversationStreamClose(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['closed']) || typeof value.closed !== 'boolean') {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({ closed: value.closed });
+}
+
+function validateConversationEvent(value: Record<string, unknown>): NimiElectronLocalAppRecord {
+  const keys = ['eventType', 'sequence', 'messageId', 'messageType', 'payload', 'reasonCode', 'traceId', 'timestampUnixMs'];
+  if (!hasExactKeys(value, keys)
+    || !Number.isSafeInteger(value.eventType)
+    || typeof value.sequence !== 'string'
+    || !/^(?:0|[1-9][0-9]*)$/u.test(value.sequence)
+    || (value.timestampUnixMs !== null && !Number.isSafeInteger(value.timestampUnixMs))) {
+    throw untrustedRuntimeError();
+  }
+  for (const key of ['messageId', 'messageType', 'reasonCode', 'traceId']) exactText(value[key]);
+  validateJsonValue(value.payload);
+  return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
+}
+
+function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+}
+
+function exactText(value: unknown): string {
+  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 512) throw untrustedRuntimeError();
+  return value;
+}
+
+function optionalExactText(value: unknown): string | null {
+  if (value === null) return null;
+  return exactText(value);
 }
 
 function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): void {

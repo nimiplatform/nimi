@@ -66,7 +66,7 @@ describe('Electron protected local-app host', () => {
     }
   });
 
-  it('forwards only session, product permission, and app-private storage operations', async () => {
+  it('forwards only session, product permission, app-private storage, and typed conversation operations', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
 
@@ -82,6 +82,18 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ value: { version: 2 }, sizeBytes: 13 });
     await expect(host.storageRemoveJson({ relativePath: 'agent-chat/state.json' }))
       .resolves.toEqual({ removed: false });
+    await expect(host.conversationOpen({ selectedAgentHandle: 'lash_one', disposition: 'create-new' }))
+      .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null });
+    await expect(host.conversationSendTurn({ selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }))
+      .resolves.toEqual({ messageId: 'message-1' });
+    await expect(host.conversationSubscribe({ selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
+      .resolves.toEqual({ streamId: 'conversation-1' });
+    await expect(host.conversationStreamNext({ streamId: 'conversation-1' }))
+      .resolves.toEqual({ completed: true });
+    await expect(host.conversationStreamClose({ streamId: 'conversation-1' }))
+      .resolves.toEqual({ closed: true });
+    await expect(host.conversationSnapshot({ selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
+      .resolves.toEqual({ anchor: { conversationAnchorId: 'anchor-1' } });
 
     expect(calls.map(({ method }) => method)).toEqual([
       'localAppSessionStatus',
@@ -90,11 +102,17 @@ describe('Electron protected local-app host', () => {
       'localAppStorageReadJson',
       'localAppStorageWriteJson',
       'localAppStorageRemoveJson',
+      'localAppConversationOpen',
+      'localAppConversationSendTurn',
+      'localAppConversationSubscribe',
+      'localAppConversationStreamNext',
+      'localAppConversationStreamClose',
+      'localAppConversationSnapshot',
     ]);
   });
 
   it('preserves closed product permission reasons and rejects unknown native reasons', async () => {
-    for (const reasonCode of ['permission-unavailable', 'request-pending', 'process-replaced', 'account-changed', 'revoked']) {
+    for (const reasonCode of ['permission-unavailable', 'local-app-operation-unavailable', 'request-pending', 'process-replaced', 'account-changed', 'revoked']) {
       const candidate = {
         ...binding([]),
         localAppPermissionStatus: async () => ({ status: 'error' as const, reasonCode, retryable: false }),
@@ -161,5 +179,15 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),
     localAppStorageWriteJson: record('localAppStorageWriteJson', { value: { version: 2 }, sizeBytes: 13 }),
     localAppStorageRemoveJson: record('localAppStorageRemoveJson', { removed: false }),
+    localAppConversationOpen: record('localAppConversationOpen', {
+      conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null,
+    }),
+    localAppConversationSendTurn: record('localAppConversationSendTurn', { messageId: 'message-1' }),
+    localAppConversationSubscribe: record('localAppConversationSubscribe', { streamId: 'conversation-1' }),
+    localAppConversationStreamNext: record('localAppConversationStreamNext', { completed: true }),
+    localAppConversationStreamClose: record('localAppConversationStreamClose', { closed: true }),
+    localAppConversationSnapshot: record('localAppConversationSnapshot', {
+      anchor: { conversationAnchorId: 'anchor-1' },
+    }),
   };
 }
