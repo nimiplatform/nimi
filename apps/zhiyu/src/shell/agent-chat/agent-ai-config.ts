@@ -14,16 +14,15 @@ import {
 import type { ZhiyuEvidence, ZhiyuExecutionCapabilityEvidence, ZhiyuAgentAIConfigReadinessState } from '../app/evidence';
 import { getZhiyuRuntime } from '../auth/runtime-platform';
 import {
-  createZhiyuRuntimeAgentBindingScopeRunner,
-  resolveZhiyuRuntimeAgentBindingDecisionFromHost,
-  resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost,
-} from './runtime-agent-binding';
+  createZhiyuRuntimeAgentAccessScopeRunner,
+  resolveZhiyuRuntimeAgentAccessDecisionFromHost,
+} from './runtime-agent-access';
 
 // Z-AUTH-006: Zhiyu is a pure projection + config-editor surface over the
 // runtime-owned Runtime Agent AI Config (K-AGCORE-144~150). This module never
 // probes, warms, caches, or re-derives route truth; every call is a typed
 // pass-through over runtime.agent.ai_config.* behind the existing
-// Runtime-issued scoped binding / protected local-app carrier custody.
+// host-bound protected local-app operation context.
 export const ZHIYU_AGENT_AI_CONFIG_READ_SCOPES = [
   'runtime.agent.ai_config.read',
 ] as const;
@@ -53,13 +52,6 @@ export type ZhiyuAgentAIConfigRouteEvidenceInput = Partial<RuntimeLocalAgentIden
   readonly subjectUserId: string;
 };
 
-export type ZhiyuAgentRuntimeScopedBindingIdentity = {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-  readonly conversationAnchorId: string;
-};
-
 export function getZhiyuAgentAIConfig(
   input: ZhiyuAgentAIConfigCallInput,
 ): Promise<NimiRuntimeAgentAIConfigSnapshot> {
@@ -69,7 +61,7 @@ export function getZhiyuAgentAIConfig(
 export function upsertZhiyuAgentAIConfig(
   input: ZhiyuAgentAIConfigUpsertInput,
 ): Promise<NimiRuntimeAgentAIConfigSnapshot> {
-  return zhiyuAgentAIConfigModule(input.subjectUserId, ZHIYU_AGENT_AI_CONFIG_WRITE_SCOPES).upsert(input);
+  return zhiyuAgentAIConfigModule(input.subjectUserId).upsert(input);
 }
 
 export function getZhiyuAgentAIConfigReadiness(
@@ -86,12 +78,9 @@ export function subscribeZhiyuAgentAIConfigReadiness(
 
 export function createZhiyuAgentInspectSurface(
   subjectUserId: string,
-  bindingIdentity?: ZhiyuAgentRuntimeScopedBindingIdentity | null,
 ): NimiRuntimeAgentInspectSurface {
-  const { runtime, subject, withScopes } = zhiyuRuntimeAgentScopedSurface(
+  const { runtime, subject, withScopes } = zhiyuRuntimeAgentProtectedSurface(
     subjectUserId,
-    ZHIYU_AGENT_INSPECT_READ_SCOPES,
-    bindingIdentity,
   );
   return createNimiHostRuntimeAgentInspectSurface({
     getRuntime: () => ({
@@ -106,12 +95,9 @@ export function createZhiyuAgentInspectSurface(
 
 export function createZhiyuAgentPresentationProfileSurface(
   subjectUserId: string,
-  bindingIdentity?: ZhiyuAgentRuntimeScopedBindingIdentity | null,
 ): NimiRuntimeAgentPresentationProfileSurface {
-  const { runtime, subject, withScopes } = zhiyuRuntimeAgentScopedSurface(
+  const { runtime, subject, withScopes } = zhiyuRuntimeAgentProtectedSurface(
     subjectUserId,
-    ZHIYU_AGENT_PRESENTATION_WRITE_SCOPES,
-    bindingIdentity,
   );
   return createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => ({
@@ -270,9 +256,8 @@ export function zhiyuAgentAIConfigRouteUnavailable(error: unknown): ZhiyuRuntime
 
 function zhiyuAgentAIConfigModule(
   subjectUserId: string,
-  requiredScopes: readonly string[] = ZHIYU_AGENT_AI_CONFIG_READ_SCOPES,
 ): NimiRuntimeAgentAIConfigModule {
-  const { runtime, subject, withScopes } = zhiyuRuntimeAgentScopedSurface(subjectUserId, requiredScopes);
+  const { runtime, subject, withScopes } = zhiyuRuntimeAgentProtectedSurface(subjectUserId);
   const client = createNimiRuntimeAgentClient({
     runtime,
     appId: 'nimi.zhiyu',
@@ -282,10 +267,8 @@ function zhiyuAgentAIConfigModule(
   return client.agentAIConfig;
 }
 
-function zhiyuRuntimeAgentScopedSurface(
+function zhiyuRuntimeAgentProtectedSurface(
   subjectUserId: string,
-  requiredScopes: readonly string[],
-  bindingIdentity?: ZhiyuAgentRuntimeScopedBindingIdentity | null,
 ) {
   const subject = subjectUserId.trim();
   if (!subject) {
@@ -302,24 +285,11 @@ function zhiyuRuntimeAgentScopedSurface(
       source: 'renderer',
     });
   }
-  // Fail closed before any RPC when the host custody does not cover the
-  // AI Config scopes (Z-CHAT-002 scoped-binding custody path).
+  // Fail closed before any RPC when the host has not injected the current
+  // protected local-app operation context.
   const runtime = getZhiyuRuntime();
-  const withScopes = createZhiyuRuntimeAgentBindingScopeRunner(
-    async (scopes) => {
-      const resolvedScopes = scopes.length > 0 ? scopes : requiredScopes;
-      const decision = resolveZhiyuRuntimeAgentBindingDecisionFromHost(resolvedScopes);
-      if (decision.kind === 'runtime-issued-scoped-binding' || !bindingIdentity) {
-        return decision;
-      }
-      return resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost({
-        ownerUserId: bindingIdentity.ownerUserId,
-        runtimeSourceRef: bindingIdentity.runtimeSourceRef,
-        localAgentRef: bindingIdentity.localAgentRef,
-        conversationAnchorId: bindingIdentity.conversationAnchorId,
-        scopes: resolvedScopes,
-      });
-    },
+  const withScopes = createZhiyuRuntimeAgentAccessScopeRunner(
+    resolveZhiyuRuntimeAgentAccessDecisionFromHost,
   );
   return { runtime, subject, withScopes };
 }
@@ -337,6 +307,5 @@ function normalizeRouteIdentity(
     ownerUserId,
     runtimeSourceRef,
     localAgentRef,
-    ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
   };
 }

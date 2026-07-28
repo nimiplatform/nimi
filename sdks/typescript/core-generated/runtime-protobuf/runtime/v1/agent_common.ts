@@ -11,7 +11,6 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { ScopedRuntimeBindingAttachment } from "./common";
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentRequestContext
  */
@@ -24,10 +23,6 @@ export interface AgentRequestContext {
      * @generated from protobuf field: string subject_user_id = 2
      */
     subjectUserId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 3
-     */
-    scopedBinding?: ScopedRuntimeBindingAttachment;
     /**
      * @generated from protobuf field: string owner_user_id = 4
      */
@@ -47,7 +42,6 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
         super("nimi.runtime.v1.AgentRequestContext", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment },
             { no: 4, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -74,9 +68,6 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
                     break;
                 case /* string subject_user_id */ 2:
                     message.subjectUserId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding */ 3:
-                    message.scopedBinding = ScopedRuntimeBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.scopedBinding);
                     break;
                 case /* string owner_user_id */ 4:
                     message.ownerUserId = reader.string();
@@ -105,9 +96,6 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
         /* string subject_user_id = 2; */
         if (message.subjectUserId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
-        /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 3; */
-        if (message.scopedBinding)
-            ScopedRuntimeBindingAttachment.internalBinaryWrite(message.scopedBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* string owner_user_id = 4; */
         if (message.ownerUserId !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.ownerUserId);

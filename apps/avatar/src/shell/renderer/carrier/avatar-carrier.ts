@@ -106,7 +106,7 @@ async function submitRuntimeAvatarDebugResult(input: {
   backend: BackendBranch;
   avatarPackageRef: string | null;
   backendCapabilityProfileRef: string | null;
-  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown) => Promise<void>;
+  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope) => Promise<void>;
 }): Promise<void> {
   const { event, submitDebugProbeResult } = input;
   if (!submitDebugProbeResult) {
@@ -161,7 +161,7 @@ async function submitRuntimeAvatarDebugResult(input: {
       evidenceRefs: evidenceRefsForAvatarDebugSession(session),
       reasonCode: session.evidence.reasonCode || '',
       resultId: `avatar-debug-result-${ulid()}`,
-    }, detail.scopedBinding);
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || 'unknown avatar debug session failure');
     console.warn(`[avatar:debug] probe ${probeId} evaluation failed: ${message}`);
@@ -175,7 +175,7 @@ async function submitRuntimeAvatarDebugResult(input: {
       evidenceRefs: [],
       reasonCode: 'avatar_debug_session_evaluation_failed',
       resultId: `avatar-debug-result-${ulid()}`,
-    }, detail.scopedBinding).catch((submitError: unknown) => {
+    }).catch((submitError: unknown) => {
       console.warn(`[avatar:debug] failed to submit probe ${probeId} result`, submitError);
     });
   }
@@ -194,7 +194,7 @@ export type AvatarRuntimeCarrier = {
     resolverEvidence?: AvatarDebugResolverEvidence | null;
     observedAt?: string | null;
   }): AvatarDebugSession;
-  submitDebugProbeResult?(result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown): Promise<void>;
+  submitDebugProbeResult?(result: AvatarDebugProbeResultEnvelope): Promise<void>;
   attachRuntimeDriver(driver: AgentDataDriver): Promise<void>;
   detachRuntimeDriver(): void;
   shutdown(): void;
@@ -276,7 +276,7 @@ function createBackendCueProjection(branch: BackendBranch): EmbodimentProjection
 export async function startAvatarRuntimeCarrier(input: {
   driver: AgentDataDriver;
   modelManifest: AvatarModelManifest;
-  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown) => Promise<void>;
+  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope) => Promise<void>;
 }): Promise<AvatarRuntimeCarrier> {
   const carrier = await startAvatarVisualCarrier({
     modelManifest: input.modelManifest,
@@ -288,7 +288,7 @@ export async function startAvatarRuntimeCarrier(input: {
 
 export async function startAvatarVisualCarrier(input: {
   modelManifest: AvatarModelManifest;
-  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown) => Promise<void>;
+  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope) => Promise<void>;
 }): Promise<AvatarRuntimeCarrier> {
   const modelPath = input.modelManifest.runtimeDir.trim();
   if (!modelPath) {

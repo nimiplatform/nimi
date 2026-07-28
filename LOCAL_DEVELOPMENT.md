@@ -52,7 +52,7 @@ dev-kernel profile 有意使用 candidate-specific fallback root；因此连续�
 | Runtime Go | `pnpm dev:runtime`；该命令轮换 boot epoch |
 | SDK/Kit | 单独运行 `pnpm dev:prepare:watch`；350 ms 防抖后串行调用 SDK、Kit canonical build，SDK 变化会继续重建 Kit |
 
-Runtime 重启后，旧 session、launch lease 与 scoped binding 失效；同一 supervisor run 由既有链重新建立。账号 custody 与 durable grant 不因重启消失，也不重复项目 consent。`run_once` 在 supervisor 结束后失效；`remember_project` 转 dormant，重新激活需要 fresh presence。
+Runtime 重启后，旧 session 与 launch lease 失效；同一 supervisor run 必须重新建立进程绑定会话，并在每次 operation 上重新核验当前账号、应用身份、授权和资源选择条件。账号 custody 与 durable grant 不因重启消失，也不重复项目 consent。`run_once` 在 supervisor 结束后失效；`remember_project` 转 dormant，重新激活需要 fresh presence。
 
 `dev:prepare:watch` 不使用直接 `tsc --watch` 或 `vite build --watch` 生成半成品 dist；Zhiyu supervisor 的 `build:electron` 也不会暗中重建 SDK/Kit，失败时只报告 freshness 并提示启动 watcher。Kit CSS 的 Tailwind `@source` 会读取 dist，且 Vite dep optimizer 可能缓存旧 dist；canonical round 成功后若 renderer 仍显示旧依赖，重启对应 renderer，必要时再清理该 app 的生成态 `.vite` cache。
 
@@ -99,7 +99,7 @@ First Run、owner-minimal、fresh-prepared journey 与 `check:zhiyu-bootstrap` �
 - `local_development.electron.renderer_origin` 是 exact loopback origin；不得使用 wildcard。
 - shell/entry 与 execution profile 使用已准入值。
 - `permissions.declared_nimi_api_scopes` 逐项写 purpose/qualifier。
-- `runtime_scoped_binding_requests` 只是 request eligibility，不是 grant，也不允许 third-party app 铸造 first-party scoped binding。
+- 不得声明 `runtime_scoped_binding_requests`。该退休 manifest key 会被故障关闭拒绝；当前能力资格来自声明的 API scope，权限则在已验证的进程绑定会话上逐 operation 判定。
 
 ### package.json 脚本逐字契约
 

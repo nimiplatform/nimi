@@ -174,24 +174,6 @@ methods:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_account_host
-    rationale: binding control requires verified Desktop account origin plus the independent binding-relation match
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_account_host
-    rationale: binding revocation requires verified Desktop account origin plus relation-match against stored binding
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding
     posture: blocked_pending_authority
     authority_status: blocked_pending_separate_authority

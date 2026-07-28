@@ -3,7 +3,7 @@ import {
   createNimiRuntimeAgentClient,
   type NimiRuntimeAgentDiscoveredLocalAgent,
 } from '@nimiplatform/sdk/runtime';
-import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
+import { withZhiyuRuntimeAgentAccessRequired } from '../agent-chat/runtime-agent-access';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { appId, getZhiyuRuntime } from '../auth/runtime-platform';
 
@@ -36,7 +36,7 @@ export async function probeZhiyuRuntimeAgentInventory(
     runtime,
     appId,
     getSubjectUserId: () => auth.accountId || undefined,
-    withScopes: withZhiyuRuntimeAgentBindingRequired,
+    withScopes: withZhiyuRuntimeAgentAccessRequired,
   });
 
   try {

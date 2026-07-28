@@ -5,7 +5,6 @@ export interface RuntimeLocalAgentIdentityInput {
   readonly ownerUserId: unknown;
   readonly runtimeSourceRef: unknown;
   readonly localAgentRef: unknown;
-  readonly scopedBinding?: AgentRequestContext['scopedBinding'];
 }
 
 export interface RuntimeLocalAgentIdentityProjection {
@@ -20,7 +19,6 @@ export interface RuntimeAgentRequestContextInput {
   readonly ownerUserId: unknown;
   readonly runtimeSourceRef: unknown;
   readonly localAgentRef: unknown;
-  readonly scopedBinding?: AgentRequestContext['scopedBinding'];
 }
 
 function normalizeIdentityPart(value: unknown): string {
@@ -73,7 +71,6 @@ export function buildRuntimeAgentRequestContext(input: RuntimeAgentRequestContex
   return {
     appId,
     subjectUserId,
-    ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
     ...projectRuntimeLocalAgentIdentity(input),
   };
 }

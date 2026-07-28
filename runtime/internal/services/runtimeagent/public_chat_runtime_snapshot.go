@@ -42,22 +42,6 @@ func (r publicChatRuntime) buildAvatarLiveInstanceSessionSnapshot(
 	return r.buildSessionSnapshotFromState(startedAt, callerAppID, requestID, session, activeTurn, lastTurn, pendingFollowUp)
 }
 
-func (r publicChatRuntime) buildScopedBindingSessionSnapshot(
-	callerAppID string,
-	anchorID string,
-	requestID string,
-) (*structpb.Struct, publicChatAnchorState, bool, bool, bool, error) {
-	startedAt := time.Now()
-	if r.svc == nil || r.svc.isClosed() {
-		return nil, publicChatAnchorState{}, false, false, false, status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
-	}
-	session, activeTurn, lastTurn, pendingFollowUp, err := r.svc.snapshotPublicChatAnchorForScopedBinding(anchorID)
-	if err != nil {
-		return nil, publicChatAnchorState{}, false, false, false, err
-	}
-	return r.buildSessionSnapshotFromState(startedAt, callerAppID, requestID, session, activeTurn, lastTurn, pendingFollowUp)
-}
-
 func (r publicChatRuntime) buildSessionSnapshotFromState(
 	startedAt time.Time,
 	callerAppID string,

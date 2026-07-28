@@ -33,7 +33,6 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		state:                        runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
 		stateReason:                  runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
 		loginAttempts:                make(map[string]loginAttemptRecord),
-		bindings:                     make(map[string]bindingRecord),
 		workspaceBindings:            make(map[string]workspaceBindingRecord),
 		subscribers:                  make(map[uint64]subscriber),
 		accountGenerationInvalidated: make(chan struct{}),

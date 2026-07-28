@@ -27,8 +27,6 @@ const (
 	RuntimeAccountService_InvokeRealmUnary_FullMethodName              = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 	RuntimeAccountService_Logout_FullMethodName                        = "/nimi.runtime.v1.RuntimeAccountService/Logout"
 	RuntimeAccountService_SwitchAccount_FullMethodName                 = "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount"
-	RuntimeAccountService_IssueScopedAppBinding_FullMethodName         = "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding"
-	RuntimeAccountService_RevokeScopedAppBinding_FullMethodName        = "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding"
 	RuntimeAccountService_IssueWorkspaceBinding_FullMethodName         = "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding"
 	RuntimeAccountService_RevokeWorkspaceBinding_FullMethodName        = "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding"
 	RuntimeAccountService_GetLocalAppPermissionStatus_FullMethodName   = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus"
@@ -47,8 +45,6 @@ type RuntimeAccountServiceClient interface {
 	InvokeRealmUnary(ctx context.Context, in *InvokeRealmUnaryRequest, opts ...grpc.CallOption) (*InvokeRealmUnaryResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	SwitchAccount(ctx context.Context, in *SwitchAccountRequest, opts ...grpc.CallOption) (*SwitchAccountResponse, error)
-	IssueScopedAppBinding(ctx context.Context, in *IssueScopedAppBindingRequest, opts ...grpc.CallOption) (*IssueScopedAppBindingResponse, error)
-	RevokeScopedAppBinding(ctx context.Context, in *RevokeScopedAppBindingRequest, opts ...grpc.CallOption) (*RevokeScopedAppBindingResponse, error)
 	IssueWorkspaceBinding(ctx context.Context, in *IssueWorkspaceBindingRequest, opts ...grpc.CallOption) (*IssueWorkspaceBindingResponse, error)
 	RevokeWorkspaceBinding(ctx context.Context, in *RevokeWorkspaceBindingRequest, opts ...grpc.CallOption) (*RevokeWorkspaceBindingResponse, error)
 	GetLocalAppPermissionStatus(ctx context.Context, in *GetLocalAppPermissionStatusRequest, opts ...grpc.CallOption) (*GetLocalAppPermissionStatusResponse, error)
@@ -152,26 +148,6 @@ func (c *runtimeAccountServiceClient) SwitchAccount(ctx context.Context, in *Swi
 	return out, nil
 }
 
-func (c *runtimeAccountServiceClient) IssueScopedAppBinding(ctx context.Context, in *IssueScopedAppBindingRequest, opts ...grpc.CallOption) (*IssueScopedAppBindingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IssueScopedAppBindingResponse)
-	err := c.cc.Invoke(ctx, RuntimeAccountService_IssueScopedAppBinding_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAccountServiceClient) RevokeScopedAppBinding(ctx context.Context, in *RevokeScopedAppBindingRequest, opts ...grpc.CallOption) (*RevokeScopedAppBindingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RevokeScopedAppBindingResponse)
-	err := c.cc.Invoke(ctx, RuntimeAccountService_RevokeScopedAppBinding_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAccountServiceClient) IssueWorkspaceBinding(ctx context.Context, in *IssueWorkspaceBindingRequest, opts ...grpc.CallOption) (*IssueWorkspaceBindingResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IssueWorkspaceBindingResponse)
@@ -224,8 +200,6 @@ type RuntimeAccountServiceServer interface {
 	InvokeRealmUnary(context.Context, *InvokeRealmUnaryRequest) (*InvokeRealmUnaryResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	SwitchAccount(context.Context, *SwitchAccountRequest) (*SwitchAccountResponse, error)
-	IssueScopedAppBinding(context.Context, *IssueScopedAppBindingRequest) (*IssueScopedAppBindingResponse, error)
-	RevokeScopedAppBinding(context.Context, *RevokeScopedAppBindingRequest) (*RevokeScopedAppBindingResponse, error)
 	IssueWorkspaceBinding(context.Context, *IssueWorkspaceBindingRequest) (*IssueWorkspaceBindingResponse, error)
 	RevokeWorkspaceBinding(context.Context, *RevokeWorkspaceBindingRequest) (*RevokeWorkspaceBindingResponse, error)
 	GetLocalAppPermissionStatus(context.Context, *GetLocalAppPermissionStatusRequest) (*GetLocalAppPermissionStatusResponse, error)
@@ -262,12 +236,6 @@ func (UnimplementedRuntimeAccountServiceServer) Logout(context.Context, *LogoutR
 }
 func (UnimplementedRuntimeAccountServiceServer) SwitchAccount(context.Context, *SwitchAccountRequest) (*SwitchAccountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SwitchAccount not implemented")
-}
-func (UnimplementedRuntimeAccountServiceServer) IssueScopedAppBinding(context.Context, *IssueScopedAppBindingRequest) (*IssueScopedAppBindingResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method IssueScopedAppBinding not implemented")
-}
-func (UnimplementedRuntimeAccountServiceServer) RevokeScopedAppBinding(context.Context, *RevokeScopedAppBindingRequest) (*RevokeScopedAppBindingResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RevokeScopedAppBinding not implemented")
 }
 func (UnimplementedRuntimeAccountServiceServer) IssueWorkspaceBinding(context.Context, *IssueWorkspaceBindingRequest) (*IssueWorkspaceBindingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method IssueWorkspaceBinding not implemented")
@@ -438,42 +406,6 @@ func _RuntimeAccountService_SwitchAccount_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAccountService_IssueScopedAppBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IssueScopedAppBindingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAccountServiceServer).IssueScopedAppBinding(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAccountService_IssueScopedAppBinding_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAccountServiceServer).IssueScopedAppBinding(ctx, req.(*IssueScopedAppBindingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAccountService_RevokeScopedAppBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RevokeScopedAppBindingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAccountServiceServer).RevokeScopedAppBinding(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAccountService_RevokeScopedAppBinding_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAccountServiceServer).RevokeScopedAppBinding(ctx, req.(*RevokeScopedAppBindingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeAccountService_IssueWorkspaceBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IssueWorkspaceBindingRequest)
 	if err := dec(in); err != nil {
@@ -580,14 +512,6 @@ var RuntimeAccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SwitchAccount",
 			Handler:    _RuntimeAccountService_SwitchAccount_Handler,
-		},
-		{
-			MethodName: "IssueScopedAppBinding",
-			Handler:    _RuntimeAccountService_IssueScopedAppBinding_Handler,
-		},
-		{
-			MethodName: "RevokeScopedAppBinding",
-			Handler:    _RuntimeAccountService_RevokeScopedAppBinding_Handler,
 		},
 		{
 			MethodName: "IssueWorkspaceBinding",

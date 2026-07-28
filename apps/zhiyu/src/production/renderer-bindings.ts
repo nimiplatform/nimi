@@ -30,10 +30,8 @@ import {
 import { probeZhiyuAgentTurnReadiness } from '../shell/agent-chat/agent-turn-readiness.js';
 import { runZhiyuAgentChatTurn } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import {
-  resolveZhiyuRuntimeAgentBindingDecisionFromHost,
-  scopedBindingForRuntimeAgentRequest,
-  withZhiyuRuntimeAgentBindingRequired,
-} from '../shell/agent-chat/runtime-agent-binding.js';
+  withZhiyuRuntimeAgentAccessRequired,
+} from '../shell/agent-chat/runtime-agent-access.js';
 import {
   createBrowserVoiceCaptureRecorder,
   createElectronVoiceCaptureTranscriber,
@@ -102,7 +100,7 @@ async function hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindi
     runtime,
     appId: 'nimi.zhiyu',
     getSubjectUserId: () => input.ownerUserId,
-    withScopes: withZhiyuRuntimeAgentBindingRequired,
+    withScopes: withZhiyuRuntimeAgentAccessRequired,
   });
   const consume = createNimiRuntimeAgentConsumeClient({
     runtime: { agents: runtime.agents, appMessages: runtime.appMessages },
@@ -116,14 +114,12 @@ async function hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindi
   };
   const [snapshot, anchorSnapshot] = await Promise.all([
     client.getSessionSnapshot(identity),
-    withZhiyuRuntimeAgentBindingRequired(['runtime.agent.turn.read'], (callOptions) => {
-      const binding = resolveZhiyuRuntimeAgentBindingDecisionFromHost(['runtime.agent.turn.read']);
-      return consume.anchors.getSnapshot({
+    withZhiyuRuntimeAgentAccessRequired(['runtime.agent.turn.read'], (callOptions) => (
+      consume.anchors.getSnapshot({
         ...identity,
         subjectUserId: input.ownerUserId,
-        scopedBinding: scopedBindingForRuntimeAgentRequest(binding),
-      }, callOptions);
-    }),
+      }, callOptions)
+    )),
   ]);
   return {
     source: projectZhiyuRuntimeSourceProjection({
@@ -226,7 +222,7 @@ export function createZhiyuProductionBindings(
               runtime,
               appId: 'nimi.zhiyu',
               getSubjectUserId: () => input.ownerUserId,
-              withScopes: withZhiyuRuntimeAgentBindingRequired,
+              withScopes: withZhiyuRuntimeAgentAccessRequired,
             });
             try {
               const stream = await client.subscribeEvents({

@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"io"
 	"log/slog"
 	"testing"
@@ -18,15 +17,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-type testRuntimeAccountProjectionProvider struct {
-	projection *runtimev1.AccountProjection
-	ok         bool
-}
-
-func (provider testRuntimeAccountProjectionProvider) AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool) {
-	return provider.projection, provider.ok
-}
-
 func newTestService(opts ...Option) *Service {
 	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), opts...)
 }
@@ -36,39 +26,6 @@ func appContext(appID string) context.Context {
 		return metadata.NewIncomingContext(context.Background(), metadata.Pairs())
 	}
 	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
-}
-
-type testScopedBindingValidator struct {
-	t            *testing.T
-	wantID       string
-	wantScope    string
-	wantRelation *runtimev1.ScopedAppBindingRelation
-	reason       runtimev1.AccountReasonCode
-	ok           bool
-	calls        int
-}
-
-func (v *testScopedBindingValidator) ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-	v.calls++
-	if v.wantID != "" && bindingID != v.wantID {
-		v.t.Fatalf("binding id: got=%q want=%q", bindingID, v.wantID)
-	}
-	if v.wantScope != "" && requiredScope != v.wantScope {
-		v.t.Fatalf("required scope: got=%q want=%q", requiredScope, v.wantScope)
-	}
-	if v.wantRelation != nil {
-		if actual.GetRuntimeAppId() != v.wantRelation.GetRuntimeAppId() ||
-			actual.GetAvatarInstanceId() != v.wantRelation.GetAvatarInstanceId() ||
-			actual.GetAgentId() != v.wantRelation.GetAgentId() ||
-			actual.GetConversationAnchorId() != v.wantRelation.GetConversationAnchorId() ||
-			actual.GetWorldId() != v.wantRelation.GetWorldId() {
-			v.t.Fatalf("relation mismatch: got=%+v want=%+v", actual, v.wantRelation)
-		}
-	}
-	if v.reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED {
-		v.reason = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED
-	}
-	return v.reason, v.ok
 }
 
 func TestSendAppMessageSuccess(t *testing.T) {
@@ -129,30 +86,23 @@ func TestSendAppMessageOptionalFields(t *testing.T) {
 	}
 }
 
-func TestSendRuntimeAgentMessageRequiresScopedBinding(t *testing.T) {
-	svc := newTestService(WithScopedBindingValidator(&testScopedBindingValidator{t: t, ok: true}))
+func TestSendRuntimeAgentMessageRequiresProtectedCapability(t *testing.T) {
+	svc := newTestService()
 	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:   "desktop.avatar",
 		ToAppId:     "runtime.agent",
 		MessageType: "runtime.agent.turn.request",
 	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected invalid argument for missing binding, got %v", err)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected permission denied without protected capability, got %v", err)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
 		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
 	}
 }
 
-func TestSendRuntimeAgentMessageAcceptsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
-	validator := &testScopedBindingValidator{t: t, ok: false}
-	svc := newTestService(
-		WithScopedBindingValidator(validator),
-		WithRuntimeAccountProjectionProvider(testRuntimeAccountProjectionProvider{
-			projection: &runtimev1.AccountProjection{AccountId: "account-current"},
-			ok:         true,
-		}),
-	)
+func TestSendRuntimeAgentMessageAcceptsProtectedCapability(t *testing.T) {
+	svc := newTestService()
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", "runtime.agent.turn.write")
 	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
 		FromAppId:   "nimi.avatar",
@@ -165,14 +115,10 @@ func TestSendRuntimeAgentMessageAcceptsProtectedCapabilityWithoutScopedBinding(t
 	if !resp.GetAccepted() {
 		t.Fatalf("expected accepted response: %+v", resp)
 	}
-	if validator.calls != 0 {
-		t.Fatalf("first-party protected path must not call scoped binding validator, got %d calls", validator.calls)
-	}
 }
 
 func TestSendRuntimeAgentSnapshotRequestIsNotAdmittedAppMessageIngress(t *testing.T) {
-	validator := &testScopedBindingValidator{t: t, ok: false}
-	svc := newTestService(WithScopedBindingValidator(validator))
+	svc := newTestService()
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", "runtime.agent.turn.write")
 	_, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
 		FromAppId:   "nimi.avatar",
@@ -181,71 +127,6 @@ func TestSendRuntimeAgentSnapshotRequestIsNotAdmittedAppMessageIngress(t *testin
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for snapshot app-message ingress, got %v", err)
-	}
-	if validator.calls != 0 {
-		t.Fatalf("scoped binding validator must not be called for non-admitted message, got %d", validator.calls)
-	}
-}
-
-func TestSendRuntimeAgentMessageValidatesScopedBinding(t *testing.T) {
-	validator := &testScopedBindingValidator{
-		t:         t,
-		wantID:    "binding-1",
-		wantScope: "runtime.agent.turn.write",
-		wantRelation: &runtimev1.ScopedAppBindingRelation{
-			RuntimeAppId:         "desktop.avatar",
-			AvatarInstanceId:     "avatar-instance-1",
-			AgentId:              "agent-1",
-			ConversationAnchorId: "anchor-1",
-			WorldId:              "world-1",
-		},
-		ok: true,
-	}
-	svc := newTestService(WithScopedBindingValidator(validator))
-	resp, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
-		FromAppId:   "desktop.avatar",
-		ToAppId:     "runtime.agent",
-		MessageType: "runtime.agent.turn.request",
-		ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
-			BindingId:            "binding-1",
-			RuntimeAppId:         "desktop.avatar",
-			AvatarInstanceId:     "avatar-instance-1",
-			AgentId:              "agent-1",
-			ConversationAnchorId: "anchor-1",
-			WorldId:              "world-1",
-		},
-	})
-	if err != nil {
-		t.Fatalf("SendAppMessage: %v", err)
-	}
-	if !resp.GetAccepted() {
-		t.Fatalf("expected accepted response: %#v", resp)
-	}
-	if validator.calls != 1 {
-		t.Fatalf("expected validator called once, got %d", validator.calls)
-	}
-}
-
-func TestSendRuntimeAgentMessageRejectsBindingMismatch(t *testing.T) {
-	svc := newTestService(WithScopedBindingValidator(&testScopedBindingValidator{
-		t:      t,
-		reason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_REPLAY,
-		ok:     false,
-	}))
-	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
-		FromAppId:   "desktop.avatar",
-		ToAppId:     "runtime.agent",
-		MessageType: "runtime.agent.turn.request",
-		ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
-			BindingId: "binding-1",
-			AgentId:   "wrong-agent",
-		},
-	})
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("expected permission denied, got %v", err)
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
-		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
 	}
 }
 
@@ -497,29 +378,22 @@ func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
 	<-done
 }
 
-func TestSubscribeRuntimeAgentMessagesRequiresScopedBinding(t *testing.T) {
-	svc := newTestService(WithScopedBindingValidator(&testScopedBindingValidator{t: t, ok: true}))
+func TestSubscribeRuntimeAgentMessagesRequiresProtectedCapability(t *testing.T) {
+	svc := newTestService()
 	err := svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
 		AppId:      "desktop.avatar",
 		FromAppIds: []string{"runtime.agent"},
 	}, &appMessageStreamCollector{ctx: appContext("desktop.avatar")})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected invalid argument for missing binding, got %v", err)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected permission denied without protected capability, got %v", err)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
 		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
 	}
 }
 
-func TestSubscribeRuntimeAgentMessagesAcceptsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
-	validator := &testScopedBindingValidator{t: t, ok: false}
-	svc := newTestService(
-		WithScopedBindingValidator(validator),
-		WithRuntimeAccountProjectionProvider(testRuntimeAccountProjectionProvider{
-			projection: &runtimev1.AccountProjection{AccountId: "account-current"},
-			ok:         true,
-		}),
-	)
+func TestSubscribeRuntimeAgentMessagesAcceptsProtectedCapability(t *testing.T) {
+	svc := newTestService()
 	ctx := envelope.WithValidatedProtectedCapability(
 		appContext("nimi.avatar"),
 		"nimi.avatar",
@@ -532,56 +406,6 @@ func TestSubscribeRuntimeAgentMessagesAcceptsProtectedCapabilityWithoutScopedBin
 		FromAppIds: []string{"runtime.agent"},
 	}, &appMessageStreamCollector{ctx: ctx})
 	if err != nil {
-		t.Fatalf("protected capability without binding should use first-party subscribe path: %v", err)
-	}
-	if validator.calls != 0 {
-		t.Fatalf("first-party protected path must not call scoped binding validator, got %d calls", validator.calls)
-	}
-}
-
-func TestSubscribeRuntimeAgentMessagesValidatesScopedBinding(t *testing.T) {
-	validator := &testScopedBindingValidator{
-		t:         t,
-		wantID:    "binding-1",
-		wantScope: "runtime.agent.turn.read",
-		wantRelation: &runtimev1.ScopedAppBindingRelation{
-			RuntimeAppId:         "desktop.avatar",
-			AvatarInstanceId:     "avatar-instance-1",
-			AgentId:              "agent-1",
-			ConversationAnchorId: "anchor-1",
-			WorldId:              "world-1",
-		},
-		ok: true,
-	}
-	svc := newTestService(WithScopedBindingValidator(validator))
-	ctx, cancel := context.WithCancel(appContext("desktop.avatar"))
-	stream := &appMessageStreamCollector{ctx: ctx}
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
-			AppId:      "desktop.avatar",
-			FromAppIds: []string{"runtime.agent"},
-			ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
-				BindingId:            "binding-1",
-				RuntimeAppId:         "desktop.avatar",
-				AvatarInstanceId:     "avatar-instance-1",
-				AgentId:              "agent-1",
-				ConversationAnchorId: "anchor-1",
-				WorldId:              "world-1",
-			},
-		}, stream)
-	}()
-	time.Sleep(20 * time.Millisecond)
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil && !errors.Is(err, context.Canceled) {
-			t.Fatalf("SubscribeAppMessages returned unexpected error: %v", err)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("SubscribeAppMessages did not stop after cancel")
-	}
-	if validator.calls != 1 {
-		t.Fatalf("expected validator called once, got %d", validator.calls)
+		t.Fatalf("protected capability should use first-party subscribe path: %v", err)
 	}
 }

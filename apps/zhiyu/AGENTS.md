@@ -2,7 +2,7 @@
 
 ## Scope
 - `apps/zhiyu/**` is implementation, not product authority.
-- Current Zhiyu formal product authority lives in `.nimi/spec/zhiyu/local-partner-surface.authority.yaml`, with admitted configuration in `config/zhiyu-*.yaml` and source-preserving rationale in `docs/authority/zhiyu-local-partner-surface-rationale.md`.
+- Current Zhiyu formal product authority lives in `.nimi/spec/zhiyu/local-partner-surface.authority.yaml`; current explanatory prose lives in `docs/authority/zhiyu-local-partner-surface-rationale.md`.
 
 ## Hard Boundaries
 - Product-shape work derives from the Zhiyu authority, admitted config, and referenced upstream owners; local plans, code, tests, screenshots, closeouts, and evidence are not product authority.
@@ -12,7 +12,7 @@
 - Main product UI must remain user-facing and partner-centered. Diagnostics/dev mode may show technical truth, but it must not define the first screen.
 
 ## Retrieval Defaults
-- Start with the affected Zhiyu route, its direct facade or projection, the matching `config/zhiyu-*.yaml` row, and the exact authority unit when semantics are involved.
+- Start with the affected Zhiyu route, its direct facade or projection, and the exact authority unit when semantics are involved.
 - Do not load `.nimi/local/plans/zhiyu/**`, historical evidence, or unrelated platform owners unless the observed failure points there.
 
 ## Verification Commands

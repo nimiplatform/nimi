@@ -46,7 +46,7 @@ func TestAgentStatePostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
 
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-exec-pack-3"),
 	}); err != nil {
@@ -267,7 +267,7 @@ func TestPublicChatCommittedPresentationReachesTypedStream(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 
-	streamCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	streamCtx, cancel := context.WithTimeout(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2*time.Second)
 	defer cancel()
 	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
@@ -382,7 +382,7 @@ func TestPublicChatCommittedAPMLActivityReachesTypedStream(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 
-	streamCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	streamCtx, cancel := context.WithTimeout(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2*time.Second)
 	defer cancel()
 	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{

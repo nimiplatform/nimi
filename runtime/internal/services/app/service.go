@@ -38,10 +38,6 @@ type sessionValidator interface {
 	ValidateAppSession(appID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool)
 }
 
-type scopedBindingValidator interface {
-	ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool)
-}
-
 type localAppConversationScopeValidator interface {
 	ValidateLocalAppConversationScope(context.Context, string, string) error
 }
@@ -57,7 +53,6 @@ type subscriber struct {
 	appID         string
 	subjectUserID string
 	fromAppFilter map[string]bool
-	scopedBinding *runtimev1.ScopedRuntimeBindingAttachment
 	relay         *streamutil.Relay[*runtimev1.AppMessageEvent]
 }
 
@@ -76,7 +71,6 @@ type Service struct {
 	internalConsumers         map[string]InternalConsumer
 	now                       func() time.Time
 	sessionValidator          sessionValidator
-	bindingValidator          scopedBindingValidator
 	localAppConversationScope localAppConversationScopeValidator
 	localAppOperationAuth     localAppOperationAuthorizer
 	rateLimiter               *appRateLimiter
@@ -95,12 +89,6 @@ type Service struct {
 func WithSessionValidator(validator sessionValidator) Option {
 	return func(s *Service) {
 		s.sessionValidator = validator
-	}
-}
-
-func WithScopedBindingValidator(validator scopedBindingValidator) Option {
-	return func(s *Service) {
-		s.bindingValidator = validator
 	}
 }
 
@@ -195,7 +183,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	if localAppAuthorized {
-		if localDecision.Operation != accountservice.LocalAppOperationSendConversationTurn || req.GetToAppId() != "runtime.agent" || req.GetMessageType() != "runtime.agent.turn.request" || req.GetScopedBinding() != nil {
+		if localDecision.Operation != accountservice.LocalAppOperationSendConversationTurn || req.GetToAppId() != "runtime.agent" || req.GetMessageType() != "runtime.agent.turn.request" {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 		}
 		cloned, ok := proto.Clone(req).(*runtimev1.SendAppMessageRequest)
@@ -212,7 +200,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 		if (candidateFromAppID != "" && candidateFromAppID != protectedPrincipal.AppID) ||
-			strings.TrimSpace(req.GetToAppId()) != "runtime.agent" || req.GetScopedBinding() != nil {
+			strings.TrimSpace(req.GetToAppId()) != "runtime.agent" {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		}
 		cloned, ok := proto.Clone(req).(*runtimev1.SendAppMessageRequest)
@@ -245,7 +233,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 		if !localAppAuthorized {
-			if err := s.validateRuntimeAgentAccess(ctx, req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType)); err != nil {
+			if err := validateRuntimeAgentAccess(ctx, fromAppID, requiredRuntimeAgentSendScope(messageType)); err != nil {
 				return nil, err
 			}
 		}
@@ -340,7 +328,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	}
 	localAppSelector := localappop.Selector{}
 	if localAppAuthorized {
-		if localDecision.Operation != accountservice.LocalAppOperationSubscribeConversation || req.GetScopedBinding() != nil || len(req.GetFromAppIds()) != 1 || req.GetFromAppIds()[0] != "runtime.agent" || strings.TrimSpace(req.GetLocalAgentRef()) == "" || strings.TrimSpace(req.GetConversationAnchorId()) == "" {
+		if localDecision.Operation != accountservice.LocalAppOperationSubscribeConversation || len(req.GetFromAppIds()) != 1 || req.GetFromAppIds()[0] != "runtime.agent" || strings.TrimSpace(req.GetLocalAgentRef()) == "" || strings.TrimSpace(req.GetConversationAnchorId()) == "" {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 		}
 		cloned, ok := proto.Clone(req).(*runtimev1.SubscribeAppMessagesRequest)
@@ -365,7 +353,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	if protectedAuthorized {
 		candidateAppID := strings.TrimSpace(req.GetAppId())
 		if (candidateAppID != "" && candidateAppID != protectedPrincipal.AppID) ||
-			req.GetScopedBinding() != nil || len(req.GetFromAppIds()) != 1 ||
+			len(req.GetFromAppIds()) != 1 ||
 			strings.TrimSpace(req.GetFromAppIds()[0]) != "runtime.agent" {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		}
@@ -394,7 +382,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	}
 	if subscribesRuntimeAgent(req) {
 		if !localAppAuthorized {
-			if err := s.validateRuntimeAgentAccess(stream.Context(), req.GetScopedBinding(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
+			if err := validateRuntimeAgentAccess(stream.Context(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
 				return err
 			}
 		}
@@ -468,7 +456,6 @@ func (s *Service) addSubscriber(req *runtimev1.SubscribeAppMessagesRequest) subs
 		appID:         strings.TrimSpace(req.GetAppId()),
 		subjectUserID: strings.TrimSpace(req.GetSubjectUserId()),
 		fromAppFilter: filter,
-		scopedBinding: cloneScopedBindingAttachment(req.GetScopedBinding()),
 		relay: streamutil.NewRelay(streamutil.RelayOptions[*runtimev1.AppMessageEvent]{
 			Budget:              32,
 			MaxConsecutiveDrops: 3,
@@ -505,12 +492,6 @@ func (s *Service) publish(event *runtimev1.AppMessageEvent) {
 	for _, sub := range targets {
 		if !matches(sub, event) {
 			continue
-		}
-		if event.GetFromAppId() == "runtime.agent" && sub.scopedBinding != nil {
-			if err := s.validateRuntimeAgentBinding(sub.scopedBinding, sub.appID, "runtime.agent.turn.read"); err != nil {
-				sub.relay.CloseWithError(err)
-				continue
-			}
 		}
 		if err := sub.relay.Enqueue(cloneEvent(event)); err != nil && s.logger != nil {
 			s.logger.Warn("app subscriber relay closed", "subscriber_id", sub.id, "error", err)
@@ -571,70 +552,9 @@ func requiredRuntimeAgentSendScope(messageType string) string {
 	return "runtime.agent.turn.write"
 }
 
-func (s *Service) validateRuntimeAgentBinding(attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string, requiredScope string) error {
-	if attachment == nil || strings.TrimSpace(attachment.GetBindingId()) == "" {
-		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
-	}
-	if s.bindingValidator == nil {
-		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
-	}
-	actual := relationFromAttachment(attachment, fallbackRuntimeAppID)
-	if reason, ok := s.bindingValidator.ValidateScopedBinding(strings.TrimSpace(attachment.GetBindingId()), actual, requiredScope); !ok {
-		return runtimeAgentBindingError(reason)
-	}
-	return nil
-}
-
-func (s *Service) validateRuntimeAgentAccess(ctx context.Context, attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string, requiredScope string) error {
-	if attachment == nil || strings.TrimSpace(attachment.GetBindingId()) == "" {
-		if envelope.HasValidatedProtectedCapability(ctx, fallbackRuntimeAppID, requiredScope) {
-			return nil
-		}
-		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
-	}
-	return s.validateRuntimeAgentBinding(attachment, fallbackRuntimeAppID, requiredScope)
-}
-
-func relationFromAttachment(attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string) *runtimev1.ScopedAppBindingRelation {
-	if attachment == nil {
+func validateRuntimeAgentAccess(ctx context.Context, appID string, requiredScope string) error {
+	if envelope.HasValidatedProtectedCapability(ctx, appID, requiredScope) {
 		return nil
 	}
-	runtimeAppID := strings.TrimSpace(attachment.GetRuntimeAppId())
-	if runtimeAppID == "" {
-		runtimeAppID = strings.TrimSpace(fallbackRuntimeAppID)
-	}
-	return &runtimev1.ScopedAppBindingRelation{
-		RuntimeAppId:         runtimeAppID,
-		AppInstanceId:        strings.TrimSpace(attachment.GetAppInstanceId()),
-		WindowId:             strings.TrimSpace(attachment.GetWindowId()),
-		AvatarInstanceId:     strings.TrimSpace(attachment.GetAvatarInstanceId()),
-		AgentId:              strings.TrimSpace(attachment.GetAgentId()),
-		ConversationAnchorId: strings.TrimSpace(attachment.GetConversationAnchorId()),
-		WorldId:              strings.TrimSpace(attachment.GetWorldId()),
-	}
-}
-
-func runtimeAgentBindingError(reason runtimev1.AccountReasonCode) error {
-	code := codes.PermissionDenied
-	if reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND {
-		code = codes.InvalidArgument
-	}
-	return grpcerr.WithReasonCodeOptions(code, runtimev1.ReasonCode_APP_GRANT_INVALID, grpcerr.ReasonOptions{
-		ActionHint: "attach_active_scoped_runtime_binding",
-		Metadata: map[string]string{
-			"account_reason_code": reason.String(),
-		},
-	})
-}
-
-func cloneScopedBindingAttachment(input *runtimev1.ScopedRuntimeBindingAttachment) *runtimev1.ScopedRuntimeBindingAttachment {
-	if input == nil {
-		return nil
-	}
-	cloned := proto.Clone(input)
-	out, ok := cloned.(*runtimev1.ScopedRuntimeBindingAttachment)
-	if !ok {
-		return nil
-	}
-	return out
+	return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 }

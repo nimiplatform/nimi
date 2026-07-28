@@ -285,17 +285,6 @@ test('Runtime Agent delegated control scopes snapshot, approval, and replay proj
     ownerUserId: consumeContext.ownerUserId,
     runtimeSourceRef: consumeContext.runtimeSourceRef,
     localAgentRef: consumeContext.localAgentRef,
-    scopedBinding: {
-      bindingId: 'binding-delegation-1',
-      bindingHandle: 'binding:binding-delegation-1',
-      runtimeAppId: 'nimi.avatar',
-      appInstanceId: 'nimi.avatar.local-first-party',
-      windowId: 'window-1',
-      avatarInstanceId: '',
-      worldId: '',
-      agentId: consumeContext.localAgentRef,
-      conversationAnchorId: 'anchor-1',
-    },
   };
   const calls: Array<{
     readonly scopes?: readonly string[];
@@ -360,7 +349,7 @@ test('Runtime Agent delegated control scopes snapshot, approval, and replay proj
   };
   assert.equal(approvalCall.request?.decision, DelegatedApprovalDecision.APPROVED_ONCE);
   const snapshotCall = calls.find((call) => call.method === 'snapshot') as {
-    readonly request?: { readonly context?: { readonly scopedBinding?: unknown } };
+    readonly request?: { readonly context?: Record<string, unknown> };
   };
-  assert.deepEqual(snapshotCall.request?.context?.scopedBinding, delegatedIdentity.scopedBinding);
+  assert.equal('scopedBinding' in (snapshotCall.request?.context ?? {}), false);
 });

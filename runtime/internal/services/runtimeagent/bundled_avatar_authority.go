@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
@@ -63,13 +64,47 @@ func (s *Service) authorizeBundledAvatarIdentity(
 	if requestContext == nil || strings.TrimSpace(requestContext.GetAppId()) != principal.AppID {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
-	if requestContext.GetScopedBinding() != nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
 	if !principal.Owns(identity.OwnerUserID) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	if subjectUserID := strings.TrimSpace(requestContext.GetSubjectUserId()); subjectUserID != "" && !principal.Owns(subjectUserID) {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	return nil
+}
+
+// authorizeCurrentAccountLocalAgent binds an ordinary authenticated caller or
+// a protected first-party principal to the current Runtime-owned LocalAgent.
+// The request body is only a selector: it must match the authenticated account
+// and cannot act as a portable delegation credential.
+func (s *Service) authorizeCurrentAccountLocalAgent(
+	ctx context.Context,
+	requestContext *runtimev1.AgentRequestContext,
+	identity localAgentIdentity,
+	capability string,
+) error {
+	if err := s.authorizeBundledAvatarIdentity(ctx, requestContext, identity, capability); err != nil {
+		return err
+	}
+	_, protected, err := protectedAccountProductPrincipal(ctx, capability)
+	if err != nil || protected {
+		return err
+	}
+	authenticated := authn.IdentityFromContext(ctx)
+	if authenticated == nil || strings.TrimSpace(authenticated.SubjectUserID) == "" {
+		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+	}
+	if requestContext == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	subjectUserID := strings.TrimSpace(authenticated.SubjectUserID)
+	if selectorSubject := strings.TrimSpace(requestContext.GetSubjectUserId()); selectorSubject != "" && selectorSubject != subjectUserID {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	if selectorOwner := strings.TrimSpace(requestContext.GetOwnerUserId()); selectorOwner != "" && selectorOwner != subjectUserID {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	if identity.OwnerUserID != subjectUserID {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	return nil
@@ -133,7 +168,7 @@ func validateProtectedAccountAgentSelector(selector *runtimev1.AgentRequestConte
 	if strings.TrimSpace(selector.GetSubjectUserId()) != "" ||
 		strings.TrimSpace(selector.GetOwnerUserId()) != "" ||
 		strings.TrimSpace(selector.GetRuntimeSourceRef()) != "" ||
-		strings.TrimSpace(selector.GetLocalAgentRef()) != "" || selector.GetScopedBinding() != nil {
+		strings.TrimSpace(selector.GetLocalAgentRef()) != "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	return nil

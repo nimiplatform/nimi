@@ -64,14 +64,12 @@ export function buildNimiRuntimeAgentConsumeContext(input: NimiRuntimeAgentConsu
     ownerUserId: identity.ownerUserId,
     runtimeSourceRef: identity.runtimeSourceRef,
     localAgentRef: identity.localAgentRef,
-    scopedBinding: input.scopedBinding,
   });
   return {
     ...identity,
     runtimeAppId,
     subjectUserId,
     requestContext,
-    ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
   };
 }
 
@@ -199,8 +197,7 @@ export function createNimiRuntimeAgentConsumeClient(
         }
         streams.push(projectAppMessageStream(runtime.appMessages.subscribeAppMessages({
           appId: context.runtimeAppId,
-          subjectUserId: context.scopedBinding ? '' : context.subjectUserId,
-          ...(context.scopedBinding ? { scopedBinding: context.scopedBinding } : {}),
+          subjectUserId: context.subjectUserId,
           cursor,
           fromAppIds: [RUNTIME_AGENT_APP_ID],
         }, callOptions), input, liveStartedAtMs));

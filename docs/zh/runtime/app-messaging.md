@@ -2,7 +2,7 @@
 
 > 状态：运行中 (Running)。`RuntimeAppService.SendAppMessage` 和 `SubscribeAppMessages` 是已发布的运行时中介跨应用消息原语 (`K-APP-001..K-APP-013+`)。
 
-Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用之间不会直接互相调用——它们通过 `RuntimeAppService` 发送类型化消息并订阅类型化事件，该服务负责验证发送者身份、实施速率限制、检测循环，并在应用向代理表面发送消息时应用凭证平面范围绑定要求。
+Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用之间不会直接互相调用——它们通过 `RuntimeAppService` 发送类型化消息并订阅类型化事件，该服务负责验证发送者身份、实施速率限制、检测循环，并在受保护本地应用使用 Agent 表面时重新核验当前会话和确切操作。
 
 ## 方法接口
 
@@ -23,11 +23,10 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 | `message_type` | 否 | 消息类型标识符 |
 | `payload` | 否 | JSON 结构体 |
 | `require_ack` | 否 | 发送方是否需要确认回执 |
-| `scoped_binding` | 条件性 | 当 `to_app_id=runtime.agent` 且消息家族属于 K-APP-008 集合时必需 |
 
 返回 `message_id`（ULID），`accepted`，`reason_code`。
 
-`scoped_binding` 字段是凭证平面边界：向运行时代理表面发送已准入家族消息的应用必须提供其已准入的范围绑定（由 `RuntimeAccountService.IssueScopedAppBinding` 发布）。绑定携带非秘密绑定 ID/可选句柄/非秘密关系选择器。这就是为什么应用消息接口位于 auth/identity 阶段——绑定本身具有认证功能。
+Runtime 从已认证连接推导当前账户和应用身份。受保护本地应用不携带令牌、绑定或调用者自行生成的证明；已验证的本地应用宿主注入进程绑定会话，Runtime 再由操作 owner 对确切操作作出授权判断。请求中的 ID 只用于关联和路由，不能建立权限。
 
 ## SubscribeAppMessages
 
@@ -37,7 +36,8 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 | `subject_user_id` | 否 | 过滤特定用户 |
 | `cursor` | 否 | 恢复游标 |
 | `from_app_ids` | 否 | 按发送者过滤（可重复） |
-| `scoped_binding` | 条件性 | 当 `from_app_ids` 包含 `runtime.agent` 且流用于显式绑定仅消费时必需 |
+| `local_agent_ref` | 仅本地应用的 Agent 订阅 | 由 Runtime 重新核验的资源选择条件，不是授权证明 |
+| `conversation_anchor_id` | 仅本地应用的 Agent 订阅 | 由 Runtime 重新核验的资源选择条件，不是授权证明 |
 
 `AppMessageEvent` 字段：
 
@@ -61,7 +61,7 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 
 | 规则 | 约束 | 原因 |
 | --- | --- | --- |
-| 应用认证 | `SendAppMessage` 必须验证 `from_app_id` 已在 `RuntimeAuthService` 注册且当前会话持有有效令牌。未认证返回 `UNAUTHENTICATED` | 防止任意进程冒充注册应用 |
+| 应用认证 | 普通调用者使用已准入的认证会话；受保护本地应用只使用宿主注入的进程绑定会话和当前逐操作判断。Runtime 推导或核验 `from_app_id`，未认证请求保持故障关闭 | 防止任意进程冒充注册应用 |
 | 负载大小限制 | `payload` 结构体序列化后不得超过 **64 KB**。超过限制返回 `INVALID_ARGUMENT` + `APP_MESSAGE_PAYLOAD_TOO_LARGE` | 防止单个消息耗尽运行时内存 |
 | 发送速率限制 | 每 `from_app_id`：**每秒 100 条消息** 滑动窗口。超过限制返回 `RESOURCE_EXHAUSTED` + `APP_MESSAGE_RATE_LIMITED` | 防止风暴/DoS 攻击 |
 | 循环检测 | 相同的 `(from_app_id, to_app_id)` 对在 **1 秒内双向交换超过 20 条消息** 自动断路该对 **60 秒** 返回 `FAILED_PRECONDITION` + `APP_MESSAGE_LOOP_DETECTED`。两个应用在此期间可以继续与其他应用通信 | 防止两个模块之间的 fork-bomb |
@@ -78,7 +78,7 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 | 审计 | 每对审计逻辑 | 一个标准审计界面 |
 | 速率限制 | 每对逻辑 | 一个标准速率限制 |
 | 循环检测 | 每对重新实现 | 一个标准断路器 |
-| 凭证平面绑定到代理表面 | 应用责任 | 通过 `scoped_binding` 强制执行 |
+| Agent 表面授权 | 应用端信任假设 | Runtime 重新核验当前会话和确切操作 |
 | 应用间协调语义 | 临时 | 类型化事件流 |
 
 运行时是协调基础。应用不需要重新发明它。
@@ -99,14 +99,14 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 
 ## 读者场景：一个模块向代理表面发送消息
 
-一个模块希望向用户的代理发送类型化消息。这是 `scoped_binding` 要求覆盖的情况。
+一个模块希望向用户的 Agent 发送类型化消息。
 
-1. **模块有范围绑定。** 之前由 `RuntimeAccountService.IssueScopedAppBinding` 为已准入目的发布。
-2. **`SendAppMessage`。** `from_app_id: app-x`，`to_app_id: runtime.agent`，消息家族属于 K-APP-008 集合，加上 `scoped_binding`。
-3. **运行时验证绑定。** 绑定 ID 解析；关系选择器检查；非秘密句柄（如果存在）匹配。
-4. **传递。** 消息在已准入绑定上下文中到达代理表面。
+1. **模块拥有当前已准入会话。** 对受保护本地应用，桌面端先准备 launch lease，Runtime 绑定确切进程，再由已验证宿主建立进程绑定会话。
+2. **Runtime 授权确切操作。** 操作 owner 重新核验当前账户、应用身份、会话、权限以及相关 LocalAgent 和对话选择条件。
+3. **`SendAppMessage`。** 模块向 `runtime.agent` 发送 K-APP-008 已准入消息家族；Runtime 推导发送者身份，不信任调用者自行填写的 ID。
+4. **传递。** 只有当前逐操作判断通过，消息才会到达 Agent 表面。
 
-没有有效的范围绑定，相同的消息将被拒绝。边界防止模块到代理的消息成为凭证平面的绕过。
+会话过期或被替换、权限撤销、进程不匹配、资源选择条件无效，都会使请求被拒绝。可携带证明不能恢复权限。
 
 ## 读者场景：循环触发断路器
 
@@ -123,7 +123,7 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 - 它不允许负载超过 64 KB。
 - 它不允许每个应用的速率超过每秒 100 条。
 - 它不允许两个应用在没有断路器的情况下创建 fork-bomb 循环。
-- 它不允许模块消息在没有已准入范围绑定的情况下到达运行时代理表面。
+- 它不允许调用者提供的 ID 或可携带证明授权访问 Runtime Agent 表面。
 - 它不替代 `RuntimeAuthService` —— 应用仍然在那里进行认证。
 
 ## 边界总结
@@ -133,7 +133,7 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 | `SendAppMessage` / `SubscribeAppMessages` 语义 | `RuntimeAppService` (`K-APP-001..002`) |
 | `AppMessageEventType` 枚举 | `K-APP-004` |
 | 安全基线（认证、大小、速率、循环） | `K-APP-005` |
-| 范围绑定发行 | `RuntimeAccountService.IssueScopedAppBinding` |
+| 受保护本地应用会话与逐操作授权 | `RuntimeAuthService` 与 Runtime 操作 owner |
 | 模块间路径比较 | `K-APP-006`（桌面模块 interMod 路径） |
 
 ## 来源依据

@@ -2,7 +2,7 @@ import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   createNimiRuntimeAgentClient,
 } from '@nimiplatform/sdk/runtime';
-import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
+import { withZhiyuRuntimeAgentAccessRequired } from '../agent-chat/runtime-agent-access';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { getZhiyuRuntime } from '../auth/runtime-platform';
 import {
@@ -53,7 +53,7 @@ export async function probeZhiyuRuntimeConversationHome(
     runtime,
     appId: 'nimi.zhiyu',
     getSubjectUserId: () => identity.ownerUserId,
-    withScopes: withZhiyuRuntimeAgentBindingRequired,
+    withScopes: withZhiyuRuntimeAgentAccessRequired,
   });
 
   try {

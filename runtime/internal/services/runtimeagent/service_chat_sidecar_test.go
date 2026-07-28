@@ -65,7 +65,7 @@ func TestRuntimeAgentApplyChatTrackSidecarOmitsUnprovenOriginLinkage(t *testing.
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-origin"),
 	}); err != nil {

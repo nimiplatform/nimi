@@ -399,23 +399,14 @@ func (s *Service) SubscribeAgentVoiceStream(req *runtimev1.SubscribeAgentVoiceSt
 	if identityErr != nil {
 		return identityErr
 	}
-	if err := s.authorizeBundledAvatarIdentity(stream.Context(), req.GetContext(), identity, runtimeAgentTurnReadScope); err != nil {
+	if err := s.authorizeCurrentAccountLocalAgent(stream.Context(), req.GetContext(), identity, runtimeAgentTurnReadScope); err != nil {
 		return err
 	}
 	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
 	if callerAppID == "" {
 		return status.Error(codes.InvalidArgument, "voice stream subscription requires app_id")
 	}
-	scopedBinding := req.GetContext().GetScopedBinding()
-	if scopedBinding != nil {
-		if scopedBindingAttachmentConversationAnchorMismatches(scopedBinding, conversationAnchorID) {
-			return status.Error(codes.PermissionDenied, "voice stream scoped binding conversation_anchor_id mismatch")
-		}
-		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, identity.LocalAgentRef, runtimeAgentTurnReadScope); err != nil {
-			return err
-		}
-	}
-	session, err := s.resolveVoicePlaybackAnchorScope(callerAppID, identity, conversationAnchorID, scopedBinding, runtimeAgentTurnReadScope)
+	session, err := s.resolveVoicePlaybackAnchorScope(callerAppID, identity, conversationAnchorID)
 	if err != nil {
 		return err
 	}

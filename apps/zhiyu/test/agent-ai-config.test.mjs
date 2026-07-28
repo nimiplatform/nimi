@@ -95,7 +95,7 @@ test('Zhiyu AI Config route evidence fails closed with typed zhiyu reason codes'
   assert.equal(identityMissing.reasonCode, 'zhiyu-agent-ai-config-identity-required');
 });
 
-test('Zhiyu turn readiness gates on conversation anchor, Agent AI Config readiness, and Runtime binding', async () => {
+test('Zhiyu turn readiness gates on conversation anchor, Agent AI Config readiness, and host operation context', async () => {
   const module = await importTurnReadinessModule();
   const routeReady = {
     ready: true,
@@ -115,23 +115,23 @@ test('Zhiyu turn readiness gates on conversation anchor, Agent AI Config readine
   const blockedByRoute = module.probeZhiyuAgentTurnReadiness(
     conversationReady(),
     routeNotConfigured,
-    scopedBindingDecision(module),
+    runtimeAccessDecision(module),
   );
   assert.equal(blockedByRoute.ready, false);
   assert.equal(blockedByRoute.reasonCode, 'zhiyu-agent-ai-config-not-configured');
 
-  const blockedByBinding = module.probeZhiyuAgentTurnReadiness(
+  const blockedByAccess = module.probeZhiyuAgentTurnReadiness(
     conversationReady(),
     routeReady,
-    module.resolveZhiyuRuntimeAgentBindingDecision(),
+    module.resolveZhiyuRuntimeAgentAccessDecision(),
   );
-  assert.equal(blockedByBinding.ready, false);
-  assert.equal(blockedByBinding.reasonCode, 'ZHIYU_RUNTIME_AGENT_BINDING_REQUIRED');
+  assert.equal(blockedByAccess.ready, false);
+  assert.equal(blockedByAccess.reasonCode, 'ZHIYU_RUNTIME_AGENT_OPERATION_CONTEXT_REQUIRED');
 
   const ready = module.probeZhiyuAgentTurnReadiness(
     conversationReady(),
     routeReady,
-    scopedBindingDecision(module),
+    runtimeAccessDecision(module),
   );
   assert.equal(ready.ready, true);
   assert.equal(ready.reasonCode, 'runtime-turn-ready');
@@ -455,17 +455,10 @@ function conversationReady(overrides = {}) {
   };
 }
 
-function scopedBindingDecision(module) {
-  return module.resolveZhiyuRuntimeAgentBindingDecision({
-    scopedBinding: {
-      bindingId: 'binding-ready',
-      bindingHandle: 'runtime.binding/binding-ready',
-      runtimeAppId: 'runtime.agent',
-      appInstanceId: 'nimi.zhiyu.local',
-      windowId: 'window-ready',
-      agentId: 'runtime-local-agent:opaque',
-      conversationAnchorId: 'conversation-anchor:opaque',
-      worldId: 'world-ready',
+function runtimeAccessDecision(module) {
+  return module.resolveZhiyuRuntimeAgentAccessDecision({
+    localAppCarrier: {
+      kind: 'protected-local-app-carrier',
     },
   });
 }

@@ -234,17 +234,6 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   const streamRequests: SubscribeAgentVoiceStreamRequest[] = [];
   const interruptRequests: InterruptAgentVoicePlaybackRequest[] = [];
   const artifactReads: ReadArtifactBytesRequest[] = [];
-  const scopedBinding = {
-    bindingId: 'binding-voice-1',
-    bindingHandle: 'binding-handle-1',
-    runtimeAppId: 'desktop',
-    appInstanceId: 'desktop-instance-1',
-    windowId: 'window-1',
-    avatarInstanceId: 'avatar-1',
-    agentId: LOCAL_AGENT_REF,
-    conversationAnchorId: 'anchor-1',
-    worldId: 'world-1',
-  };
   const voiceEvents: AgentVoiceStreamEvent[] = [{
     voiceStreamId: 'voice-stream-1',
     conversationAnchorId: 'anchor-1',
@@ -306,7 +295,6 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     voiceStreamId: 'voice-stream-1',
-    scopedBinding,
   });
   const received: AgentVoiceStreamEvent[] = [];
   for await (const event of stream) {
@@ -316,7 +304,7 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   assert.equal(streamRequests[0]?.voiceStreamId, 'voice-stream-1');
   assert.equal(streamRequests[0]?.agentId, LOCAL_AGENT_REF);
   assert.equal(streamRequests[0]?.context?.localAgentRef, LOCAL_AGENT_REF);
-  assert.deepEqual(streamRequests[0]?.context?.scopedBinding, scopedBinding);
+  assert.equal('scopedBinding' in (streamRequests[0]?.context ?? {}), false);
   assert.deepEqual(scopes[0], ['runtime.agent.turn.read']);
 
   const replay = await module.replayFinalArtifact({ artifactId: 'artifact-audio-1' });
@@ -342,7 +330,6 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
     turnId: 'turn-1',
     voiceStreamId: 'voice-stream-1',
     reason: 'avatar_user_interrupt',
-    scopedBinding,
   });
   assert.equal(interrupt.voicePlaybackState, 3);
   assert.equal(interrupt.terminalReason, 'avatar_user_interrupt');
@@ -350,11 +337,11 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   assert.equal(interruptRequests[0]?.conversationAnchorId, 'anchor-1');
   assert.equal(interruptRequests[0]?.turnId, 'turn-1');
   assert.equal(interruptRequests[0]?.context?.localAgentRef, LOCAL_AGENT_REF);
-  assert.deepEqual(interruptRequests[0]?.context?.scopedBinding, scopedBinding);
+  assert.equal('scopedBinding' in (interruptRequests[0]?.context ?? {}), false);
   assert.deepEqual(scopes[1], ['runtime.agent.turn.write']);
 });
 
-test('Runtime Agent voice helper fails closed when its carrier provides only raw public token metadata', async () => {
+test('Runtime Agent voice helper uses the host operation context for each voice operation', async () => {
   const streamOptions: RuntimeTypedCallOptions[] = [];
   const interruptOptions: RuntimeTypedCallOptions[] = [];
   const authCalls: string[] = [];
@@ -387,9 +374,14 @@ test('Runtime Agent voice helper fails closed when its carrier provides only raw
             replayTruncated: false,
           };
         },
-        async interruptAgentVoicePlayback(_request, options) {
+        async interruptAgentVoicePlayback(request, options) {
           interruptOptions.push(options ?? {});
-          throw new Error('not expected');
+          return {
+            voiceStreamId: request.voiceStreamId,
+            voiceOutputMode: 1,
+            voicePlaybackState: 3,
+            terminalReason: request.reason,
+          };
         },
       },
       artifacts: {
@@ -399,47 +391,44 @@ test('Runtime Agent voice helper fails closed when its carrier provides only raw
       },
     },
     getSubjectUserId: () => 'user-1',
-    withScopes: async (_nextScopes, operation) =>
-      operation({
-        metadata: {
-          'x-nimi-access-token-id': 'portable-voice-token',
-          'x-nimi-access-token-secret': 'portable-voice-secret',
-        },
-      }),
+    withScopes: async (_nextScopes, operation) => operation({}),
   });
 
-  await assert.rejects(
-    module.subscribeStream({
-      ownerUserId: OWNER_USER_ID,
-      runtimeSourceRef: RUNTIME_SOURCE_REF,
-      localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-1',
-      turnId: 'turn-1',
-      voiceStreamId: 'voice-stream-1',
-    }),
-    (error: unknown) =>
-      (error as { readonly reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
-  );
-  await assert.rejects(
-    module.interruptPlayback({
-      ownerUserId: OWNER_USER_ID,
-      runtimeSourceRef: RUNTIME_SOURCE_REF,
-      localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-1',
-      turnId: 'turn-1',
-      voiceStreamId: 'voice-stream-1',
-      reason: 'user_cancelled',
-    }),
-    (error: unknown) =>
-      (error as { readonly reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
-  );
+  const stream = await module.subscribeStream({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    voiceStreamId: 'voice-stream-1',
+  });
+  for await (const _event of stream) {
+    break;
+  }
+  await module.interruptPlayback({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    voiceStreamId: 'voice-stream-1',
+    reason: 'user_cancelled',
+  });
 
   assert.deepEqual(authCalls, []);
-  assert.deepEqual(streamOptions, []);
-  assert.deepEqual(interruptOptions, []);
+  assert.deepEqual(streamOptions, [{ metadata: {} }]);
+  assert.equal(
+    interruptOptions[0]?.metadata?.idempotencyKey,
+    'runtime-agent-voice-interrupt:user-1:agent-1:local-agent:test-user-1-agent-1:anchor-1:turn-1:voice-stream-1:user_cancelled',
+  );
+  assert.equal(
+    interruptOptions[0]?.metadata?.['x-nimi-idempotency-key'],
+    'runtime-agent-voice-interrupt:user-1:agent-1:local-agent:test-user-1-agent-1:anchor-1:turn-1:voice-stream-1:user_cancelled',
+  );
+  assert.equal(interruptOptions[0]?.metadata?.['x-nimi-access-token-id'], undefined);
 });
 
-test('Runtime Agent voice helper preserves scoped Runtime binding without renderer token fallback', async () => {
+test('Runtime Agent voice helper forwards only host operation call options without changing request identity', async () => {
   const streamOptions: RuntimeTypedCallOptions[] = [];
   const streamRequests: unknown[] = [];
   const authCalls: string[] = [];
@@ -485,7 +474,7 @@ test('Runtime Agent voice helper preserves scoped Runtime binding without render
     },
     getSubjectUserId: () => 'user-1',
     withScopes: async (_nextScopes, operation) => operation({
-      metadata: { 'x-nimi-runtime-scoped-binding-id': 'binding-voice' },
+      metadata: { 'x-nimi-host-operation-context': 'current' },
     }),
   });
 
@@ -502,25 +491,16 @@ test('Runtime Agent voice helper preserves scoped Runtime binding without render
   }
 
   assert.deepEqual(authCalls, []);
-  assert.equal(streamOptions[0]?.metadata?.['x-nimi-runtime-scoped-binding-id'], 'binding-voice');
+  assert.equal(streamOptions[0]?.metadata?.['x-nimi-host-operation-context'], 'current');
   assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-id'], undefined);
   const context = (streamRequests[0] as {
-    readonly context?: {
-      readonly scopedBinding?: {
-        readonly bindingId?: string;
-        readonly runtimeAppId?: string;
-        readonly agentId?: string;
-        readonly conversationAnchorId?: string;
-      };
-    };
+    readonly context?: Record<string, unknown>;
   } | undefined)?.context;
-  assert.equal(context?.scopedBinding?.bindingId, 'binding-voice');
-  assert.equal(context?.scopedBinding?.runtimeAppId, 'avatar');
-  assert.equal(context?.scopedBinding?.agentId, LOCAL_AGENT_REF);
-  assert.equal(context?.scopedBinding?.conversationAnchorId, 'anchor-1');
+  assert.equal(context?.localAgentRef, LOCAL_AGENT_REF);
+  assert.equal('scopedBinding' in (context ?? {}), false);
 });
 
-test('Runtime Agent voice helper does not manufacture host-equivalence metadata', async () => {
+test('Runtime Agent voice helper accepts an empty host operation context without manufacturing metadata', async () => {
   const streamOptions: RuntimeTypedCallOptions[] = [];
   const authCalls: string[] = [];
   const module = createNimiRuntimeAgentVoiceModule({
@@ -566,18 +546,18 @@ test('Runtime Agent voice helper does not manufacture host-equivalence metadata'
     withScopes: async (_nextScopes, operation) => operation({}),
   });
 
-  await assert.rejects(
-    () => module.subscribeStream({
-      ownerUserId: OWNER_USER_ID,
-      runtimeSourceRef: RUNTIME_SOURCE_REF,
-      localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-1',
-      turnId: 'turn-1',
-      voiceStreamId: 'voice-stream-1',
-    }),
-    (error) => error?.reasonCode === 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
-  );
+  const stream = await module.subscribeStream({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    voiceStreamId: 'voice-stream-1',
+  });
+  for await (const _event of stream) {
+    break;
+  }
 
   assert.deepEqual(authCalls, []);
-  assert.deepEqual(streamOptions, []);
+  assert.deepEqual(streamOptions, [{ metadata: {} }]);
 });

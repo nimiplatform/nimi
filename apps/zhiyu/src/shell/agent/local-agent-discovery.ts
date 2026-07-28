@@ -5,7 +5,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { getZhiyuRuntime } from '../auth/runtime-platform';
-import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
+import { withZhiyuRuntimeAgentAccessRequired } from '../agent-chat/runtime-agent-access';
 import {
   normalizeZhiyuLocalAgentDiscoveryInput,
   type ZhiyuLocalAgentDiscoveryInput,
@@ -41,7 +41,7 @@ export async function probeZhiyuLocalAgentDiscovery(
     runtime,
     appId: 'nimi.zhiyu',
     getSubjectUserId: () => projection.ownerUserId,
-    withScopes: withZhiyuRuntimeAgentBindingRequired,
+    withScopes: withZhiyuRuntimeAgentAccessRequired,
   });
 
   try {

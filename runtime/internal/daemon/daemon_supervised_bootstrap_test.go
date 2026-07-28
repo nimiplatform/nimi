@@ -524,39 +524,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	localModelsPath := filepath.Join(t.TempDir(), "models")
 	localStateRoot := t.TempDir()
 	localStatePath := filepath.Join(localStateRoot, "local-state.json")
-	localModelID := "model_bootstrap_sync_fail"
-	now := time.Now().UTC().Format(time.RFC3339)
-	stateRaw, err := json.Marshal(map[string]any{
-		"schemaVersion": 2,
-		"savedAt":       now,
-		"assets": []map[string]any{
-			{
-				"localAssetId":      localModelID,
-				"assetId":           "local/bootstrap-sync-fail",
-				"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT),
-				"capabilities":      []string{"chat"},
-				"engine":            "llama",
-				"entry":             "./weights/model.gguf",
-				"license":           "unknown",
-				"sourceRepo":        "",
-				"sourceRevision":    "main",
-				"hashes":            map[string]string{},
-				"endpoint":          "",
-				"status":            int32(runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED),
-				"installedAt":       now,
-				"updatedAt":         now,
-				"engineRuntimeMode": int32(runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED),
-			},
-		},
-		"services": []map[string]any{},
-		"audits":   []map[string]any{},
-	})
-	if err != nil {
-		t.Fatalf("marshal local state: %v", err)
-	}
-	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
-		t.Fatalf("write local state: %v", err)
-	}
+	writeManagedLlamaBootstrapState(t, localStatePath, localModelsPath)
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
 		HTTPAddr:             "127.0.0.1:0",
@@ -582,37 +550,6 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 		t.Fatalf("expected local service")
 	}
 	t.Cleanup(func() { svc.Close() })
-
-	manifestModelID := "local/bootstrap-sync-fail"
-	manifestEntry := "./weights/model.gguf"
-	modelSlug := "local-bootstrap-sync-fail"
-	entryPath := filepath.Join(localModelsPath, modelSlug, "weights", "model.gguf")
-	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
-		t.Fatalf("create entry dir: %v", err)
-	}
-	if err := os.WriteFile(entryPath, []byte("test-model"), 0o644); err != nil {
-		t.Fatalf("write entry file: %v", err)
-	}
-	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", modelSlug, "asset.manifest.json")
-	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
-		t.Fatalf("create manifest dir: %v", err)
-	}
-	manifestRaw, err := json.Marshal(map[string]any{
-		"model_id":         manifestModelID,
-		"logical_model_id": "nimi/" + modelSlug,
-		"entry":            manifestEntry,
-		"engine":           "llama",
-		"capabilities":     []string{"chat"},
-		"files":            []string{"weights/model.gguf"},
-		"hashes":           map[string]string{"sha256": "deadbeef"},
-		"source":           map[string]string{"repo": "test/repo", "revision": "main"},
-	})
-	if err != nil {
-		t.Fatalf("marshal manifest: %v", err)
-	}
-	if err := os.WriteFile(manifestPath, manifestRaw, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
 
 	store := auditlog.New(64, 64)
 	daemon.auditStore = store

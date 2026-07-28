@@ -55,14 +55,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "InvokeRealmUnaryResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
-    "service": "RuntimeAccountService",
-    "method": "IssueScopedAppBinding",
-    "kind": "unary",
-    "requestType": "IssueScopedAppBindingRequest",
-    "responseType": "IssueScopedAppBindingResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "service": "RuntimeAccountService",
     "method": "IssueWorkspaceBinding",
@@ -93,14 +85,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RequestPresenceVerificationRequest",
     "responseType": "RequestPresenceVerificationResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
-    "service": "RuntimeAccountService",
-    "method": "RevokeScopedAppBinding",
-    "kind": "unary",
-    "requestType": "RevokeScopedAppBindingRequest",
-    "responseType": "RevokeScopedAppBindingResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",

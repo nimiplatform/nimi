@@ -118,9 +118,9 @@ export function createNimiProtectedHostMemoryEmbeddingRuntimeSurface(
     withScopes: async (scopes, operation) => {
       if (!options.withScopes) {
         throw createNimiError({
-          message: 'Runtime memory embedding protected access requires a Runtime-owned scoped carrier.',
-          reasonCode: 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
-          actionHint: 'use_runtime_owned_scoped_carrier',
+          message: 'Runtime memory embedding protected access requires a host-provided per-operation context.',
+          reasonCode: 'SDK_RUNTIME_AGENT_OPERATION_CONTEXT_REQUIRED',
+          actionHint: 'use_host_runtime_agent_operation_context',
           source: 'runtime',
         });
       }

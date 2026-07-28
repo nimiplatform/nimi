@@ -51,7 +51,6 @@ export enum AccountReasonCode {
   PROOF_UNSUPPORTED = 8,
   REFRESH_REUSE_DETECTED = 9,
   CALLER_UNAUTHORIZED = 10,
-  AVATAR_BINDING_ONLY = 11,
   BINDING_NOT_FOUND = 13,
   BINDING_STALE = 14,
   BINDING_REPLAY = 15,
@@ -196,22 +195,6 @@ export enum PresenceVerificationState {
   REJECTED = 1,
   VERIFIED = 2,
   UNAVAILABLE = 3,
-}
-
-export enum ScopedAppBindingPurpose {
-  UNSPECIFIED = 0,
-  AVATAR_INTERACTION_CONSUME = 1,
-  APP_SCOPED_RUNTIME = 2,
-}
-
-export enum ScopedAppBindingState {
-  UNSPECIFIED = 0,
-  ISSUED = 1,
-  ACTIVE = 2,
-  SUSPENDED = 3,
-  REVOKED = 4,
-  EXPIRED = 5,
-  SUPERSEDED = 6,
 }
 
 export enum WorkspaceBindingPurpose {

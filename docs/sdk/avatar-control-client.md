@@ -39,8 +39,9 @@ An app wants the user's agent to wave when a milestone happens.
    `runtime.agent.presentation.activity_requested` event.
 4. **Avatar consumes.** Projection routes through the active backend
    branch; wave plays.
-5. **Audit lineage.** Activity request is attributed to the app via
-   admitted scoped binding.
+5. **Audit lineage.** Runtime attributes the activity request to the
+   current authenticated app session or protected local-app
+   per-operation decision.
 
 ## Reader Scenario: An App Pushes A Presentation Update
 

@@ -25,8 +25,8 @@ services:
   - RuntimeArtifactService
 methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
-    posture: protected_or_scoped_binding_read
-    rationale: artifact id is a selector only; an existing protected or scoped Runtime consumer must match the owner-issued audience, and third-party local-app access is not admitted
+    posture: authenticated_or_protected_local_app_operation
+    rationale: artifact id is a selector only; every admitted caller must match the current owner-issued audience, and LOCAL_APP is revalidated through its exact per-call operation decision
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

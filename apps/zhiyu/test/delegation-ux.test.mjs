@@ -198,23 +198,13 @@ test('separates required delegation scopes from granted and admitted scope evide
   assert.notDeepEqual(status.requiredScopes, status.grantedScopes);
 });
 
-test('fails closed before Runtime delegation RPC when only the local-app carrier is available', async () => {
+test('fails closed before Runtime delegation RPC when host operation context is unavailable', async () => {
   const { probeZhiyuRuntimeDelegationUx } = await loadModule();
-  globalThis.__nimiZhiyuRuntimeAgentBinding = {
-    localAppCarrier: {
-      kind: 'protected-local-app-carrier',
-    },
-  };
   const calls = [];
   globalThis.__NIMI_ELECTRON_TEST__ = {
     invoke: async (command, payload) => {
       calls.push({ command, payload });
-      return {
-        scopedBinding: {
-          bindingId: 'binding-local-app-carrier-only',
-          bindingSource: 'protected-local-app-carrier',
-        },
-      };
+      throw new Error('Runtime delegation RPC must not be invoked');
     },
   };
   try {
@@ -224,15 +214,10 @@ test('fails closed before Runtime delegation RPC when only the local-app carrier
 
     assert.equal(status.ready, false);
     assert.equal(status.state, 'blocked');
-    assert.equal(status.reasonCode, 'zhiyu-delegation-scoped-binding-required');
-    assert.equal(status.actionHint, 'attach_runtime_scoped_delegation_binding');
-    assert.deepEqual(calls.map((call) => call.command), ['zhiyu.runtimeAgent.issueScopedBinding']);
-    assert.deepEqual(calls[0].payload.scopes, [
-      'runtime.agent.delegation.read',
-      'runtime.agent.delegation.write',
-    ]);
+    assert.equal(status.reasonCode, 'ZHIYU_RUNTIME_AGENT_OPERATION_CONTEXT_REQUIRED');
+    assert.equal(status.actionHint, 'attach_protected_local_app_carrier');
+    assert.deepEqual(calls, []);
   } finally {
-    delete globalThis.__nimiZhiyuRuntimeAgentBinding;
     delete globalThis.__NIMI_ELECTRON_TEST__;
   }
 });

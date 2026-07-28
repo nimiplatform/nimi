@@ -67,9 +67,8 @@ enum AccountReasonCode {
   ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED = 8;
   ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED = 9;
   ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED = 10;
-  ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY = 11;
-  reserved 12;
-  reserved "ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN";
+  reserved 11, 12;
+  reserved "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY", "ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN";
   ACCOUNT_REASON_CODE_BINDING_NOT_FOUND = 13;
   ACCOUNT_REASON_CODE_BINDING_STALE = 14;
   ACCOUNT_REASON_CODE_BINDING_REPLAY = 15;
@@ -131,22 +130,6 @@ enum AccountCallerMode {
   ACCOUNT_CALLER_MODE_LOCAL_APP = 9;
 }
 
-enum ScopedAppBindingState {
-  SCOPED_APP_BINDING_STATE_UNSPECIFIED = 0;
-  SCOPED_APP_BINDING_STATE_ISSUED = 1;
-  SCOPED_APP_BINDING_STATE_ACTIVE = 2;
-  SCOPED_APP_BINDING_STATE_SUSPENDED = 3;
-  SCOPED_APP_BINDING_STATE_REVOKED = 4;
-  SCOPED_APP_BINDING_STATE_EXPIRED = 5;
-  SCOPED_APP_BINDING_STATE_SUPERSEDED = 6;
-}
-
-enum ScopedAppBindingPurpose {
-  SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED = 0;
-  SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME = 1;
-  SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME = 2;
-}
-
 enum WorkspaceMembershipState {
   WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED = 0;
   WORKSPACE_MEMBERSHIP_STATE_ACTIVE = 1;
@@ -202,23 +185,6 @@ message AccountCaller {
   string release_descriptor_ref = 8;
 }
 
-message ScopedAppBindingRelation {
-  string binding_id = 1;
-  string runtime_app_id = 2;
-  string app_instance_id = 3;
-  string window_id = 4;
-  string avatar_instance_id = 5;
-  string agent_id = 6;
-  string conversation_anchor_id = 7;
-  string world_id = 8;
-  ScopedAppBindingPurpose purpose = 9;
-  repeated string scopes = 10;
-  google.protobuf.Timestamp issued_at = 11;
-  google.protobuf.Timestamp expires_at = 12;
-  ScopedAppBindingState state = 13;
-  AccountReasonCode reason_code = 14;
-}
-
 message WorkspaceBindingRelation {
   string binding_id = 1;
   string runtime_app_id = 2;
@@ -240,10 +206,9 @@ message AccountSessionEvent {
   uint64 sequence = 2;
   google.protobuf.Timestamp emitted_at = 3;
   AccountEventType event_type = 4;
-  reserved 5, 6, 7, 8;
-  reserved "state", "reason_code", "account_reason_code", "account_projection";
+  reserved 5, 6, 7, 8, 10;
+  reserved "state", "reason_code", "account_reason_code", "account_projection", "binding_relation";
   string binding_id = 9;
-  ScopedAppBindingRelation binding_relation = 10;
   bool replay_truncated = 11;
   AccountSessionDeliveryKind delivery_kind = 12;
   AccountSessionSnapshot snapshot = 13;
@@ -374,36 +339,6 @@ message SwitchAccountResponse {
   bool production_inert = 6;
 }
 
-message IssueScopedAppBindingRequest {
-  AccountCaller caller = 1;
-  ScopedAppBindingRelation relation = 2;
-  int32 ttl_seconds = 3;
-}
-
-message IssueScopedAppBindingResponse {
-  bool accepted = 1;
-  string binding_id = 2;
-  string binding_carrier = 3;
-  ScopedAppBindingRelation relation = 4;
-  ReasonCode reason_code = 5;
-  AccountReasonCode account_reason_code = 6;
-  bool production_inert = 7;
-}
-
-message RevokeScopedAppBindingRequest {
-  AccountCaller caller = 1;
-  string binding_id = 2;
-  AccountReasonCode reason_code = 3;
-}
-
-message RevokeScopedAppBindingResponse {
-  bool accepted = 1;
-  ScopedAppBindingRelation relation = 2;
-  ReasonCode reason_code = 3;
-  AccountReasonCode account_reason_code = 4;
-  bool production_inert = 5;
-}
-
 message IssueWorkspaceBindingRequest {
   AccountCaller caller = 1;
   string workspace_id = 2;
@@ -480,8 +415,6 @@ service RuntimeAccountService {
   rpc InvokeRealmUnary(InvokeRealmUnaryRequest) returns (InvokeRealmUnaryResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc SwitchAccount(SwitchAccountRequest) returns (SwitchAccountResponse);
-  rpc IssueScopedAppBinding(IssueScopedAppBindingRequest) returns (IssueScopedAppBindingResponse);
-  rpc RevokeScopedAppBinding(RevokeScopedAppBindingRequest) returns (RevokeScopedAppBindingResponse);
   rpc IssueWorkspaceBinding(IssueWorkspaceBindingRequest) returns (IssueWorkspaceBindingResponse);
   rpc RevokeWorkspaceBinding(RevokeWorkspaceBindingRequest) returns (RevokeWorkspaceBindingResponse);
   rpc GetLocalAppPermissionStatus(GetLocalAppPermissionStatusRequest) returns (GetLocalAppPermissionStatusResponse);

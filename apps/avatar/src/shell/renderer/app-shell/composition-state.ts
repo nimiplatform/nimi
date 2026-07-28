@@ -101,10 +101,11 @@ function classifyBootstrapError(error: string): {
     return { state: 'degraded_launch_context_invalid', variant: 'degraded' };
   }
   if (
-    lowered.includes('app_grant_invalid')
-    || lowered.includes('attach_active_scoped_runtime_binding')
-    || lowered.includes('principal_unauthorized')
+    lowered.includes('principal_unauthorized')
     || lowered.includes('check_request_and_app_auth')
+    || lowered.includes('local_app_')
+    || lowered.includes('protected_local')
+    || lowered.includes('protected_origin_role_mismatch')
     || lowered.includes('account_session')
     || lowered.includes('account_access_token')
   ) {

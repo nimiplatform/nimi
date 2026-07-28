@@ -56,14 +56,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "InvokeRealmUnaryResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
-        service: "RuntimeAccountService",
-        method: "IssueScopedAppBinding",
-        kind: "unary",
-        request_type: "IssueScopedAppBindingRequest",
-        response_type: "IssueScopedAppBindingResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
         service: "RuntimeAccountService",
         method: "IssueWorkspaceBinding",
@@ -94,14 +86,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "RequestPresenceVerificationRequest",
         response_type: "RequestPresenceVerificationResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
-        service: "RuntimeAccountService",
-        method: "RevokeScopedAppBinding",
-        kind: "unary",
-        request_type: "RevokeScopedAppBindingRequest",
-        response_type: "RevokeScopedAppBindingResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",

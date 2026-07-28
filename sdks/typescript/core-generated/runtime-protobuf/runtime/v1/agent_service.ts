@@ -66,7 +66,6 @@ import { ClearAgentPresentationProfile } from "./agent_presentation";
 import { Ack } from "./common";
 import { AgentRequestContext } from "./agent_common";
 import { AgentPresentationEventDetail } from "./agent_presentation";
-import { ScopedRuntimeBindingAttachment } from "./common";
 import { MemoryReplicationState } from "./memory";
 import { MemoryRecord } from "./memory";
 import { MemoryRecordInput } from "./memory";
@@ -972,10 +971,6 @@ export interface AvatarDebugProbeRequestEnvelope {
      * @generated from protobuf field: bool replay_requested = 11
      */
     replayRequested: boolean;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 12
-     */
-    scopedBinding?: ScopedRuntimeBindingAttachment;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AvatarDebugProbeResultEnvelope
@@ -5796,8 +5791,7 @@ class AvatarDebugProbeRequestEnvelope$Type extends MessageType<AvatarDebugProbeR
             { no: 8, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "avatar_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "runtime_replay_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "replay_requested", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 12, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment }
+            { no: 11, name: "replay_requested", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<AvatarDebugProbeRequestEnvelope>): AvatarDebugProbeRequestEnvelope {
@@ -5854,9 +5848,6 @@ class AvatarDebugProbeRequestEnvelope$Type extends MessageType<AvatarDebugProbeR
                 case /* bool replay_requested */ 11:
                     message.replayRequested = reader.bool();
                     break;
-                case /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding */ 12:
-                    message.scopedBinding = ScopedRuntimeBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.scopedBinding);
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5902,9 +5893,6 @@ class AvatarDebugProbeRequestEnvelope$Type extends MessageType<AvatarDebugProbeR
         /* bool replay_requested = 11; */
         if (message.replayRequested !== false)
             writer.tag(11, WireType.Varint).bool(message.replayRequested);
-        /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 12; */
-        if (message.scopedBinding)
-            ScopedRuntimeBindingAttachment.internalBinaryWrite(message.scopedBinding, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

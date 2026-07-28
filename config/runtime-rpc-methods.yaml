@@ -329,12 +329,6 @@ services:
       - name: SwitchAccount
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount
-      - name: IssueScopedAppBinding
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding
-      - name: RevokeScopedAppBinding
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding
       - name: GetLocalAppPermissionStatus
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus

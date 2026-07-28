@@ -63,7 +63,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	if !s.isActivated() {
 		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false); !ok {
+	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	if invalidTimeout {

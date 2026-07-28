@@ -111,7 +111,7 @@ func TestPublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 		t.Fatalf("expected rejected event hook indication, got=%v", hookIntent)
 	}
 
-	hookStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
+	hookStream := newAgentEventCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:      "agent-alpha",

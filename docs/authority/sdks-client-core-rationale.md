@@ -1,6 +1,9 @@
 # SDKs Client Core - Rationale
 
 > 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/sdks/client-core.authority.yaml`。
+>
+> 文中涉及 Scoped App Binding、scoped binding bootstrap 或 binding custody
+> 的段落只记录已退休设计，不描述当前 SDK 表面，也不是生成器、实现或测试输入。
 
 ---
 
@@ -754,9 +757,9 @@ Runtime 调度器在 per-app 并发上限（2）或全局并发上限（8）达�
 
 ## S-RUNTIME-070 Session 恢复协议
 
-Public/binding-only consumers may explicitly reconnect and call `OpenSession`
-(`K-AUTHSVC-012`), but the result remains binding-only and cannot recover or
-rebind protected authority:
+Public consumers may explicitly reconnect and call `OpenSession`
+(`K-AUTHSVC-012`), but a fresh session cannot recover or rebind protected
+authority:
 
 - 恢复失败按 S-RUNTIME-045 退避重试基线重试。
 - 不区分网络故障和 daemon 重启——两者恢复策略相同（重新建立连接并打开新 session）。

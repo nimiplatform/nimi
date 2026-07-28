@@ -656,14 +656,6 @@ func (s *Service) snapshotPublicChatAnchorForCaller(callerAppID string, anchorID
 	return s.snapshotPublicChatAnchor(trimmedAnchorID, "", false)
 }
 
-func (s *Service) snapshotPublicChatAnchorForScopedBinding(anchorID string) (publicChatAnchorState, *publicChatTurnProjectionState, *publicChatTurnProjectionState, *publicChatFollowUpState, error) {
-	trimmedAnchorID := strings.TrimSpace(anchorID)
-	if trimmedAnchorID == "" {
-		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.InvalidArgument, "public chat scoped anchor snapshot requires conversation_anchor_id")
-	}
-	return s.snapshotPublicChatAnchor(trimmedAnchorID, "", false)
-}
-
 func (s *Service) snapshotPublicChatAnchorForAvatarLiveInstance(callerAppID string, anchorID string, identity localAgentIdentity) (publicChatAnchorState, *publicChatTurnProjectionState, *publicChatTurnProjectionState, *publicChatFollowUpState, error) {
 	trimmedCallerAppID := strings.TrimSpace(callerAppID)
 	trimmedAnchorID := strings.TrimSpace(anchorID)

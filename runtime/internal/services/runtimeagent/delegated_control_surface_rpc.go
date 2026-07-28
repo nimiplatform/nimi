@@ -162,23 +162,24 @@ func (s *Service) validateDelegatedControlRequest(callContext context.Context, c
 	} else if protected {
 		return trimmedAgentID, nil
 	}
-	if _, err := s.agentByID(trimmedAgentID); err != nil {
+	entry, err := s.agentByID(trimmedAgentID)
+	if err != nil {
+		return "", err
+	}
+	identity, err := validateLocalAgentIdentity(
+		entry.Agent.GetOwnerUserId(),
+		entry.Agent.GetRuntimeSourceRef(),
+		entry.Agent.GetLocalAgentRef(),
+	)
+	if err != nil {
 		return "", err
 	}
 	callerAppID := strings.TrimSpace(ctx.GetAppId())
 	if callerAppID == "" {
 		return "", status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
-	if strings.TrimSpace(requiredScope) != "" {
-		scopedBinding := ctx.GetScopedBinding()
-		if scopedBinding == nil {
-			return "", runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
-		}
-		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, trimmedAgentID, requiredScope); err != nil {
-			return "", err
-		}
-	} else if ctx.GetScopedBinding() == nil && strings.TrimSpace(ctx.GetSubjectUserId()) == "" {
-		return "", runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
+	if err := s.authorizeCurrentAccountLocalAgent(callContext, ctx, identity, requiredScope); err != nil {
+		return "", err
 	}
 	return trimmedAgentID, nil
 }

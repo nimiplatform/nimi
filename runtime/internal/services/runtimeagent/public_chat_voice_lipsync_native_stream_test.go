@@ -172,7 +172,7 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(
 	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "native_stream_completed" {
 		t.Fatalf("native playback terminal reason = %q, detail=%#v", got, terminalDetail)
 	}
-	presentationStream := newAgentEventCaptureStreamLimit(context.Background(), 4)
+	presentationStream := newAgentEventCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 4)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:      "agent-alpha",
@@ -207,7 +207,7 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(
 		presentationTerminal.GetTerminalReason() != "native_stream_completed" {
 		t.Fatalf("native voice presentation terminal mismatch: %#v", presentationTerminal)
 	}
-	voiceStream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 3)
+	voiceStream := newAgentVoiceStreamCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 3)
 	voiceStreamCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	voiceStreamCtx.AppId = "desktop.app"
 	if err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{
@@ -396,7 +396,7 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceFailedTerminalAfterProviderFailu
 		}
 	}
 
-	presentationStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
+	presentationStream := newAgentEventCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:      "agent-alpha",
@@ -418,7 +418,7 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceFailedTerminalAfterProviderFailu
 		t.Fatalf("native failed presentation terminal mismatch: %#v", presentationTerminal)
 	}
 
-	voiceStream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 2)
+	voiceStream := newAgentVoiceStreamCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2)
 	voiceStreamCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	voiceStreamCtx.AppId = "desktop.app"
 	if err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{

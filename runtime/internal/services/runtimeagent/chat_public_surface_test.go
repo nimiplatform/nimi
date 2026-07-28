@@ -232,22 +232,6 @@ func (s stubPublicChatBindingResolver) ResolvePublicChatBinding(
 	return s.resolve(ctx, req)
 }
 
-type stubScopedBindingValidator struct {
-	validate func(string, *runtimev1.ScopedAppBindingRelation, string) (runtimev1.AccountReasonCode, bool)
-	resolve  func(string) *runtimev1.ScopedAppBindingRelation
-}
-
-func (s stubScopedBindingValidator) ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-	return s.validate(bindingID, actual, requiredScope)
-}
-
-func (s stubScopedBindingValidator) ResolveScopedBindingRelation(bindingID string) *runtimev1.ScopedAppBindingRelation {
-	if s.resolve == nil {
-		return nil
-	}
-	return s.resolve(bindingID)
-}
-
 type publicChatEmitCapture struct {
 	mu    sync.Mutex
 	items []*runtimev1.SendAppMessageRequest
@@ -417,19 +401,6 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 			}, nil
 		},
 	})
-	svc.SetScopedBindingValidator(stubScopedBindingValidator{
-		validate: func(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-			if strings.TrimSpace(bindingID) == "" ||
-				actual == nil ||
-				strings.TrimSpace(actual.GetRuntimeAppId()) == "" ||
-				strings.TrimSpace(actual.GetAgentId()) == "" ||
-				strings.TrimSpace(actual.GetConversationAnchorId()) == "" ||
-				strings.TrimSpace(requiredScope) != runtimeAgentTurnReadScope {
-				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND, false
-			}
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, true
-		},
-	})
 	return svc, closeFn
 }
 
@@ -591,19 +562,13 @@ func requestPublicChatSessionSnapshot(
 	runtimeSourceRef := anchor.RuntimeSourceRef
 	localAgentRef := anchor.LocalAgentRef
 	svc.chatSurfaceMu.Unlock()
-	resp, err := svc.GetPublicChatSessionSnapshot(context.Background(), &runtimev1.GetPublicChatSessionSnapshotRequest{
+	resp, err := svc.GetPublicChatSessionSnapshot(authenticatedRuntimeAgentTestContext(context.Background(), subjectUserID), &runtimev1.GetPublicChatSessionSnapshotRequest{
 		Context: &runtimev1.AgentRequestContext{
 			AppId:            callerAppID,
 			SubjectUserId:    subjectUserID,
 			OwnerUserId:      ownerUserID,
 			RuntimeSourceRef: runtimeSourceRef,
 			LocalAgentRef:    localAgentRef,
-			ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
-				BindingId:            "binding-" + anchorID,
-				RuntimeAppId:         callerAppID,
-				AgentId:              localAgentRef,
-				ConversationAnchorId: anchorID,
-			},
 		},
 		AgentId:              localAgentRef,
 		ConversationAnchorId: anchorID,

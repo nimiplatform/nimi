@@ -1,24 +1,24 @@
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
 import {
-  resolveZhiyuRuntimeAgentBindingDecision,
-  resolveZhiyuRuntimeAgentBindingDecisionFromHost,
-  type ZhiyuRuntimeAgentBindingDecision,
-} from './runtime-agent-binding';
+  resolveZhiyuRuntimeAgentAccessDecision,
+  resolveZhiyuRuntimeAgentAccessDecisionFromHost,
+  type ZhiyuRuntimeAgentAccessDecision,
+} from './runtime-agent-access';
 
 export type ZhiyuRuntimeTurnStatus = ZhiyuEvidence['turn'];
 
 export {
-  resolveZhiyuRuntimeAgentBindingDecision,
+  resolveZhiyuRuntimeAgentAccessDecision,
 };
 
 // Turn readiness is projection-only: the conversation anchor plus Runtime
-// Agent AI Config readiness plus Runtime binding custody. Route truth stays
+// Agent AI Config readiness plus the current host operation context. Route truth stays
 // with Runtime Agent AI Config (K-AGCORE-147); Zhiyu never re-derives it.
 export function probeZhiyuAgentTurnReadiness(
   conversation: ZhiyuConversationHomeStatus,
   route: Pick<ZhiyuEvidence['route'], 'ready' | 'reasonCode' | 'actionHint' | 'source' | 'message'>,
-  runtimeBinding: ZhiyuRuntimeAgentBindingDecision = resolveZhiyuRuntimeAgentBindingDecisionFromHost(),
+  runtimeAccess: ZhiyuRuntimeAgentAccessDecision = resolveZhiyuRuntimeAgentAccessDecisionFromHost(),
 ): ZhiyuRuntimeTurnStatus {
   const identity = conversationIdentity(conversation);
   if (!identity) {
@@ -46,12 +46,12 @@ export function probeZhiyuAgentTurnReadiness(
     });
   }
 
-  if (runtimeBinding.kind === 'missing') {
+  if (runtimeAccess.kind === 'missing') {
     return turnUnavailable({
-      reasonCode: runtimeBinding.reasonCode,
-      actionHint: runtimeBinding.actionHint,
+      reasonCode: runtimeAccess.reasonCode,
+      actionHint: runtimeAccess.actionHint,
       source: 'runtime',
-      message: runtimeBinding.message,
+      message: runtimeAccess.message,
       ...identity,
     });
   }

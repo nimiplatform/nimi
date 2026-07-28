@@ -106,7 +106,7 @@ resource. The principal types include:
 | Principal type | Source |
 | --- | --- |
 | First-party Nimi user | `RuntimeAccountService` |
-| Admitted first-party app | First-party scoped binding |
+| Admitted first-party app | Current authenticated app session or protected local-app per-operation decision |
 | Local first-party machine actor | Runtime-internal authority |
 | ExternalPrincipal | `K-DELEG-*` delegated provider gateway |
 

@@ -1,5 +1,4 @@
 import type { SendAppMessageResponse } from '../core-generated/runtime-typed-client';
-import type { ScopedRuntimeBindingAttachment } from '../core-generated/runtime-protobuf/runtime/v1/common';
 import type { JsonObject } from '../types';
 import type {
   RuntimeLocalAgentIdentityInput,
@@ -65,7 +64,6 @@ export type NimiRuntimeAgentTurnRequest = RuntimeLocalAgentIdentityInput & {
   readonly maxOutputTokens?: number;
   readonly messages: readonly [NimiRuntimeAgentCurrentUserMessage];
   readonly reasoning?: NimiRuntimeAgentReasoningRequest;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
 
 export type NimiRuntimeAgentTurnCancellationReason =
@@ -82,7 +80,6 @@ export type NimiRuntimeAgentTurnInterruptRequest = RuntimeLocalAgentIdentityInpu
   readonly turnId?: string;
   readonly reason?: NimiRuntimeAgentTurnCancellationReason;
   readonly worldId?: string;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
 
 export type NimiRuntimeAgentTurnVoiceRenderRequest = RuntimeLocalAgentIdentityInput & {
@@ -95,7 +92,6 @@ export type NimiRuntimeAgentTurnVoiceRenderRequest = RuntimeLocalAgentIdentityIn
   readonly worldId?: string;
   readonly timeoutMs?: number;
   readonly idempotencyKey?: string;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
 
 export type NimiRuntimeAgentTurnVoiceRenderResult =
@@ -115,14 +111,12 @@ export type NimiRuntimeAgentConsumeRequest = RuntimeLocalAgentIdentityInput & {
   readonly subjectUserId?: string;
   readonly cursor?: string;
   readonly includeAgentEvents?: boolean;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
 
 export type NimiRuntimeAgentSessionSnapshotRequest = RuntimeLocalAgentIdentityInput & {
   readonly conversationAnchorId: string;
   readonly requestId?: string;
   readonly worldId?: string;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
 
 export type NimiRuntimeAgentTurnsModule = {

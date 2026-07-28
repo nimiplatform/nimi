@@ -4847,9 +4847,10 @@ carrier effect authority.
 
 Avatar backend evidence can support a Runtime probe result, but Avatar does not
 own public Runtime probe semantics. Avatar may submit an evidence-backed probe
-result only through Runtime's typed submit path. Runtime validates the agent,
-anchor, probe kind, result status, permission scope, scoped binding attachment,
-and evidence refs before accepting the public probe result envelope.
+result only through Runtime's typed submit path. Runtime validates the
+LocalAgent, anchor, probe kind, result status, permission scope, current
+session-derived access, and evidence refs before accepting the public probe
+result envelope.
 
 Runtime owns replay semantics and final public diagnostic projection. Avatar
 owns the local backend debug session evidence that it submits by ref.

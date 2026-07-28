@@ -14,8 +14,6 @@ import {
 } from './delegation-ux-projection';
 import {
   APP_ID,
-  DELEGATION_READ_SCOPE,
-  DELEGATION_WRITE_SCOPE,
   type DelegationControlSurface,
   type DelegationIdentity,
   type ZhiyuDelegationUxProbeOptions,
@@ -170,24 +168,15 @@ async function resolveDelegationSurface(
     createNimiHostRuntimeAgentDelegatedControlSurface,
   } = await import('@nimiplatform/sdk/runtime');
   const {
-    createZhiyuRuntimeAgentBindingScopeRunner,
-    resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost,
-    scopedBindingForRuntimeAgentRequest,
-  } = await import('../agent-chat/runtime-agent-binding');
+    createZhiyuRuntimeAgentAccessScopeRunner,
+    resolveZhiyuRuntimeAgentAccessDecisionFromHost,
+  } = await import('../agent-chat/runtime-agent-access');
   const { getZhiyuRuntime } = await import('../auth/runtime-platform');
-  const requiredScopes = [DELEGATION_READ_SCOPE, DELEGATION_WRITE_SCOPE];
-  const scopedBindingDecision = await resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost({
-    ownerUserId: identity.ownerUserId,
-    runtimeSourceRef: identity.runtimeSourceRef,
-    localAgentRef: identity.localAgentRef,
-    conversationAnchorId: identity.conversationAnchorId,
-    scopes: requiredScopes,
-  });
-  const scopedBinding = scopedBindingForRuntimeAgentRequest(scopedBindingDecision);
-  if (!scopedBinding) {
-    throw Object.assign(new Error('Runtime delegation control requires a Runtime-issued scoped binding.'), {
-      reasonCode: 'zhiyu-delegation-scoped-binding-required',
-      actionHint: 'attach_runtime_scoped_delegation_binding',
+  const runtimeAccess = resolveZhiyuRuntimeAgentAccessDecisionFromHost();
+  if (runtimeAccess.kind === 'missing') {
+    throw Object.assign(new Error(runtimeAccess.message), {
+      reasonCode: runtimeAccess.reasonCode,
+      actionHint: runtimeAccess.actionHint,
       source: 'renderer',
     });
   }
@@ -199,13 +188,13 @@ async function resolveDelegationSurface(
       agent: runtime.agents,
     }),
     getSubjectUserId: () => identity.ownerUserId,
-    withScopes: createZhiyuRuntimeAgentBindingScopeRunner(() => scopedBindingDecision),
+    withScopes: createZhiyuRuntimeAgentAccessScopeRunner(() => runtimeAccess),
   });
 
   return {
-    loadSnapshot: async (input) => sdkSurface(input).loadSnapshot({ ...input, scopedBinding }),
-    submitApprovalDecision: async (input) => sdkSurface(input).submitApprovalDecision({ ...input, scopedBinding }),
-    loadReplayTrace: async (input) => sdkSurface(input).loadReplayTrace({ ...input, scopedBinding }),
+    loadSnapshot: async (input) => sdkSurface(input).loadSnapshot(input),
+    submitApprovalDecision: async (input) => sdkSurface(input).submitApprovalDecision(input),
+    loadReplayTrace: async (input) => sdkSurface(input).loadReplayTrace(input),
   };
 }
 

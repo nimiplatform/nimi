@@ -26,7 +26,6 @@ export type {
   ListAvatarDebugProbeResultsResponse,
   RequestAvatarDebugProbeResponse,
 } from '../core-generated/runtime-typed-client';
-import type { ScopedRuntimeBindingAttachment } from '../core-generated/runtime-protobuf/runtime/v1/common';
 import type { JsonObject } from '../types';
 import type {
   RuntimeLocalAgentIdentityInput,
@@ -228,14 +227,12 @@ export interface NimiRuntimeAgentAvatarDebugConsumeEvent extends NimiRuntimeAgen
 export interface NimiRuntimeAgentConsumeContextInput extends RuntimeLocalAgentIdentityInput {
   readonly runtimeAppId: unknown;
   readonly subjectUserId?: unknown;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 }
 
 export interface NimiRuntimeAgentConsumeContext extends RuntimeLocalAgentIdentityProjection {
   readonly runtimeAppId: string;
   readonly subjectUserId: string;
   readonly requestContext: AgentRequestContext;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 }
 
 export type NimiRuntimeAgentConsumeIdentityInput = Omit<NimiRuntimeAgentConsumeContextInput, 'runtimeAppId'>;

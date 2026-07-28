@@ -436,10 +436,10 @@ func TestRefreshRotationAndReuseDetection(t *testing.T) {
 	}
 }
 
-func TestLogoutRevokesBindingsBeforeFinalAccountStatus(t *testing.T) {
-	svc := newHarnessService(t, nil)
-	completeLogin(t, svc)
-	issueBinding(t, svc)
+func TestLogoutRevokesWorkspaceBindingsBeforeFinalAccountStatus(t *testing.T) {
+	svc := newWorkspaceService(t)
+	completeWorkspaceLogin(t, svc)
+	issueWorkspaceBinding(t, svc)
 	resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("Logout: %v", err)
@@ -522,10 +522,9 @@ func TestLogoutAndSwitchFailClosedWhenCustodyCannotBeCleared(t *testing.T) {
 	}
 }
 
-func TestSwitchAccountRevokesBindingsAndClearsActiveProjection(t *testing.T) {
+func TestSwitchAccountClearsActiveProjection(t *testing.T) {
 	svc := newHarnessService(t, nil)
 	completeLogin(t, svc)
-	issueBinding(t, svc)
 	resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("SwitchAccount: %v", err)
@@ -535,7 +534,7 @@ func TestSwitchAccountRevokesBindingsAndClearsActiveProjection(t *testing.T) {
 	}
 }
 
-func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
+func TestLogoutAndUserSwitchRevokeAccountProjection(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		act  func(*Service) error
@@ -577,14 +576,6 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 			if !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED || desktopToken == "" {
 				t.Fatalf("Runtime-private broker credential unavailable before revoke: ok=%v reason=%v token=%q", ok, reason, desktopToken)
 			}
-			avatarBinding := issueBinding(t, svc)
-			secondaryHostBinding := issueBindingForRelation(t, svc, bindingRelationFor("window-2", "avatar-2", "agent-2", "anchor-2"))
-			for _, binding := range []*runtimev1.IssueScopedAppBindingResponse{avatarBinding, secondaryHostBinding} {
-				if reason, ok := svc.ValidateScopedBinding(binding.GetBindingId(), binding.GetRelation(), "runtime.agent.turn.read"); !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
-					t.Fatalf("binding should validate before revoke, ok=%v reason=%v", ok, reason)
-				}
-			}
-
 			if err := tc.act(svc); err != nil {
 				t.Fatal(err)
 			}
@@ -595,11 +586,6 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 			}
 			if accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS || accountStatusProjection(status) != nil {
 				t.Fatalf("Runtime account projection must be revoked: %+v", status)
-			}
-			for _, binding := range []*runtimev1.IssueScopedAppBindingResponse{avatarBinding, secondaryHostBinding} {
-				if reason, ok := svc.ValidateScopedBinding(binding.GetBindingId(), binding.GetRelation(), "runtime.agent.turn.read"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE {
-					t.Fatalf("binding must be stale after %s, ok=%v reason=%v", tc.name, ok, reason)
-				}
 			}
 		})
 	}
@@ -626,14 +612,10 @@ func TestDaemonRestartRecoveryAndNoCustodyRestartBehavior(t *testing.T) {
 	}
 }
 
-func TestDaemonRestartRecoversAccountButInvalidatesScopedBindings(t *testing.T) {
+func TestDaemonRestartRecoversAccountAndPrivateBrokerCredential(t *testing.T) {
 	custody := &memoryCustody{}
 	beforeRestart := newHarnessService(t, custody)
 	completeLogin(t, beforeRestart)
-	issued := issueBinding(t, beforeRestart)
-	if reason, ok := beforeRestart.ValidateScopedBinding(issued.GetBindingId(), issued.GetRelation(), "runtime.agent.turn.read"); !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
-		t.Fatalf("binding should validate before restart, ok=%v reason=%v", ok, reason)
-	}
 
 	afterRestart := newHarnessService(t, custody)
 	status, err := afterRestart.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: firstPartyCaller()})
@@ -650,10 +632,6 @@ func TestDaemonRestartRecoversAccountButInvalidatesScopedBindings(t *testing.T) 
 	if !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED || token != "access-1" {
 		t.Fatalf("Runtime-private broker credential should recover through custody: ok=%v reason=%v token=%q", ok, reason, token)
 	}
-	if reason, ok := afterRestart.ValidateScopedBinding(issued.GetBindingId(), issued.GetRelation(), "runtime.agent.turn.read"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND {
-		t.Fatalf("pre-restart binding must not survive daemon restart, ok=%v reason=%v", ok, reason)
-	}
-
 	unavailable := newHarnessService(t, &memoryCustody{err: ErrCustodyUnavailable})
 	status, err = unavailable.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: firstPartyCaller()})
 	if err != nil {
@@ -774,7 +752,6 @@ func TestLifecycleRPCsRejectUnregisteredCallerWithoutMutation(t *testing.T) {
 			custody := &memoryCustody{}
 			svc := newHarnessService(t, custody, WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-2", "refresh-2")}))
 			completeLogin(t, svc)
-			issued := issueBinding(t, svc)
 			eventCount := len(svc.events)
 			material := svc.material
 			projection := cloneProjection(svc.projection)
@@ -798,9 +775,6 @@ func TestLifecycleRPCsRejectUnregisteredCallerWithoutMutation(t *testing.T) {
 			}
 			if len(svc.events) != eventCount {
 				t.Fatalf("rejected %s emitted lifecycle events: before=%d after=%d", tc.name, eventCount, len(svc.events))
-			}
-			if reason, ok := svc.ValidateScopedBinding(issued.GetBindingId(), issued.GetRelation(), "runtime.agent.turn.read"); !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
-				t.Fatalf("rejected %s must not revoke bindings, ok=%v reason=%v", tc.name, ok, reason)
 			}
 		})
 	}

@@ -1,6 +1,6 @@
 # 账户与会话
 
-> 状态：运行中 (Running)。`RuntimeAccountService` 拥有本地机器的账户会话事实、保管、登录生命周期以及在 `K-ACCSVC-*` 下的第一方范围绑定发行。
+> 状态：运行中 (Running)。`RuntimeAccountService` 拥有本地机器的账户会话事实、保管、登录生命周期以及 `K-ACCSVC-*` 下基于当前账户的授权判断。
 
 `RuntimeAccountService` 是**本地第一方账户身份**的运行时权威：谁登录了这台机器，当前活动的是哪个账户，如何进行登录/刷新/登出流程，以及短期访问令牌如何分发给已准入的本地第一方应用程序中。
 
@@ -13,7 +13,7 @@
 | 刷新令牌保管 | 应用持有的刷新令牌（应用可能不持有它们） |
 | 守护进程重启恢复 | 外部主体会话（这些是 `RuntimeAuthService` 的职责） |
 | 第一方短期应用访问令牌分发 | 应用工作区状态 |
-| 第一方范围应用绑定发行和撤销 | 每个应用的对话事实 |
+| 受保护本地应用逐操作的当前账户复核 | 每个应用的对话事实 |
 | 账户 `subject_user_id` 推导 | 调用者提供的 `subject_user_id`（运行时从不信任调用者提供的主体身份） |
 
 应用会话和外部主体会话存在于 `RuntimeAuthService` (`K-AUTHSVC-*`) 中。这两个服务不可互换。
@@ -30,10 +30,8 @@
 | `CompleteLogin` | 完成登录证明 |
 | `GetAccessToken` | 获取运行时发行的短期访问令牌 |
 | `RefreshAccountSession` | 主动/反应式会话刷新 |
-| `Logout` | 撤销本地凭证 + 绑定 |
+| `Logout` | 撤销本地凭证与当前应用授权状态 |
 | `SwitchAccount` | 原子激活账户切换 |
-| `IssueScopedAppBinding` | 为第一方应用发行一个范围绑定 |
-| `RevokeScopedAppBinding` | 撤销先前发行的绑定 |
 
 新方法需要明确的内核规则准入。该集合不能通过应用约定扩展。
 
@@ -48,7 +46,7 @@
 | `expired` | 材料已过期；无法授权工作 |
 | `reauth_required` | 需要用户操作才能继续 |
 | `switching` | 原子激活账户切换正在进行中 |
-| `logging_out` | 撤销本地材料 + 绑定 |
+| `logging_out` | 撤销本地材料与当前应用授权状态 |
 | `unavailable` | 无法安全地决定/保管账户状态 —— 故障关闭 |
 
 **单个活跃账户不变性：** 一个运行时实例一次最多有一个 `authenticated` 账户。`SwitchAccount` 是原子的；两个有效的账户凭证不能共存。
@@ -78,7 +76,7 @@
 3. **刷新成功。** 运行时原子地交换新的令牌替换旧的令牌。发出 `refresh.completed` + `account.status`。状态返回到 `authenticated`。
 4. **应用的下一个 `GetAccessToken` 返回新的令牌。**
 
-如果刷新可恢复地失败，状态移动到 `reauth_required` 并且绑定被暂停或撤销。应用不能假装刷新成功。
+如果刷新以可恢复方式失败，状态进入 `reauth_required`。在账户与应用会话重新建立前，当前受保护操作会保持故障关闭。应用不能假装刷新成功。
 
 ## 读者场景：账户切换
 
@@ -99,16 +97,11 @@
 
 如果恢复的状态是 `expired`，应用的下一个 `GetAccessToken` 将关闭失败 —— 没有隐式的重新登录。
 
-## 范围应用绑定
+## 受保护本地应用授权
 
-`IssueScopedAppBinding` 发行一个绑定，将已准入的第一方应用与具有有限范围的活动账户关联起来。绑定是应用在希望以账户授权执行有限目的时所呈现的内容。`RevokeScopedAppBinding` 可以撤销它。
+受保护本地应用不会获得可携带的账户绑定。桌面端准备一次性 launch lease，Runtime 将它绑定到确切的原生进程，`RuntimeAuthService` 再通过已验证 carrier 建立进程绑定的本地应用会话。每次受保护操作都由 Runtime 重新核验当前账户、应用身份、进程绑定会话、确切操作以及 owner 定义的资源选择条件。
 
-绑定：
-
-- 由运行时发行，而不是应用发行
-- 具有范围（绑定声明其目的）
-- 可以由运行时独立于登出而撤销
-- 在登出时自动撤销
+登出、账户切换、会话过期、进程替换或 Runtime 重启都会使当前判断失效。调用者自行提供应用 ID、账户 ID、LocalAgent ID 或对话 ID，不能借此恢复权限。
 
 ## 账户服务不做的事情
 

@@ -2,14 +2,11 @@ package runtimeagent
 
 import (
 	"context"
-	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type eventStreamRuntime struct {
@@ -24,7 +21,7 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	if req == nil {
 		return status.Error(codes.InvalidArgument, "subscribe agent events request is required")
 	}
-	identity, err := localAgentIdentityFromContext(req.GetContext())
+	identity, _, err := r.svc.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
 		return err
 	}
@@ -32,20 +29,10 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	if principalErr != nil {
 		return principalErr
 	}
-	if err := r.svc.authorizeBundledAvatarIdentity(stream.Context(), req.GetContext(), identity, "runtime.agent.read"); err != nil {
+	if err := r.svc.authorizeCurrentAccountLocalAgent(stream.Context(), req.GetContext(), identity, "runtime.agent.read"); err != nil {
 		return err
 	}
 	localAgentRef := identity.LocalAgentRef
-	requestContext := req.GetContext()
-	scopedBinding := requestContext.GetScopedBinding()
-	if scopedBinding == nil && strings.TrimSpace(requestContext.GetAppId()) != "" && strings.TrimSpace(requestContext.GetSubjectUserId()) == "" {
-		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
-	}
-	if scopedBinding != nil {
-		if err := r.svc.validateScopedBindingAttachment(scopedBinding, requestContext.GetAppId(), localAgentRef, runtimeAgentEventReadScope); err != nil {
-			return err
-		}
-	}
 	filterMap := make(map[runtimev1.AgentEventType]struct{}, len(req.GetEventFilters()))
 	for _, filter := range req.GetEventFilters() {
 		if filter != runtimev1.AgentEventType_AGENT_EVENT_TYPE_UNSPECIFIED {
@@ -59,7 +46,6 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	sub := &subscriber{
 		agentID:               localAgentRef,
 		eventFilters:          filterMap,
-		scopedBinding:         cloneScopedBindingAttachment(scopedBinding),
 		bundledAvatarIdentity: nil,
 		ch:                    make(chan *runtimev1.AgentEvent, subscriberBuffer),
 	}
@@ -87,34 +73,23 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 		return err
 	}
 	for _, event := range backlog {
-		if err := r.validateSubscriberBinding(stream.Context(), sub, requestContext.GetAppId()); err != nil {
-			return r.sendBindingRevokedAndClose(stream, sub, err)
+		if err := r.validateSubscriberAccess(stream.Context(), sub); err != nil {
+			return err
 		}
 		if err := stream.Send(event); err != nil {
 			return err
 		}
 	}
-	var bindingTick <-chan time.Time
-	var bindingTicker *time.Ticker
-	if sub.scopedBinding != nil {
-		bindingTicker = time.NewTicker(time.Second)
-		bindingTick = bindingTicker.C
-		defer bindingTicker.Stop()
-	}
 	for {
 		select {
 		case <-stream.Context().Done():
 			return stream.Context().Err()
-		case <-bindingTick:
-			if err := r.validateSubscriberBinding(stream.Context(), sub, requestContext.GetAppId()); err != nil {
-				return r.sendBindingRevokedAndClose(stream, sub, err)
-			}
 		case event, ok := <-sub.ch:
 			if !ok {
 				return nil
 			}
-			if err := r.validateSubscriberBinding(stream.Context(), sub, requestContext.GetAppId()); err != nil {
-				return r.sendBindingRevokedAndClose(stream, sub, err)
+			if err := r.validateSubscriberAccess(stream.Context(), sub); err != nil {
+				return err
 			}
 			if err := stream.Send(cloneAgentEvent(event)); err != nil {
 				return err
@@ -123,43 +98,12 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	}
 }
 
-func (r eventStreamRuntime) validateSubscriberBinding(ctx context.Context, sub *subscriber, fallbackRuntimeAppID string) error {
+func (r eventStreamRuntime) validateSubscriberAccess(ctx context.Context, sub *subscriber) error {
 	if sub == nil {
 		return nil
 	}
 	if sub.bundledAvatarIdentity != nil {
 		return r.svc.revalidateProtectedAccountIdentity(ctx, *sub.bundledAvatarIdentity)
-	}
-	if sub.scopedBinding == nil {
-		return nil
-	}
-	return r.svc.validateScopedBindingAttachment(sub.scopedBinding, fallbackRuntimeAppID, sub.agentID, runtimeAgentEventReadScope)
-}
-
-func (r eventStreamRuntime) sendBindingRevokedAndClose(stream runtimev1.RuntimeAgentService_SubscribeAgentEventsServer, sub *subscriber, validationErr error) error {
-	if stream == nil || sub == nil {
-		return nil
-	}
-	reason := "binding.revoked"
-	if validationErr != nil && strings.TrimSpace(validationErr.Error()) != "" {
-		reason = strings.TrimSpace(validationErr.Error())
-	}
-	event := &runtimev1.AgentEvent{
-		EventType:     runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE,
-		AgentId:       sub.agentID,
-		LocalAgentRef: sub.agentID,
-		Timestamp:     timestamppb.Now(),
-		Detail: &runtimev1.AgentEvent_State{
-			State: &runtimev1.AgentStateEventDetail{
-				Family:                runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED,
-				CurrentStatusText:     "binding.revoked",
-				PreviousStatusText:    reason,
-				HasPreviousStatusText: true,
-			},
-		},
-	}
-	if err := stream.Send(event); err != nil {
-		return err
 	}
 	return nil
 }

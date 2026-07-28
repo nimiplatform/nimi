@@ -79,8 +79,8 @@ async function readRuntimeMemoryObservatory(
     createNimiRuntimeAgentMemoryObservatory,
   } = await import('@nimiplatform/sdk/runtime');
   const {
-    withZhiyuRuntimeAgentBindingRequired,
-  } = await import('../agent-chat/runtime-agent-binding');
+    withZhiyuRuntimeAgentAccessRequired,
+  } = await import('../agent-chat/runtime-agent-access');
   const { getZhiyuRuntime } = await import('../auth/runtime-platform');
   const runtime = getZhiyuRuntime();
   return createNimiRuntimeAgentMemoryObservatory({
@@ -94,7 +94,7 @@ async function readRuntimeMemoryObservatory(
     exportedAt: input.exportedAt,
     maxRecords: input.maxRecords,
     getSubjectUserId: () => input.ownerUserId,
-    withScopes: withZhiyuRuntimeAgentBindingRequired,
+    withScopes: withZhiyuRuntimeAgentAccessRequired,
   });
 }
 

@@ -428,9 +428,8 @@ resolver 必须严格 fail-close：
 
 - `K-MCAT-032` / `K-MCAT-033`：`pnpm check:runtime-catalog-drift`
 - `K-MCAT-034` / `K-MCAT-035` / `K-MCAT-036` / `K-MCAT-037`：`runtime` Go
-  resolver 单元测试 + `go run ./cmd/runtime-compliance --gate`（resolver
-  implementation and compliance evidence must exist before production
-  readiness is claimed）
+  resolver owner 单元测试；production readiness 仍由真实 Runtime
+  build、启动和产品验收确认。
 
 ---
 

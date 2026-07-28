@@ -206,7 +206,7 @@ groups:
       Runtime account authority is admitted by K-ACCSVC-* as the local
       first-party custody source, with K-ACCSVC-002 defining the frozen method
       set. SDK projection is required by S-RUNTIME-109 / S-RUNTIME-110 for
-      account projection, login/logout, scoped binding, Runtime-mediated Realm
+      account projection, login/logout, Runtime-mediated Realm
       operations, and the login adapter surface;
       Desktop/app code must not own refresh tokens, session stores, shared auth
       files, or direct token refresh seams.
@@ -220,8 +220,6 @@ groups:
       - InvokeRealmUnary
       - Logout
       - SwitchAccount
-      - IssueScopedAppBinding
-      - RevokeScopedAppBinding
       - GetLocalAppPermissionStatus
       - RequestLocalAppPermission
     excluded:

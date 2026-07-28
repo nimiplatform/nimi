@@ -58,7 +58,7 @@ func TestPublicChatSessionSnapshotAcceptsFirstPartyProtectedCapability(t *testin
 		RequestId:            "subject-protected-snapshot",
 	})
 	if err != nil {
-		t.Fatalf("first-party protected snapshot should not require scoped binding: %v", err)
+		t.Fatalf("first-party protected snapshot should use the validated capability: %v", err)
 	}
 	payload := publicChatSessionSnapshotDetail(t, resp.GetSnapshot())
 	if got := payload["request_id"]; got != "subject-protected-snapshot" {

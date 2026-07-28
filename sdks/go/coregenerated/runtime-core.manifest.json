@@ -122,24 +122,6 @@
           "response_stream": false
         },
         {
-          "name": "IssueScopedAppBinding",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
-          "kind": "unary",
-          "request_type": "IssueScopedAppBindingRequest",
-          "response_type": "IssueScopedAppBindingResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RevokeScopedAppBinding",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
-          "kind": "unary",
-          "request_type": "RevokeScopedAppBindingRequest",
-          "response_type": "RevokeScopedAppBindingResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "IssueWorkspaceBinding",
           "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
           "kind": "unary",
@@ -2338,12 +2320,10 @@
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
     "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
-    "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
     "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
     "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
-    "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
@@ -2620,14 +2600,6 @@
       "response_type": "InvokeRealmUnaryResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
-      "service": "RuntimeAccountService",
-      "method": "IssueScopedAppBinding",
-      "kind": "unary",
-      "request_type": "IssueScopedAppBindingRequest",
-      "response_type": "IssueScopedAppBindingResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
       "service": "RuntimeAccountService",
       "method": "IssueWorkspaceBinding",
@@ -2658,14 +2630,6 @@
       "kind": "unary",
       "request_type": "RequestPresenceVerificationRequest",
       "response_type": "RequestPresenceVerificationResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
-      "service": "RuntimeAccountService",
-      "method": "RevokeScopedAppBinding",
-      "kind": "unary",
-      "request_type": "RevokeScopedAppBindingRequest",
-      "response_type": "RevokeScopedAppBindingResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
@@ -4574,14 +4538,6 @@
       "response_type": "InvokeRealmUnaryResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
-      "service": "RuntimeAccountService",
-      "method": "IssueScopedAppBinding",
-      "kind": "unary",
-      "request_type": "IssueScopedAppBindingRequest",
-      "response_type": "IssueScopedAppBindingResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
       "service": "RuntimeAccountService",
       "method": "IssueWorkspaceBinding",
@@ -4612,14 +4568,6 @@
       "kind": "unary",
       "request_type": "RequestPresenceVerificationRequest",
       "response_type": "RequestPresenceVerificationResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
-      "service": "RuntimeAccountService",
-      "method": "RevokeScopedAppBinding",
-      "kind": "unary",
-      "request_type": "RevokeScopedAppBindingRequest",
-      "response_type": "RevokeScopedAppBindingResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
@@ -6791,8 +6739,6 @@
       "InterruptAgentVoicePlaybackResponse",
       "InvokeRealmUnaryRequest",
       "InvokeRealmUnaryResponse",
-      "IssueScopedAppBindingRequest",
-      "IssueScopedAppBindingResponse",
       "IssueWorkspaceBindingRequest",
       "IssueWorkspaceBindingResponse",
       "KnowledgeAppPrivateOwner",
@@ -7122,8 +7068,6 @@
       "RevokeExternalPrincipalSessionRequest",
       "RevokeLocalDevelopmentAuthorizationRequest",
       "RevokeLocalDevelopmentAuthorizationResponse",
-      "RevokeScopedAppBindingRequest",
-      "RevokeScopedAppBindingResponse",
       "RevokeSessionRequest",
       "RevokeWorkspaceBindingRequest",
       "RevokeWorkspaceBindingResponse",
@@ -7167,8 +7111,6 @@
       "SchedulingOccupancySnapshot",
       "SchedulingResourceHint",
       "SchedulingTargetJudgement",
-      "ScopedAppBindingRelation",
-      "ScopedRuntimeBindingAttachment",
       "SearchCatalogModelsRequest",
       "SearchCatalogModelsResponse",
       "SearchHybridRequest",
@@ -7452,8 +7394,6 @@
       "ScenarioJobStatus",
       "ScenarioType",
       "SchedulingState",
-      "ScopedAppBindingPurpose",
-      "ScopedAppBindingState",
       "SensitivityClass",
       "SpeechAlignmentUnit",
       "SpeechTimingMode",
@@ -7612,13 +7552,6 @@
             "repeated": false,
             "optional": false,
             "number": 9
-          },
-          {
-            "name": "binding_relation",
-            "type": "ScopedAppBindingRelation",
-            "repeated": false,
-            "optional": false,
-            "number": 10
           },
           {
             "name": "replay_truncated",
@@ -9195,13 +9128,6 @@
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "scoped_binding",
-            "type": "ScopedRuntimeBindingAttachment",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           },
           {
             "name": "owner_user_id",
@@ -10930,13 +10856,6 @@
             "repeated": false,
             "optional": false,
             "number": 11
-          },
-          {
-            "name": "scoped_binding",
-            "type": "ScopedRuntimeBindingAttachment",
-            "repeated": false,
-            "optional": false,
-            "number": 12
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -18197,88 +18116,6 @@
           {
             "name": "error_message",
             "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "IssueScopedAppBindingRequest",
-        "fields": [
-          {
-            "name": "caller",
-            "type": "AccountCaller",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "relation",
-            "type": "ScopedAppBindingRelation",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "ttl_seconds",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "IssueScopedAppBindingResponse",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "binding_carrier",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "relation",
-            "type": "ScopedAppBindingRelation",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "account_reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "production_inert",
-            "type": "bool",
             "repeated": false,
             "optional": false,
             "number": 7
@@ -31543,74 +31380,6 @@
         "source_file": "proto/runtime/v1/development.proto"
       },
       {
-        "name": "RevokeScopedAppBindingRequest",
-        "fields": [
-          {
-            "name": "caller",
-            "type": "AccountCaller",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "RevokeScopedAppBindingResponse",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "relation",
-            "type": "ScopedAppBindingRelation",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "account_reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "production_inert",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
         "name": "RevokeSessionRequest",
         "fields": [
           {
@@ -33324,179 +33093,6 @@
         "source_file": "proto/runtime/v1/ai_scheduling.proto"
       },
       {
-        "name": "ScopedAppBindingRelation",
-        "fields": [
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "runtime_app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "app_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "window_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "avatar_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "world_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "purpose",
-            "type": "ScopedAppBindingPurpose",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "scopes",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "issued_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "state",
-            "type": "ScopedAppBindingState",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "ScopedRuntimeBindingAttachment",
-        "fields": [
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "binding_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "runtime_app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "app_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "window_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "avatar_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "world_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/common.proto"
-      },
-      {
         "name": "SearchCatalogModelsRequest",
         "fields": [
           {
@@ -33798,13 +33394,6 @@
             "repeated": false,
             "optional": false,
             "number": 6
-          },
-          {
-            "name": "scoped_binding",
-            "type": "ScopedRuntimeBindingAttachment",
-            "repeated": false,
-            "optional": false,
-            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -34939,13 +34528,6 @@
             "repeated": true,
             "optional": false,
             "number": 4
-          },
-          {
-            "name": "scoped_binding",
-            "type": "ScopedRuntimeBindingAttachment",
-            "repeated": false,
-            "optional": false,
-            "number": 5
           },
           {
             "name": "local_agent_ref",
@@ -37734,7 +37316,6 @@
           "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED",
           "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED",
           "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED",
-          "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY",
           "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND",
           "ACCOUNT_REASON_CODE_BINDING_STALE",
           "ACCOUNT_REASON_CODE_BINDING_REPLAY",
@@ -39461,28 +39042,6 @@
           "SCHEDULING_STATE_UNKNOWN"
         ],
         "source_file": "proto/runtime/v1/ai_scheduling.proto"
-      },
-      {
-        "name": "ScopedAppBindingPurpose",
-        "values": [
-          "SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED",
-          "SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME",
-          "SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME"
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "ScopedAppBindingState",
-        "values": [
-          "SCOPED_APP_BINDING_STATE_UNSPECIFIED",
-          "SCOPED_APP_BINDING_STATE_ISSUED",
-          "SCOPED_APP_BINDING_STATE_ACTIVE",
-          "SCOPED_APP_BINDING_STATE_SUSPENDED",
-          "SCOPED_APP_BINDING_STATE_REVOKED",
-          "SCOPED_APP_BINDING_STATE_EXPIRED",
-          "SCOPED_APP_BINDING_STATE_SUPERSEDED"
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "SensitivityClass",

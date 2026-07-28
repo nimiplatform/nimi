@@ -96,8 +96,8 @@ async function readRuntimeAgentState(
     projectNimiRuntimeAgentStateSnapshot,
   } = await import('@nimiplatform/sdk/runtime');
   const {
-    withZhiyuRuntimeAgentBindingRequired,
-  } = await import('../agent-chat/runtime-agent-binding');
+    withZhiyuRuntimeAgentAccessRequired,
+  } = await import('../agent-chat/runtime-agent-access');
   const { getZhiyuRuntime } = await import('../auth/runtime-platform');
   const runtime = getZhiyuRuntime();
   const context = buildRuntimeAgentRequestContext({
@@ -105,7 +105,7 @@ async function readRuntimeAgentState(
     subjectUserId: input.ownerUserId,
     ...input,
   });
-  const response = await withZhiyuRuntimeAgentBindingRequired(['runtime.agent.read'], (callOptions) => runtime.agents.getAgentState({
+  const response = await withZhiyuRuntimeAgentAccessRequired(['runtime.agent.read'], (callOptions) => runtime.agents.getAgentState({
     context,
     agentId: input.localAgentRef,
   }, callOptions));

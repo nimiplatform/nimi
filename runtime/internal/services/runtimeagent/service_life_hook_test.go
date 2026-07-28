@@ -17,7 +17,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-lifecycle"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
@@ -189,7 +189,7 @@ func TestRuntimeAgentTerminateBroadcastsTeardownThenHardDeletes(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"))
 	defer cancel()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-terminate-state"),
@@ -707,7 +707,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-loop-events"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{

@@ -116,7 +116,6 @@ pub enum AccountReasonCode {
     ACCOUNTREASONCODEPROOFUNSUPPORTED,
     ACCOUNTREASONCODEREFRESHREUSEDETECTED,
     ACCOUNTREASONCODECALLERUNAUTHORIZED,
-    ACCOUNTREASONCODEAVATARBINDINGONLY,
     ACCOUNTREASONCODEBINDINGNOTFOUND,
     ACCOUNTREASONCODEBINDINGSTALE,
     ACCOUNTREASONCODEBINDINGREPLAY,
@@ -2422,36 +2421,6 @@ impl Default for SchedulingState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ScopedAppBindingPurpose {
-    SCOPEDAPPBINDINGPURPOSEUNSPECIFIED,
-    SCOPEDAPPBINDINGPURPOSEAVATARINTERACTIONCONSUME,
-    SCOPEDAPPBINDINGPURPOSEAPPSCOPEDRUNTIME,
-}
-
-impl Default for ScopedAppBindingPurpose {
-    fn default() -> Self {
-        Self::SCOPEDAPPBINDINGPURPOSEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ScopedAppBindingState {
-    SCOPEDAPPBINDINGSTATEUNSPECIFIED,
-    SCOPEDAPPBINDINGSTATEISSUED,
-    SCOPEDAPPBINDINGSTATEACTIVE,
-    SCOPEDAPPBINDINGSTATESUSPENDED,
-    SCOPEDAPPBINDINGSTATEREVOKED,
-    SCOPEDAPPBINDINGSTATEEXPIRED,
-    SCOPEDAPPBINDINGSTATESUPERSEDED,
-}
-
-impl Default for ScopedAppBindingState {
-    fn default() -> Self {
-        Self::SCOPEDAPPBINDINGSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SensitivityClass {
     SENSITIVITYCLASSUNSPECIFIED,
     SENSITIVITYCLASSNONE,
@@ -2998,7 +2967,6 @@ pub struct AccountSessionEvent {
     pub emitted_at: Option<String>,
     pub event_type: Option<AccountEventType>,
     pub binding_id: Option<String>,
-    pub binding_relation: Option<Box<ScopedAppBindingRelation>>,
     pub replay_truncated: Option<bool>,
     pub delivery_kind: Option<AccountSessionDeliveryKind>,
     pub snapshot: Option<Box<AccountSessionSnapshot>>,
@@ -3012,7 +2980,6 @@ impl AccountSessionEvent {
         if let Some(value) = &self.emitted_at { pairs.push(format!("emitted_at={}", value)); }
         if let Some(value) = &self.event_type { pairs.push(format!("event_type={:?}", value)); }
         if let Some(value) = &self.binding_id { pairs.push(format!("binding_id={}", value)); }
-        if self.binding_relation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode binding_relation"); }
         if let Some(value) = &self.replay_truncated { pairs.push(format!("replay_truncated={}", value)); }
         if let Some(value) = &self.delivery_kind { pairs.push(format!("delivery_kind={:?}", value)); }
         if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
@@ -3022,7 +2989,7 @@ impl AccountSessionEvent {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["event_type", "binding_relation", "delivery_kind", "snapshot"] {
+        for key in ["event_type", "delivery_kind", "snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -4153,7 +4120,6 @@ impl AgentReplicationEventDetail {
 pub struct AgentRequestContext {
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
-    pub scoped_binding: Option<Box<ScopedRuntimeBindingAttachment>>,
     pub owner_user_id: Option<String>,
     pub runtime_source_ref: Option<String>,
     pub local_agent_ref: Option<String>,
@@ -4164,7 +4130,6 @@ impl AgentRequestContext {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
         if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
-        if self.scoped_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scoped_binding"); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
         if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
@@ -4174,11 +4139,6 @@ impl AgentRequestContext {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["scoped_binding"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
 
         out.app_id = pairs.get("app_id").cloned();
         out.subject_user_id = pairs.get("subject_user_id").cloned();
@@ -5374,7 +5334,6 @@ pub struct AvatarDebugProbeRequestEnvelope {
     pub avatar_instance_id: Option<String>,
     pub runtime_replay_ref: Option<String>,
     pub replay_requested: Option<bool>,
-    pub scoped_binding: Option<Box<ScopedRuntimeBindingAttachment>>,
 }
 
 impl AvatarDebugProbeRequestEnvelope {
@@ -5391,14 +5350,13 @@ impl AvatarDebugProbeRequestEnvelope {
         if let Some(value) = &self.avatar_instance_id { pairs.push(format!("avatar_instance_id={}", value)); }
         if let Some(value) = &self.runtime_replay_ref { pairs.push(format!("runtime_replay_ref={}", value)); }
         if let Some(value) = &self.replay_requested { pairs.push(format!("replay_requested={}", value)); }
-        if self.scoped_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scoped_binding"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["probe_kind", "requested_by", "scoped_binding"] {
+        for key in ["probe_kind", "requested_by"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -13076,77 +13034,6 @@ impl InvokeRealmUnaryResponse {
         out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
         out.http_status = pairs.get("http_status").and_then(|value| value.parse().ok());
         out.error_message = pairs.get("error_message").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct IssueScopedAppBindingRequest {
-    pub caller: Option<Box<AccountCaller>>,
-    pub relation: Option<Box<ScopedAppBindingRelation>>,
-    pub ttl_seconds: Option<i32>,
-}
-
-impl IssueScopedAppBindingRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        if self.relation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode relation"); }
-        if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["caller", "relation"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.ttl_seconds = pairs.get("ttl_seconds").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct IssueScopedAppBindingResponse {
-    pub accepted: Option<bool>,
-    pub binding_id: Option<String>,
-    pub binding_carrier: Option<String>,
-    pub relation: Option<Box<ScopedAppBindingRelation>>,
-    pub reason_code: Option<ReasonCode>,
-    pub account_reason_code: Option<AccountReasonCode>,
-    pub production_inert: Option<bool>,
-}
-
-impl IssueScopedAppBindingResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.binding_id { pairs.push(format!("binding_id={}", value)); }
-        if let Some(value) = &self.binding_carrier { pairs.push(format!("binding_carrier={}", value)); }
-        if self.relation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode relation"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
-        if let Some(value) = &self.production_inert { pairs.push(format!("production_inert={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["relation", "reason_code", "account_reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.binding_id = pairs.get("binding_id").cloned();
-        out.binding_carrier = pairs.get("binding_carrier").cloned();
-        out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -24851,71 +24738,6 @@ impl RevokeLocalDevelopmentAuthorizationResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeScopedAppBindingRequest {
-    pub caller: Option<Box<AccountCaller>>,
-    pub binding_id: Option<String>,
-    pub reason_code: Option<AccountReasonCode>,
-}
-
-impl RevokeScopedAppBindingRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        if let Some(value) = &self.binding_id { pairs.push(format!("binding_id={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["caller", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.binding_id = pairs.get("binding_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeScopedAppBindingResponse {
-    pub accepted: Option<bool>,
-    pub relation: Option<Box<ScopedAppBindingRelation>>,
-    pub reason_code: Option<ReasonCode>,
-    pub account_reason_code: Option<AccountReasonCode>,
-    pub production_inert: Option<bool>,
-}
-
-impl RevokeScopedAppBindingResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if self.relation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode relation"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
-        if let Some(value) = &self.production_inert { pairs.push(format!("production_inert={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["relation", "reason_code", "account_reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevokeSessionRequest {
     pub session_id: Option<String>,
 }
@@ -26411,113 +26233,6 @@ impl SchedulingTargetJudgement {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ScopedAppBindingRelation {
-    pub binding_id: Option<String>,
-    pub runtime_app_id: Option<String>,
-    pub app_instance_id: Option<String>,
-    pub window_id: Option<String>,
-    pub avatar_instance_id: Option<String>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub world_id: Option<String>,
-    pub purpose: Option<ScopedAppBindingPurpose>,
-    pub scopes: Vec<String>,
-    pub issued_at: Option<String>,
-    pub expires_at: Option<String>,
-    pub state: Option<ScopedAppBindingState>,
-    pub reason_code: Option<AccountReasonCode>,
-}
-
-impl ScopedAppBindingRelation {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.binding_id { pairs.push(format!("binding_id={}", value)); }
-        if let Some(value) = &self.runtime_app_id { pairs.push(format!("runtime_app_id={}", value)); }
-        if let Some(value) = &self.app_instance_id { pairs.push(format!("app_instance_id={}", value)); }
-        if let Some(value) = &self.window_id { pairs.push(format!("window_id={}", value)); }
-        if let Some(value) = &self.avatar_instance_id { pairs.push(format!("avatar_instance_id={}", value)); }
-        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
-        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
-        if let Some(value) = &self.world_id { pairs.push(format!("world_id={}", value)); }
-        if let Some(value) = &self.purpose { pairs.push(format!("purpose={:?}", value)); }
-        for value in &self.scopes { pairs.push(format!("scopes={}", value)); }
-        if let Some(value) = &self.issued_at { pairs.push(format!("issued_at={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["purpose", "state", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.binding_id = pairs.get("binding_id").cloned();
-        out.runtime_app_id = pairs.get("runtime_app_id").cloned();
-        out.app_instance_id = pairs.get("app_instance_id").cloned();
-        out.window_id = pairs.get("window_id").cloned();
-        out.avatar_instance_id = pairs.get("avatar_instance_id").cloned();
-        out.agent_id = pairs.get("agent_id").cloned();
-        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
-        out.world_id = pairs.get("world_id").cloned();
-        out.scopes = parse_repeated_string(raw, "scopes");
-        out.issued_at = pairs.get("issued_at").cloned();
-        out.expires_at = pairs.get("expires_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ScopedRuntimeBindingAttachment {
-    pub binding_id: Option<String>,
-    pub binding_handle: Option<String>,
-    pub runtime_app_id: Option<String>,
-    pub app_instance_id: Option<String>,
-    pub window_id: Option<String>,
-    pub avatar_instance_id: Option<String>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub world_id: Option<String>,
-}
-
-impl ScopedRuntimeBindingAttachment {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.binding_id { pairs.push(format!("binding_id={}", value)); }
-        if let Some(value) = &self.binding_handle { pairs.push(format!("binding_handle={}", value)); }
-        if let Some(value) = &self.runtime_app_id { pairs.push(format!("runtime_app_id={}", value)); }
-        if let Some(value) = &self.app_instance_id { pairs.push(format!("app_instance_id={}", value)); }
-        if let Some(value) = &self.window_id { pairs.push(format!("window_id={}", value)); }
-        if let Some(value) = &self.avatar_instance_id { pairs.push(format!("avatar_instance_id={}", value)); }
-        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
-        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
-        if let Some(value) = &self.world_id { pairs.push(format!("world_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.binding_id = pairs.get("binding_id").cloned();
-        out.binding_handle = pairs.get("binding_handle").cloned();
-        out.runtime_app_id = pairs.get("runtime_app_id").cloned();
-        out.app_instance_id = pairs.get("app_instance_id").cloned();
-        out.window_id = pairs.get("window_id").cloned();
-        out.avatar_instance_id = pairs.get("avatar_instance_id").cloned();
-        out.agent_id = pairs.get("agent_id").cloned();
-        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
-        out.world_id = pairs.get("world_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SearchCatalogModelsRequest {
     pub query: Option<String>,
     pub capability: Option<String>,
@@ -26781,7 +26496,6 @@ pub struct SendAppMessageRequest {
     pub message_type: Option<String>,
     pub payload: Option<BTreeMap<String, String>>,
     pub require_ack: Option<bool>,
-    pub scoped_binding: Option<Box<ScopedRuntimeBindingAttachment>>,
 }
 
 impl SendAppMessageRequest {
@@ -26793,14 +26507,13 @@ impl SendAppMessageRequest {
         if let Some(value) = &self.message_type { pairs.push(format!("message_type={}", value)); }
         if self.payload.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode payload"); }
         if let Some(value) = &self.require_ack { pairs.push(format!("require_ack={}", value)); }
-        if self.scoped_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scoped_binding"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["payload", "scoped_binding"] {
+        for key in ["payload"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -28071,7 +27784,6 @@ pub struct SubscribeAppMessagesRequest {
     pub subject_user_id: Option<String>,
     pub cursor: Option<String>,
     pub from_app_ids: Vec<String>,
-    pub scoped_binding: Option<Box<ScopedRuntimeBindingAttachment>>,
     pub local_agent_ref: Option<String>,
     pub conversation_anchor_id: Option<String>,
 }
@@ -28083,7 +27795,6 @@ impl SubscribeAppMessagesRequest {
         if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
         if let Some(value) = &self.cursor { pairs.push(format!("cursor={}", value)); }
         for value in &self.from_app_ids { pairs.push(format!("from_app_ids={}", value)); }
-        if self.scoped_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scoped_binding"); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
         pairs.join(";").into_bytes()
@@ -28092,11 +27803,6 @@ impl SubscribeAppMessagesRequest {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["scoped_binding"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
 
         out.app_id = pairs.get("app_id").cloned();
         out.subject_user_id = pairs.get("subject_user_id").cloned();
@@ -32644,18 +32350,6 @@ impl From<Vec<u8>> for InvokeRealmUnaryResponse {
     }
 }
 
-impl From<Vec<u8>> for IssueScopedAppBindingRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for IssueScopedAppBindingResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for IssueWorkspaceBindingRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34630,18 +34324,6 @@ impl From<Vec<u8>> for RevokeLocalDevelopmentAuthorizationResponse {
     }
 }
 
-impl From<Vec<u8>> for RevokeScopedAppBindingRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RevokeScopedAppBindingResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for RevokeSessionRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34895,18 +34577,6 @@ impl From<Vec<u8>> for SchedulingResourceHint {
 }
 
 impl From<Vec<u8>> for SchedulingTargetJudgement {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ScopedAppBindingRelation {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ScopedRuntimeBindingAttachment {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35789,16 +35459,6 @@ where
         Ok(InvokeRealmUnaryResponse::from_transport(&raw))
     }
 
-    pub fn issue_scoped_app_binding(&self, request: IssueScopedAppBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IssueScopedAppBindingResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(IssueScopedAppBindingResponse::from_transport(&raw))
-    }
-
     pub fn issue_workspace_binding(&self, request: IssueWorkspaceBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IssueWorkspaceBindingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding".to_string(),
@@ -35837,16 +35497,6 @@ where
             timeout,
         })?;
         Ok(RequestPresenceVerificationResponse::from_transport(&raw))
-    }
-
-    pub fn revoke_scoped_app_binding(&self, request: RevokeScopedAppBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeScopedAppBindingResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RevokeScopedAppBindingResponse::from_transport(&raw))
     }
 
     pub fn revoke_workspace_binding(&self, request: RevokeWorkspaceBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeWorkspaceBindingResponse, T::Error> {

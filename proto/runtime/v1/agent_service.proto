@@ -322,7 +322,8 @@ message AgentProactiveInterruptibilityProjection {
 message AvatarDebugProbeRequestEnvelope {
   string probe_id = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; google.protobuf.Timestamp requested_at = 5; AvatarDebugRequestedBy requested_by = 6;
   string turn_id = 7; string stream_id = 8; string avatar_instance_id = 9; string runtime_replay_ref = 10; bool replay_requested = 11;
-  ScopedRuntimeBindingAttachment scoped_binding = 12;
+  reserved 12;
+  reserved "scoped_binding";
 }
 message AvatarDebugProbeResultEnvelope {
   string probe_id = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; AvatarDebugProbeStatus status = 5; google.protobuf.Timestamp observed_at = 6;

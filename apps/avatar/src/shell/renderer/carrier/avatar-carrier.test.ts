@@ -501,29 +501,16 @@ describe('avatar runtime carrier', () => {
         conversationAnchorId: 'anchor-1',
         probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
         avatarInstanceId: 'avatar-1',
-        scopedBinding: {
-          bindingId: 'binding-1',
-          runtimeAppId: 'nimi.avatar',
-          agentId: 'agent-1',
-          conversationAnchorId: 'anchor-1',
-          avatarInstanceId: 'avatar-1',
-        },
       },
     });
 
-    expect(submitDebugProbeResult).toHaveBeenCalledWith(
-      expect.objectContaining({
-        probeId: 'probe-runtime-1',
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-        probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
-        status: AvatarDebugProbeStatus.PASSED,
-      }),
-      expect.objectContaining({
-        bindingId: 'binding-1',
-        runtimeAppId: 'nimi.avatar',
-      }),
-    );
+    expect(submitDebugProbeResult).toHaveBeenCalledWith(expect.objectContaining({
+      probeId: 'probe-runtime-1',
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
+      status: AvatarDebugProbeStatus.PASSED,
+    }));
 
     carrier.shutdown();
   });

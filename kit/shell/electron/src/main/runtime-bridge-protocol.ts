@@ -336,8 +336,6 @@ const TRUSTED_RUNTIME_PORTABLE_CREDENTIAL_METADATA_KEYS = new Set([
 ]);
 const GENERIC_BRIDGE_BLOCKED_RPC_POSTURES = new Set([
   'protected_origin_required',
-  'protected_or_scoped_binding_read',
-  'protected_or_scoped_binding_write',
   'blocked_pending_authority',
   'deny_all_tombstone',
 ]);

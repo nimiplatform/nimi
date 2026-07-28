@@ -14,7 +14,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-replication-a"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
@@ -331,7 +331,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-bridge-a"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
@@ -681,7 +681,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-loop-invalid"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{

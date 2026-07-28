@@ -130,14 +130,13 @@ func (AppStorageState) EnumDescriptor() ([]byte, []int) {
 }
 
 type SendAppMessageRequest struct {
-	state         protoimpl.MessageState          `protogen:"open.v1"`
-	FromAppId     string                          `protobuf:"bytes,1,opt,name=from_app_id,json=fromAppId,proto3" json:"from_app_id,omitempty"`
-	ToAppId       string                          `protobuf:"bytes,2,opt,name=to_app_id,json=toAppId,proto3" json:"to_app_id,omitempty"`
-	SubjectUserId string                          `protobuf:"bytes,3,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	MessageType   string                          `protobuf:"bytes,4,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
-	Payload       *structpb.Struct                `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
-	RequireAck    bool                            `protobuf:"varint,6,opt,name=require_ack,json=requireAck,proto3" json:"require_ack,omitempty"`
-	ScopedBinding *ScopedRuntimeBindingAttachment `protobuf:"bytes,7,opt,name=scoped_binding,json=scopedBinding,proto3" json:"scoped_binding,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FromAppId     string                 `protobuf:"bytes,1,opt,name=from_app_id,json=fromAppId,proto3" json:"from_app_id,omitempty"`
+	ToAppId       string                 `protobuf:"bytes,2,opt,name=to_app_id,json=toAppId,proto3" json:"to_app_id,omitempty"`
+	SubjectUserId string                 `protobuf:"bytes,3,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	MessageType   string                 `protobuf:"bytes,4,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
+	Payload       *structpb.Struct       `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	RequireAck    bool                   `protobuf:"varint,6,opt,name=require_ack,json=requireAck,proto3" json:"require_ack,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -214,13 +213,6 @@ func (x *SendAppMessageRequest) GetRequireAck() bool {
 	return false
 }
 
-func (x *SendAppMessageRequest) GetScopedBinding() *ScopedRuntimeBindingAttachment {
-	if x != nil {
-		return x.ScopedBinding
-	}
-	return nil
-}
-
 type SendAppMessageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MessageId     string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
@@ -287,9 +279,8 @@ type SubscribeAppMessagesRequest struct {
 	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
 	// Cursor replay is not admitted by K-APP-007. Runtime rejects non-empty
 	// cursor values with INVALID_ARGUMENT + PROTOCOL_ENVELOPE_INVALID.
-	Cursor        string                          `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	FromAppIds    []string                        `protobuf:"bytes,4,rep,name=from_app_ids,json=fromAppIds,proto3" json:"from_app_ids,omitempty"`
-	ScopedBinding *ScopedRuntimeBindingAttachment `protobuf:"bytes,5,opt,name=scoped_binding,json=scopedBinding,proto3" json:"scoped_binding,omitempty"`
+	Cursor     string   `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	FromAppIds []string `protobuf:"bytes,4,rep,name=from_app_ids,json=fromAppIds,proto3" json:"from_app_ids,omitempty"`
 	// Local-app carrier selector only. These fields never establish caller,
 	// Agent ownership, conversation ownership, grant, or session authority;
 	// Runtime accepts them only on the verified local_app_host transport and
@@ -354,13 +345,6 @@ func (x *SubscribeAppMessagesRequest) GetCursor() string {
 func (x *SubscribeAppMessagesRequest) GetFromAppIds() []string {
 	if x != nil {
 		return x.FromAppIds
-	}
-	return nil
-}
-
-func (x *SubscribeAppMessagesRequest) GetScopedBinding() *ScopedRuntimeBindingAttachment {
-	if x != nil {
-		return x.ScopedBinding
 	}
 	return nil
 }
@@ -1251,7 +1235,7 @@ var File_runtime_v1_app_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x14runtime/v1/app.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\xca\x02\n" +
+	"\x14runtime/v1/app.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\x88\x02\n" +
 	"\x15SendAppMessageRequest\x12\x1e\n" +
 	"\vfrom_app_id\x18\x01 \x01(\tR\tfromAppId\x12\x1a\n" +
 	"\tto_app_id\x18\x02 \x01(\tR\atoAppId\x12&\n" +
@@ -1259,23 +1243,21 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\fmessage_type\x18\x04 \x01(\tR\vmessageType\x121\n" +
 	"\apayload\x18\x05 \x01(\v2\x17.google.protobuf.StructR\apayload\x12\x1f\n" +
 	"\vrequire_ack\x18\x06 \x01(\bR\n" +
-	"requireAck\x12V\n" +
-	"\x0escoped_binding\x18\a \x01(\v2/.nimi.runtime.v1.ScopedRuntimeBindingAttachmentR\rscopedBinding\"\x91\x01\n" +
+	"requireAckJ\x04\b\a\x10\bR\x0escoped_binding\"\x91\x01\n" +
 	"\x16SendAppMessageResponse\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x1a\n" +
 	"\baccepted\x18\x02 \x01(\bR\baccepted\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xcc\x02\n" +
+	"reasonCode\"\x8a\x02\n" +
 	"\x1bSubscribeAppMessagesRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x16\n" +
 	"\x06cursor\x18\x03 \x01(\tR\x06cursor\x12 \n" +
 	"\ffrom_app_ids\x18\x04 \x03(\tR\n" +
-	"fromAppIds\x12V\n" +
-	"\x0escoped_binding\x18\x05 \x01(\v2/.nimi.runtime.v1.ScopedRuntimeBindingAttachmentR\rscopedBinding\x12&\n" +
+	"fromAppIds\x12&\n" +
 	"\x0flocal_agent_ref\x18\x06 \x01(\tR\rlocalAgentRef\x124\n" +
-	"\x16conversation_anchor_id\x18\a \x01(\tR\x14conversationAnchorId\"\xde\x03\n" +
+	"\x16conversation_anchor_id\x18\a \x01(\tR\x14conversationAnchorIdJ\x04\b\x05\x10\x06R\x0escoped_binding\"\xde\x03\n" +
 	"\x0fAppMessageEvent\x12C\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\x0e2$.nimi.runtime.v1.AppMessageEventTypeR\teventType\x12\x1a\n" +
@@ -1408,50 +1390,47 @@ var file_runtime_v1_app_proto_goTypes = []any{
 	(*BindLocalAppProcessRequest)(nil),        // 17: nimi.runtime.v1.BindLocalAppProcessRequest
 	(*BindLocalAppProcessResponse)(nil),       // 18: nimi.runtime.v1.BindLocalAppProcessResponse
 	(*structpb.Struct)(nil),                   // 19: google.protobuf.Struct
-	(*ScopedRuntimeBindingAttachment)(nil),    // 20: nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	(ReasonCode)(0),                           // 21: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),             // 22: google.protobuf.Timestamp
+	(ReasonCode)(0),                           // 20: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),             // 21: google.protobuf.Timestamp
 }
 var file_runtime_v1_app_proto_depIdxs = []int32{
 	19, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
-	20, // 1: nimi.runtime.v1.SendAppMessageRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	21, // 2: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	20, // 3: nimi.runtime.v1.SubscribeAppMessagesRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	0,  // 4: nimi.runtime.v1.AppMessageEvent.event_type:type_name -> nimi.runtime.v1.AppMessageEventType
-	19, // 5: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
-	21, // 6: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	22, // 7: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
-	1,  // 8: nimi.runtime.v1.AppStorageProjection.state:type_name -> nimi.runtime.v1.AppStorageState
-	21, // 9: nimi.runtime.v1.AppStorageProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	6,  // 10: nimi.runtime.v1.GetAppStorageResponse.projection:type_name -> nimi.runtime.v1.AppStorageProjection
-	21, // 11: nimi.runtime.v1.ReadLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	21, // 12: nimi.runtime.v1.WriteLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	21, // 13: nimi.runtime.v1.RemoveLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	22, // 14: nimi.runtime.v1.PrepareLocalAppLaunchResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	21, // 15: nimi.runtime.v1.PrepareLocalAppLaunchResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	22, // 16: nimi.runtime.v1.BindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	21, // 17: nimi.runtime.v1.BindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	2,  // 18: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
-	4,  // 19: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
-	7,  // 20: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
-	9,  // 21: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:input_type -> nimi.runtime.v1.ReadLocalAppStorageJsonRequest
-	11, // 22: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:input_type -> nimi.runtime.v1.WriteLocalAppStorageJsonRequest
-	13, // 23: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:input_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
-	15, // 24: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
-	17, // 25: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
-	3,  // 26: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
-	5,  // 27: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
-	8,  // 28: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
-	10, // 29: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:output_type -> nimi.runtime.v1.ReadLocalAppStorageJsonResponse
-	12, // 30: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:output_type -> nimi.runtime.v1.WriteLocalAppStorageJsonResponse
-	14, // 31: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:output_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
-	16, // 32: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
-	18, // 33: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
-	26, // [26:34] is the sub-list for method output_type
-	18, // [18:26] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	20, // 1: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0,  // 2: nimi.runtime.v1.AppMessageEvent.event_type:type_name -> nimi.runtime.v1.AppMessageEventType
+	19, // 3: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
+	20, // 4: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	21, // 5: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
+	1,  // 6: nimi.runtime.v1.AppStorageProjection.state:type_name -> nimi.runtime.v1.AppStorageState
+	20, // 7: nimi.runtime.v1.AppStorageProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	6,  // 8: nimi.runtime.v1.GetAppStorageResponse.projection:type_name -> nimi.runtime.v1.AppStorageProjection
+	20, // 9: nimi.runtime.v1.ReadLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20, // 10: nimi.runtime.v1.WriteLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20, // 11: nimi.runtime.v1.RemoveLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	21, // 12: nimi.runtime.v1.PrepareLocalAppLaunchResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	20, // 13: nimi.runtime.v1.PrepareLocalAppLaunchResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	21, // 14: nimi.runtime.v1.BindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	20, // 15: nimi.runtime.v1.BindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 16: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
+	4,  // 17: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
+	7,  // 18: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
+	9,  // 19: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:input_type -> nimi.runtime.v1.ReadLocalAppStorageJsonRequest
+	11, // 20: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:input_type -> nimi.runtime.v1.WriteLocalAppStorageJsonRequest
+	13, // 21: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:input_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
+	15, // 22: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
+	17, // 23: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
+	3,  // 24: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
+	5,  // 25: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
+	8,  // 26: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
+	10, // 27: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:output_type -> nimi.runtime.v1.ReadLocalAppStorageJsonResponse
+	12, // 28: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:output_type -> nimi.runtime.v1.WriteLocalAppStorageJsonResponse
+	14, // 29: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:output_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
+	16, // 30: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
+	18, // 31: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
+	24, // [24:32] is the sub-list for method output_type
+	16, // [16:24] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_app_proto_init() }

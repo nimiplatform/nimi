@@ -16,13 +16,14 @@ enum AppMessageEventType {
 }
 
 message SendAppMessageRequest {
+  reserved 7;
+  reserved "scoped_binding";
   string from_app_id = 1;
   string to_app_id = 2;
   string subject_user_id = 3;
   string message_type = 4;
   google.protobuf.Struct payload = 5;
   bool require_ack = 6;
-  ScopedRuntimeBindingAttachment scoped_binding = 7;
 }
 
 message SendAppMessageResponse {
@@ -32,13 +33,14 @@ message SendAppMessageResponse {
 }
 
 message SubscribeAppMessagesRequest {
+  reserved 5;
+  reserved "scoped_binding";
   string app_id = 1;
   string subject_user_id = 2;
   // Cursor replay is not admitted by K-APP-007. Runtime rejects non-empty
   // cursor values with INVALID_ARGUMENT + PROTOCOL_ENVELOPE_INVALID.
   string cursor = 3;
   repeated string from_app_ids = 4;
-  ScopedRuntimeBindingAttachment scoped_binding = 5;
   // Local-app carrier selector only. These fields never establish caller,
   // Agent ownership, conversation ownership, grant, or session authority;
   // Runtime accepts them only on the verified local_app_host transport and

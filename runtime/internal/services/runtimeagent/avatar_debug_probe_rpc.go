@@ -86,7 +86,6 @@ func (s *Service) RequestAvatarDebugProbe(ctx context.Context, req *runtimev1.Re
 		AvatarInstanceId:     strings.TrimSpace(req.GetAvatarInstanceId()),
 		RuntimeReplayRef:     replay.GetReplayRef(),
 		ReplayRequested:      req.GetReplayRequested(),
-		ScopedBinding:        cloneScopedBindingAttachment(req.GetContext().GetScopedBinding()),
 	}
 	result := &runtimev1.AvatarDebugProbeResultEnvelope{
 		ProbeId:              probeID,

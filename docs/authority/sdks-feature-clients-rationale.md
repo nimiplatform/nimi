@@ -1,6 +1,9 @@
 # SDKs Feature Clients - Rationale
 
 > 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/sdks/feature-clients.authority.yaml`。
+>
+> 文中涉及 Scoped App Binding 或 scoped binding bootstrap 的段落只记录
+> 已退休设计，不描述当前 SDK 表面，也不是生成器、实现或测试输入。
 
 ---
 

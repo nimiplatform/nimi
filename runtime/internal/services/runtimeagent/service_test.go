@@ -5,11 +5,11 @@ import (
 	"errors"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
@@ -17,6 +17,10 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
+
+func authenticatedRuntimeAgentTestContext(parent context.Context, subjectUserID string) context.Context {
+	return authn.WithIdentity(parent, &authn.Identity{SubjectUserID: subjectUserID})
+}
 
 func closeRuntimeAgentMemoryServiceForTest(t *testing.T, svc *memoryservice.Service) {
 	t.Helper()
@@ -139,7 +143,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
 
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context:     testRuntimeAgentIdentityContext("agent-alpha"),
 		DisplayName: "Alpha",
@@ -319,8 +323,13 @@ func TestRuntimeAgentSubscribeAgentEventsSendsHeadersBeforeFirstEvent(t *testing
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"))
 	defer cancel()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-empty-stream"),
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
 
 	stream := newAgentEventCaptureStreamLimit(ctx, 0)
 	stream.headerSent = make(chan struct{}, 1)
@@ -348,76 +357,6 @@ func TestRuntimeAgentSubscribeAgentEventsSendsHeadersBeforeFirstEvent(t *testing
 		}
 	case <-time.After(time.Second):
 		t.Fatal("SubscribeAgentEvents did not stop after context cancellation")
-	}
-}
-
-func TestRuntimeAgentSubscribeAgentEventsEmitsBindingRevokedWhileIdle(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	requestContext := testRuntimeAgentIdentityContext("agent-alpha")
-	requestContext.AppId = "nimi.desktop"
-	requestContext.ScopedBinding = &runtimev1.ScopedRuntimeBindingAttachment{
-		BindingId:            "binding-idle-revoke",
-		RuntimeAppId:         "nimi.desktop",
-		AgentId:              requestContext.GetLocalAgentRef(),
-		ConversationAnchorId: "anchor-idle-revoke",
-	}
-	var allowed atomic.Bool
-	allowed.Store(true)
-	svc.SetScopedBindingValidator(stubScopedBindingValidator{
-		validate: func(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-			if !allowed.Load() {
-				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND, false
-			}
-			if bindingID != "binding-idle-revoke" ||
-				actual.GetRuntimeAppId() != "nimi.desktop" ||
-				actual.GetAgentId() != requestContext.GetLocalAgentRef() ||
-				actual.GetConversationAnchorId() != "anchor-idle-revoke" ||
-				requiredScope != runtimeAgentEventReadScope {
-				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND, false
-			}
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, true
-		},
-	})
-
-	streamCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
-	stream.headerSent = make(chan struct{}, 1)
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-			Context:      requestContext,
-			AgentId:      requestContext.GetLocalAgentRef(),
-			EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY},
-		}, stream)
-	}()
-
-	select {
-	case <-stream.headerSent:
-	case err := <-done:
-		t.Fatalf("SubscribeAgentEvents returned before initial binding admission: %v", err)
-	case <-time.After(time.Second):
-		t.Fatal("expected subscribe agent events to admit the initial binding")
-	}
-	allowed.Store(false)
-
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("SubscribeAgentEvents returned unexpected error after binding revocation event: %v", err)
-		}
-	case <-time.After(2500 * time.Millisecond):
-		t.Fatal("SubscribeAgentEvents did not close after idle binding revocation")
-	}
-	if len(stream.events) != 1 {
-		t.Fatalf("expected one binding.revoked event, got=%d", len(stream.events))
-	}
-	event := stream.events[0]
-	if event.GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE {
-		t.Fatalf("binding revocation must be a state event, got=%s", event.GetEventType())
-	}
-	if got := event.GetState().GetCurrentStatusText(); got != "binding.revoked" {
-		t.Fatalf("expected binding.revoked status, got=%q event=%+v", got, event)
 	}
 }
 

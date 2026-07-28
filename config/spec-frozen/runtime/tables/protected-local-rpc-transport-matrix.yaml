@@ -298,8 +298,6 @@ methods:
     protected_subprofiles: [bundled_avatar_v1]
     generic_proxy: forbidden
     source_rule: K-ACCSVC-023
-  - { method_id: /nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding, operation_class: desktop_binding_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-024 }
-  - { method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding, operation_class: desktop_binding_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-024 }
   - { method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus, operation_class: local_app_public_permission_projection, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: P-PERM-007 }
   - { method_id: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission, operation_class: local_app_public_permission_request, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: P-PERM-007 }
 

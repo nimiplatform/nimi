@@ -340,7 +340,7 @@ function seedDegradedRuntime(): void {
   });
   useAvatarStore.getState().setRuntimeBindingStatus({
     status: 'unavailable',
-    reason: 'runtime_scoped_binding: APP_GRANT_INVALID',
+    reason: 'local_app_operation: LOCAL_APP_OPERATION_UNAVAILABLE',
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
   useAvatarStore.getState().setDriverStatus('stopped');

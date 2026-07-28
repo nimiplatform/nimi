@@ -175,11 +175,6 @@ type loginAttemptRecord struct {
 	consumed bool
 }
 
-type bindingRecord struct {
-	relation *runtimev1.ScopedAppBindingRelation
-	carrier  string
-}
-
 type workspaceBindingRecord struct {
 	relation   *runtimev1.WorkspaceBindingRelation
 	attachment *runtimev1.WorkspaceBindingAttachment
@@ -224,7 +219,6 @@ type Service struct {
 	accountGenerationInvalidated chan struct{}
 	authenticatedRuntimeIdentity bool
 	loginAttempts                map[string]loginAttemptRecord
-	bindings                     map[string]bindingRecord
 	workspaceBindings            map[string]workspaceBindingRecord
 	nextSequence                 uint64
 	events                       []*runtimev1.AccountSessionEvent

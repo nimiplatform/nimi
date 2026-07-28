@@ -46,23 +46,24 @@ test('the generated OAuth logo module is narrowly excluded while its source asse
   ]);
 });
 
-test('generated Platform catalog projections are excluded while their authority tables remain scanned', () => {
+test('generated Platform AI profile projection is excluded while sources remain scanned', () => {
   const generatedPaths = [
-    'kit/shell/capabilities/src/platform-projection.ts',
-    'kit/shell/tauri/src/platform_catalog/nimi_app_registry.rs',
     'sdks/typescript/core/app/ai-profile-factory.generated.ts',
   ];
 
   for (const generatedPath of generatedPaths) {
     assert.equal(
       generatedSecretScanExclusion(generatedPath)?.label,
-      'Platform app catalog projections',
+      'Platform AI profile catalog projection',
     );
   }
 
-  const sourcePath = 'config/platform-nimi-app-release-descriptors.yaml';
-  const { scanned, excluded } = filterSecretScanFiles([sourcePath, ...generatedPaths]);
-  assert.deepEqual(scanned, [sourcePath]);
+  const sourcePaths = [
+    'config/platform-ai-profile-factory-catalog.yaml',
+    'kit/shell/capabilities/src/platform-projection.ts',
+  ];
+  const { scanned, excluded } = filterSecretScanFiles([...sourcePaths, ...generatedPaths]);
+  assert.deepEqual(scanned, sourcePaths);
   assert.deepEqual(excluded.map((entry) => entry.file), generatedPaths);
 });
 
@@ -84,17 +85,17 @@ test('baseline hygiene rejects generated artifact entries', () => {
   const entries = generatedArtifactBaselineEntries({
     results: {
       'kit/auth/src/logic/native-oauth-result-logo.ts': [],
-      'kit/shell/capabilities/src/platform-projection.ts': [],
       'runtime/gen/runtime/v1/agent_service.pb.go': [],
       'sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts': [],
+      'sdks/typescript/core/app/ai-profile-factory.generated.ts': [],
       'runtime/internal/auditlog/store.go': [],
     },
   });
 
   assert.deepEqual(entries, [
     'kit/auth/src/logic/native-oauth-result-logo.ts',
-    'kit/shell/capabilities/src/platform-projection.ts',
     'runtime/gen/runtime/v1/agent_service.pb.go',
     'sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts',
+    'sdks/typescript/core/app/ai-profile-factory.generated.ts',
   ]);
 });

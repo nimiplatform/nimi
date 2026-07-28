@@ -8,8 +8,8 @@ Cross-app coordination on Nimi goes through **runtime-mediated app
 messaging**. Apps do not poke each other directly — they emit typed
 messages and subscribe to typed events through `RuntimeAppService`,
 which authenticates senders, enforces rate limits, detects loops,
-and applies the credential-plane scoped binding requirement when an
-app messages an agent surface.
+and revalidates the current session and exact operation when a
+protected local app uses an agent surface.
 
 ## Method Surface
 
@@ -30,17 +30,15 @@ app messages an agent surface.
 | `message_type` | no | Message type identifier |
 | `payload` | no | JSON struct |
 | `require_ack` | no | Whether sender wants delivery acknowledgement |
-| `scoped_binding` | conditional | Required when `to_app_id=runtime.agent` and the message family is in the K-APP-008 set |
 
 Returns `message_id` (ULID), `accepted`, `reason_code`.
 
-The `scoped_binding` field is the credential-plane boundary: an app
-that sends to the runtime agent surface in admitted families must
-present its admitted scoped binding (issued by
-`RuntimeAccountService.IssueScopedAppBinding`). The binding carries
-non-secret binding id / optional handle / non-secret relation
-selectors. This is why the app-messaging surface lives in the
-auth/identity authority slice — the binding is itself auth-bearing.
+Runtime derives the current account and App identity from the
+authenticated connection. A protected local app carries no token,
+binding, or caller-minted proof: the verified local-app host injects
+its process-bound session, and Runtime authorizes the exact operation
+again at the operation owner. Request ids remain correlation and
+routing data; they do not create authority.
 
 ## SubscribeAppMessages
 
@@ -50,7 +48,8 @@ auth/identity authority slice — the binding is itself auth-bearing.
 | `subject_user_id` | no | Filter to a specific user |
 | `cursor` | no | Resume cursor |
 | `from_app_ids` | no | Filter by senders (repeated) |
-| `scoped_binding` | conditional | Required when `from_app_ids` includes `runtime.agent` AND the stream is for explicit binding-only consume |
+| `local_agent_ref` | local app agent subscription only | Resource selector revalidated by Runtime; never an authorization proof |
+| `conversation_anchor_id` | local app agent subscription only | Resource selector revalidated by Runtime; never an authorization proof |
 
 `AppMessageEvent` fields:
 
@@ -74,7 +73,7 @@ Phase 2 launch baseline rules:
 
 | Rule | Constraint | Reason |
 | --- | --- | --- |
-| App authentication | `SendAppMessage` must verify `from_app_id` is registered with `RuntimeAuthService` and the current session holds a valid token. Unauthenticated returns `UNAUTHENTICATED` | Prevents arbitrary process from spoofing a registered app |
+| App authentication | Ordinary callers use their admitted authenticated session. A protected local app uses only the host-injected process-bound session and an exact per-operation decision. Runtime derives or verifies `from_app_id`; unauthenticated requests fail closed | Prevents arbitrary processes from spoofing a registered app |
 | Payload size limit | `payload` Struct serialized must not exceed **64 KB**. Over: `INVALID_ARGUMENT` + `APP_MESSAGE_PAYLOAD_TOO_LARGE` | Prevents one message from exhausting runtime memory |
 | Send rate limit | Per `from_app_id`: **100 msgs/sec** sliding window. Over: `RESOURCE_EXHAUSTED` + `APP_MESSAGE_RATE_LIMITED` | Prevents storms / DoS |
 | Loop detection | Same `(from_app_id, to_app_id)` pair > **20 messages bidirectional within 1 second** auto-circuit-breaks the pair for **60 seconds** with `FAILED_PRECONDITION` + `APP_MESSAGE_LOOP_DETECTED`. Both apps may continue to talk to others during the breaker | Prevents fork-bomb between two apps |
@@ -92,7 +91,7 @@ exists because:
 | Audit | Per-pair audit logic | One canonical audit surface |
 | Rate limiting | Per-pair logic | One canonical rate limit |
 | Loop detection | Each pair re-implements | One canonical breaker |
-| Credential-plane binding to agent surfaces | App responsibility | Enforced via `scoped_binding` |
+| Agent-surface authorization | App-side trust assumption | Current session and exact operation are revalidated by Runtime |
 | Cross-app coordination semantics | Ad-hoc | Typed event stream |
 
 The runtime is the coordination substrate. Apps don't reinvent it.
@@ -120,23 +119,23 @@ reach behind the runtime.
 
 ## Reader Scenario: An App Messages The Agent Surface
 
-An app wants to send a typed message to the user's agent. This is the
-case the `scoped_binding` requirement covers.
+An app wants to send a typed message to the user's agent.
 
-1. **App has a scoped binding.** Issued earlier by
-   `RuntimeAccountService.IssueScopedAppBinding` for the admitted
-   purpose.
-2. **`SendAppMessage`.** `from_app_id: app-x`,
-   `to_app_id: runtime.agent`, message family in the K-APP-008 set,
-   plus the `scoped_binding`.
-3. **Runtime validates binding.** Binding id resolves; relation
-   selectors check; non-secret handle (if present) matches.
-4. **Delivery.** Message reaches the agent surface under the
-   admitted binding context.
+1. **The app has a current admitted session.** For a protected local
+   app, Desktop prepared the launch lease, Runtime bound the exact
+   process, and the verified host opened the process-bound session.
+2. **Runtime authorizes the exact operation.** The operation owner
+   revalidates the current account, App identity, session, permission,
+   and relevant LocalAgent/conversation selectors.
+3. **`SendAppMessage`.** The app sends an admitted K-APP-008 family
+   to `runtime.agent`; Runtime derives the sender identity rather than
+   trusting a caller-supplied id.
+4. **Delivery.** The message reaches the agent surface only under
+   that current per-operation decision.
 
-Without a valid scoped binding, the same message is rejected. The
-boundary is what keeps app-to-agent messaging from becoming a
-credential-plane bypass.
+An expired or replaced session, revoked permission, mismatched
+process, or invalid selector rejects the request. No portable proof
+can restore authority.
 
 ## Reader Scenario: A Loop Trips The Breaker
 
@@ -158,8 +157,8 @@ messages.
 - It does not allow per-app rate to exceed 100/sec.
 - It does not let two apps create a fork-bomb loop without a
   breaker.
-- It does not let app messages reach the runtime agent surface
-  without an admitted scoped binding.
+- It does not let caller-supplied ids or a portable proof authorize
+  access to the runtime agent surface.
 - It does not replace `RuntimeAuthService` — apps still authenticate
   there.
 
@@ -170,7 +169,7 @@ messages.
 | `SendAppMessage` / `SubscribeAppMessages` semantics | `RuntimeAppService` (`K-APP-001..002`) |
 | `AppMessageEventType` enum | `K-APP-004` |
 | Security baseline (auth, size, rate, loop) | `K-APP-005` |
-| Scoped binding issuance | `RuntimeAccountService.IssueScopedAppBinding` |
+| Protected local-app session and per-operation authorization | `RuntimeAuthService` plus the Runtime operation owner |
 | App-to-app path comparison | `K-APP-006` |
 
 ## Source Basis

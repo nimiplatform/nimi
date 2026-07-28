@@ -271,7 +271,7 @@ func (s *Service) deleteMemoryAdmitted(ctx context.Context, req *runtimev1.Delet
 }
 
 func (s *Service) InspectMemoryEmbeddingRuntime(ctx context.Context, req *runtimev1.InspectMemoryEmbeddingRuntimeRequest) (*runtimev1.InspectMemoryEmbeddingRuntimeResponse, error) {
-	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
+	return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 }
 
 func (s *Service) inspectMemoryEmbeddingRuntimePrivate(ctx context.Context, req *runtimev1.InspectMemoryEmbeddingRuntimeRequest) (*runtimev1.InspectMemoryEmbeddingRuntimeResponse, error) {
@@ -298,7 +298,7 @@ func (s *Service) inspectMemoryEmbeddingRuntimePrivate(ctx context.Context, req 
 }
 
 func (s *Service) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeBindRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeBindResponse, error) {
-	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
+	return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 }
 
 func (s *Service) requestMemoryEmbeddingRuntimeBindPrivate(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeBindRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeBindResponse, error) {
@@ -318,7 +318,7 @@ func (s *Service) requestMemoryEmbeddingRuntimeBindPrivate(ctx context.Context, 
 }
 
 func (s *Service) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
-	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
+	return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 }
 
 func (s *Service) requestMemoryEmbeddingRuntimeCutoverPrivate(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeCutoverResponse, error) {

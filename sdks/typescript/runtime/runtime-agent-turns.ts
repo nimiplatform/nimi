@@ -10,7 +10,6 @@ import {
   type SubscribeAppMessagesRequest,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
-import type { ScopedRuntimeBindingAttachment } from '../core-generated/runtime-protobuf/runtime/v1/common';
 import { createNimiClientId, createNimiError, ReasonCode, type JsonObject } from '../types';
 import {
   buildRuntimeAgentRequestContext,
@@ -61,21 +60,9 @@ const TURN_REQUEST_FIELDS = new Set([
   'maxOutputTokens',
   'messages',
   'reasoning',
-  'scopedBinding',
 ]);
 const TURN_MESSAGE_FIELDS = new Set(['role', 'content']);
 const TURN_REASONING_FIELDS = new Set(['mode', 'traceMode', 'budgetTokens']);
-const SCOPED_BINDING_FIELDS = new Set([
-  'bindingId',
-  'bindingHandle',
-  'runtimeAppId',
-  'appInstanceId',
-  'windowId',
-  'avatarInstanceId',
-  'agentId',
-  'conversationAnchorId',
-  'worldId',
-]);
 
 export interface NimiRuntimeAgentTurnsRuntime {
   readonly appId: string;
@@ -144,13 +131,6 @@ function assertExactObjectFields(
   }
 }
 
-function validateTurnScopedBinding(value: unknown): void {
-  if (value === undefined) {
-    return;
-  }
-  assertExactObjectFields(value, SCOPED_BINDING_FIELDS, 'runtime agent turn scopedBinding');
-}
-
 function normalizeTurnReasoning(value: unknown): JsonObject | undefined {
   if (value === undefined) {
     return undefined;
@@ -211,32 +191,6 @@ function optionalRuntimeCursor(cursor: unknown): string {
   return normalized;
 }
 
-function toScopedBindingAttachment(
-  input: ScopedRuntimeBindingAttachment | undefined,
-  defaults: {
-    readonly runtimeAppId: string;
-    readonly localAgentRef?: string;
-    readonly conversationAnchorId?: string;
-    readonly worldId?: string;
-  },
-): ScopedRuntimeBindingAttachment | undefined {
-  const bindingId = optionalString(input?.bindingId);
-  if (!bindingId) {
-    return undefined;
-  }
-  return {
-    bindingId,
-    bindingHandle: optionalString(input?.bindingHandle) || '',
-    runtimeAppId: optionalString(input?.runtimeAppId) || defaults.runtimeAppId,
-    appInstanceId: optionalString(input?.appInstanceId) || '',
-    windowId: optionalString(input?.windowId) || '',
-    avatarInstanceId: optionalString(input?.avatarInstanceId) || '',
-    agentId: optionalString(input?.agentId) || optionalString(defaults.localAgentRef) || '',
-    conversationAnchorId: optionalString(input?.conversationAnchorId) || optionalString(defaults.conversationAnchorId) || '',
-    worldId: optionalString(input?.worldId) || optionalString(defaults.worldId) || '',
-  };
-}
-
 function normalizeCurrentUserMessage(messages: unknown): NimiRuntimeAgentCurrentUserMessage {
   if (!Array.isArray(messages) || messages.length !== 1) {
     runtimeAgentInputError(
@@ -264,7 +218,6 @@ function normalizeCurrentUserMessage(messages: unknown): NimiRuntimeAgentCurrent
 
 export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRequest): JsonObject {
   assertExactObjectFields(request, TURN_REQUEST_FIELDS, 'runtime agent turn request');
-  validateTurnScopedBinding(request.scopedBinding);
   const identity = projectRuntimeLocalAgentIdentity(request);
   const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
   const message = normalizeCurrentUserMessage(request.messages);
@@ -345,7 +298,6 @@ function requestContext(input: {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 }) {
   return buildRuntimeAgentRequestContext(input);
 }
@@ -557,17 +509,11 @@ export function createNimiRuntimeAgentTurnsModule(
       const conversationAnchorId = optionalString(request.conversationAnchorId);
       const cursor = optionalRuntimeCursor(request.cursor);
       const liveStartedAtMs = cursor ? undefined : Date.now();
-      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
-        runtimeAppId: runtime.appId,
-        localAgentRef: identity.localAgentRef,
-        conversationAnchorId,
-      });
       const subjectUserId = await resolveSubjectUserId(options, request.subjectUserId || identity.ownerUserId);
       const appStream = await withTurnScopes(options, subjectUserId, [TURN_READ_SCOPE], async (callOptions) =>
         runtime.appMessages.subscribeAppMessages({
           appId: runtime.appId,
-          subjectUserId: scopedBinding ? '' : subjectUserId,
-          scopedBinding,
+          subjectUserId,
           cursor,
           fromAppIds: [RUNTIME_AGENT_APP_ID],
           localAgentRef: '',
@@ -592,7 +538,6 @@ export function createNimiRuntimeAgentTurnsModule(
               ownerUserId: identity.ownerUserId,
               runtimeSourceRef: identity.runtimeSourceRef,
               localAgentRef: identity.localAgentRef,
-              scopedBinding,
             }),
           }, callOptions),
         )
@@ -608,18 +553,12 @@ export function createNimiRuntimeAgentTurnsModule(
     async request(request) {
       const payload = toNimiRuntimeProtoStruct(buildNimiRuntimeAgentTurnPayload(request));
       const identity = localIdentity(request);
-      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
-        runtimeAppId: runtime.appId,
-        localAgentRef: identity.localAgentRef,
-        conversationAnchorId: request.conversationAnchorId,
-      });
       const subjectUserId = await resolveSubjectUserId(options, identity.ownerUserId);
       const response = await withTurnScopes(options, subjectUserId, [TURN_WRITE_SCOPE], async (callOptions) =>
         runtime.appMessages.sendAppMessage({
           fromAppId: runtime.appId,
           toAppId: RUNTIME_AGENT_APP_ID,
-          subjectUserId: scopedBinding ? '' : subjectUserId,
-          scopedBinding,
+          subjectUserId,
           messageType: TURN_REQUEST_TYPE,
           payload,
           requireAck: false,
@@ -633,12 +572,6 @@ export function createNimiRuntimeAgentTurnsModule(
     async interrupt(request) {
       const identity = localIdentity(request);
       const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
-      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
-        runtimeAppId: runtime.appId,
-        localAgentRef: identity.localAgentRef,
-        conversationAnchorId,
-        worldId: request.worldId,
-      });
       const payload = toNimiRuntimeProtoStruct({
         conversation_anchor_id: conversationAnchorId,
         ...(optionalString(request.turnId) ? { turn_id: optionalString(request.turnId) } : {}),
@@ -649,8 +582,7 @@ export function createNimiRuntimeAgentTurnsModule(
         runtime.appMessages.sendAppMessage({
           fromAppId: runtime.appId,
           toAppId: RUNTIME_AGENT_APP_ID,
-          subjectUserId: scopedBinding ? '' : subjectUserId,
-          scopedBinding,
+          subjectUserId,
           messageType: TURN_INTERRUPT_TYPE,
           payload,
           requireAck: false,
@@ -673,18 +605,11 @@ export function createNimiRuntimeAgentTurnsModule(
         runtimeAgentInputError('runtime agent voice render request requires messageId', 'select_committed_runtime_agent_message');
       }
       const playbackTarget = request.playbackTarget === 'replay' ? 'replay' : 'desktop_manual';
-      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
-        runtimeAppId: runtime.appId,
-        localAgentRef: identity.localAgentRef,
-        conversationAnchorId,
-        worldId: request.worldId,
-      });
       const subjectUserId = await resolveSubjectUserId(options, request.subjectUserId || identity.ownerUserId);
       const appStream = await withTurnScopes(options, subjectUserId, [TURN_READ_SCOPE], async (callOptions) =>
         runtime.appMessages.subscribeAppMessages({
           appId: runtime.appId,
-          subjectUserId: scopedBinding ? '' : subjectUserId,
-          scopedBinding,
+          subjectUserId,
           cursor: '',
           fromAppIds: [RUNTIME_AGENT_APP_ID],
           localAgentRef: '',
@@ -702,7 +627,6 @@ export function createNimiRuntimeAgentTurnsModule(
             ownerUserId: identity.ownerUserId,
             runtimeSourceRef: identity.runtimeSourceRef,
             localAgentRef: identity.localAgentRef,
-            scopedBinding,
           }),
         }, callOptions),
       );
@@ -721,8 +645,7 @@ export function createNimiRuntimeAgentTurnsModule(
         runtime.appMessages.sendAppMessage({
           fromAppId: runtime.appId,
           toAppId: RUNTIME_AGENT_APP_ID,
-          subjectUserId: scopedBinding ? '' : subjectUserId,
-          scopedBinding,
+          subjectUserId,
           messageType: TURN_VOICE_RENDER_TYPE,
           payload,
           requireAck: false,
@@ -750,12 +673,6 @@ export function createNimiRuntimeAgentTurnsModule(
     async getSessionSnapshot(request) {
       const identity = localIdentity(request);
       const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
-      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
-        runtimeAppId: runtime.appId,
-        localAgentRef: identity.localAgentRef,
-        conversationAnchorId,
-        worldId: request.worldId,
-      });
       const subjectUserId = await resolveSubjectUserId(options, identity.ownerUserId);
       const response = await withTurnScopes(options, subjectUserId, [AGENT_READ_SCOPE], async (callOptions) =>
         runtime.agents.getPublicChatSessionSnapshot({
@@ -769,7 +686,6 @@ export function createNimiRuntimeAgentTurnsModule(
             ownerUserId: identity.ownerUserId,
             runtimeSourceRef: identity.runtimeSourceRef,
             localAgentRef: identity.localAgentRef,
-            scopedBinding,
           }),
         }, callOptions),
       );

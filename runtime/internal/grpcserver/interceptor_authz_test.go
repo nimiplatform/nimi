@@ -64,47 +64,6 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentScopedBindingDefersProtectedAuthzToService(t *testing.T) {
-	scopedContext := &runtimev1.AgentRequestContext{
-		AppId: "nimi.zhiyu",
-		ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
-			BindingId: "binding-zhiyu-agent",
-		},
-	}
-
-	capability, required := protectedCapabilityForUnary(
-		"/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
-		&runtimev1.GetPublicChatSessionSnapshotRequest{Context: scopedContext},
-	)
-	if required || capability != "" {
-		t.Fatalf("scoped public chat snapshot should defer to service binding validation, got (%q,%v)", capability, required)
-	}
-
-	capability, required = protectedCapabilityForUnary(
-		"/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
-		&runtimev1.InterruptAgentVoicePlaybackRequest{Context: scopedContext},
-	)
-	if required || capability != "" {
-		t.Fatalf("scoped voice interrupt should defer to service binding validation, got (%q,%v)", capability, required)
-	}
-
-	capability, required = protectedCapabilityForStream(
-		"",
-		&runtimev1.SubscribeAgentVoiceStreamRequest{Context: scopedContext},
-	)
-	if !required || capability != deferredStreamCapability {
-		t.Fatalf("scoped voice stream should defer to service binding validation, got (%q,%v)", capability, required)
-	}
-
-	capability, required = protectedCapabilityForStream(
-		"",
-		&runtimev1.SubscribeAgentEventsRequest{Context: scopedContext},
-	)
-	if !required || capability != deferredStreamCapability {
-		t.Fatalf("scoped agent events should defer to service binding validation, got (%q,%v)", capability, required)
-	}
-}
-
 func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 	tests := []struct {
 		method     string
@@ -290,7 +249,6 @@ func TestSetAgentPresentationProfileUnaryAuthzInterceptor(t *testing.T) {
 		authorizerAvailable bool
 		allow               bool
 		realmSubject        string
-		scopedBinding       bool
 		wantCode            codes.Code
 		wantReason          runtimev1.ReasonCode
 		wantHandler         bool
@@ -325,16 +283,6 @@ func TestSetAgentPresentationProfileUnaryAuthzInterceptor(t *testing.T) {
 			wantCalls:           0,
 		},
 		{
-			name:                "anonymous scoped binding cannot defer realm auth",
-			authorizerAvailable: true,
-			allow:               true,
-			scopedBinding:       true,
-			wantCode:            codes.Unauthenticated,
-			wantReason:          runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
-			wantHandler:         false,
-			wantCalls:           0,
-		},
-		{
 			name:                "denied write capability",
 			authorizerAvailable: true,
 			realmSubject:        "user-1",
@@ -362,12 +310,6 @@ func TestSetAgentPresentationProfileUnaryAuthzInterceptor(t *testing.T) {
 			interceptor := newUnaryAuthzInterceptor(interceptorAuthorizer)
 			called := false
 			ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop"))
-			if tc.scopedBinding {
-				ctx = metadata.NewIncomingContext(ctx, metadata.Pairs(
-					"x-nimi-app-id", "nimi.desktop",
-					"x-nimi-runtime-scoped-binding-id", "binding-agent-presentation",
-				))
-			}
 			if tc.realmSubject != "" {
 				ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: tc.realmSubject})
 			}
@@ -730,7 +672,7 @@ func TestUnaryAuthzInterceptorAllowsUnprotectedMethodWithoutAuthorizer(t *testin
 	}
 }
 
-func TestUnaryAuthzInterceptorDefersVoiceInterruptWithScopedBindingMetadata(t *testing.T) {
+func TestUnaryAuthzInterceptorDoesNotDeferVoiceInterruptForRetiredBindingMetadata(t *testing.T) {
 	authorizer := &authzTestAuthorizer{
 		allow:      false,
 		reason:     runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
@@ -758,14 +700,14 @@ func TestUnaryAuthzInterceptorDefersVoiceInterruptWithScopedBindingMetadata(t *t
 		called = true
 		return request, nil
 	})
-	if err != nil {
-		t.Fatalf("expected scoped binding metadata to defer protected authz, got %v", err)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected retired binding metadata not to bypass protected authz, got %v", err)
 	}
-	if !called {
-		t.Fatal("expected voice interrupt handler to run")
+	if called {
+		t.Fatal("voice interrupt handler ran without protected capability")
 	}
-	if authorizer.calls != 0 {
-		t.Fatalf("scoped binding metadata path must defer to service validation, authorizer calls=%d", authorizer.calls)
+	if authorizer.calls != 1 {
+		t.Fatalf("protected authorizer calls=%d, want 1", authorizer.calls)
 	}
 }
 

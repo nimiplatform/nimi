@@ -82,7 +82,6 @@ export async function runNimiRuntimeAgentTurn(
       conversationAnchorId: options.request.conversationAnchorId,
       ...(normalizeNimiRuntimeAgentText(runtimeTurnRef.turnId) ? { turnId: runtimeTurnRef.turnId } : {}),
       reason: options.interruptReason || 'user_cancel',
-      ...(options.request.scopedBinding ? { scopedBinding: options.request.scopedBinding } : {}),
       ...(normalizeNimiRuntimeAgentText(options.request.worldId) ? { worldId: options.request.worldId } : {}),
     }).catch(() => undefined);
   };
@@ -136,7 +135,6 @@ export async function runNimiRuntimeAgentTurn(
         ...localIdentity,
         conversationAnchorId: options.request.conversationAnchorId,
         requestId,
-        ...(options.request.scopedBinding ? { scopedBinding: options.request.scopedBinding } : {}),
         ...(normalizeNimiRuntimeAgentText(options.request.worldId) ? { worldId: options.request.worldId } : {}),
       }),
       request: options.request,

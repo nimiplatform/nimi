@@ -166,7 +166,7 @@ test('Runtime memory embedding protected surface rejects calls without a scoped 
 	});
 
 	await assert.rejects(surface.inspect({ targetRef }), (error: unknown) => {
-		assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED');
+		assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_OPERATION_CONTEXT_REQUIRED');
 		return true;
 	});
 	assert.equal(registrationCalls, 0);

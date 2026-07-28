@@ -586,7 +586,7 @@ units:
     kind: rule
     title: RuntimeAuthService does not own account custody
     modality: must
-    statement: RuntimeAuthService is not responsible for local machine account session, login lifecycle, custody, refresh, logout, user switch, daemon restart recovery, or first-party scoped app binding because those authorities are owned by RuntimeAccountService, and protected-local origin, Desktop process verification, and control-session authority are owned by K-PLOCAL with the auth service only consuming its immutable origin context.
+    statement: RuntimeAuthService is not responsible for local machine account session, login lifecycle, custody, refresh, logout, user switch, or daemon restart recovery because those authorities are owned by RuntimeAccountService, and protected-local origin, Desktop process verification, and control-session authority are owned by K-PLOCAL with the auth service only consuming its immutable origin context.
     condition: Whenever auth service scope meets account or protected-local authority.
     failure: Reject auth-service ownership claims over account or origin authority.
     relations:
@@ -736,7 +736,7 @@ units:
     kind: rule
     title: Account custody split stays with the account service
     modality: must
-    statement: Local machine account sessions owned by RuntimeAccountService use secure Runtime custody through macOS keychain, Windows credential vault, or Linux secret service owned by the daemon with callers, Desktop, and apps never owning durable account token custody, daemon restart attempts recovery from secure custody yielding authenticated on success, unavailable when custody is unavailable, expired on expiry, and reauth_required on inconsistency, account sessions and all scoped app bindings become invalid on daemon restart requiring consumers to re-apply, and the OpenSession and OpenExternalPrincipalSession paths are never a local machine account truth entry with caller-supplied subject_user_id never used for local first-party account or binding derivation.
+    statement: Local machine account sessions owned by RuntimeAccountService use secure Runtime custody through macOS keychain, Windows credential vault, or Linux secret service owned by the daemon with callers, Desktop, and apps never owning durable account token custody, daemon restart attempts recovery from secure custody yielding authenticated on success, unavailable when custody is unavailable, expired on expiry, and reauth_required on inconsistency, and the OpenSession and OpenExternalPrincipalSession paths are never a local machine account truth entry with caller-supplied subject_user_id never used for the local first-party account.
     condition: Whenever account session custody or restart recovery runs.
     failure: Reject caller custody, non-custody recovery, and account truth entry through app sessions.
     relations:

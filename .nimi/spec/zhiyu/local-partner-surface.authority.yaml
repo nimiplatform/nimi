@@ -72,9 +72,9 @@ units:
     kind: rule
     title: Authorization is session derived
     modality: must
-    statement: Runtime derives current account, Zhiyu App identity, authorization, LocalAgent ownership or access, and requested operation from the active session; Zhiyu supplies no account, subject, grant, proof, Realm JWT, or Provider Credential.
+    statement: Runtime derives current account, Zhiyu App identity, authorization, LocalAgent ownership or access, and requested operation from the active session for every operation and revalidates them at operation time; Zhiyu supplies no account, subject, grant, reusable or portable binding proof, Realm JWT, or Provider Credential.
     condition: Whenever Zhiyu requests a protected LocalAgent operation.
-    failure: Fail closed when the Runtime session or owner decision is unavailable.
+    failure: Fail closed when the active Runtime session or per-operation owner decision is unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.product-surface

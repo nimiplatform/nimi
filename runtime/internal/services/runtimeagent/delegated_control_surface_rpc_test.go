@@ -83,7 +83,7 @@ func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 		RuntimeDecision:      "approval_required",
 	})
 
-	approvals, err := svc.ListDelegatedApprovalRequests(context.Background(), &runtimev1.ListDelegatedApprovalRequestsRequest{
+	approvals, err := svc.ListDelegatedApprovalRequests(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.ListDelegatedApprovalRequestsRequest{
 		Context:              ctx,
 		AgentId:              "agent-1",
 		ConversationAnchorId: "anchor-1",
@@ -95,7 +95,7 @@ func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 		t.Fatalf("expected one approval request, got %+v", approvals.GetApprovalRequests())
 	}
 
-	approved, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+	approved, err := svc.SubmitDelegatedApprovalDecision(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
@@ -109,7 +109,7 @@ func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 		t.Fatalf("expected approved request, got %+v", approved.GetApprovalRequest())
 	}
 
-	snapshot, err := svc.GetDelegatedControlSurfaceSnapshot(context.Background(), &runtimev1.GetDelegatedControlSurfaceSnapshotRequest{
+	snapshot, err := svc.GetDelegatedControlSurfaceSnapshot(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.GetDelegatedControlSurfaceSnapshotRequest{
 		Context:              ctx,
 		AgentId:              "agent-1",
 		ConversationAnchorId: "anchor-1",
@@ -135,7 +135,7 @@ func TestDelegatedApprovalDecisionFailsClosedOnExpiredApproval(t *testing.T) {
 	approval.ExpiresAt = timestamppb.New(time.Now().UTC().Add(-time.Minute))
 	svc.delegatedMu.Unlock()
 
-	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+	_, err := svc.SubmitDelegatedApprovalDecision(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
@@ -154,8 +154,6 @@ func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
 	svc, closeFn := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	agentID := testRuntimeAgentLocalRef("agent-alpha")
 	ctx := testRuntimeAgentIdentityContext("agent-alpha")
-	ctx.ScopedBinding = delegatedControlScopedBinding("binding-delegated-expiry-persist", agentID)
-	installDelegatedControlScopedBindingValidator(svc, "binding-delegated-expiry-persist", agentID)
 	upsertDelegatedApprovalTestProfileForAgent(t, svc, ctx, agentID, "sha256:calendar")
 	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-expiry-persist",
@@ -182,7 +180,7 @@ func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
 	approval.ExpiresAt = timestamppb.New(time.Now().UTC().Add(-time.Minute))
 	svc.delegatedMu.Unlock()
 
-	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+	_, err := svc.SubmitDelegatedApprovalDecision(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
 		Context:           ctx,
 		AgentId:           agentID,
 		ApprovalRequestId: "deleg-decision-expiry-persist",
@@ -195,8 +193,7 @@ func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
 
 	restarted, restartClose := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	defer restartClose()
-	installDelegatedControlScopedBindingValidator(restarted, "binding-delegated-expiry-persist", agentID)
-	listed, err := restarted.ListDelegatedApprovalRequests(context.Background(), &runtimev1.ListDelegatedApprovalRequestsRequest{
+	listed, err := restarted.ListDelegatedApprovalRequests(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.ListDelegatedApprovalRequestsRequest{
 		Context:              ctx,
 		AgentId:              agentID,
 		ConversationAnchorId: "anchor-expiry-persist",
@@ -219,7 +216,7 @@ func TestDelegatedApprovalDecisionFailsClosedOnDescriptorDrift(t *testing.T) {
 	recordDelegatedApprovalDecisionForTest(t, svc)
 	upsertDelegatedApprovalTestProfile(t, svc, "sha256:drifted")
 
-	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+	_, err := svc.SubmitDelegatedApprovalDecision(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
@@ -235,12 +232,14 @@ func TestDelegatedApprovalDecisionFailsClosedOnPrincipalMismatch(t *testing.T) {
 	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
 	recordDelegatedApprovalDecisionForTest(t, svc)
 	ctx := &runtimev1.AgentRequestContext{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "other-user",
-		ScopedBinding: delegatedControlScopedBinding("binding-delegated-control", "agent-1"),
+		AppId:            "nimi.desktop",
+		SubjectUserId:    "other-user",
+		OwnerUserId:      "other-user",
+		RuntimeSourceRef: "agent-1",
+		LocalAgentRef:    "local-agent:agent-1",
 	}
 
-	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+	_, err := svc.SubmitDelegatedApprovalDecision(authenticatedRuntimeAgentTestContext(context.Background(), "other-user"), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
@@ -271,7 +270,7 @@ func TestDelegatedReplayTraceReconstructsRuntimeOwnedLineage(t *testing.T) {
 		RuntimeDecision:      "context_candidate",
 	})
 
-	replay, err := svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+	replay, err := svc.GetDelegatedReplayTrace(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.GetDelegatedReplayTraceRequest{
 		Context:    ctx,
 		AgentId:    "agent-1",
 		DecisionId: "deleg-decision-1",
@@ -316,7 +315,7 @@ func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *tes
 		RuntimeDecision:      "approval_required",
 	})
 
-	if _, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+	if _, err := svc.SubmitDelegatedApprovalDecision(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
@@ -326,7 +325,7 @@ func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *tes
 		t.Fatalf("submit delegated approval: %v", err)
 	}
 
-	replay, err := svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+	replay, err := svc.GetDelegatedReplayTrace(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.GetDelegatedReplayTraceRequest{
 		Context:    ctx,
 		AgentId:    "agent-1",
 		DecisionId: "deleg-decision-1",
@@ -380,7 +379,7 @@ func TestDelegatedReplayTraceMarksSensitiveOutputPartialRedacted(t *testing.T) {
 		FirewallSensitivityClass: delegation.SensitivityClassCredentialLike,
 	})
 
-	replay, err := svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+	replay, err := svc.GetDelegatedReplayTrace(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.GetDelegatedReplayTraceRequest{
 		Context:    ctx,
 		AgentId:    "agent-1",
 		DecisionId: "deleg-decision-sensitive",
@@ -416,7 +415,7 @@ func TestDelegatedReplayTraceRequiresRuntimeAuditRecord(t *testing.T) {
 		RuntimeDecision:      "context_candidate",
 	})
 
-	diagnostics, err := svc.ListDelegatedDiagnostics(context.Background(), &runtimev1.ListDelegatedDiagnosticsRequest{
+	diagnostics, err := svc.ListDelegatedDiagnostics(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.ListDelegatedDiagnosticsRequest{
 		Context: ctx,
 		AgentId: "agent-1",
 	})
@@ -426,7 +425,7 @@ func TestDelegatedReplayTraceRequiresRuntimeAuditRecord(t *testing.T) {
 	if len(diagnostics.GetDiagnostics()) != 0 {
 		t.Fatalf("diagnostics must not be reconstructed without Runtime audit records: %+v", diagnostics.GetDiagnostics())
 	}
-	_, err = svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+	_, err = svc.GetDelegatedReplayTrace(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.GetDelegatedReplayTraceRequest{
 		Context:    ctx,
 		AgentId:    "agent-1",
 		DecisionId: "deleg-decision-1",
@@ -452,7 +451,7 @@ func TestDelegatedReplayTraceFailsClosedOnMissingJoinKeys(t *testing.T) {
 		RuntimeDecision:      "context_candidate",
 	})
 
-	_, err := svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+	_, err := svc.GetDelegatedReplayTrace(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.GetDelegatedReplayTraceRequest{
 		Context:    testDelegatedControlContext(),
 		AgentId:    "agent-1",
 		DecisionId: "deleg-decision-1",
@@ -504,7 +503,7 @@ func TestDelegatedReplayTraceIncludesApprovalState(t *testing.T) {
 		RuntimeDecision:      "approval_required",
 	})
 
-	replay, err := svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+	replay, err := svc.GetDelegatedReplayTrace(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.GetDelegatedReplayTraceRequest{
 		Context:    testDelegatedControlContext(),
 		AgentId:    "agent-1",
 		DecisionId: "deleg-decision-1",
@@ -541,7 +540,12 @@ func testDelegatedControlSurfaceServiceWithoutAudit() *Service {
 	svc := &Service{
 		agents: map[string]*agentEntry{
 			"agent-1": {
-				Agent: &runtimev1.AgentRecord{AgentId: "agent-1"},
+				Agent: &runtimev1.AgentRecord{
+					AgentId:          "agent-1",
+					OwnerUserId:      "user-1",
+					RuntimeSourceRef: "agent-1",
+					LocalAgentRef:    "local-agent:agent-1",
+				},
 				State: &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
 			},
 		},
@@ -549,7 +553,6 @@ func testDelegatedControlSurfaceServiceWithoutAudit() *Service {
 		delegatedApprovalRequests: map[string]*runtimev1.DelegatedApprovalRequest{},
 		delegatedPausedRequests:   map[string]*runtimeAgentPausedDelegatedCapabilityRequest{},
 	}
-	installDelegatedControlScopedBindingValidator(svc, "binding-delegated-control", "agent-1")
 	return svc
 }
 
@@ -610,30 +613,10 @@ func mustRecordDelegatedCapabilityDecision(t *testing.T, svc *Service, decision 
 
 func testDelegatedControlContext() *runtimev1.AgentRequestContext {
 	return &runtimev1.AgentRequestContext{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-1",
-		ScopedBinding: delegatedControlScopedBinding("binding-delegated-control", "agent-1"),
+		AppId:            "nimi.desktop",
+		SubjectUserId:    "user-1",
+		OwnerUserId:      "user-1",
+		RuntimeSourceRef: "agent-1",
+		LocalAgentRef:    "local-agent:agent-1",
 	}
-}
-
-func delegatedControlScopedBinding(bindingID string, agentID string) *runtimev1.ScopedRuntimeBindingAttachment {
-	return &runtimev1.ScopedRuntimeBindingAttachment{
-		BindingId:    bindingID,
-		RuntimeAppId: "nimi.desktop",
-		AgentId:      agentID,
-	}
-}
-
-func installDelegatedControlScopedBindingValidator(svc *Service, bindingID string, agentID string) {
-	svc.SetScopedBindingValidator(stubScopedBindingValidator{
-		validate: func(actualBindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-			if actualBindingID != bindingID ||
-				actual.GetRuntimeAppId() != "nimi.desktop" ||
-				actual.GetAgentId() != agentID ||
-				!strings.HasPrefix(requiredScope, "runtime.agent.delegation.") {
-				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND, false
-			}
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, true
-		},
-	})
 }

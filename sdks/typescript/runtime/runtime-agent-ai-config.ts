@@ -488,7 +488,6 @@ export function createNimiRuntimeAgentAIConfigModule(
     appId: runtime.appId,
     subjectUserId,
     ...projectRuntimeLocalAgentIdentity(input),
-    ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
   });
 
   const withScopes = async <T>(

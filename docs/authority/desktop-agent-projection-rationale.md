@@ -989,18 +989,10 @@ is not a Desktop-owned scoped runtime binding. Avatar is a Runtime-admitted
 local first-party app (`nimi.avatar`) and resolves account, agent, package,
 data, and conversation context through Runtime / SDK authority.
 
-> **Authority Disposition**：
-> This rule supersedes the prior Desktop-owned Avatar scoped binding default.
-> Any surviving explicit binding-only, embedded, or delegated Avatar mode must
-> be admitted by its current canonical authority; this historical section does
-> not preserve those modes.
-
 Fixed rules:
 
 - Desktop default Avatar launch payload may contain only `agent_id`, optional
   `avatar_instance_id`, and optional non-authoritative `launch_source`.
-- Desktop must not issue `RuntimeAccountService.IssueScopedAppBinding` as a
-  default Avatar launch precondition.
 - Desktop must not call `runtime.agent.anchors.open` or pass
   `conversation_anchor_id` as a default Avatar launch precondition.
 - Desktop must not pass visual package id/path/descriptor, account id, user id,

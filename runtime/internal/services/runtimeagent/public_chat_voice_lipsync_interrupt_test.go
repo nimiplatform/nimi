@@ -59,7 +59,7 @@ func TestPublicChatNativeVoicePlaybackInterruptCancelsStreamAndEmitsTerminalTrut
 		},
 	})
 
-	presentationCtx, cancelPresentation := context.WithTimeout(context.Background(), 10*time.Second)
+	presentationCtx, cancelPresentation := context.WithTimeout(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 10*time.Second)
 	defer cancelPresentation()
 	presentationStream := newAgentEventCaptureStreamLimit(presentationCtx, 1)
 	presentationStream.headerSent = make(chan struct{}, 1)
@@ -137,7 +137,7 @@ func TestPublicChatNativeVoicePlaybackInterruptCancelsStreamAndEmitsTerminalTrut
 
 	interruptCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	interruptCtx.AppId = "desktop.app"
-	resp, err := svc.InterruptAgentVoicePlayback(context.Background(), &runtimev1.InterruptAgentVoicePlaybackRequest{
+	resp, err := svc.InterruptAgentVoicePlayback(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.InterruptAgentVoicePlaybackRequest{
 		Context:              interruptCtx,
 		ConversationAnchorId: anchorID,
 		TurnId:               turnID,
@@ -181,7 +181,7 @@ func TestPublicChatNativeVoicePlaybackInterruptCancelsStreamAndEmitsTerminalTrut
 			t.Fatalf("interrupted native voice stream must not emit final playback/lipsync events, got %v", capture.messageTypes())
 		}
 	}
-	voiceStream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 2)
+	voiceStream := newAgentVoiceStreamCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2)
 	voiceStreamCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	voiceStreamCtx.AppId = "desktop.app"
 	if err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{
@@ -248,7 +248,7 @@ func TestPublicChatNativeVoicePlaybackInterruptRejectsStreamFromDifferentTurn(t 
 
 	interruptCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	interruptCtx.AppId = "desktop.app"
-	if _, err := svc.InterruptAgentVoicePlayback(context.Background(), &runtimev1.InterruptAgentVoicePlaybackRequest{
+	if _, err := svc.InterruptAgentVoicePlayback(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), &runtimev1.InterruptAgentVoicePlaybackRequest{
 		Context:              interruptCtx,
 		ConversationAnchorId: otherAnchorID,
 		TurnId:               otherTurn.TurnID,
@@ -306,7 +306,7 @@ func TestPublicChatNativeVoiceStreamSubscribeRejectsStreamFromDifferentTurn(t *t
 
 	subscribeCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	subscribeCtx.AppId = "desktop.app"
-	stream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 1)
+	stream := newAgentVoiceStreamCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 1)
 	err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{
 		Context:              subscribeCtx,
 		VoiceStreamId:        voiceStreamID,
@@ -354,7 +354,7 @@ func TestPublicChatNativeVoiceStreamSubscribeRejectsWrongCallerApp(t *testing.T)
 
 	subscribeCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	subscribeCtx.AppId = "web.app"
-	stream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 1)
+	stream := newAgentVoiceStreamCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 1)
 	err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{
 		Context:              subscribeCtx,
 		VoiceStreamId:        voiceStreamID,
@@ -366,170 +366,5 @@ func TestPublicChatNativeVoiceStreamSubscribeRejectsWrongCallerApp(t *testing.T)
 	}
 	if len(stream.events) != 0 {
 		t.Fatalf("wrong-caller voice stream subscription must not receive owner chunks: %#v", stream.events)
-	}
-}
-
-func TestPublicChatNativeVoiceStreamSubscribeValidatesScopedBinding(t *testing.T) {
-	t.Parallel()
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
-	turn := publicChatTurnState{
-		ConversationAnchorID: anchorID,
-		TurnID:               "turn-scoped-voice-subscribe",
-		StreamID:             "stream-scoped-voice-subscribe",
-		AgentID:              "agent-alpha",
-		CallerAppID:          "desktop.app",
-		SubjectUserID:        "user-1",
-	}
-	svc.chatSurfaceMu.Lock()
-	svc.chatTurns[turn.TurnID] = &turn
-	svc.chatSurfaceMu.Unlock()
-
-	voiceStreamID := "runtime-agent-voice-stream:test-scoped-subscribe"
-	svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
-		VoiceStreamId:        voiceStreamID,
-		ConversationAnchorId: anchorID,
-		TurnId:               turn.TurnID,
-		StreamId:             turn.StreamID,
-		MessageId:            "message-scoped-voice-subscribe",
-		ChunkSequence:        1,
-		Chunk:                []byte("RIFF-scoped-subscribe"),
-		MimeType:             "audio/wav",
-		VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
-		PlaybackTarget:       "avatar_autoplay",
-		VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE,
-	})
-
-	var validatorCalls int
-	svc.SetScopedBindingValidator(stubScopedBindingValidator{validate: func(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-		validatorCalls++
-		if bindingID != "binding-voice-read" {
-			t.Fatalf("binding id = %q", bindingID)
-		}
-		if requiredScope != runtimeAgentTurnReadScope {
-			t.Fatalf("required scope = %q", requiredScope)
-		}
-		if actual.GetRuntimeAppId() != "desktop.app" ||
-			actual.GetAgentId() != localAgentRef ||
-			actual.GetConversationAnchorId() != anchorID {
-			t.Fatalf("scoped binding relation mismatch: %#v", actual)
-		}
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-	}})
-
-	subscribeCtx := testRuntimeAgentIdentityContext("agent-alpha")
-	subscribeCtx.AppId = "desktop.app"
-	subscribeCtx.ScopedBinding = &runtimev1.ScopedRuntimeBindingAttachment{
-		BindingId:            "binding-voice-read",
-		RuntimeAppId:         "desktop.app",
-		AgentId:              localAgentRef,
-		ConversationAnchorId: anchorID,
-	}
-	stream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 1)
-	err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{
-		Context:              subscribeCtx,
-		VoiceStreamId:        voiceStreamID,
-		ConversationAnchorId: anchorID,
-		TurnId:               turn.TurnID,
-	}, stream)
-	if err != context.Canceled {
-		t.Fatalf("scoped voice stream subscription error=%v, want context.Canceled after first chunk", err)
-	}
-	if validatorCalls != 1 {
-		t.Fatalf("expected one scoped binding validation, got %d", validatorCalls)
-	}
-	if len(stream.events) != 1 || string(stream.events[0].GetChunk()) != "RIFF-scoped-subscribe" {
-		t.Fatalf("scoped voice stream did not receive expected chunk: %#v", stream.events)
-	}
-}
-
-func TestPublicChatNativeVoiceStreamSubscribeAcceptsBindingIDOnlyWithCanonicalRelation(t *testing.T) {
-	t.Parallel()
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
-	turn := publicChatTurnState{
-		ConversationAnchorID: anchorID,
-		TurnID:               "turn-scoped-voice-subscribe-id-only",
-		StreamID:             "stream-scoped-voice-subscribe-id-only",
-		AgentID:              "agent-alpha",
-		CallerAppID:          "desktop.app",
-		SubjectUserID:        "user-1",
-	}
-	svc.chatSurfaceMu.Lock()
-	svc.chatTurns[turn.TurnID] = &turn
-	svc.chatSurfaceMu.Unlock()
-
-	voiceStreamID := "runtime-agent-voice-stream:test-scoped-subscribe-id-only"
-	svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
-		VoiceStreamId:        voiceStreamID,
-		ConversationAnchorId: anchorID,
-		TurnId:               turn.TurnID,
-		StreamId:             turn.StreamID,
-		MessageId:            "message-scoped-voice-subscribe-id-only",
-		ChunkSequence:        1,
-		Chunk:                []byte("RIFF-scoped-subscribe-id-only"),
-		MimeType:             "audio/wav",
-		VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
-		PlaybackTarget:       "avatar_autoplay",
-		VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE,
-	})
-
-	var validatorCalls int
-	svc.SetScopedBindingValidator(stubScopedBindingValidator{
-		resolve: func(bindingID string) *runtimev1.ScopedAppBindingRelation {
-			if bindingID != "binding-voice-read-id-only" {
-				t.Fatalf("resolved binding id = %q", bindingID)
-			}
-			return &runtimev1.ScopedAppBindingRelation{
-				RuntimeAppId:         "desktop.app",
-				AppInstanceId:        "desktop.app.local-first-party",
-				WindowId:             "window-from-runtime",
-				AgentId:              localAgentRef,
-				ConversationAnchorId: anchorID,
-				WorldId:              "world-from-runtime",
-			}
-		},
-		validate: func(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-			validatorCalls++
-			if bindingID != "binding-voice-read-id-only" {
-				t.Fatalf("binding id = %q", bindingID)
-			}
-			if requiredScope != runtimeAgentTurnReadScope {
-				t.Fatalf("required scope = %q", requiredScope)
-			}
-			if actual.GetRuntimeAppId() != "desktop.app" ||
-				actual.GetAppInstanceId() != "desktop.app.local-first-party" ||
-				actual.GetWindowId() != "window-from-runtime" ||
-				actual.GetAgentId() != localAgentRef ||
-				actual.GetConversationAnchorId() != anchorID ||
-				actual.GetWorldId() != "world-from-runtime" {
-				t.Fatalf("canonical scoped binding relation was not completed: %#v", actual)
-			}
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-		},
-	})
-
-	subscribeCtx := testRuntimeAgentIdentityContext("agent-alpha")
-	subscribeCtx.AppId = "desktop.app"
-	subscribeCtx.ScopedBinding = &runtimev1.ScopedRuntimeBindingAttachment{
-		BindingId: "binding-voice-read-id-only",
-	}
-	stream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 1)
-	err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{
-		Context:              subscribeCtx,
-		VoiceStreamId:        voiceStreamID,
-		ConversationAnchorId: anchorID,
-		TurnId:               turn.TurnID,
-	}, stream)
-	if err != context.Canceled {
-		t.Fatalf("scoped voice stream subscription error=%v, want context.Canceled after first chunk", err)
-	}
-	if validatorCalls != 1 {
-		t.Fatalf("expected one scoped binding validation, got %d", validatorCalls)
-	}
-	if len(stream.events) != 1 || string(stream.events[0].GetChunk()) != "RIFF-scoped-subscribe-id-only" {
-		t.Fatalf("scoped voice stream did not receive expected chunk: %#v", stream.events)
 	}
 }

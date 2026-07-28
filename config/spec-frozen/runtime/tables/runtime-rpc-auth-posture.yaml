@@ -26,14 +26,8 @@ posture_enum:
     meaning: Public bootstrap may create only a non-privileged binding. Effective domains and scopes are empty; app id, manifest, caller enum, source host, session material, and AppMode cannot upgrade protected origin.
   - value: protected_origin_required
     meaning: Method is authority-admitted only on the exact K-PLOCAL transport and Runtime-derived live-process origin role. Portable credentials and request metadata cannot satisfy this posture.
-  - value: protected_or_scoped_binding_read
-    meaning: Read requires either an exact protected origin or a Runtime-issued first-party scoped binding under the operation owner policy.
-  - value: protected_or_scoped_binding_write
-    meaning: Write requires either an exact protected origin or a Runtime-issued first-party scoped binding under the operation owner policy.
   - value: authenticated_or_protected_local_app_operation
     meaning: Existing admitted callers use their owner-defined authenticated posture; LOCAL_APP is admitted only on local_app_host with a current session and the action's authority class. User-permission operations additionally require an admitted permission, owner selector/decision, relation and operation-owner policy.
-  - value: protected_or_scoped_binding_or_local_app_operation
-    meaning: Existing protected/first-party scoped consumers retain their posture; LOCAL_APP is separately admitted only through K-ACCSVC-026 without treating the principal as agent, conversation or memory owner.
   - value: unavailable_by_authority
     meaning: The method name may preserve a frozen future seam, but no transport or caller can produce a positive result until the named future authority maps inputs into the frozen schema.
   - value: blocked_pending_authority
@@ -83,7 +77,7 @@ posture_decision_doctrine: |
 method_shards:
   - path: ./runtime-rpc-auth-posture/identity-access.yaml
     id: nimicoding.runtime-rpc-auth-posture.identity-access.v1
-    method_count: 45
+    method_count: 43
     services:
       - RuntimeAccountService
       - RuntimeAuthService

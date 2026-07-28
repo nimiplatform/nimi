@@ -402,7 +402,6 @@ function projectAvatarDebugEvent(
         avatarInstanceId: request.avatarInstanceId,
         runtimeReplayRef: request.runtimeReplayRef,
         replayRequested: request.replayRequested,
-        scopedBinding: request.scopedBinding as unknown as JsonObject | undefined,
       } : {}),
       ...(result ? {
         probeId: result.probeId,

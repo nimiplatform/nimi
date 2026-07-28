@@ -48,14 +48,6 @@ RUNTIME_METHODS = [
     "response_type": "InvokeRealmUnaryResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
-    "service": "RuntimeAccountService",
-    "method": "IssueScopedAppBinding",
-    "kind": "unary",
-    "request_type": "IssueScopedAppBindingRequest",
-    "response_type": "IssueScopedAppBindingResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "service": "RuntimeAccountService",
     "method": "IssueWorkspaceBinding",
@@ -86,14 +78,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "RequestPresenceVerificationRequest",
     "response_type": "RequestPresenceVerificationResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
-    "service": "RuntimeAccountService",
-    "method": "RevokeScopedAppBinding",
-    "kind": "unary",
-    "request_type": "RevokeScopedAppBindingRequest",
-    "response_type": "RevokeScopedAppBindingResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",

@@ -22,7 +22,7 @@ func (s *Service) InterruptAgentVoicePlayback(ctx context.Context, req *runtimev
 	if err != nil {
 		return nil, err
 	}
-	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, runtimeAgentTurnWriteScope); err != nil {
+	if err := s.authorizeCurrentAccountLocalAgent(ctx, req.GetContext(), identity, runtimeAgentTurnWriteScope); err != nil {
 		return nil, err
 	}
 	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
@@ -32,19 +32,7 @@ func (s *Service) InterruptAgentVoicePlayback(ctx context.Context, req *runtimev
 	if callerAppID == "" || anchorID == "" || turnID == "" || voiceStreamID == "" {
 		return nil, status.Error(codes.InvalidArgument, "voice playback interrupt requires app_id, conversation_anchor_id, turn_id, and voice_stream_id")
 	}
-	scopedBinding := req.GetContext().GetScopedBinding()
-	if scopedBinding == nil {
-		scopedBinding = scopedBindingAttachmentFromIncomingMetadata(ctx)
-	}
-	if scopedBinding != nil {
-		if scopedBindingAttachmentConversationAnchorMismatches(scopedBinding, anchorID) {
-			return nil, status.Error(codes.PermissionDenied, "voice playback scoped binding conversation_anchor_id mismatch")
-		}
-		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, identity.LocalAgentRef, runtimeAgentTurnWriteScope); err != nil {
-			return nil, err
-		}
-	}
-	session, turn, err := s.resolveVoicePlaybackTurnScope(callerAppID, identity, anchorID, turnID, scopedBinding, runtimeAgentTurnWriteScope)
+	session, turn, err := s.resolveVoicePlaybackTurnScope(callerAppID, identity, anchorID, turnID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,10 +82,8 @@ func (s *Service) resolveVoicePlaybackTurnScope(
 	identity localAgentIdentity,
 	anchorID string,
 	turnID string,
-	scopedBinding *runtimev1.ScopedRuntimeBindingAttachment,
-	requiredScope string,
 ) (publicChatAnchorState, publicChatTurnState, error) {
-	session, err := s.resolveVoicePlaybackAnchorScope(callerAppID, identity, anchorID, scopedBinding, requiredScope)
+	session, err := s.resolveVoicePlaybackAnchorScope(callerAppID, identity, anchorID)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, err
 	}
@@ -117,8 +103,6 @@ func (s *Service) resolveVoicePlaybackAnchorScope(
 	callerAppID string,
 	identity localAgentIdentity,
 	anchorID string,
-	scopedBinding *runtimev1.ScopedRuntimeBindingAttachment,
-	requiredScope string,
 ) (publicChatAnchorState, error) {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
@@ -127,12 +111,7 @@ func (s *Service) resolveVoicePlaybackAnchorScope(
 		return publicChatAnchorState{}, status.Error(codes.NotFound, "conversation anchor not found")
 	}
 	if strings.TrimSpace(session.CallerAppID) != callerAppID && !s.avatarLiveInstanceBindingAuthorizesAnchorLocked(callerAppID, anchorID, identity) {
-		if scopedBinding == nil {
-			return publicChatAnchorState{}, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
-		}
-		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, identity.LocalAgentRef, requiredScope); err != nil {
-			return publicChatAnchorState{}, err
-		}
+		return publicChatAnchorState{}, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
 	}
 	if strings.TrimSpace(session.OwnerUserID) != identity.OwnerUserID ||
 		strings.TrimSpace(session.RuntimeSourceRef) != identity.RuntimeSourceRef ||

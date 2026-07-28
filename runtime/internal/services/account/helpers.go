@@ -16,7 +16,7 @@ import (
 
 const workspaceMembershipProjectionMaxAge = 15 * time.Minute
 
-func validateProductionCaller(caller *runtimev1.AccountCaller, tokenRequest bool) (runtimev1.AccountReasonCode, bool) {
+func validateProductionCaller(caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
 	switch caller.GetMode() {
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
 		runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
@@ -25,9 +25,6 @@ func validateProductionCaller(caller *runtimev1.AccountCaller, tokenRequest bool
 		}
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST:
-		if tokenRequest {
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
-		}
 		if strings.TrimSpace(caller.GetAppId()) != bundledavatar.AppID ||
 			strings.TrimSpace(caller.GetAppInstanceId()) != bundledavatar.AppInstanceID ||
 			strings.TrimSpace(caller.GetDeviceId()) != bundledavatar.DeviceID {
@@ -39,8 +36,8 @@ func validateProductionCaller(caller *runtimev1.AccountCaller, tokenRequest bool
 	}
 }
 
-func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *runtimev1.AccountCaller, tokenRequest bool) (runtimev1.AccountReasonCode, bool) {
-	reason, ok := validateProductionCaller(caller, tokenRequest)
+func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
+	reason, ok := validateProductionCaller(caller)
 	if !ok {
 		return reason, false
 	}
@@ -52,13 +49,7 @@ func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *run
 		if reason, ok := s.validateLocalCallerAppSession(ctx, caller); !ok {
 			return reason, false
 		}
-		if tokenRequest && !s.registryHasCapability(caller.GetAppId(), "account.raw-token") {
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-		}
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
-		if tokenRequest {
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-		}
 		if reason, ok := s.validateDesktopAccountHost(ctx, caller); !ok {
 			return reason, false
 		}
@@ -75,9 +66,9 @@ func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *run
 
 func (s *Service) validateProtectedDesktopAccountStatusCaller(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
 	if caller.GetMode() != runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL {
-		return s.validateRuntimeAdmittedCaller(ctx, caller, false)
+		return s.validateRuntimeAdmittedCaller(ctx, caller)
 	}
-	reason, ok := validateProductionCaller(caller, false)
+	reason, ok := validateProductionCaller(caller)
 	if !ok {
 		return reason, false
 	}
@@ -85,7 +76,7 @@ func (s *Service) validateProtectedDesktopAccountStatusCaller(ctx context.Contex
 }
 
 func (s *Service) validateRuntimeAccountControlCaller(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
-	reason, ok := validateProductionCaller(caller, false)
+	reason, ok := validateProductionCaller(caller)
 	if !ok {
 		return reason, false
 	}
@@ -144,66 +135,6 @@ func (s *Service) deriveWorkspaceBindingResolverCaller(caller *runtimev1.Account
 		DeviceId:      registeredDeviceID,
 		Mode:          caller.GetMode(),
 	}, true
-}
-
-func (s *Service) registryHasCapability(appID string, capability string) bool {
-	if s.registry == nil {
-		return false
-	}
-	record, ok := s.registry.Get(appID)
-	if !ok {
-		return false
-	}
-	for _, candidate := range record.Capabilities {
-		if strings.TrimSpace(candidate) == strings.TrimSpace(capability) {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Service) validateScopedBindingCaller(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
-	if caller.GetMode() == runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
-	}
-	switch caller.GetMode() {
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
-		runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP:
-		return s.validateRuntimeAdmittedCaller(ctx, caller, false)
-	default:
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-	}
-}
-
-func validateBindingCallerRelation(caller *runtimev1.AccountCaller, relation *runtimev1.ScopedAppBindingRelation) (runtimev1.AccountReasonCode, bool) {
-	if caller == nil || relation == nil {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-	}
-	if strings.TrimSpace(caller.GetAppId()) != strings.TrimSpace(relation.GetRuntimeAppId()) {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-	}
-	if strings.TrimSpace(caller.GetAppInstanceId()) != strings.TrimSpace(relation.GetAppInstanceId()) {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-	}
-	if relation.GetPurpose() == runtimev1.ScopedAppBindingPurpose_SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME {
-		if strings.TrimSpace(relation.GetAvatarInstanceId()) == "" ||
-			strings.TrimSpace(relation.GetConversationAnchorId()) == "" ||
-			strings.TrimSpace(relation.GetWindowId()) == "" {
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE, false
-		}
-	}
-	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-}
-
-func bindingRevocationReasonForAccountState(state runtimev1.AccountSessionState) runtimev1.AccountReasonCode {
-	switch state {
-	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE:
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE
-	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED:
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE
-	default:
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE
-	}
 }
 
 func normalizeMaterial(material AccountMaterial) AccountMaterial {
@@ -302,28 +233,6 @@ func workspaceDisplayMetadataAllowed(key string) bool {
 	}
 }
 
-func cloneRelation(in *runtimev1.ScopedAppBindingRelation) *runtimev1.ScopedAppBindingRelation {
-	if in == nil {
-		return nil
-	}
-	return &runtimev1.ScopedAppBindingRelation{
-		BindingId:            in.GetBindingId(),
-		RuntimeAppId:         in.GetRuntimeAppId(),
-		AppInstanceId:        in.GetAppInstanceId(),
-		WindowId:             in.GetWindowId(),
-		AvatarInstanceId:     in.GetAvatarInstanceId(),
-		AgentId:              in.GetAgentId(),
-		ConversationAnchorId: in.GetConversationAnchorId(),
-		WorldId:              in.GetWorldId(),
-		Purpose:              in.GetPurpose(),
-		Scopes:               append([]string(nil), in.GetScopes()...),
-		IssuedAt:             in.GetIssuedAt(),
-		ExpiresAt:            in.GetExpiresAt(),
-		State:                in.GetState(),
-		ReasonCode:           in.GetReasonCode(),
-	}
-}
-
 func cloneWorkspaceRelation(in *runtimev1.WorkspaceBindingRelation) *runtimev1.WorkspaceBindingRelation {
 	if in == nil {
 		return nil
@@ -369,7 +278,6 @@ func cloneEvent(in *runtimev1.AccountSessionEvent) *runtimev1.AccountSessionEven
 		EmittedAt:       in.GetEmittedAt(),
 		EventType:       in.GetEventType(),
 		BindingId:       in.GetBindingId(),
-		BindingRelation: cloneRelation(in.GetBindingRelation()),
 		ReplayTruncated: in.GetReplayTruncated(),
 		DeliveryKind:    in.GetDeliveryKind(),
 		Snapshot:        cloneAccountSessionSnapshot(in.GetSnapshot()),
@@ -471,28 +379,6 @@ func workspaceBindingAccountReason(reason runtimev1.ReasonCode) runtimev1.Accoun
 	default:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE
 	}
-}
-
-func relationReplay(expected *runtimev1.ScopedAppBindingRelation, actual *runtimev1.ScopedAppBindingRelation) bool {
-	if expected == nil || actual == nil {
-		return true
-	}
-	return strings.TrimSpace(expected.GetRuntimeAppId()) != strings.TrimSpace(actual.GetRuntimeAppId()) ||
-		strings.TrimSpace(expected.GetAppInstanceId()) != strings.TrimSpace(actual.GetAppInstanceId()) ||
-		strings.TrimSpace(expected.GetWindowId()) != strings.TrimSpace(actual.GetWindowId()) ||
-		strings.TrimSpace(expected.GetAvatarInstanceId()) != strings.TrimSpace(actual.GetAvatarInstanceId()) ||
-		strings.TrimSpace(expected.GetAgentId()) != strings.TrimSpace(actual.GetAgentId()) ||
-		strings.TrimSpace(expected.GetConversationAnchorId()) != strings.TrimSpace(actual.GetConversationAnchorId()) ||
-		strings.TrimSpace(expected.GetWorldId()) != strings.TrimSpace(actual.GetWorldId())
-}
-
-func scopeIncluded(scopes []string, required string) bool {
-	for _, scope := range scopes {
-		if strings.TrimSpace(scope) == required {
-			return true
-		}
-	}
-	return false
 }
 
 func workspaceScopeAdmitted(scope string) bool {

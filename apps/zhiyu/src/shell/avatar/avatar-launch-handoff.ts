@@ -11,7 +11,7 @@ import {
 import type { ZhiyuEvidence } from '../app/evidence';
 import { getZhiyuRuntime } from '../auth/runtime-platform';
 import type { ZhiyuAvatarLaunchAction } from './avatar-launch';
-import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
+import { withZhiyuRuntimeAgentAccessRequired } from '../agent-chat/runtime-agent-access';
 
 const APP_ID = 'nimi.zhiyu';
 
@@ -96,7 +96,7 @@ export async function launchZhiyuAvatar(
   try {
     const handoff = buildZhiyuAvatarLaunchHandoff(options);
     const runtimeAgent = options.runtimeAgent ?? createDefaultRuntimeAgentClient();
-    await withZhiyuRuntimeAgentBindingRequired(['runtime.agent.write'], (callOptions) => (
+    await withZhiyuRuntimeAgentAccessRequired(['runtime.agent.write'], (callOptions) => (
       runtimeAgent.anchors.registerAvatarLiveInstance(handoff.registerLiveInstance, callOptions)
     ));
     const rawResult = await (options.invokeHost ?? invokeZhiyuAvatarLaunchHandoff)(handoff.payload);

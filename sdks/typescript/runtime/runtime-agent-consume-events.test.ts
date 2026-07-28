@@ -171,29 +171,16 @@ test('Runtime Agent consume fails closed when turn stream assembly lacks appMess
   );
 });
 
-test('Runtime Agent consume context preserves explicit subject and scoped binding authority', () => {
-  const scopedBinding = {
-    bindingId: 'binding-1',
-    bindingHandle: 'runtime.binding/binding-1',
-    runtimeAppId: 'nimi.avatar',
-    appInstanceId: 'app-instance-1',
-    windowId: 'window-1',
-    avatarInstanceId: 'avatar-1',
-    agentId: 'local-agent:owner-1:agent-1',
-    conversationAnchorId: 'anchor-1',
-    worldId: 'world-1',
-  };
-
+test('Runtime Agent consume context preserves explicit subject and canonical LocalAgent identity', () => {
   const context = buildNimiRuntimeAgentConsumeContext({
     ...consumeContext,
     runtimeAppId: 'nimi.avatar',
     subjectUserId: 'subject-2',
-    scopedBinding,
   });
 
   assert.equal(context.subjectUserId, 'subject-2');
   assert.equal(context.requestContext.subjectUserId, 'subject-2');
-  assert.deepEqual(context.scopedBinding, scopedBinding);
+  assert.equal(context.requestContext.localAgentRef, consumeContext.localAgentRef);
   assert.throws(
     () => buildNimiRuntimeAgentConsumeContext({
       ...consumeContext,
@@ -630,17 +617,6 @@ test('Runtime Agent consume projects generated event families and fails closed o
           avatarInstanceId: 'avatar-1',
           runtimeReplayRef: 'runtime.replay/probe-1',
           replayRequested: true,
-          scopedBinding: {
-            bindingId: 'binding-1',
-            bindingHandle: 'runtime.binding/binding-1',
-            runtimeAppId: 'nimi.avatar',
-            appInstanceId: 'app-instance-1',
-            windowId: 'window-1',
-            agentId: 'local-agent:owner-1:agent-1',
-            conversationAnchorId: 'anchor-1',
-            avatarInstanceId: 'avatar-1',
-            worldId: 'world-1',
-          },
         },
       },
     },
@@ -648,17 +624,7 @@ test('Runtime Agent consume projects generated event families and fails closed o
   assert.equal(avatarDebugEvent.eventName, 'runtime.agent.avatar_debug.probe_requested');
   assert.equal(avatarDebugEvent.conversationAnchorId, 'anchor-1');
   assert.equal(avatarDebugEvent.detail.probeId, 'probe-1');
-  assert.deepEqual(avatarDebugEvent.detail.scopedBinding, {
-    bindingId: 'binding-1',
-    bindingHandle: 'runtime.binding/binding-1',
-    runtimeAppId: 'nimi.avatar',
-    appInstanceId: 'app-instance-1',
-    windowId: 'window-1',
-    agentId: 'local-agent:owner-1:agent-1',
-    conversationAnchorId: 'anchor-1',
-    avatarInstanceId: 'avatar-1',
-    worldId: 'world-1',
-  });
+  assert.equal('scopedBinding' in avatarDebugEvent.detail, false);
 
   const hookCases: Array<readonly [HookAdmissionState, string]> = [
     [HookAdmissionState.PROPOSED, 'runtime.agent.hook.intent_proposed'],

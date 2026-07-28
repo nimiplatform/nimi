@@ -152,8 +152,8 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor
-    posture: protected_or_scoped_binding_write
-    rationale: conversation anchor mutation requires an existing protected or scoped Runtime binding; third-party local-app access is not admitted
+    posture: authenticated_or_protected_local_app_operation
+    rationale: conversation anchor mutation requires the caller's current authenticated or protected operation context; LOCAL_APP is revalidated through its exact per-call operation decision
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
@@ -166,55 +166,55 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries
-    posture: protected_or_scoped_binding_read
-    rationale: conversation summary listing enumerates Runtime-owned Agent Chat anchors and must be scoped by protected app/agent identity
+    posture: protected_origin_required
+    rationale: conversation summary listing enumerates Runtime-owned Agent Chat anchors and requires the exact protected app origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-006b
   - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
-    posture: protected_or_scoped_binding_write
+    posture: protected_origin_required
     rationale: runtime-owned Avatar live-instance binding mutates anchor recovery state and requires protected Runtime access
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-138
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
-    posture: protected_or_scoped_binding_read
+    posture: protected_origin_required
     rationale: runtime-owned Avatar live-instance binding returns explicit anchor recovery truth and requires protected Runtime access
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-138
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
-    posture: protected_or_scoped_binding_read
-    rationale: snapshot recovery requires an existing protected or scoped Runtime binding; id possession is not authority and third-party local-app access is not admitted
+    posture: authenticated_or_protected_local_app_operation
+    rationale: snapshot recovery requires the caller's current authenticated or protected operation context; id possession is not authority and LOCAL_APP is revalidated per call
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-ACCSVC-026
       - K-AGCORE-032
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection
-    posture: protected_or_scoped_binding_read
-    rationale: companion participation projection requires runtime protected capability or scoped app binding
+    posture: protected_origin_required
+    rationale: companion participation projection requires the exact protected Runtime origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation
-    posture: protected_or_scoped_binding_write
-    rationale: companion participation request mutates canonical Runtime public-chat execution through a scoped control path
+    posture: protected_origin_required
+    rationale: companion participation request mutates canonical Runtime public-chat execution through an exact protected control path
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation
-    posture: protected_or_scoped_binding_write
-    rationale: companion participation cancel interrupts canonical Runtime public-chat execution through a scoped control path
+    posture: protected_origin_required
+    rationale: companion participation cancel interrupts canonical Runtime public-chat execution through an exact protected control path
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay
-    posture: protected_or_scoped_binding_read
-    rationale: companion participation replay exposes typed projection/audit refs through a scoped read path
+    posture: protected_origin_required
+    rationale: companion participation replay exposes typed projection and audit refs only to the exact protected origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
@@ -243,8 +243,8 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult
-    posture: protected_or_scoped_binding_write
-    rationale: Avatar debug probe result submit mutates Runtime-owned diagnostic projection and requires protected avatar debug write scope or scoped Avatar binding
+    posture: protected_origin_required
+    rationale: Avatar debug probe result submit mutates Runtime-owned diagnostic projection and requires the exact protected Avatar origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
@@ -359,50 +359,50 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus
-    posture: protected_or_scoped_binding_read
-    rationale: runtime-owned canonical agent memory bank status read requires runtime.agent.read capability
+    posture: protected_origin_required
+    rationale: runtime-owned canonical agent memory bank status read requires the exact protected Runtime origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-004
   - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind
-    posture: protected_or_scoped_binding_write
-    rationale: runtime-owned canonical agent memory bank bind request requires runtime.agent.write capability
+    posture: protected_origin_required
+    rationale: runtime-owned canonical agent memory bank bind request requires the exact protected Runtime origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-004
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus
-    posture: protected_or_scoped_binding_read
-    rationale: runtime-owned canonical review scheduler and follow-up status read requires runtime.agent.read capability
+    posture: authenticated_required
+    rationale: runtime-owned canonical review scheduler and follow-up status read requires the current authenticated identity and owner decision
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-016a
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig
-    posture: protected_or_scoped_binding_read
-    rationale: Runtime Agent AI Config read requires runtime.agent.ai_config.read capability
+    posture: protected_origin_required
+    rationale: Runtime Agent AI Config read requires the exact protected Runtime origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-144
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig
-    posture: protected_or_scoped_binding_write
-    rationale: Runtime Agent AI Config mutation requires runtime.agent.ai_config.write capability and expected_revision
+    posture: protected_origin_required
+    rationale: Runtime Agent AI Config mutation requires the exact protected Runtime origin and expected_revision
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-145
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness
-    posture: protected_or_scoped_binding_read
-    rationale: Runtime Agent AI Config readiness projection requires runtime.agent.ai_config.read capability
+    posture: protected_origin_required
+    rationale: Runtime Agent AI Config readiness projection requires the exact protected Runtime origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-146
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness
-    posture: protected_or_scoped_binding_read
-    rationale: Runtime Agent AI Config readiness stream requires runtime.agent.ai_config.read capability and must not leak secrets
+    posture: protected_origin_required
+    rationale: Runtime Agent AI Config readiness stream requires the exact protected Runtime origin and must not leak secrets
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
@@ -490,12 +490,12 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream
-    posture: protected_or_scoped_binding_read
-    rationale: existing Runtime Agent consumers require protected or scoped turn-read authority; third-party local-app access is not admitted
+    posture: authenticated_or_protected_local_app_operation
+    rationale: voice stream consumption requires the caller's current authenticated or protected operation context; LOCAL_APP is revalidated through its exact per-call voice-stream decision
     kernel_refs: [K-AUTHN-001, K-AUTH-006, K-AGCORE-133, K-VOICE-019, K-VOICE-021]
   - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback
-    posture: protected_or_scoped_binding_write
-    rationale: active voice playback interruption mutates Runtime-owned terminal truth and requires bundled Avatar protected origin or a Runtime-issued scoped turn-write binding
+    posture: protected_origin_required
+    rationale: active voice playback interruption mutates Runtime-owned terminal truth and requires the exact bundled Avatar protected origin
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
@@ -668,22 +668,22 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime
-    posture: protected_or_scoped_binding_read
-    rationale: runtime-owned memory embedding readiness and canonical bank state projection requires runtime.memory.read capability; committed text.embed intent is read from Runtime Agent AI Config, not this service
+    posture: blocked_pending_authority
+    rationale: public cognition access to the runtime-private memory embedding lifecycle has no admitted caller; current projections use RuntimeAgentService canonical memory surfaces
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-MEM-006b
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind
-    posture: protected_or_scoped_binding_write
-    rationale: runtime-owned canonical memory embedding bind mutates bank embedding state and requires runtime.memory.write capability
+    posture: blocked_pending_authority
+    rationale: public cognition mutation of the runtime-private memory embedding lifecycle has no admitted caller; current binding is owned by RuntimeAgentService
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-MEM-006b
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover
-    posture: protected_or_scoped_binding_write
-    rationale: runtime-owned memory embedding cutover mutates canonical bank embedding state and requires runtime.memory.write capability
+    posture: blocked_pending_authority
+    rationale: public cognition mutation of the runtime-private memory embedding lifecycle has no admitted caller; cutover remains runtime-internal
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

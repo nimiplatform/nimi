@@ -418,7 +418,7 @@ func TestExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *testing.
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-pack4-hook-origin"),
 	}); err != nil {
@@ -508,7 +508,7 @@ func TestPublicChatTrackHookProposalUsesCanonicalHookLifecycle(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-pack4-chat-track"),
 	}); err != nil {
@@ -671,7 +671,7 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 	if len(pendingResp.GetHooks()) != 0 {
 		t.Fatalf("public chat follow-up must not create life-track pending hook truth, got %#v", pendingResp.GetHooks())
 	}
-	hookStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
+	hookStream := newAgentEventCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:      testRuntimeAgentLocalRef("agent-alpha"),

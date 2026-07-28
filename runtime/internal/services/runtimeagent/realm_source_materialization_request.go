@@ -48,7 +48,7 @@ func validateRealmSourceMaterializationRequestV3(ctx context.Context, req *runti
 	if appID := requestContext.GetAppId(); appID == "" || appID != strings.TrimSpace(appID) {
 		return realmSourceMaterializationRequestV3{}, status.Error(codes.InvalidArgument, "Realm source materialization app_id is required")
 	}
-	if requestContext.GetScopedBinding() != nil || requestContext.GetRuntimeSourceRef() != "" || requestContext.GetLocalAgentRef() != "" {
+	if requestContext.GetRuntimeSourceRef() != "" || requestContext.GetLocalAgentRef() != "" {
 		return realmSourceMaterializationRequestV3{}, status.Error(codes.InvalidArgument, "caller-selected binding or LocalAgent identity is not admitted")
 	}
 	requestID := req.GetRequestId()

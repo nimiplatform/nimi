@@ -36,20 +36,6 @@ test('Runtime Agent turn payload rejects request authority and unknown keys', ()
     { execution_bindings: { 'text.generate': { route: 'local', modelId: 'model' } } },
     { mediaUrl: 'file:///private.png' },
     { reasoning: { mode: 'visible', privatePrompt: 'do not admit' } },
-    {
-      scopedBinding: {
-        bindingId: 'binding',
-        bindingHandle: '',
-        runtimeAppId: 'desktop',
-        appInstanceId: '',
-        windowId: '',
-        avatarInstanceId: '',
-        agentId: '',
-        conversationAnchorId: 'anchor',
-        worldId: '',
-        privatePrompt: 'do not admit',
-      },
-    },
     { extra: true },
   ] as const;
 

@@ -17,7 +17,7 @@ func (s *Service) validateAvatarDebugControlRequest(callContext context.Context,
 	if err != nil {
 		return "", "", err
 	}
-	if err := s.authorizeBundledAvatarIdentity(callContext, requestContext, identity, requiredScope); err != nil {
+	if err := s.authorizeCurrentAccountLocalAgent(callContext, requestContext, identity, requiredScope); err != nil {
 		return "", "", err
 	}
 	trimmedAgentID := strings.TrimSpace(agentID)
@@ -31,18 +31,9 @@ func (s *Service) validateAvatarDebugControlRequest(callContext context.Context,
 	if callerAppID == "" {
 		return "", "", status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
-	scopedBinding := requestContext.GetScopedBinding()
-	if scopedBinding == nil && !isBundledAvatarCapability(callContext, requiredScope) {
-		return "", "", runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
-	}
 	trimmedAnchorID := strings.TrimSpace(anchorID)
 	if trimmedAnchorID == "" {
 		return "", "", status.Error(codes.InvalidArgument, "conversation_anchor_id is required")
-	}
-	if scopedBinding != nil {
-		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, trimmedAgentID, requiredScope); err != nil {
-			return "", "", err
-		}
 	}
 	if err := s.validateAvatarDebugAnchor(identity, entry, trimmedAnchorID); err != nil {
 		return "", "", err

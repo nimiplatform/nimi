@@ -67,7 +67,6 @@ const (
 	ACCOUNTREASONCODEPROOFUNSUPPORTED AccountReasonCode = "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED"
 	ACCOUNTREASONCODEREFRESHREUSEDETECTED AccountReasonCode = "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED"
 	ACCOUNTREASONCODECALLERUNAUTHORIZED AccountReasonCode = "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED"
-	ACCOUNTREASONCODEAVATARBINDINGONLY AccountReasonCode = "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY"
 	ACCOUNTREASONCODEBINDINGNOTFOUND AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND"
 	ACCOUNTREASONCODEBINDINGSTALE AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_STALE"
 	ACCOUNTREASONCODEBINDINGREPLAY AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_REPLAY"
@@ -1651,26 +1650,6 @@ const (
 	SCHEDULINGSTATEUNKNOWN SchedulingState = "SCHEDULING_STATE_UNKNOWN"
 )
 
-type ScopedAppBindingPurpose string
-
-const (
-	SCOPEDAPPBINDINGPURPOSEUNSPECIFIED ScopedAppBindingPurpose = "SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED"
-	SCOPEDAPPBINDINGPURPOSEAVATARINTERACTIONCONSUME ScopedAppBindingPurpose = "SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME"
-	SCOPEDAPPBINDINGPURPOSEAPPSCOPEDRUNTIME ScopedAppBindingPurpose = "SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME"
-)
-
-type ScopedAppBindingState string
-
-const (
-	SCOPEDAPPBINDINGSTATEUNSPECIFIED ScopedAppBindingState = "SCOPED_APP_BINDING_STATE_UNSPECIFIED"
-	SCOPEDAPPBINDINGSTATEISSUED ScopedAppBindingState = "SCOPED_APP_BINDING_STATE_ISSUED"
-	SCOPEDAPPBINDINGSTATEACTIVE ScopedAppBindingState = "SCOPED_APP_BINDING_STATE_ACTIVE"
-	SCOPEDAPPBINDINGSTATESUSPENDED ScopedAppBindingState = "SCOPED_APP_BINDING_STATE_SUSPENDED"
-	SCOPEDAPPBINDINGSTATEREVOKED ScopedAppBindingState = "SCOPED_APP_BINDING_STATE_REVOKED"
-	SCOPEDAPPBINDINGSTATEEXPIRED ScopedAppBindingState = "SCOPED_APP_BINDING_STATE_EXPIRED"
-	SCOPEDAPPBINDINGSTATESUPERSEDED ScopedAppBindingState = "SCOPED_APP_BINDING_STATE_SUPERSEDED"
-)
-
 type SensitivityClass string
 
 const (
@@ -1945,7 +1924,6 @@ type AccountSessionEvent struct {
 	EmittedAt string `json:"emitted_at,omitempty"`
 	EventType AccountEventType `json:"event_type,omitempty"`
 	BindingId string `json:"binding_id,omitempty"`
-	BindingRelation *ScopedAppBindingRelation `json:"binding_relation,omitempty"`
 	ReplayTruncated bool `json:"replay_truncated,omitempty"`
 	DeliveryKind AccountSessionDeliveryKind `json:"delivery_kind,omitempty"`
 	Snapshot *AccountSessionSnapshot `json:"snapshot,omitempty"`
@@ -2229,7 +2207,6 @@ type AgentReplicationEventDetail struct {
 type AgentRequestContext struct {
 	AppId string `json:"app_id,omitempty"`
 	SubjectUserId string `json:"subject_user_id,omitempty"`
-	ScopedBinding *ScopedRuntimeBindingAttachment `json:"scoped_binding,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
 	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
@@ -2524,7 +2501,6 @@ type AvatarDebugProbeRequestEnvelope struct {
 	AvatarInstanceId string `json:"avatar_instance_id,omitempty"`
 	RuntimeReplayRef string `json:"runtime_replay_ref,omitempty"`
 	ReplayRequested bool `json:"replay_requested,omitempty"`
-	ScopedBinding *ScopedRuntimeBindingAttachment `json:"scoped_binding,omitempty"`
 }
 
 type AvatarDebugProbeResultEnvelope struct {
@@ -4085,22 +4061,6 @@ type InvokeRealmUnaryResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 	HttpStatus int32 `json:"http_status,omitempty"`
 	ErrorMessage string `json:"error_message,omitempty"`
-}
-
-type IssueScopedAppBindingRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-	Relation *ScopedAppBindingRelation `json:"relation,omitempty"`
-	TtlSeconds int32 `json:"ttl_seconds,omitempty"`
-}
-
-type IssueScopedAppBindingResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	BindingId string `json:"binding_id,omitempty"`
-	BindingCarrier string `json:"binding_carrier,omitempty"`
-	Relation *ScopedAppBindingRelation `json:"relation,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
-	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
 type IssueWorkspaceBindingRequest struct {
@@ -6714,20 +6674,6 @@ type RevokeLocalDevelopmentAuthorizationResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
-type RevokeScopedAppBindingRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-	BindingId string `json:"binding_id,omitempty"`
-	ReasonCode AccountReasonCode `json:"reason_code,omitempty"`
-}
-
-type RevokeScopedAppBindingResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	Relation *ScopedAppBindingRelation `json:"relation,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
-	ProductionInert bool `json:"production_inert,omitempty"`
-}
-
 type RevokeSessionRequest struct {
 	SessionId string `json:"session_id,omitempty"`
 }
@@ -7066,35 +7012,6 @@ type SchedulingTargetJudgement struct {
 	Judgement *SchedulingJudgement `json:"judgement,omitempty"`
 }
 
-type ScopedAppBindingRelation struct {
-	BindingId string `json:"binding_id,omitempty"`
-	RuntimeAppId string `json:"runtime_app_id,omitempty"`
-	AppInstanceId string `json:"app_instance_id,omitempty"`
-	WindowId string `json:"window_id,omitempty"`
-	AvatarInstanceId string `json:"avatar_instance_id,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-	WorldId string `json:"world_id,omitempty"`
-	Purpose ScopedAppBindingPurpose `json:"purpose,omitempty"`
-	Scopes []string `json:"scopes,omitempty"`
-	IssuedAt string `json:"issued_at,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	State ScopedAppBindingState `json:"state,omitempty"`
-	ReasonCode AccountReasonCode `json:"reason_code,omitempty"`
-}
-
-type ScopedRuntimeBindingAttachment struct {
-	BindingId string `json:"binding_id,omitempty"`
-	BindingHandle string `json:"binding_handle,omitempty"`
-	RuntimeAppId string `json:"runtime_app_id,omitempty"`
-	AppInstanceId string `json:"app_instance_id,omitempty"`
-	WindowId string `json:"window_id,omitempty"`
-	AvatarInstanceId string `json:"avatar_instance_id,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-	WorldId string `json:"world_id,omitempty"`
-}
-
 type SearchCatalogModelsRequest struct {
 	Query string `json:"query,omitempty"`
 	Capability string `json:"capability,omitempty"`
@@ -7156,7 +7073,6 @@ type SendAppMessageRequest struct {
 	MessageType string `json:"message_type,omitempty"`
 	Payload map[string]any `json:"payload,omitempty"`
 	RequireAck bool `json:"require_ack,omitempty"`
-	ScopedBinding *ScopedRuntimeBindingAttachment `json:"scoped_binding,omitempty"`
 }
 
 type SendAppMessageResponse struct {
@@ -7410,7 +7326,6 @@ type SubscribeAppMessagesRequest struct {
 	SubjectUserId string `json:"subject_user_id,omitempty"`
 	Cursor string `json:"cursor,omitempty"`
 	FromAppIds []string `json:"from_app_ids,omitempty"`
-	ScopedBinding *ScopedRuntimeBindingAttachment `json:"scoped_binding,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 }
@@ -8132,14 +8047,6 @@ func (c RuntimeTypedClient) InvokeRealmUnary(ctx context.Context, request Invoke
 	return decodeRuntimeTypedResponse[InvokeRealmUnaryResponse](raw, "InvokeRealmUnaryResponse")
 }
 
-func (c RuntimeTypedClient) IssueScopedAppBinding(ctx context.Context, request IssueScopedAppBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueScopedAppBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding", request, metadata, timeoutMS)
-	if err != nil {
-		return IssueScopedAppBindingResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[IssueScopedAppBindingResponse](raw, "IssueScopedAppBindingResponse")
-}
-
 func (c RuntimeTypedClient) IssueWorkspaceBinding(ctx context.Context, request IssueWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueWorkspaceBindingResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", request, metadata, timeoutMS)
 	if err != nil {
@@ -8170,14 +8077,6 @@ func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, req
 		return RequestPresenceVerificationResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RequestPresenceVerificationResponse](raw, "RequestPresenceVerificationResponse")
-}
-
-func (c RuntimeTypedClient) RevokeScopedAppBinding(ctx context.Context, request RevokeScopedAppBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeScopedAppBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding", request, metadata, timeoutMS)
-	if err != nil {
-		return RevokeScopedAppBindingResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RevokeScopedAppBindingResponse](raw, "RevokeScopedAppBindingResponse")
 }
 
 func (c RuntimeTypedClient) RevokeWorkspaceBinding(ctx context.Context, request RevokeWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeWorkspaceBindingResponse, error) {

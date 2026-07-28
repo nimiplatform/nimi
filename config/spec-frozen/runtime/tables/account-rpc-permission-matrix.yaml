@@ -8,11 +8,9 @@ surfaces:
   - CompleteLogin
   - GetAccountSessionStatus
   - InvokeRealmUnary
-  - IssueScopedAppBinding
   - IssueWorkspaceBinding
   - Logout
   - RequestPresenceVerification
-  - RevokeScopedAppBinding
   - RevokeWorkspaceBinding
   - SubscribeAccountSessionEvents
   - SwitchAccount
@@ -68,8 +66,6 @@ callers:
       Logout: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
       SwitchAccount: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
       InvokeRealmUnary: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, exact_desktop_source_readiness_broker_operation] }
-      IssueScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, binding_relation_match] }
-      RevokeScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, binding_relation_match] }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
       GetLocalAppPermissionStatus: { decision: deny, reason: local_app_child_projection_only }
@@ -87,8 +83,6 @@ callers:
       Logout: { decision: deny, reason: desktop_account_ux_only }
       SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
       InvokeRealmUnary: { decision: deny, reason: no_bundled_realm_operation_admitted }
-      IssueScopedAppBinding: { decision: deny, reason: binding_owner_issues }
-      RevokeScopedAppBinding: { decision: deny, reason: binding_owner_revokes }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_app_surface }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_app_surface }
       GetLocalAppPermissionStatus: { decision: deny, reason: bundled_first_party_not_local_app_principal }
@@ -106,8 +100,6 @@ callers:
       Logout: { decision: deny, reason: desktop_account_ux_only }
       SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
       InvokeRealmUnary: { decision: deny, reason: no_local_app_realm_operation_admitted }
-      IssueScopedAppBinding: { decision: deny, reason: local_app_uses_process_bound_session }
-      RevokeScopedAppBinding: { decision: deny, reason: local_app_uses_process_bound_session }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_local_app_surface }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_local_app_surface }
       GetLocalAppPermissionStatus: { decision: allow_when, requirements: [protected_local_app_origin, current_process_bound_session, current_principal_and_record, canonical_public_permission_id] }
@@ -125,8 +117,6 @@ callers:
       Logout: { decision: deny, reason: desktop_account_ux_only }
       SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
       InvokeRealmUnary: { decision: allow_when, requirements: [protected_bundled_avatar_origin, fixed_bundled_avatar_profile, fixed_host_bound_caller_envelope, current_authenticated_account, exact_bundled_avatar_broker_operation] }
-      IssueScopedAppBinding: { decision: deny, reason: default_avatar_uses_no_scoped_binding }
-      RevokeScopedAppBinding: { decision: deny, reason: default_avatar_uses_no_scoped_binding }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_avatar_surface }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_avatar_surface }
       GetLocalAppPermissionStatus: { decision: deny, reason: bundled_avatar_not_local_app_principal }

@@ -9,183 +9,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
-
-func TestPublicChatNativeVoiceInterruptValidatesScopedBinding(t *testing.T) {
-	t.Parallel()
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	capture := newPublicChatEmitCapture()
-	svc.SetPublicChatAppEmitter(capture.emit)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
-	turn := publicChatTurnState{
-		ConversationAnchorID: anchorID,
-		TurnID:               "turn-scoped-voice-interrupt",
-		StreamID:             "stream-scoped-voice-interrupt",
-		AgentID:              "agent-alpha",
-		CallerAppID:          "desktop.app",
-		SubjectUserID:        "user-1",
-		TimelineStartedAt:    time.Now().Add(-time.Millisecond),
-	}
-	svc.chatSurfaceMu.Lock()
-	svc.chatTurns[turn.TurnID] = &turn
-	svc.chatSurfaceMu.Unlock()
-
-	voiceStreamID := "runtime-agent-voice-stream:test-scoped-interrupt"
-	svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
-		VoiceStreamId:        voiceStreamID,
-		ConversationAnchorId: anchorID,
-		TurnId:               turn.TurnID,
-		StreamId:             turn.StreamID,
-		MessageId:            "message-scoped-voice-interrupt",
-		ChunkSequence:        1,
-		Chunk:                []byte("RIFF-scoped-interrupt"),
-		MimeType:             "audio/wav",
-		VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
-		PlaybackTarget:       "avatar_autoplay",
-		VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE,
-	})
-
-	var validatorCalls int
-	svc.SetScopedBindingValidator(stubScopedBindingValidator{validate: func(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-		validatorCalls++
-		if bindingID != "binding-voice-write" {
-			t.Fatalf("binding id = %q", bindingID)
-		}
-		if requiredScope != runtimeAgentTurnWriteScope {
-			t.Fatalf("required scope = %q", requiredScope)
-		}
-		if actual.GetRuntimeAppId() != "desktop.app" ||
-			actual.GetAgentId() != localAgentRef ||
-			actual.GetConversationAnchorId() != anchorID {
-			t.Fatalf("scoped binding relation mismatch: %#v", actual)
-		}
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-	}})
-
-	interruptCtx := testRuntimeAgentIdentityContext("agent-alpha")
-	interruptCtx.AppId = "desktop.app"
-	interruptCtx.ScopedBinding = &runtimev1.ScopedRuntimeBindingAttachment{
-		BindingId:            "binding-voice-write",
-		RuntimeAppId:         "desktop.app",
-		AgentId:              localAgentRef,
-		ConversationAnchorId: anchorID,
-	}
-	resp, err := svc.InterruptAgentVoicePlayback(context.Background(), &runtimev1.InterruptAgentVoicePlaybackRequest{
-		Context:              interruptCtx,
-		ConversationAnchorId: anchorID,
-		TurnId:               turn.TurnID,
-		VoiceStreamId:        voiceStreamID,
-		Reason:               "scoped_voice_interrupt",
-	})
-	if err != nil {
-		t.Fatalf("InterruptAgentVoicePlayback: %v", err)
-	}
-	if validatorCalls != 1 {
-		t.Fatalf("expected one scoped binding validation, got %d", validatorCalls)
-	}
-	if resp.GetVoicePlaybackState() != runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED ||
-		resp.GetTerminalReason() != "scoped_voice_interrupt" {
-		t.Fatalf("scoped voice interrupt response mismatch: %#v", resp)
-	}
-}
-
-func TestPublicChatNativeVoiceInterruptAcceptsBindingIDOnlyWithCanonicalRelation(t *testing.T) {
-	t.Parallel()
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	capture := newPublicChatEmitCapture()
-	svc.SetPublicChatAppEmitter(capture.emit)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
-	turn := publicChatTurnState{
-		ConversationAnchorID: anchorID,
-		TurnID:               "turn-scoped-voice-interrupt-id-only",
-		StreamID:             "stream-scoped-voice-interrupt-id-only",
-		AgentID:              "agent-alpha",
-		CallerAppID:          "desktop.app",
-		SubjectUserID:        "user-1",
-		TimelineStartedAt:    time.Now().Add(-time.Millisecond),
-	}
-	svc.chatSurfaceMu.Lock()
-	svc.chatTurns[turn.TurnID] = &turn
-	svc.chatSurfaceMu.Unlock()
-
-	voiceStreamID := "runtime-agent-voice-stream:test-scoped-interrupt-id-only"
-	svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
-		VoiceStreamId:        voiceStreamID,
-		ConversationAnchorId: anchorID,
-		TurnId:               turn.TurnID,
-		StreamId:             turn.StreamID,
-		MessageId:            "message-scoped-voice-interrupt-id-only",
-		ChunkSequence:        1,
-		Chunk:                []byte("RIFF-scoped-interrupt-id-only"),
-		MimeType:             "audio/wav",
-		VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
-		PlaybackTarget:       "avatar_autoplay",
-		VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE,
-	})
-
-	var validatorCalls int
-	svc.SetScopedBindingValidator(stubScopedBindingValidator{
-		resolve: func(bindingID string) *runtimev1.ScopedAppBindingRelation {
-			if bindingID != "binding-voice-write-id-only" {
-				t.Fatalf("resolved binding id = %q", bindingID)
-			}
-			return &runtimev1.ScopedAppBindingRelation{
-				RuntimeAppId:         "desktop.app",
-				AppInstanceId:        "desktop.app.local-first-party",
-				WindowId:             "window-from-runtime",
-				AgentId:              localAgentRef,
-				ConversationAnchorId: anchorID,
-				WorldId:              "world-from-runtime",
-			}
-		},
-		validate: func(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
-			validatorCalls++
-			if bindingID != "binding-voice-write-id-only" {
-				t.Fatalf("binding id = %q", bindingID)
-			}
-			if requiredScope != runtimeAgentTurnWriteScope {
-				t.Fatalf("required scope = %q", requiredScope)
-			}
-			if actual.GetRuntimeAppId() != "desktop.app" ||
-				actual.GetAppInstanceId() != "desktop.app.local-first-party" ||
-				actual.GetWindowId() != "window-from-runtime" ||
-				actual.GetAgentId() != localAgentRef ||
-				actual.GetConversationAnchorId() != anchorID ||
-				actual.GetWorldId() != "world-from-runtime" {
-				t.Fatalf("canonical scoped binding relation was not completed: %#v", actual)
-			}
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-		},
-	})
-
-	interruptCtx := testRuntimeAgentIdentityContext("agent-alpha")
-	interruptCtx.AppId = "desktop.app"
-	rpcCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-runtime-scoped-binding-id",
-		"binding-voice-write-id-only",
-	))
-	resp, err := svc.InterruptAgentVoicePlayback(rpcCtx, &runtimev1.InterruptAgentVoicePlaybackRequest{
-		Context:              interruptCtx,
-		ConversationAnchorId: anchorID,
-		TurnId:               turn.TurnID,
-		VoiceStreamId:        voiceStreamID,
-		Reason:               "scoped_voice_interrupt_id_only",
-	})
-	if err != nil {
-		t.Fatalf("InterruptAgentVoicePlayback: %v", err)
-	}
-	if validatorCalls != 1 {
-		t.Fatalf("expected one scoped binding validation, got %d", validatorCalls)
-	}
-	if resp.GetVoicePlaybackState() != runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED ||
-		resp.GetTerminalReason() != "scoped_voice_interrupt_id_only" {
-		t.Fatalf("scoped voice interrupt response mismatch: %#v", resp)
-	}
-}
 
 func TestPublicChatNativeVoiceStreamSubscribeAllowsBoundAvatarPlaybackSurface(t *testing.T) {
 	t.Parallel()
@@ -229,7 +54,7 @@ func TestPublicChatNativeVoiceStreamSubscribeAllowsBoundAvatarPlaybackSurface(t 
 
 	avatarCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	avatarCtx.AppId = defaultAvatarRuntimeAppID
-	stream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 1)
+	stream := newAgentVoiceStreamCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 1)
 	err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{
 		Context:              avatarCtx,
 		VoiceStreamId:        voiceStreamID,
@@ -399,7 +224,7 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 	if got, ok := voiceDetail["final_artifact"].(bool); !ok || !got {
 		t.Fatalf("expected manual final_artifact=true, got %v", voiceDetail["final_artifact"])
 	}
-	presentationStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
+	presentationStream := newAgentEventCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:      "agent-alpha",

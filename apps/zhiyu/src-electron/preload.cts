@@ -6,7 +6,7 @@ installNimiElectronRuntimeBridge({
   ipcRenderer,
 });
 
-contextBridge.exposeInMainWorld('__nimiZhiyuRuntimeAgentBinding', {
+contextBridge.exposeInMainWorld('__nimiZhiyuRuntimeAgentAccess', {
   localAppCarrier: {
     kind: 'protected-local-app-carrier',
   },

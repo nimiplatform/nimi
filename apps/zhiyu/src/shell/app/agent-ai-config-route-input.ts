@@ -41,7 +41,6 @@ export function zhiyuAgentAIConfigIdentityFromRouteInput(
     ownerUserId,
     runtimeSourceRef,
     localAgentRef,
-    ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
   };
 }
 

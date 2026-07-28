@@ -2,7 +2,7 @@
 
 > Status: Running today. `RuntimeAccountService` owns the local
 > machine's account session truth, custody, login lifecycle, and
-> first-party scoped binding issuance under `K-ACCSVC-*`.
+> current-account authorization decisions under `K-ACCSVC-*`.
 
 `RuntimeAccountService` is the runtime authority for **local
 first-party account identity**: who is logged in on this machine,
@@ -19,7 +19,7 @@ first-party apps.
 | Refresh token custody | Refresh tokens being held by apps (apps may not hold them) |
 | Daemon restart recovery | External principal sessions (those are `RuntimeAuthService`) |
 | First-party short-lived app access-token projection | App workspace state |
-| First-party scoped app binding issuance + revocation | Per-app conversation truth |
+| Current-account revalidation for protected local-app operations | Per-app conversation truth |
 | Account `subject_user_id` derivation | Caller-supplied `subject_user_id` (the runtime never trusts caller-supplied subject identity) |
 
 App session and external-principal session live in `RuntimeAuthService`
@@ -37,10 +37,8 @@ App session and external-principal session live in `RuntimeAuthService`
 | `CompleteLogin` | Complete the login proof |
 | `GetAccessToken` | Get a runtime-issued short-lived access token |
 | `RefreshAccountSession` | Proactive / reactive session refresh |
-| `Logout` | Revoke local credentials + bindings |
+| `Logout` | Revoke local credentials + current app authorization state |
 | `SwitchAccount` | Atomic active-account switch |
-| `IssueScopedAppBinding` | Issue a scoped binding for a first-party app |
-| `RevokeScopedAppBinding` | Revoke a previously issued binding |
 
 New methods require an explicit kernel rule admission. The set is not
 extensible by app convention.
@@ -56,7 +54,7 @@ extensible by app convention.
 | `expired` | Material expired; cannot authorize work |
 | `reauth_required` | Needs user action to continue |
 | `switching` | Atomic active-account switch in progress |
-| `logging_out` | Revoking local material + bindings |
+| `logging_out` | Revoking local material + current app authorization state |
 | `unavailable` | Cannot safely decide / custody account state — fail-close |
 
 **Single-active-account invariant:** one Runtime instance has at most
@@ -108,9 +106,10 @@ token is about to expire.
    returns to `authenticated`.
 4. **App's next `GetAccessToken` returns the new token.**
 
-If refresh fails recoverably, state moves to `reauth_required` and
-the binding is suspended or revoked. The app cannot pretend the
-refresh succeeded.
+If refresh fails recoverably, state moves to `reauth_required`.
+Current protected operations then fail closed until the account and
+app session are re-established. The app cannot pretend the refresh
+succeeded.
 
 ## Reader Scenario: Account Switch
 
@@ -141,20 +140,19 @@ switch and re-derive their per-account state. There is no shared
 If the recovered state is `expired`, the app's next
 `GetAccessToken` fails closed — no implicit re-login.
 
-## Scoped App Bindings
+## Protected Local-App Authorization
 
-`IssueScopedAppBinding` issues a binding that ties an admitted
-first-party app to the active account with a limited scope. The
-binding is what the app presents when it wants to act under the
-account's authority for a bounded purpose. `RevokeScopedAppBinding`
-takes it away.
+A protected local app receives no portable account binding. Desktop
+prepares a single-use launch lease, Runtime binds the exact native
+process, and `RuntimeAuthService` opens a process-bound local-app
+session on that verified carrier. For each protected operation,
+Runtime revalidates the current account, App identity, process-bound
+session, exact operation, and owner-specific resource selectors.
 
-Bindings:
-
-- are runtime-issued, not app-issued
-- are scoped (the binding declares its purpose)
-- can be revoked by the runtime independently of logout
-- get revoked automatically on logout
+Logout, account switch, session expiry, process replacement, or
+Runtime restart invalidates that current decision. A caller-supplied
+app id, account id, LocalAgent id, or conversation id cannot restore
+authority.
 
 ## What Account Service Does Not Do
 

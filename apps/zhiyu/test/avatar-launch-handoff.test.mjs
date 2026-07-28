@@ -84,7 +84,7 @@ test('Zhiyu registers the Runtime live instance before invoking the Avatar host'
   const evidence = readyEvidence();
   const action = projectZhiyuAvatarLaunchAction(evidence);
   const calls = [];
-  globalThis.__nimiZhiyuRuntimeAgentBinding = {
+  globalThis.__nimiZhiyuRuntimeAgentAccess = {
     localAppCarrier: {
       kind: 'protected-local-app-carrier',
     },
@@ -125,6 +125,6 @@ test('Zhiyu registers the Runtime live instance before invoking the Avatar host'
     assert.deepEqual(calls[0].options, {});
     assert.doesNotMatch(JSON.stringify(calls[1].payload), /conversationAnchorId|must-stay-in-runtime|accessToken|subjectUserId|runtimeAppId/);
   } finally {
-    delete globalThis.__nimiZhiyuRuntimeAgentBinding;
+    delete globalThis.__nimiZhiyuRuntimeAgentAccess;
   }
 });

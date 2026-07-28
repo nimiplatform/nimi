@@ -90,7 +90,7 @@ def _validate_companion_participation_response(model_name: str, decoded: object)
 
 AccountCallerMode = Literal["ACCOUNT_CALLER_MODE_UNSPECIFIED", "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP", "ACCOUNT_CALLER_MODE_DESKTOP_SHELL", "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST", "ACCOUNT_CALLER_MODE_WEB_CLOUD", "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL", "ACCOUNT_CALLER_MODE_LOCAL_APP"]
 AccountEventType = Literal["ACCOUNT_EVENT_TYPE_UNSPECIFIED", "ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS", "ACCOUNT_EVENT_TYPE_LOGIN_STARTED", "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED", "ACCOUNT_EVENT_TYPE_LOGIN_FAILED", "ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT", "ACCOUNT_EVENT_TYPE_REFRESH_STARTED", "ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED", "ACCOUNT_EVENT_TYPE_REFRESH_FAILED", "ACCOUNT_EVENT_TYPE_LOGOUT_STARTED", "ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED", "ACCOUNT_EVENT_TYPE_SWITCH_STARTED", "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED", "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE", "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED", "ACCOUNT_EVENT_TYPE_BINDING_ISSUED", "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED", "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED", "ACCOUNT_EVENT_TYPE_BINDING_REVOKED", "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED", "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED", "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED", "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED", "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED", "ACCOUNT_EVENT_TYPE_SWITCH_FAILED"]
-AccountReasonCode = Literal["ACCOUNT_REASON_CODE_UNSPECIFIED", "ACCOUNT_REASON_CODE_ACTION_EXECUTED", "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED", "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE", "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE", "ACCOUNT_REASON_CODE_PROOF_EXPIRED", "ACCOUNT_REASON_CODE_PROOF_MISMATCHED", "ACCOUNT_REASON_CODE_PROOF_CONSUMED", "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED", "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED", "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED", "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY", "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND", "ACCOUNT_REASON_CODE_BINDING_STALE", "ACCOUNT_REASON_CODE_BINDING_REPLAY", "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE", "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED", "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING", "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID", "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE", "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN", "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH", "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY", "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID", "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN", "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND", "ACCOUNT_REASON_CODE_BROKER_CONFLICT", "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED", "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED", "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED", "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED", "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID", "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID", "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS"]
+AccountReasonCode = Literal["ACCOUNT_REASON_CODE_UNSPECIFIED", "ACCOUNT_REASON_CODE_ACTION_EXECUTED", "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED", "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE", "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE", "ACCOUNT_REASON_CODE_PROOF_EXPIRED", "ACCOUNT_REASON_CODE_PROOF_MISMATCHED", "ACCOUNT_REASON_CODE_PROOF_CONSUMED", "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED", "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED", "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED", "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND", "ACCOUNT_REASON_CODE_BINDING_STALE", "ACCOUNT_REASON_CODE_BINDING_REPLAY", "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE", "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED", "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING", "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID", "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE", "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN", "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH", "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY", "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID", "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN", "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND", "ACCOUNT_REASON_CODE_BROKER_CONFLICT", "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED", "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED", "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED", "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED", "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID", "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID", "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS"]
 AccountSessionDeliveryKind = Literal["ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED", "ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT", "ACCOUNT_SESSION_DELIVERY_KIND_REPLAY", "ACCOUNT_SESSION_DELIVERY_KIND_LIVE"]
 AccountSessionState = Literal["ACCOUNT_SESSION_STATE_UNSPECIFIED", "ACCOUNT_SESSION_STATE_ANONYMOUS", "ACCOUNT_SESSION_STATE_LOGIN_PENDING", "ACCOUNT_SESSION_STATE_AUTHENTICATED", "ACCOUNT_SESSION_STATE_REFRESH_PENDING", "ACCOUNT_SESSION_STATE_EXPIRED", "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED", "ACCOUNT_SESSION_STATE_SWITCHING", "ACCOUNT_SESSION_STATE_LOGGING_OUT", "ACCOUNT_SESSION_STATE_UNAVAILABLE"]
 AgentAutonomyMode = Literal["AGENT_AUTONOMY_MODE_UNSPECIFIED", "AGENT_AUTONOMY_MODE_OFF", "AGENT_AUTONOMY_MODE_LOW", "AGENT_AUTONOMY_MODE_MEDIUM", "AGENT_AUTONOMY_MODE_HIGH"]
@@ -234,8 +234,6 @@ ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
 ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_VOICE_CLONE", "SCENARIO_TYPE_VOICE_DESIGN", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE"]
 SchedulingState = Literal["SCHEDULING_STATE_UNSPECIFIED", "SCHEDULING_STATE_RUNNABLE", "SCHEDULING_STATE_QUEUE_REQUIRED", "SCHEDULING_STATE_PREEMPTION_RISK", "SCHEDULING_STATE_SLOWDOWN_RISK", "SCHEDULING_STATE_DENIED", "SCHEDULING_STATE_UNKNOWN"]
-ScopedAppBindingPurpose = Literal["SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED", "SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME", "SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME"]
-ScopedAppBindingState = Literal["SCOPED_APP_BINDING_STATE_UNSPECIFIED", "SCOPED_APP_BINDING_STATE_ISSUED", "SCOPED_APP_BINDING_STATE_ACTIVE", "SCOPED_APP_BINDING_STATE_SUSPENDED", "SCOPED_APP_BINDING_STATE_REVOKED", "SCOPED_APP_BINDING_STATE_EXPIRED", "SCOPED_APP_BINDING_STATE_SUPERSEDED"]
 SensitivityClass = Literal["SENSITIVITY_CLASS_UNSPECIFIED", "SENSITIVITY_CLASS_NONE", "SENSITIVITY_CLASS_USER_PRIVATE", "SENSITIVITY_CLASS_CREDENTIAL_LIKE", "SENSITIVITY_CLASS_ORG_PRIVATE", "SENSITIVITY_CLASS_REGULATED", "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"]
 SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGNMENT_UNIT_WORD", "SPEECH_ALIGNMENT_UNIT_CHAR"]
 SpeechTimingMode = Literal["SPEECH_TIMING_MODE_UNSPECIFIED", "SPEECH_TIMING_MODE_NONE", "SPEECH_TIMING_MODE_WORD", "SPEECH_TIMING_MODE_CHAR"]
@@ -315,7 +313,6 @@ class AccountSessionEvent:
     emitted_at: str | None = None
     event_type: AccountEventType | None = None
     binding_id: str | None = None
-    binding_relation: ScopedAppBindingRelation | None = None
     replay_truncated: bool | None = None
     delivery_kind: AccountSessionDeliveryKind | None = None
     snapshot: AccountSessionSnapshot | None = None
@@ -599,7 +596,6 @@ class AgentReplicationEventDetail:
 class AgentRequestContext:
     app_id: str | None = None
     subject_user_id: str | None = None
-    scoped_binding: ScopedRuntimeBindingAttachment | None = None
     owner_user_id: str | None = None
     runtime_source_ref: str | None = None
     local_agent_ref: str | None = None
@@ -894,7 +890,6 @@ class AvatarDebugProbeRequestEnvelope:
     avatar_instance_id: str | None = None
     runtime_replay_ref: str | None = None
     replay_requested: bool | None = None
-    scoped_binding: ScopedRuntimeBindingAttachment | None = None
 
 @dataclass(frozen=True)
 class AvatarDebugProbeResultEnvelope:
@@ -2455,22 +2450,6 @@ class InvokeRealmUnaryResponse:
     production_inert: bool | None = None
     http_status: int | None = None
     error_message: str | None = None
-
-@dataclass(frozen=True)
-class IssueScopedAppBindingRequest:
-    caller: AccountCaller | None = None
-    relation: ScopedAppBindingRelation | None = None
-    ttl_seconds: int | None = None
-
-@dataclass(frozen=True)
-class IssueScopedAppBindingResponse:
-    accepted: bool | None = None
-    binding_id: str | None = None
-    binding_carrier: str | None = None
-    relation: ScopedAppBindingRelation | None = None
-    reason_code: ReasonCode | None = None
-    account_reason_code: AccountReasonCode | None = None
-    production_inert: bool | None = None
 
 @dataclass(frozen=True)
 class IssueWorkspaceBindingRequest:
@@ -5084,20 +5063,6 @@ class RevokeLocalDevelopmentAuthorizationResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
-class RevokeScopedAppBindingRequest:
-    caller: AccountCaller | None = None
-    binding_id: str | None = None
-    reason_code: AccountReasonCode | None = None
-
-@dataclass(frozen=True)
-class RevokeScopedAppBindingResponse:
-    accepted: bool | None = None
-    relation: ScopedAppBindingRelation | None = None
-    reason_code: ReasonCode | None = None
-    account_reason_code: AccountReasonCode | None = None
-    production_inert: bool | None = None
-
-@dataclass(frozen=True)
 class RevokeSessionRequest:
     session_id: str | None = None
 
@@ -5436,35 +5401,6 @@ class SchedulingTargetJudgement:
     judgement: SchedulingJudgement | None = None
 
 @dataclass(frozen=True)
-class ScopedAppBindingRelation:
-    binding_id: str | None = None
-    runtime_app_id: str | None = None
-    app_instance_id: str | None = None
-    window_id: str | None = None
-    avatar_instance_id: str | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    world_id: str | None = None
-    purpose: ScopedAppBindingPurpose | None = None
-    scopes: tuple[str, ...] = field(default_factory=tuple)
-    issued_at: str | None = None
-    expires_at: str | None = None
-    state: ScopedAppBindingState | None = None
-    reason_code: AccountReasonCode | None = None
-
-@dataclass(frozen=True)
-class ScopedRuntimeBindingAttachment:
-    binding_id: str | None = None
-    binding_handle: str | None = None
-    runtime_app_id: str | None = None
-    app_instance_id: str | None = None
-    window_id: str | None = None
-    avatar_instance_id: str | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    world_id: str | None = None
-
-@dataclass(frozen=True)
 class SearchCatalogModelsRequest:
     query: str | None = None
     capability: str | None = None
@@ -5526,7 +5462,6 @@ class SendAppMessageRequest:
     message_type: str | None = None
     payload: Mapping[str, object] | None = None
     require_ack: bool | None = None
-    scoped_binding: ScopedRuntimeBindingAttachment | None = None
 
 @dataclass(frozen=True)
 class SendAppMessageResponse:
@@ -5780,7 +5715,6 @@ class SubscribeAppMessagesRequest:
     subject_user_id: str | None = None
     cursor: str | None = None
     from_app_ids: tuple[str, ...] = field(default_factory=tuple)
-    scoped_binding: ScopedRuntimeBindingAttachment | None = None
     local_agent_ref: str | None = None
     conversation_anchor_id: str | None = None
 
@@ -6382,10 +6316,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InvokeRealmUnaryResponse, raw)
 
-    async def issue_scoped_app_binding(self, request: IssueScopedAppBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IssueScopedAppBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(IssueScopedAppBindingResponse, raw)
-
     async def issue_workspace_binding(self, request: IssueWorkspaceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IssueWorkspaceBindingResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IssueWorkspaceBindingResponse, raw)
@@ -6401,10 +6331,6 @@ class RuntimeTypedClient:
     async def request_presence_verification(self, request: RequestPresenceVerificationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestPresenceVerificationResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RequestPresenceVerificationResponse, raw)
-
-    async def revoke_scoped_app_binding(self, request: RevokeScopedAppBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RevokeScopedAppBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RevokeScopedAppBindingResponse, raw)
 
     async def revoke_workspace_binding(self, request: RevokeWorkspaceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RevokeWorkspaceBindingResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

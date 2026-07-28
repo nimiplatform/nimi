@@ -137,7 +137,6 @@ export function createNimiHostRuntimeAgentDelegatedControlSurface(
       context: buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
         subjectUserId,
-        scopedBinding: identityInput.scopedBinding,
         ...identity,
       }),
     };

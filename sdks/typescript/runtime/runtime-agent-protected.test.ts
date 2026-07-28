@@ -10,7 +10,7 @@ const runtime = {
   },
 };
 
-test('protected Agent calls fail closed without a Runtime-owned scope runner', async () => {
+test('protected Agent calls fail closed without a host operation-context runner', async () => {
   let operationCalled = false;
 
   await assert.rejects(
@@ -22,27 +22,23 @@ test('protected Agent calls fail closed without a Runtime-owned scope runner', a
       return 'unexpected';
     }),
     (error: unknown) =>
-      (error as { readonly reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
+      (error as { readonly reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_OPERATION_CONTEXT_REQUIRED',
   );
 
   assert.equal(operationCalled, false);
 });
 
-test('protected Agent calls use only the supplied Runtime-owned scope runner', async () => {
+test('protected Agent calls use only the supplied host operation-context runner', async () => {
   const scopeCalls: Array<readonly string[]> = [];
   const result = await withNimiRuntimeAgentScopes({
     runtime,
     subjectUserId: 'user-1',
     withScopes: async (scopes, operation) => {
       scopeCalls.push(scopes);
-      return operation({
-        metadata: {
-          'x-nimi-runtime-scoped-binding-id': 'binding-runtime-owned',
-        },
-      });
+      return operation({});
     },
-  }, ['runtime.agent.read'], async (options) => options.metadata?.['x-nimi-runtime-scoped-binding-id']);
+  }, ['runtime.agent.read'], async () => 'operation-ran');
 
   assert.deepEqual(scopeCalls, [['runtime.agent.read']]);
-  assert.equal(result, 'binding-runtime-owned');
+  assert.equal(result, 'operation-ran');
 });

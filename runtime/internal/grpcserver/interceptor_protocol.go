@@ -184,8 +184,6 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
 		"/nimi.runtime.v1.RuntimeAccountService/Logout",
 		"/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
-		"/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
-		"/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
 		"/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
 		"/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
 		"/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",

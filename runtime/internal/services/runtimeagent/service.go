@@ -38,19 +38,10 @@ type subscriber struct {
 	id                    uint64
 	agentID               string
 	eventFilters          map[runtimev1.AgentEventType]struct{}
-	scopedBinding         *runtimev1.ScopedRuntimeBindingAttachment
 	bundledAvatarIdentity *localAgentIdentity
 	ch                    chan *runtimev1.AgentEvent
 	mu                    sync.Mutex
 	closed                bool
-}
-
-type scopedBindingValidator interface {
-	ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool)
-}
-
-type scopedBindingRelationResolver interface {
-	ResolveScopedBindingRelation(bindingID string) *runtimev1.ScopedAppBindingRelation
 }
 
 type runtimeAccountProjectionProvider interface {
@@ -77,7 +68,6 @@ type Service struct {
 	publicChatSourceSnapshotResolve          func(context.Context, string) (localAgentSourceSnapshotV2, bool, error)
 	sourceMaterializationNow                 func() time.Time
 	chatAppEmit                              publicChatAppMessageEmitter
-	bindingValidator                         scopedBindingValidator
 	runtimeAccountProjection                 runtimeAccountProjectionProvider
 	voiceAssetResolverMu                     sync.RWMutex
 	voiceAssetResolver                       VoiceAssetResolver
@@ -281,10 +271,6 @@ func (s *Service) isClosed() bool {
 
 func (s *Service) SubscribeAgentEvents(req *runtimev1.SubscribeAgentEventsRequest, stream runtimev1.RuntimeAgentService_SubscribeAgentEventsServer) error {
 	return s.eventStreamRuntime().subscribe(req, stream)
-}
-
-func (s *Service) SetScopedBindingValidator(validator scopedBindingValidator) {
-	s.bindingValidator = validator
 }
 
 func (s *Service) SetAuditStore(store *auditlog.Store) {

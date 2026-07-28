@@ -5,7 +5,6 @@ import type {
   ReadArtifactBytesRequest,
   ReadArtifactBytesResponse,
   RuntimeTypedCallOptions,
-  ScopedRuntimeBindingAttachment,
   SubscribeAgentVoiceStreamRequest,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
@@ -52,7 +51,6 @@ export interface NimiRuntimeAgentVoiceStreamRequest extends RuntimeLocalAgentIde
   readonly voiceStreamId: string;
   readonly conversationAnchorId: string;
   readonly turnId: string;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
   readonly worldId?: unknown;
 }
 
@@ -65,7 +63,6 @@ export interface NimiRuntimeAgentVoiceInterruptRequest extends RuntimeLocalAgent
   readonly conversationAnchorId: string;
   readonly turnId: string;
   readonly reason?: string;
-  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
   readonly worldId?: unknown;
 }
 
@@ -107,28 +104,15 @@ export function createNimiRuntimeAgentVoiceModule(
         'runtime agent voice stream subscription requires turnId',
         'provide_runtime_agent_turn_id',
       );
-      const requestScopedBinding = toScopedBindingAttachment(request.scopedBinding, {
-        runtimeAppId: runtime.appId,
-        localAgentRef: identity.localAgentRef,
-        conversationAnchorId,
-        worldId: request.worldId,
-      });
       return withNimiRuntimeAgentVoiceScopes(
         {
           runtime,
           subjectUserId,
           withScopes: options.withScopes,
-          hasRuntimeAgentAuth: Boolean(requestScopedBinding)
-            || hasRuntimeAgentAuthBinding(callOptions),
         },
         ['runtime.agent.turn.read'],
         async (scopedOptions) => {
           const mergedOptions = mergeRuntimeAgentVoiceCallOptions(callOptions, scopedOptions);
-          const scopedBinding = requestScopedBinding ?? scopedBindingFromVoiceCallOptions(mergedOptions, {
-            runtimeAppId: runtime.appId,
-            localAgentRef: identity.localAgentRef,
-            conversationAnchorId,
-          });
           return runtime.agents.subscribeAgentVoiceStream({
             context: {
               appId: runtime.appId,
@@ -136,7 +120,6 @@ export function createNimiRuntimeAgentVoiceModule(
               ownerUserId: identity.ownerUserId,
               runtimeSourceRef: identity.runtimeSourceRef,
               localAgentRef: identity.localAgentRef,
-              ...(scopedBinding ? { scopedBinding } : {}),
             },
             voiceStreamId,
             conversationAnchorId,
@@ -179,12 +162,6 @@ export function createNimiRuntimeAgentVoiceModule(
         'runtime agent voice playback interrupt requires turnId',
         'provide_runtime_agent_turn_id',
       );
-      const requestScopedBinding = toScopedBindingAttachment(request.scopedBinding, {
-        runtimeAppId: runtime.appId,
-        localAgentRef: identity.localAgentRef,
-        conversationAnchorId,
-        worldId: request.worldId,
-      });
       const reason = normalizeNimiRuntimeAgentText(request.reason);
       const interruptOptions = withNimiRuntimeIdempotencyMetadata(
         callOptions,
@@ -203,17 +180,10 @@ export function createNimiRuntimeAgentVoiceModule(
           runtime,
           subjectUserId,
           withScopes: options.withScopes,
-          hasRuntimeAgentAuth: Boolean(requestScopedBinding)
-            || hasRuntimeAgentAuthBinding(interruptOptions),
         },
         ['runtime.agent.turn.write'],
         async (scopedOptions) => {
           const mergedOptions = mergeRuntimeAgentVoiceCallOptions(interruptOptions, scopedOptions);
-          const scopedBinding = requestScopedBinding ?? scopedBindingFromVoiceCallOptions(mergedOptions, {
-            runtimeAppId: runtime.appId,
-            localAgentRef: identity.localAgentRef,
-            conversationAnchorId,
-          });
           return runtime.agents.interruptAgentVoicePlayback({
             context: {
               appId: runtime.appId,
@@ -221,7 +191,6 @@ export function createNimiRuntimeAgentVoiceModule(
               ownerUserId: identity.ownerUserId,
               runtimeSourceRef: identity.runtimeSourceRef,
               localAgentRef: identity.localAgentRef,
-              ...(scopedBinding ? { scopedBinding } : {}),
             },
             voiceStreamId,
             conversationAnchorId,
@@ -239,97 +208,15 @@ async function withNimiRuntimeAgentVoiceScopes<T>(
     readonly runtime: NimiRuntimeAgentVoiceRuntime;
     readonly subjectUserId: string;
     readonly withScopes?: NimiRuntimeAgentScopeRunner;
-    readonly hasRuntimeAgentAuth?: boolean;
   },
   scopes: readonly string[],
   operation: (options: RuntimeTypedCallOptions) => Promise<T>,
 ): Promise<T> {
-  if (input.withScopes) {
-    return input.withScopes(scopes, async (scopedOptions) => {
-        if (
-          input.hasRuntimeAgentAuth
-          || hasRuntimeAgentAuthBinding(scopedOptions)
-      ) {
-        return operation(scopedOptions);
-      }
-      throw createNimiError({
-        message: 'Runtime Agent voice carrier did not provide an admitted protected binding.',
-        reasonCode: 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
-        actionHint: 'use_runtime_owned_scoped_carrier',
-        source: 'runtime',
-      });
-    });
-  }
-  if (input.hasRuntimeAgentAuth) {
-    return operation({});
-  }
   return withNimiRuntimeAgentScopes({
     runtime: input.runtime,
     subjectUserId: input.subjectUserId,
+    withScopes: input.withScopes,
   }, scopes, operation);
-}
-
-function hasRuntimeAgentAuthBinding(options: RuntimeTypedCallOptions | undefined): boolean {
-  const metadata = options?.metadata ?? {};
-  return Boolean(normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-id']));
-}
-
-function scopedBindingFromVoiceCallOptions(
-  options: RuntimeTypedCallOptions,
-  fallback: {
-    readonly runtimeAppId: string;
-    readonly localAgentRef: string;
-    readonly conversationAnchorId: string;
-  },
-): ScopedRuntimeBindingAttachment | undefined {
-  const metadata = options.metadata ?? {};
-  const bindingId = normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-id']);
-  if (!bindingId) {
-    return undefined;
-  }
-  return {
-    bindingId,
-    bindingHandle: normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-handle']),
-    runtimeAppId: normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-runtime-app-id']) || fallback.runtimeAppId,
-    appInstanceId: normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-app-instance-id']),
-    windowId: normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-window-id']),
-    avatarInstanceId: normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-avatar-instance-id']),
-    agentId: normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-agent-id']) || fallback.localAgentRef,
-    conversationAnchorId: normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-conversation-anchor-id']) || fallback.conversationAnchorId,
-    worldId: normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-world-id']),
-  };
-}
-
-function optionalRuntimeAgentVoiceText(value: unknown): string | undefined {
-  return normalizeNimiRuntimeAgentText(value) || undefined;
-}
-
-function toScopedBindingAttachment(
-  input: ScopedRuntimeBindingAttachment | undefined,
-  defaults: {
-    readonly runtimeAppId: string;
-    readonly localAgentRef?: unknown;
-    readonly conversationAnchorId?: unknown;
-    readonly worldId?: unknown;
-  },
-): ScopedRuntimeBindingAttachment | undefined {
-  const bindingId = optionalRuntimeAgentVoiceText(input?.bindingId);
-  if (!bindingId) {
-    return undefined;
-  }
-  return {
-    bindingId,
-    bindingHandle: optionalRuntimeAgentVoiceText(input?.bindingHandle) || '',
-    runtimeAppId: optionalRuntimeAgentVoiceText(input?.runtimeAppId) || defaults.runtimeAppId,
-    appInstanceId: optionalRuntimeAgentVoiceText(input?.appInstanceId) || '',
-    windowId: optionalRuntimeAgentVoiceText(input?.windowId) || '',
-    avatarInstanceId: optionalRuntimeAgentVoiceText(input?.avatarInstanceId) || '',
-    agentId: optionalRuntimeAgentVoiceText(input?.agentId) || optionalRuntimeAgentVoiceText(defaults.localAgentRef) || '',
-    conversationAnchorId: optionalRuntimeAgentVoiceText(input?.conversationAnchorId)
-      || optionalRuntimeAgentVoiceText(defaults.conversationAnchorId)
-      || '',
-    worldId: optionalRuntimeAgentVoiceText(input?.worldId) || optionalRuntimeAgentVoiceText(defaults.worldId) || '',
-  };
 }
 
 function mergeRuntimeAgentVoiceCallOptions(

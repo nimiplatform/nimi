@@ -2,10 +2,8 @@ import {
   createNimiRuntimeAgentConsumeClient,
 } from '@nimiplatform/sdk/runtime';
 import {
-  resolveZhiyuRuntimeAgentBindingDecisionFromHost,
-  scopedBindingForRuntimeAgentRequest,
-  withZhiyuRuntimeAgentBindingRequired,
-} from '../agent-chat/runtime-agent-binding';
+  withZhiyuRuntimeAgentAccessRequired,
+} from '../agent-chat/runtime-agent-access';
 import { projectZhiyuRuntimeSourceProjection } from '../agent/source-projection';
 import { getZhiyuRuntime } from '../auth/runtime-platform';
 import type { ZhiyuEvidence } from './evidence';
@@ -21,16 +19,14 @@ export async function loadZhiyuSourceContextProjection(identity: {
     runtime: { agents: runtime.agents, appMessages: runtime.appMessages },
     runtimeAppId: 'nimi.zhiyu',
   });
-  const snapshot = await withZhiyuRuntimeAgentBindingRequired(
+  const snapshot = await withZhiyuRuntimeAgentAccessRequired(
     ['runtime.agent.turn.read'],
-    async (callOptions) => {
-      const binding = resolveZhiyuRuntimeAgentBindingDecisionFromHost(['runtime.agent.turn.read']);
-      return consume.anchors.getSnapshot({
+    (callOptions) => (
+      consume.anchors.getSnapshot({
         ...identity,
         subjectUserId: identity.ownerUserId,
-        scopedBinding: scopedBindingForRuntimeAgentRequest(binding),
-      }, callOptions);
-    },
+      }, callOptions)
+    ),
   );
   return projectZhiyuRuntimeSourceProjection({
     ownerUserId: identity.ownerUserId,

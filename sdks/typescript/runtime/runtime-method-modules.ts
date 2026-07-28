@@ -17,8 +17,6 @@ export const RUNTIME_ACCOUNT_METHODS = [
   'invokeRealmUnary',
   'logout',
   'switchAccount',
-  'issueScopedAppBinding',
-  'revokeScopedAppBinding',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_AGENT_METHODS = [

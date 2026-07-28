@@ -6,10 +6,10 @@ import {
 import { createNimiRuntimeAgentVoiceModule } from '@nimiplatform/sdk/runtime';
 import { appId, getRuntimePlatformProjection } from '../auth/runtime-platform';
 import {
-  createZhiyuRuntimeAgentBindingScopeRunner,
-  resolveZhiyuRuntimeAgentBindingDecisionFromHost,
-  withZhiyuRuntimeAgentBindingScopes,
-} from '../agent-chat/runtime-agent-binding';
+  createZhiyuRuntimeAgentAccessScopeRunner,
+  resolveZhiyuRuntimeAgentAccessDecisionFromHost,
+  withZhiyuRuntimeAgentAccess,
+} from '../agent-chat/runtime-agent-access';
 
 type ZhiyuEvidenceUpdater = (
   update: (current: ZhiyuEvidence) => ZhiyuEvidence,
@@ -28,21 +28,11 @@ export async function runZhiyuVoicePlaybackAction(
         source: 'runtime',
       });
     }
-    const runtimeBinding = resolveZhiyuRuntimeAgentBindingDecisionFromHost([
-      'runtime.agent.turn.read',
-      'runtime.artifact.read-bytes',
-    ]);
-    if (runtimeBinding.kind === 'missing') {
-      throw Object.assign(new Error(runtimeBinding.message), {
-        reasonCode: runtimeBinding.reasonCode,
-        actionHint: runtimeBinding.actionHint,
-        source: 'runtime',
-      });
-    }
-    if (runtimeBinding.kind === 'local-app-carrier') {
-      throw Object.assign(new Error('Agent voice playback is not admitted for third-party local apps.'), {
-        reasonCode: 'agents-interact-not-admitted',
-        actionHint: 'wait_for_agents_interact_admission',
+    const runtimeAccess = resolveZhiyuRuntimeAgentAccessDecisionFromHost();
+    if (runtimeAccess.kind === 'missing') {
+      throw Object.assign(new Error(runtimeAccess.message), {
+        reasonCode: runtimeAccess.reasonCode,
+        actionHint: runtimeAccess.actionHint,
         source: 'runtime',
       });
     }
@@ -56,7 +46,7 @@ export async function runZhiyuVoicePlaybackAction(
         artifacts: runtimeProjection.accountRuntime.artifacts,
       },
       getSubjectUserId: () => ownerUserId,
-      withScopes: createZhiyuRuntimeAgentBindingScopeRunner(() => runtimeBinding),
+      withScopes: createZhiyuRuntimeAgentAccessScopeRunner(() => runtimeAccess),
     });
     const controller = createZhiyuVoicePlaybackController({
       subscribeStream: (input) => voice.subscribeStream({
@@ -67,9 +57,8 @@ export async function runZhiyuVoicePlaybackAction(
         turnId: input.turnId,
         voiceStreamId: input.voiceStreamId,
       }),
-      readArtifactBytes: (artifactId) => withZhiyuRuntimeAgentBindingScopes(
-        runtimeBinding,
-        ['runtime.artifact.read-bytes'],
+      readArtifactBytes: (artifactId) => withZhiyuRuntimeAgentAccess(
+        runtimeAccess,
         (options) => voice.replayFinalArtifact({ artifactId }, options),
       ),
       playAudioBytes: playZhiyuVoiceAudioBytes,

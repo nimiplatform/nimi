@@ -20,7 +20,6 @@ import {
   subscribeZhiyuAgentAIConfigReadiness,
   upsertZhiyuAgentAIConfig,
   type ZhiyuAgentAIConfigCallInput,
-  type ZhiyuAgentRuntimeScopedBindingIdentity,
 } from '../shell/agent-chat/agent-ai-config.js';
 import { getZhiyuRouteModelPickerProvider } from '../shell/agent-chat/zhiyu-route-model-picker-provider.js';
 import {
@@ -53,12 +52,11 @@ function appearanceAdapter(evidence: ZhiyuEvidence): AgentCenterAppearanceAdapte
   if (!hasElectronRuntime()) {
     return unavailableAppearance(evidence, 'zhiyu-agent-center-runtime-bridge-unavailable');
   }
-  const scopedBindingIdentity = scopedBindingIdentityFrom(identity, evidence);
-  const inspect = createZhiyuAgentInspectSurface(subjectUserId, scopedBindingIdentity);
+  const inspect = createZhiyuAgentInspectSurface(subjectUserId);
   return createAgentCenterShellAppearanceAdapter({
     identity,
     accountId: subjectUserId,
-    runtimePresentation: createZhiyuAgentPresentationProfileSurface(subjectUserId, scopedBindingIdentity),
+    runtimePresentation: createZhiyuAgentPresentationProfileSurface(subjectUserId),
     shell: createAgentCenterShellBridge(),
     avatarPreview: null,
     loadSnapshot: async () => ({ inspect: await inspect.getPublicInspect(identity) }),
@@ -108,8 +106,7 @@ function runtimeAdapter(evidence: ZhiyuEvidence): AgentCenterRuntimeAdapter | nu
   const identity = zhiyuAgentAIConfigIdentityFromRouteInput(routeInput);
   if (!subjectUserId || !identity) return null;
   const callInput: ZhiyuAgentAIConfigCallInput = { subjectUserId, ...identity };
-  const scopedBindingIdentity = scopedBindingIdentityFrom(identity, evidence);
-  const inspect = createZhiyuAgentInspectSurface(subjectUserId, scopedBindingIdentity);
+  const inspect = createZhiyuAgentInspectSurface(subjectUserId);
   return {
     inspect,
     agentAIConfig: {
@@ -178,18 +175,6 @@ function runtimeAdapter(evidence: ZhiyuEvidence): AgentCenterRuntimeAdapter | nu
   };
 }
 
-function scopedBindingIdentityFrom(
-  identity: RuntimeLocalAgentIdentityInput,
-  evidence: ZhiyuEvidence,
-): ZhiyuAgentRuntimeScopedBindingIdentity | null {
-  const ownerUserId = typeof identity.ownerUserId === 'string' ? identity.ownerUserId.trim() : '';
-  const runtimeSourceRef = typeof identity.runtimeSourceRef === 'string' ? identity.runtimeSourceRef.trim() : '';
-  const localAgentRef = typeof identity.localAgentRef === 'string' ? identity.localAgentRef.trim() : '';
-  const conversationAnchorId = evidence.conversation.conversationAnchorId?.trim() || '';
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId) return null;
-  return { ownerUserId, runtimeSourceRef, localAgentRef, conversationAnchorId };
-}
-
 function resolveMutationIdentity(
   base: ZhiyuAgentAIConfigCallInput,
   input: AgentCenterRuntimeAIConfigUpsertInput,
@@ -199,7 +184,6 @@ function resolveMutationIdentity(
       ownerUserId: input.ownerUserId,
       runtimeSourceRef: input.runtimeSourceRef,
       localAgentRef: input.localAgentRef,
-      ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
     };
   }
   return resolveCallIdentity(base, base);
@@ -214,7 +198,6 @@ function resolveAutonomyIdentity(
       ownerUserId: input.ownerUserId,
       runtimeSourceRef: input.runtimeSourceRef,
       localAgentRef: input.localAgentRef,
-      ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
     };
   }
   return resolveCallIdentity(base, base);
@@ -228,8 +211,5 @@ function resolveCallIdentity(
     ownerUserId: input.ownerUserId || base.ownerUserId,
     runtimeSourceRef: input.runtimeSourceRef || base.runtimeSourceRef,
     localAgentRef: input.localAgentRef || base.localAgentRef,
-    ...(input.scopedBinding || base.scopedBinding
-      ? { scopedBinding: input.scopedBinding || base.scopedBinding }
-      : {}),
   };
 }

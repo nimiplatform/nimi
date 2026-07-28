@@ -32,7 +32,7 @@ func (s *Service) RequestPresenceVerification(ctx context.Context, req *runtimev
 			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED,
 		}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false); !ok {
+	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.RequestPresenceVerificationResponse{
 			Accepted:          false,
 			State:             runtimev1.PresenceVerificationState_PRESENCE_VERIFICATION_STATE_REJECTED,

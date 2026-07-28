@@ -273,7 +273,6 @@ const (
 	AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED                    AccountReasonCode = 8
 	AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED               AccountReasonCode = 9
 	AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED                  AccountReasonCode = 10
-	AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY                  AccountReasonCode = 11
 	AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND                    AccountReasonCode = 13
 	AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE                        AccountReasonCode = 14
 	AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_REPLAY                       AccountReasonCode = 15
@@ -316,7 +315,6 @@ var (
 		8:  "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED",
 		9:  "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED",
 		10: "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED",
-		11: "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY",
 		13: "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND",
 		14: "ACCOUNT_REASON_CODE_BINDING_STALE",
 		15: "ACCOUNT_REASON_CODE_BINDING_REPLAY",
@@ -356,7 +354,6 @@ var (
 		"ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED":                    8,
 		"ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED":               9,
 		"ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED":                  10,
-		"ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY":                  11,
 		"ACCOUNT_REASON_CODE_BINDING_NOT_FOUND":                    13,
 		"ACCOUNT_REASON_CODE_BINDING_STALE":                        14,
 		"ACCOUNT_REASON_CODE_BINDING_REPLAY":                       15,
@@ -578,116 +575,6 @@ func (AccountCallerMode) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_account_proto_rawDescGZIP(), []int{6}
 }
 
-type ScopedAppBindingState int32
-
-const (
-	ScopedAppBindingState_SCOPED_APP_BINDING_STATE_UNSPECIFIED ScopedAppBindingState = 0
-	ScopedAppBindingState_SCOPED_APP_BINDING_STATE_ISSUED      ScopedAppBindingState = 1
-	ScopedAppBindingState_SCOPED_APP_BINDING_STATE_ACTIVE      ScopedAppBindingState = 2
-	ScopedAppBindingState_SCOPED_APP_BINDING_STATE_SUSPENDED   ScopedAppBindingState = 3
-	ScopedAppBindingState_SCOPED_APP_BINDING_STATE_REVOKED     ScopedAppBindingState = 4
-	ScopedAppBindingState_SCOPED_APP_BINDING_STATE_EXPIRED     ScopedAppBindingState = 5
-	ScopedAppBindingState_SCOPED_APP_BINDING_STATE_SUPERSEDED  ScopedAppBindingState = 6
-)
-
-// Enum value maps for ScopedAppBindingState.
-var (
-	ScopedAppBindingState_name = map[int32]string{
-		0: "SCOPED_APP_BINDING_STATE_UNSPECIFIED",
-		1: "SCOPED_APP_BINDING_STATE_ISSUED",
-		2: "SCOPED_APP_BINDING_STATE_ACTIVE",
-		3: "SCOPED_APP_BINDING_STATE_SUSPENDED",
-		4: "SCOPED_APP_BINDING_STATE_REVOKED",
-		5: "SCOPED_APP_BINDING_STATE_EXPIRED",
-		6: "SCOPED_APP_BINDING_STATE_SUPERSEDED",
-	}
-	ScopedAppBindingState_value = map[string]int32{
-		"SCOPED_APP_BINDING_STATE_UNSPECIFIED": 0,
-		"SCOPED_APP_BINDING_STATE_ISSUED":      1,
-		"SCOPED_APP_BINDING_STATE_ACTIVE":      2,
-		"SCOPED_APP_BINDING_STATE_SUSPENDED":   3,
-		"SCOPED_APP_BINDING_STATE_REVOKED":     4,
-		"SCOPED_APP_BINDING_STATE_EXPIRED":     5,
-		"SCOPED_APP_BINDING_STATE_SUPERSEDED":  6,
-	}
-)
-
-func (x ScopedAppBindingState) Enum() *ScopedAppBindingState {
-	p := new(ScopedAppBindingState)
-	*p = x
-	return p
-}
-
-func (x ScopedAppBindingState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ScopedAppBindingState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_account_proto_enumTypes[7].Descriptor()
-}
-
-func (ScopedAppBindingState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_account_proto_enumTypes[7]
-}
-
-func (x ScopedAppBindingState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ScopedAppBindingState.Descriptor instead.
-func (ScopedAppBindingState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{7}
-}
-
-type ScopedAppBindingPurpose int32
-
-const (
-	ScopedAppBindingPurpose_SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED                ScopedAppBindingPurpose = 0
-	ScopedAppBindingPurpose_SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME ScopedAppBindingPurpose = 1
-	ScopedAppBindingPurpose_SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME         ScopedAppBindingPurpose = 2
-)
-
-// Enum value maps for ScopedAppBindingPurpose.
-var (
-	ScopedAppBindingPurpose_name = map[int32]string{
-		0: "SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED",
-		1: "SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME",
-		2: "SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME",
-	}
-	ScopedAppBindingPurpose_value = map[string]int32{
-		"SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED":                0,
-		"SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME": 1,
-		"SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME":         2,
-	}
-)
-
-func (x ScopedAppBindingPurpose) Enum() *ScopedAppBindingPurpose {
-	p := new(ScopedAppBindingPurpose)
-	*p = x
-	return p
-}
-
-func (x ScopedAppBindingPurpose) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ScopedAppBindingPurpose) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_account_proto_enumTypes[8].Descriptor()
-}
-
-func (ScopedAppBindingPurpose) Type() protoreflect.EnumType {
-	return &file_runtime_v1_account_proto_enumTypes[8]
-}
-
-func (x ScopedAppBindingPurpose) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ScopedAppBindingPurpose.Descriptor instead.
-func (ScopedAppBindingPurpose) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{8}
-}
-
 type WorkspaceMembershipState int32
 
 const (
@@ -727,11 +614,11 @@ func (x WorkspaceMembershipState) String() string {
 }
 
 func (WorkspaceMembershipState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_account_proto_enumTypes[9].Descriptor()
+	return file_runtime_v1_account_proto_enumTypes[7].Descriptor()
 }
 
 func (WorkspaceMembershipState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_account_proto_enumTypes[9]
+	return &file_runtime_v1_account_proto_enumTypes[7]
 }
 
 func (x WorkspaceMembershipState) Number() protoreflect.EnumNumber {
@@ -740,7 +627,7 @@ func (x WorkspaceMembershipState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WorkspaceMembershipState.Descriptor instead.
 func (WorkspaceMembershipState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{7}
 }
 
 type WorkspaceBindingPurpose int32
@@ -773,11 +660,11 @@ func (x WorkspaceBindingPurpose) String() string {
 }
 
 func (WorkspaceBindingPurpose) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_account_proto_enumTypes[10].Descriptor()
+	return file_runtime_v1_account_proto_enumTypes[8].Descriptor()
 }
 
 func (WorkspaceBindingPurpose) Type() protoreflect.EnumType {
-	return &file_runtime_v1_account_proto_enumTypes[10]
+	return &file_runtime_v1_account_proto_enumTypes[8]
 }
 
 func (x WorkspaceBindingPurpose) Number() protoreflect.EnumNumber {
@@ -786,7 +673,7 @@ func (x WorkspaceBindingPurpose) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WorkspaceBindingPurpose.Descriptor instead.
 func (WorkspaceBindingPurpose) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{8}
 }
 
 type WorkspaceBindingState int32
@@ -828,11 +715,11 @@ func (x WorkspaceBindingState) String() string {
 }
 
 func (WorkspaceBindingState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_account_proto_enumTypes[11].Descriptor()
+	return file_runtime_v1_account_proto_enumTypes[9].Descriptor()
 }
 
 func (WorkspaceBindingState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_account_proto_enumTypes[11]
+	return &file_runtime_v1_account_proto_enumTypes[9]
 }
 
 func (x WorkspaceBindingState) Number() protoreflect.EnumNumber {
@@ -841,7 +728,7 @@ func (x WorkspaceBindingState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WorkspaceBindingState.Descriptor instead.
 func (WorkspaceBindingState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{9}
 }
 
 // Product-facing third-party app permission posture. Internal grant lifecycle,
@@ -889,11 +776,11 @@ func (x LocalAppPermissionPosture) String() string {
 }
 
 func (LocalAppPermissionPosture) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_account_proto_enumTypes[12].Descriptor()
+	return file_runtime_v1_account_proto_enumTypes[10].Descriptor()
 }
 
 func (LocalAppPermissionPosture) Type() protoreflect.EnumType {
-	return &file_runtime_v1_account_proto_enumTypes[12]
+	return &file_runtime_v1_account_proto_enumTypes[10]
 }
 
 func (x LocalAppPermissionPosture) Number() protoreflect.EnumNumber {
@@ -902,7 +789,7 @@ func (x LocalAppPermissionPosture) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LocalAppPermissionPosture.Descriptor instead.
 func (LocalAppPermissionPosture) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{10}
 }
 
 type WorkspaceMembershipProjection struct {
@@ -1225,154 +1112,6 @@ func (x *AccountCaller) GetReleaseDescriptorRef() string {
 	return ""
 }
 
-type ScopedAppBindingRelation struct {
-	state                protoimpl.MessageState  `protogen:"open.v1"`
-	BindingId            string                  `protobuf:"bytes,1,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
-	RuntimeAppId         string                  `protobuf:"bytes,2,opt,name=runtime_app_id,json=runtimeAppId,proto3" json:"runtime_app_id,omitempty"`
-	AppInstanceId        string                  `protobuf:"bytes,3,opt,name=app_instance_id,json=appInstanceId,proto3" json:"app_instance_id,omitempty"`
-	WindowId             string                  `protobuf:"bytes,4,opt,name=window_id,json=windowId,proto3" json:"window_id,omitempty"`
-	AvatarInstanceId     string                  `protobuf:"bytes,5,opt,name=avatar_instance_id,json=avatarInstanceId,proto3" json:"avatar_instance_id,omitempty"`
-	AgentId              string                  `protobuf:"bytes,6,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	ConversationAnchorId string                  `protobuf:"bytes,7,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
-	WorldId              string                  `protobuf:"bytes,8,opt,name=world_id,json=worldId,proto3" json:"world_id,omitempty"`
-	Purpose              ScopedAppBindingPurpose `protobuf:"varint,9,opt,name=purpose,proto3,enum=nimi.runtime.v1.ScopedAppBindingPurpose" json:"purpose,omitempty"`
-	Scopes               []string                `protobuf:"bytes,10,rep,name=scopes,proto3" json:"scopes,omitempty"`
-	IssuedAt             *timestamppb.Timestamp  `protobuf:"bytes,11,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
-	ExpiresAt            *timestamppb.Timestamp  `protobuf:"bytes,12,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	State                ScopedAppBindingState   `protobuf:"varint,13,opt,name=state,proto3,enum=nimi.runtime.v1.ScopedAppBindingState" json:"state,omitempty"`
-	ReasonCode           AccountReasonCode       `protobuf:"varint,14,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"reason_code,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *ScopedAppBindingRelation) Reset() {
-	*x = ScopedAppBindingRelation{}
-	mi := &file_runtime_v1_account_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ScopedAppBindingRelation) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ScopedAppBindingRelation) ProtoMessage() {}
-
-func (x *ScopedAppBindingRelation) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ScopedAppBindingRelation.ProtoReflect.Descriptor instead.
-func (*ScopedAppBindingRelation) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ScopedAppBindingRelation) GetBindingId() string {
-	if x != nil {
-		return x.BindingId
-	}
-	return ""
-}
-
-func (x *ScopedAppBindingRelation) GetRuntimeAppId() string {
-	if x != nil {
-		return x.RuntimeAppId
-	}
-	return ""
-}
-
-func (x *ScopedAppBindingRelation) GetAppInstanceId() string {
-	if x != nil {
-		return x.AppInstanceId
-	}
-	return ""
-}
-
-func (x *ScopedAppBindingRelation) GetWindowId() string {
-	if x != nil {
-		return x.WindowId
-	}
-	return ""
-}
-
-func (x *ScopedAppBindingRelation) GetAvatarInstanceId() string {
-	if x != nil {
-		return x.AvatarInstanceId
-	}
-	return ""
-}
-
-func (x *ScopedAppBindingRelation) GetAgentId() string {
-	if x != nil {
-		return x.AgentId
-	}
-	return ""
-}
-
-func (x *ScopedAppBindingRelation) GetConversationAnchorId() string {
-	if x != nil {
-		return x.ConversationAnchorId
-	}
-	return ""
-}
-
-func (x *ScopedAppBindingRelation) GetWorldId() string {
-	if x != nil {
-		return x.WorldId
-	}
-	return ""
-}
-
-func (x *ScopedAppBindingRelation) GetPurpose() ScopedAppBindingPurpose {
-	if x != nil {
-		return x.Purpose
-	}
-	return ScopedAppBindingPurpose_SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED
-}
-
-func (x *ScopedAppBindingRelation) GetScopes() []string {
-	if x != nil {
-		return x.Scopes
-	}
-	return nil
-}
-
-func (x *ScopedAppBindingRelation) GetIssuedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.IssuedAt
-	}
-	return nil
-}
-
-func (x *ScopedAppBindingRelation) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-func (x *ScopedAppBindingRelation) GetState() ScopedAppBindingState {
-	if x != nil {
-		return x.State
-	}
-	return ScopedAppBindingState_SCOPED_APP_BINDING_STATE_UNSPECIFIED
-}
-
-func (x *ScopedAppBindingRelation) GetReasonCode() AccountReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED
-}
-
 type WorkspaceBindingRelation struct {
 	state              protoimpl.MessageState  `protogen:"open.v1"`
 	BindingId          string                  `protobuf:"bytes,1,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
@@ -1394,7 +1133,7 @@ type WorkspaceBindingRelation struct {
 
 func (x *WorkspaceBindingRelation) Reset() {
 	*x = WorkspaceBindingRelation{}
-	mi := &file_runtime_v1_account_proto_msgTypes[5]
+	mi := &file_runtime_v1_account_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1406,7 +1145,7 @@ func (x *WorkspaceBindingRelation) String() string {
 func (*WorkspaceBindingRelation) ProtoMessage() {}
 
 func (x *WorkspaceBindingRelation) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[5]
+	mi := &file_runtime_v1_account_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1419,7 +1158,7 @@ func (x *WorkspaceBindingRelation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkspaceBindingRelation.ProtoReflect.Descriptor instead.
 func (*WorkspaceBindingRelation) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *WorkspaceBindingRelation) GetBindingId() string {
@@ -1520,7 +1259,6 @@ type AccountSessionEvent struct {
 	EmittedAt       *timestamppb.Timestamp     `protobuf:"bytes,3,opt,name=emitted_at,json=emittedAt,proto3" json:"emitted_at,omitempty"`
 	EventType       AccountEventType           `protobuf:"varint,4,opt,name=event_type,json=eventType,proto3,enum=nimi.runtime.v1.AccountEventType" json:"event_type,omitempty"`
 	BindingId       string                     `protobuf:"bytes,9,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
-	BindingRelation *ScopedAppBindingRelation  `protobuf:"bytes,10,opt,name=binding_relation,json=bindingRelation,proto3" json:"binding_relation,omitempty"`
 	ReplayTruncated bool                       `protobuf:"varint,11,opt,name=replay_truncated,json=replayTruncated,proto3" json:"replay_truncated,omitempty"`
 	DeliveryKind    AccountSessionDeliveryKind `protobuf:"varint,12,opt,name=delivery_kind,json=deliveryKind,proto3,enum=nimi.runtime.v1.AccountSessionDeliveryKind" json:"delivery_kind,omitempty"`
 	Snapshot        *AccountSessionSnapshot    `protobuf:"bytes,13,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
@@ -1530,7 +1268,7 @@ type AccountSessionEvent struct {
 
 func (x *AccountSessionEvent) Reset() {
 	*x = AccountSessionEvent{}
-	mi := &file_runtime_v1_account_proto_msgTypes[6]
+	mi := &file_runtime_v1_account_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1542,7 +1280,7 @@ func (x *AccountSessionEvent) String() string {
 func (*AccountSessionEvent) ProtoMessage() {}
 
 func (x *AccountSessionEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[6]
+	mi := &file_runtime_v1_account_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +1293,7 @@ func (x *AccountSessionEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountSessionEvent.ProtoReflect.Descriptor instead.
 func (*AccountSessionEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AccountSessionEvent) GetEventId() string {
@@ -1593,13 +1331,6 @@ func (x *AccountSessionEvent) GetBindingId() string {
 	return ""
 }
 
-func (x *AccountSessionEvent) GetBindingRelation() *ScopedAppBindingRelation {
-	if x != nil {
-		return x.BindingRelation
-	}
-	return nil
-}
-
 func (x *AccountSessionEvent) GetReplayTruncated() bool {
 	if x != nil {
 		return x.ReplayTruncated
@@ -1630,7 +1361,7 @@ type GetAccountSessionStatusRequest struct {
 
 func (x *GetAccountSessionStatusRequest) Reset() {
 	*x = GetAccountSessionStatusRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[7]
+	mi := &file_runtime_v1_account_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1642,7 +1373,7 @@ func (x *GetAccountSessionStatusRequest) String() string {
 func (*GetAccountSessionStatusRequest) ProtoMessage() {}
 
 func (x *GetAccountSessionStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[7]
+	mi := &file_runtime_v1_account_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1655,7 +1386,7 @@ func (x *GetAccountSessionStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAccountSessionStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetAccountSessionStatusRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetAccountSessionStatusRequest) GetCaller() *AccountCaller {
@@ -1677,7 +1408,7 @@ type GetAccountSessionStatusResponse struct {
 
 func (x *GetAccountSessionStatusResponse) Reset() {
 	*x = GetAccountSessionStatusResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[8]
+	mi := &file_runtime_v1_account_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1689,7 +1420,7 @@ func (x *GetAccountSessionStatusResponse) String() string {
 func (*GetAccountSessionStatusResponse) ProtoMessage() {}
 
 func (x *GetAccountSessionStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[8]
+	mi := &file_runtime_v1_account_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1702,7 +1433,7 @@ func (x *GetAccountSessionStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAccountSessionStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetAccountSessionStatusResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetAccountSessionStatusResponse) GetReasonCode() ReasonCode {
@@ -1743,7 +1474,7 @@ type SubscribeAccountSessionEventsRequest struct {
 
 func (x *SubscribeAccountSessionEventsRequest) Reset() {
 	*x = SubscribeAccountSessionEventsRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[9]
+	mi := &file_runtime_v1_account_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1755,7 +1486,7 @@ func (x *SubscribeAccountSessionEventsRequest) String() string {
 func (*SubscribeAccountSessionEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeAccountSessionEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[9]
+	mi := &file_runtime_v1_account_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1768,7 +1499,7 @@ func (x *SubscribeAccountSessionEventsRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use SubscribeAccountSessionEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeAccountSessionEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SubscribeAccountSessionEventsRequest) GetCaller() *AccountCaller {
@@ -1798,7 +1529,7 @@ type BeginLoginRequest struct {
 
 func (x *BeginLoginRequest) Reset() {
 	*x = BeginLoginRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[10]
+	mi := &file_runtime_v1_account_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1810,7 +1541,7 @@ func (x *BeginLoginRequest) String() string {
 func (*BeginLoginRequest) ProtoMessage() {}
 
 func (x *BeginLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[10]
+	mi := &file_runtime_v1_account_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1823,7 +1554,7 @@ func (x *BeginLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginLoginRequest.ProtoReflect.Descriptor instead.
 func (*BeginLoginRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BeginLoginRequest) GetCaller() *AccountCaller {
@@ -1880,7 +1611,7 @@ type BeginLoginResponse struct {
 
 func (x *BeginLoginResponse) Reset() {
 	*x = BeginLoginResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[11]
+	mi := &file_runtime_v1_account_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1892,7 +1623,7 @@ func (x *BeginLoginResponse) String() string {
 func (*BeginLoginResponse) ProtoMessage() {}
 
 func (x *BeginLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[11]
+	mi := &file_runtime_v1_account_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1905,7 +1636,7 @@ func (x *BeginLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginLoginResponse.ProtoReflect.Descriptor instead.
 func (*BeginLoginResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *BeginLoginResponse) GetAccepted() bool {
@@ -2003,7 +1734,7 @@ type CompleteLoginRequest struct {
 
 func (x *CompleteLoginRequest) Reset() {
 	*x = CompleteLoginRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[12]
+	mi := &file_runtime_v1_account_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2015,7 +1746,7 @@ func (x *CompleteLoginRequest) String() string {
 func (*CompleteLoginRequest) ProtoMessage() {}
 
 func (x *CompleteLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[12]
+	mi := &file_runtime_v1_account_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2028,7 +1759,7 @@ func (x *CompleteLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteLoginRequest.ProtoReflect.Descriptor instead.
 func (*CompleteLoginRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CompleteLoginRequest) GetCaller() *AccountCaller {
@@ -2115,7 +1846,7 @@ type CompleteLoginResponse struct {
 
 func (x *CompleteLoginResponse) Reset() {
 	*x = CompleteLoginResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[13]
+	mi := &file_runtime_v1_account_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2127,7 +1858,7 @@ func (x *CompleteLoginResponse) String() string {
 func (*CompleteLoginResponse) ProtoMessage() {}
 
 func (x *CompleteLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[13]
+	mi := &file_runtime_v1_account_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2140,7 +1871,7 @@ func (x *CompleteLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteLoginResponse.ProtoReflect.Descriptor instead.
 func (*CompleteLoginResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CompleteLoginResponse) GetAccepted() bool {
@@ -2196,7 +1927,7 @@ type RequestPresenceVerificationRequest struct {
 
 func (x *RequestPresenceVerificationRequest) Reset() {
 	*x = RequestPresenceVerificationRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[14]
+	mi := &file_runtime_v1_account_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2208,7 +1939,7 @@ func (x *RequestPresenceVerificationRequest) String() string {
 func (*RequestPresenceVerificationRequest) ProtoMessage() {}
 
 func (x *RequestPresenceVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[14]
+	mi := &file_runtime_v1_account_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2221,7 +1952,7 @@ func (x *RequestPresenceVerificationRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use RequestPresenceVerificationRequest.ProtoReflect.Descriptor instead.
 func (*RequestPresenceVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RequestPresenceVerificationRequest) GetCaller() *AccountCaller {
@@ -2262,7 +1993,7 @@ type RequestPresenceVerificationResponse struct {
 
 func (x *RequestPresenceVerificationResponse) Reset() {
 	*x = RequestPresenceVerificationResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[15]
+	mi := &file_runtime_v1_account_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2274,7 +2005,7 @@ func (x *RequestPresenceVerificationResponse) String() string {
 func (*RequestPresenceVerificationResponse) ProtoMessage() {}
 
 func (x *RequestPresenceVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[15]
+	mi := &file_runtime_v1_account_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2287,7 +2018,7 @@ func (x *RequestPresenceVerificationResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use RequestPresenceVerificationResponse.ProtoReflect.Descriptor instead.
 func (*RequestPresenceVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RequestPresenceVerificationResponse) GetAccepted() bool {
@@ -2366,7 +2097,7 @@ type InvokeRealmUnaryRequest struct {
 
 func (x *InvokeRealmUnaryRequest) Reset() {
 	*x = InvokeRealmUnaryRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[16]
+	mi := &file_runtime_v1_account_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2378,7 +2109,7 @@ func (x *InvokeRealmUnaryRequest) String() string {
 func (*InvokeRealmUnaryRequest) ProtoMessage() {}
 
 func (x *InvokeRealmUnaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[16]
+	mi := &file_runtime_v1_account_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2391,7 +2122,7 @@ func (x *InvokeRealmUnaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvokeRealmUnaryRequest.ProtoReflect.Descriptor instead.
 func (*InvokeRealmUnaryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *InvokeRealmUnaryRequest) GetCaller() *AccountCaller {
@@ -2444,7 +2175,7 @@ type InvokeRealmUnaryResponse struct {
 
 func (x *InvokeRealmUnaryResponse) Reset() {
 	*x = InvokeRealmUnaryResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[17]
+	mi := &file_runtime_v1_account_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2456,7 +2187,7 @@ func (x *InvokeRealmUnaryResponse) String() string {
 func (*InvokeRealmUnaryResponse) ProtoMessage() {}
 
 func (x *InvokeRealmUnaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[17]
+	mi := &file_runtime_v1_account_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2469,7 +2200,7 @@ func (x *InvokeRealmUnaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvokeRealmUnaryResponse.ProtoReflect.Descriptor instead.
 func (*InvokeRealmUnaryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *InvokeRealmUnaryResponse) GetAccepted() bool {
@@ -2531,7 +2262,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[18]
+	mi := &file_runtime_v1_account_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2543,7 +2274,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[18]
+	mi := &file_runtime_v1_account_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2556,7 +2287,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *LogoutRequest) GetCaller() *AccountCaller {
@@ -2586,7 +2317,7 @@ type LogoutResponse struct {
 
 func (x *LogoutResponse) Reset() {
 	*x = LogoutResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[19]
+	mi := &file_runtime_v1_account_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2598,7 +2329,7 @@ func (x *LogoutResponse) String() string {
 func (*LogoutResponse) ProtoMessage() {}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[19]
+	mi := &file_runtime_v1_account_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2611,7 +2342,7 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
 func (*LogoutResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *LogoutResponse) GetAccepted() bool {
@@ -2659,7 +2390,7 @@ type SwitchAccountRequest struct {
 
 func (x *SwitchAccountRequest) Reset() {
 	*x = SwitchAccountRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[20]
+	mi := &file_runtime_v1_account_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2671,7 +2402,7 @@ func (x *SwitchAccountRequest) String() string {
 func (*SwitchAccountRequest) ProtoMessage() {}
 
 func (x *SwitchAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[20]
+	mi := &file_runtime_v1_account_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2684,7 +2415,7 @@ func (x *SwitchAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SwitchAccountRequest.ProtoReflect.Descriptor instead.
 func (*SwitchAccountRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SwitchAccountRequest) GetCaller() *AccountCaller {
@@ -2715,7 +2446,7 @@ type SwitchAccountResponse struct {
 
 func (x *SwitchAccountResponse) Reset() {
 	*x = SwitchAccountResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[21]
+	mi := &file_runtime_v1_account_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2727,7 +2458,7 @@ func (x *SwitchAccountResponse) String() string {
 func (*SwitchAccountResponse) ProtoMessage() {}
 
 func (x *SwitchAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[21]
+	mi := &file_runtime_v1_account_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2740,7 +2471,7 @@ func (x *SwitchAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SwitchAccountResponse.ProtoReflect.Descriptor instead.
 func (*SwitchAccountResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SwitchAccountResponse) GetAccepted() bool {
@@ -2785,294 +2516,6 @@ func (x *SwitchAccountResponse) GetProductionInert() bool {
 	return false
 }
 
-type IssueScopedAppBindingRequest struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Caller        *AccountCaller            `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
-	Relation      *ScopedAppBindingRelation `protobuf:"bytes,2,opt,name=relation,proto3" json:"relation,omitempty"`
-	TtlSeconds    int32                     `protobuf:"varint,3,opt,name=ttl_seconds,json=ttlSeconds,proto3" json:"ttl_seconds,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IssueScopedAppBindingRequest) Reset() {
-	*x = IssueScopedAppBindingRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IssueScopedAppBindingRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IssueScopedAppBindingRequest) ProtoMessage() {}
-
-func (x *IssueScopedAppBindingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IssueScopedAppBindingRequest.ProtoReflect.Descriptor instead.
-func (*IssueScopedAppBindingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *IssueScopedAppBindingRequest) GetCaller() *AccountCaller {
-	if x != nil {
-		return x.Caller
-	}
-	return nil
-}
-
-func (x *IssueScopedAppBindingRequest) GetRelation() *ScopedAppBindingRelation {
-	if x != nil {
-		return x.Relation
-	}
-	return nil
-}
-
-func (x *IssueScopedAppBindingRequest) GetTtlSeconds() int32 {
-	if x != nil {
-		return x.TtlSeconds
-	}
-	return 0
-}
-
-type IssueScopedAppBindingResponse struct {
-	state             protoimpl.MessageState    `protogen:"open.v1"`
-	Accepted          bool                      `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	BindingId         string                    `protobuf:"bytes,2,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
-	BindingCarrier    string                    `protobuf:"bytes,3,opt,name=binding_carrier,json=bindingCarrier,proto3" json:"binding_carrier,omitempty"`
-	Relation          *ScopedAppBindingRelation `protobuf:"bytes,4,opt,name=relation,proto3" json:"relation,omitempty"`
-	ReasonCode        ReasonCode                `protobuf:"varint,5,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode         `protobuf:"varint,6,opt,name=account_reason_code,json=accountReasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"account_reason_code,omitempty"`
-	ProductionInert   bool                      `protobuf:"varint,7,opt,name=production_inert,json=productionInert,proto3" json:"production_inert,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *IssueScopedAppBindingResponse) Reset() {
-	*x = IssueScopedAppBindingResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IssueScopedAppBindingResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IssueScopedAppBindingResponse) ProtoMessage() {}
-
-func (x *IssueScopedAppBindingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IssueScopedAppBindingResponse.ProtoReflect.Descriptor instead.
-func (*IssueScopedAppBindingResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *IssueScopedAppBindingResponse) GetAccepted() bool {
-	if x != nil {
-		return x.Accepted
-	}
-	return false
-}
-
-func (x *IssueScopedAppBindingResponse) GetBindingId() string {
-	if x != nil {
-		return x.BindingId
-	}
-	return ""
-}
-
-func (x *IssueScopedAppBindingResponse) GetBindingCarrier() string {
-	if x != nil {
-		return x.BindingCarrier
-	}
-	return ""
-}
-
-func (x *IssueScopedAppBindingResponse) GetRelation() *ScopedAppBindingRelation {
-	if x != nil {
-		return x.Relation
-	}
-	return nil
-}
-
-func (x *IssueScopedAppBindingResponse) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-func (x *IssueScopedAppBindingResponse) GetAccountReasonCode() AccountReasonCode {
-	if x != nil {
-		return x.AccountReasonCode
-	}
-	return AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED
-}
-
-func (x *IssueScopedAppBindingResponse) GetProductionInert() bool {
-	if x != nil {
-		return x.ProductionInert
-	}
-	return false
-}
-
-type RevokeScopedAppBindingRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Caller        *AccountCaller         `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
-	BindingId     string                 `protobuf:"bytes,2,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
-	ReasonCode    AccountReasonCode      `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"reason_code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RevokeScopedAppBindingRequest) Reset() {
-	*x = RevokeScopedAppBindingRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RevokeScopedAppBindingRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RevokeScopedAppBindingRequest) ProtoMessage() {}
-
-func (x *RevokeScopedAppBindingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RevokeScopedAppBindingRequest.ProtoReflect.Descriptor instead.
-func (*RevokeScopedAppBindingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *RevokeScopedAppBindingRequest) GetCaller() *AccountCaller {
-	if x != nil {
-		return x.Caller
-	}
-	return nil
-}
-
-func (x *RevokeScopedAppBindingRequest) GetBindingId() string {
-	if x != nil {
-		return x.BindingId
-	}
-	return ""
-}
-
-func (x *RevokeScopedAppBindingRequest) GetReasonCode() AccountReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED
-}
-
-type RevokeScopedAppBindingResponse struct {
-	state             protoimpl.MessageState    `protogen:"open.v1"`
-	Accepted          bool                      `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	Relation          *ScopedAppBindingRelation `protobuf:"bytes,2,opt,name=relation,proto3" json:"relation,omitempty"`
-	ReasonCode        ReasonCode                `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode         `protobuf:"varint,4,opt,name=account_reason_code,json=accountReasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"account_reason_code,omitempty"`
-	ProductionInert   bool                      `protobuf:"varint,5,opt,name=production_inert,json=productionInert,proto3" json:"production_inert,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *RevokeScopedAppBindingResponse) Reset() {
-	*x = RevokeScopedAppBindingResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RevokeScopedAppBindingResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RevokeScopedAppBindingResponse) ProtoMessage() {}
-
-func (x *RevokeScopedAppBindingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RevokeScopedAppBindingResponse.ProtoReflect.Descriptor instead.
-func (*RevokeScopedAppBindingResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *RevokeScopedAppBindingResponse) GetAccepted() bool {
-	if x != nil {
-		return x.Accepted
-	}
-	return false
-}
-
-func (x *RevokeScopedAppBindingResponse) GetRelation() *ScopedAppBindingRelation {
-	if x != nil {
-		return x.Relation
-	}
-	return nil
-}
-
-func (x *RevokeScopedAppBindingResponse) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-func (x *RevokeScopedAppBindingResponse) GetAccountReasonCode() AccountReasonCode {
-	if x != nil {
-		return x.AccountReasonCode
-	}
-	return AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED
-}
-
-func (x *RevokeScopedAppBindingResponse) GetProductionInert() bool {
-	if x != nil {
-		return x.ProductionInert
-	}
-	return false
-}
-
 type IssueWorkspaceBindingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Caller        *AccountCaller         `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
@@ -3085,7 +2528,7 @@ type IssueWorkspaceBindingRequest struct {
 
 func (x *IssueWorkspaceBindingRequest) Reset() {
 	*x = IssueWorkspaceBindingRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[26]
+	mi := &file_runtime_v1_account_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3097,7 +2540,7 @@ func (x *IssueWorkspaceBindingRequest) String() string {
 func (*IssueWorkspaceBindingRequest) ProtoMessage() {}
 
 func (x *IssueWorkspaceBindingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[26]
+	mi := &file_runtime_v1_account_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3110,7 +2553,7 @@ func (x *IssueWorkspaceBindingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IssueWorkspaceBindingRequest.ProtoReflect.Descriptor instead.
 func (*IssueWorkspaceBindingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *IssueWorkspaceBindingRequest) GetCaller() *AccountCaller {
@@ -3156,7 +2599,7 @@ type IssueWorkspaceBindingResponse struct {
 
 func (x *IssueWorkspaceBindingResponse) Reset() {
 	*x = IssueWorkspaceBindingResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[27]
+	mi := &file_runtime_v1_account_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3168,7 +2611,7 @@ func (x *IssueWorkspaceBindingResponse) String() string {
 func (*IssueWorkspaceBindingResponse) ProtoMessage() {}
 
 func (x *IssueWorkspaceBindingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[27]
+	mi := &file_runtime_v1_account_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3181,7 +2624,7 @@ func (x *IssueWorkspaceBindingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IssueWorkspaceBindingResponse.ProtoReflect.Descriptor instead.
 func (*IssueWorkspaceBindingResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *IssueWorkspaceBindingResponse) GetAccepted() bool {
@@ -3244,7 +2687,7 @@ type RevokeWorkspaceBindingRequest struct {
 
 func (x *RevokeWorkspaceBindingRequest) Reset() {
 	*x = RevokeWorkspaceBindingRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[28]
+	mi := &file_runtime_v1_account_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3256,7 +2699,7 @@ func (x *RevokeWorkspaceBindingRequest) String() string {
 func (*RevokeWorkspaceBindingRequest) ProtoMessage() {}
 
 func (x *RevokeWorkspaceBindingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[28]
+	mi := &file_runtime_v1_account_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3269,7 +2712,7 @@ func (x *RevokeWorkspaceBindingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeWorkspaceBindingRequest.ProtoReflect.Descriptor instead.
 func (*RevokeWorkspaceBindingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *RevokeWorkspaceBindingRequest) GetCaller() *AccountCaller {
@@ -3306,7 +2749,7 @@ type RevokeWorkspaceBindingResponse struct {
 
 func (x *RevokeWorkspaceBindingResponse) Reset() {
 	*x = RevokeWorkspaceBindingResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[29]
+	mi := &file_runtime_v1_account_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3318,7 +2761,7 @@ func (x *RevokeWorkspaceBindingResponse) String() string {
 func (*RevokeWorkspaceBindingResponse) ProtoMessage() {}
 
 func (x *RevokeWorkspaceBindingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[29]
+	mi := &file_runtime_v1_account_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3331,7 +2774,7 @@ func (x *RevokeWorkspaceBindingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeWorkspaceBindingResponse.ProtoReflect.Descriptor instead.
 func (*RevokeWorkspaceBindingResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RevokeWorkspaceBindingResponse) GetAccepted() bool {
@@ -3381,7 +2824,7 @@ type LocalAppPermissionProjection struct {
 
 func (x *LocalAppPermissionProjection) Reset() {
 	*x = LocalAppPermissionProjection{}
-	mi := &file_runtime_v1_account_proto_msgTypes[30]
+	mi := &file_runtime_v1_account_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3393,7 +2836,7 @@ func (x *LocalAppPermissionProjection) String() string {
 func (*LocalAppPermissionProjection) ProtoMessage() {}
 
 func (x *LocalAppPermissionProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[30]
+	mi := &file_runtime_v1_account_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3406,7 +2849,7 @@ func (x *LocalAppPermissionProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppPermissionProjection.ProtoReflect.Descriptor instead.
 func (*LocalAppPermissionProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *LocalAppPermissionProjection) GetPermissionId() string {
@@ -3446,7 +2889,7 @@ type GetLocalAppPermissionStatusRequest struct {
 
 func (x *GetLocalAppPermissionStatusRequest) Reset() {
 	*x = GetLocalAppPermissionStatusRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[31]
+	mi := &file_runtime_v1_account_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3458,7 +2901,7 @@ func (x *GetLocalAppPermissionStatusRequest) String() string {
 func (*GetLocalAppPermissionStatusRequest) ProtoMessage() {}
 
 func (x *GetLocalAppPermissionStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[31]
+	mi := &file_runtime_v1_account_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3471,7 +2914,7 @@ func (x *GetLocalAppPermissionStatusRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetLocalAppPermissionStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalAppPermissionStatusRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetLocalAppPermissionStatusRequest) GetPermissionId() string {
@@ -3490,7 +2933,7 @@ type GetLocalAppPermissionStatusResponse struct {
 
 func (x *GetLocalAppPermissionStatusResponse) Reset() {
 	*x = GetLocalAppPermissionStatusResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[32]
+	mi := &file_runtime_v1_account_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3502,7 +2945,7 @@ func (x *GetLocalAppPermissionStatusResponse) String() string {
 func (*GetLocalAppPermissionStatusResponse) ProtoMessage() {}
 
 func (x *GetLocalAppPermissionStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[32]
+	mi := &file_runtime_v1_account_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3515,7 +2958,7 @@ func (x *GetLocalAppPermissionStatusResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use GetLocalAppPermissionStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalAppPermissionStatusResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetLocalAppPermissionStatusResponse) GetProjection() *LocalAppPermissionProjection {
@@ -3535,7 +2978,7 @@ type RequestLocalAppPermissionRequest struct {
 
 func (x *RequestLocalAppPermissionRequest) Reset() {
 	*x = RequestLocalAppPermissionRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[33]
+	mi := &file_runtime_v1_account_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3547,7 +2990,7 @@ func (x *RequestLocalAppPermissionRequest) String() string {
 func (*RequestLocalAppPermissionRequest) ProtoMessage() {}
 
 func (x *RequestLocalAppPermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[33]
+	mi := &file_runtime_v1_account_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3560,7 +3003,7 @@ func (x *RequestLocalAppPermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestLocalAppPermissionRequest.ProtoReflect.Descriptor instead.
 func (*RequestLocalAppPermissionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *RequestLocalAppPermissionRequest) GetPermissionId() string {
@@ -3586,7 +3029,7 @@ type RequestLocalAppPermissionResponse struct {
 
 func (x *RequestLocalAppPermissionResponse) Reset() {
 	*x = RequestLocalAppPermissionResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[34]
+	mi := &file_runtime_v1_account_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3598,7 +3041,7 @@ func (x *RequestLocalAppPermissionResponse) String() string {
 func (*RequestLocalAppPermissionResponse) ProtoMessage() {}
 
 func (x *RequestLocalAppPermissionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[34]
+	mi := &file_runtime_v1_account_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3611,7 +3054,7 @@ func (x *RequestLocalAppPermissionResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use RequestLocalAppPermissionResponse.ProtoReflect.Descriptor instead.
 func (*RequestLocalAppPermissionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *RequestLocalAppPermissionResponse) GetProjection() *LocalAppPermissionProjection {
@@ -3657,26 +3100,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\x06scopes\x18\x05 \x03(\tR\x06scopes\x12$\n" +
 	"\x0elaunch_host_id\x18\x06 \x01(\tR\flaunchHostId\x12!\n" +
 	"\flaunch_nonce\x18\a \x01(\tR\vlaunchNonce\x124\n" +
-	"\x16release_descriptor_ref\x18\b \x01(\tR\x14releaseDescriptorRef\"\x91\x05\n" +
-	"\x18ScopedAppBindingRelation\x12\x1d\n" +
-	"\n" +
-	"binding_id\x18\x01 \x01(\tR\tbindingId\x12$\n" +
-	"\x0eruntime_app_id\x18\x02 \x01(\tR\fruntimeAppId\x12&\n" +
-	"\x0fapp_instance_id\x18\x03 \x01(\tR\rappInstanceId\x12\x1b\n" +
-	"\twindow_id\x18\x04 \x01(\tR\bwindowId\x12,\n" +
-	"\x12avatar_instance_id\x18\x05 \x01(\tR\x10avatarInstanceId\x12\x19\n" +
-	"\bagent_id\x18\x06 \x01(\tR\aagentId\x124\n" +
-	"\x16conversation_anchor_id\x18\a \x01(\tR\x14conversationAnchorId\x12\x19\n" +
-	"\bworld_id\x18\b \x01(\tR\aworldId\x12B\n" +
-	"\apurpose\x18\t \x01(\x0e2(.nimi.runtime.v1.ScopedAppBindingPurposeR\apurpose\x12\x16\n" +
-	"\x06scopes\x18\n" +
-	" \x03(\tR\x06scopes\x127\n" +
-	"\tissued_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\bissuedAt\x129\n" +
-	"\n" +
-	"expires_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12<\n" +
-	"\x05state\x18\r \x01(\x0e2&.nimi.runtime.v1.ScopedAppBindingStateR\x05state\x12C\n" +
-	"\vreason_code\x18\x0e \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\n" +
-	"reasonCode\"\xe4\x04\n" +
+	"\x16release_descriptor_ref\x18\b \x01(\tR\x14releaseDescriptorRef\"\xe4\x04\n" +
 	"\x18WorkspaceBindingRelation\x12\x1d\n" +
 	"\n" +
 	"binding_id\x18\x01 \x01(\tR\tbindingId\x12$\n" +
@@ -3695,7 +3119,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"expires_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12<\n" +
 	"\x05state\x18\f \x01(\x0e2&.nimi.runtime.v1.WorkspaceBindingStateR\x05state\x12<\n" +
 	"\vreason_code\x18\r \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xd5\x04\n" +
+	"reasonCode\"\x97\x04\n" +
 	"\x13AccountSessionEvent\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1a\n" +
 	"\bsequence\x18\x02 \x01(\x04R\bsequence\x129\n" +
@@ -3704,12 +3128,11 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\n" +
 	"event_type\x18\x04 \x01(\x0e2!.nimi.runtime.v1.AccountEventTypeR\teventType\x12\x1d\n" +
 	"\n" +
-	"binding_id\x18\t \x01(\tR\tbindingId\x12T\n" +
-	"\x10binding_relation\x18\n" +
-	" \x01(\v2).nimi.runtime.v1.ScopedAppBindingRelationR\x0fbindingRelation\x12)\n" +
+	"binding_id\x18\t \x01(\tR\tbindingId\x12)\n" +
 	"\x10replay_truncated\x18\v \x01(\bR\x0freplayTruncated\x12P\n" +
 	"\rdelivery_kind\x18\f \x01(\x0e2+.nimi.runtime.v1.AccountSessionDeliveryKindR\fdeliveryKind\x12C\n" +
-	"\bsnapshot\x18\r \x01(\v2'.nimi.runtime.v1.AccountSessionSnapshotR\bsnapshotJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tR\x05stateR\vreason_codeR\x13account_reason_codeR\x12account_projection\"X\n" +
+	"\bsnapshot\x18\r \x01(\v2'.nimi.runtime.v1.AccountSessionSnapshotR\bsnapshotJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\n" +
+	"\x10\vR\x05stateR\vreason_codeR\x13account_reason_codeR\x12account_projectionR\x10binding_relation\"X\n" +
 	"\x1eGetAccountSessionStatusRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\"\xd3\x02\n" +
 	"\x1fGetAccountSessionStatusResponse\x12<\n" +
@@ -3816,35 +3239,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x05 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\x06 \x01(\bR\x0fproductionInert\"\xbe\x01\n" +
-	"\x1cIssueScopedAppBindingRequest\x126\n" +
-	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x12E\n" +
-	"\brelation\x18\x02 \x01(\v2).nimi.runtime.v1.ScopedAppBindingRelationR\brelation\x12\x1f\n" +
-	"\vttl_seconds\x18\x03 \x01(\x05R\n" +
-	"ttlSeconds\"\x87\x03\n" +
-	"\x1dIssueScopedAppBindingResponse\x12\x1a\n" +
-	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\x1d\n" +
-	"\n" +
-	"binding_id\x18\x02 \x01(\tR\tbindingId\x12'\n" +
-	"\x0fbinding_carrier\x18\x03 \x01(\tR\x0ebindingCarrier\x12E\n" +
-	"\brelation\x18\x04 \x01(\v2).nimi.runtime.v1.ScopedAppBindingRelationR\brelation\x12<\n" +
-	"\vreason_code\x18\x05 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12R\n" +
-	"\x13account_reason_code\x18\x06 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\a \x01(\bR\x0fproductionInert\"\xbb\x01\n" +
-	"\x1dRevokeScopedAppBindingRequest\x126\n" +
-	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x12\x1d\n" +
-	"\n" +
-	"binding_id\x18\x02 \x01(\tR\tbindingId\x12C\n" +
-	"\vreason_code\x18\x03 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\n" +
-	"reasonCode\"\xc0\x02\n" +
-	"\x1eRevokeScopedAppBindingResponse\x12\x1a\n" +
-	"\baccepted\x18\x01 \x01(\bR\baccepted\x12E\n" +
-	"\brelation\x18\x02 \x01(\v2).nimi.runtime.v1.ScopedAppBindingRelationR\brelation\x12<\n" +
-	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12R\n" +
-	"\x13account_reason_code\x18\x04 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\x05 \x01(\bR\x0fproductionInert\"\xb2\x01\n" +
+	"\x10production_inert\x18\x06 \x01(\bR\x0fproductionInert\"\xb2\x01\n" +
 	"\x1cIssueWorkspaceBindingRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x16\n" +
@@ -3938,7 +3333,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	")ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED\x10\x00\x12*\n" +
 	"&ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT\x10\x01\x12(\n" +
 	"$ACCOUNT_SESSION_DELIVERY_KIND_REPLAY\x10\x02\x12&\n" +
-	"\"ACCOUNT_SESSION_DELIVERY_KIND_LIVE\x10\x03*\xdb\x0e\n" +
+	"\"ACCOUNT_SESSION_DELIVERY_KIND_LIVE\x10\x03*\xdd\x0e\n" +
 	"\x11AccountReasonCode\x12#\n" +
 	"\x1fACCOUNT_REASON_CODE_UNSPECIFIED\x10\x00\x12'\n" +
 	"#ACCOUNT_REASON_CODE_ACTION_EXECUTED\x10\x01\x12+\n" +
@@ -3951,8 +3346,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"%ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED\x10\b\x12.\n" +
 	"*ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED\x10\t\x12+\n" +
 	"'ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED\x10\n" +
-	"\x12+\n" +
-	"'ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY\x10\v\x12)\n" +
+	"\x12)\n" +
 	"%ACCOUNT_REASON_CODE_BINDING_NOT_FOUND\x10\r\x12%\n" +
 	"!ACCOUNT_REASON_CODE_BINDING_STALE\x10\x0e\x12&\n" +
 	"\"ACCOUNT_REASON_CODE_BINDING_REPLAY\x10\x0f\x122\n" +
@@ -3978,7 +3372,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"*ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED\x10$\x12-\n" +
 	")ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID\x10%\x120\n" +
 	",ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID\x10&\x121\n" +
-	"-ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS\x10'\"\x04\b\f\x10\f\"\x04\b\x16\x10\x16*'ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN**ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED*\xc9\x01\n" +
+	"-ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS\x10'\"\x04\b\v\x10\v\"\x04\b\f\x10\f\"\x04\b\x16\x10\x16*'ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY*'ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN**ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED*\xc9\x01\n" +
 	"\x19PresenceVerificationState\x12+\n" +
 	"'PRESENCE_VERIFICATION_STATE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$PRESENCE_VERIFICATION_STATE_REJECTED\x10\x01\x12(\n" +
@@ -3996,19 +3390,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"&ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST\x10\x03\x12!\n" +
 	"\x1dACCOUNT_CALLER_MODE_WEB_CLOUD\x10\x05\x12*\n" +
 	"&ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL\x10\x06\x12!\n" +
-	"\x1dACCOUNT_CALLER_MODE_LOCAL_APP\x10\t\"\x04\b\x04\x10\x04\"\x04\b\a\x10\a\"\x04\b\b\x10\b*+ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR*\x17ACCOUNT_CALLER_MODE_MOD*'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP*-ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP*\xa8\x02\n" +
-	"\x15ScopedAppBindingState\x12(\n" +
-	"$SCOPED_APP_BINDING_STATE_UNSPECIFIED\x10\x00\x12#\n" +
-	"\x1fSCOPED_APP_BINDING_STATE_ISSUED\x10\x01\x12#\n" +
-	"\x1fSCOPED_APP_BINDING_STATE_ACTIVE\x10\x02\x12&\n" +
-	"\"SCOPED_APP_BINDING_STATE_SUSPENDED\x10\x03\x12$\n" +
-	" SCOPED_APP_BINDING_STATE_REVOKED\x10\x04\x12$\n" +
-	" SCOPED_APP_BINDING_STATE_EXPIRED\x10\x05\x12'\n" +
-	"#SCOPED_APP_BINDING_STATE_SUPERSEDED\x10\x06*\xb3\x01\n" +
-	"\x17ScopedAppBindingPurpose\x12*\n" +
-	"&SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED\x10\x00\x129\n" +
-	"5SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME\x10\x01\x121\n" +
-	"-SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME\x10\x02*\xe7\x01\n" +
+	"\x1dACCOUNT_CALLER_MODE_LOCAL_APP\x10\t\"\x04\b\x04\x10\x04\"\x04\b\a\x10\a\"\x04\b\b\x10\b*+ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR*\x17ACCOUNT_CALLER_MODE_MOD*'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP*-ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP*\xe7\x01\n" +
 	"\x18WorkspaceMembershipState\x12*\n" +
 	"&WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED\x10\x00\x12%\n" +
 	"!WORKSPACE_MEMBERSHIP_STATE_ACTIVE\x10\x01\x12(\n" +
@@ -4030,7 +3412,8 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"$LOCAL_APP_PERMISSION_POSTURE_PENDING\x10\x02\x12(\n" +
 	"$LOCAL_APP_PERMISSION_POSTURE_GRANTED\x10\x03\x12'\n" +
 	"#LOCAL_APP_PERMISSION_POSTURE_DENIED\x10\x04\x12,\n" +
-	"(LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE\x10\x052\xe1\f\n" +
+	"(LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE\x10\x052\xee\n" +
+	"\n" +
 	"\x15RuntimeAccountService\x12|\n" +
 	"\x17GetAccountSessionStatus\x12/.nimi.runtime.v1.GetAccountSessionStatusRequest\x1a0.nimi.runtime.v1.GetAccountSessionStatusResponse\x12~\n" +
 	"\x1dSubscribeAccountSessionEvents\x125.nimi.runtime.v1.SubscribeAccountSessionEventsRequest\x1a$.nimi.runtime.v1.AccountSessionEvent0\x01\x12U\n" +
@@ -4041,8 +3424,6 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\x10InvokeRealmUnary\x12(.nimi.runtime.v1.InvokeRealmUnaryRequest\x1a).nimi.runtime.v1.InvokeRealmUnaryResponse\x12I\n" +
 	"\x06Logout\x12\x1e.nimi.runtime.v1.LogoutRequest\x1a\x1f.nimi.runtime.v1.LogoutResponse\x12^\n" +
 	"\rSwitchAccount\x12%.nimi.runtime.v1.SwitchAccountRequest\x1a&.nimi.runtime.v1.SwitchAccountResponse\x12v\n" +
-	"\x15IssueScopedAppBinding\x12-.nimi.runtime.v1.IssueScopedAppBindingRequest\x1a..nimi.runtime.v1.IssueScopedAppBindingResponse\x12y\n" +
-	"\x16RevokeScopedAppBinding\x12..nimi.runtime.v1.RevokeScopedAppBindingRequest\x1a/.nimi.runtime.v1.RevokeScopedAppBindingResponse\x12v\n" +
 	"\x15IssueWorkspaceBinding\x12-.nimi.runtime.v1.IssueWorkspaceBindingRequest\x1a..nimi.runtime.v1.IssueWorkspaceBindingResponse\x12y\n" +
 	"\x16RevokeWorkspaceBinding\x12..nimi.runtime.v1.RevokeWorkspaceBindingRequest\x1a/.nimi.runtime.v1.RevokeWorkspaceBindingResponse\x12\x88\x01\n" +
 	"\x1bGetLocalAppPermissionStatus\x123.nimi.runtime.v1.GetLocalAppPermissionStatusRequest\x1a4.nimi.runtime.v1.GetLocalAppPermissionStatusResponse\x12\x82\x01\n" +
@@ -4060,8 +3441,8 @@ func file_runtime_v1_account_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_account_proto_rawDescData
 }
 
-var file_runtime_v1_account_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
-var file_runtime_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_runtime_v1_account_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
+var file_runtime_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_runtime_v1_account_proto_goTypes = []any{
 	(AccountSessionState)(0),                     // 0: nimi.runtime.v1.AccountSessionState
 	(AccountEventType)(0),                        // 1: nimi.runtime.v1.AccountEventType
@@ -4070,167 +3451,140 @@ var file_runtime_v1_account_proto_goTypes = []any{
 	(PresenceVerificationState)(0),               // 4: nimi.runtime.v1.PresenceVerificationState
 	(PresenceVerificationMethod)(0),              // 5: nimi.runtime.v1.PresenceVerificationMethod
 	(AccountCallerMode)(0),                       // 6: nimi.runtime.v1.AccountCallerMode
-	(ScopedAppBindingState)(0),                   // 7: nimi.runtime.v1.ScopedAppBindingState
-	(ScopedAppBindingPurpose)(0),                 // 8: nimi.runtime.v1.ScopedAppBindingPurpose
-	(WorkspaceMembershipState)(0),                // 9: nimi.runtime.v1.WorkspaceMembershipState
-	(WorkspaceBindingPurpose)(0),                 // 10: nimi.runtime.v1.WorkspaceBindingPurpose
-	(WorkspaceBindingState)(0),                   // 11: nimi.runtime.v1.WorkspaceBindingState
-	(LocalAppPermissionPosture)(0),               // 12: nimi.runtime.v1.LocalAppPermissionPosture
-	(*WorkspaceMembershipProjection)(nil),        // 13: nimi.runtime.v1.WorkspaceMembershipProjection
-	(*AccountProjection)(nil),                    // 14: nimi.runtime.v1.AccountProjection
-	(*AccountSessionSnapshot)(nil),               // 15: nimi.runtime.v1.AccountSessionSnapshot
-	(*AccountCaller)(nil),                        // 16: nimi.runtime.v1.AccountCaller
-	(*ScopedAppBindingRelation)(nil),             // 17: nimi.runtime.v1.ScopedAppBindingRelation
-	(*WorkspaceBindingRelation)(nil),             // 18: nimi.runtime.v1.WorkspaceBindingRelation
-	(*AccountSessionEvent)(nil),                  // 19: nimi.runtime.v1.AccountSessionEvent
-	(*GetAccountSessionStatusRequest)(nil),       // 20: nimi.runtime.v1.GetAccountSessionStatusRequest
-	(*GetAccountSessionStatusResponse)(nil),      // 21: nimi.runtime.v1.GetAccountSessionStatusResponse
-	(*SubscribeAccountSessionEventsRequest)(nil), // 22: nimi.runtime.v1.SubscribeAccountSessionEventsRequest
-	(*BeginLoginRequest)(nil),                    // 23: nimi.runtime.v1.BeginLoginRequest
-	(*BeginLoginResponse)(nil),                   // 24: nimi.runtime.v1.BeginLoginResponse
-	(*CompleteLoginRequest)(nil),                 // 25: nimi.runtime.v1.CompleteLoginRequest
-	(*CompleteLoginResponse)(nil),                // 26: nimi.runtime.v1.CompleteLoginResponse
-	(*RequestPresenceVerificationRequest)(nil),   // 27: nimi.runtime.v1.RequestPresenceVerificationRequest
-	(*RequestPresenceVerificationResponse)(nil),  // 28: nimi.runtime.v1.RequestPresenceVerificationResponse
-	(*InvokeRealmUnaryRequest)(nil),              // 29: nimi.runtime.v1.InvokeRealmUnaryRequest
-	(*InvokeRealmUnaryResponse)(nil),             // 30: nimi.runtime.v1.InvokeRealmUnaryResponse
-	(*LogoutRequest)(nil),                        // 31: nimi.runtime.v1.LogoutRequest
-	(*LogoutResponse)(nil),                       // 32: nimi.runtime.v1.LogoutResponse
-	(*SwitchAccountRequest)(nil),                 // 33: nimi.runtime.v1.SwitchAccountRequest
-	(*SwitchAccountResponse)(nil),                // 34: nimi.runtime.v1.SwitchAccountResponse
-	(*IssueScopedAppBindingRequest)(nil),         // 35: nimi.runtime.v1.IssueScopedAppBindingRequest
-	(*IssueScopedAppBindingResponse)(nil),        // 36: nimi.runtime.v1.IssueScopedAppBindingResponse
-	(*RevokeScopedAppBindingRequest)(nil),        // 37: nimi.runtime.v1.RevokeScopedAppBindingRequest
-	(*RevokeScopedAppBindingResponse)(nil),       // 38: nimi.runtime.v1.RevokeScopedAppBindingResponse
-	(*IssueWorkspaceBindingRequest)(nil),         // 39: nimi.runtime.v1.IssueWorkspaceBindingRequest
-	(*IssueWorkspaceBindingResponse)(nil),        // 40: nimi.runtime.v1.IssueWorkspaceBindingResponse
-	(*RevokeWorkspaceBindingRequest)(nil),        // 41: nimi.runtime.v1.RevokeWorkspaceBindingRequest
-	(*RevokeWorkspaceBindingResponse)(nil),       // 42: nimi.runtime.v1.RevokeWorkspaceBindingResponse
-	(*LocalAppPermissionProjection)(nil),         // 43: nimi.runtime.v1.LocalAppPermissionProjection
-	(*GetLocalAppPermissionStatusRequest)(nil),   // 44: nimi.runtime.v1.GetLocalAppPermissionStatusRequest
-	(*GetLocalAppPermissionStatusResponse)(nil),  // 45: nimi.runtime.v1.GetLocalAppPermissionStatusResponse
-	(*RequestLocalAppPermissionRequest)(nil),     // 46: nimi.runtime.v1.RequestLocalAppPermissionRequest
-	(*RequestLocalAppPermissionResponse)(nil),    // 47: nimi.runtime.v1.RequestLocalAppPermissionResponse
-	nil,                                // 48: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
-	(*timestamppb.Timestamp)(nil),      // 49: google.protobuf.Timestamp
-	(ReasonCode)(0),                    // 50: nimi.runtime.v1.ReasonCode
-	(*WorkspaceBindingAttachment)(nil), // 51: nimi.runtime.v1.WorkspaceBindingAttachment
+	(WorkspaceMembershipState)(0),                // 7: nimi.runtime.v1.WorkspaceMembershipState
+	(WorkspaceBindingPurpose)(0),                 // 8: nimi.runtime.v1.WorkspaceBindingPurpose
+	(WorkspaceBindingState)(0),                   // 9: nimi.runtime.v1.WorkspaceBindingState
+	(LocalAppPermissionPosture)(0),               // 10: nimi.runtime.v1.LocalAppPermissionPosture
+	(*WorkspaceMembershipProjection)(nil),        // 11: nimi.runtime.v1.WorkspaceMembershipProjection
+	(*AccountProjection)(nil),                    // 12: nimi.runtime.v1.AccountProjection
+	(*AccountSessionSnapshot)(nil),               // 13: nimi.runtime.v1.AccountSessionSnapshot
+	(*AccountCaller)(nil),                        // 14: nimi.runtime.v1.AccountCaller
+	(*WorkspaceBindingRelation)(nil),             // 15: nimi.runtime.v1.WorkspaceBindingRelation
+	(*AccountSessionEvent)(nil),                  // 16: nimi.runtime.v1.AccountSessionEvent
+	(*GetAccountSessionStatusRequest)(nil),       // 17: nimi.runtime.v1.GetAccountSessionStatusRequest
+	(*GetAccountSessionStatusResponse)(nil),      // 18: nimi.runtime.v1.GetAccountSessionStatusResponse
+	(*SubscribeAccountSessionEventsRequest)(nil), // 19: nimi.runtime.v1.SubscribeAccountSessionEventsRequest
+	(*BeginLoginRequest)(nil),                    // 20: nimi.runtime.v1.BeginLoginRequest
+	(*BeginLoginResponse)(nil),                   // 21: nimi.runtime.v1.BeginLoginResponse
+	(*CompleteLoginRequest)(nil),                 // 22: nimi.runtime.v1.CompleteLoginRequest
+	(*CompleteLoginResponse)(nil),                // 23: nimi.runtime.v1.CompleteLoginResponse
+	(*RequestPresenceVerificationRequest)(nil),   // 24: nimi.runtime.v1.RequestPresenceVerificationRequest
+	(*RequestPresenceVerificationResponse)(nil),  // 25: nimi.runtime.v1.RequestPresenceVerificationResponse
+	(*InvokeRealmUnaryRequest)(nil),              // 26: nimi.runtime.v1.InvokeRealmUnaryRequest
+	(*InvokeRealmUnaryResponse)(nil),             // 27: nimi.runtime.v1.InvokeRealmUnaryResponse
+	(*LogoutRequest)(nil),                        // 28: nimi.runtime.v1.LogoutRequest
+	(*LogoutResponse)(nil),                       // 29: nimi.runtime.v1.LogoutResponse
+	(*SwitchAccountRequest)(nil),                 // 30: nimi.runtime.v1.SwitchAccountRequest
+	(*SwitchAccountResponse)(nil),                // 31: nimi.runtime.v1.SwitchAccountResponse
+	(*IssueWorkspaceBindingRequest)(nil),         // 32: nimi.runtime.v1.IssueWorkspaceBindingRequest
+	(*IssueWorkspaceBindingResponse)(nil),        // 33: nimi.runtime.v1.IssueWorkspaceBindingResponse
+	(*RevokeWorkspaceBindingRequest)(nil),        // 34: nimi.runtime.v1.RevokeWorkspaceBindingRequest
+	(*RevokeWorkspaceBindingResponse)(nil),       // 35: nimi.runtime.v1.RevokeWorkspaceBindingResponse
+	(*LocalAppPermissionProjection)(nil),         // 36: nimi.runtime.v1.LocalAppPermissionProjection
+	(*GetLocalAppPermissionStatusRequest)(nil),   // 37: nimi.runtime.v1.GetLocalAppPermissionStatusRequest
+	(*GetLocalAppPermissionStatusResponse)(nil),  // 38: nimi.runtime.v1.GetLocalAppPermissionStatusResponse
+	(*RequestLocalAppPermissionRequest)(nil),     // 39: nimi.runtime.v1.RequestLocalAppPermissionRequest
+	(*RequestLocalAppPermissionResponse)(nil),    // 40: nimi.runtime.v1.RequestLocalAppPermissionResponse
+	nil,                                // 41: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
+	(*timestamppb.Timestamp)(nil),      // 42: google.protobuf.Timestamp
+	(ReasonCode)(0),                    // 43: nimi.runtime.v1.ReasonCode
+	(*WorkspaceBindingAttachment)(nil), // 44: nimi.runtime.v1.WorkspaceBindingAttachment
 }
 var file_runtime_v1_account_proto_depIdxs = []int32{
-	9,  // 0: nimi.runtime.v1.WorkspaceMembershipProjection.membership_state:type_name -> nimi.runtime.v1.WorkspaceMembershipState
-	49, // 1: nimi.runtime.v1.WorkspaceMembershipProjection.observed_at:type_name -> google.protobuf.Timestamp
-	48, // 2: nimi.runtime.v1.WorkspaceMembershipProjection.display_metadata:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
-	13, // 3: nimi.runtime.v1.AccountProjection.workspace_memberships:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection
+	7,  // 0: nimi.runtime.v1.WorkspaceMembershipProjection.membership_state:type_name -> nimi.runtime.v1.WorkspaceMembershipState
+	42, // 1: nimi.runtime.v1.WorkspaceMembershipProjection.observed_at:type_name -> google.protobuf.Timestamp
+	41, // 2: nimi.runtime.v1.WorkspaceMembershipProjection.display_metadata:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
+	11, // 3: nimi.runtime.v1.AccountProjection.workspace_memberships:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection
 	0,  // 4: nimi.runtime.v1.AccountSessionSnapshot.state:type_name -> nimi.runtime.v1.AccountSessionState
-	50, // 5: nimi.runtime.v1.AccountSessionSnapshot.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	43, // 5: nimi.runtime.v1.AccountSessionSnapshot.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 6: nimi.runtime.v1.AccountSessionSnapshot.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	14, // 7: nimi.runtime.v1.AccountSessionSnapshot.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	12, // 7: nimi.runtime.v1.AccountSessionSnapshot.account_projection:type_name -> nimi.runtime.v1.AccountProjection
 	6,  // 8: nimi.runtime.v1.AccountCaller.mode:type_name -> nimi.runtime.v1.AccountCallerMode
-	8,  // 9: nimi.runtime.v1.ScopedAppBindingRelation.purpose:type_name -> nimi.runtime.v1.ScopedAppBindingPurpose
-	49, // 10: nimi.runtime.v1.ScopedAppBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
-	49, // 11: nimi.runtime.v1.ScopedAppBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
-	7,  // 12: nimi.runtime.v1.ScopedAppBindingRelation.state:type_name -> nimi.runtime.v1.ScopedAppBindingState
-	3,  // 13: nimi.runtime.v1.ScopedAppBindingRelation.reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	10, // 14: nimi.runtime.v1.WorkspaceBindingRelation.purpose:type_name -> nimi.runtime.v1.WorkspaceBindingPurpose
-	49, // 15: nimi.runtime.v1.WorkspaceBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
-	49, // 16: nimi.runtime.v1.WorkspaceBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
-	11, // 17: nimi.runtime.v1.WorkspaceBindingRelation.state:type_name -> nimi.runtime.v1.WorkspaceBindingState
-	50, // 18: nimi.runtime.v1.WorkspaceBindingRelation.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	49, // 19: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
-	1,  // 20: nimi.runtime.v1.AccountSessionEvent.event_type:type_name -> nimi.runtime.v1.AccountEventType
-	17, // 21: nimi.runtime.v1.AccountSessionEvent.binding_relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
-	2,  // 22: nimi.runtime.v1.AccountSessionEvent.delivery_kind:type_name -> nimi.runtime.v1.AccountSessionDeliveryKind
-	15, // 23: nimi.runtime.v1.AccountSessionEvent.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
-	16, // 24: nimi.runtime.v1.GetAccountSessionStatusRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	50, // 25: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 26: nimi.runtime.v1.GetAccountSessionStatusResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	15, // 27: nimi.runtime.v1.GetAccountSessionStatusResponse.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
-	16, // 28: nimi.runtime.v1.SubscribeAccountSessionEventsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	16, // 29: nimi.runtime.v1.BeginLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	49, // 30: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
-	50, // 31: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 32: nimi.runtime.v1.BeginLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 33: nimi.runtime.v1.CompleteLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	0,  // 34: nimi.runtime.v1.CompleteLoginResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	14, // 35: nimi.runtime.v1.CompleteLoginResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	50, // 36: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 37: nimi.runtime.v1.CompleteLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 38: nimi.runtime.v1.RequestPresenceVerificationRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	4,  // 39: nimi.runtime.v1.RequestPresenceVerificationResponse.state:type_name -> nimi.runtime.v1.PresenceVerificationState
-	5,  // 40: nimi.runtime.v1.RequestPresenceVerificationResponse.method:type_name -> nimi.runtime.v1.PresenceVerificationMethod
-	49, // 41: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
-	14, // 42: nimi.runtime.v1.RequestPresenceVerificationResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	50, // 43: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 44: nimi.runtime.v1.RequestPresenceVerificationResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 45: nimi.runtime.v1.InvokeRealmUnaryRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	50, // 46: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 47: nimi.runtime.v1.InvokeRealmUnaryResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 48: nimi.runtime.v1.LogoutRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	0,  // 49: nimi.runtime.v1.LogoutResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	50, // 50: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 51: nimi.runtime.v1.LogoutResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 52: nimi.runtime.v1.SwitchAccountRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	0,  // 53: nimi.runtime.v1.SwitchAccountResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	14, // 54: nimi.runtime.v1.SwitchAccountResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	50, // 55: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 56: nimi.runtime.v1.SwitchAccountResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 57: nimi.runtime.v1.IssueScopedAppBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	17, // 58: nimi.runtime.v1.IssueScopedAppBindingRequest.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
-	17, // 59: nimi.runtime.v1.IssueScopedAppBindingResponse.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
-	50, // 60: nimi.runtime.v1.IssueScopedAppBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 61: nimi.runtime.v1.IssueScopedAppBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 62: nimi.runtime.v1.RevokeScopedAppBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	3,  // 63: nimi.runtime.v1.RevokeScopedAppBindingRequest.reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	17, // 64: nimi.runtime.v1.RevokeScopedAppBindingResponse.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
-	50, // 65: nimi.runtime.v1.RevokeScopedAppBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 66: nimi.runtime.v1.RevokeScopedAppBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 67: nimi.runtime.v1.IssueWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	51, // 68: nimi.runtime.v1.IssueWorkspaceBindingResponse.attachment:type_name -> nimi.runtime.v1.WorkspaceBindingAttachment
-	18, // 69: nimi.runtime.v1.IssueWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
-	50, // 70: nimi.runtime.v1.IssueWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 71: nimi.runtime.v1.IssueWorkspaceBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	16, // 72: nimi.runtime.v1.RevokeWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	50, // 73: nimi.runtime.v1.RevokeWorkspaceBindingRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	18, // 74: nimi.runtime.v1.RevokeWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
-	50, // 75: nimi.runtime.v1.RevokeWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 76: nimi.runtime.v1.RevokeWorkspaceBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	12, // 77: nimi.runtime.v1.LocalAppPermissionProjection.posture:type_name -> nimi.runtime.v1.LocalAppPermissionPosture
-	50, // 78: nimi.runtime.v1.LocalAppPermissionProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	43, // 79: nimi.runtime.v1.GetLocalAppPermissionStatusResponse.projection:type_name -> nimi.runtime.v1.LocalAppPermissionProjection
-	43, // 80: nimi.runtime.v1.RequestLocalAppPermissionResponse.projection:type_name -> nimi.runtime.v1.LocalAppPermissionProjection
-	20, // 81: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
-	22, // 82: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
-	23, // 83: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
-	25, // 84: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
-	27, // 85: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
-	29, // 86: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
-	31, // 87: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
-	33, // 88: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
-	35, // 89: nimi.runtime.v1.RuntimeAccountService.IssueScopedAppBinding:input_type -> nimi.runtime.v1.IssueScopedAppBindingRequest
-	37, // 90: nimi.runtime.v1.RuntimeAccountService.RevokeScopedAppBinding:input_type -> nimi.runtime.v1.RevokeScopedAppBindingRequest
-	39, // 91: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:input_type -> nimi.runtime.v1.IssueWorkspaceBindingRequest
-	41, // 92: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:input_type -> nimi.runtime.v1.RevokeWorkspaceBindingRequest
-	44, // 93: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionStatus:input_type -> nimi.runtime.v1.GetLocalAppPermissionStatusRequest
-	46, // 94: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppPermission:input_type -> nimi.runtime.v1.RequestLocalAppPermissionRequest
-	21, // 95: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
-	19, // 96: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
-	24, // 97: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
-	26, // 98: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
-	28, // 99: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
-	30, // 100: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
-	32, // 101: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
-	34, // 102: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
-	36, // 103: nimi.runtime.v1.RuntimeAccountService.IssueScopedAppBinding:output_type -> nimi.runtime.v1.IssueScopedAppBindingResponse
-	38, // 104: nimi.runtime.v1.RuntimeAccountService.RevokeScopedAppBinding:output_type -> nimi.runtime.v1.RevokeScopedAppBindingResponse
-	40, // 105: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:output_type -> nimi.runtime.v1.IssueWorkspaceBindingResponse
-	42, // 106: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:output_type -> nimi.runtime.v1.RevokeWorkspaceBindingResponse
-	45, // 107: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionStatus:output_type -> nimi.runtime.v1.GetLocalAppPermissionStatusResponse
-	47, // 108: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppPermission:output_type -> nimi.runtime.v1.RequestLocalAppPermissionResponse
-	95, // [95:109] is the sub-list for method output_type
-	81, // [81:95] is the sub-list for method input_type
-	81, // [81:81] is the sub-list for extension type_name
-	81, // [81:81] is the sub-list for extension extendee
-	0,  // [0:81] is the sub-list for field type_name
+	8,  // 9: nimi.runtime.v1.WorkspaceBindingRelation.purpose:type_name -> nimi.runtime.v1.WorkspaceBindingPurpose
+	42, // 10: nimi.runtime.v1.WorkspaceBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
+	42, // 11: nimi.runtime.v1.WorkspaceBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
+	9,  // 12: nimi.runtime.v1.WorkspaceBindingRelation.state:type_name -> nimi.runtime.v1.WorkspaceBindingState
+	43, // 13: nimi.runtime.v1.WorkspaceBindingRelation.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	42, // 14: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
+	1,  // 15: nimi.runtime.v1.AccountSessionEvent.event_type:type_name -> nimi.runtime.v1.AccountEventType
+	2,  // 16: nimi.runtime.v1.AccountSessionEvent.delivery_kind:type_name -> nimi.runtime.v1.AccountSessionDeliveryKind
+	13, // 17: nimi.runtime.v1.AccountSessionEvent.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
+	14, // 18: nimi.runtime.v1.GetAccountSessionStatusRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	43, // 19: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 20: nimi.runtime.v1.GetAccountSessionStatusResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	13, // 21: nimi.runtime.v1.GetAccountSessionStatusResponse.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
+	14, // 22: nimi.runtime.v1.SubscribeAccountSessionEventsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	14, // 23: nimi.runtime.v1.BeginLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	42, // 24: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	43, // 25: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 26: nimi.runtime.v1.BeginLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	14, // 27: nimi.runtime.v1.CompleteLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	0,  // 28: nimi.runtime.v1.CompleteLoginResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
+	12, // 29: nimi.runtime.v1.CompleteLoginResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	43, // 30: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 31: nimi.runtime.v1.CompleteLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	14, // 32: nimi.runtime.v1.RequestPresenceVerificationRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	4,  // 33: nimi.runtime.v1.RequestPresenceVerificationResponse.state:type_name -> nimi.runtime.v1.PresenceVerificationState
+	5,  // 34: nimi.runtime.v1.RequestPresenceVerificationResponse.method:type_name -> nimi.runtime.v1.PresenceVerificationMethod
+	42, // 35: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
+	12, // 36: nimi.runtime.v1.RequestPresenceVerificationResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	43, // 37: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 38: nimi.runtime.v1.RequestPresenceVerificationResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	14, // 39: nimi.runtime.v1.InvokeRealmUnaryRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	43, // 40: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 41: nimi.runtime.v1.InvokeRealmUnaryResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	14, // 42: nimi.runtime.v1.LogoutRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	0,  // 43: nimi.runtime.v1.LogoutResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
+	43, // 44: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 45: nimi.runtime.v1.LogoutResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	14, // 46: nimi.runtime.v1.SwitchAccountRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	0,  // 47: nimi.runtime.v1.SwitchAccountResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
+	12, // 48: nimi.runtime.v1.SwitchAccountResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	43, // 49: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 50: nimi.runtime.v1.SwitchAccountResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	14, // 51: nimi.runtime.v1.IssueWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	44, // 52: nimi.runtime.v1.IssueWorkspaceBindingResponse.attachment:type_name -> nimi.runtime.v1.WorkspaceBindingAttachment
+	15, // 53: nimi.runtime.v1.IssueWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
+	43, // 54: nimi.runtime.v1.IssueWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 55: nimi.runtime.v1.IssueWorkspaceBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	14, // 56: nimi.runtime.v1.RevokeWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	43, // 57: nimi.runtime.v1.RevokeWorkspaceBindingRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15, // 58: nimi.runtime.v1.RevokeWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
+	43, // 59: nimi.runtime.v1.RevokeWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 60: nimi.runtime.v1.RevokeWorkspaceBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	10, // 61: nimi.runtime.v1.LocalAppPermissionProjection.posture:type_name -> nimi.runtime.v1.LocalAppPermissionPosture
+	43, // 62: nimi.runtime.v1.LocalAppPermissionProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	36, // 63: nimi.runtime.v1.GetLocalAppPermissionStatusResponse.projection:type_name -> nimi.runtime.v1.LocalAppPermissionProjection
+	36, // 64: nimi.runtime.v1.RequestLocalAppPermissionResponse.projection:type_name -> nimi.runtime.v1.LocalAppPermissionProjection
+	17, // 65: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
+	19, // 66: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
+	20, // 67: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
+	22, // 68: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
+	24, // 69: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
+	26, // 70: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
+	28, // 71: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
+	30, // 72: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
+	32, // 73: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:input_type -> nimi.runtime.v1.IssueWorkspaceBindingRequest
+	34, // 74: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:input_type -> nimi.runtime.v1.RevokeWorkspaceBindingRequest
+	37, // 75: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionStatus:input_type -> nimi.runtime.v1.GetLocalAppPermissionStatusRequest
+	39, // 76: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppPermission:input_type -> nimi.runtime.v1.RequestLocalAppPermissionRequest
+	18, // 77: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
+	16, // 78: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
+	21, // 79: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
+	23, // 80: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
+	25, // 81: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
+	27, // 82: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
+	29, // 83: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
+	31, // 84: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
+	33, // 85: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:output_type -> nimi.runtime.v1.IssueWorkspaceBindingResponse
+	35, // 86: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:output_type -> nimi.runtime.v1.RevokeWorkspaceBindingResponse
+	38, // 87: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionStatus:output_type -> nimi.runtime.v1.GetLocalAppPermissionStatusResponse
+	40, // 88: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppPermission:output_type -> nimi.runtime.v1.RequestLocalAppPermissionResponse
+	77, // [77:89] is the sub-list for method output_type
+	65, // [65:77] is the sub-list for method input_type
+	65, // [65:65] is the sub-list for extension type_name
+	65, // [65:65] is the sub-list for extension extendee
+	0,  // [0:65] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_account_proto_init() }
@@ -4244,8 +3598,8 @@ func file_runtime_v1_account_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_account_proto_rawDesc), len(file_runtime_v1_account_proto_rawDesc)),
-			NumEnums:      13,
-			NumMessages:   36,
+			NumEnums:      11,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

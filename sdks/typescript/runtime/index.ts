@@ -171,7 +171,6 @@ export * from './runtime-agent-message-action';
 export * from './runtime-agent-turn-runner';
 export * from './runtime-agent-turns';
 export * from './runtime-agent-protected';
-export * from './runtime-agent-scoped-binding';
 export * from './runtime-agent-memory';
 export * from './runtime-agent-memory-export';
 export * from './runtime-agent-memory-observatory';

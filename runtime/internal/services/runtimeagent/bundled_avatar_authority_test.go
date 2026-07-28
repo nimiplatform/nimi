@@ -179,7 +179,7 @@ func TestBundledAvatarIdentityBindsToProtectedPrincipalAccount(t *testing.T) {
 	}
 }
 
-func TestBundledAvatarIdentityRejectsScopedBindingAndInvalidatedPrincipal(t *testing.T) {
+func TestBundledAvatarIdentityRejectsInvalidatedPrincipal(t *testing.T) {
 	t.Parallel()
 	svc := &Service{}
 	invalidated := make(chan struct{})
@@ -187,16 +187,11 @@ func TestBundledAvatarIdentityRejectsScopedBindingAndInvalidatedPrincipal(t *tes
 	requestContext := &runtimev1.AgentRequestContext{
 		AppId: bundledavatar.AppID, SubjectUserId: "account-current", OwnerUserId: "account-current",
 		RuntimeSourceRef: "runtime-source", LocalAgentRef: "local-agent:runtime-current",
-		ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{},
 	}
 	identity, err := localAgentIdentityFromContext(requestContext)
 	if err != nil {
 		t.Fatalf("identity: %v", err)
 	}
-	if err := svc.authorizeBundledAvatarIdentity(callContext, requestContext, identity, "runtime.agent.turn.read"); status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("bundled Avatar scoped binding must be rejected, got %v", err)
-	}
-
 	close(invalidated)
 	if err := svc.revalidateBundledAvatarIdentity(callContext, identity); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("generation invalidation must revoke the active identity, got %v", err)

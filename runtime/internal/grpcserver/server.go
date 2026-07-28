@@ -613,7 +613,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			agentSvc.SetRealmSourceMaterializationIssuer(materializationIssuer)
 		}
 	}
-	agentSvc.SetScopedBindingValidator(accountSvc)
 	agentSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	agentSvc.SetAuditStore(auditStore)
 	// K-AGCORE-146: Runtime Agent AI Config readiness recomputes on provider health
@@ -754,7 +753,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
 	appOptions := []appservice.Option{
 		appservice.WithSessionValidator(authSvc),
-		appservice.WithScopedBindingValidator(accountSvc),
 		appservice.WithLocalAppConversationScopeValidator(agentSvc),
 		appservice.WithLocalAppOperationAuthorizer(accountSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),

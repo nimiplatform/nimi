@@ -54,9 +54,7 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
 		"/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
 		"/nimi.runtime.v1.RuntimeAccountService/Logout",
-		"/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
-		"/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
-		"/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding":
+		"/nimi.runtime.v1.RuntimeAccountService/SwitchAccount":
 		return protectedlocal.RoleDesktopAccountHost, true
 	case "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",

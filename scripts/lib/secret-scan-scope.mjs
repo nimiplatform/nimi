@@ -18,9 +18,9 @@ export const generatedSecretScanExcludes = [
     driftGate: 'pnpm --filter @nimiplatform/kit test -- native-oauth-result-page.test.ts',
   },
   {
-    label: 'Platform app catalog projections',
-    pattern: /^(?:kit\/shell\/capabilities\/src\/platform-projection\.ts|kit\/shell\/tauri\/src\/platform_catalog\/nimi_app_registry\.rs|sdks\/typescript\/core\/app\/platform-catalog\.generated\.ts)$/u,
-    source: 'config/platform-nimi-app-{registry,release-descriptors}.yaml',
+    label: 'Platform AI profile catalog projection',
+    pattern: /^sdks\/typescript\/core\/app\/ai-profile-factory\.generated\.ts$/u,
+    source: 'config/platform-ai-profile-factory-catalog.yaml',
     driftGate: 'pnpm check:platform-catalog-drift',
   },
 ];

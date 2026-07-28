@@ -195,8 +195,8 @@ func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionIsPrivate(t *testing.T)
 		if status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("%s: expected PermissionDenied, got %v", name, err)
 		}
-		if got := status.Convert(err).Message(); got != "runtime memory embedding lifecycle is runtime-private" {
-			t.Fatalf("%s: deny reason mismatch: %q", name, got)
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN {
+			t.Fatalf("%s: deny reason = %v, present=%v", name, reason, ok)
 		}
 	}
 

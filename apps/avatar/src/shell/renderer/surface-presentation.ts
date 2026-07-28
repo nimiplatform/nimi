@@ -76,13 +76,16 @@ function formatRuntimeBindingReason(reason: string): {
       recovery: 'Re-authenticate from the desktop account flow, then relaunch this surface.',
     };
   }
-  if (lowered.includes('runtime_scoped_binding')
-    || lowered.includes('app_grant_invalid')
-    || lowered.includes('attach_active_scoped_runtime_binding')
-    || lowered.includes('check_runtime_scoped_binding_admission')) {
+  if (lowered.includes('local_app_session')
+    || lowered.includes('local_app_operation')
+    || lowered.includes('local_app_permission')
+    || lowered.includes('local_app_launch_lease')
+    || lowered.includes('local_app_process_mismatch')
+    || lowered.includes('protected_local')
+    || lowered.includes('protected_origin_role_mismatch')) {
     return {
-      label: 'Runtime rejected the avatar scoped binding',
-      recovery: 'Confirm Runtime authorization for this avatar app, then relaunch this surface.',
+      label: 'Runtime rejected the current Avatar authorization',
+      recovery: 'Restore the current session, launch lease, and operation permission in Desktop, then relaunch this surface.',
     };
   }
   if (lowered.includes('conversation_context')) {
@@ -133,10 +136,11 @@ function classifyBootstrapError(error: string): {
     };
   }
   if (
-    lowered.includes('app_grant_invalid')
-    || lowered.includes('attach_active_scoped_runtime_binding')
-    || lowered.includes('principal_unauthorized')
+    lowered.includes('principal_unauthorized')
     || lowered.includes('check_request_and_app_auth')
+    || lowered.includes('local_app_')
+    || lowered.includes('protected_local')
+    || lowered.includes('protected_origin_role_mismatch')
   ) {
     return {
       badge: 'Runtime unavailable',
