@@ -367,7 +367,7 @@ function reducer(state: SimState, action: Action): SimState {
           return reducer(state, { type: 'notice', moduleId: step.moduleId, text: step.text });
         case 'zhiyu-card': {
           const card: ZhiyuCard =
-            step.card.kind === 'agent-carry'
+            step.card.kind === 'local-agent-projection'
               ? { ...step.card, title: SCENARIO.carrySummary.title, body: SCENARIO.carrySummary.body }
               : step.card;
           if (state.zhiyuCards.some((c) => c.id === card.id)) return state;

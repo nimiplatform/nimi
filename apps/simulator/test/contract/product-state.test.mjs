@@ -53,7 +53,7 @@ test('scenario seeds the shell product partition with grants, ledger, and idle f
   assert.deepEqual(product.grants.map((grant) => [grant.id, grant.status]), [
     ['g-world-write', 'active'],
     ['g-presence-read', 'active'],
-    ['g-context-carry', 'revoked'],
+    ['g-local-agent-context-projection', 'revoked'],
   ]);
   assert.equal(product.ledger.length, 6);
   assert.equal(product.ledger.filter((entry) => entry.history === true).length, 3);
@@ -65,11 +65,11 @@ test('scenario seeds the shell product partition with grants, ledger, and idle f
 test('grant toggle flips status and appends a deterministic delegation ledger entry', async () => {
   const engine = createEngine();
   const before = engine.getCommitted().revision;
-  const result = await dispatch(engine, CMD.grantToggle, { grantId: 'g-context-carry' });
+  const result = await dispatch(engine, CMD.grantToggle, { grantId: 'g-local-agent-context-projection' });
   assert.equal(result.ok, true);
-  assert.deepEqual(result.value, { grantId: 'g-context-carry', status: 'active' });
+  assert.deepEqual(result.value, { grantId: 'g-local-agent-context-projection', status: 'active' });
   const product = productOf(engine);
-  assert.equal(product.grants.find((grant) => grant.id === 'g-context-carry').status, 'active');
+  assert.equal(product.grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'active');
   assert.equal(product.ledger.length, 7);
   const entry = product.ledger.at(-1);
   assert.equal(entry.id, '1:op:013');
@@ -77,12 +77,12 @@ test('grant toggle flips status and appends a deterministic delegation ledger en
   assert.equal(entry.title, '重新授权 · context 携带');
   assert.equal(entry.result, 'committed');
   assert.equal(entry.at, 'T+00:13');
-  assert.deepEqual(entry.actors, ['模拟居民', 'Nimi (基座 agent)']);
+  assert.deepEqual(entry.actors, ['模拟居民', 'Nimi (LocalAgent)']);
   assert.equal(engine.getCommitted().revision, before + 1);
 
-  const back = await dispatch(engine, CMD.grantToggle, { grantId: 'g-context-carry' });
+  const back = await dispatch(engine, CMD.grantToggle, { grantId: 'g-local-agent-context-projection' });
   assert.equal(back.ok, true);
-  assert.deepEqual(back.value, { grantId: 'g-context-carry', status: 'revoked' });
+  assert.deepEqual(back.value, { grantId: 'g-local-agent-context-projection', status: 'revoked' });
   const reverted = productOf(engine).ledger.at(-1);
   assert.equal(reverted.title, '撤销授权 · context 携带');
   assert.equal(reverted.result, 'info');
@@ -141,13 +141,13 @@ test('revoked non-consentable grant blocks the flow with a typed unsupported led
   assert.equal(stepped.error.code, 'SIMULATOR_INVALID_LIFECYCLE');
 });
 
-test('agent.carry flow gates on the revoked grant through consent, and accept flips the grant', async () => {
+test('local-agent.project flow gates on the revoked grant through consent, and accept flips the grant', async () => {
   const engine = createEngine();
-  const begun = await dispatch(engine, CMD.flowBegin, { flowId: 'agent.carry' });
+  const begun = await dispatch(engine, CMD.flowBegin, { flowId: 'local-agent.project' });
   assert.equal(begun.ok, true);
-  assert.deepEqual(begun.value, { flowId: 'agent.carry', status: 'awaiting-consent' });
+  assert.deepEqual(begun.value, { flowId: 'local-agent.project', status: 'awaiting-consent' });
   let product = productOf(engine);
-  assert.deepEqual(product.consent, { flowId: 'agent.carry', grantId: 'g-context-carry', origin: 'desktop' });
+  assert.deepEqual(product.consent, { flowId: 'local-agent.project', grantId: 'g-local-agent-context-projection', origin: 'desktop' });
   assert.equal(product.flow.status, 'awaiting-consent');
 
   const concurrent = await dispatch(engine, CMD.flowBegin, { flowId: 'world.pin' });
@@ -156,24 +156,24 @@ test('agent.carry flow gates on the revoked grant through consent, and accept fl
 
   const resolved = await dispatch(engine, CMD.consentResolve, { accept: true });
   assert.equal(resolved.ok, true);
-  assert.deepEqual(resolved.value, { accepted: true, flowId: 'agent.carry', status: 'running' });
+  assert.deepEqual(resolved.value, { accepted: true, flowId: 'local-agent.project', status: 'running' });
   product = productOf(engine);
   assert.equal(product.consent, null);
-  assert.equal(product.grants.find((grant) => grant.id === 'g-context-carry').status, 'active');
+  assert.equal(product.grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'active');
   assert.equal(product.flow.status, 'running');
-  // Step 0 of agent.carry is the request-interaction step: the directive is
+  // Step 0 of local-agent.project is the request-interaction step: the directive is
   // published from engine truth in the initial commit.
   assert.deepEqual(product.flow.currentDirective, {
     name: 'request-interaction',
-    interactionType: 'agent.context.carry',
-    commandType: 'desktop.carry.request',
+    interactionType: 'local-agent.context.project',
+    commandType: 'desktop.context-projection.request',
     moduleId: 'zhiyu',
   });
   const entry = product.ledger.at(-1);
   assert.equal(entry.title, '重新授权 · context 携带');
   assert.equal(entry.result, 'committed');
 
-  const flow = SIMULATOR_PRODUCT_FLOWS['agent.carry'];
+  const flow = SIMULATOR_PRODUCT_FLOWS['local-agent.project'];
   for (let index = 0; index < flow.steps.length; index += 1) {
     assert.equal((await dispatch(engine, CMD.flowStep, {})).ok, true, `step ${index}`);
   }
@@ -185,18 +185,18 @@ test('agent.carry flow gates on the revoked grant through consent, and accept fl
 test('flow.begin publishes the step-0 directive for directive-first flows', async () => {
   const engine = createEngine();
   // Activate the carry grant so begin takes the running path directly.
-  assert.equal((await dispatch(engine, CMD.grantToggle, { grantId: 'g-context-carry' })).ok, true);
-  const begun = await dispatch(engine, CMD.flowBegin, { flowId: 'agent.carry' });
+  assert.equal((await dispatch(engine, CMD.grantToggle, { grantId: 'g-local-agent-context-projection' })).ok, true);
+  const begun = await dispatch(engine, CMD.flowBegin, { flowId: 'local-agent.project' });
   assert.equal(begun.ok, true);
-  assert.deepEqual(begun.value, { flowId: 'agent.carry', status: 'running' });
+  assert.deepEqual(begun.value, { flowId: 'local-agent.project', status: 'running' });
   assert.deepEqual(productOf(engine).flow, {
-    flowId: 'agent.carry',
+    flowId: 'local-agent.project',
     stepIndex: 0,
     status: 'running',
     currentDirective: {
       name: 'request-interaction',
-      interactionType: 'agent.context.carry',
-      commandType: 'desktop.carry.request',
+      interactionType: 'local-agent.context.project',
+      commandType: 'desktop.context-projection.request',
       moduleId: 'zhiyu',
     },
   });
@@ -219,12 +219,12 @@ test('handoff flow publishes its request-interaction directive at step 1 like la
 
 test('consent deny commits a denied ledger entry and no grant flip', async () => {
   const engine = createEngine();
-  assert.equal((await dispatch(engine, CMD.flowBegin, { flowId: 'agent.carry' })).ok, true);
+  assert.equal((await dispatch(engine, CMD.flowBegin, { flowId: 'local-agent.project' })).ok, true);
   const resolved = await dispatch(engine, CMD.consentResolve, { accept: false });
   assert.equal(resolved.ok, true);
-  assert.deepEqual(resolved.value, { accepted: false, flowId: 'agent.carry', status: 'denied' });
+  assert.deepEqual(resolved.value, { accepted: false, flowId: 'local-agent.project', status: 'denied' });
   const product = productOf(engine);
-  assert.equal(product.grants.find((grant) => grant.id === 'g-context-carry').status, 'revoked');
+  assert.equal(product.grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'revoked');
   const entry = product.ledger.at(-1);
   assert.equal(entry.kind, 'delegation');
   assert.equal(entry.result, 'denied');
@@ -236,7 +236,7 @@ test('consent deny commits a denied ledger entry and no grant flip', async () =>
   assert.equal(again.error.code, 'SIMULATOR_INVALID_LIFECYCLE');
 });
 
-test('persona commit and agent transition are declared commands with typed events', async () => {
+test('persona commit and LocalAgent transition are declared commands with typed events', async () => {
   const engine = createEngine();
   const committed = await dispatch(engine, CMD.personaCommit, {
     name: '林澈',
@@ -249,7 +249,7 @@ test('persona commit and agent transition are declared commands with typed event
     id: 'u_7f3a',
     role: '生态居民 · 早期体验者',
   });
-  const transitioned = await dispatch(engine, CMD.agentTransition, {
+  const transitioned = await dispatch(engine, CMD.localAgentTransition, {
     status: 'migrating',
     location: 'desktop',
     carry: '回声谷解谜计划',
@@ -291,21 +291,21 @@ test('product commands fail typed when the scenario does not seed product state'
   const engine = createSimulatorStateEngine({
     scenario: { ...scenarioOptions(), shellState: { readiness: {} } },
   });
-  const result = await dispatch(engine, CMD.grantToggle, { grantId: 'g-context-carry' });
+  const result = await dispatch(engine, CMD.grantToggle, { grantId: 'g-local-agent-context-projection' });
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'SIMULATOR_UNSUPPORTED');
 });
 
 test('scenario reset restores the seeded product state', async () => {
   const engine = createEngine();
-  assert.equal((await dispatch(engine, CMD.grantToggle, { grantId: 'g-context-carry' })).ok, true);
+  assert.equal((await dispatch(engine, CMD.grantToggle, { grantId: 'g-local-agent-context-projection' })).ok, true);
   assert.equal((await dispatch(engine, CMD.flowBegin, { flowId: 'world.pin' })).ok, true);
-  assert.notEqual(productOf(engine).grants.find((grant) => grant.id === 'g-context-carry').status, 'revoked');
+  assert.notEqual(productOf(engine).grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'revoked');
 
   const reset = await engine.acceptCommand('simulator.reset', {}, SCENARIO);
   assert.equal(reset.ok, true);
   const product = productOf(engine);
-  assert.equal(product.grants.find((grant) => grant.id === 'g-context-carry').status, 'revoked');
+  assert.equal(product.grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'revoked');
   assert.equal(product.ledger.length, 6);
   assert.equal(product.opSeq, 12);
   assert.deepEqual(product.flow, { flowId: null, stepIndex: 0, status: 'idle', currentDirective: null });
@@ -315,7 +315,7 @@ test('scenario reset restores the seeded product state', async () => {
 test('product command sequences are deterministic across fresh engines', async () => {
   const run = async () => {
     const engine = createEngine();
-    await dispatch(engine, CMD.grantToggle, { grantId: 'g-context-carry' });
+    await dispatch(engine, CMD.grantToggle, { grantId: 'g-local-agent-context-projection' });
     await dispatch(engine, CMD.flowBegin, { flowId: 'world.pin' });
     for (let index = 0; index < SIMULATOR_PRODUCT_FLOWS['world.pin'].steps.length; index += 1) {
       await dispatch(engine, CMD.flowStep, {});

@@ -24,7 +24,7 @@ func validateProductionCaller(caller *runtimev1.AccountCaller, tokenRequest bool
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 		}
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR:
+	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST:
 		if tokenRequest {
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
 		}
@@ -62,7 +62,7 @@ func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *run
 		if reason, ok := s.validateDesktopAccountHost(ctx, caller); !ok {
 			return reason, false
 		}
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR:
+	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST:
 		if !envelope.HasValidatedProtectedCapability(ctx, bundledavatar.AppID, "account.session.read") &&
 			!envelope.HasValidatedProtectedCapability(ctx, bundledavatar.AppID, "account.realm.read") {
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH, false
@@ -163,7 +163,7 @@ func (s *Service) registryHasCapability(appID string, capability string) bool {
 }
 
 func (s *Service) validateScopedBindingCaller(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
-	if caller.GetMode() == runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR {
+	if caller.GetMode() == runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST {
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
 	}
 	switch caller.GetMode() {

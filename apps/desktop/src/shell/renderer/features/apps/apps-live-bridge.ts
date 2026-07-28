@@ -1,45 +1,20 @@
-// Desktop Apps live bridge.
+// Current Desktop Apps bridge.
 //
-// This is the Apps-surface-only registry bridge. It intentionally avoids the
-// broader Nimi Home bridge, because Apps only needs the SDK NimiAppClient over
-// owner projections exposed through the SDK and protected Runtime carrier.
+// Public catalog distribution and ordinary-user lifecycle are deferred.
+// The current Apps surface consumes only Runtime-mediated local-development
+// authorizations through the standard protected shell bridge.
 
-import { NimiAppClient, createNimiAppRegistryTransport } from '@nimiplatform/sdk/app';
-import { getAppsBridgeProjection } from '../../bridge/runtime-bridge/apps-projection';
-import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
+import {
+  listLocalDevelopmentAuthorizations,
+  type LocalDevelopmentAuthorization,
+} from '../local-development/local-development-bridge.js';
 
 export interface DesktopAppsLiveBridge {
-  readonly appClient: NimiAppClient;
+  listAuthorizations(): Promise<readonly LocalDevelopmentAuthorization[]>;
 }
 
-export function createDesktopAppsLiveBridge(sdk: DesktopRendererSdkPort): DesktopAppsLiveBridge {
-  // Fetch once per bridge instance so registry rows and release descriptors see
-  // the same materialized projection snapshot. Immutable package readiness is
-  // the selector-free global 0K typed-unavailable projection.
-  let projectionPromise: ReturnType<typeof getAppsBridgeProjection> | null = null;
-  const loadProjection = (): ReturnType<typeof getAppsBridgeProjection> => {
-    if (!projectionPromise) {
-      projectionPromise = getAppsBridgeProjection();
-    }
-    return projectionPromise;
-  };
-
+export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
   return {
-    appClient: new NimiAppClient(createNimiAppRegistryTransport({
-      loadRows: async () => (await loadProjection()).registryRows,
-      loadReleaseDescriptors: async () => (await loadProjection()).releaseDescriptors,
-      loadAccountInventory: async () => sdk.appLifecycle().accountInventory({
-        timeoutMs: 20_000,
-        metadata: {
-          surfaceId: 'desktop.apps',
-        },
-      }),
-      loadPackageReadiness: async () => sdk.appLifecycle().packageReadiness({
-        timeoutMs: 20_000,
-        metadata: {
-          surfaceId: 'desktop.apps',
-        },
-      }),
-    })),
+    listAuthorizations: listLocalDevelopmentAuthorizations,
   };
 }

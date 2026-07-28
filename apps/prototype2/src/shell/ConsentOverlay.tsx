@@ -39,7 +39,7 @@ export function ConsentOverlay() {
           <div className="consent-party">
             <span className="t-caption">执行方</span>
             <b>Nimi</b>
-            <span className="t-mono">基座 agent</span>
+            <span className="t-mono">Runtime LocalAgent</span>
           </div>
           <span className="consent-arrow">→</span>
           <div className="consent-party">

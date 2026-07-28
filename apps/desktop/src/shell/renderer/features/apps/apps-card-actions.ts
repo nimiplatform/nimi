@@ -1,12 +1,9 @@
 // Desktop Apps action projection.
 //
-// The 0K Apps surface is read-only. Positive package lifecycle and launch are
-// not renderer actions. The only card actions are details and the shell-owned
-// account sign-in route.
+// The current local-development Apps surface is read-only. Launch remains with
+// the supervised App Tools flow, and public package lifecycle is deferred.
 
-import type { NimiAppInventoryEntry } from '@nimiplatform/sdk/app';
-
-export type AppCardActionId = 'sign_in' | 'details';
+export type AppCardActionId = 'details';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;
@@ -18,11 +15,7 @@ export interface AppCardActionPlan {
 }
 
 const DETAILS: AppCardAction = { id: 'details' };
-const SIGN_IN: AppCardAction = { id: 'sign_in' };
 
-export function actionPlanForInventoryEntry(entry: NimiAppInventoryEntry): AppCardActionPlan {
-  if (entry.openReadiness === 'sign-in-required') {
-    return { primary: SIGN_IN, secondary: [DETAILS] };
-  }
+export function actionPlanForLocalDevelopmentEntry(): AppCardActionPlan {
   return { primary: null, secondary: [DETAILS] };
 }

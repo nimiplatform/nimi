@@ -117,7 +117,7 @@ function checkRuntimePermissionMatrix() {
   const desktop = matrixCaller(document, 'desktop_account_and_local_app_control');
   const firstParty = matrixCaller(document, 'local_first_party_app');
   const localApp = matrixCaller(document, 'local_app');
-  const avatar = matrixCaller(document, 'desktop_supervised_bundled_avatar');
+  const avatar = matrixCaller(document, 'independent_bundled_avatar');
   assertDecision(avatar, 'GetAccountSessionStatus', 'allow_when');
   assertDecision(avatar, 'SubscribeAccountSessionEvents', 'allow_when');
   assertDecision(avatar, 'InvokeRealmUnary', 'allow_when');
@@ -202,7 +202,7 @@ function checkRuntimeBrokerPolicy() {
       ? 'protected_bundled_avatar_source_readiness'
       : 'protected_desktop_source_readiness';
     const expectedModes = bundledAvatarOperation
-      ? ['ACCOUNT_CALLER_MODE_DESKTOP_SHELL', 'ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR']
+      ? ['ACCOUNT_CALLER_MODE_DESKTOP_SHELL', 'ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST']
       : ['ACCOUNT_CALLER_MODE_DESKTOP_SHELL'];
     if (operation.authorization_profile !== expectedProfile) fail(`${operation.operation_id} has an unadmitted authorization profile`);
     if (operation.allowed_runtime_caller_modes?.length !== expectedModes.length

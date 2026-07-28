@@ -33,7 +33,7 @@ export function Cradle() {
   const { panePos, paneZs, paneZCounter, movePane, focusPane, setAppsPageOpen, setReceiptGrantId } = useUi();
   const [agentOpen, setAgentOpen] = useState(false);
 
-  const visibleGrants = grants.filter((g) => g.id !== 'g-context-carry');
+  const visibleGrants = grants.filter((g) => g.id !== 'g-local-agent-context-projection');
   const topZ = Math.max(PANE_IDS.length, paneZCounter, ...Object.values(paneZs));
 
   const paneProps = (id: PaneId, baseZ: number, drift: number, enter: number, elevated = false) => {

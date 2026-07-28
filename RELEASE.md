@@ -24,7 +24,7 @@ requirement.
 | app-tools | npm | `@nimiplatform/app-tools` |
 | nimi-shell-tauri | crates.io | `nimi-shell-tauri` |
 | proto | buf.build (`nimiplatform`) | Proto schema |
-| desktop | GitHub Releases | macOS / Windows / Linux installers |
+| desktop | GitHub Releases | Windows installer; macOS follows its deferred admission track |
 
 ## Release Steps
 

@@ -151,7 +151,6 @@
     "check:sdk-version-matrix": "node scripts/check-sdk-version-matrix.mjs",
     "check:sdks-generators": "node sdks/generators/generate.mjs --check",
     "check:sdks-conformance-typed-core": "node sdks/conformance/run.mjs --language all --profile typed-core",
-    "check:desktop-group-chat-contract": "pnpm --filter @nimiplatform/desktop exec tsx --test test/chat-group-first-run-flow.test.ts test/chat-group-source-dispatcher.test.ts test/polling-realtime-coordination.test.ts test/chat-unified-shell-a2.test.ts test/chat-group-rendering.test.ts",
     "check:sdk-vnext-runtime-facade": "node scripts/check-sdk-vnext-runtime-facade.mjs",
     "check:sdk-vnext-runtime-consumer-smoke": "node scripts/check-sdk-vnext-runtime-consumer-smoke.mjs",
     "check:sdk-vnext-public-surface-smoke": "node scripts/check-sdk-vnext-public-surface-smoke.mjs",

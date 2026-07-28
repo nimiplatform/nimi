@@ -29,7 +29,7 @@ const requiredFields = [
 
 const invokeRealmUnaryMethodID = '/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary';
 const desktopCallerMode = 'ACCOUNT_CALLER_MODE_DESKTOP_SHELL';
-const bundledAvatarCallerMode = 'ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR';
+const bundledAvatarCallerMode = 'ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST';
 const desktopSourceReadinessAuthorizationProfile = 'protected_desktop_source_readiness';
 const bundledAvatarSourceReadinessAuthorizationProfile = 'protected_bundled_avatar_source_readiness';
 const bundledAvatarRealmOperationID = 'WorldCoreController_listPersonaCharacters';

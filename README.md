@@ -53,11 +53,11 @@ memory, and the AI development methodology that ships with all of them.
 | Product | What it owns |
 | --- | --- |
 | **Platform** | The open world model, the six protocol primitives, the cross-domain authority rules. |
-| **Runtime** | AI execution: providers, model catalogs, workflows, streaming, multimodal output, local routing, delegated capabilities, audit, supported agent chat, and narrow follow-up-turn hooks. |
+| **Runtime** | AI execution: providers, model catalogs, workflows, streaming, multimodal output, local routing, delegated capabilities, audit, Runtime Agent Service chat, and narrow follow-up-turn hooks. |
 | **SDK** | The TypeScript app boundary into Runtime, Realm, world semantics, AI providers, and governed scopes, without importing private internals. |
 | **Desktop and Web** | First-party user surfaces. Desktop is the native shell for local runtime interaction; Web is the constrained browser projection. |
 | **Realm** | Semantic truth — world state, world history, chat, social and economy, asset binding, transit, creator economy. |
-| **Avatar** | Embodied agent presentation as its own first-class authority surface. |
+| **Avatar** | Embodied LocalAgent presentation as its own first-class authority surface. |
 | **Cognition** | Standalone memory, knowledge, prompt serving, references, and completion. |
 | **Nimi Coding** | The AI-native development methodology and the host-agnostic npm package that delivers it. |
 
@@ -71,7 +71,7 @@ than to mix together.
 ```
 +---------------------------------------------------------------+
 |  Platform Model                                               |
-|    World, Agent, six protocol primitives, authority rules     |
+|    World, Character / LocalAgent, protocol primitives, rules  |
 +---------------------------------------------------------------+
                               |
                               v

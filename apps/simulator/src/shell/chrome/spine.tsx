@@ -9,18 +9,18 @@ const AGENT_STATUS: Record<string, string> = {
   acting: '行动中',
 };
 
-/** The spine — bottom floating dock. Base-agent chip, a simulated world
+/** The spine — bottom floating dock. LocalAgent projection chip, a simulated world
  * marker, atmosphere controls, and the interaction ledger toggle. */
 export function Spine() {
   const { navigate } = useShellActions();
   const { phase, effectivePhase, cyclePhase, skyPanelOpen, setSkyPanelOpen, showToast } = useUi();
-  const { agent, agentPersona, ledgerOpen, toggleLedger } = useProductPresentation();
+  const { agent, localAgentPresentation, ledgerOpen, toggleLedger } = useProductPresentation();
   const phaseTitle =
     phase === 'auto'
       ? `自动 · Auto（当前 ${PHASE_LABEL[effectivePhase ?? autoPhase()]}）`
       : PHASE_LABEL[phase];
   const where = agent.location === 'cradle' ? '@基座' : `@${agent.location}`;
-  const agentTitle = `${agentPersona.name} · ${AGENT_STATUS[agent.status] ?? agent.status} ${where}${agent.carry ? ` · 携带 ${agent.carry}` : ''}`;
+  const agentTitle = `${localAgentPresentation.name} · ${AGENT_STATUS[agent.status] ?? agent.status} ${where}${agent.carry ? ` · 投影上下文 ${agent.carry}` : ''}`;
 
   return (
     <footer className="spine pane" data-nimi-material="glass-chrome" data-nimi-tone="panel">
@@ -90,7 +90,7 @@ export function Spine() {
       {agent.carry ? (
         <span className="spine-right">
           <span className="chip" data-tone="agent">
-            携带 · {agent.carry}
+            投影上下文 · {agent.carry}
           </span>
         </span>
       ) : null}

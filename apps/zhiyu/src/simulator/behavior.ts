@@ -189,7 +189,7 @@ export const zhiyuSimulatorBehavior = Object.freeze({
         events: [],
       };
     }
-    if (envelope.type === 'zhiyu.carry.accept') {
+    if (envelope.type === 'zhiyu.context-projection.accept') {
       const meta = interactionEnvelope(payload, 'CARRY');
       return {
         state: {

@@ -249,6 +249,8 @@ jobs:
         run: pnpm check:reason-code-constants
       - name: gate.runtime.bridge-method-projection
         run: pnpm check:runtime-bridge-method-drift
+      - name: gate.runtime.realm-broker-policy
+        run: pnpm check:runtime-broker-operation-policy
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
       - name: Check Kit contracts

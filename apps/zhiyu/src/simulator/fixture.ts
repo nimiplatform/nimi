@@ -70,7 +70,7 @@ export const simulatorConformanceFixture = {
           committedAt: { kind: 'integer', minimum: 0 },
         },
       },
-      'zhiyu.carry.accept': {
+      'zhiyu.context-projection.accept': {
         kind: 'object',
         properties: {
           protocolRevision: { kind: 'integer', minimum: 1, maximum: 1 },

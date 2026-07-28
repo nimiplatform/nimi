@@ -1,6 +1,6 @@
 /**
  * Declared cross-App product interactions (nimi.simulator.interaction/v1):
- * persona share, surface handoff, and agent-mediated context carry. Each
+ * persona share, surface handoff, and Runtime-mediated LocalAgent context projection. Each
  * reduce commits an ecosystem record, a typed target payload, and — through
  * the declared `product` effects — atomic Shell-partition truth (persona,
  * ledger, target-surface routes). All copy carries 模拟 honesty labeling.
@@ -10,7 +10,7 @@
 
 import type { JsonValue } from '../state-engine/json-value.ts';
 import type { SimulatorInteractionDeclaration } from '../state-engine/interactions.ts';
-import { SIMULATOR_PRODUCT_CARRY_ROUTE } from '../state-engine/product-flows.ts';
+import { SIMULATOR_PRODUCT_LOCAL_AGENT_CONTEXT_ROUTE } from '../state-engine/product-flows.ts';
 
 function record(value: JsonValue): Readonly<Record<string, JsonValue>> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -177,10 +177,10 @@ const handoffInteraction: SimulatorInteractionDeclaration = {
 };
 
 const carryInteraction: SimulatorInteractionDeclaration = {
-  type: 'agent.context.carry',
+  type: 'local-agent.context.project',
   sourceModuleId: 'desktop',
   targets: Object.freeze([
-    Object.freeze({ moduleId: 'zhiyu', commandType: 'zhiyu.carry.accept' }),
+    Object.freeze({ moduleId: 'zhiyu', commandType: 'zhiyu.context-projection.accept' }),
   ]),
   payloadSchema: {
     kind: 'object',
@@ -210,13 +210,13 @@ const carryInteraction: SimulatorInteractionDeclaration = {
       product: Object.freeze({
         routes: Object.freeze([Object.freeze({
           moduleId: target.moduleId,
-          route: SIMULATOR_PRODUCT_CARRY_ROUTE as unknown as JsonValue,
+          route: SIMULATOR_PRODUCT_LOCAL_AGENT_CONTEXT_ROUTE as unknown as JsonValue,
         })]),
         ledger: Object.freeze([
           Object.freeze({
             kind: 'delegation' as const,
             title: '委托 · 携带会话摘要',
-            detail: '模拟委托：你委托基座 agent Nimi 将本次 Desktop 会话摘要带往 Zhiyu。',
+            detail: '模拟委托：你授权 Runtime Agent Service 将 Nimi 的本次 Desktop 会话摘要投影到 Zhiyu。',
             actors: Object.freeze(['模拟居民', 'Nimi']),
             result: 'committed' as const,
           }),

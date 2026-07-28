@@ -117,7 +117,7 @@ func TestRevokeScopedAppBindingRejectsUnauthorizedCallersWithoutMutation(t *test
 				AppId:         "nimi.avatar",
 				AppInstanceId: "avatar-1",
 				DeviceId:      "device-1",
-				Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR,
+				Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST,
 			},
 			wantReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY,
 			wantCommon: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
@@ -271,7 +271,7 @@ func TestProductionSubstrateIsInertForFirstPartyDesktopSDKAvatar(t *testing.T) {
 	for name, caller := range map[string]*runtimev1.AccountCaller{
 		"desktop": firstPartyCaller(),
 		"sdk":     {AppId: "sdk.local", AppInstanceId: "sdk-1", Mode: runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP},
-		"avatar":  {AppId: "avatar", AppInstanceId: "avatar-1", Mode: runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR},
+		"avatar":  {AppId: "avatar", AppInstanceId: "avatar-1", Mode: runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST},
 	} {
 		t.Run(name, func(t *testing.T) {
 			statusResp, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: caller})

@@ -281,7 +281,7 @@ function reduceProductRequest(
       },
     },
     events: [{
-      type: kind === 'handoff' ? 'desktop.handoff.requested' : 'desktop.carry.requested',
+      type: kind === 'handoff' ? 'desktop.handoff.requested' : 'desktop.context-projection.requested',
       payload: eventPayload,
     }],
   };
@@ -556,7 +556,7 @@ export const desktopSimulatorBehavior = Object.freeze({
     if (envelope.type === 'desktop.handoff.request') {
       return reduceProductRequest(current, record(envelope.payload, 'HANDOFF_PAYLOAD'), context, 'handoff');
     }
-    if (envelope.type === 'desktop.carry.request') {
+    if (envelope.type === 'desktop.context-projection.request') {
       return reduceProductRequest(current, record(envelope.payload, 'CARRY_PAYLOAD'), context, 'carry');
     }
     throw new Error(`DESKTOP_SIMULATOR_COMMAND_UNDECLARED:${envelope.type}`);

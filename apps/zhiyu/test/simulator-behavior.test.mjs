@@ -115,7 +115,7 @@ test('zhiyu carry.accept stores the simulated carry summary', () => {
   const reduced = zhiyuSimulatorBehavior.reduce(
     initial,
     {
-      type: 'zhiyu.carry.accept',
+      type: 'zhiyu.context-projection.accept',
       payload: {
         protocolRevision: 1,
         ecosystemRevision: 11,

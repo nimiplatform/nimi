@@ -42,7 +42,7 @@ const AGENT_STATUS: Record<string, string> = {
   acting: '行动中',
 };
 
-/** Mock content for the agent HUD panel — presentation seeds, not memory. */
+/** Mock content for the LocalAgent HUD panel — presentation seeds, not memory. */
 const AGENT_FEELING = '平静 · 专注';
 const AGENT_FEED = [
   { text: '整理了 2 条生态足迹', done: true, at: null },
@@ -50,13 +50,13 @@ const AGENT_FEED = [
   { text: '为你恢复上次对话上下文', done: false, at: '14:27' },
 ];
 const AGENT_LAST_CHAT = { text: '回声谷 · 低语回廊，停在第三段回声', at: '昨天 22:41' };
-const AGENT_RECENT = '你在优化世界入口与 Agent 呈现方式';
+const AGENT_RECENT = '你在优化世界入口与 LocalAgent 投影方式';
 
-/** Base-agent presence chip + expandable panel (cradle agent pane content).
- * 继续上次对话 runs the consentable agent.carry demo flow. */
+/** LocalAgent projection chip + expandable panel (cradle pane content).
+ * 继续上次对话 runs the consentable context-projection demo flow. */
 export function AgentHud({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
   const { setAppsPageOpen } = useUi();
-  const { agent, agentPersona, runFlow, ledgerOpen, toggleLedger } = useProductPresentation();
+  const { agent, localAgentPresentation, runFlow, ledgerOpen, toggleLedger } = useProductPresentation();
   const [hover, setHover] = useState(false);
   const [pinned, setPinned] = useState(false);
   const open = hover || pinned;
@@ -84,31 +84,31 @@ export function AgentHud({ onOpenChange }: { onOpenChange?: (open: boolean) => v
         className="agent-hud-chip"
         aria-expanded={open}
         aria-controls="agent-hud-panel"
-        title={`${agentPersona.name} · ${agentPersona.mode}`}
+        title={`${localAgentPresentation.name} · ${localAgentPresentation.mode}`}
         onClick={() => setOpen(!pinned)}
       >
         <span className="agent-hud-sparkle" aria-hidden />
-        <b>{agentPersona.name}</b>
+        <b>{localAgentPresentation.name}</b>
         <span className="agent-hud-chip-status">
-          · {agentPersona.mode}
+          · {localAgentPresentation.mode}
         </span>
       </button>
 
       {open ? (
-        <div className="agent-hud-panel" id="agent-hud-panel" role="dialog" aria-label="Nimi agent 面板">
+        <div className="agent-hud-panel" id="agent-hud-panel" role="dialog" aria-label="Nimi LocalAgent 面板">
           <header className="agent-hud-head">
             <span className="agent-hud-dot" data-status={agent.status} aria-hidden />
             <span className="agent-hud-head-main">
               <b>
-                {agentPersona.name} · {AGENT_STATUS[agent.status] ?? agent.status}
+                {localAgentPresentation.name} · {AGENT_STATUS[agent.status] ?? agent.status}
               </b>
-              <span>{agentPersona.kind}</span>
+              <span>{localAgentPresentation.kind}</span>
             </span>
             <button
               type="button"
               className="agent-hud-gear"
-              title="管理应用与 agent"
-              aria-label="管理应用与 agent"
+              title="管理应用与 LocalAgent"
+              aria-label="管理应用与 LocalAgent"
               onClick={() => setAppsPageOpen(true)}
             >
               <SettingsIcon size={14} />
@@ -159,7 +159,7 @@ export function AgentHud({ onOpenChange }: { onOpenChange?: (open: boolean) => v
               className="agent-hud-btn primary"
               onClick={() => {
                 setOpen(false);
-                runFlow('agent.carry');
+                runFlow('local-agent.project');
               }}
             >
               <RotateCcwIcon size={13} /> 继续上次对话

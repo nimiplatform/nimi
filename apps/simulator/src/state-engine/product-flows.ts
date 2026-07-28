@@ -43,8 +43,8 @@ export type SimulatorProductFlowStep =
     }
   | {
       readonly type: 'request';
-      readonly interactionType: 'handoff.surface.commit' | 'agent.context.carry';
-      readonly commandType: 'desktop.handoff.request' | 'desktop.carry.request';
+      readonly interactionType: 'handoff.surface.commit' | 'local-agent.context.project';
+      readonly commandType: 'desktop.handoff.request' | 'desktop.context-projection.request';
       readonly moduleId: string;
     };
 
@@ -61,7 +61,7 @@ export interface SimulatorProductFlowDefinition {
 export const SIMULATOR_PRODUCT_GRANT_IDS = [
   'g-world-write',
   'g-presence-read',
-  'g-context-carry',
+  'g-local-agent-context-projection',
 ] as const;
 
 export const SIMULATOR_PRODUCT_FLOWS: Readonly<Record<string, SimulatorProductFlowDefinition>> = Object.freeze({
@@ -107,18 +107,18 @@ export const SIMULATOR_PRODUCT_FLOWS: Readonly<Record<string, SimulatorProductFl
       Object.freeze({ type: 'agent', status: 'observing', location: 'zhiyu' } as const),
     ]),
   }),
-  'agent.carry': Object.freeze({
-    id: 'agent.carry',
+  'local-agent.project': Object.freeze({
+    id: 'local-agent.project',
     title: 'context 携带 · Nimi → 织语',
-    requiredGrant: 'g-context-carry',
+    requiredGrant: 'g-local-agent-context-projection',
     consentable: true,
     origin: 'desktop',
     originLabel: 'Desktop',
     steps: Object.freeze([
       Object.freeze({
         type: 'request',
-        interactionType: 'agent.context.carry',
-        commandType: 'desktop.carry.request',
+        interactionType: 'local-agent.context.project',
+        commandType: 'desktop.context-projection.request',
         moduleId: 'zhiyu',
       } as const),
       Object.freeze({ type: 'agent', status: 'migrating', location: 'desktop', carry: '回声谷解谜计划' } as const),
@@ -136,7 +136,7 @@ export const SIMULATOR_PRODUCT_FLOWS: Readonly<Record<string, SimulatorProductFl
 export const SIMULATOR_PRODUCT_FLOW_IDS = Object.freeze(Object.keys(SIMULATOR_PRODUCT_FLOWS));
 
 /** Deterministic carry payload shared by the flow definition and the interaction. */
-export const SIMULATOR_PRODUCT_CARRY_SUMMARY = '回声谷解谜计划' as const;
+export const SIMULATOR_PRODUCT_LOCAL_AGENT_CONTEXT_SUMMARY = '回声谷解谜计划' as const;
 
 /** Deterministic route the handoff/carry interactions assign to target surfaces. */
 export const SIMULATOR_PRODUCT_HANDOFF_ROUTE = Object.freeze({
@@ -145,8 +145,8 @@ export const SIMULATOR_PRODUCT_HANDOFF_ROUTE = Object.freeze({
   fragment: null,
 });
 
-export const SIMULATOR_PRODUCT_CARRY_ROUTE = Object.freeze({
+export const SIMULATOR_PRODUCT_LOCAL_AGENT_CONTEXT_ROUTE = Object.freeze({
   pathname: '/',
-  search: Object.freeze([Object.freeze({ key: 'carry', value: 'sim-context-carry' } as const)]),
+  search: Object.freeze([Object.freeze({ key: 'carry', value: 'sim-local-agent-context-projection' } as const)]),
   fragment: null,
 });

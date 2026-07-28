@@ -31,7 +31,7 @@
   --fld-shadow: var(--nimi-elevation-modal);
   --fld-shadow-sm: var(--nimi-elevation-floating);
 
-  /* — Agent aurora (base agent only) — dusty rose over the lunar field — */
+  /* — LocalAgent projection aurora — dusty rose over the lunar field — */
   --fld-aurora: linear-gradient(120deg, #f4c9d6 0%, #d99ab6 48%, #a78fbf 100%);
   --fld-aurora-glow:
     0 0 0 1px rgba(217, 154, 182, 0.42),

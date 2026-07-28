@@ -199,8 +199,14 @@ func TestDownloadFailsClosedOnHashMismatch(t *testing.T) {
 func TestDownloadContextCancellationAborts(t *testing.T) {
 	payload := []byte(strings.Repeat("slow-streaming-body\n", 100000))
 	var requests int32
+	requestStarted := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&requests, 1)
+		select {
+		case <-requestStarted:
+		default:
+			close(requestStarted)
+		}
 		w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
 		w.WriteHeader(http.StatusOK)
 		flusher, _ := w.(http.Flusher)
@@ -222,7 +228,7 @@ func TestDownloadContextCancellationAborts(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		time.Sleep(15 * time.Millisecond)
+		<-requestStarted
 		cancel()
 	}()
 

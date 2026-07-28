@@ -17,7 +17,7 @@ import {
 } from '../core-generated/runtime-typed-client.js';
 import { createRuntimeAccountMediatedBundledAvatarRealmTransport } from '../core/app/runtime-account-realm.js';
 import { createNimiError, ReasonCode } from '../types/index.js';
-import { createNimiDesktopLaunchedAvatarRuntimeAccountCaller } from './account-caller.js';
+import { createNimiAvatarNativeHostRuntimeAccountCaller } from './account-caller.js';
 import type { NimiRuntimeAgentScopeRunner } from './runtime-agent-protected.js';
 import {
   NIMI_BUNDLED_AVATAR_APP_ID,
@@ -32,7 +32,7 @@ type BundledAvatarMethodGroup<
 > = Pick<RuntimeTypedClient, Names[number]>;
 
 export type NimiBundledAvatarRuntimeClient = {
-  readonly accountCaller: ReturnType<typeof createNimiDesktopLaunchedAvatarRuntimeAccountCaller>;
+  readonly accountCaller: ReturnType<typeof createNimiAvatarNativeHostRuntimeAccountCaller>;
   readonly audit: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.audit>;
   readonly account: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.account>;
   readonly agents: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.agents>;
@@ -88,7 +88,7 @@ export function createNimiBundledAvatarRuntimeClient(): NimiBundledAvatarRuntime
     transport: nativeTransport,
   }));
   const audit = bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.audit);
-  const accountCaller = createNimiDesktopLaunchedAvatarRuntimeAccountCaller();
+  const accountCaller = createNimiAvatarNativeHostRuntimeAccountCaller();
   const account = bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.account);
   const agents = bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.agents);
   const realm = new RealmTypedClient(new CoreClient({

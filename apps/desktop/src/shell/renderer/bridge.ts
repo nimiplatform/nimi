@@ -8,7 +8,6 @@ import {
   focusMainWindow,
   getDesktopReleaseInfo,
   getDesktopUpdateState,
-  getAppsBridgeProjection,
   getDesktopStorageDirs,
   getProductControlRecord,
   getRuntimeBridgeStatus,
@@ -96,13 +95,10 @@ export type {
 
 export {
   completeMenuBarQuit,
-  getAppsBridgeProjection,
   logRendererEvent,
   syncMenuBarRuntimeHealth,
   toRendererLogMessage,
 };
-
-export type { AppsBridgeProjection } from './bridge/runtime-bridge';
 
 export const desktopBridge = {
   hasTauriInvoke,

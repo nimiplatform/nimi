@@ -32,7 +32,7 @@ import type {
   SimulatorProductLedgerResult,
 } from '../../state-engine/product-flows.ts';
 import {
-  SIMULATOR_PRODUCT_CARRY_SUMMARY,
+  SIMULATOR_PRODUCT_LOCAL_AGENT_CONTEXT_SUMMARY,
   SIMULATOR_PRODUCT_HANDOFF_ROUTE,
 } from '../../state-engine/product-flows.ts';
 import type { SimulatorShellProductState } from '../../state-engine/product-state.ts';
@@ -52,7 +52,7 @@ export interface PresentationPersona {
   readonly role: string;
 }
 
-export interface PresentationAgentPersona {
+export interface PresentationLocalAgent {
   readonly name: string;
   readonly kind: string;
   readonly mode: string;
@@ -107,14 +107,14 @@ const HANDOFF_CARD = Object.freeze({
 });
 
 const CARRY_CARD = Object.freeze({
-  title: '来自基座 agent · 会话摘要',
+  title: '来自 Runtime LocalAgent · 会话摘要',
   detail: '目标：完成「低语回廊」第三段回声。线索：星港集市的回声商贩。下一步：把谷内地形按声源方位重排，再回星港核对提示。',
 });
 
-const FALLBACK_AGENT_PERSONA: PresentationAgentPersona = {
+const FALLBACK_LOCAL_AGENT_PRESENTATION: PresentationLocalAgent = {
   name: 'Nimi',
-  kind: '基座伴侣 agent',
-  mode: '主动模式',
+  kind: 'Realm Character Source LocalAgent',
+  mode: 'Runtime Agent Service 执行',
 };
 
 const EMPTY_AGENT: PresentationAgent = { status: 'idle', location: 'cradle', carry: null };
@@ -124,7 +124,7 @@ const EMPTY_AGENT: PresentationAgent = { status: 'idle', location: 'cradle', car
 export interface ShellProductPresentation {
   /** Shared persona; null until Desktop commits the simulated login share. */
   readonly persona: PresentationPersona | null;
-  readonly agentPersona: PresentationAgentPersona;
+  readonly localAgentPresentation: PresentationLocalAgent;
   readonly agent: PresentationAgent;
   readonly grants: readonly PresentationGrant[];
   readonly ledger: readonly PresentationLedgerEntry[];
@@ -250,7 +250,7 @@ export function ProductPresentationProvider({
           card: HANDOFF_CARD as unknown as JsonValue,
         }
       : {
-          carry: SIMULATOR_PRODUCT_CARRY_SUMMARY,
+          carry: SIMULATOR_PRODUCT_LOCAL_AGENT_CONTEXT_SUMMARY,
           card: CARRY_CARD as unknown as JsonValue,
         };
     void currentPorts.emitInteraction({
@@ -369,7 +369,7 @@ export function ProductPresentationProvider({
 
   const value = useMemo<ShellProductPresentation>(() => ({
     persona: product?.persona ?? null,
-    agentPersona: product?.agentPersona ?? FALLBACK_AGENT_PERSONA,
+    localAgentPresentation: product?.localAgentPresentation ?? FALLBACK_LOCAL_AGENT_PRESENTATION,
     agent: product?.agent ?? EMPTY_AGENT,
     grants: product?.grants ?? [],
     ledger: product?.ledger ?? [],

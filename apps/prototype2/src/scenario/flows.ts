@@ -3,7 +3,7 @@
  * These mirror the three interaction classes from the design discussion:
  *   1. data sharing   — Desktop writes a shared footprint; Tester observes it
  *   2. intent handoff — a world is carried into Zhiyu as a new route/topic
- *   3. agent-mediated — the base agent carries a context summary across apps
+ *   3. Runtime-mediated — one LocalAgent context is projected across apps
  *
  * Steps are declarative and run in a fixed order with fixed delays. The real
  * build replaces this runner with the deterministic State Engine; nothing
@@ -113,10 +113,10 @@ export const FLOWS: Record<string, FlowDef> = {
     ],
   },
 
-  'agent.carry': {
-    id: 'agent.carry',
+  'local-agent.project': {
+    id: 'local-agent.project',
     title: 'context 携带 · Nimi → 织语',
-    requiredGrant: 'g-context-carry',
+    requiredGrant: 'g-local-agent-context-projection',
     consentable: true,
     origin: 'desktop',
     steps: [
@@ -124,7 +124,7 @@ export const FLOWS: Record<string, FlowDef> = {
         type: 'ledger',
         kind: 'delegation',
         title: '委托 · 携带会话摘要',
-        detail: '你委托基座 agent Nimi 将本次 Desktop 会话摘要带往 Zhiyu。',
+        detail: '你授权 Runtime Agent Service 将 Nimi 的本次 Desktop 会话摘要投影到 Zhiyu。',
         actors: ['林澈', 'Nimi'],
         result: 'committed',
       },
@@ -141,8 +141,8 @@ export const FLOWS: Record<string, FlowDef> = {
         type: 'zhiyu-card',
         card: {
           id: 'zh-carry',
-          kind: 'agent-carry',
-          title: '来自基座 agent · 会话摘要',
+          kind: 'local-agent-projection',
+          title: '来自 Runtime LocalAgent · 会话摘要',
           body: '', // filled from scenario.carrySummary at execution time
           origin: 'Nimi · 经系统级授权携带',
         },
@@ -150,7 +150,7 @@ export const FLOWS: Record<string, FlowDef> = {
       {
         type: 'ledger',
         kind: 'agent-action',
-        title: 'agent 行动 · 摘要投递',
+        title: 'Runtime Agent Service 行动 · 摘要投影',
         detail: 'Nimi 将只读摘要投影投递到 Zhiyu 实例。投递内容不含任何写权限。',
         actors: ['Nimi', 'Zhiyu'],
         result: 'committed',

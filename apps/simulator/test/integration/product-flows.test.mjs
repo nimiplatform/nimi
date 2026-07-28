@@ -188,11 +188,11 @@ test('handoff.surface routes the target surfaces and posts the ledger entry atom
   assert.equal(ecosystem.handoff.card.title, '在织语中继续');
 });
 
-test('agent.context.carry delivers the carry payload, route, and both ledger entries', async () => {
+test('local-agent.context.project delivers the carry payload, route, and both ledger entries', async () => {
   const { engine, instanceIds } = await createIntegratedEngine();
   const result = await engine.acceptCommand(
     'simulator.interaction.emit',
-    interactionEnvelope(instanceIds.desktop, 'agent.context.carry', {
+    interactionEnvelope(instanceIds.desktop, 'local-agent.context.project', {
       carry: '回声谷解谜计划',
       card: { title: '会话摘要', detail: '模拟摘要卡片' },
     }, ['zhiyu']),
@@ -203,7 +203,7 @@ test('agent.context.carry delivers the carry payload, route, and both ledger ent
   const zhiyuInstance = engine.getCommitted().instance(instanceIds.zhiyu);
   assert.deepEqual(zhiyuInstance.route, {
     pathname: '/',
-    search: [{ key: 'carry', value: 'sim-context-carry' }],
+    search: [{ key: 'carry', value: 'sim-local-agent-context-projection' }],
     fragment: null,
   });
   const zhiyu = engine.projectInstance(instanceIds.zhiyu);
@@ -220,16 +220,16 @@ test('agent.context.carry delivers the carry payload, route, and both ledger ent
   assert.equal(ecosystem.carry.carry, '回声谷解谜计划');
 });
 
-test('agent.carry consent accept publishes the step-0 request-interaction directive from engine truth', async () => {
+test('local-agent.project consent accept publishes the step-0 request-interaction directive from engine truth', async () => {
   const { engine, instanceIds } = await createIntegratedEngine();
   void instanceIds;
   const begun = await engine.acceptCommand(
     'simulator.product.flow.begin',
-    { flowId: 'agent.carry' },
+    { flowId: 'local-agent.project' },
     SHELL,
   );
   assert.equal(begun.ok, true);
-  assert.deepEqual(begun.value, { flowId: 'agent.carry', status: 'awaiting-consent' });
+  assert.deepEqual(begun.value, { flowId: 'local-agent.project', status: 'awaiting-consent' });
   assert.equal(shellProduct(engine).flow.currentDirective, null);
 
   const resolved = await engine.acceptCommand(
@@ -238,13 +238,13 @@ test('agent.carry consent accept publishes the step-0 request-interaction direct
     SHELL,
   );
   assert.equal(resolved.ok, true);
-  assert.deepEqual(resolved.value, { accepted: true, flowId: 'agent.carry', status: 'running' });
+  assert.deepEqual(resolved.value, { accepted: true, flowId: 'local-agent.project', status: 'running' });
   const flow = shellProduct(engine).flow;
   assert.equal(flow.stepIndex, 0);
   assert.deepEqual(flow.currentDirective, {
     name: 'request-interaction',
-    interactionType: 'agent.context.carry',
-    commandType: 'desktop.carry.request',
+    interactionType: 'local-agent.context.project',
+    commandType: 'desktop.context-projection.request',
     moduleId: 'zhiyu',
   });
 });
@@ -296,7 +296,7 @@ async function runShellRunnerToTerminal(engine, originInstanceId, { maxTicks = 2
         'simulator.interaction.emit',
         interactionEnvelope(originInstanceId, directive.interactionType, {
           carry: '回声谷解谜计划',
-          card: { title: '来自基座 agent · 会话摘要', detail: '模拟摘要卡片' },
+          card: { title: '来自 Runtime LocalAgent · 会话摘要', detail: '模拟摘要卡片' },
         }, [directive.moduleId]),
         { kind: 'instance', moduleId: 'desktop', instanceId: originInstanceId },
       );
@@ -308,24 +308,24 @@ async function runShellRunnerToTerminal(engine, originInstanceId, { maxTicks = 2
   return { status: shellProduct(engine).flow.status, seenDirectives };
 }
 
-test('shell runner: agent.carry gates on consent, steps to completion, and settles the agent', async () => {
+test('shell runner: local-agent.project gates on consent, steps to completion, and settles the LocalAgent projection', async () => {
   const { engine, instanceIds } = await createIntegratedEngine();
   const product = shellProduct(engine);
-  assert.equal(product.grants.find((grant) => grant.id === 'g-context-carry').status, 'revoked');
+  assert.equal(product.grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'revoked');
 
-  const begun = await shellDispatch(engine, 'simulator.product.flow.begin', { flowId: 'agent.carry' });
+  const begun = await shellDispatch(engine, 'simulator.product.flow.begin', { flowId: 'local-agent.project' });
   assert.equal(begun.ok, true);
-  assert.deepEqual(begun.value, { flowId: 'agent.carry', status: 'awaiting-consent' });
+  assert.deepEqual(begun.value, { flowId: 'local-agent.project', status: 'awaiting-consent' });
   assert.deepEqual(shellProduct(engine).consent, {
-    flowId: 'agent.carry',
-    grantId: 'g-context-carry',
+    flowId: 'local-agent.project',
+    grantId: 'g-local-agent-context-projection',
     origin: 'desktop',
   });
 
   const resolved = await shellDispatch(engine, 'simulator.product.consent.resolve', { accept: true });
   assert.equal(resolved.ok, true);
   assert.equal(shellProduct(engine).consent, null);
-  assert.equal(shellProduct(engine).grants.find((grant) => grant.id === 'g-context-carry').status, 'active');
+  assert.equal(shellProduct(engine).grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'active');
   assert.equal(shellProduct(engine).ledger.at(-1).title, '重新授权 · context 携带');
 
   const { status, seenDirectives } = await runShellRunnerToTerminal(engine, instanceIds.desktop);
@@ -347,7 +347,7 @@ test('shell runner: agent.carry gates on consent, steps to completion, and settl
   const zhiyuInstance = engine.getCommitted().instance(instanceIds.zhiyu);
   assert.deepEqual(zhiyuInstance.route, {
     pathname: '/',
-    search: [{ key: 'carry', value: 'sim-context-carry' }],
+    search: [{ key: 'carry', value: 'sim-local-agent-context-projection' }],
     fragment: null,
   });
 });
@@ -356,7 +356,7 @@ test('shell runner: consent deny commits a denied entry, no grant flip, and no c
   const { engine } = await createIntegratedEngine();
   const ledgerBefore = shellProduct(engine).ledger.length;
 
-  const begun = await shellDispatch(engine, 'simulator.product.flow.begin', { flowId: 'agent.carry' });
+  const begun = await shellDispatch(engine, 'simulator.product.flow.begin', { flowId: 'local-agent.project' });
   assert.equal(begun.ok, true);
   const resolved = await shellDispatch(engine, 'simulator.product.consent.resolve', { accept: false });
   assert.equal(resolved.ok, true);
@@ -364,7 +364,7 @@ test('shell runner: consent deny commits a denied entry, no grant flip, and no c
   const product = shellProduct(engine);
   assert.equal(product.flow.status, 'denied');
   assert.equal(product.consent, null);
-  assert.equal(product.grants.find((grant) => grant.id === 'g-context-carry').status, 'revoked');
+  assert.equal(product.grants.find((grant) => grant.id === 'g-local-agent-context-projection').status, 'revoked');
   assert.equal(product.ledger.length, ledgerBefore + 1);
   const denied = product.ledger.at(-1);
   assert.equal(denied.kind, 'delegation');
@@ -391,7 +391,7 @@ test('shell runner: scenario reset restores the seeded product state for the nex
   const { engine } = await createIntegratedEngine();
   const seeded = shellProduct(engine);
   await shellDispatch(engine, 'simulator.product.grant.toggle', { grantId: 'g-world-write' });
-  await shellDispatch(engine, 'simulator.product.flow.begin', { flowId: 'agent.carry' });
+  await shellDispatch(engine, 'simulator.product.flow.begin', { flowId: 'local-agent.project' });
   assert.notDeepEqual(shellProduct(engine).ledger, seeded.ledger);
 
   const reset = await engine.acceptCommand('simulator.reset', {}, {

@@ -722,9 +722,9 @@ units:
     kind: rule
     title: P-NAPP-001 catalog authority and package kind
     modality: must
-    statement: Platform owns verified catalog and release admission and the package-kind set whose sole value is nimi-app, Runtime owns runnable truth for verified, user_imported, and local_development, catalog absence permits a future zero-permission local import, and catalog presence creates no principal, record, grant, lease, or session.
-    condition: Whenever package admission or local runnable posture is resolved.
-    failure: Reject another package kind or local authority inferred from catalog presence or absence.
+    statement: The current third-party App product scope admits only Runtime-owned local_development, while retained Platform catalog, public release, trust-tier, ordinary-user install, update, repair, and user_imported designs remain unavailable until separate lifecycle authority activates them; future catalog presence alone creates no principal, record, grant, lease, session, runnable truth, or ordinary visibility.
+    condition: Whenever current App scope, future package admission, or local runnable posture is resolved.
+    failure: Reject current non-local-development admission, premature public-lifecycle activation, another package kind, or local authority inferred from future catalog presence or absence.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
@@ -1206,11 +1206,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
   - id: rule.nimi.platform.app-ecosystem.p-napp-038
     kind: rule
-    title: P-NAPP-038 registry membership and identity closure
-    modality: must
-    statement: Only an app id represented by exactly one complete valid registry row is an admitted catalog product app, each registry app_id and release_descriptor_ref binding is unique, and unknown, duplicate, incomplete, or unresolved rows create neither catalog admission nor ordinary Apps visibility.
-    condition: Whenever registry membership, catalog product admission, or ordinary Apps visibility is resolved.
-    failure: Deny catalog admission and ordinary visibility until one unique complete row and every owned reference resolve.
+    title: P-NAPP-038 deferred registry membership cannot activate product behavior
+    modality: must_not
+    statement: Registry membership, a registry row, a release descriptor, trust-tier posture, or package presence creates current catalog admission, ordinary Apps visibility, ordinary-user installation, update, repair, or runnable truth.
+    condition: Until separate lifecycle authority activates the public App lifecycle.
+    failure: Keep every public-lifecycle outcome unavailable and preserve only the explicit local-development flow.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
@@ -1578,11 +1578,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.mod-extension-retirement
   - id: rule.nimi.platform.app-ecosystem.p-eco-002
     kind: rule
-    title: P-ECO-002 third-party registry onboarding
-    modality: must
-    statement: A third-party developer enters only through one complete Nimi App registry row with partner or community trust tier, owner-resolved review posture, nimi-app package kind, and all required app-admission fields, never through a shared content-pack channel or registry-bypass alias.
-    condition: Whenever a third-party ecosystem candidate is onboarded.
-    failure: Deny onboarding until the unique complete registry path succeeds.
+    title: P-ECO-002 third-party registry onboarding remains deferred
+    modality: must_not
+    statement: A third-party developer enters the current product through registry onboarding, public admission, trust-tier review, ordinary-user installation, or a registry-bypass alias instead of the explicit local-development flow.
+    condition: Until separate lifecycle authority activates public App distribution and onboarding.
+    failure: Keep public onboarding unavailable and require the current local-development flow.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission

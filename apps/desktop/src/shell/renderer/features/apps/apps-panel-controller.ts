@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
-import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
@@ -22,13 +21,11 @@ export type AppsPanelController = AppsPanelState & AppsPanelActions;
 
 export interface AppsPanelControllerDeps {
   readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
-  readonly requestSignIn?: () => void;
 }
 
 export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): AppsPanelController {
-  const sdk = useDesktopRendererSdk();
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
-  const liveBridge = useMemo(() => buildLiveBridge(sdk), [buildLiveBridge, sdk]);
+  const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
   const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -36,7 +33,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
 
   const reload = useCallback(async (): Promise<void> => {
     const token = ++reloadTokenRef.current;
-    const next = await projectAppsPanel(liveBridge.appClient);
+    const next = await projectAppsPanel(liveBridge);
     if (token === reloadTokenRef.current) setProjection(next);
   }, [liveBridge]);
 
@@ -54,11 +51,11 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       return;
     }
     try {
-      runReadOnlyAppsAction(action, { requestSignIn: deps.requestSignIn });
+      runReadOnlyAppsAction(action);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : String(error));
     }
-  }, [deps.requestSignIn]);
+  }, []);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);
@@ -80,15 +77,8 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
 
 export function runReadOnlyAppsAction(
   action: AppCardActionId,
-  deps: { readonly requestSignIn?: () => void } = {},
 ): void {
   switch (action) {
-    case 'sign_in':
-      if (!deps.requestSignIn) {
-        throw new Error('Apps sign-in requires the Desktop account gate.');
-      }
-      deps.requestSignIn();
-      return;
     case 'details':
       return;
     default: {

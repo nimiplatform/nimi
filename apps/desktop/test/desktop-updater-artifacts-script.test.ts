@@ -9,7 +9,7 @@ import { collectDesktopUpdaterArtifactViolations } from '../scripts/lib/desktop-
 function makeArtifactFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-updater-artifacts-'));
   const latestJsonPath = path.join(root, 'latest.json');
-  const bundlePath = path.join(root, 'Nimi_0.1.0_aarch64.dmg.app.tar.gz');
+  const bundlePath = path.join(root, 'Nimi_0.1.0_x64-setup.exe');
   const signaturePath = `${bundlePath}.sig`;
 
   fs.writeFileSync(bundlePath, 'bundle');
@@ -19,8 +19,8 @@ function makeArtifactFixture() {
     `${JSON.stringify({
       version: '0.1.0',
       platforms: {
-        'darwin-aarch64': {
-          url: 'https://example.com/Nimi_0.1.0_aarch64.dmg.app.tar.gz',
+        'windows-x86_64': {
+          url: 'https://example.com/Nimi_0.1.0_x64-setup.exe',
           signature: 'base64sig',
         },
       },
@@ -39,7 +39,7 @@ test('desktop updater artifact validation accepts aligned updater assets', () =>
     assert.deepEqual(
       collectDesktopUpdaterArtifactViolations({
         artifacts: fixture.artifacts,
-        expectedBundle: 'app',
+        expectedBundle: 'nsis',
       }),
       [],
     );
@@ -48,42 +48,7 @@ test('desktop updater artifact validation accepts aligned updater assets', () =>
   }
 });
 
-test('desktop updater artifact validation accepts signed macOS app archive without latest.json', () => {
-  const fixture = makeArtifactFixture();
-  try {
-    const appArtifacts = fixture.artifacts.filter((artifactPath) => path.basename(artifactPath) !== 'latest.json');
-    assert.deepEqual(
-      collectDesktopUpdaterArtifactViolations({
-        artifacts: appArtifacts,
-        expectedBundle: 'app',
-      }),
-      [],
-    );
-  } finally {
-    fixture.cleanup();
-  }
-});
-
-test('desktop updater artifact validation still requires latest.json for non-app updater bundles', () => {
-  const fixture = makeArtifactFixture();
-  try {
-    const appImagePath = path.join(path.dirname(fixture.artifacts[0]!), 'Nimi_0.1.0_amd64.AppImage');
-    const signaturePath = `${appImagePath}.sig`;
-    fs.writeFileSync(appImagePath, 'appimage');
-    fs.writeFileSync(signaturePath, 'sig');
-
-    const violations = collectDesktopUpdaterArtifactViolations({
-      artifacts: [appImagePath, signaturePath],
-      expectedBundle: 'appimage',
-    });
-
-    assert.ok(violations.some((line: string) => line.includes('latest.json is missing')));
-  } finally {
-    fixture.cleanup();
-  }
-});
-
-test('desktop updater artifact validation rejects missing signatures and bundle mismatch', () => {
+test('desktop updater artifact validation rejects missing signatures', () => {
   const fixture = makeArtifactFixture();
   try {
     fs.unlinkSync(fixture.artifacts[1]!);
@@ -93,7 +58,6 @@ test('desktop updater artifact validation rejects missing signatures and bundle 
     });
 
     assert.ok(violations.some((line: string) => line.includes('no updater signature artifacts')));
-    assert.ok(violations.some((line: string) => line.includes('expected updater bundle type nsis')));
   } finally {
     fixture.cleanup();
   }
@@ -133,7 +97,7 @@ test('desktop updater artifact validation rejects invalid latest.json payloads',
     fs.writeFileSync(fixture.artifacts[2]!, '{not-json');
     const violations = collectDesktopUpdaterArtifactViolations({
       artifacts: fixture.artifacts,
-      expectedBundle: 'app',
+      expectedBundle: 'nsis',
     });
 
     assert.ok(violations.some((line: string) => line.includes('latest.json is not valid JSON')));
@@ -151,7 +115,7 @@ test('desktop updater artifact validation rejects empty platform maps', () => {
     );
     const violations = collectDesktopUpdaterArtifactViolations({
       artifacts: fixture.artifacts,
-      expectedBundle: 'app',
+      expectedBundle: 'nsis',
     });
 
     assert.ok(violations.some((line: string) => line.includes('latest.json platforms is empty')));

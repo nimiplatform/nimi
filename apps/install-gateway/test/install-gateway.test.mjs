@@ -47,22 +47,6 @@ const desktopRelease = {
   published_at: '2026-03-16T10:00:00Z',
   assets: [
     {
-      name: 'Nimi_2.0.0_aarch64.dmg.app.tar.gz',
-      browser_download_url: 'https://example.com/Nimi_2.0.0_aarch64.dmg.app.tar.gz',
-    },
-    {
-      name: 'Nimi_2.0.0_aarch64.dmg.app.tar.gz.sig',
-      browser_download_url: 'https://example.com/Nimi_2.0.0_aarch64.dmg.app.tar.gz.sig',
-    },
-    {
-      name: 'Nimi_2.0.0_x64.AppImage.tar.gz',
-      browser_download_url: 'https://example.com/Nimi_2.0.0_x64.AppImage.tar.gz',
-    },
-    {
-      name: 'Nimi_2.0.0_x64.AppImage.tar.gz.sig',
-      browser_download_url: 'https://example.com/Nimi_2.0.0_x64.AppImage.tar.gz.sig',
-    },
-    {
       name: 'Nimi_2.0.0_x64-setup.nsis.zip',
       browser_download_url: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip',
     },
@@ -181,16 +165,6 @@ test('buildRuntimeManifest rejects runtime archives without checksum evidence', 
 test('collectDesktopUpdaterArtifacts finds updater bundles and signatures', () => {
   assert.deepEqual(collectDesktopUpdaterArtifacts(desktopRelease), [
     {
-      platform: 'darwin-aarch64',
-      bundleUrl: 'https://example.com/Nimi_2.0.0_aarch64.dmg.app.tar.gz',
-      signatureUrl: 'https://example.com/Nimi_2.0.0_aarch64.dmg.app.tar.gz.sig',
-    },
-    {
-      platform: 'linux-x86_64',
-      bundleUrl: 'https://example.com/Nimi_2.0.0_x64.AppImage.tar.gz',
-      signatureUrl: 'https://example.com/Nimi_2.0.0_x64.AppImage.tar.gz.sig',
-    },
-    {
       platform: 'windows-x86_64',
       bundleUrl: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip',
       signatureUrl: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip.sig',
@@ -198,21 +172,13 @@ test('collectDesktopUpdaterArtifacts finds updater bundles and signatures', () =
   ]);
 });
 
-test('buildDesktopLatestManifest synthesizes multi-platform updater json', async () => {
+test('buildDesktopLatestManifest synthesizes the Windows updater json', async () => {
   const manifest = await buildDesktopLatestManifest(desktopRelease, async (url) => new Response(`sig:${url}`));
   assert.deepEqual(manifest, {
     version: '2.0.0',
     notes: 'Desktop release notes',
     pub_date: '2026-03-16T10:00:00Z',
     platforms: {
-      'darwin-aarch64': {
-        signature: 'sig:https://example.com/Nimi_2.0.0_aarch64.dmg.app.tar.gz.sig',
-        url: 'https://example.com/Nimi_2.0.0_aarch64.dmg.app.tar.gz',
-      },
-      'linux-x86_64': {
-        signature: 'sig:https://example.com/Nimi_2.0.0_x64.AppImage.tar.gz.sig',
-        url: 'https://example.com/Nimi_2.0.0_x64.AppImage.tar.gz',
-      },
       'windows-x86_64': {
         signature: 'sig:https://example.com/Nimi_2.0.0_x64-setup.nsis.zip.sig',
         url: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip',

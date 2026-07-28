@@ -1,7 +1,7 @@
 /* Scenario type vocabulary for the Nimi OS Simulator prototype.
  *
  * These types mirror — at product level only — the audited design's concepts:
- * modules, surfaces, instances, grants, ledger entries, agent lifecycle.
+ * modules, surfaces, instances, grants, ledger entries, LocalAgent projection lifecycle.
  * They are NOT the protocol. No State Engine, no real SDK/Kit binding exists
  * here; everything below is deterministic mock content for the demo shell.
  */
@@ -24,7 +24,7 @@ export interface Persona {
   role: string;
 }
 
-export interface AgentPersona {
+export interface LocalAgentPresentation {
   name: string;
   kind: string;
   /** 运行模式, e.g. 主动模式 */
@@ -95,7 +95,7 @@ export interface ChatMessage {
 
 export interface ZhiyuCard {
   id: string;
-  kind: 'handoff' | 'agent-carry' | 'app-ai';
+  kind: 'handoff' | 'local-agent-projection' | 'app-ai';
   title: string;
   body: string;
   origin: string;
@@ -109,7 +109,7 @@ export interface Footprint {
 
 export interface Scenario {
   persona: Persona;
-  agent: AgentPersona;
+  localAgentPresentation: LocalAgentPresentation;
   worlds: World[];
   seededGrants: Grant[];
   seededLedger: LedgerEntry[];

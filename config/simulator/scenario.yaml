@@ -12,10 +12,10 @@ state:
     readiness: {}
     product:
       persona: null
-      agentPersona:
+      localAgentPresentation:
         name: Nimi
-        kind: 基座伴侣 agent
-        mode: 主动模式
+        kind: Realm Character Source LocalAgent
+        mode: Runtime Agent Service 执行
       agent:
         status: idle
         location: cradle
@@ -53,10 +53,10 @@ state:
             lastUsed: 2 分钟前
           status: active
           seeded: true
-        - id: g-context-carry
+        - id: g-local-agent-context-projection
           title: context 携带
           scope: Nimi · Desktop → Zhiyu · 仅本次会话摘要的只读投影，可撤销
-          from: Nimi (基座 agent)
+          from: Nimi (LocalAgent)
           to: Zhiyu
           meta: 上次会话结束
           tags: [只读, 本次会话, 不写入长期记忆]
@@ -73,9 +73,9 @@ state:
         - id: '0:op:090'
           epoch: 1
           kind: system
-          title: 基座会话建立
-          detail: 身份 sim-user-linche 载入，基座 agent Nimi 进入在场状态。
-          actors: [系统, Nimi, 基座]
+          title: Runtime 会话建立
+          detail: 身份 sim-user-linche 载入，Runtime 投影 LocalAgent Nimi 的在场状态。
+          actors: [Runtime, Nimi, Desktop]
           result: info
           at: '17:30'
           history: true

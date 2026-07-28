@@ -40,7 +40,6 @@ import {
   planNimiDataCleanup,
 } from './runtime-bridge/nimi-data-directory';
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
-import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
 import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { setDesktopOpenIntentReady } from './runtime-bridge/desktop-open-intent';
@@ -79,7 +78,6 @@ export { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION } from './runtime-bridge/nim
 
 export type { LogsExportResult } from './runtime-bridge/support-logs-export';
 
-export type { AppsBridgeProjection } from './runtime-bridge/apps-projection';
 export type { DesktopStorageDirs } from './runtime-bridge/desktop-storage';
 
 export type {
@@ -144,7 +142,6 @@ export {
   planNimiDataCleanup,
   executeNimiDataCleanup,
   exportDesktopLogs,
-  getAppsBridgeProjection,
   getDesktopStorageDirs,
   oauthListenForCode,
   oauthTokenExchange,

@@ -4,7 +4,7 @@ import { useProductPresentation } from './product-presentation.tsx';
  * allowed to be fully opaque, because it speaks for the OS, not for an app.
  * Presentation-only: every action resolves against the simulated store. */
 export function ConsentOverlay() {
-  const { consent, grants, flowTitle, resolveConsent, persona, agentPersona } = useProductPresentation();
+  const { consent, grants, flowTitle, resolveConsent, persona, localAgentPresentation } = useProductPresentation();
   if (!consent) return null;
   const title = flowTitle(consent.flowId);
   const grant = grants.find((g) => g.id === consent.grantId);
@@ -37,8 +37,8 @@ export function ConsentOverlay() {
           <span className="consent-arrow">→</span>
           <div className="consent-party">
             <span className="t-caption">执行方</span>
-            <b>{agentPersona.name}</b>
-            <span className="t-mono">基座 agent</span>
+            <b>{localAgentPresentation.name}</b>
+            <span className="t-mono">Runtime LocalAgent</span>
           </div>
           <span className="consent-arrow">→</span>
           <div className="consent-party">

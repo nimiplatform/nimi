@@ -38,8 +38,8 @@ export function Spine({ onOpenSkyPanel, skyPanelOpen }: SpineProps) {
       <button
         type="button"
         className="spine-btn"
-        title={`Nimi · ${AGENT_STATUS[agent.status]} ${where}${agent.carry ? ` · 携带 ${agent.carry}` : ''}`}
-        aria-label={`Nimi · ${AGENT_STATUS[agent.status]} ${where}${agent.carry ? ` · 携带 ${agent.carry}` : ''}`}
+        title={`Nimi · ${AGENT_STATUS[agent.status]} ${where}${agent.carry ? ` · 投影上下文 ${agent.carry}` : ''}`}
+        aria-label={`Nimi · ${AGENT_STATUS[agent.status]} ${where}${agent.carry ? ` · 投影上下文 ${agent.carry}` : ''}`}
         data-agent-chip
         onClick={goHome}
       >
@@ -97,7 +97,7 @@ export function Spine({ onOpenSkyPanel, skyPanelOpen }: SpineProps) {
       {agent.carry ? (
         <span className="spine-right">
           <span className="chip" data-tone="agent">
-            携带 · {agent.carry}
+            投影上下文 · {agent.carry}
           </span>
         </span>
       ) : null}

@@ -40,7 +40,7 @@ func TestRealmBrokerOperationSetIsExactDesktopSourceReadinessVocabulary(t *testi
 			if operation.authorizationProfile != realmBrokerProtectedBundledAvatarSourceReadinessProfile ||
 				len(operation.allowedCallerModes) != 2 ||
 				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) ||
-				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR) {
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST) {
 				t.Fatalf("%s must admit the exact Desktop and protected bundled Avatar source-readiness callers: %+v", operationID, operation)
 			}
 			continue

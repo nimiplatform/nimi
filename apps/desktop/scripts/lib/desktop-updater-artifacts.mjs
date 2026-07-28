@@ -18,7 +18,7 @@ export function normalizeExpectedBundle(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-const SUPPORTED_EXPECTED_BUNDLES = new Set(['appimage', 'app', 'nsis']);
+const SUPPORTED_EXPECTED_BUNDLES = new Set(['nsis']);
 
 export function isSupportedExpectedBundle(expectedBundle) {
   return SUPPORTED_EXPECTED_BUNDLES.has(normalizeExpectedBundle(expectedBundle));
@@ -26,14 +26,6 @@ export function isSupportedExpectedBundle(expectedBundle) {
 
 export function matchesExpectedBundle(artifacts, expectedBundle) {
   const normalizedExpectedBundle = normalizeExpectedBundle(expectedBundle);
-  if (normalizedExpectedBundle === 'appimage') {
-    return artifacts.some((filePath) => path.basename(filePath).includes('.AppImage'));
-  }
-
-  if (normalizedExpectedBundle === 'app') {
-    return artifacts.some((filePath) => path.basename(filePath).includes('.app.tar.gz'));
-  }
-
   if (normalizedExpectedBundle === 'nsis') {
     return artifacts.some((filePath) => {
       const base = path.basename(filePath).toLowerCase();
@@ -45,7 +37,7 @@ export function matchesExpectedBundle(artifacts, expectedBundle) {
 }
 
 export function expectsLatestJsonArtifact(expectedBundle) {
-  return normalizeExpectedBundle(expectedBundle) !== 'app';
+  return normalizeExpectedBundle(expectedBundle) === 'nsis';
 }
 
 export function collectDesktopUpdaterArtifactViolations({ artifacts, expectedBundle }) {

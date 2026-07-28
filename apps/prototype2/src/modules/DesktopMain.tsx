@@ -38,14 +38,14 @@ export function DesktopMain({ win }: { win: SimWindow }) {
                 {m.who === 'agent' ? <span className="agent-orb sm" data-status="idle" /> : null}
                 <div className="msg-bubble" data-agent={m.who === 'agent'}>
                   <p>{m.text}</p>
-                  <span className="t-mono">{m.who === 'agent' ? 'Nimi · 基座 agent' : '林澈'} · {m.at}</span>
+                  <span className="t-mono">{m.who === 'agent' ? 'Nimi · Runtime LocalAgent' : '林澈'} · {m.at}</span>
                 </div>
               </div>
             ))}
           </div>
           <div className="chat-footer">
-            <span className="t-caption">基座 agent 随你在这个领域中在场（ aurora 为基座标识 ）</span>
-            <button type="button" className="sys-btn primary small" onClick={() => runFlow('agent.carry')}>
+            <span className="t-caption">此处显示 Runtime 对 Nimi LocalAgent 的应用投影（aurora 为投影标识）</span>
+            <button type="button" className="sys-btn primary small" onClick={() => runFlow('local-agent.project')}>
               让 Nimi 把摘要带到织语
             </button>
           </div>

@@ -4,103 +4,31 @@
 
 ---
 
-<!-- source: .nimi/spec/platform/kernel/agent-identity-floor-contract.md -->
+<!-- projection: .nimi/spec/platform/app-ecosystem.authority.yaml -->
 
-# Agent Identity Floor Contract
+# Character-Sourced LocalAgent Identity Rationale
 
-> Owner Domain: `P-AGID-*`
+`P-AGID-001..P-AGID-008` 的规范含义只存在于 canonical authority。本段仅解释
+其产品边界：
 
-## Scope
-
-定义跨 app agent identity 的 platform-level floor。本契约固定：agent identity 不是 app-local
-truth；apps 接收 account-scoped durable identity 的 projection。本契约不
-拥有 chat transcript / `ConversationAnchor` 实现细节（仍由 Runtime 与
-Desktop-hosted Home 拥有），也不拥有 Cognition memory access 政策（属
-`C-APMEM-*`）。
-
-## P-AGID-001 — Account-Scoped Durable Identity
-
-`MUST`：agent identity 是 account-scoped durable truth，canonical owner
-是 Realm。admitted identity primitive 至少包含：
-
-- `AgentFamilyId` — agent family 标识。
-- `AgentPersonaId` — persona 标识。
-- `AgentProjectionRef` — 某 app 对某 persona 的 projection 引用。
-
-`MUST NOT`：apps 不得自定义/持久化平行 identity schema。
-
-## P-AGID-002 — Family / Persona / Projection Semantics
-
-`MUST`：family / persona / projection 三层关系固定为：
-
-- 一个 family 可拥有多个 persona。
-- 一个 persona 可被多个 app projection 引用。
-- projection 是 app-app 隔离的 identity 视图，绑定 Runtime-derived app
-  principal、owner-issued selector 与对应 public permission decision
-  (`P-PERM-*`)。
-
-`MUST NOT`：apps 不得通过 cache、约定、或 inferred channel 在不同 app
-之间共享 persona 的 raw identity material；persona 共享必须经 Realm 投影。
-
-## P-AGID-003 — App-Specific Projection
-
-`MUST`：每个 app 对某 persona 收到的 projection 是稳定的、selector-bound
-的、可撤销的。projection 绑定到 Runtime-derived app principal 与 owner-issued
-selected-Agent handle；app 不得提交 app/account/principal/agent raw identity
-作为授权事实（`P-PERM-007`）。
-
-`MUST NOT`：app 不得跨 principal 或 selector 重用 projection；projection
-lifetime 与对应 public permission decision 和 owner policy 绑定。
-
-## P-AGID-004 — ConversationAnchor Continuity Binding
-
-`MUST`：agent chat 会话必须绑定到 Runtime `ConversationAnchor`，跨
-surface 续会语义沿用现有 Runtime 合同
-（`runtime-agent-service-contract.md`）。
-
-`MUST NOT`：Home / Desktop / SDK 不得将 anchor binding 改为 renderer-local
-state 或 chat-local cache。
-
-## P-AGID-005 — No App-Local Mint
-
-`MUST NOT`：apps、shell、SDK consumer 都不得：
-
-- 自创 `AgentFamilyId` / `AgentPersonaId` / `AgentProjectionRef`
-- 把 app-local user state 直接写入 Realm 的 canonical identity 字段
-- 在缺少 projection 的情况下使用 persona 字符串作为 identity 默认
-
-## P-AGID-006 — Agent Chat Transcript / History Owner
-
-`MUST`：agent chat transcript / history 的 owner 是 Desktop-hosted Home
-shell（`D-HOME-006`）。Home shell 拥有 transcript display / replay /
-local cache，但其内容不构成 memory truth。
-
-`MUST NOT`：transcript / history cache 不得：
-
-- 被自动升格为 Cognition memory（必须经 `chat_derived.projection.admitted`
-  policy，参见 `C-APMEM-003`）
-- 被外部 app 直接读取（必须经 `P-PERM-*` 与 `C-APMEM-*` 授权）
-
-## P-AGID-007 — Chat-Derived Memory Projection Rule
-
-`MUST`：chat context → memory truth 的转换必须由 `C-APMEM-003` 的
-`chat_derived.projection.admitted` policy 触发，且
-projection record 必须携带 `ConversationAnchor` 引用、source app id、
-target persona id、与 Realm audit event 引用。
-
-`MUST NOT`：不得通过 background job / passive cache / chat replay 自
-动产生 memory truth。
-
-## P-AGID-008 — Projection Lifecycle
-
-`MUST`：projection lifecycle 与 grant lifecycle 同源：
-
-- app uninstall → projection 失效
-- permission grant revoke → 对应 projection 失效
-- account 退出 → 所有 projection 失效
-
-`MUST NOT`：projection 不得 orphan；缺乏 grant 的 projection 必须 fail
-closed。
+- Realm 拥有 `PersonaCharacter`、`WorldCharacter`、Character Source 与
+  World Source；Runtime 只从 Realm-issued Character Source 物化新的、
+  相互独立的 `LocalAgent`。
+- Runtime Agent Service 拥有 `LocalAgent` identity、execution、
+  Conversation、operational Memory、Knowledge 与 lifecycle。服务名不引入
+  额外的 Agent 产品实体。
+- Nimi Home、Zhiyu、Avatar 与授权的 Third-party Local App 只是隔离的
+  consumer projection；UI transcript、cache 或 renderer state 都不是
+  Runtime truth。
+- 每次 LocalAgent operation 都由 Runtime 基于当前 account、当前 App
+  session、`localAgentId`、requested operation 与当前 lifecycle
+  fail-closed 地重新判定；caller 不提交可复用的 account、App、grant 或
+  relationship proof。
+- App exit/uninstall、permission revoke、account switch/exit、Runtime
+  restart 与 App session termination 都会使受影响的既有 access 失效。
+- 产品 ontology 不包含 generic Agent、AgentFamily、AgentPersona、
+  projection-reference 或 binding entity；consumer projection 是展示关系，
+  不是新的 durable identity。
 
 ## Fact Sources
 
@@ -307,7 +235,7 @@ app-owned or base entitlements.
 
 One public permission may expand internally into many exact operations,
 resource provenance checks, quotas, budgets, rate limits and owner policies.
-For example `agents.interact` represents one selected-Agent intent while the
+For example `agents.interact` represents one selected `localAgentId` intent while the
 owner still enforces projection, conversation, text/voice and derived-artifact
 boundaries on every call.
 
@@ -3212,7 +3140,7 @@ ecosystem marketing 都不得违反上述负面闸门。
 - `P-AIPS-008` no-provider/no-model constant rule
 - `P-NAPP-009` Apps non-owner rule
 - `P-FPI-007` no standalone ordinary-user truth after hard cut
-- `P-AGID-001..P-AGID-008` agent identity floor
+- `P-AGID-001..P-AGID-008` Character-sourced LocalAgent identity floor
 
 `MUST NOT`：不得通过 ecosystem expansion 绕过任何已准入的 Platform /
 Runtime / Realm / Cognition / SDK boundary invariants。

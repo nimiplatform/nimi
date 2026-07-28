@@ -1257,7 +1257,7 @@ units:
   - id: definition.nimi.platform.core-protocol.desktop-home-shell
     kind: definition
     title: P-ARCH Desktop-hosted Nimi Home shell
-    meaning: Desktop is the current host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the public distribution, installation, and authorization unit.
+    meaning: Desktop is the current replaceable host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the local-development and authorization unit; public App distribution and ordinary-user App installation remain deferred until separate lifecycle authority activates them.
   - id: definition.nimi.platform.core-protocol.world-domain-facade
     kind: definition
     title: P-ARCH sdk world facade
@@ -1286,9 +1286,9 @@ units:
     kind: rule
     title: P-ARCH-001 public product and layer framing
     modality: must
-    statement: Public architecture identifies Nimi as the installable long-term user product, Nimi Home as its currently Desktop-hosted entry shell, Nimi App as the public distribution, installation, and authorization unit, and the canonical public authority entry as nimi/.nimi/spec/**.
+    statement: Public architecture identifies Nimi as the installable long-term user product, Nimi Home as its currently Desktop-hosted replaceable entry shell, Nimi App as the current local-development and authorization unit, public App distribution and ordinary-user App installation as deferred, and the canonical public authority entry as nimi/.nimi/spec/**.
     condition: Whenever the public top-layer architecture is described.
-    failure: Reject a product, shell, app-unit, or canonical-entry description that changes this layer framing.
+    failure: Reject a product, shell, app-unit, lifecycle-stage, or canonical-entry description that changes this layer framing.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.architecture-layer-model

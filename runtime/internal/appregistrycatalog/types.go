@@ -2,8 +2,8 @@
 // Platform Nimi App registry catalog at
 // config/platform-nimi-app-registry.yaml.
 //
-// Authority: docs/authority/platform-app-ecosystem-rationale.md
-// (P-NAPP-001..P-NAPP-012). This package consumes the registry read-only;
+// Authority: .nimi/spec/platform/app-ecosystem.authority.yaml.
+// This package consumes the registry read-only;
 // it does not own the schema or admission policy. Per P-NAPP-012, only
 // package_kind=nimi-app rows are admitted; the loader fails closed on
 // any other kind.

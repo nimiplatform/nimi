@@ -1,6 +1,5 @@
 import { useEffect, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
@@ -19,20 +18,11 @@ function LoadingAppsProjection(): ReactElement {
 
 export function AppsPanel(): ReactElement {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const settings = useDesktopRendererCommands().settings;
   const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const authUser = useAppStore((state) => state.auth.user);
-  const accountName = [authUser?.displayName, authUser?.handle, authUser?.username]
-    .map((value) => String(value ?? '').trim())
-    .find(Boolean) ?? t('Apps.sourceManager.accountFallback');
-  const controller = useAppsPanelController({
-    requestSignIn: () => {
-      navigate('/login', { replace: false });
-    },
-  });
+  const controller = useAppsPanelController();
   const {
     projection,
     detailAppId,
@@ -50,7 +40,7 @@ export function AppsPanel(): ReactElement {
 
   const detailEntry =
     projection?.status === 'loaded' && detailAppId
-      ? projection.entries.find((entry) => entry.app.appId === detailAppId) ?? null
+      ? projection.entries.find((entry) => entry.authorization.appId === detailAppId) ?? null
       : null;
 
   return (
@@ -75,12 +65,7 @@ export function AppsPanel(): ReactElement {
                 settings.openSection('performance');
                 setActiveTab('settings');
               }}
-              onManageAccount={() => {
-                settings.openSection('profile');
-                setActiveTab('settings');
-              }}
               onRetry={retryProjection}
-              accountName={accountName}
               actionError={actionError}
             />
           ) : (

@@ -29,7 +29,7 @@ const AGENT_FEED = [
   { text: '为你恢复上次对话上下文', done: false, at: '14:27' },
 ];
 const AGENT_LAST_CHAT = { text: '回声谷 · 低语回廊，停在第三段回声', at: '昨天 22:41' };
-const AGENT_RECENT = '你在优化世界入口与 Agent 呈现方式';
+const AGENT_RECENT = '你在优化世界入口与 LocalAgent 投影方式';
 
 /** Per-world card backdrops: existing field imagery, re-cropped per world and
  * tinted by the world's hue on top. */
@@ -55,7 +55,7 @@ export function Cradle({
   const [agentPinned, setAgentPinned] = useState(false);
   const agentOpen = agentHover || agentPinned;
   const footprints = state.footprints;
-  const visibleGrants = state.grants.filter((g) => g.id !== 'g-context-carry');
+  const visibleGrants = state.grants.filter((g) => g.id !== 'g-local-agent-context-projection');
   const pos = state.cradlePos;
 
   const paneTopZ = Math.max(PANE_IDS.length, ...Object.values(zs));
@@ -100,31 +100,31 @@ export function Cradle({
             className="agent-hud-chip"
             aria-expanded={agentOpen}
             aria-controls="agent-hud-panel"
-            title={`${SCENARIO.agent.name} · ${SCENARIO.agent.mode}`}
+            title={`${SCENARIO.localAgentPresentation.name} · ${SCENARIO.localAgentPresentation.mode}`}
             onClick={() => setAgentPinned((v) => !v)}
           >
             <span className="agent-hud-sparkle" aria-hidden />
-            <b>{SCENARIO.agent.name}</b>
+            <b>{SCENARIO.localAgentPresentation.name}</b>
             <span className="agent-hud-chip-status">
-              · {SCENARIO.agent.mode}
+              · {SCENARIO.localAgentPresentation.mode}
             </span>
           </button>
 
           {agentOpen ? (
-            <div className="agent-hud-panel" id="agent-hud-panel" role="dialog" aria-label="Nimi agent 面板">
+            <div className="agent-hud-panel" id="agent-hud-panel" role="dialog" aria-label="Nimi LocalAgent 面板">
               <header className="agent-hud-head">
                 <span className="agent-hud-dot" data-status={state.agent.status} aria-hidden />
                 <span className="agent-hud-head-main">
                   <b>
-                    {SCENARIO.agent.name} · {AGENT_STATUS[state.agent.status] ?? state.agent.status}
+                    {SCENARIO.localAgentPresentation.name} · {AGENT_STATUS[state.agent.status] ?? state.agent.status}
                   </b>
-                  <span>{SCENARIO.agent.kind}</span>
+                  <span>{SCENARIO.localAgentPresentation.kind}</span>
                 </span>
                 <button
                   type="button"
                   className="agent-hud-gear"
-                  title="管理应用与 agent"
-                  aria-label="管理应用与 agent"
+                  title="管理应用与 LocalAgent"
+                  aria-label="管理应用与 LocalAgent"
                   onClick={onOpenApps}
                 >
                   <Settings size={14} strokeWidth={1.8} aria-hidden />

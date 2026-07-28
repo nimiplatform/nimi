@@ -121,7 +121,7 @@ export function createDesktopSimulatorBindings(
   if (!handoffSubscription.ok) {
     throw new Error(`DESKTOP_SIMULATOR_HANDOFF_EVENT_REJECTED:${handoffSubscription.error.code}`);
   }
-  const carrySubscription = context.events.subscribe('desktop.carry.requested', (value) => {
+  const carrySubscription = context.events.subscribe('desktop.context-projection.requested', (value) => {
     const payload = record(value, 'CARRY_REQUEST_EVENT');
     if (payload.originInstanceId !== context.instanceId) return;
     const card = record(payload.card ?? null, 'CARRY_REQUEST_CARD');
@@ -129,7 +129,7 @@ export function createDesktopSimulatorBindings(
       protocol: 'nimi.simulator.interaction/v1',
       interactionId: `${context.instanceId}:${String(payload.requestId ?? 'sim-carry-0')}`,
       targets: ['zhiyu'],
-      type: 'agent.context.carry',
+      type: 'local-agent.context.project',
       payload: {
         carry: String(payload.carry ?? ''),
         card: card as DesktopSimulatorJsonValue,

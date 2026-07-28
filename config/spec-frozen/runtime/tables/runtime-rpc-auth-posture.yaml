@@ -92,7 +92,7 @@ method_shards:
       - RuntimeDevelopmentService
   - path: ./runtime-rpc-auth-posture/agent-ai-cognition.yaml
     id: nimicoding.runtime-rpc-auth-posture.agent-ai-cognition.v1
-    method_count: 98
+    method_count: 107
     services:
       - RuntimeAgentService
       - RuntimeAiService

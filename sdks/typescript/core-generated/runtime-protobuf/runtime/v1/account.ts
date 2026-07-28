@@ -1306,9 +1306,9 @@ export enum AccountCallerMode {
      */
     DESKTOP_SHELL = 2,
     /**
-     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR = 3;
+     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST = 3;
      */
-    DESKTOP_LAUNCHED_AVATAR = 3,
+    AVATAR_NATIVE_HOST = 3,
     /**
      * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_WEB_CLOUD = 5;
      */

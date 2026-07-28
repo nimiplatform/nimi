@@ -279,7 +279,7 @@ function evidence(overrides = {}) {
       source: 'renderer',
       message: 'Runtime Agent composer has not been used.',
     },
-    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics'],
+    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'avatar', 'diagnostics'],
     ...overrides,
   };
 }

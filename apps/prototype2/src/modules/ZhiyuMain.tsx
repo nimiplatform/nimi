@@ -3,7 +3,7 @@ import { useSim, type SimWindow } from '../engine/SimContext';
 
 /** Mock of the Zhiyu (织语) main surface.
  * Its AI session is APP-OWNED — visually and verbally distinct from the
- * aurora base agent. This contrast teaches the real boundary. */
+ * Runtime LocalAgent projection. This contrast teaches the real boundary. */
 export function ZhiyuMain({ win }: { win: SimWindow }) {
   const { state } = useSim();
   const [draft, setDraft] = useState('');
@@ -14,7 +14,7 @@ export function ZhiyuMain({ win }: { win: SimWindow }) {
     if (!draft.trim()) return;
     setReplies((r) => [
       ...r,
-      `（应用自有回复 · 模拟）我按「${draft.trim()}」起了一个大纲。它与基座 agent 无关，也不知道你在其他领域的 context，除非你授权携带。`,
+      `（应用自有回复 · 模拟）我按「${draft.trim()}」起了一个大纲。它不是 Runtime LocalAgent，也不知道其他应用的 context，除非你授权 Runtime 投影。`,
     ]);
     setDraft('');
   };
@@ -25,7 +25,7 @@ export function ZhiyuMain({ win }: { win: SimWindow }) {
         <span className="dot appai-dot" />
         <div>
           <b>织语 AI · 应用自有会话</b>
-          <p className="t-caption">它只属于这个应用实例；基座 agent（aurora）是另一种存在。</p>
+          <p className="t-caption">它只属于这个应用实例；Runtime LocalAgent 投影是另一种存在。</p>
         </div>
       </div>
 
@@ -37,8 +37,8 @@ export function ZhiyuMain({ win }: { win: SimWindow }) {
         ) : (
           state.zhiyuCards.map((c) => (
             <article key={c.id} className="zh-card" data-kind={c.kind}>
-              <span className="chip" data-tone={c.kind === 'agent-carry' ? 'agent' : 'primary'}>
-                {c.kind === 'agent-carry' ? '基座 agent 携带' : '意图交接'}
+              <span className="chip" data-tone={c.kind === 'local-agent-projection' ? 'agent' : 'primary'}>
+                {c.kind === 'local-agent-projection' ? 'LocalAgent 上下文投影' : '意图交接'}
               </span>
               <h4>{c.title}</h4>
               <p>{c.body}</p>

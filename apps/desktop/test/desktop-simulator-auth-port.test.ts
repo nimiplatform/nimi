@@ -468,7 +468,7 @@ test('Desktop Simulator routes handoff and carry requests through typed interact
     card: { title: '在织语中继续', detail: '模拟交接卡片' },
   });
   assert.equal(handoffResult.ok, true);
-  const carryResult = await engine.invoke('desktop.carry.request', {
+  const carryResult = await engine.invoke('desktop.context-projection.request', {
     originInstanceId: '1:instance:2',
     carry: '回声谷解谜计划',
     card: { title: '会话摘要', detail: '模拟摘要卡片' },
@@ -483,7 +483,7 @@ test('Desktop Simulator routes handoff and carry requests through typed interact
   assert.deepEqual(handoff?.targets, ['zhiyu']);
   assert.deepEqual((handoff?.payload as JsonRecord).route, handoffRoute);
   const carry = emissions[1];
-  assert.equal(carry?.type, 'agent.context.carry');
+  assert.equal(carry?.type, 'local-agent.context.project');
   assert.equal(carry?.interactionId, '1:instance:2:sim-carry-2');
   assert.deepEqual(carry?.targets, ['zhiyu']);
   assert.equal((carry?.payload as JsonRecord).carry, '回声谷解谜计划');

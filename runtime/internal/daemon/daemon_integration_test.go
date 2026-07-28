@@ -70,7 +70,8 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 	}
 	seenStopping := false
 	seenStopped := false
-	for time.Now().Before(deadline) {
+	shutdownDeadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(shutdownDeadline) {
 		select {
 		case snapshot := <-updates:
 			if snapshot.Status == health.StatusStopping {

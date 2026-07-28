@@ -2819,7 +2819,7 @@ pub enum AccountCallerMode {
     Unspecified = 0,
     LocalFirstPartyApp = 1,
     DesktopShell = 2,
-    DesktopLaunchedAvatar = 3,
+    AvatarNativeHost = 3,
     WebCloud = 5,
     ExternalPrincipal = 6,
     LocalApp = 9,
@@ -2834,7 +2834,7 @@ impl AccountCallerMode {
             Self::Unspecified => "ACCOUNT_CALLER_MODE_UNSPECIFIED",
             Self::LocalFirstPartyApp => "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP",
             Self::DesktopShell => "ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
-            Self::DesktopLaunchedAvatar => "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR",
+            Self::AvatarNativeHost => "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST",
             Self::WebCloud => "ACCOUNT_CALLER_MODE_WEB_CLOUD",
             Self::ExternalPrincipal => "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
             Self::LocalApp => "ACCOUNT_CALLER_MODE_LOCAL_APP",
@@ -2846,9 +2846,7 @@ impl AccountCallerMode {
             "ACCOUNT_CALLER_MODE_UNSPECIFIED" => Some(Self::Unspecified),
             "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP" => Some(Self::LocalFirstPartyApp),
             "ACCOUNT_CALLER_MODE_DESKTOP_SHELL" => Some(Self::DesktopShell),
-            "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR" => {
-                Some(Self::DesktopLaunchedAvatar)
-            }
+            "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST" => Some(Self::AvatarNativeHost),
             "ACCOUNT_CALLER_MODE_WEB_CLOUD" => Some(Self::WebCloud),
             "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL" => Some(Self::ExternalPrincipal),
             "ACCOUNT_CALLER_MODE_LOCAL_APP" => Some(Self::LocalApp),

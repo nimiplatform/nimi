@@ -7,7 +7,7 @@ import {
   ReasonCode as RuntimeWireReasonCode,
 } from '../../core-generated/runtime-typed-client';
 import { ReasonCode } from '../../types';
-import { createNimiDesktopLaunchedAvatarRuntimeAccountCaller } from '../../runtime/account-caller';
+import { createNimiAvatarNativeHostRuntimeAccountCaller } from '../../runtime/account-caller';
 import {
   createRuntimeAccountMediatedBundledAvatarRealmTransport,
   createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport,
@@ -16,7 +16,7 @@ import {
 } from './runtime-account-realm';
 
 test('bundled Avatar Realm transport fixes caller custody and exact operation admission', async () => {
-  const caller = createNimiDesktopLaunchedAvatarRuntimeAccountCaller();
+  const caller = createNimiAvatarNativeHostRuntimeAccountCaller();
   const calls: unknown[] = [];
   const transport = createRuntimeAccountMediatedBundledAvatarRealmTransport({
     accountCaller: caller,
@@ -47,7 +47,7 @@ test('bundled Avatar Realm transport fixes caller custody and exact operation ad
 test('bundled Avatar Realm transport rejects renderer-constructed caller variants', () => {
   assert.throws(() => createRuntimeAccountMediatedBundledAvatarRealmTransport({
     accountCaller: {
-      ...createNimiDesktopLaunchedAvatarRuntimeAccountCaller(),
+      ...createNimiAvatarNativeHostRuntimeAccountCaller(),
       deviceId: 'renderer-selected-device',
     },
     runtime: {

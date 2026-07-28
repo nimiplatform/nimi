@@ -18,7 +18,7 @@ requires:
   kit_capabilities: []
   sdk_methods: []
   simulator_commands:
-    - zhiyu.carry.accept
+    - zhiyu.context-projection.accept
     - zhiyu.ecosystem.project
     - zhiyu.handoff.accept
     - zhiyu.persona.project

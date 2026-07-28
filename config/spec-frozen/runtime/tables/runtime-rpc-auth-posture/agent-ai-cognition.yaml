@@ -431,6 +431,82 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-149
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles
+    posture: blocked_pending_authority
+    authority_status: blocked_pending_separate_authority
+    transport_disposition: deny_all
+    rationale: advanced Realm participation remains deferred; callers must not infer an admitted execution surface from the closed profile registry
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-074
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks
+    posture: blocked_pending_authority
+    authority_status: blocked_pending_separate_authority
+    transport_disposition: deny_all
+    rationale: advanced Realm participation remains deferred; callers must not infer admission from the closed context-block registry
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-081
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ValidateParticipation
+    posture: blocked_pending_authority
+    authority_status: blocked_pending_separate_authority
+    transport_disposition: deny_all
+    rationale: participation validation is implemented but not admitted as a current Runtime product contract
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-074
+      - K-AGCORE-081
+      - K-AGCORE-084
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation
+    posture: blocked_pending_authority
+    authority_status: blocked_pending_separate_authority
+    transport_disposition: deny_all
+    rationale: participation execution is implemented ahead of current product admission and remains transport-denied pending aligned authority
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-062
+      - K-AGCORE-082
+      - K-AGCORE-087
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate
+    posture: blocked_pending_authority
+    authority_status: blocked_pending_separate_authority
+    transport_disposition: deny_all
+    rationale: participation candidate reads remain unavailable until the deferred execution surface receives aligned authority
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-082
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts
+    posture: blocked_pending_authority
+    authority_status: blocked_pending_separate_authority
+    transport_disposition: deny_all
+    rationale: participation verdict reads remain unavailable until the deferred execution surface receives aligned authority
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-084
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents
+    posture: blocked_pending_authority
+    authority_status: blocked_pending_separate_authority
+    transport_disposition: deny_all
+    rationale: participation audit reads remain unavailable until the deferred execution surface receives aligned authority
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-083
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay
+    posture: blocked_pending_authority
+    authority_status: blocked_pending_separate_authority
+    transport_disposition: deny_all
+    rationale: participation replay reads remain unavailable until the deferred execution surface receives aligned authority
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-085
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
     posture: anonymous_read
     rationale: agent event stream; no JWT validation
@@ -441,6 +517,15 @@ methods:
     posture: protected_or_scoped_binding_read
     rationale: existing Runtime Agent consumers require protected or scoped turn-read authority; third-party local-app access is not admitted
     kernel_refs: [K-AUTHN-001, K-AUTH-006, K-AGCORE-133, K-VOICE-019, K-VOICE-021]
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback
+    posture: protected_or_scoped_binding_write
+    rationale: active voice playback interruption mutates Runtime-owned terminal truth and requires bundled Avatar protected origin or a Runtime-issued scoped turn-write binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AUTH-006
+      - K-PLOCAL-010
+      - K-VOICE-019
   - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession
     posture: anonymous_read
     rationale: subject_user_id taken from request head; no JWT validation in handler

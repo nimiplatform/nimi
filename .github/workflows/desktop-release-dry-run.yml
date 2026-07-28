@@ -67,10 +67,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: ubuntu-22.04
-            extra_args: appimage
-          - platform: macos-latest
-            extra_args: app
           - platform: windows-2025-vs2026
             extra_args: nsis
     runs-on: ${{ matrix.platform }}
@@ -107,44 +103,14 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Install Linux system dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build SDK surfaces (desktop runtime dependency)
         run: pnpm build:sdk
 
-      - name: macOS development carrier native security tests
-        if: matrix.platform == 'macos-latest'
-        run: pnpm test:macos:dev-security-native
-
       - name: Desktop Product Control native smoke (lower-level only)
-        if: matrix.platform == 'windows-2025-vs2026'
         run: pnpm --filter @nimiplatform/desktop test:windows:product-control-native
-
-      - name: Resolve macOS signing mode
-        id: macos_signing
-        env:
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-        run: |
-          set -euo pipefail
-          if [[ "${MATRIX_PLATFORM}" != 'macos-latest' ]]; then
-            mode='not-applicable'
-            require_apple='false'
-          else
-            mode='developer-id'
-            require_apple='true'
-          fi
-
-          {
-            echo "mode=${mode}"
-            echo "require_apple_credentials=${require_apple}"
-          } >> "${GITHUB_OUTPUT}"
 
       - name: Normalize desktop updater public key
         env:
@@ -169,40 +135,7 @@ jobs:
             echo "TAURI_SIGNING_PRIVATE_KEY is required" >&2
             exit 1
           fi
-          if [[ "${REQUIRE_APPLE_CREDENTIALS}" == 'true' ]]; then
-            if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
-              echo "APPLE_CERTIFICATE is required for developer-id macOS signing" >&2
-              exit 1
-            fi
-            if [[ -z "${APPLE_CERTIFICATE_PASSWORD:-}" ]]; then
-              echo "APPLE_CERTIFICATE_PASSWORD is required for developer-id macOS signing" >&2
-              exit 1
-            fi
-            if [[ -z "${APPLE_SIGNING_IDENTITY:-}" ]]; then
-              echo "APPLE_SIGNING_IDENTITY is required for developer-id macOS signing" >&2
-              exit 1
-            fi
-            if [[ -z "${APPLE_ID:-}" ]]; then
-              echo "APPLE_ID is required for developer-id macOS notarization" >&2
-              exit 1
-            fi
-            if [[ -z "${APPLE_PASSWORD:-}" ]]; then
-              echo "APPLE_PASSWORD is required for developer-id macOS notarization" >&2
-              exit 1
-            fi
-            if [[ -z "${APPLE_TEAM_ID:-}" ]]; then
-              echo "APPLE_TEAM_ID is required for developer-id macOS notarization" >&2
-              exit 1
-            fi
-          fi
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          REQUIRE_APPLE_CREDENTIALS: ${{ steps.macos_signing.outputs.require_apple_credentials }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - name: Prepare Desktop release metadata
@@ -218,61 +151,19 @@ jobs:
       - name: Validate Desktop-only release manifest
         run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync -- --expected "${RELEASE_VERSION}"
 
-      - name: Build desktop updater artifacts (non-macOS)
-        id: tauri_build_non_macos
-        if: matrix.platform != 'macos-latest'
-        uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
-          NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          projectPath: apps/desktop
-          includeUpdaterJson: true
-          updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
-
-      - name: Build desktop updater artifacts (macOS Developer ID)
-        id: tauri_build_macos_developer_id
-        if: matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true'
-        uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
-          NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        with:
-          projectPath: apps/desktop
-          includeUpdaterJson: true
-          updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
-
-      - name: Resolve desktop updater artifact paths
+      - name: Build desktop updater artifacts
         id: tauri_build
+        uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
-          ARTIFACT_PATHS_NON_MACOS: ${{ steps.tauri_build_non_macos.outputs.artifactPaths }}
-          ARTIFACT_PATHS_MACOS_DEVELOPER_ID: ${{ steps.tauri_build_macos_developer_id.outputs.artifactPaths }}
-        run: |
-          set -euo pipefail
-          artifact_paths="${ARTIFACT_PATHS_NON_MACOS:-${ARTIFACT_PATHS_MACOS_DEVELOPER_ID:-}}"
-          if [[ -z "${artifact_paths}" ]]; then
-            echo "tauri-action did not report artifact paths" >&2
-            exit 1
-          fi
-          {
-            echo 'artifactPaths<<__NIMI_ARTIFACT_PATHS__'
-            printf '%s\n' "${artifact_paths}"
-            echo '__NIMI_ARTIFACT_PATHS__'
-          } >> "${GITHUB_OUTPUT}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
 
       - name: Validate desktop updater artifacts
         env:

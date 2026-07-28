@@ -206,7 +206,7 @@ function assertRuntimeMediatedRealmCallerMode(caller: NimiRuntimeAccountCaller):
 
 function assertBundledAvatarRealmCaller(caller: NimiRuntimeAccountCaller): void {
   if (
-    caller.mode !== AccountCallerMode.DESKTOP_LAUNCHED_AVATAR
+    caller.mode !== AccountCallerMode.AVATAR_NATIVE_HOST
     || caller.appId !== NIMI_BUNDLED_AVATAR_APP_ID
     || caller.appInstanceId !== NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID
     || caller.deviceId !== NIMI_BUNDLED_AVATAR_DEVICE_ID
@@ -216,7 +216,7 @@ function assertBundledAvatarRealmCaller(caller: NimiRuntimeAccountCaller): void 
     || caller.scopes.length !== 0
   ) {
     throw createNimiError({
-      message: 'Bundled Avatar Realm transport requires the fixed Desktop-supervised account caller.',
+      message: 'Bundled Avatar Realm transport requires the fixed verified Avatar native-host caller.',
       reasonCode: 'SDK_RUNTIME_REALM_BUNDLED_AVATAR_CALLER_REQUIRED',
       actionHint: 'use_create_nimi_bundled_avatar_runtime_client',
       source: 'sdk',

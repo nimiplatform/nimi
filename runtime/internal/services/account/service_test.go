@@ -728,7 +728,7 @@ func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndProtectsBundledAv
 	avatar.AppId = bundledavatar.AppID
 	avatar.AppInstanceId = bundledavatar.AppInstanceID
 	avatar.DeviceId = bundledavatar.DeviceID
-	avatar.Mode = runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
+	avatar.Mode = runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST
 	avatarCtx := envelope.WithValidatedProtectedCapability(context.Background(), bundledavatar.AppID, "account.session.read")
 	avatarCtx, avatarCancel := context.WithCancel(avatarCtx)
 	avatarStream := &accountSessionEventStream{ctx: avatarCtx, afterSend: avatarCancel}

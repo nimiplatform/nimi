@@ -14,8 +14,7 @@ export type NimiSDKRuntimeAccountAppMode =
   | 'third-party-nimi-app'
   | 'dev-standalone'
   | 'desktop-account-ux'
-  | 'desktop-supervised-avatar'
-  | 'binding-only-avatar';
+  | 'avatar-native-host';
 
 export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE: Readonly<Record<NimiSDKRuntimeAccountAppMode, AccountCallerMode | null>> = {
   'first-party-local-app': AccountCallerMode.LOCAL_FIRST_PARTY_APP,
@@ -25,8 +24,7 @@ export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE: Readonly<Record<NimiSDKRuntim
   'third-party-nimi-app': null,
   'dev-standalone': null,
   'desktop-account-ux': AccountCallerMode.DESKTOP_SHELL,
-  'desktop-supervised-avatar': AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
-  'binding-only-avatar': AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
+  'avatar-native-host': AccountCallerMode.AVATAR_NATIVE_HOST,
 };
 
 export function resolveNimiSDKRuntimeAccountCallerMode(
@@ -61,36 +59,17 @@ export function createNimiLocalFirstPartyRuntimeAccountCaller(
   );
 }
 
-export function createNimiBindingOnlyAvatarRuntimeAccountCaller(
-  input: NimiRuntimeAccountCallerInput,
-): NimiRuntimeAccountCaller {
-  if (input.appInstanceId === undefined || input.deviceId === undefined) {
-    requireText(input.appId, 'appId');
-    throw createNimiError({
-      message: 'Binding-only Avatar Runtime account caller identity requires explicit app instance and device identity.',
-      reasonCode: 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
-      actionHint: 'use_desktop_avatar_launch_binding',
-      source: 'sdk',
-    });
-  }
-  return createNimiRuntimeAccountCaller(
-    input,
-    AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
-    '',
-  );
-}
-
 /**
  * Returns the single Runtime-admitted account caller for the verified
- * Desktop-supervised bundled Avatar carrier. No app-owned identity input is
- * accepted; Runtime still validates the fixed protected profile.
+ * independent bundled Avatar native host. No app-owned identity input is
+ * accepted; Runtime validates the fixed protected profile.
  */
-export function createNimiDesktopLaunchedAvatarRuntimeAccountCaller(): NimiRuntimeAccountCaller {
+export function createNimiAvatarNativeHostRuntimeAccountCaller(): NimiRuntimeAccountCaller {
   return {
     appId: NIMI_BUNDLED_AVATAR_APP_ID,
     appInstanceId: NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID,
     deviceId: NIMI_BUNDLED_AVATAR_DEVICE_ID,
-    mode: AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
+    mode: AccountCallerMode.AVATAR_NATIVE_HOST,
     scopes: [],
     launchHostId: '',
     launchNonce: '',

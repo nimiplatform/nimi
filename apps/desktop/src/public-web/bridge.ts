@@ -13,8 +13,6 @@ export type {
   DesktopAccountSessionSubscriptionHandlers,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
-export type { AppsBridgeProjection } from '../shell/renderer/bridge/runtime-bridge/apps-projection';
-
 export type {
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,

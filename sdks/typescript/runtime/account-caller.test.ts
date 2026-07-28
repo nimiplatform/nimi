@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  createNimiBindingOnlyAvatarRuntimeAccountCaller,
-  createNimiDesktopLaunchedAvatarRuntimeAccountCaller,
+  createNimiAvatarNativeHostRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
   resolveNimiSDKRuntimeAccountCallerMode,
@@ -42,32 +41,12 @@ test('Runtime account caller projection builds explicit local first-party identi
   );
 });
 
-test('Runtime account caller projection builds an explicit binding-only Avatar identity', () => {
-  assert.deepEqual(
-    createNimiBindingOnlyAvatarRuntimeAccountCaller({
-      appId: 'nimi.avatar',
-      appInstanceId: 'nimi.avatar.binding-only',
-      deviceId: 'desktop-avatar-host',
-    }),
-    {
-      appId: 'nimi.avatar',
-      appInstanceId: 'nimi.avatar.binding-only',
-      deviceId: 'desktop-avatar-host',
-      mode: AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
-      scopes: [],
-      launchHostId: '',
-      launchNonce: '',
-      releaseDescriptorRef: '',
-    },
-  );
-});
-
 test('Runtime account caller projection fixes the independent bundled Avatar identity', () => {
-  assert.deepEqual(createNimiDesktopLaunchedAvatarRuntimeAccountCaller(), {
+  assert.deepEqual(createNimiAvatarNativeHostRuntimeAccountCaller(), {
     appId: 'nimi.avatar',
     appInstanceId: 'nimi.avatar',
     deviceId: 'avatar-native-host',
-    mode: AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
+    mode: AccountCallerMode.AVATAR_NATIVE_HOST,
     scopes: [],
     launchHostId: '',
     launchNonce: '',
@@ -119,7 +98,6 @@ test('SDK Runtime account app modes map exactly to Runtime caller modes', () => 
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('local-app'), null);
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('third-party-nimi-app'), null);
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('desktop-account-ux'), AccountCallerMode.DESKTOP_SHELL);
-  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('desktop-supervised-avatar'), AccountCallerMode.DESKTOP_LAUNCHED_AVATAR);
-  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('binding-only-avatar'), AccountCallerMode.DESKTOP_LAUNCHED_AVATAR);
+  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('avatar-native-host'), AccountCallerMode.AVATAR_NATIVE_HOST);
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('dev-standalone'), null);
 });

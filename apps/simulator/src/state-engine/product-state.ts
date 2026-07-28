@@ -1,5 +1,5 @@
 /**
- * Simulator-owned Shell product state: persona, agent presence, grants,
+ * Simulator-owned Shell product state: persona, LocalAgent projection, grants,
  * interaction ledger, consent, and flow runner state — committed under the
  * `shell` partition's `product` sub-state through declared, closed-schema
  * commands. Follows the overlay-state conventions: one owner, closed write
@@ -82,7 +82,7 @@ export interface SimulatorInteractionProductEffects {
 /** Typed read projection of the `shell.product` sub-state for Shell consumers. */
 export interface SimulatorShellProductState {
   readonly persona: { readonly name: string; readonly id: string; readonly role: string } | null;
-  readonly agentPersona: { readonly name: string; readonly kind: string; readonly mode: string };
+  readonly localAgentPresentation: { readonly name: string; readonly kind: string; readonly mode: string };
   readonly agent: {
     readonly status: SimulatorProductAgentStatus;
     readonly location: string;
@@ -208,7 +208,7 @@ export function readProductState(context: EngineContext): JsonRecord | null {
   if (product === undefined) return null;
   if (!isRecord(product)
     || (product.persona !== null && !isRecord(product.persona))
-    || !isRecord(product.agentPersona)
+    || !isRecord(product.localAgentPresentation)
     || !isRecord(product.agent)
     || !PRODUCT_AGENT_STATUSES.includes(product.agent.status as SimulatorProductAgentStatus)
     || !Array.isArray(product.grants)
@@ -268,9 +268,11 @@ class ProductEditor {
     return isRecord(persona) && typeof persona.name === 'string' ? persona.name : '模拟居民';
   }
 
-  agentPersonaName(): string {
-    const agentPersona = this.product.agentPersona;
-    return isRecord(agentPersona) && typeof agentPersona.name === 'string' ? agentPersona.name : 'Nimi';
+  localAgentName(): string {
+    const localAgentPresentation = this.product.localAgentPresentation;
+    return isRecord(localAgentPresentation) && typeof localAgentPresentation.name === 'string'
+      ? localAgentPresentation.name
+      : 'Nimi';
   }
 
   grants(): readonly JsonValue[] {
@@ -311,7 +313,7 @@ class ProductEditor {
       carry: agent.carry !== undefined ? agent.carry : (current.carry as JsonValue),
     };
     this.product = { ...this.product, agent: next };
-    this.events.push({ type: SIMULATOR_PRODUCT_EVENTS.agentChanged, payload: { ...next } });
+    this.events.push({ type: SIMULATOR_PRODUCT_EVENTS.localAgentChanged, payload: { ...next } });
   }
 
   setGrantStatus(grantId: string, status: 'active' | 'revoked'): void {
@@ -614,7 +616,7 @@ export function processProductCommand(context: EngineContext, operation: QueuedO
       kind: 'delegation',
       title: `授权被拒绝 · ${String(grant.title)}`,
       detail: '你拒绝了本次系统级授权请求。未提交任何状态，目标应用未收到内容。',
-      actors: [editor.personaName(), editor.agentPersonaName()],
+      actors: [editor.personaName(), editor.localAgentName()],
       result: 'denied',
     });
     editor.setFlow({ flowId: flow.id, stepIndex: 0, status: 'denied', currentDirective: null });
@@ -645,7 +647,7 @@ export function processProductCommand(context: EngineContext, operation: QueuedO
     return true;
   }
 
-  if (type === SIMULATOR_PRODUCT_COMMANDS.agentTransition) {
+  if (type === SIMULATOR_PRODUCT_COMMANDS.localAgentTransition) {
     editor.setAgent({
       status: payload.status as SimulatorProductAgentStatus,
       location: payload.location as string,

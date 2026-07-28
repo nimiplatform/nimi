@@ -183,12 +183,6 @@ function inferDesktopPlatform(assetName) {
   if (!arch) {
     return '';
   }
-  if (normalized.includes('.app.tar.gz')) {
-    return `darwin-${arch}`;
-  }
-  if (normalized.includes('appimage') && normalized.endsWith('.tar.gz')) {
-    return `linux-${arch}`;
-  }
   if (normalized.includes('nsis') && normalized.endsWith('.zip')) {
     return `windows-${arch}`;
   }

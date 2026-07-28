@@ -20,7 +20,7 @@ func (operation realmUnaryOperation) admitsProtectedSourceReadinessCaller(caller
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
 		return operation.authorizationProfile == realmBrokerProtectedDesktopSourceReadinessProfile ||
 			operation.authorizationProfile == realmBrokerProtectedBundledAvatarSourceReadinessProfile
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR:
+	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST:
 		return operation.authorizationProfile == realmBrokerProtectedBundledAvatarSourceReadinessProfile
 	default:
 		return false

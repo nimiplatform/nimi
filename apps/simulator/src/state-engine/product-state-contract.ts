@@ -14,7 +14,7 @@ export const SIMULATOR_PRODUCT_COMMANDS = Object.freeze({
   flowBegin: 'simulator.product.flow.begin',
   flowStep: 'simulator.product.flow.step',
   ledgerAppend: 'simulator.product.ledger.append',
-  agentTransition: 'simulator.product.agent.transition',
+  localAgentTransition: 'simulator.product.local-agent.transition',
   personaCommit: 'simulator.product.persona.commit',
 } as const);
 
@@ -23,7 +23,7 @@ export const SIMULATOR_PRODUCT_EVENTS = Object.freeze({
   ledgerAppended: 'simulator.product.ledger.appended',
   consentChanged: 'simulator.product.consent.changed',
   flowChanged: 'simulator.product.flow.changed',
-  agentChanged: 'simulator.product.agent.changed',
+  localAgentChanged: 'simulator.product.local-agent.changed',
   personaChanged: 'simulator.product.persona.changed',
 } as const);
 
@@ -130,7 +130,7 @@ export const PRODUCT_EVENT_SCHEMAS: Readonly<Record<string, SimulatorSchema>> = 
       currentDirective: { kind: 'union', variants: [{ kind: 'null' }, { kind: 'json' }] },
     },
   },
-  [SIMULATOR_PRODUCT_EVENTS.agentChanged]: {
+  [SIMULATOR_PRODUCT_EVENTS.localAgentChanged]: {
     kind: 'object',
     properties: {
       status: { kind: 'stringEnum', values: PRODUCT_AGENT_STATUSES },
@@ -188,7 +188,7 @@ export function registerProductCommands(context: EngineContext): void {
   });
   register(SIMULATOR_PRODUCT_COMMANDS.flowStep, { kind: 'object', properties: {} });
   register(SIMULATOR_PRODUCT_COMMANDS.ledgerAppend, productLedgerEntrySchema());
-  register(SIMULATOR_PRODUCT_COMMANDS.agentTransition, {
+  register(SIMULATOR_PRODUCT_COMMANDS.localAgentTransition, {
     kind: 'object',
     properties: {
       status: { kind: 'stringEnum', values: PRODUCT_AGENT_STATUSES },

@@ -2,8 +2,8 @@
  *
  * Decision (locked with the product owner): the prototype does not persist
  * anything. Continuity is faked honestly — the scenario pre-seeds prior
- * history (conversations, grants, footprints) so the base agent appears to
- * remember you. Every byte below is fictional demo content.
+ * history (conversations, grants, footprints) so the LocalAgent projection
+ * appears continuous. Every byte below is fictional demo content.
  */
 
 import type { Scenario } from './types';
@@ -14,10 +14,10 @@ export const SCENARIO: Scenario = {
     id: 'u_7f3a',
     role: '生态居民 · 早期体验者',
   },
-  agent: {
+  localAgentPresentation: {
     name: 'Nimi',
-    kind: '基座伴侣 agent',
-    mode: '主动模式',
+    kind: 'Realm Character Source LocalAgent',
+    mode: 'Runtime Agent Service 执行',
   },
   worlds: [
     {
@@ -88,10 +88,10 @@ export const SCENARIO: Scenario = {
       seeded: true,
     },
     {
-      id: 'g-context-carry',
+      id: 'g-local-agent-context-projection',
       title: 'context 携带',
       scope: 'Nimi · Desktop → Zhiyu · 仅本次会话摘要的只读投影，可撤销',
-      from: 'Nimi (基座 agent)',
+      from: 'Nimi (LocalAgent)',
       to: 'Zhiyu',
       meta: '上次会话结束',
       tags: ['只读', '本次会话', '不写入长期记忆'],
@@ -112,9 +112,9 @@ export const SCENARIO: Scenario = {
       id: '0:op:090',
       epoch: 1,
       kind: 'system',
-      title: '基座会话建立',
-      detail: '身份 u_7f3a 载入，基座 agent Nimi 进入在场状态。',
-      actors: ['系统', 'Nimi', '基座'],
+      title: 'Runtime 会话建立',
+      detail: '身份 u_7f3a 载入，Runtime 投影 LocalAgent Nimi 的在场状态。',
+      actors: ['Runtime', 'Nimi', 'Desktop'],
       result: 'info',
       at: '17:30',
       history: true,

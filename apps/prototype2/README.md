@@ -33,10 +33,10 @@ pnpm --filter @nimi-prototype/os-field build
 
 ## What it demonstrates
 
-The study covers a cradle home as a pane constellation, base agent (Nimi)
-with aurora accents and pre-seeded memory, three simulated
+The study covers a cradle home as a pane constellation, a Runtime LocalAgent
+projection (Nimi) with aurora accents and pre-seeded continuity, three simulated
 modules (Desktop / 织语 Zhiyu / Tester), the three canonical cross-app flows
-(data sharing, intent handoff, agent-mediated context carry), system-level
+(data sharing, intent handoff, Runtime-mediated LocalAgent context projection), system-level
 consent, revocable grants with typed `SIMULATOR_UNSUPPORTED` results, the
 interaction ledger as a floating pane, deterministic ids/logical clock, and
 simulation disclosure on the wake screen.

@@ -90,7 +90,7 @@ export const simulatorConformanceFixture = {
           },
         },
       },
-      'desktop.carry.request': {
+      'desktop.context-projection.request': {
         kind: 'object',
         properties: {
           originInstanceId: { kind: 'string', minLength: 1, maxLength: 128 },
@@ -190,7 +190,7 @@ export const simulatorConformanceFixture = {
           },
         },
       },
-      'desktop.carry.requested': {
+      'desktop.context-projection.requested': {
         kind: 'object',
         properties: {
           requestId: { kind: 'string', minLength: 1, maxLength: 128 },
