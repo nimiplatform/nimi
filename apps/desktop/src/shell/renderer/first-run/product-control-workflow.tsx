@@ -80,6 +80,15 @@ export function resolveProductControlActionFailure(
   return failure.message;
 }
 
+export function isReadyRecordSetupReconciliationRequired(
+  projection: NimiProductControlRecordProjection | null,
+  setupVisible: boolean,
+): boolean {
+  return setupVisible
+    && Boolean(projection?.error)
+    && projection?.record?.state === 'ready_for_use';
+}
+
 const SETUP_STEP_LABEL_DEFAULTS: Record<FirstRunSetupStepId, string> = {
   download: 'Downloading local models',
   verify: 'Verifying files',
@@ -162,6 +171,10 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const [lastSetupCheckedAtMs, setLastSetupCheckedAtMs] = useState(() => clock.now());
   const [lastSetupProgressChangedAtMs, setLastSetupProgressChangedAtMs] = useState(() => clock.now());
   const setupVisibleRef = useRef(false);
+  const readyRecordReconciliationAttemptRef = useRef<{
+    readonly key: string;
+    readonly promise: ReturnType<DesktopRendererFirstRunPort['reconcileSetupState']>;
+  } | null>(null);
   const markSetupChecked = useCallback((): void => {
     const now = clock.now();
     setSetupNowMs(now);
@@ -196,6 +209,49 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       cancel();
     };
   }, [clock, setupVisible]);
+
+  const readyRecordReconciliationRequired =
+    isReadyRecordSetupReconciliationRequired(projection, setupVisible);
+  const readyRecordReconciliationKey = readyRecordReconciliationRequired
+    ? `${projection?.record?.installId ?? 'unknown'}:${projection?.error ?? 'unknown'}`
+    : null;
+  useEffect(() => {
+    if (!firstRun.available() || !readyRecordReconciliationKey) {
+      return;
+    }
+    let attempt = readyRecordReconciliationAttemptRef.current;
+    if (!attempt || attempt.key !== readyRecordReconciliationKey) {
+      attempt = {
+        key: readyRecordReconciliationKey,
+        promise: firstRun.reconcileSetupState(),
+      };
+      readyRecordReconciliationAttemptRef.current = attempt;
+    }
+    let disposed = false;
+    setPendingAction('reconcile-ready-product-control-record');
+    setObserverError(null);
+    void attempt.promise
+      .then((next) => {
+        if (!disposed) notifyProjectionChange(next);
+      })
+      .catch((nextError) => {
+        if (!disposed) {
+          setObserverError(
+            nextError instanceof Error
+              ? nextError.message
+              : t('FirstRun.errors.repairReevaluateFailed', {
+                  defaultValue: 'Failed to re-check Nimi setup.',
+                }),
+          );
+        }
+      })
+      .finally(() => {
+        if (!disposed) setPendingAction(null);
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [firstRun, notifyProjectionChange, readyRecordReconciliationKey, t]);
 
   // A recorded Product Control dataRoot always wins. Before recording, the
   // field remains empty until the user explicitly chooses a folder.
@@ -594,10 +650,13 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       const next = await firstRun.getRecord();
       const nextScreen = projectNimiProductControlFirstRunScreen(next.state);
       if (
-        setupVisible
-        && next.state !== 'ready_for_use'
-        && nextScreen.kind === 'phase'
-        && nextScreen.phase === 'setup'
+        isReadyRecordSetupReconciliationRequired(next, setupVisible)
+        || (
+          setupVisible
+          && next.state !== 'ready_for_use'
+          && nextScreen.kind === 'phase'
+          && nextScreen.phase === 'setup'
+        )
       ) {
         notifyProjectionChange(await firstRun.reconcileSetupState());
       } else {

@@ -497,6 +497,37 @@ func TestRuntimeProductControlInstallLevelValidatesPresetAlias(t *testing.T) {
 	}
 }
 
+func TestRuntimeProductControlConfirmedInstallLevelEntersSetup(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	dataRoot := filepath.Join(home, "chosen-nimi-data")
+	response, err := service.SelectProductControlDataRoot(
+		context.Background(),
+		&runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot},
+	)
+	mustProductControlForTest(t, response, err)
+	response, err = service.CompleteProductControlFirstRunDeviceEnvironmentScan(
+		context.Background(),
+		&runtimev1.CompleteProductControlFirstRunDeviceEnvironmentScanRequest{},
+	)
+	scanned := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if scanned.State != productControlStateAIEnvironmentUnconfigured {
+		t.Fatalf("scanned state = %s", scanned.State)
+	}
+
+	response, err = service.SetProductControlFirstRunInstallLevel(
+		context.Background(),
+		&runtimev1.SetProductControlFirstRunInstallLevelRequest{
+			InstallLevel:   "minimal",
+			AiProfileAlias: "local-speech-ready",
+		},
+	)
+	confirmed := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if confirmed.State != productControlStateLocalAIProfileAssetsMissing {
+		t.Fatalf("confirmed state = %s", confirmed.State)
+	}
+}
+
 func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
@@ -581,10 +612,41 @@ func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 	if ready.State != productControlStateReadyForUse || ready.Record == nil {
 		t.Fatalf("ready projection = %+v", ready)
 	}
+	response, err = service.RecordProductControlFirstRunLocalAiReadyEvidence(context.Background(), &runtimev1.RecordProductControlFirstRunLocalAiReadyEvidenceRequest{
+		RuntimeBaselineRef:          baselineRecord.RuntimeBaselineRef,
+		BuiltInAiConfigEvidenceJson: refreshedBuiltInEvidenceJSON,
+		ExecutionEvidenceRef:        executionRecord.ExecutionEvidenceRef,
+	})
+	refreshedReady := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if refreshedReady.State != productControlStateReadyForUse || refreshedReady.Record == nil {
+		t.Fatalf("ready record was demoted by local AI evidence refresh: %+v", refreshedReady)
+	}
 	response, err = service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
 	readBack := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
 	if readBack.State != productControlStateReadyForUse || readBack.Record == nil {
 		t.Fatalf("readback projection = %+v", readBack)
+	}
+
+	service.mu.Lock()
+	service.runtimeBaselineReadinessRecords = make(map[string]runtimeBaselineReadinessRecord)
+	service.firstRunExecutionEvidenceRecords = make(map[string]firstRunExecutionEvidenceRecord)
+	service.mu.Unlock()
+	response, err = service.ReconcileProductControlFirstRunSetupState(
+		context.Background(),
+		&runtimev1.ReconcileProductControlFirstRunSetupStateRequest{},
+	)
+	reconciled := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if reconciled.State != productControlStateLocalAIProfileAssetsMissing || reconciled.Record == nil {
+		t.Fatalf("ready record with lost Runtime evidence was not reopened for finalization: %+v", reconciled)
+	}
+	if reconciled.Record.FirstRun.Completed ||
+		reconciled.Record.FirstRun.RuntimeBaselineRef != nil ||
+		reconciled.Record.FirstRun.ExecutionEvidenceRef != nil ||
+		len(reconciled.Record.FirstRun.BuiltInAIConfigRefs) != 0 {
+		t.Fatalf("stale Runtime-owned ready evidence survived reconciliation: %+v", reconciled.Record.FirstRun)
+	}
+	if reconciled.Record.FirstRun.AccountDefaultProfileRef == nil {
+		t.Fatalf("independent Account Default Profile evidence was discarded: %+v", reconciled.Record.FirstRun)
 	}
 }
 

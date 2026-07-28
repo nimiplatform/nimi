@@ -18,7 +18,7 @@ use windows_sys::Win32::Security::Authorization::{
 };
 use windows_sys::Win32::Security::{
     EqualSid, GetAce, GetTokenInformation, TokenUser, ACCESS_ALLOWED_ACE, ACL,
-    CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, OBJECT_INHERIT_ACE,
+    CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, NO_PROPAGATE_INHERIT_ACE, OBJECT_INHERIT_ACE,
     OWNER_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID, TOKEN_QUERY, TOKEN_USER,
 };
 use windows_sys::Win32::Storage::FileSystem::{
@@ -28,6 +28,7 @@ use windows_sys::Win32::Storage::FileSystem::{
 use windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW;
 use windows_sys::Win32::System::SystemServices::{ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE};
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+use windows_sys::Win32::UI::Shell::GetUserProfileDirectoryW;
 
 const FIXED_RUNTIME_SERVICE_SID: &str =
     "S-1-5-80-152272774-1324336204-4147968316-71209937-3548791786";
@@ -141,6 +142,10 @@ fn service_acl_grant() -> String {
     format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)M")
 }
 
+fn product_control_acl_grant() -> String {
+    format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(NP)M")
+}
+
 struct LocalAllocation(NonNull<c_void>);
 
 impl LocalAllocation {
@@ -173,13 +178,7 @@ impl Drop for OwnedHandle {
     }
 }
 
-fn wide_null(value: &std::ffi::OsStr) -> Vec<u16> {
-    value.encode_wide().chain(std::iter::once(0)).collect()
-}
-
-fn with_current_process_user_sid<T>(
-    use_sid: impl FnOnce(PSID) -> Result<T, FixedRuntimeDataRootError>,
-) -> Result<T, FixedRuntimeDataRootError> {
+fn current_process_token() -> Result<OwnedHandle, FixedRuntimeDataRootError> {
     let mut token: HANDLE = null_mut();
     // SAFETY: the current-process pseudo handle is valid and token points to
     // writable storage for the newly owned process-token handle.
@@ -191,13 +190,63 @@ fn with_current_process_user_sid<T>(
             format!("OpenProcessToken failed with {error}"),
         ));
     }
-    let _token = OwnedHandle(token);
+    Ok(OwnedHandle(token))
+}
+
+fn current_process_profile_root() -> Result<PathBuf, FixedRuntimeDataRootError> {
+    let token = current_process_token()?;
+    let mut required_chars = 0u32;
+    // SAFETY: the first call intentionally supplies no buffer and obtains the
+    // required UTF-16 character count for the current token's OS profile.
+    let first = unsafe { GetUserProfileDirectoryW(token.0, null_mut(), &mut required_chars) };
+    // SAFETY: GetLastError is read immediately after GetUserProfileDirectoryW.
+    let first_error = unsafe { GetLastError() };
+    if first != 0 || first_error != ERROR_INSUFFICIENT_BUFFER || required_chars < 2 {
+        return Err(FixedRuntimeDataRootError::new(
+            "resolve-interactive-user-profile",
+            format!("query GetUserProfileDirectoryW size failed with {first_error}"),
+        ));
+    }
+    let mut buffer = vec![0u16; required_chars as usize];
+    // SAFETY: buffer is writable for required_chars UTF-16 elements and the
+    // token remains open for the duration of the call.
+    if unsafe { GetUserProfileDirectoryW(token.0, buffer.as_mut_ptr(), &mut required_chars) } == 0 {
+        // SAFETY: GetLastError is read immediately after the failed Win32 call.
+        let error = unsafe { GetLastError() };
+        return Err(FixedRuntimeDataRootError::new(
+            "resolve-interactive-user-profile",
+            format!("read GetUserProfileDirectoryW failed with {error}"),
+        ));
+    }
+    let length = buffer
+        .iter()
+        .position(|value| *value == 0)
+        .unwrap_or(buffer.len());
+    let profile_root = PathBuf::from(OsString::from_wide(&buffer[..length]));
+    if !profile_root.is_absolute() || profile_root.parent().is_none() {
+        return Err(FixedRuntimeDataRootError::new(
+            "resolve-interactive-user-profile",
+            "the OS profile path is not an absolute non-volume-root directory",
+        ));
+    }
+    validate_selected_root_chain(&profile_root, false)?;
+    Ok(profile_root)
+}
+
+fn wide_null(value: &std::ffi::OsStr) -> Vec<u16> {
+    value.encode_wide().chain(std::iter::once(0)).collect()
+}
+
+fn with_current_process_user_sid<T>(
+    use_sid: impl FnOnce(PSID) -> Result<T, FixedRuntimeDataRootError>,
+) -> Result<T, FixedRuntimeDataRootError> {
+    let token = current_process_token()?;
 
     let mut required_bytes = 0u32;
     // SAFETY: the first call intentionally supplies no buffer and obtains the
     // required size for TOKEN_USER.
     let first =
-        unsafe { GetTokenInformation(token, TokenUser, null_mut(), 0, &mut required_bytes) };
+        unsafe { GetTokenInformation(token.0, TokenUser, null_mut(), 0, &mut required_bytes) };
     // SAFETY: GetLastError is read immediately after GetTokenInformation.
     let first_error = unsafe { GetLastError() };
     if first != 0 || first_error != ERROR_INSUFFICIENT_BUFFER || required_bytes == 0 {
@@ -213,7 +262,7 @@ fn with_current_process_user_sid<T>(
     // writable bytes. The embedded SID remains valid while use_sid executes.
     if unsafe {
         GetTokenInformation(
-            token,
+            token.0,
             TokenUser,
             buffer.as_mut_ptr().cast::<c_void>(),
             required_bytes,
@@ -282,7 +331,10 @@ fn validate_selected_root_owner(
     Ok(())
 }
 
-fn fixed_runtime_service_acl_is_exact(path: &Path) -> Result<bool, FixedRuntimeDataRootError> {
+fn fixed_runtime_service_acl_is_exact_with_flags(
+    path: &Path,
+    expected_flags: u8,
+) -> Result<bool, FixedRuntimeDataRootError> {
     let path_wide = wide_null(path.as_os_str());
     let mut dacl: *mut ACL = null_mut();
     let mut descriptor: PSECURITY_DESCRIPTOR = null_mut();
@@ -336,7 +388,6 @@ fn fixed_runtime_service_acl_is_exact(path: &Path) -> Result<bool, FixedRuntimeD
         )
     })?;
 
-    let expected_flags = (OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE) as u8;
     let mut matching_entries = 0usize;
     let mut exact_entry = false;
     // SAFETY: dacl belongs to the live security descriptor allocation. GetAce
@@ -373,11 +424,30 @@ fn fixed_runtime_service_acl_is_exact(path: &Path) -> Result<bool, FixedRuntimeD
     Ok(exact_entry && matching_entries == 1)
 }
 
-fn grant_fixed_runtime_service_acl(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
+fn fixed_runtime_service_acl_is_exact(path: &Path) -> Result<bool, FixedRuntimeDataRootError> {
+    fixed_runtime_service_acl_is_exact_with_flags(
+        path,
+        (OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE) as u8,
+    )
+}
+
+fn fixed_runtime_product_control_acl_is_exact(
+    path: &Path,
+) -> Result<bool, FixedRuntimeDataRootError> {
+    fixed_runtime_service_acl_is_exact_with_flags(
+        path,
+        (OBJECT_INHERIT_ACE | NO_PROPAGATE_INHERIT_ACE) as u8,
+    )
+}
+
+fn grant_fixed_runtime_service_acl_with(
+    path: &Path,
+    grant: String,
+) -> Result<(), FixedRuntimeDataRootError> {
     let mut child = Command::new(system_icacls_path()?)
         .arg(path)
         .arg("/grant:r")
-        .arg(service_acl_grant())
+        .arg(grant)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -410,6 +480,14 @@ fn grant_fixed_runtime_service_acl(path: &Path) -> Result<(), FixedRuntimeDataRo
         }
         thread::sleep(ACL_TOOL_POLL_INTERVAL);
     }
+}
+
+fn grant_fixed_runtime_service_acl(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
+    grant_fixed_runtime_service_acl_with(path, service_acl_grant())
+}
+
+fn grant_fixed_runtime_product_control_acl(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
+    grant_fixed_runtime_service_acl_with(path, product_control_acl_grant())
 }
 
 fn prepare_fixed_runtime_data_root_with<F>(
@@ -448,6 +526,23 @@ pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDa
     prepare_fixed_runtime_data_root_with(path, grant_fixed_runtime_service_acl)
 }
 
+/// Prepares the fixed interactive-user `~/.nimi` control directory for atomic
+/// Runtime-owned `nimi.json` writes. The exact production service SID receives
+/// Modify on the directory and its immediate files only; the ACE does not
+/// propagate into Desktop-owned subdirectories.
+pub(crate) fn prepare_fixed_runtime_product_control_root() -> Result<(), FixedRuntimeDataRootError>
+{
+    let root = current_process_profile_root()?.join(".nimi");
+    with_current_process_user_sid(|expected_owner| {
+        validate_selected_root(&root)?;
+        validate_selected_root_owner(&root, expected_owner)?;
+        if fixed_runtime_product_control_acl_is_exact(&root)? {
+            return Ok(());
+        }
+        grant_fixed_runtime_product_control_acl(&root)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -458,6 +553,14 @@ mod tests {
         assert_eq!(
             service_acl_grant(),
             format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)M"),
+        );
+    }
+
+    #[test]
+    fn product_control_grant_stops_at_immediate_files() {
+        assert_eq!(
+            product_control_acl_grant(),
+            format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(NP)M"),
         );
     }
 

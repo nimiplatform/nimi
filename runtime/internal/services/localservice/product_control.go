@@ -176,6 +176,12 @@ func (s *Service) SetProductControlFirstRunInstallLevel(_ context.Context, req *
 	record.FirstRun.ExecutionEvidenceRef = nil
 	if record.State == productControlStateDataRootSelected {
 		record.State = productControlStateAIEnvironmentUnconfigured
+	} else if record.State == productControlStateAIEnvironmentUnconfigured {
+		// This command is the user's concrete initialization-plan
+		// confirmation. Move Product Control into Setup even when every
+		// dependency is already present; Desktop will then project the
+		// materialization result and request Runtime-owned finalization.
+		record.State = productControlStateLocalAIProfileAssetsMissing
 	}
 	if err := writeProductControlRecord(path, record); err != nil {
 		return nil, err
@@ -282,6 +288,7 @@ func (s *Service) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.C
 	if err != nil {
 		return nil, err
 	}
+	wasReadyForUse := record.State == productControlStateReadyForUse
 	selectedFactoryRef := firstRunFactoryProfileRef(installLevel)
 	runtimeBaselineRef := strings.TrimSpace(req.GetRuntimeBaselineRef())
 	if runtimeBaselineRef == "" {
@@ -323,7 +330,11 @@ func (s *Service) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.C
 	record.FirstRun.RuntimeBaselineRef = stringPtr(runtimeBaseline.GetRuntimeBaselineRef())
 	record.FirstRun.BuiltInAIConfigRefs = builtInRefs
 	record.FirstRun.ExecutionEvidenceRef = stringPtr(executionEvidence.GetExecutionEvidenceRef())
-	record.State = productControlStateLocalAIReady
+	if wasReadyForUse {
+		record.State = productControlStateReadyForUse
+	} else {
+		record.State = productControlStateLocalAIReady
+	}
 	record.Repair = productRepairRecord{}
 	if record.DataRoot != nil {
 		record.DataRoot.Status = productDataRootStatusReady

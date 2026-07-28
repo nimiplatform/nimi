@@ -35,17 +35,36 @@ func (s *Service) ReconcileProductControlFirstRunSetupState(ctx context.Context,
 		return nil, err
 	}
 	if record.State == productControlStateLocalAIReady || record.State == productControlStateReadyForUse {
-		return productControlJSON(s.readProductControlProjection(ctx))
+		if _, failure := s.verifyProductControlReadyRecord(ctx, record); failure == "" {
+			return productControlJSON(s.readProductControlProjection(ctx))
+		}
+		resetProductControlReadyEvidenceForReconciliation(record)
 	}
 	reconciliation := s.deriveProductControlFirstRunSetupReconciliation(installLevel, selectedProductDataRootPath(record))
 	if reconciliation.LocalAIReady {
-		return productControlJSON(s.readProductControlProjection(ctx))
+		record.State = productControlStateLocalAIReady
+		record.Repair = productRepairRecord{}
+	} else {
+		applyProductControlFirstRunSetupReconciliation(record, reconciliation)
 	}
-	applyProductControlFirstRunSetupReconciliation(record, reconciliation)
 	if err := writeProductControlRecord(path, record); err != nil {
 		return nil, err
 	}
 	return productControlJSON(s.readProductControlProjection(ctx))
+}
+
+func resetProductControlReadyEvidenceForReconciliation(record *productControlRecord) {
+	record.FirstRun.Completed = false
+	record.FirstRun.CompletedAt = nil
+	record.FirstRun.InitializationPlanID = nil
+	record.FirstRun.BaselineProfileRef = nil
+	record.FirstRun.BaselineCommitID = nil
+	record.FirstRun.BuiltInAIConfigRefs = []string{}
+	record.FirstRun.RuntimeBaselineRef = nil
+	record.FirstRun.ExecutionEvidenceRef = nil
+	if record.DataRoot != nil {
+		record.DataRoot.Status = productDataRootStatusSelected
+	}
 }
 
 type productControlFirstRunSetupReconciliation struct {

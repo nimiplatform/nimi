@@ -333,7 +333,10 @@ class ElectronProductControlHost {
         hostProfile: input.hostProfile,
       }, 60_000));
       if (response.state === 'ready') return asRecord(response.ref);
-      if (response.reasonCode !== 'RUNTIME_BASELINE_READINESS_REF_BINDING_MISMATCH') {
+      if (![
+        'RUNTIME_BASELINE_READINESS_REF_UNKNOWN',
+        'RUNTIME_BASELINE_READINESS_REF_BINDING_MISMATCH',
+      ].includes(String(response.reasonCode))) {
         throw new Error(formatRuntimeReadinessFailure('runtime-baseline-not-ready', response));
       }
     }
@@ -369,6 +372,7 @@ class ElectronProductControlHost {
       }, 60_000));
       if (response.state === 'local_ai_ready') return asRecord(response.ref);
       if (![
+        'FIRST_RUN_EXECUTION_EVIDENCE_REF_UNKNOWN',
         'FIRST_RUN_EXECUTION_EVIDENCE_REF_BINDING_MISMATCH',
         'FIRST_RUN_EXECUTION_EVIDENCE_BASELINE_NOT_READY',
       ].includes(String(response.reasonCode))) {

@@ -4,6 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import {
+  isReadyRecordSetupReconciliationRequired,
   ProductControlWorkflow,
   resolveProductControlActionFailure,
   resolveProductControlWorkflowError,
@@ -62,6 +63,33 @@ test('a local first-run action error survives a clean projection refresh', () =>
     'Runtime-owned projection failed',
   );
   assert.equal(resolveProductControlWorkflowError(null, null, null), null);
+});
+
+test('a ready record with failed Runtime owner verification re-enters setup reconciliation', () => {
+  const projection = projectionFor('local_ai_profile_selected_environment_not_ready', {
+    state: 'ready_for_use',
+    firstRun: {
+      installLevel: 'minimal',
+      aiProfileAlias: 'local-speech-ready',
+      completed: true,
+      builtInAiConfigRefs: ['aiconfig:chat'],
+    },
+  });
+  assert.equal(
+    isReadyRecordSetupReconciliationRequired({
+      ...projection,
+      error: 'Runtime baseline readiness owner verification failed',
+    }, true),
+    true,
+  );
+  assert.equal(isReadyRecordSetupReconciliationRequired(projection, true), false);
+  assert.equal(
+    isReadyRecordSetupReconciliationRequired({
+      ...projection,
+      error: 'Runtime baseline readiness owner verification failed',
+    }, false),
+    false,
+  );
 });
 
 test('Runtime-owned data-root advancement resolves only the interrupted Storage action', () => {

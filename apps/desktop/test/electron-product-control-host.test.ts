@@ -5,8 +5,13 @@ import type {
   NimiElectronDesktopAccountHost,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
+  CollectDeviceProfileResponse,
+  MintFirstRunExecutionEvidenceResponse,
+  MintRuntimeBaselineReadinessResponse,
   ProductControlProjectionJson,
   RecordProductControlAccountDefaultProfileEvidenceRequest,
+  ResolveFirstRunExecutionEvidenceResponse,
+  ResolveRuntimeBaselineReadinessResponse,
   SelectProductControlDataRootRequest,
   SetProductControlFirstRunInstallLevelRequest,
 } from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/local_runtime';
@@ -26,6 +31,12 @@ const COMPLETE_DEVICE_SCAN = '/nimi.runtime.v1.RuntimeLocalService/CompleteProdu
 const SET_INSTALL_LEVEL = '/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel';
 const RECONCILE_SETUP = '/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState';
 const RECORD_ACCOUNT = '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence';
+const COLLECT_DEVICE_PROFILE = '/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile';
+const RESOLVE_BASELINE = '/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness';
+const MINT_BASELINE = '/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness';
+const RESOLVE_EXECUTION = '/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence';
+const MINT_EXECUTION = '/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence';
+const RECORD_LOCAL_AI = '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence';
 
 function projectionJson(state = 'data_root_selected'): string {
   return JSON.stringify({
@@ -375,6 +386,107 @@ test('Electron first-run host records Desktop evidence through the exact protect
     accountDefaultProfileRef: 'account-default-profile:v1:bound',
   });
 });
+
+test('Electron first-run host remints Runtime-owned evidence after unknown refs', async () => {
+  const calls: string[] = [];
+  const staleProjection = JSON.parse(projectionJson('local_ai_profile_selected_assets_missing'));
+  staleProjection.record.firstRun.accountDefaultProfileRef = 'account-default-profile:v1:bound';
+  staleProjection.record.firstRun.runtimeBaselineRef = 'runtime-baseline:stale';
+  staleProjection.record.firstRun.executionEvidenceRef = 'execution-evidence:stale';
+  const projectionBytes = ProductControlProjectionJson.toBinary(
+    ProductControlProjectionJson.create({ json: JSON.stringify(staleProjection) }),
+  );
+  const control: DesktopProductControlTransport = {
+    machineProductUnary: async (input) => {
+      calls.push(input.methodId);
+      if ([GET_RECORD, RECORD_ACCOUNT, RECORD_LOCAL_AI].includes(input.methodId)) {
+        return projectionBytes;
+      }
+      if (input.methodId === COLLECT_DEVICE_PROFILE) {
+        return CollectDeviceProfileResponse.toBinary(CollectDeviceProfileResponse.create({
+          profile: { os: 'windows', arch: 'x64' },
+        }));
+      }
+      if (input.methodId === RESOLVE_BASELINE) {
+        return ResolveRuntimeBaselineReadinessResponse.toBinary(
+          ResolveRuntimeBaselineReadinessResponse.create({
+            state: 'blocked',
+            reasonCode: 'RUNTIME_BASELINE_READINESS_REF_UNKNOWN',
+          }),
+        );
+      }
+      if (input.methodId === MINT_BASELINE) {
+        return MintRuntimeBaselineReadinessResponse.toBinary(
+          MintRuntimeBaselineReadinessResponse.create({
+            state: 'ready',
+            ref: { runtimeBaselineRef: 'runtime-baseline:fresh' },
+          }),
+        );
+      }
+      if (input.methodId === RESOLVE_EXECUTION) {
+        return ResolveFirstRunExecutionEvidenceResponse.toBinary(
+          ResolveFirstRunExecutionEvidenceResponse.create({
+            state: 'local_ai_blocked',
+            reasonCode: 'FIRST_RUN_EXECUTION_EVIDENCE_REF_UNKNOWN',
+          }),
+        );
+      }
+      if (input.methodId === MINT_EXECUTION) {
+        return MintFirstRunExecutionEvidenceResponse.toBinary(
+          MintFirstRunExecutionEvidenceResponse.create({
+            state: 'local_ai_ready',
+            ref: { executionEvidenceRef: 'execution-evidence:fresh' },
+          }),
+        );
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+  };
+  const host = createDesktopElectronProductControlHost({
+    control,
+    account: {
+      invoke: async () => ({
+        state: 'authenticated',
+        accountProjection: {
+          accountId: 'account-a',
+          displayName: 'Account A',
+          realmEnvironmentId: 'production',
+        },
+      }),
+      close: () => {},
+    },
+    evidence: {
+      ensureAccountDefaultProfile: () => ({
+        accountDefaultProfileRef: 'account-default-profile:v1:bound',
+      }),
+      readAccountDefaultProfile: () => { throw new Error('not-called'); },
+      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
+      ensureBuiltInAiConfigEvidenceSet: () => ({
+        builtInAiConfigRefs: ['aiconfig:chat'],
+      }),
+      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
+      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+    },
+  });
+
+  await host.commandHandlers.product_control_record_prepare_first_run_local_ai_ready({
+    command: 'product_control_record_prepare_first_run_local_ai_ready',
+    payload: {},
+  });
+
+  assert.deepEqual(calls, [
+    GET_RECORD,
+    RECORD_ACCOUNT,
+    GET_RECORD,
+    COLLECT_DEVICE_PROFILE,
+    RESOLVE_BASELINE,
+    MINT_BASELINE,
+    RESOLVE_EXECUTION,
+    MINT_EXECUTION,
+    RECORD_LOCAL_AI,
+  ]);
+});
+
 test('Electron first-run host rejects renderer-supplied evidence fields', async () => {
   const host = createDesktopElectronProductControlHost({
     control: {

@@ -466,6 +466,12 @@ impl NimiProtectedLocalHostCarrier for WindowsNamedPipeCarrier {
 
 async fn open_verified_desktop_control(
 ) -> Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError> {
+    tokio::task::spawn_blocking(
+        crate::windows_data_root::prepare_fixed_runtime_product_control_root,
+    )
+    .await
+    .map_err(|_| repair_required())?
+    .map_err(|_| repair_required())?;
     let session = shared_verified_desktop_runtime_session().await?;
     Ok(Box::new(WindowsDesktopControl {
         session,
