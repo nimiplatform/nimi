@@ -49,7 +49,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		"requested_model_id", req.GetHead().GetModelId(),
 	)
 	if acquireErr != nil {
-		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return schedulerAcquireError(acquireErr)
 	}
 	defer release()
 	waitMs := s.attachQueueWait(stream.Context(), acquireResult)

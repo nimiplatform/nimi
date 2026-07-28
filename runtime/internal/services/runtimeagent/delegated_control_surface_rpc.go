@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -77,13 +78,23 @@ func (s *Service) SubmitDelegatedApprovalDecision(ctx context.Context, req *runt
 	auditEvent, err := s.delegatedApprovalDecisionAuditEvent(agentID, approval, delegatedApprovalPrincipalID(req.GetContext()))
 	if err != nil {
 		s.delegatedMu.Unlock()
-		return nil, status.Errorf(codes.FailedPrecondition, "delegated approval decision audit linkage failed: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "delegated approval decision audit linkage failed"},
+		)
 	}
 	s.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, approvalID)] = proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	if err := s.persistDelegatedControlStateLocked(); err != nil {
 		s.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, approvalID)] = previous
 		s.delegatedMu.Unlock()
-		return nil, status.Errorf(codes.FailedPrecondition, "delegated approval decision persistence failed: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "delegated approval decision could not be persisted"},
+		)
 	}
 	out := proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	s.delegatedMu.Unlock()

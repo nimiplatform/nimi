@@ -149,10 +149,15 @@ func (s *Service) ensureManagedImageBackendStarted(ctx context.Context, reason s
 	if err := mgr.StartInstalledManagedImageBackend(ctx, cfg); err != nil {
 		detail := fmt.Sprintf("managed image backend start failed: %v", err)
 		s.SetManagedImageBackendHealth(false, detail)
-		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    detail,
-			ActionHint: "resolve_local_environment_plan_and_start_dependency_job",
-		})
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    "managed image backend failed to start",
+				ActionHint: "resolve_local_environment_plan_and_start_dependency_job",
+			},
+		)
 	}
 	s.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
 	s.MarkManagedEngineUsed(managedImageBackendEngineName, defaultString(strings.TrimSpace(reason), "managed_image_load"))
@@ -394,10 +399,15 @@ func (s *Service) runManagedImageLoadSingleflight(
 		cancel()
 		loadDurationMs := time.Since(startedAt).Milliseconds()
 		if errors.Is(loadErr, context.DeadlineExceeded) {
-			loadErr = grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{
-				Message:    "managed image backend load timed out while waiting for resident readiness",
-				ActionHint: "inspect_local_runtime_model_health",
-			})
+			loadErr = grpcerr.WrapWithReasonCode(
+				codes.DeadlineExceeded,
+				runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+				loadErr,
+				grpcerr.ReasonOptions{
+					Message:    "managed image backend load timed out while waiting for resident readiness",
+					ActionHint: "inspect_local_runtime_model_health",
+				},
+			)
 		} else {
 			loadErr = managedImageLoadErrorWithReason(loadErr)
 		}

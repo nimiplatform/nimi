@@ -50,7 +50,12 @@ func (s *Service) IngestDocument(ctx context.Context, req *runtimev1.IngestDocum
 	}
 	task, err := s.cognitionCore.RuntimeBridge().IngestKnowledge(ctx, access, scope.ScopeID, env)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "knowledge document ingest failed"},
+		)
 	}
 	s.rememberIngestTaskProjection(task.TaskID, scope.ScopeID, slug, title)
 	return &runtimev1.IngestDocumentResponse{
@@ -95,7 +100,12 @@ func (s *Service) GetIngestTask(ctx context.Context, req *runtimev1.GetIngestTas
 		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope)
 		task, err := s.cognitionCore.RuntimeBridge().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
 		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.NotFound,
+				runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge ingest task not found"},
+			)
 		}
 		return &runtimev1.GetIngestTaskResponse{Task: s.projectIngestTask(ctx, access, scope.ScopeID, task)}, nil
 	}

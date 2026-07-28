@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -112,7 +113,7 @@ func decodeJSONOrBinaryResponse(response *http.Response) (*JSONOrBinaryBody, err
 	}
 	raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return nil, providerResponseReadError(err)
 	}
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
 	looksLikeJSON := len(raw) > 0 && (raw[0] == '{' || raw[0] == '[')
@@ -170,6 +171,36 @@ func readLimitedResponseBody(reader io.Reader, limit int64) ([]byte, error) {
 	return raw, nil
 }
 
+func providerResponseReadError(err error) error {
+	message := "provider response body could not be read"
+	actionHint := "retry_or_check_provider_response"
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		message = "provider response exceeded the maximum allowed size"
+		actionHint = "reduce_provider_response_or_switch_model"
+	}
+	return grpcerr.WrapWithReasonCode(
+		codes.Internal,
+		runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+		err,
+		grpcerr.ReasonOptions{
+			ActionHint: actionHint,
+			Message:    message,
+		},
+	)
+}
+
+func providerResponseDecodeError(err error) error {
+	return grpcerr.WrapWithReasonCode(
+		codes.Internal,
+		runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+		err,
+		grpcerr.ReasonOptions{
+			ActionHint: "retry_or_check_provider_response",
+			Message:    "provider response body could not be decoded",
+		},
+	)
+}
+
 func providerHTTPErrorFromResponse(response *http.Response, targetURL string) (map[string]any, error) {
 	if response == nil {
 		return nil, MapProviderHTTPError(http.StatusServiceUnavailable, nil)
@@ -223,7 +254,7 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 		return nil
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return providerResponseDecodeError(err)
 	}
 	return nil
 }
@@ -289,7 +320,7 @@ func DoJSONRequestWithHeadersAndTimeout(
 		return nil
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return providerResponseDecodeError(err)
 	}
 	return nil
 }
@@ -336,7 +367,7 @@ func doJSONRequestWithBackendAndHeaders(
 		return nil
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return providerResponseDecodeError(err)
 	}
 	return nil
 }

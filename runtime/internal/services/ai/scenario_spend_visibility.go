@@ -35,7 +35,9 @@ func (s *Service) reportScenarioSpendDisclosure(ctx context.Context, head *runti
 	}
 	disclosure, err := spendvisibility.Project(input)
 	if err != nil {
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED)
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, err, grpcerr.ReasonOptions{
+			Message: "scenario spend disclosure could not be projected",
+		})
 	}
 	if s != nil && s.spendDisclosureReporter != nil {
 		s.spendDisclosureReporter(ctx, input, disclosure)

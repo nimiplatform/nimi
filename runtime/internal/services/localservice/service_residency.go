@@ -2,7 +2,6 @@ package localservice
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -99,10 +98,15 @@ func (s *Service) AcquireLocalAssetLease(ctx context.Context, localAssetID strin
 		return nil
 	}
 	if readyModel, err := s.ensureManagedSupervisedLlamaLeaseReady(ctx, model, reason); err != nil {
-		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    fmt.Sprintf("managed llama lease rejected: %s", strings.TrimSpace(err.Error())),
-			ActionHint: "inspect_local_runtime_model_health",
-		})
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    "managed local model lease is blocked by a local environment dependency",
+				ActionHint: "inspect_local_runtime_model_health",
+			},
+		)
 	} else if readyModel != nil {
 		model = readyModel
 	}

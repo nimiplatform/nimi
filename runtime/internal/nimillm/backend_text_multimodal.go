@@ -454,11 +454,21 @@ func (b *Backend) readInlineMediaBytes(ctx context.Context, location string) ([]
 	}
 	if isRemoteHTTPURL(value) {
 		if err := endpointsec.ValidateEndpoint(ctx, value, b != nil && b.allowLoopbackEndpoint); err != nil {
-			return nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+			return nil, "", grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+				err,
+				grpcerr.ReasonOptions{Message: "inline media endpoint is not permitted"},
+			)
 		}
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, value, nil)
 		if err != nil {
-			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return nil, "", grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_INPUT_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "inline media request could not be created"},
+			)
 		}
 		resp, err := b.do(request)
 		if err != nil {
@@ -470,7 +480,12 @@ func (b *Backend) readInlineMediaBytes(ctx context.Context, location string) ([]
 		}
 		payload, err := io.ReadAll(io.LimitReader(resp.Body, maxInlineOpenAIMediaBytes+1))
 		if err != nil {
-			return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+			return nil, "", grpcerr.WrapWithReasonCode(
+				codes.Unavailable,
+				runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "inline media response body could not be read"},
+			)
 		}
 		if len(payload) == 0 {
 			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -502,7 +517,15 @@ func decodeInlineDataURL(value string) ([]byte, string, error) {
 	}
 	mimeType := strings.TrimPrefix(strings.Split(header, ";")[0], "data:")
 	decoded, err := base64.StdEncoding.DecodeString(payload)
-	if err != nil || len(decoded) == 0 {
+	if err != nil {
+		return nil, "", grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "inline media payload could not be decoded"},
+		)
+	}
+	if len(decoded) == 0 {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if len(decoded) > maxInlineOpenAIMediaBytes {

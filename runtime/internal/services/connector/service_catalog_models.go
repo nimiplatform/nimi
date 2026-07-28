@@ -36,7 +36,7 @@ func (s *Service) ListCatalogProviderModels(ctx context.Context, req *runtimev1.
 	models, _, err := modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrProviderUnsupported) {
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+			return nil, catalogModelNotFoundError(err)
 		}
 		return nil, s.internalProviderError("list_catalog_provider_models", err)
 	}
@@ -99,7 +99,7 @@ func (s *Service) GetCatalogModelDetail(ctx context.Context, req *runtimev1.GetC
 	detail, record, _, err := modelCatalog.GetModelDetailForSubject(subjectUserID, provider, modelID)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrModelNotFound) || errors.Is(err, aicatalog.ErrProviderUnsupported) {
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+			return nil, catalogModelNotFoundError(err)
 		}
 		return nil, s.internalProviderError("get_catalog_model_detail", err)
 	}
@@ -144,16 +144,11 @@ func (s *Service) UpsertCatalogModelOverlay(ctx context.Context, req *runtimev1.
 	if err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-				ActionHint: "configure_runtime_model_catalog_custom_dir",
-			})
+			return nil, catalogMutationDisabledError(err)
 		case errors.Is(err, aicatalog.ErrProviderUnsupported):
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return nil, catalogProviderUnsupportedError(err)
 		default:
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-				ActionHint: "fix_provider_catalog_yaml",
-				Message:    err.Error(),
-			})
+			return nil, catalogInputInvalidError(err)
 		}
 	}
 
@@ -185,11 +180,9 @@ func (s *Service) DeleteCatalogModelOverlay(ctx context.Context, req *runtimev1.
 	if err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-				ActionHint: "configure_runtime_model_catalog_custom_dir",
-			})
+			return nil, catalogMutationDisabledError(err)
 		case errors.Is(err, aicatalog.ErrProviderUnsupported):
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return nil, catalogProviderUnsupportedError(err)
 		default:
 			return nil, s.internalProviderError("delete_catalog_model_overlay", err)
 		}

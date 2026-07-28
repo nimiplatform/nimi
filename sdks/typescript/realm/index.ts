@@ -170,6 +170,7 @@ export const REALM_WORLD_CORE_METHODS = [
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_WORLD_PUBLIC_METHODS = [
+  'worldPublicControllerGetCharacterSource',
   'worldPublicControllerGetWorld',
   'worldPublicControllerGetWorldDetailWithCharacters',
   'worldPublicControllerListWorldCharacters',

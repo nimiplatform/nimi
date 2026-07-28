@@ -19,7 +19,7 @@ func (s *Service) ReadLocalAppStorageJson(ctx context.Context, req *runtimev1.Re
 		return nil, err
 	}
 	if req == nil {
-		return nil, localAppStorageFailure(appstorage.ErrLocalAppJSONPathInvalid)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 	}
 	s.localAppStorageMu.RLock()
 	document, readErr := appstorage.ReadLocalAppJSON(s.appStorageDataRoot, decision.LocalAppPrincipalID, req.GetRelativePath())
@@ -61,7 +61,7 @@ func (s *Service) RemoveLocalAppStorageJson(ctx context.Context, req *runtimev1.
 		return nil, err
 	}
 	if req == nil {
-		return nil, localAppStorageFailure(appstorage.ErrLocalAppJSONPathInvalid)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 	}
 	s.localAppStorageMu.Lock()
 	removed, removeErr := appstorage.RemoveLocalAppJSON(s.appStorageDataRoot, decision.LocalAppPrincipalID, req.GetRelativePath())
@@ -87,16 +87,17 @@ func (s *Service) localAppStorageDecision(ctx context.Context, operation account
 }
 
 func localAppStorageFailure(err error) error {
+	options := grpcerr.ReasonOptions{Message: "local app storage operation failed"}
 	switch {
 	case errors.Is(err, appstorage.ErrLocalAppJSONPathInvalid):
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID, err, options)
 	case errors.Is(err, appstorage.ErrLocalAppJSONNotFound):
-		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_STORAGE_ENTRY_NOT_FOUND)
+		return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_STORAGE_ENTRY_NOT_FOUND, err, options)
 	case errors.Is(err, appstorage.ErrLocalAppJSONQuota):
-		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_APP_STORAGE_QUOTA_EXCEEDED)
+		return grpcerr.WrapWithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_APP_STORAGE_QUOTA_EXCEEDED, err, options)
 	case errors.Is(err, appstorage.ErrLocalAppJSONValueInvalid):
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, err, options)
 	default:
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE, err, options)
 	}
 }

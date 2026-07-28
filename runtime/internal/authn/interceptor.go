@@ -79,19 +79,26 @@ func authenticate(ctx context.Context, v *Validator, method string) (context.Con
 func authnFailureError(err error) error {
 	if IsSessionRevoked(err) {
 		retryable := false
-		return grpcerr.WithReasonCodeOptions(codes.Unauthenticated, runtimev1.ReasonCode_SESSION_EXPIRED, grpcerr.ReasonOptions{
+		return grpcerr.WrapWithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_SESSION_EXPIRED, err, grpcerr.ReasonOptions{
 			ActionHint: "reauthorize_runtime_account",
 			Retryable:  &retryable,
+			Message:    "runtime account session has expired",
 		})
 	}
 	if IsRevocationUnavailable(err) {
 		retryable := true
-		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AUTH_REVOCATION_UNAVAILABLE, grpcerr.ReasonOptions{
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUTH_REVOCATION_UNAVAILABLE, err, grpcerr.ReasonOptions{
 			ActionHint: "retry_revocation_introspection",
 			Retryable:  &retryable,
+			Message:    "runtime account revocation status is unavailable",
 		})
 	}
-	return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+	return grpcerr.WrapWithReasonCode(
+		codes.Unauthenticated,
+		runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+		err,
+		grpcerr.ReasonOptions{Message: "runtime account token is invalid"},
+	)
 }
 
 // extractBearerToken extracts the JWT from "Authorization: Bearer <token>" metadata.

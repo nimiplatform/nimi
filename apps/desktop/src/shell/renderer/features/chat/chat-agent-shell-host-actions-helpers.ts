@@ -2,7 +2,6 @@ import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import {
   createNimiHostRuntimeAgentPresentationProfileSurface,
   createNimiRuntimeAgentConsumeClient,
-  buildRuntimeAgentRequestContext,
   normalizeNimiRuntimeAgentPresentationRevision,
   normalizeNimiRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
@@ -94,16 +93,11 @@ async function syncRuntimePresentationProfile(input: {
     getSubjectUserId: () => input.context.subjectUserId,
     withScopes: input.sdk.withRuntimeProtectedScopes,
   });
+  // Protected desktop GetAgent forbids caller-built identity selectors: the
+  // Runtime injects the account principal and checks Agent ownership itself.
   const current = await input.sdk.withRuntimeProtectedScopes(
     ['runtime.agent.read'],
     (callOptions) => runtime.agent.getAgent({
-      context: buildRuntimeAgentRequestContext({
-        runtimeAppId: input.context.appId,
-        subjectUserId: input.context.subjectUserId,
-        ownerUserId: input.context.ownerUserId,
-        runtimeSourceRef: input.context.runtimeSourceRef,
-        localAgentRef: input.context.localAgentRef,
-      }),
       agentId: input.context.localAgentRef,
     }, callOptions),
   );
@@ -134,16 +128,11 @@ export async function ensureRuntimeAgentExists(
     runtimeSourceRef: target.runtimeSourceRef,
     localAgentRef: target.localAgentRef,
   };
+  // Protected desktop GetAgent forbids caller-built identity selectors: the
+  // Runtime injects the account principal and checks Agent ownership itself.
   const response = await sdk.withRuntimeProtectedScopes(
     ['runtime.agent.read'],
     (callOptions) => runtime.agent.getAgent({
-      context: buildRuntimeAgentRequestContext({
-        runtimeAppId: context.appId,
-        subjectUserId,
-        ownerUserId: context.ownerUserId,
-        runtimeSourceRef: context.runtimeSourceRef,
-        localAgentRef: context.localAgentRef,
-      }),
       agentId: context.localAgentRef,
     }, callOptions),
   );

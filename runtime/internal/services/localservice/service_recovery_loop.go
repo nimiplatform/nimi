@@ -190,6 +190,10 @@ func (s *Service) shouldProbeServiceNow(serviceID string, now time.Time) bool {
 }
 
 func (s *Service) setModelHealthDetail(localModelID string, detail string) {
+	s.setModelHealthDetailWithReason(localModelID, detail, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED)
+}
+
+func (s *Service) setModelHealthDetailWithReason(localModelID string, detail string, reason runtimev1.ReasonCode) {
 	id := strings.TrimSpace(localModelID)
 	if id == "" {
 		return
@@ -202,6 +206,10 @@ func (s *Service) setModelHealthDetail(localModelID string, detail string) {
 	}
 	cloned := cloneLocalAsset(record)
 	cloned.HealthDetail = strings.TrimSpace(detail)
+	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		reason = projectionReasonCodeForEngine(cloned.GetEngine(), detail)
+	}
+	cloned.ReasonCode = reason
 	cloned.UpdatedAt = nowISO()
 	s.assets[id] = cloned
 	s.persistStateLocked()

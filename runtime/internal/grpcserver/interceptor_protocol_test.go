@@ -2,6 +2,7 @@ package grpcserver
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -205,6 +206,19 @@ func TestUnaryProtocolInterceptorRejectsNonProtoWriteRequest(t *testing.T) {
 	}
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("unexpected status code: %v", status.Code(err))
+	}
+}
+
+func TestHashRequestPreservesMarshalCause(t *testing.T) {
+	_, err := hashRequest(&runtimev1.RemoveModelRequest{
+		AppId:   "nimi.desktop",
+		ModelId: string([]byte{0xff}),
+	})
+	if err == nil {
+		t.Fatal("expected deterministic marshal failure")
+	}
+	if errors.Unwrap(err) == nil {
+		t.Fatal("expected marshal cause to remain available in-process")
 	}
 }
 

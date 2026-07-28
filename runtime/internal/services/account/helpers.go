@@ -141,6 +141,7 @@ func normalizeMaterial(material AccountMaterial) AccountMaterial {
 	material.AccountID = strings.TrimSpace(material.AccountID)
 	material.DisplayName = strings.TrimSpace(material.DisplayName)
 	material.RealmEnvironmentID = strings.TrimSpace(material.RealmEnvironmentID)
+	material.RealmOrigin = strings.TrimRight(strings.TrimSpace(material.RealmOrigin), "/")
 	material.WorkspaceMemberships = normalizeWorkspaceMemberships(material.WorkspaceMemberships)
 	material.AccessToken = strings.TrimSpace(material.AccessToken)
 	material.RefreshToken = strings.TrimSpace(material.RefreshToken)

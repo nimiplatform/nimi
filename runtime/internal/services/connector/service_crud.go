@@ -103,7 +103,7 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 	created, err := s.store.CreateWithOwnerLimit(rec, secretPayload, maxConnectorsPerUser)
 	if err != nil {
 		if errors.Is(err, errConnectorLimitExceeded) {
-			return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED)
+			return nil, connectorLimitExceededError(err)
 		}
 		s.emitAudit(ctx, "connector.create", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, map[string]any{
 			"provider": provider,

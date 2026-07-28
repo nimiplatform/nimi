@@ -5,7 +5,10 @@ import {
   runtimeRpcAuthPosture,
   type RuntimeRpcAuthPosture,
 } from '../core-generated/runtime-rpc-auth-posture';
-import { RuntimeTypedClient } from '../core-generated/runtime-typed-client';
+import {
+  RealmSourceMaterializationReasonCode,
+  RuntimeTypedClient,
+} from '../core-generated/runtime-typed-client';
 import type {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
@@ -62,6 +65,7 @@ import {
   strictMaterializationRequestId,
   toRuntimeCharacterSourceRefV3,
 } from './runtime-materialization-input';
+import { isRuntimeLocalAgentRef } from './agent-local-identity';
 import { resolveNimiRuntimeAgentSubjectUserId } from './runtime-agent-protected';
 import { createRuntimeTauriIpcTransport, type RuntimeTauriIpcTransportOptions } from './tauri-ipc';
 
@@ -200,6 +204,48 @@ export interface RuntimeMaterializeRealmSourceInput {
 }
 
 export type RuntimeMaterializeRealmSourceResult = MaterializeRealmSourceResponse;
+
+function runtimeMaterializationReasonCodeName(
+  reasonCode: RealmSourceMaterializationReasonCode,
+): string {
+  const name = RealmSourceMaterializationReasonCode[reasonCode];
+  return typeof name === 'string' && name ? name : 'UNSPECIFIED';
+}
+
+function runtimeMaterializationFailure(
+  response: MaterializeRealmSourceResponse,
+): never {
+  const reasonName = runtimeMaterializationReasonCodeName(response.reasonCode);
+  throw createNimiError({
+    message: `Runtime Realm source materialization failed: ${reasonName.toLowerCase().replaceAll('_', ' ')}.`,
+    reasonCode: `REALM_SOURCE_MATERIALIZATION_REASON_CODE_${reasonName}`,
+    actionHint: 'inspect_realm_source_materialization_failure',
+    source: 'runtime',
+    details: {
+      idempotentReplay: response.idempotentReplay,
+    },
+  });
+}
+
+function requireCommittedRuntimeMaterialization(
+  response: MaterializeRealmSourceResponse,
+): RuntimeMaterializeRealmSourceResult {
+  if (response.reasonCode !== RealmSourceMaterializationReasonCode.NONE) {
+    runtimeMaterializationFailure(response);
+  }
+  if (!isRuntimeLocalAgentRef(response.localAgentRef)) {
+    throw createNimiError({
+      message: 'Runtime Realm source materialization returned no committed LocalAgent identity.',
+      reasonCode: 'REALM_SOURCE_MATERIALIZATION_RESPONSE_INVALID',
+      actionHint: 'inspect_realm_source_materialization_response',
+      source: 'runtime',
+      details: {
+        idempotentReplay: response.idempotentReplay,
+      },
+    });
+  }
+  return response;
+}
 
 type RuntimeNodeGrpcModule = typeof import('./node-grpc');
 
@@ -407,7 +453,7 @@ export class Runtime {
       this.#getSubjectUserId,
       'Realm source materialization requires authenticated subject user id.',
     );
-    return this.#materializeRealmSource({
+    const response = await this.#materializeRealmSource({
       context: {
         appId: this.#appId,
         subjectUserId,
@@ -418,6 +464,7 @@ export class Runtime {
       requestId,
       sourceRef,
     });
+    return requireCommittedRuntimeMaterialization(response);
   }
 
   health(request: GetRuntimeHealthRequest = {}, options: RuntimeTypedCallOptions = {}): Promise<GetRuntimeHealthResponse> {

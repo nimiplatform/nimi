@@ -9,8 +9,10 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -494,6 +496,32 @@ func TestRegisterExternalPrincipalRequiresSignatureKey(t *testing.T) {
 	}
 }
 
+func TestRegisterExternalPrincipalPreservesInvalidSignatureKeyCause(t *testing.T) {
+	const invalidKey = "private-invalid-signature-key"
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	_, err := svc.RegisterExternalPrincipal(context.Background(), &runtimev1.RegisterExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		Issuer:                "https://issuer.nimi.ai",
+		SignatureKeyId:        invalidKey,
+		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
+	})
+	if err == nil {
+		t.Fatal("expected invalid signature key error")
+	}
+	if !errors.Is(err, ErrTokenInvalid) {
+		t.Fatalf("expected ErrTokenInvalid cause, got %T: %v", errors.Unwrap(err), err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AUTH_TOKEN_INVALID {
+		t.Fatalf("unexpected reason = %s, ok = %v", reason, ok)
+	}
+	if strings.Contains(status.Convert(err).Message(), invalidKey) {
+		t.Fatalf("public status leaked signature key: %q", status.Convert(err).Message())
+	}
+}
+
 func TestOpenSessionRejectsTTLBounds(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
@@ -724,6 +752,7 @@ func TestExternalPrincipalProofValidation(t *testing.T) {
 		request    *runtimev1.OpenExternalPrincipalSessionRequest
 		wantCode   codes.Code
 		wantReason runtimev1.ReasonCode
+		wantCause  error
 	}{
 		{
 			name: "expired proof",
@@ -734,6 +763,7 @@ func TestExternalPrincipalProofValidation(t *testing.T) {
 			},
 			wantCode:   codes.Unauthenticated,
 			wantReason: runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED,
+			wantCause:  ErrTokenExpired,
 		},
 		{
 			name: "issuer mismatch",
@@ -744,6 +774,7 @@ func TestExternalPrincipalProofValidation(t *testing.T) {
 			},
 			wantCode:   codes.Unauthenticated,
 			wantReason: runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			wantCause:  ErrTokenInvalid,
 		},
 	}
 
@@ -760,8 +791,14 @@ func TestExternalPrincipalProofValidation(t *testing.T) {
 			if st.Code() != tt.wantCode {
 				t.Fatalf("expected code %v, got %v", tt.wantCode, st.Code())
 			}
-			if st.Message() != tt.wantReason.String() {
-				t.Fatalf("expected reason %v, got %s", tt.wantReason, st.Message())
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != tt.wantReason {
+				t.Fatalf("expected reason %v, got %v (ok=%v)", tt.wantReason, reason, ok)
+			}
+			if !errors.Is(err, tt.wantCause) {
+				t.Fatalf("expected cause %v, got %T: %v", tt.wantCause, errors.Unwrap(err), err)
+			}
+			if strings.Contains(st.Message(), tt.request.GetProof()) {
+				t.Fatalf("public status leaked proof: %q", st.Message())
 			}
 		})
 	}

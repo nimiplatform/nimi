@@ -230,7 +230,12 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 		}
 		var event map[string]any
 		if err := json.Unmarshal([]byte(data), &event); err != nil {
-			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_STREAM_BROKEN,
+				err,
+				grpcerr.ReasonOptions{Message: "provider stream event could not be decoded"},
+			)
 		}
 		switch currentEvent {
 		case "content_block_delta":
@@ -264,7 +269,12 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_STREAM_BROKEN,
+			err,
+			grpcerr.ReasonOptions{Message: "provider stream could not be read"},
+		)
 	}
 	if usage == nil {
 		usage = EstimateUsage(ComposeInputText(systemPrompt, input), outputBuilder.String())

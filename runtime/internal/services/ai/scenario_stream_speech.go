@@ -46,7 +46,9 @@ func (s *Service) speechSynthesizeRouteSupportsNativeStreamTTS(
 		if errors.Is(err, catalog.ErrModelNotFound) {
 			return false, nil
 		}
-		return false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return false, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "speech streaming route catalog metadata could not be read",
+		})
 	}
 	return model.VoiceRequestOptions != nil && model.VoiceRequestOptions.SupportsNativeStreamTTS, nil
 }
@@ -67,7 +69,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetHead().GetAppId())
 	if acquireErr != nil {
-		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return schedulerAcquireError(acquireErr)
 	}
 	defer release()
 	waitMs := s.attachQueueWait(stream.Context(), acquireResult)

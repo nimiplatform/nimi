@@ -126,45 +126,45 @@ func mapEngineManagerError(engine string, operation string, err error) error {
 	speechEngine := strings.EqualFold(strings.TrimSpace(engine), "speech")
 
 	if strings.Contains(lower, "unknown engine") || strings.Contains(lower, "engine kind") {
-		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
-			Message:    "invalid engine for " + operation,
-			ActionHint: "use_one_of_llama_media_speech_or_sidecar",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			"invalid engine for "+operation,
+			"use_one_of_llama_media_speech_or_sidecar",
+		)
 	}
 
 	if strings.Contains(lower, "already running") {
-		return grpcerr.WithReasonCodeOptions(codes.AlreadyExists, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "engine already running",
-			ActionHint: "query_engine_status_before_start",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.AlreadyExists,
+			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			"engine already running",
+			"query_engine_status_before_start",
+		)
 	}
 
 	if errors.Is(err, runtimeengine.ErrEngineBinaryDependencyNotReady) ||
 		strings.Contains(lower, "local environment dependency") ||
 		strings.Contains(lower, "llama.cpp.package") {
-		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "engine package is not ready",
-			ActionHint: "resolve_local_environment_plan_and_start_dependency_job",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			"engine package is not ready",
+			"resolve_local_environment_plan_and_start_dependency_job",
+		)
 	}
 
 	if strings.Contains(lower, "not started") || strings.Contains(lower, "not found") {
-		return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "engine not found",
-			ActionHint: "start_or_ensure_engine_first",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.NotFound,
+			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			"engine not found",
+			"start_or_ensure_engine_first",
+		)
 	}
 
 	if strings.Contains(lower, "configure an attached endpoint instead") ||
@@ -172,21 +172,21 @@ func mapEngineManagerError(engine string, operation string, err error) error {
 		strings.Contains(lower, "requires an nvidia gpu") ||
 		strings.Contains(lower, "requires a cuda-ready nvidia runtime") {
 		if speechEngine {
-			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED, grpcerr.ReasonOptions{
-				Message:    "local speech preflight blocked on this host",
-				ActionHint: "configure_attached_endpoint_or_use_supported_host",
-				Metadata: map[string]string{
-					"detail": raw,
-				},
-			})
+			return wrapEngineManagerError(
+				err,
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED,
+				"local speech preflight blocked on this host",
+				"configure_attached_endpoint_or_use_supported_host",
+			)
 		}
-		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "engine supervised mode is unavailable on this host",
-			ActionHint: "configure_attached_endpoint_or_use_supported_host",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			"engine supervised mode is unavailable on this host",
+			"configure_attached_endpoint_or_use_supported_host",
+		)
 	}
 
 	if speechEngine &&
@@ -196,33 +196,33 @@ func mapEngineManagerError(engine string, operation string, err error) error {
 			strings.Contains(lower, "write speech server script") ||
 			strings.Contains(lower, "install speech dependencies") ||
 			strings.Contains(lower, "write speech dependency stamp")) {
-		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED, grpcerr.ReasonOptions{
-			Message:    "local speech environment initialization failed",
-			ActionHint: "retry_or_repair_local_speech_environment",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED,
+			"local speech environment initialization failed",
+			"retry_or_repair_local_speech_environment",
+		)
 	}
 
 	if strings.Contains(lower, "hash mismatch") || strings.Contains(lower, "checksum") {
-		return grpcerr.WithReasonCodeOptions(codes.DataLoss, runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH, grpcerr.ReasonOptions{
-			Message:    "engine binary checksum mismatch",
-			ActionHint: "verify_llama_release_checksum",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.DataLoss,
+			runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH,
+			"engine binary checksum mismatch",
+			"verify_llama_release_checksum",
+		)
 	}
 
 	if strings.Contains(lower, "download") {
-		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_FAILED, grpcerr.ReasonOptions{
-			Message:    "engine binary download failed",
-			ActionHint: "retry_download_or_check_network",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.Internal,
+			runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_FAILED,
+			"engine binary download failed",
+			"retry_download_or_check_network",
+		)
 	}
 
 	if strings.Contains(lower, "timed out") ||
@@ -231,30 +231,48 @@ func mapEngineManagerError(engine string, operation string, err error) error {
 		strings.Contains(lower, "port") ||
 		strings.Contains(lower, "connect") {
 		if speechEngine {
-			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED, grpcerr.ReasonOptions{
-				Message:    "local speech host unavailable during " + operation,
-				ActionHint: "retry_or_check_local_speech_host",
-				Metadata: map[string]string{
-					"detail": raw,
-				},
-			})
+			return wrapEngineManagerError(
+				err,
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED,
+				"local speech host unavailable during "+operation,
+				"retry_or_check_local_speech_host",
+			)
 		}
-		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "engine unavailable during " + operation,
-			ActionHint: "retry_or_check_engine_runtime",
-			Metadata: map[string]string{
-				"detail": raw,
-			},
-		})
+		return wrapEngineManagerError(
+			err,
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			"engine unavailable during "+operation,
+			"retry_or_check_engine_runtime",
+		)
 	}
 
-	return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-		Message:    "engine operation failed",
-		ActionHint: "retry_or_check_runtime_logs",
-		Metadata: map[string]string{
-			"detail": raw,
+	return wrapEngineManagerError(
+		err,
+		codes.Internal,
+		runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+		"engine operation failed",
+		"retry_or_check_runtime_logs",
+	)
+}
+
+func wrapEngineManagerError(
+	err error,
+	code codes.Code,
+	reason runtimev1.ReasonCode,
+	message string,
+	actionHint string,
+) error {
+	return grpcerr.WrapWithReasonCode(
+		code,
+		reason,
+		err,
+		grpcerr.ReasonOptions{
+			Message:    message,
+			ActionHint: actionHint,
 		},
-	})
+	)
 }
 
 func engineInfoToProto(info EngineInfo) *runtimev1.LocalEngineDescriptor {

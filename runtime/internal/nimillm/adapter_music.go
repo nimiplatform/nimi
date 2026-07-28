@@ -526,7 +526,7 @@ func doMultipartMusicRequest(
 	}
 	raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return nil, providerResponseReadError(err)
 	}
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
 	if strings.Contains(contentType, "application/json") {

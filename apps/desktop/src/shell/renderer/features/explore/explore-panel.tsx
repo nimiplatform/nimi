@@ -213,6 +213,13 @@ export function ExplorePanel(props: ExplorePanelProps) {
         message: 'action:realm-source-materialization:partner-opened',
       });
     } catch (error) {
+      // eslint-disable-next-line no-console -- temporary debug instrumentation
+      console.error('[nimi-debug-open-partner]', error, (error as { cause?: unknown })?.cause, JSON.stringify({
+        message: (error as Error)?.message,
+        reasonCode: (error as { reasonCode?: string })?.reasonCode,
+        actionHint: (error as { actionHint?: string })?.actionHint,
+        causeMessage: ((error as { cause?: Error })?.cause)?.message,
+      }));
       setFeedback({
         kind: 'error',
         message: characterSourceMaterializationFailureMessage(error, i18n.t),

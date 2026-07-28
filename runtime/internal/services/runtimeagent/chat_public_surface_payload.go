@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -64,14 +65,24 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 	decoder.DisallowUnknownFields()
 	var decoded publicChatTurnRequestPayload
 	if err := decoder.Decode(&decoded); err != nil {
-		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload invalid")
+		return publicChatTurnRequestPayload{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "public chat turn payload invalid"},
+		)
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		if err == nil {
 			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload must contain one object")
 		}
-		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload invalid")
+		return publicChatTurnRequestPayload{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "public chat turn payload invalid"},
+		)
 	}
 	if strings.TrimSpace(decoded.AgentID) != "" {
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload must use local_agent_ref, not agent_id")
@@ -121,14 +132,24 @@ func decodePublicChatTurnInterruptPayload(payload any) (publicChatTurnInterruptP
 	decoder.DisallowUnknownFields()
 	var decoded publicChatTurnInterruptPayload
 	if err := decoder.Decode(&decoded); err != nil {
-		return publicChatTurnInterruptPayload{}, status.Error(codes.InvalidArgument, "public chat interrupt payload invalid")
+		return publicChatTurnInterruptPayload{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "public chat interrupt payload invalid"},
+		)
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		if err == nil {
 			return publicChatTurnInterruptPayload{}, status.Error(codes.InvalidArgument, "public chat interrupt payload must contain one object")
 		}
-		return publicChatTurnInterruptPayload{}, status.Error(codes.InvalidArgument, "public chat interrupt payload invalid")
+		return publicChatTurnInterruptPayload{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "public chat interrupt payload invalid"},
+		)
 	}
 	if strings.TrimSpace(decoded.ConversationAnchorID) == "" {
 		return publicChatTurnInterruptPayload{}, status.Error(codes.InvalidArgument, "public chat interrupt payload requires conversation_anchor_id")
@@ -145,14 +166,24 @@ func decodePublicChatTurnVoiceRenderPayload(payload any) (publicChatTurnVoiceRen
 	decoder.DisallowUnknownFields()
 	var decoded publicChatTurnVoiceRenderPayload
 	if err := decoder.Decode(&decoded); err != nil {
-		return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render payload invalid")
+		return publicChatTurnVoiceRenderPayload{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "public chat voice render payload invalid"},
+		)
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		if err == nil {
 			return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render payload must contain one object")
 		}
-		return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render payload invalid")
+		return publicChatTurnVoiceRenderPayload{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "public chat voice render payload invalid"},
+		)
 	}
 	if strings.TrimSpace(decoded.ConversationAnchorID) == "" {
 		return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render payload requires conversation_anchor_id")
@@ -178,7 +209,12 @@ func decodePublicChatStructPayload(payload any) ([]byte, error) {
 	}
 	raw, err := json.Marshal(structPayload.AsMap())
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "public chat payload invalid")
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "public chat payload invalid"},
+		)
 	}
 	return raw, nil
 }

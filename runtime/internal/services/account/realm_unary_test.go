@@ -10,8 +10,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestRealmBrokerOperationSetIsExactDesktopSourceReadinessVocabulary(t *testing.T) {
-	expected := map[string]struct {
+func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing.T) {
+	expectedSourceReadiness := map[string]struct {
 		method string
 		path   string
 	}{
@@ -21,17 +21,18 @@ func TestRealmBrokerOperationSetIsExactDesktopSourceReadinessVocabulary(t *testi
 		"WorldCoreController_listPersonaCharacters":          {method: http.MethodGet, path: "/api/realm/core/persona-characters"},
 		"WorldCoreController_discoverPersonaCharacters":      {method: http.MethodGet, path: "/api/realm/core/persona-characters/discovery"},
 		"WorldCoreController_listWorldRelationships":         {method: http.MethodGet, path: "/api/realm/core/worlds/{worldId}/relationships"},
+		"WorldPublicController_getCharacterSource":           {method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		"WorldPublicController_getWorld":                     {method: http.MethodGet, path: "/api/world/by-id/{worldId}"},
 		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
 		"WorldPublicController_listWorlds":                   {method: http.MethodGet, path: "/api/world"},
 	}
-	if len(realmBrokerOperations) != len(expected) {
-		t.Fatalf("Realm broker operation count = %d, want %d", len(realmBrokerOperations), len(expected))
+	if len(realmBrokerOperations) != 75 {
+		t.Fatalf("Realm broker operation count = %d, want 75", len(realmBrokerOperations))
 	}
-	for operationID, operation := range realmBrokerOperations {
-		want, ok := expected[operationID]
+	for operationID, want := range expectedSourceReadiness {
+		operation, ok := realmBrokerOperations[operationID]
 		if !ok {
-			t.Fatalf("unlisted Realm broker operation generated: %s", operationID)
+			t.Fatalf("source-readiness Realm broker operation missing: %s", operationID)
 		}
 		if operation.method != want.method || operation.path != want.path {
 			t.Fatalf("%s route = %s %s, want %s %s", operationID, operation.method, operation.path, want.method, want.path)
@@ -119,6 +120,7 @@ func TestInvokeRealmUnaryAdmitsExactDesktopSourceReadinessOperationIDs(t *testin
 		{name: "persona list", methodID: "WorldCoreController_listPersonaCharacters", requestJSON: `{}`, method: http.MethodGet, path: "/api/realm/core/persona-characters"},
 		{name: "persona discovery", methodID: "WorldCoreController_discoverPersonaCharacters", requestJSON: `{}`, method: http.MethodGet, path: "/api/realm/core/persona-characters/discovery"},
 		{name: "relationship list", methodID: "WorldCoreController_listWorldRelationships", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/realm/core/worlds/world-1/relationships"},
+		{name: "public character source", methodID: "WorldPublicController_getCharacterSource", requestJSON: `{"body":{"sourceRef":{"kind":"worldCharacter","id":"character-1","worldId":"world-1","worldEntityRef":{"kind":"worldEntity","worldId":"world-1","entityId":"entity-1"},"sourceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}`, method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		{name: "world detail", methodID: "WorldPublicController_getWorld", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1"},
 		{name: "world sources", methodID: "WorldPublicController_getWorldDetailWithCharacters", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1/detail-with-characters"},
 		{name: "world list", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, method: http.MethodGet, path: "/api/world"},
@@ -147,9 +149,8 @@ func TestInvokeRealmUnaryRejectsEveryUnlistedOperation(t *testing.T) {
 	for _, operationID := range []string{
 		"WorldCoreController_createSourceMaterializationPacket",
 		"WorldCoreController_listWorldCores",
-		"WorldPublicController_listWorldCharacters",
-		"getExploreFeed",
-		"getMe",
+		"getPublicPost",
+		"requestDataExport",
 		"createImageDirectUpload",
 	} {
 		t.Run(operationID, func(t *testing.T) {

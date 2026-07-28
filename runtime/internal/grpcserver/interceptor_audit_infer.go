@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,6 +19,9 @@ func reasonCodeFromError(err error) runtimev1.ReasonCode {
 	}
 	if st.Code() == codes.OK {
 		return runtimev1.ReasonCode_ACTION_EXECUTED
+	}
+	if reason, exists := grpcerr.ExtractReasonCode(err); exists {
+		return reason
 	}
 	if value, exists := runtimev1.ReasonCode_value[st.Message()]; exists {
 		return runtimev1.ReasonCode(value)

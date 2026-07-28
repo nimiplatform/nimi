@@ -34,12 +34,14 @@ func (s *Service) CreateKnowledgeBank(ctx context.Context, req *runtimev1.Create
 	scope, err := s.cognitionCore.RuntimeBridge().CreateKnowledgeScope(ctx, access, desc)
 	if err != nil {
 		if errors.Is(err, cognitionpkg.ErrScopeOwnerConflict) {
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_KNOWLEDGE_BANK_ALREADY_EXISTS)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.AlreadyExists,
+				runtimev1.ReasonCode_KNOWLEDGE_BANK_ALREADY_EXISTS,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge bank already exists"},
+			)
 		}
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "retry_after_cognition_storage_recovery",
-			Message:    "create knowledge bank: cognition storage error: " + err.Error(),
-		})
+		return nil, cognitionStorageError(err, "knowledge bank could not be created")
 	}
 	return &runtimev1.CreateKnowledgeBankResponse{Bank: bankFromScope(scope)}, nil
 }
@@ -72,7 +74,12 @@ func (s *Service) ListKnowledgeBanks(ctx context.Context, req *runtimev1.ListKno
 		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), cognitionpkg.KnowledgeScope{Owner: owner})
 		scopes, nextToken, err := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, access, filter)
 		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge bank listing failed"},
+			)
 		}
 		banks := make([]*runtimev1.KnowledgeBank, 0, len(scopes))
 		for _, scope := range scopes {
@@ -91,7 +98,12 @@ func (s *Service) ListKnowledgeBanks(ctx context.Context, req *runtimev1.ListKno
 	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), cognitionpkg.KnowledgeScope{Owner: owner})
 	scopes, nextToken, err := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, access, filter)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "knowledge bank listing failed"},
+		)
 	}
 	banks := make([]*runtimev1.KnowledgeBank, 0, len(scopes))
 	for _, scope := range scopes {
@@ -117,12 +129,14 @@ func (s *Service) DeleteKnowledgeBank(ctx context.Context, req *runtimev1.Delete
 	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionDeleteBank, req.GetContext(), scope)
 	if err := s.cognitionCore.RuntimeBridge().DeleteKnowledgeScope(ctx, access, strings.TrimSpace(req.GetBankId())); err != nil {
 		if errors.Is(err, cognitionpkg.ErrScopeNotFound) {
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.NotFound,
+				runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge bank not found"},
+			)
 		}
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "retry_after_cognition_storage_recovery",
-			Message:    "delete knowledge bank: cascade error: " + err.Error(),
-		})
+		return nil, cognitionStorageError(err, "knowledge bank could not be deleted")
 	}
 	return &runtimev1.DeleteKnowledgeBankResponse{Ack: okAck()}, nil
 }

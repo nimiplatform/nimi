@@ -33,7 +33,7 @@ func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInter
 			}
 			requestHash, hashErr := hashRequest(req)
 			if hashErr != nil {
-				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+				return nil, hashErr
 			}
 			if replay, hit, conflict := store.Load(info.FullMethod, appID, meta.ParticipantID, meta.IdempotencyKey, requestHash); conflict {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -123,7 +123,15 @@ func hashRequest(req any) (string, error) {
 	}
 	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(msg)
 	if err != nil {
-		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{
+				ActionHint: "fix_request_envelope",
+				Message:    "request envelope could not be encoded",
+			},
+		)
 	}
 	sum := sha256.Sum256(raw)
 	return hex.EncodeToString(sum[:]), nil

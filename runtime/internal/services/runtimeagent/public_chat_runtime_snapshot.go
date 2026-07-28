@@ -4,6 +4,8 @@ import (
 	"strings"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -93,7 +95,12 @@ func (r publicChatRuntime) buildSessionSnapshotFromState(
 	}
 	snapshot, err := structpb.NewStruct(snapshotDetail)
 	if err != nil {
-		return nil, publicChatAnchorState{}, false, false, false, status.Errorf(codes.Internal, "public chat session snapshot invalid: %v", err)
+		return nil, publicChatAnchorState{}, false, false, false, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "public chat session snapshot invalid"},
+		)
 	}
 	r.svc.observeCounter("runtime_agent_session_snapshot_query_total", 1,
 		"caller_app_id", strings.TrimSpace(callerAppID),

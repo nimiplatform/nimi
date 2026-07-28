@@ -558,10 +558,14 @@ func TestMapProviderRequestError_GenericNetwork(t *testing.T) {
 
 func TestMapProviderRequestError_DropsCredentialBearingProviderMessage(t *testing.T) {
 	const secret = "provider-secret-value"
-	err := MapProviderRequestError(errors.New("dial failed: https://provider.invalid/v1?api_key=" + secret))
+	cause := errors.New("dial failed: https://provider.invalid/v1?api_key=" + secret)
+	err := MapProviderRequestError(cause)
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
 		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v (ok=%v)", reason, ok)
+	}
+	if !errors.Is(err, cause) {
+		t.Fatal("expected provider request cause to remain available in-process")
 	}
 	metadata := extractErrorInfoMetadata(err)
 	if _, exists := metadata["provider_message"]; exists {

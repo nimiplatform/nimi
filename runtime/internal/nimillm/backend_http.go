@@ -107,7 +107,7 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 
 	body, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return nil, providerResponseReadError(err)
 	}
 	if len(body) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -126,7 +126,7 @@ func DecodeResponseJSON(response *http.Response, target any) error {
 		return mappedErr
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return providerResponseDecodeError(err)
 	}
 	return nil
 }

@@ -27,9 +27,12 @@ func (s *Service) internalProviderError(operation string, err error) error {
 	} else {
 		s.logger.Error("connector service internal error", "operation", operation)
 	}
-	return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-		ActionHint: "retry_or_check_runtime_logs",
-	})
+	return grpcerr.WrapWithReasonCode(
+		codes.Internal,
+		runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+		err,
+		grpcerr.ReasonOptions{ActionHint: "retry_or_check_runtime_logs"},
+	)
 }
 
 func subjectUserIDFromContext(ctx context.Context) (string, bool) {

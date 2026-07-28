@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,6 +16,22 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestReasonCodeFromErrorUsesErrorInfoDetail(t *testing.T) {
+	err := grpcerr.WrapWithReasonCode(
+		codes.Internal,
+		runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+		io.ErrUnexpectedEOF,
+		grpcerr.ReasonOptions{
+			ActionHint: "retry_or_check_provider_response",
+			Message:    "provider response body could not be read",
+		},
+	)
+
+	if got := reasonCodeFromError(err); got != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+		t.Fatalf("reasonCodeFromError() = %v, want %v", got, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+}
 
 func mustListAuditEvents(t *testing.T, store *auditlog.Store, req *runtimev1.ListAuditEventsRequest) *runtimev1.ListAuditEventsResponse {
 	t.Helper()

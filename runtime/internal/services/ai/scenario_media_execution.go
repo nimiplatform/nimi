@@ -617,7 +617,7 @@ func validateConnectorTTSVoiceRefKindSupport(
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
 			providerMessage := "model not found in provider voice catalog"
-			return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
+			return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
 				ActionHint: "switch_tts_model_or_refresh_connector_models",
 				Message:    providerMessage,
 				Metadata: map[string]string{

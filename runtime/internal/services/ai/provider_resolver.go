@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -25,14 +24,7 @@ func (s *routeSelector) resolveBindingRouteModel(requested runtimev1.RoutePolicy
 	rawModel := strings.TrimSpace(modelID)
 	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
 	if err != nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCodeOptions(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID,
-			grpcerr.ReasonOptions{
-				ActionHint: "configure_runtime_default_target",
-				Message:    fmt.Sprintf("resolve default target for %q: %v", rawModel, err),
-			},
-		)
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", defaultTargetResolutionError(err)
 	}
 	rawModel = strings.TrimSpace(resolvedModel)
 	preferred := preferredRoute(rawModel)
@@ -60,11 +52,7 @@ func (s *routeSelector) resolveCommittedBindingRouteModel(requested runtimev1.Ro
 	rawModel := strings.TrimSpace(modelID)
 	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
 	if err != nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCodeOptions(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID,
-			grpcerr.ReasonOptions{ActionHint: "configure_runtime_default_target", Message: fmt.Sprintf("resolve default target for %q: %v", rawModel, err)},
-		)
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", defaultTargetResolutionError(err)
 	}
 	rawModel = strings.TrimSpace(resolvedModel)
 	var target provider
@@ -86,14 +74,7 @@ func (s *routeSelector) resolveProviderWithTargetAndModal(ctx context.Context, r
 	rawModel := strings.TrimSpace(modelID)
 	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
 	if err != nil {
-		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", nimillm.RouteDecisionInfo{}, grpcerr.WithReasonCodeOptions(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID,
-			grpcerr.ReasonOptions{
-				ActionHint: "configure_runtime_default_target",
-				Message:    fmt.Sprintf("resolve default target for %q: %v", rawModel, err),
-			},
-		)
+		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", nimillm.RouteDecisionInfo{}, defaultTargetResolutionError(err)
 	}
 	rawModel = strings.TrimSpace(resolvedModel)
 
@@ -136,6 +117,13 @@ func (s *routeSelector) resolveProviderWithTargetAndModal(ctx context.Context, r
 		}
 	}
 	return target, target.Route(), modelResolved, decision, nil
+}
+
+func defaultTargetResolutionError(cause error) error {
+	return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, cause, grpcerr.ReasonOptions{
+		ActionHint: "configure_runtime_default_target",
+		Message:    "runtime default target could not be resolved",
+	})
 }
 
 type modalAvailabilityProvider interface {

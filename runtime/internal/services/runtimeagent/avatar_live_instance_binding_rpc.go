@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -86,18 +87,33 @@ func (s *Service) RegisterAvatarLiveInstanceBinding(ctx context.Context, req *ru
 	snapshotState, captureErr := s.capturePublicChatSurfaceSnapshotLocked()
 	s.chatSurfaceMu.Unlock()
 	if captureErr != nil {
-		return nil, status.Errorf(codes.Unavailable, "capture avatar live instance binding snapshot: %v", captureErr)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			captureErr,
+			grpcerr.ReasonOptions{Message: "avatar live instance binding snapshot could not be captured"},
+		)
 	}
 	if err := s.chatStateRepo.persistPublicChatSurfaceState(snapshotState); err != nil {
 		s.chatSurfaceMu.Lock()
 		delete(s.avatarLiveInstanceBindings, key)
 		s.chatSurfaceMu.Unlock()
-		return nil, status.Errorf(codes.Unavailable, "persist avatar live instance binding: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "avatar live instance binding could not be persisted"},
+		)
 	}
 
 	metadata, err := s.chatStateRepo.loadConversationAnchorMetadata(anchorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Unavailable, "load conversation anchor metadata: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "conversation anchor metadata could not be loaded"},
+		)
 	}
 	return &runtimev1.RegisterAvatarLiveInstanceBindingResponse{
 		Binding:  runtimeAvatarLiveInstanceBinding(binding),
@@ -153,7 +169,12 @@ func (s *Service) ResolveAvatarLiveInstanceBinding(ctx context.Context, req *run
 
 	metadata, err := s.chatStateRepo.loadConversationAnchorMetadata(bindingClone.ConversationAnchorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Unavailable, "load conversation anchor metadata: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "conversation anchor metadata could not be loaded"},
+		)
 	}
 	return &runtimev1.ResolveAvatarLiveInstanceBindingResponse{
 		Binding:  runtimeAvatarLiveInstanceBinding(&bindingClone),

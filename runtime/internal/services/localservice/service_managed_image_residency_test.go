@@ -9,7 +9,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
+	"google.golang.org/grpc/status"
 )
 
 func TestCheckLocalAssetHealthBulkDoesNotLoadManagedImage(t *testing.T) {
@@ -218,8 +220,9 @@ func TestEnsureManagedMediaImageLoadedClassifiesBackendShapeValidationAsComponen
 	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
 	svc.SetManagedImageBackendHealth(true, "image backend active")
 
+	upstreamErr := errors.New(`VAE tensor "C:\private\models\first_stage_model.decoder.conv_in.weight" has wrong shape in model metadata: got [3,3,32,512], expected [3,3,16,512]; model metadata validation failed`)
 	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
-		return nil, errors.New(`VAE tensor "first_stage_model.decoder.conv_in.weight" has wrong shape in model metadata: got [3,3,32,512], expected [3,3,16,512]; model metadata validation failed`)
+		return nil, upstreamErr
 	}
 
 	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-load-incompatible-vae")
@@ -229,6 +232,19 @@ func TestEnsureManagedMediaImageLoadedClassifiesBackendShapeValidationAsComponen
 		t.Fatal("expected managed image load validation failure")
 	}
 	assertGRPCReasonCode(t, err, "EnsureManagedMediaImageLoaded(incompatible backend validation)", runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
+	if !errors.Is(err, upstreamErr) {
+		t.Fatalf("expected backend validation cause to remain available: %v", err)
+	}
+	if strings.Contains(status.Convert(err).Message(), `C:\private`) || strings.Contains(status.Convert(err).Message(), "first_stage_model") {
+		t.Fatalf("public status leaked backend validation detail: %q", status.Convert(err).Message())
+	}
+	metadata, ok := grpcerr.ExtractReasonMetadata(err)
+	if !ok {
+		t.Fatal("expected ErrorInfo metadata")
+	}
+	if _, exists := metadata["provider_message"]; exists {
+		t.Fatalf("public metadata exposed backend validation detail: %#v", metadata)
+	}
 }
 
 func TestStartLocalAssetProjectsBackendShapeValidationAsComponentIncompatible(t *testing.T) {
@@ -328,6 +344,29 @@ func TestEnsureManagedMediaImageLoadedUsesBoundedLoadTimeout(t *testing.T) {
 
 	if _, err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
 		t.Fatalf("EnsureManagedMediaImageLoaded(generate_request): %v", err)
+	}
+}
+
+func TestEnsureManagedMediaImageLoadedPreservesDeadlineCause(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-load-deadline")
+	profile := cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
+		return nil, context.DeadlineExceeded
+	}
+
+	_, err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline cause, got %v", err)
+	}
+	assertGRPCReasonCode(t, err, "EnsureManagedMediaImageLoaded(deadline)", runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+	if strings.Contains(status.Convert(err).Message(), context.DeadlineExceeded.Error()) {
+		t.Fatalf("public status exposed deadline cause: %q", status.Convert(err).Message())
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -79,7 +80,12 @@ func (s *Service) persistDelegatedApprovalExpiryIfNeededLocked(approval *runtime
 		return validationErr
 	}
 	if err := s.persistDelegatedControlStateLocked(); err != nil {
-		return status.Errorf(codes.FailedPrecondition, "delegated approval expiry persistence failed: %v", err)
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "delegated approval expiry could not be persisted"},
+		)
 	}
 	return validationErr
 }

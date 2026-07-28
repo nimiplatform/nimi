@@ -235,30 +235,30 @@ func MapProviderRequestError(err error) error {
 	if st, ok := status.FromError(err); ok {
 		switch st.Code() {
 		case codes.DeadlineExceeded:
-			return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{
+			return grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, err, grpcerr.ReasonOptions{
 				ActionHint: "retry_or_check_provider_endpoint",
 				Message:    "provider request timed out",
 			})
 		case codes.Unavailable:
-			return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+			return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{
 				ActionHint: "check_provider_endpoint_or_local_runtime_health",
 				Message:    "provider request failed",
 			})
 		}
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{
+		return grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, err, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_provider_endpoint",
 			Message:    "provider request timed out",
 		})
 	}
 	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-		return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{
+		return grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, err, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_provider_endpoint",
 			Message:    "provider request timed out",
 		})
 	}
-	return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+	return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{
 		ActionHint: "check_provider_endpoint_or_local_runtime_health",
 		Message:    "provider request failed",
 	})

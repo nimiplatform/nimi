@@ -110,7 +110,7 @@ func (s *Service) writeImageGenerateRouteDescribeHeader(
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return routeDescribeEncodingError(err)
 	}
 	encoded := base64.StdEncoding.EncodeToString(raw)
 	if setErr := grpc.SetHeader(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
@@ -139,9 +139,13 @@ func (s *Service) describeImageGenerateRouteMetadata(
 	model, err := s.speechCatalog.ResolveModelEntryForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved)
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+			return nil, grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
+				Message: "image route catalog model could not be resolved",
+			})
 		}
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "image route catalog metadata could not be read",
+		})
 	}
 	if model.ImageRequestOptions == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
@@ -197,7 +201,7 @@ func executeImageGenerateRouteDescribeScenario(
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return nil, schedulerAcquireError(acquireErr)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)

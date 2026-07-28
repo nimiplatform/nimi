@@ -32,7 +32,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return nil, schedulerAcquireError(acquireErr)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
@@ -181,7 +181,7 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return nil, schedulerAcquireError(acquireErr)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)

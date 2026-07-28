@@ -126,7 +126,7 @@ func (s *Service) writeVoiceWorkflowRouteDescribeHeader(
 	}
 	raw, err := json.Marshal(metadataPayload)
 	if err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return routeDescribeEncodingError(err)
 	}
 	encoded := base64.StdEncoding.EncodeToString(raw)
 	if setErr := grpc.SetHeader(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
@@ -160,11 +160,17 @@ func (s *Service) describeVoiceWorkflowRouteMetadata(
 	if err != nil {
 		switch {
 		case errors.Is(err, catalog.ErrModelNotFound):
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+			return nil, grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
+				Message: "voice workflow route catalog model could not be resolved",
+			})
 		case errors.Is(err, catalog.ErrVoiceWorkflowUnsupported):
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, err, grpcerr.ReasonOptions{
+				Message: "voice workflow route is not supported",
+			})
 		default:
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+			return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+				Message: "voice workflow route catalog metadata could not be read",
+			})
 		}
 	}
 	metadataPayload, err := buildVoiceWorkflowRouteDescribeMetadata(resolution)
@@ -255,7 +261,7 @@ func executeVoiceWorkflowRouteDescribeScenario(
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return nil, schedulerAcquireError(acquireErr)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)

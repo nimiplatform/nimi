@@ -151,8 +151,12 @@ func TestAuthenticateMapsInvalidTokenToAuthTokenInvalid(t *testing.T) {
 	if st.Code() != codes.Unauthenticated {
 		t.Fatalf("unexpected code: %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String() {
-		t.Fatalf("unexpected reason code: %s", st.Message())
+	reason, ok := grpcerr.ExtractReasonCode(authErr)
+	if !ok || reason != runtimev1.ReasonCode_AUTH_TOKEN_INVALID {
+		t.Fatalf("unexpected reason code: %v (present=%v)", reason, ok)
+	}
+	if strings.Contains(st.Message(), tokenString) || !strings.Contains(st.Message(), "runtime account token is invalid") {
+		t.Fatalf("unsafe or unexpected public message: %q", st.Message())
 	}
 }
 

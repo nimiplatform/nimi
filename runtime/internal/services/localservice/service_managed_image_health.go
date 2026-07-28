@@ -70,12 +70,12 @@ func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Contex
 
 	result, err := s.preflightManagedSupervisedImage(ctx, model, loadReason)
 	if err != nil {
-		detail := managedLocalImageExecutionFailureDetail(err.Error())
+		detail, reason := managedImageHealthFailureProjection(err)
 		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 			failures, interval := s.modelRecoveryFailure(localAssetID, time.Now().UTC())
 			detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
 		}
-		return s.setManagedSupervisedImageUnhealthy(model, detail)
+		return s.setManagedSupervisedImageUnhealthyWithReason(model, detail, reason)
 	}
 	if result.pending {
 		installed, err := s.ensureModelInstalled(localAssetID, result.detail)
@@ -384,6 +384,18 @@ func managedImageProfileOptionValue(profile map[string]any, key string) string {
 }
 
 func (s *Service) setManagedSupervisedImageUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*runtimev1.LocalAssetHealth, error) {
+	return s.setManagedSupervisedImageUnhealthyWithReason(
+		model,
+		detail,
+		runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+	)
+}
+
+func (s *Service) setManagedSupervisedImageUnhealthyWithReason(
+	model *runtimev1.LocalAssetRecord,
+	detail string,
+	reason runtimev1.ReasonCode,
+) (*runtimev1.LocalAssetHealth, error) {
 	if model == nil {
 		return nil, nil
 	}
@@ -391,12 +403,20 @@ func (s *Service) setManagedSupervisedImageUnhealthy(model *runtimev1.LocalAsset
 	_ = s.freeManagedMediaImageOnIdle(context.Background(), localAssetID, "unhealthy_cleanup")
 	s.clearManagedMediaImageLoadCache(localAssetID)
 	if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		s.setModelHealthDetail(localAssetID, detail)
+		s.setModelHealthDetailWithReason(localAssetID, detail, reason)
 		return modelHealth(s.modelByID(localAssetID)), nil
 	}
-	transitioned, err := s.transitionModelToUnhealthy(localAssetID, detail)
+	transitioned, err := s.transitionModelToUnhealthyWithReason(localAssetID, detail, reason)
 	if err != nil {
 		return nil, err
 	}
 	return modelHealth(transitioned), nil
+}
+
+func managedImageHealthFailureProjection(err error) (string, runtimev1.ReasonCode) {
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		return managedImageFailurePublicDetail(reason), reason
+	}
+	detail := managedLocalImageExecutionFailureDetail(err.Error())
+	return detail, projectionReasonCodeForEngine("media", detail)
 }

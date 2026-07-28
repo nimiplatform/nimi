@@ -325,7 +325,7 @@ func (instance *WindowsDesktopPipeInstance) Accept(ctx context.Context) (*Window
 
 	acceptCtx, cancel := context.WithTimeout(ctx, windowsPipeHandshakeTimeout)
 	defer cancel()
-	if err := connectWindowsDesktopPipe(acceptCtx, instance.handle); err != nil {
+	if err := connectWindowsDesktopPipe(acceptCtx, instance); err != nil {
 		_ = instance.Close()
 		return nil, err
 	}
@@ -337,7 +337,10 @@ func (instance *WindowsDesktopPipeInstance) Accept(ctx context.Context) (*Window
 	return &WindowsDesktopPipeConnection{instance: instance, clientPID: clientPID}, nil
 }
 
-func connectWindowsDesktopPipe(ctx context.Context, handle windows.Handle) error {
+func connectWindowsDesktopPipe(ctx context.Context, instance *WindowsDesktopPipeInstance) error {
+	instance.mu.Lock()
+	handle := instance.handle
+	instance.mu.Unlock()
 	event, err := windows.CreateEvent(nil, 1, 0, nil)
 	if err != nil {
 		return windowsPipeFailure("create Windows pipe connect event", err)
@@ -368,9 +371,12 @@ func connectWindowsDesktopPipe(ctx context.Context, handle windows.Handle) error
 				if cancelErr != nil && !errors.Is(cancelErr, windows.ERROR_NOT_FOUND) {
 					return windowsPipeFailure("cancel Windows desktop pipe connect", cancelErr)
 				}
+				// The pipe instance is not yet in the listener's active set, so
+				// listener shutdown cannot otherwise close this pending accept.
+				// Close through the instance's single owner before waiting for the
+				// overlapped operation to retire.
+				_ = instance.Close()
 				_, _ = windows.WaitForSingleObject(event, windows.INFINITE)
-				var transferred uint32
-				_ = windows.GetOverlappedResult(handle, &overlapped, &transferred, false)
 				return windowsPipeFailure("accept Windows desktop pipe", ctx.Err())
 			default:
 			}

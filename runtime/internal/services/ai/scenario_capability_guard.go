@@ -129,11 +129,17 @@ func (s *Service) validateScenarioCapability(
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrModelNotFound) {
 			if isVoiceWorkflowScenario(scenarioType) && localrouting.IsKnownProvider(providerType) {
-				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+				return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, err, grpcerr.ReasonOptions{
+					Message: "voice workflow is unavailable for the selected model",
+				})
 			}
-			return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+			return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
+				Message: "model was not found in the AI catalog",
+			})
 		}
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "failed to read AI catalog scenario capabilities",
+		})
 	}
 	if supported {
 		return s.validateCatalogAwareScenarioSupport(ctx, scenarioType, providerType, modelResolved, req.GetSpec())
@@ -255,7 +261,9 @@ func (s *Service) validateLocalTextGenerateInputCapabilitiesWithPlan(
 	if selected == nil || plan == nil || !plan.appliesToModel(modelResolved, runtimev1.Modal_MODAL_TEXT) {
 		models, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
 		if err != nil {
-			return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+			return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, err, grpcerr.ReasonOptions{
+				Message: "failed to list local models",
+			})
 		}
 		var reason runtimev1.ReasonCode
 		var detail string
@@ -303,9 +311,13 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 		supported, err := s.speechCatalog.SupportsCapabilityForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, capability)
 		if err != nil {
 			if errors.Is(err, aicatalog.ErrModelNotFound) {
-				return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+				return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
+					Message: "model was not found in the AI catalog",
+				})
 			}
-			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+			return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+				Message: "failed to read AI catalog model capabilities",
+			})
 		}
 		if !supported {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -54,7 +55,12 @@ func localAgentIdentityFromContext(ctx *runtimev1.AgentRequestContext) (localAge
 func generateRuntimeLocalAgentRef() (string, error) {
 	var nonce [16]byte
 	if _, err := rand.Read(nonce[:]); err != nil {
-		return "", status.Errorf(codes.Internal, "generate local_agent_ref: %v", err)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "local_agent_ref could not be generated"},
+		)
 	}
 	return runtimeGeneratedLocalAgentRefPrefix + hex.EncodeToString(nonce[:]), nil
 }

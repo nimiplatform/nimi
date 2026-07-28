@@ -147,15 +147,21 @@ func (s *Service) installManagedDownloadedModel(
 	entryPath := filepath.Join(stagingDir, filepath.FromSlash(entryFile))
 	if err := validateManagedModelEntryFile(entryPath); err != nil {
 		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "downloaded model entry is invalid"},
+		)
 	}
 	if err := validateManagedModelEntryStaticCompatibility(entryPath, kind, capabilities, spec.engine); err != nil {
 		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "downloaded model entry is incompatible with its declaration"},
+		)
 	}
 	engineConfig, projectionOverride, err := augmentManagedLlamaBundleFacts(
 		modelsRoot,
@@ -170,9 +176,12 @@ func (s *Service) installManagedDownloadedModel(
 	)
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "downloaded model bundle metadata is invalid"},
+		)
 	}
 
 	s.updateTransferProgress(transferID, "manifest", 0, 0, "writing model manifest")

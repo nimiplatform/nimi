@@ -32,7 +32,7 @@ func (s *Service) submitVoiceWorkflowJob(
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return nil, schedulerAcquireError(acquireErr)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
@@ -68,12 +68,18 @@ func (s *Service) submitVoiceWorkflowJob(
 	workflowResolution, err := s.resolveVoiceWorkflow(ctx, providerType, modelResolved, workflowType)
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+			return nil, grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
+				Message: "voice workflow catalog model could not be resolved",
+			})
 		}
 		if errors.Is(err, catalog.ErrVoiceWorkflowUnsupported) {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, err, grpcerr.ReasonOptions{
+				Message: "voice workflow is not supported",
+			})
 		}
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "voice workflow catalog metadata could not be read",
+		})
 	}
 	if _, err := resolveVoiceWorkflowExtensionPayload(req, workflowResolution.Provider); err != nil {
 		return nil, err

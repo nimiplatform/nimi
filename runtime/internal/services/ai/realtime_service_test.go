@@ -3,8 +3,10 @@ package ai
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"io"
 	"log/slog"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -357,6 +359,36 @@ func TestOpenRealtimeSessionFailsClosedWhenInitialSessionUpdateFails(t *testing.
 	if sessionCount != 0 {
 		t.Fatalf("expected no dangling realtime sessions, got %d", sessionCount)
 	}
+}
+
+func TestSendRealtimeEnvelopePreservesCauseWithoutExposingIt(t *testing.T) {
+	cause := &realtimeSendTestError{detail: "dial tcp 127.0.0.1:58001: private upstream detail"}
+	record := &realtimeSessionRecord{
+		conn: &fakeRealtimeConn{sendErr: cause},
+	}
+
+	err := sendRealtimeEnvelope(record, map[string]any{"type": "response.create"})
+	if !errors.Is(err, cause) {
+		t.Fatalf("expected wrapped cause, got %v", err)
+	}
+	var typedCause *realtimeSendTestError
+	if !errors.As(err, &typedCause) || typedCause != cause {
+		t.Fatalf("expected typed wrapped cause, got %T: %v", err, err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("unexpected reason: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if wireMessage := status.Convert(err).Message(); strings.Contains(wireMessage, cause.Error()) {
+		t.Fatalf("wire message leaked private cause: %q", wireMessage)
+	}
+}
+
+type realtimeSendTestError struct {
+	detail string
+}
+
+func (e *realtimeSendTestError) Error() string {
+	return e.detail
 }
 
 func TestReadRealtimeEventsRejectsSecondReader(t *testing.T) {

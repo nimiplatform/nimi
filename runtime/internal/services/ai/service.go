@@ -344,7 +344,9 @@ func (s *Service) ResolvePublicChatTextContextMetadata(
 		return 0, "", "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if err := runtimeidentity.ValidateDurableTargetRef(resolvedTargetRef); err != nil {
-		return 0, "", "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+		return 0, "", "", "", nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, err, grpcerr.ReasonOptions{
+			Message: "runtime target reference is invalid",
+		})
 	}
 	metadata, err := s.speechCatalog.ResolveTextContextMetadataForSubject(
 		catalogSubjectUserIDFromContext(ctx),
@@ -352,8 +354,9 @@ func (s *Service) ResolvePublicChatTextContextMetadata(
 		resolvedModelID,
 	)
 	if err != nil {
-		return 0, "", "", "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+		return 0, "", "", "", nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, err, grpcerr.ReasonOptions{
 			ActionHint: "add_model_context_window_to_runtime_catalog",
+			Message:    "runtime target catalog metadata could not be resolved",
 		})
 	}
 	return metadata.ContextWindowTokens, metadata.CatalogVersion, metadata.ModelRevision, metadata.Provider, resolvedTargetRef, nil

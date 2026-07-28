@@ -29,7 +29,12 @@ func (s *Service) authorize(ctx context.Context, action KnowledgeAction, request
 		RequiredScopes: requiredScopesForKnowledgeAction(action),
 	})
 	if err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		return grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "knowledge authorization failed"},
+		)
 	}
 	if res.Decision == KnowledgeAuthAllow {
 		return nil
@@ -88,9 +93,19 @@ func (s *Service) loadAuthorizedScope(ctx context.Context, requestCtx *runtimev1
 	scope, err := s.cognitionCore.KnowledgeScopeRegistry().GetKnowledgeScope(ctx, strings.TrimSpace(bankID))
 	if err != nil {
 		if errors.Is(err, cognitionpkg.ErrScopeNotFound) {
-			return cognitionpkg.KnowledgeScope{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND)
+			return cognitionpkg.KnowledgeScope{}, grpcerr.WrapWithReasonCode(
+				codes.NotFound,
+				runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge bank not found"},
+			)
 		}
-		return cognitionpkg.KnowledgeScope{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		return cognitionpkg.KnowledgeScope{}, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "knowledge bank lookup failed"},
+		)
 	}
 	if err := s.authorize(ctx, action, requestCtx, scope.Owner); err != nil {
 		return cognitionpkg.KnowledgeScope{}, err
@@ -113,7 +128,12 @@ func (s *Service) listAuthorizedScopes(ctx context.Context, requestCtx *runtimev
 	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, requestCtx, cognitionpkg.KnowledgeScope{Owner: owner})
 	scopes, _, err := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, access, filter)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "knowledge bank listing failed"},
+		)
 	}
 	out := make([]cognitionpkg.KnowledgeScope, 0, len(scopes))
 	for _, scope := range scopes {

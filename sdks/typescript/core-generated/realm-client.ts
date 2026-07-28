@@ -25,6 +25,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/group-chats/{chatId}/participants"
   },
   {
+    "operationId": "addGroupSourceParticipant",
+    "service": "Group Chats",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/source-participants"
+  },
+  {
     "operationId": "archiveBundle",
     "service": "Bundles",
     "method": "POST",
@@ -71,6 +77,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Assets",
     "method": "POST",
     "path": "/api/assets/{assetId}/clone"
+  },
+  {
+    "operationId": "commitRealmGroupSourceMessageCandidate",
+    "service": "Group Chats",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/source-message-candidate-commits"
   },
   {
     "operationId": "createAsset",
@@ -763,6 +775,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
   },
   {
+    "operationId": "removeGroupSourceParticipant",
+    "service": "Group Chats",
+    "method": "DELETE",
+    "path": "/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"
+  },
+  {
     "operationId": "ReportController_createReport",
     "service": "Governance",
     "method": "POST",
@@ -1199,6 +1217,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Realm Core",
     "method": "PUT",
     "path": "/api/realm/core/world-relationships/{relationshipId}"
+  },
+  {
+    "operationId": "WorldPublicController_getCharacterSource",
+    "service": "World",
+    "method": "POST",
+    "path": "/api/world/character-sources/public-projection"
   },
   {
     "operationId": "WorldPublicController_getWorld",

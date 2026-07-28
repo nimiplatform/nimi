@@ -506,6 +506,14 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		return
 	}
 	material = normalizeMaterial(material)
+	if s.productionActivated && material.RealmOrigin != strings.TrimRight(strings.TrimSpace(s.realmBaseURL), "/") {
+		_ = s.custody.Clear(ctx, s.partition)
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		return
+	}
 	if material.AccountID == "" || material.RefreshToken == "" || material.AccessToken == "" {
 		s.mu.Lock()
 		defer s.mu.Unlock()

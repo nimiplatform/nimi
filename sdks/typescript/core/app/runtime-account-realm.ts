@@ -13,12 +13,15 @@ import {
 import { createNimiClientId, createNimiError, type CoreStreamRequest, type CoreUnaryRequest, ReasonCode } from '../../types';
 import {
   NIMI_BUNDLED_AVATAR_REALM_OPERATION_ID,
+  isNimiDesktopProductRealmOperationID,
   isNimiDesktopSourceReadinessRealmOperationID,
 } from './runtime-account-realm-source-readiness.generated.js';
 
 export {
   NIMI_BUNDLED_AVATAR_REALM_OPERATION_ID,
+  NIMI_DESKTOP_PRODUCT_REALM_OPERATION_IDS,
   NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS,
+  type NimiDesktopProductRealmOperationID,
   type NimiDesktopSourceReadinessRealmOperationID,
 } from './runtime-account-realm-source-readiness.generated.js';
 
@@ -109,6 +112,38 @@ function createRuntimeAccountMediatedRealmTransportInternal(input: {
         actionHint: 'use_unary_realm_operation',
         source: 'sdk',
       });
+    },
+  };
+}
+
+export function createRuntimeAccountMediatedDesktopProductRealmTransport(input: {
+  readonly runtime: RuntimeAccountMediatedRealmRuntime;
+  readonly accountCaller: NimiRuntimeAccountCaller;
+}): CoreTransport {
+  if (input.accountCaller.mode !== AccountCallerMode.DESKTOP_SHELL) {
+    throw createNimiError({
+      message: 'Desktop product Realm transport requires the protected Desktop shell caller.',
+      reasonCode: 'SDK_RUNTIME_REALM_DESKTOP_CALLER_REQUIRED',
+      actionHint: 'use_protected_desktop_account_host',
+      source: 'sdk',
+    });
+  }
+  const transport = createRuntimeAccountMediatedRealmTransport(input);
+  return {
+    async unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response> {
+      if (!isNimiDesktopProductRealmOperationID(request.methodId)) {
+        throw createNimiError({
+          message: `Realm operation is outside the Desktop product admission: ${request.methodId}.`,
+          reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED',
+          actionHint: 'use_an_admitted_desktop_product_operation',
+          source: 'sdk',
+          details: { methodId: request.methodId },
+        });
+      }
+      return transport.unary<Response, Body>(request);
+    },
+    serverStream<Response = unknown, Body = unknown>(request: CoreStreamRequest<Body>): AsyncIterable<Response> {
+      return transport.serverStream<Response, Body>(request);
     },
   };
 }

@@ -85,6 +85,10 @@ export function useAgentLocalAvatarLaunchControls(input: {
     refetchOnWindowFocus: true,
     refetchInterval: avatarHandoffReady && presentation.activeTarget?.localAgentRef ? 5_000 : false,
   });
+  // The query result object has a fresh identity on every render; only the
+  // stable refetch handle may enter callback/effect dependency lists, or the
+  // start_with_chat gate effect re-runs (and setStates) on every render.
+  const refetchAvatarLiveInstances = avatarLiveInstancesQuery.refetch;
   const runningAvatarInstance = avatarInstanceId
     ? avatarLiveInstancesQuery.data?.find((instance) => instance.avatarInstanceId === avatarInstanceId) || null
     : null;
@@ -157,13 +161,13 @@ export function useAgentLocalAvatarLaunchControls(input: {
         ? 'desktop-agent-chat-start-with-chat'
         : 'desktop-agent-chat',
     });
-    await avatarLiveInstancesQuery.refetch();
+    await refetchAvatarLiveInstances();
     return { arbitration, launched: true, opened: result.opened };
   }, [
     avatarInstanceId,
     avatarInstancePolicy,
     avatarLiveInstances,
-    avatarLiveInstancesQuery,
+    refetchAvatarLiveInstances,
     sdk,
     presentation.accountId,
     presentation.activeConversationAnchorId,
@@ -211,7 +215,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
           avatarInstanceId,
           closedBy: 'desktop',
         });
-        await avatarLiveInstancesQuery.refetch();
+        await refetchAvatarLiveInstances();
         return {
           kind: result.opened ? 'success' as const : 'warning' as const,
           message: result.opened
@@ -272,7 +276,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
     avatarConversationAnchorReady,
     input.avatarConfigured,
     avatarInstanceId,
-    avatarLiveInstancesQuery,
+    refetchAvatarLiveInstances,
     avatarRunning,
     executeArbitratedLaunch,
     presentation.activeTarget,

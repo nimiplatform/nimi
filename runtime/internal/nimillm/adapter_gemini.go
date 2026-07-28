@@ -434,7 +434,12 @@ func resolveGeminiReferenceImageBytes(ctx context.Context, location string) ([]b
 		}
 		payload, err := readLimitedResponseBody(response.Body, maxDecodedMediaURLBytes)
 		if err != nil {
-			return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+			return nil, "", grpcerr.WrapWithReasonCode(
+				codes.Unavailable,
+				runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "provider media response body could not be read"},
+			)
 		}
 		if len(payload) == 0 {
 			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
@@ -463,7 +468,15 @@ func decodeGeminiDataURL(value string) ([]byte, string, error) {
 	}
 	mimeType := strings.TrimPrefix(strings.Split(header, ";")[0], "data:")
 	decoded, err := base64.StdEncoding.DecodeString(payload)
-	if err != nil || len(decoded) == 0 {
+	if err != nil {
+		return nil, "", grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "provider media payload could not be decoded"},
+		)
+	}
+	if len(decoded) == 0 {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if len(decoded) > maxDecodedMediaURLBytes {

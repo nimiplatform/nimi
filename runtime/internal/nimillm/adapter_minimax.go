@@ -164,7 +164,12 @@ func ExecuteMiniMaxTask(
 			return nil, nil, "", firstOtherErr
 		}
 		if firstNotFoundErr != nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+			return nil, nil, "", grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+				firstNotFoundErr,
+				grpcerr.ReasonOptions{Message: "provider speech fallback routes were unavailable"},
+			)
 		}
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.Modal_MODAL_STT:
@@ -290,7 +295,12 @@ func ExecuteMiniMaxTask(
 		retryCount++
 		queryURL, err := url.Parse(JoinURL(baseURL, queryPath))
 		if err != nil {
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			return nil, nil, providerJobID, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "provider task query URL could not be parsed"},
+			)
 		}
 		values := queryURL.Query()
 		values.Set("task_id", providerJobID)
@@ -398,7 +408,12 @@ func ExecuteMiniMaxTranscribe(
 		return "", "", err
 	}
 	if lastErr != nil {
-		return "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		return "", "", grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+			lastErr,
+			grpcerr.ReasonOptions{Message: "provider transcription fallback routes were unavailable"},
+		)
 	}
 	return "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 }

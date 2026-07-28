@@ -207,7 +207,12 @@ func executeBytedanceOpenSpeechWS(
 	}
 	config, err := websocket.NewConfig(targetURL, websocketOrigin(targetURL))
 	if err != nil {
-		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		return "", nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "provider streaming endpoint configuration is invalid"},
+		)
 	}
 	config.Header = http.Header{}
 	config.Header.Set("Content-Type", "application/json")
@@ -291,7 +296,12 @@ func executeBytedanceOpenSpeechWS(
 				if finalText != "" || strings.TrimSpace(deltaBuilder.String()) != "" {
 					break
 				}
-				return "", responsePayload, grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+				return "", responsePayload, grpcerr.WrapWithReasonCode(
+					codes.DeadlineExceeded,
+					runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+					receiveErr,
+					grpcerr.ReasonOptions{Message: "provider stream timed out"},
+				)
 			}
 			return "", responsePayload, MapProviderRequestError(receiveErr)
 		}
@@ -410,7 +420,15 @@ func resolveBytedanceOpenSpeechWSURL(baseURL string, scenarioExtensions map[stri
 
 func validateBytedanceOpenSpeechWSURL(ctx context.Context, targetURL string) error {
 	parsed, err := url.Parse(strings.TrimSpace(targetURL))
-	if err != nil || parsed == nil || strings.TrimSpace(parsed.Host) == "" {
+	if err != nil {
+		return grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "provider streaming endpoint could not be parsed"},
+		)
+	}
+	if parsed == nil || strings.TrimSpace(parsed.Host) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	switch strings.ToLower(strings.TrimSpace(parsed.Scheme)) {
@@ -422,7 +440,12 @@ func validateBytedanceOpenSpeechWSURL(ctx context.Context, targetURL string) err
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if err := endpointsec.ValidateEndpoint(ctx, parsed.String(), allowLoopbackProviderEndpointFromContext(ctx)); err != nil {
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+			err,
+			grpcerr.ReasonOptions{Message: "provider streaming endpoint is not permitted"},
+		)
 	}
 	return nil
 }

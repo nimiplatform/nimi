@@ -69,16 +69,11 @@ func (s *Service) UpsertModelCatalogProvider(ctx context.Context, req *runtimev1
 	if err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-				ActionHint: "configure_runtime_model_catalog_custom_dir",
-			})
+			return nil, catalogMutationDisabledError(err)
 		case errors.Is(err, aicatalog.ErrProviderUnsupported):
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return nil, catalogProviderUnsupportedError(err)
 		default:
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-				ActionHint: "fix_provider_catalog_yaml",
-				Message:    err.Error(),
-			})
+			return nil, catalogInputInvalidError(err)
 		}
 	}
 
@@ -106,11 +101,9 @@ func (s *Service) DeleteModelCatalogProvider(ctx context.Context, req *runtimev1
 	if err := modelCatalog.DeleteCustomProviderForSubject(subjectUserID, provider); err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-				ActionHint: "configure_runtime_model_catalog_custom_dir",
-			})
+			return nil, catalogMutationDisabledError(err)
 		case errors.Is(err, aicatalog.ErrProviderUnsupported):
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return nil, catalogProviderUnsupportedError(err)
 		default:
 			return nil, s.internalProviderError("delete_model_catalog_provider", err)
 		}

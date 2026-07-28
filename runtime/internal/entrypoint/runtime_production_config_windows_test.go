@@ -3,6 +3,7 @@
 package entrypoint
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -33,6 +34,60 @@ func TestWindowsProductionRuntimeConfigUsesOnlyServiceOwnedRootAndFixedAuthority
 	wantState := filepath.Join(root, "runtime", windowsProductionInstallStateFile)
 	if _, err := os.Stat(wantState); err != nil {
 		t.Fatalf("service-owned installation state missing: %v", err)
+	}
+}
+
+func TestWindowsProtectedRuntimeConfigAdmitsOnlyServiceOwnedLocalDevelopmentProfile(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "https://attacker.invalid")
+	root := t.TempDir()
+	runtimeRoot := filepath.Join(root, "runtime")
+	if err := os.MkdirAll(runtimeRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	state := windowsProductionInstallState{
+		SchemaVersion:     2,
+		RuntimeID:         config.GenerateRuntimeID(),
+		DeploymentProfile: windowsLocalDevelopmentProfile,
+		RealmOrigin:       windowsLocalDevelopmentRealmBaseURL,
+	}
+	raw, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(runtimeRoot, windowsProductionInstallStateFile), append(raw, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := loadWindowsProtectedRuntimeConfig(root)
+	if err != nil {
+		t.Fatalf("load local-development config: %v", err)
+	}
+	if cfg.AccountRealmBaseURL != windowsLocalDevelopmentRealmBaseURL || cfg.AuthJWTIssuer != windowsLocalDevelopmentRealmBaseURL {
+		t.Fatalf("local-development authority was not selected from service-owned state: %+v", cfg)
+	}
+}
+
+func TestWindowsProtectedRuntimeConfigRejectsProfileOriginMismatch(t *testing.T) {
+	root := t.TempDir()
+	runtimeRoot := filepath.Join(root, "runtime")
+	if err := os.MkdirAll(runtimeRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	state := windowsProductionInstallState{
+		SchemaVersion:     2,
+		RuntimeID:         config.GenerateRuntimeID(),
+		DeploymentProfile: windowsProductionDeploymentProfile,
+		RealmOrigin:       windowsLocalDevelopmentRealmBaseURL,
+	}
+	raw, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(runtimeRoot, windowsProductionInstallStateFile), raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadWindowsProtectedRuntimeConfig(root); err == nil {
+		t.Fatal("production profile accepted a loopback Realm origin")
 	}
 }
 

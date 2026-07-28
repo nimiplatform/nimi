@@ -54,12 +54,14 @@ func (s *Service) PutPage(ctx context.Context, req *runtimev1.PutPageRequest) (*
 	}
 	if err := s.cognitionCore.RuntimeBridge().SaveKnowledge(ctx, writeAccess, cognitionPage); err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "already exists") {
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_KNOWLEDGE_PAGE_SLUG_CONFLICT)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.AlreadyExists,
+				runtimev1.ReasonCode_KNOWLEDGE_PAGE_SLUG_CONFLICT,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge page slug already exists"},
+			)
 		}
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "retry_after_cognition_storage_recovery",
-			Message:    "put page: cognition storage error: " + err.Error(),
-		})
+		return nil, cognitionStorageError(err, "knowledge page could not be saved")
 	}
 	page.BankId = scope.ScopeID
 	return &runtimev1.PutPageResponse{Page: page}, nil
@@ -97,7 +99,12 @@ func (s *Service) ListPages(ctx context.Context, req *runtimev1.ListPagesRequest
 	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
 	items, err := s.cognitionCore.RuntimeBridge().ListKnowledge(ctx, access, scope.ScopeID)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "knowledge page listing failed"},
+		)
 	}
 	pages := make([]*runtimev1.KnowledgePage, 0, len(items))
 	for _, item := range items {
@@ -145,10 +152,7 @@ func (s *Service) DeletePage(ctx context.Context, req *runtimev1.DeletePageReque
 		return nil, err
 	}
 	if err := s.cognitionCore.RuntimeBridge().DeleteKnowledge(ctx, writeAccess, scope.ScopeID, cognitionknowledge.PageID(page.GetPageId())); err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "retry_after_cognition_storage_recovery",
-			Message:    "delete page: cognition storage error: " + err.Error(),
-		})
+		return nil, cognitionStorageError(err, "knowledge page could not be deleted")
 	}
 	return &runtimev1.DeletePageResponse{Ack: okAck()}, nil
 }

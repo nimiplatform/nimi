@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -441,12 +442,28 @@ func TestEngineRPCStopEngineSuccess(t *testing.T) {
 
 func TestEngineRPCGetEngineStatusNotFound(t *testing.T) {
 	svc := newTestService(t)
+	upstreamErr := errors.New(`engine missing not started at C:\private\models\secret.gguf`)
 	svc.SetEngineManager(&mockEngineManager{
-		statusErr: fmt.Errorf("engine missing not started"),
+		statusErr: upstreamErr,
 	})
 
 	_, err := svc.GetEngineStatus(context.Background(), &runtimev1.GetEngineStatusRequest{Engine: "missing"})
 	assertGRPCCode(t, err, "GetEngineStatus(not_found)", codes.NotFound)
+	assertGRPCReasonCode(t, err, "GetEngineStatus(not_found)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	if !errors.Is(err, upstreamErr) {
+		t.Fatalf("expected engine manager cause to remain available: %v", err)
+	}
+	st := status.Convert(err)
+	if strings.Contains(st.Message(), upstreamErr.Error()) || strings.Contains(st.Message(), `C:\private`) {
+		t.Fatalf("public status leaked engine manager error: %q", st.Message())
+	}
+	metadata, ok := grpcerr.ExtractReasonMetadata(err)
+	if !ok {
+		t.Fatal("expected ErrorInfo metadata")
+	}
+	if _, exists := metadata["detail"]; exists {
+		t.Fatalf("public metadata exposed raw engine detail: %#v", metadata)
+	}
 }
 
 func TestEngineRPCStartSpeechEnginePreflightBlockedUsesSpeechReason(t *testing.T) {

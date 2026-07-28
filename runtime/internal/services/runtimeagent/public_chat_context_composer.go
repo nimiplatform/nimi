@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -71,7 +72,12 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 	if err != nil {
 		return nil, newPublicChatContextCompositionError(session, turn, nil,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID,
-			status.Error(codes.DataLoss, "Runtime LocalAgent source snapshot load failed"))
+			grpcerr.WrapWithReasonCode(
+				codes.DataLoss,
+				runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+				err,
+				grpcerr.ReasonOptions{Message: "Runtime LocalAgent source snapshot load failed"},
+			))
 	}
 	if !found {
 		return nil, newPublicChatContextCompositionError(session, turn, nil,
@@ -115,7 +121,12 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 	if err != nil {
 		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
-			status.Error(codes.Internal, "Runtime LocalAgent catalog revision digest failed"))
+			grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+				err,
+				grpcerr.ReasonOptions{Message: "Runtime LocalAgent catalog revision digest failed"},
+			))
 	}
 	reservedOutput := publicChatContextDefaultOutputTokens
 	if req.MaxOutputTokens > 0 {
@@ -159,7 +170,12 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 		}
 		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
-			status.Error(codes.FailedPrecondition, err.Error()))
+			grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+				err,
+				grpcerr.ReasonOptions{Message: "Runtime LocalAgent context compilation failed"},
+			))
 	}
 	if err := validateAgentTurnContextProjection(compiled.Summary); err != nil {
 		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,

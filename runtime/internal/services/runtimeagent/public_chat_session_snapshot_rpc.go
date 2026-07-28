@@ -44,7 +44,7 @@ func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtime
 			var authorizeErr error
 			localDecision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(ctx, accountservice.LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: agentID, ConversationAnchorID: anchorID})
 			if authorizeErr != nil {
-				return nil, status.Error(codes.PermissionDenied, "local-app conversation permission denied")
+				return nil, localAppConversationAuthorizationError(authorizeErr)
 			}
 			ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, localDecision)
 			localAppAuthorized = true

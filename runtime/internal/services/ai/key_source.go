@@ -152,8 +152,9 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 
 	rec, found, err := connStore.Get(connectorID)
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_runtime_logs",
+			Message:    "connector record could not be read",
 		})
 	}
 	if !found {
@@ -186,8 +187,9 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 
 	secretPayload, err := connStore.LoadSecretPayload(connectorID)
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_runtime_logs",
+			Message:    "connector credentials could not be loaded",
 		})
 	}
 	resolvedCredential := connector.ResolveCredential(rec, secretPayload)
@@ -203,7 +205,9 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 	// Endpoint security validation (K-SEC-004)
 	allowLoopbackTarget := allowLoopback
 	if err := endpointsec.ValidateEndpoint(ctx, endpoint, allowLoopbackTarget); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{
+			Message: "connector endpoint is not allowed",
+		})
 	}
 
 	return &nimillm.RemoteTarget{
@@ -229,7 +233,9 @@ func resolveInlineTarget(parsed ParsedKeySource, allowLoopback bool) (*nimillm.R
 
 	// Endpoint security validation (K-SEC-004)
 	if err := endpointsec.ValidateEndpoint(context.Background(), endpoint, allowLoopback); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{
+			Message: "inline provider endpoint is not allowed",
+		})
 	}
 
 	return &nimillm.RemoteTarget{

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -137,20 +138,35 @@ func decodeChatTrackSidecarIngressPayload(payload any) (ChatTrackSidecarExecutio
 	}
 	raw, err := json.Marshal(structPayload.AsMap())
 	if err != nil {
-		return ChatTrackSidecarExecutionRequest{}, status.Error(codes.InvalidArgument, "chat track sidecar payload invalid")
+		return ChatTrackSidecarExecutionRequest{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "chat track sidecar payload invalid"},
+		)
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	var decoded chatTrackSidecarIngressPayload
 	if err := decoder.Decode(&decoded); err != nil {
-		return ChatTrackSidecarExecutionRequest{}, status.Error(codes.InvalidArgument, "chat track sidecar payload invalid")
+		return ChatTrackSidecarExecutionRequest{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "chat track sidecar payload invalid"},
+		)
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		if err == nil {
 			return ChatTrackSidecarExecutionRequest{}, status.Error(codes.InvalidArgument, "chat track sidecar payload must contain one object")
 		}
-		return ChatTrackSidecarExecutionRequest{}, status.Error(codes.InvalidArgument, "chat track sidecar payload invalid")
+		return ChatTrackSidecarExecutionRequest{}, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "chat track sidecar payload invalid"},
+		)
 	}
 	agentID := strings.TrimSpace(decoded.AgentID)
 	sourceEventID := strings.TrimSpace(decoded.SourceEventID)
@@ -166,7 +182,12 @@ func decodeChatTrackSidecarIngressPayload(payload any) (ChatTrackSidecarExecutio
 	for _, item := range decoded.Messages {
 		message := &runtimev1.ChatMessage{}
 		if err := unmarshal.Unmarshal(item, message); err != nil {
-			return ChatTrackSidecarExecutionRequest{}, status.Error(codes.InvalidArgument, "chat track sidecar message invalid")
+			return ChatTrackSidecarExecutionRequest{}, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "chat track sidecar message invalid"},
+			)
 		}
 		if strings.TrimSpace(message.GetRole()) == "" {
 			return ChatTrackSidecarExecutionRequest{}, status.Error(codes.InvalidArgument, "chat track sidecar message role required")

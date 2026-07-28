@@ -31,7 +31,16 @@ func newRealmSourceMaterializationStagingV3(databasePath string) (*realmSourceMa
 	}
 	root := filepath.Join(filepath.Dir(databasePath), realmSourceMaterializationStagingDirectoryV3)
 	if err := ensureRealmSourceMaterializationPrivateDirectoryV3(root); err != nil {
-		return nil, fmt.Errorf("create Realm source materialization staging root: %w", err)
+		// The staging root carries only disposable private transport bytes. A
+		// root that fails the private-directory contract (for example one
+		// created under a retired security descriptor) is removed and rebuilt
+		// strictly instead of being reused.
+		if removeErr := os.RemoveAll(root); removeErr != nil {
+			return nil, fmt.Errorf("create Realm source materialization staging root: %w", errors.Join(err, removeErr))
+		}
+		if retryErr := ensureRealmSourceMaterializationPrivateDirectoryV3(root); retryErr != nil {
+			return nil, fmt.Errorf("create Realm source materialization staging root: %w", retryErr)
+		}
 	}
 	return &realmSourceMaterializationStagingV3{root: root}, nil
 }

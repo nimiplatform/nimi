@@ -10,6 +10,7 @@ import { ReasonCode } from '../../types';
 import { createNimiAvatarNativeHostRuntimeAccountCaller } from '../../runtime/account-caller';
 import {
   createRuntimeAccountMediatedBundledAvatarRealmTransport,
+  createRuntimeAccountMediatedDesktopProductRealmTransport,
   createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport,
   createRuntimeAccountMediatedRealmTransport,
   NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS,
@@ -120,6 +121,36 @@ test('Desktop source-readiness Realm transport delegates admitted unary calls wi
   );
 });
 
+test('Desktop product Realm transport admits exact product operations and rejects upload credentials', async () => {
+  const calls: string[] = [];
+  const transport = createRuntimeAccountMediatedDesktopProductRealmTransport({
+    accountCaller: {
+      appId: 'nimi.desktop',
+      appInstanceId: 'nimi.desktop.local-first-party',
+      deviceId: 'desktop-shell',
+      mode: AccountCallerMode.DESKTOP_SHELL,
+      scopes: [],
+    },
+    runtime: {
+      account: {
+        invokeRealmUnary: async (request) => {
+          calls.push(request.methodId);
+          return { accepted: true, responseJson: '{}' };
+        },
+      },
+    },
+  });
+
+  await transport.unary({ methodId: 'getMe', body: { path: {} } });
+  await transport.unary({ methodId: 'listChats', body: { path: {}, query: {} } });
+  await transport.unary({ methodId: 'EconomyController_getBalances', body: { path: {} } });
+  await assert.rejects(
+    () => transport.unary({ methodId: 'createImageDirectUpload', body: { path: {} } }),
+    { reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED' },
+  );
+  assert.deepEqual(calls, ['getMe', 'listChats', 'EconomyController_getBalances']);
+});
+
 test('Desktop source-readiness Realm transport maps upstream failure to typed Realm offline truth', async () => {
   const transport = createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({
     accountCaller: {
@@ -157,6 +188,7 @@ test('Desktop source-readiness Realm transport maps upstream failure to typed Re
 
 test('Desktop source-readiness Realm transport exposes the exact generated operation vocabulary', async () => {
   assert.deepEqual(NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS, [
+    'WorldPublicController_getCharacterSource',
     'WorldCoreController_getPersonaCharacter',
     'WorldCoreController_getWorldCharacter',
     'WorldCoreController_getWorldEntity',

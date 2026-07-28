@@ -18,7 +18,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -194,21 +193,24 @@ func (s *Service) OpenDesktopSession(ctx context.Context, _ *runtimev1.OpenDeskt
 func protectedDesktopSessionError(err error) error {
 	var failure *protectedlocal.Failure
 	if !errors.As(err, &failure) {
-		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, grpcerr.ReasonOptions{
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, err, grpcerr.ReasonOptions{
 			ActionHint: "restart_runtime_service",
+			Message:    "protected desktop session could not be opened",
 		})
 	}
 	reasonValue, ok := runtimev1.ReasonCode_value[string(failure.Reason())]
 	if !ok {
-		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, grpcerr.ReasonOptions{
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, err, grpcerr.ReasonOptions{
 			ActionHint: "restart_runtime_service",
+			Message:    "protected desktop session could not be opened",
 		})
 	}
 	reason := runtimev1.ReasonCode(reasonValue)
 	retryable := failure.Retryable()
-	return grpcerr.WithReasonCodeOptions(protectedDesktopSessionCode(failure.Reason()), reason, grpcerr.ReasonOptions{
+	return grpcerr.WrapWithReasonCode(protectedDesktopSessionCode(failure.Reason()), reason, err, grpcerr.ReasonOptions{
 		ActionHint: failure.ActionHint(),
 		Retryable:  &retryable,
+		Message:    "protected desktop session could not be opened",
 	})
 }
 
@@ -288,7 +290,12 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	}
 
 	if err := s.registry.UpsertInstance(appID, instanceID, req.GetDeviceId(), req.GetModeManifest(), capabilities); err != nil {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "app instance registration is invalid"},
+		)
 	}
 	s.mu.Lock()
 	s.pruneExpiredSessionsLocked(now)
@@ -388,7 +395,12 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 	sessionToken, err := newSessionToken()
 	if err != nil {
 		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "session token could not be generated"},
+		)
 	}
 
 	s.mu.Lock()
@@ -483,7 +495,12 @@ func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSess
 	if err != nil {
 		s.mu.Unlock()
 		s.emitAudit(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "session token could not be generated"},
+		)
 	}
 	session.SessionToken = sessionToken
 	s.pruneExpiredSessionsLocked(now)
@@ -550,7 +567,12 @@ func (s *Service) RegisterExternalPrincipal(ctx context.Context, req *runtimev1.
 	}
 	if err := validateJWTSignatureKey(signatureKeyID); err != nil {
 		s.emitAudit(ctx, "RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "external principal signature key is invalid"},
+		)
 	}
 
 	principal := externalPrincipal{
@@ -602,13 +624,28 @@ func (s *Service) OpenExternalPrincipalSession(ctx context.Context, req *runtime
 		switch {
 		case errors.Is(err, ErrUnsupportedProofType):
 			s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE,
+				err,
+				grpcerr.ReasonOptions{Message: "external principal proof type is unsupported"},
+			)
 		case errors.Is(err, ErrTokenExpired):
 			s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED)
-			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Unauthenticated,
+				runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED,
+				err,
+				grpcerr.ReasonOptions{Message: "external principal proof has expired"},
+			)
 		default:
 			s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
-			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Unauthenticated,
+				runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "external principal proof is invalid"},
+			)
 		}
 	}
 
@@ -623,7 +660,12 @@ func (s *Service) OpenExternalPrincipalSession(ctx context.Context, req *runtime
 	sessionToken, err := newSessionToken()
 	if err != nil {
 		s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "session token could not be generated"},
+		)
 	}
 
 	s.mu.Lock()

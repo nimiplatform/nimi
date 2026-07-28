@@ -219,7 +219,7 @@ func (s *Service) History(_ context.Context, req *runtimev1.HistoryRequest) (*ru
 func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryRequest) (*runtimev1.DeleteMemoryResponse, error) {
 	memoryIDs, err := normalizeDeleteMemoryIDs(req.GetMemoryIds())
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, err
 	}
 	bankState, err := s.bankForLocator(req.GetBank())
 	if err != nil {

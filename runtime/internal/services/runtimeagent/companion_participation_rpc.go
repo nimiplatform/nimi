@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -81,7 +82,7 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 		return nil, err
 	}
 
-	payload, err := structpb.NewStruct(map[string]any{
+	payload, err := newCompanionParticipationPayload(map[string]any{
 		"local_agent_ref":        session.LocalAgentRef,
 		"owner_user_id":          session.OwnerUserID,
 		"runtime_source_ref":     session.RuntimeSourceRef,
@@ -97,9 +98,9 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 		// turn admission binds to the committed Runtime Agent AI Config. The
 		// resolveRuntimeDefaultPublicChatBinding call above remains a
 		// fail-closed availability precheck for the blocked projection path.
-	})
+	}, "companion participation request payload invalid")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "companion participation request payload invalid")
+		return nil, err
 	}
 	err = s.publicChatRuntime().consumeAppMessage(ctx, &runtimev1.AppMessageEvent{
 		FromAppId:     session.CallerAppID,
@@ -152,13 +153,13 @@ func (s *Service) CancelCompanionParticipation(ctx context.Context, req *runtime
 			return nil, status.Error(codes.NotFound, "companion participation projection not found")
 		}
 	}
-	payload, err := structpb.NewStruct(map[string]any{
+	payload, err := newCompanionParticipationPayload(map[string]any{
 		"conversation_anchor_id": session.ConversationAnchorID,
 		"turn_id":                targetTurnID,
 		"reason":                 firstNonEmpty(strings.TrimSpace(req.GetReason()), "companion_participation_cancel_requested"),
-	})
+	}, "companion participation cancel payload invalid")
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "companion participation cancel payload invalid")
+		return nil, err
 	}
 	err = s.publicChatRuntime().consumeAppMessage(ctx, &runtimev1.AppMessageEvent{
 		FromAppId:     session.CallerAppID,
@@ -383,4 +384,17 @@ func companionParticipationRefusalReason(err error) string {
 		return "companion_participation_request_blocked"
 	}
 	return strings.ReplaceAll(message, " ", "_")
+}
+
+func newCompanionParticipationPayload(values map[string]any, publicMessage string) (*structpb.Struct, error) {
+	payload, err := structpb.NewStruct(values)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: publicMessage},
+		)
+	}
+	return payload, nil
 }

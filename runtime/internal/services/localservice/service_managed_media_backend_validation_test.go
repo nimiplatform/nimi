@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,35 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestResolveManagedEntryRelativePathPreservesStatCauseWithoutLeakingPath(t *testing.T) {
+	modelsRoot := t.TempDir()
+	_, err := resolveManagedEntryRelativePath(
+		modelsRoot,
+		"local/missing-asset",
+		"registry/missing-asset",
+		"missing-model.gguf",
+	)
+	if err == nil {
+		t.Fatal("expected missing managed asset entry error")
+	}
+
+	var pathErr *os.PathError
+	if !errors.As(err, &pathErr) {
+		t.Fatalf("expected os.PathError cause, got %T", errors.Unwrap(err))
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error")
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	assertGRPCReasonCode(t, err, "resolveManagedEntryRelativePath(missing entry)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	if strings.Contains(st.Message(), modelsRoot) || strings.Contains(st.Message(), pathErr.Path) {
+		t.Fatalf("public status leaked managed asset path: %q", st.Message())
+	}
+}
 
 func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	svc := newTestService(t)
@@ -256,6 +286,46 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 		t.Fatalf("expected optional missing slot asset to fail-close")
 	}
 	assertGRPCReasonCode(t, err, "optional slot asset missing", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
+}
+
+func TestResolveProfileSlotsPreservesMissingSlotPathCauseWithoutLeakingPath(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "private-model-root")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	slotAsset := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "artifact_" + ulid.Make().String(),
+		AssetId:      "missing-vae",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:       "media",
+		Entry:        "private-missing-vae.safetensors",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+	}
+	svc.mu.Lock()
+	svc.assets[slotAsset.GetLocalAssetId()] = slotAsset
+	svc.mu.Unlock()
+
+	_, err := svc.resolveProfileSlots([]*runtimev1.LocalProfileEntryDescriptor{{
+		EntryId:    "missing-vae-slot",
+		Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+		Capability: "image",
+		AssetId:    slotAsset.GetAssetId(),
+		AssetKind:  slotAsset.GetKind(),
+		Engine:     slotAsset.GetEngine(),
+		EngineSlot: "vae_path",
+	}}, "image", nil, "")
+	if err == nil {
+		t.Fatal("expected missing slot path error")
+	}
+	var pathErr *os.PathError
+	if !errors.As(err, &pathErr) {
+		t.Fatalf("expected os.PathError cause, got %T: %v", errors.Unwrap(err), err)
+	}
+	assertGRPCReasonCode(t, err, "missing slot path", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
+	if strings.Contains(status.Convert(err).Message(), modelsRoot) ||
+		strings.Contains(status.Convert(err).Message(), slotAsset.GetEntry()) {
+		t.Fatalf("public status exposed private slot path: %q", status.Convert(err).Message())
+	}
 }
 
 func TestResolveManagedMediaImageProfileRejectsLocalImportSlotSourceRepo(t *testing.T) {

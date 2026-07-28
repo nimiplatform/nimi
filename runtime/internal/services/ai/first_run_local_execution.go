@@ -82,11 +82,7 @@ func (s *Service) ExecuteFirstRunLocalBaseline(ctx context.Context, req FirstRun
 	}
 	releaseScheduler, _, err := s.scheduler.Acquire(ctx, "runtime.first_run")
 	if err != nil {
-		return FirstRunLocalExecutionResult{}, grpcerr.WithReasonCodeOptions(
-			codes.ResourceExhausted,
-			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
-			grpcerr.ReasonOptions{Message: strings.TrimSpace(err.Error())},
-		)
+		return FirstRunLocalExecutionResult{}, schedulerAcquireError(err)
 	}
 	defer releaseScheduler()
 

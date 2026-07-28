@@ -7,12 +7,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
-const realmSourceMaterializationWindowsFileAllAccessV3 = 0x001f01ff
+const (
+	realmSourceMaterializationWindowsFileAllAccessV3  = 0x001f01ff
+	realmSourceMaterializationWindowsServiceSIDPrefix = "S-1-5-80-"
+)
 
 func ensureRealmSourceMaterializationPrivateDirectoryV3(path string) error {
 	descriptor, _, err := realmSourceMaterializationWindowsSecurityDescriptorV3(true)
@@ -144,12 +148,12 @@ func validateRealmSourceMaterializationPrivateHandleV3(handle windows.Handle, di
 	if err != nil || control&windows.SE_DACL_PROTECTED == 0 {
 		return fmt.Errorf("private staging path requires a protected Windows DACL: %w", err)
 	}
-	_, principalSID, err := realmSourceMaterializationWindowsSecurityDescriptorV3(directory)
+	ownerSID, principalSID, err := realmSourceMaterializationWindowsPrincipalV3()
 	if err != nil {
 		return err
 	}
 	owner, _, err := descriptor.Owner()
-	if err != nil || owner == nil || !windows.EqualSid(owner, principalSID) {
+	if err != nil || owner == nil || !windows.EqualSid(owner, ownerSID) {
 		return fmt.Errorf("private staging path owner differs from the Runtime principal: %w", err)
 	}
 	dacl, _, err := descriptor.DACL()
@@ -181,26 +185,58 @@ func validateRealmSourceMaterializationPrivateHandleV3(handle windows.Handle, di
 	return nil
 }
 
-func realmSourceMaterializationWindowsSecurityDescriptorV3(directory bool) (*windows.SECURITY_DESCRIPTOR, *windows.SID, error) {
-	user, err := windows.GetCurrentProcessToken().GetTokenUser()
+// realmSourceMaterializationWindowsPrincipalV3 resolves the two Windows
+// identities of the private staging contract: the directory owner is always
+// the process token user, while the single access entry names the per-service
+// SID when the Runtime runs as a Windows service. A service registered with
+// SERVICE_SID_TYPE_RESTRICTED holds a write-restricted token, and writes pass
+// only when the DACL grants the restricted service SID; a token-user-only
+// entry would deny every staging write while leaving reads intact.
+func realmSourceMaterializationWindowsPrincipalV3() (owner *windows.SID, principal *windows.SID, err error) {
+	token := windows.GetCurrentProcessToken()
+	user, err := token.GetTokenUser()
 	if err != nil {
 		return nil, nil, fmt.Errorf("resolve Runtime Windows principal: %w", err)
 	}
 	if user == nil || user.User.Sid == nil {
 		return nil, nil, fmt.Errorf("resolve Runtime Windows principal: SID is absent")
 	}
-	sid := user.User.Sid
+	owner = user.User.Sid
+	principal = owner
+	groups, err := token.GetTokenGroups()
+	if err != nil {
+		return nil, nil, fmt.Errorf("resolve Runtime Windows service identity: %w", err)
+	}
+	for _, group := range groups.AllGroups() {
+		if group.Sid == nil ||
+			group.Attributes&windows.SE_GROUP_ENABLED == 0 ||
+			group.Attributes&windows.SE_GROUP_USE_FOR_DENY_ONLY != 0 {
+			continue
+		}
+		if strings.HasPrefix(group.Sid.String(), realmSourceMaterializationWindowsServiceSIDPrefix) {
+			principal = group.Sid
+			break
+		}
+	}
+	return owner, principal, nil
+}
+
+func realmSourceMaterializationWindowsSecurityDescriptorV3(directory bool) (*windows.SECURITY_DESCRIPTOR, *windows.SID, error) {
+	owner, principal, err := realmSourceMaterializationWindowsPrincipalV3()
+	if err != nil {
+		return nil, nil, err
+	}
 	inheritance := ""
 	if directory {
 		inheritance = "OICI"
 	}
 	descriptor, err := windows.SecurityDescriptorFromString(
-		fmt.Sprintf("O:%sD:P(A;%s;FA;;;%s)", sid.String(), inheritance, sid.String()),
+		fmt.Sprintf("O:%sD:P(A;%s;FA;;;%s)", owner.String(), inheritance, principal.String()),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("build private staging Windows security descriptor: %w", err)
 	}
-	return descriptor, sid, nil
+	return descriptor, principal, nil
 }
 
 func realmSourceMaterializationWindowsSecurityAttributesV3(

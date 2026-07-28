@@ -45,6 +45,18 @@ func (s *Service) logQueueWait(operation string, appID string, result scheduler.
 	s.logger.Debug("scheduler queue wait", "operation", operation, "app_id", appID, "queue_wait_ms", waitMs)
 }
 
+func schedulerAcquireError(err error) error {
+	return grpcerr.WrapWithReasonCode(
+		codes.ResourceExhausted,
+		runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		err,
+		grpcerr.ReasonOptions{
+			ActionHint: "retry_or_reduce_concurrent_requests",
+			Message:    "runtime scheduler could not admit the request",
+		},
+	)
+}
+
 func reasonCodeFromStreamError(err error) runtimev1.ReasonCode {
 	if err == nil {
 		return runtimev1.ReasonCode_AI_STREAM_BROKEN

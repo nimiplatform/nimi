@@ -40,18 +40,28 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(model.GetLocalAssetId()); err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    managedLocalAssetRecordFailureDetail(err),
-			ActionHint: "inspect_local_runtime_model_health",
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    "managed local asset record could not be repaired",
+				ActionHint: "inspect_local_runtime_model_health",
+			},
+		)
 	} else if healedModel != nil {
 		model = healedModel
 	}
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(model.GetLocalAssetId())); err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    managedLocalAssetRecordFailureDetail(err),
-			ActionHint: "inspect_local_runtime_model_health",
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    "managed local asset record is invalid",
+				ActionHint: "inspect_local_runtime_model_health",
+			},
+		)
 	}
 	if !modelSupportsWarmup(model) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
@@ -66,10 +76,15 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 		if recordErr := s.recordWarmFailure(model, detail, false); recordErr != nil {
 			return nil, recordErr
 		}
-		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    detail,
-			ActionHint: "inspect_local_runtime_model_health",
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    "managed local model bundle is unavailable",
+				ActionHint: "inspect_local_runtime_model_health",
+			},
+		)
 	}
 	if refreshed := s.modelByID(model.GetLocalAssetId()); refreshed != nil {
 		model = refreshed
@@ -96,10 +111,15 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 			if recordErr := s.recordWarmFailure(model, detail, false); recordErr != nil {
 				return nil, recordErr
 			}
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-				Message:    detail,
-				ActionHint: "inspect_local_runtime_model_health",
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{
+					Message:    "managed local model runtime is unavailable",
+					ActionHint: "inspect_local_runtime_model_health",
+				},
+			)
 		}
 		if readyModel != nil {
 			model = readyModel
@@ -107,10 +127,15 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 	} else {
 		endpoint := s.effectiveLocalModelEndpoint(model)
 		if err := s.bootstrapLocalModelIfManaged(requestCtx, model); err != nil {
-			return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-				Message:    strings.TrimSpace(err.Error()),
-				ActionHint: "check_local_runtime_engine",
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Unavailable,
+				runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{
+					Message:    "local runtime engine could not be started",
+					ActionHint: "check_local_runtime_engine",
+				},
+			)
 		}
 
 		probe := s.waitForWarmProbe(requestCtx, model, registration, endpoint)

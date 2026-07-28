@@ -16,13 +16,18 @@ import (
 )
 
 const (
-	windowsProductionRealmBaseURL     = "https://realm.nimi.ai"
-	windowsProductionInstallStateFile = "installation.json"
+	windowsProductionRealmBaseURL       = "https://realm.nimi.ai"
+	windowsLocalDevelopmentRealmBaseURL = "http://127.0.0.1:3002"
+	windowsProductionInstallStateFile   = "installation.json"
+	windowsProductionDeploymentProfile  = "production"
+	windowsLocalDevelopmentProfile      = "local-development"
 )
 
 type windowsProductionInstallState struct {
-	SchemaVersion int    `json:"schemaVersion"`
-	RuntimeID     string `json:"runtimeId"`
+	SchemaVersion     int    `json:"schemaVersion"`
+	RuntimeID         string `json:"runtimeId"`
+	DeploymentProfile string `json:"deploymentProfile"`
+	RealmOrigin       string `json:"realmOrigin"`
 }
 
 // loadWindowsProtectedRuntimeConfig constructs the production service config
@@ -38,12 +43,12 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 	if err := os.MkdirAll(runtimeRoot, 0o700); err != nil {
 		return config.Config{}, fmt.Errorf("create service-owned Runtime config root: %w", err)
 	}
-	runtimeID, err := loadOrCreateWindowsProductionRuntimeID(filepath.Join(runtimeRoot, windowsProductionInstallStateFile))
+	installState, err := loadOrCreateWindowsProductionInstallState(filepath.Join(runtimeRoot, windowsProductionInstallStateFile))
 	if err != nil {
 		return config.Config{}, err
 	}
 
-	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, windowsProductionRealmBaseURL)
+	cfg := newProtectedRuntimeConfig(runtimeRoot, installState.RuntimeID, installState.RealmOrigin)
 	serviceConfigPath := filepath.Join(runtimeRoot, config.ServiceOwnedConfigFilename)
 	if err := config.ApplyServiceOwnedDataRoot(&cfg, serviceConfigPath); err != nil {
 		return config.Config{}, fmt.Errorf("apply fixed Windows Runtime mutable config: %w", err)
@@ -54,34 +59,36 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 	return cfg, nil
 }
 
-func loadOrCreateWindowsProductionRuntimeID(path string) (string, error) {
+func loadOrCreateWindowsProductionInstallState(path string) (windowsProductionInstallState, error) {
 	state, err := readWindowsProductionInstallState(path)
 	if err == nil {
-		return state.RuntimeID, nil
+		return state, nil
 	}
 	if !errors.Is(err, os.ErrNotExist) {
-		return "", err
+		return windowsProductionInstallState{}, err
 	}
 
 	state = windowsProductionInstallState{
-		SchemaVersion: 1,
-		RuntimeID:     config.GenerateRuntimeID(),
+		SchemaVersion:     2,
+		RuntimeID:         config.GenerateRuntimeID(),
+		DeploymentProfile: windowsProductionDeploymentProfile,
+		RealmOrigin:       windowsProductionRealmBaseURL,
 	}
 	raw, err := json.Marshal(state)
 	if err != nil {
-		return "", fmt.Errorf("marshal Windows Runtime installation state: %w", err)
+		return windowsProductionInstallState{}, fmt.Errorf("marshal Windows Runtime installation state: %w", err)
 	}
 	raw = append(raw, '\n')
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if errors.Is(err, os.ErrExist) {
 		recovered, readErr := readWindowsProductionInstallState(path)
 		if readErr != nil {
-			return "", readErr
+			return windowsProductionInstallState{}, readErr
 		}
-		return recovered.RuntimeID, nil
+		return recovered, nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("create Windows Runtime installation state: %w", err)
+		return windowsProductionInstallState{}, fmt.Errorf("create Windows Runtime installation state: %w", err)
 	}
 	cleanup := true
 	defer func() {
@@ -91,16 +98,16 @@ func loadOrCreateWindowsProductionRuntimeID(path string) (string, error) {
 		}
 	}()
 	if _, err := file.Write(raw); err != nil {
-		return "", fmt.Errorf("write Windows Runtime installation state: %w", err)
+		return windowsProductionInstallState{}, fmt.Errorf("write Windows Runtime installation state: %w", err)
 	}
 	if err := file.Sync(); err != nil {
-		return "", fmt.Errorf("sync Windows Runtime installation state: %w", err)
+		return windowsProductionInstallState{}, fmt.Errorf("sync Windows Runtime installation state: %w", err)
 	}
 	if err := file.Close(); err != nil {
-		return "", fmt.Errorf("close Windows Runtime installation state: %w", err)
+		return windowsProductionInstallState{}, fmt.Errorf("close Windows Runtime installation state: %w", err)
 	}
 	cleanup = false
-	return state.RuntimeID, nil
+	return state, nil
 }
 
 func readWindowsProductionInstallState(path string) (windowsProductionInstallState, error) {
@@ -121,8 +128,24 @@ func readWindowsProductionInstallState(path string) (windowsProductionInstallSta
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return windowsProductionInstallState{}, fmt.Errorf("decode Windows Runtime installation state: unexpected trailing content")
 	}
-	if state.SchemaVersion != 1 {
-		return windowsProductionInstallState{}, fmt.Errorf("Windows Runtime installation state schemaVersion must be 1")
+	if state.SchemaVersion == 1 && strings.TrimSpace(state.DeploymentProfile) == "" && strings.TrimSpace(state.RealmOrigin) == "" {
+		state.SchemaVersion = 2
+		state.DeploymentProfile = windowsProductionDeploymentProfile
+		state.RealmOrigin = windowsProductionRealmBaseURL
+	} else if state.SchemaVersion != 2 {
+		return windowsProductionInstallState{}, fmt.Errorf("Windows Runtime installation state schemaVersion must be 1 or 2")
+	}
+	switch strings.TrimSpace(state.DeploymentProfile) {
+	case windowsProductionDeploymentProfile:
+		if strings.TrimSpace(state.RealmOrigin) != windowsProductionRealmBaseURL {
+			return windowsProductionInstallState{}, fmt.Errorf("Windows production deployment profile Realm origin is invalid")
+		}
+	case windowsLocalDevelopmentProfile:
+		if strings.TrimSpace(state.RealmOrigin) != windowsLocalDevelopmentRealmBaseURL {
+			return windowsProductionInstallState{}, fmt.Errorf("Windows local-development deployment profile Realm origin is invalid")
+		}
+	default:
+		return windowsProductionInstallState{}, fmt.Errorf("Windows Runtime deployment profile is invalid")
 	}
 	parsed, err := ulid.ParseStrict(strings.TrimSpace(state.RuntimeID))
 	if err != nil || parsed.String() != state.RuntimeID {

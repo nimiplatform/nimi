@@ -80,6 +80,24 @@ func (s *Service) updateModelAvailabilityAndWarmState(
 	detail string,
 	updateWarmState bool,
 ) (*runtimev1.LocalAssetRecord, error) {
+	return s.updateModelAvailabilityAndWarmStateWithReason(
+		localModelID,
+		status,
+		warmState,
+		detail,
+		updateWarmState,
+		runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+	)
+}
+
+func (s *Service) updateModelAvailabilityAndWarmStateWithReason(
+	localModelID string,
+	status runtimev1.LocalAssetStatus,
+	warmState runtimev1.LocalWarmState,
+	detail string,
+	updateWarmState bool,
+	reason runtimev1.ReasonCode,
+) (*runtimev1.LocalAssetRecord, error) {
 	id := strings.TrimSpace(localModelID)
 	if id == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -104,7 +122,10 @@ func (s *Service) updateModelAvailabilityAndWarmState(
 	}
 	current.UpdatedAt = now
 	current.HealthDetail = detail
-	current.ReasonCode = projectionReasonCodeForEngine(current.GetEngine(), detail)
+	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		reason = projectionReasonCodeForEngine(current.GetEngine(), detail)
+	}
+	current.ReasonCode = reason
 	s.assets[id] = cloneLocalAsset(current)
 	if nextStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		delete(s.assetRuntimeModes, id)

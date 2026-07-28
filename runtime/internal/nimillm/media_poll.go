@@ -99,9 +99,19 @@ func providerPollContextError(err error) error {
 	case err == nil:
 		return nil
 	case errors.Is(err, context.Canceled):
-		return grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_ACTION_EXECUTED)
+		return grpcerr.WrapWithReasonCode(
+			codes.Canceled,
+			runtimev1.ReasonCode_ACTION_EXECUTED,
+			err,
+			grpcerr.ReasonOptions{Message: "provider polling was canceled"},
+		)
 	case errors.Is(err, context.DeadlineExceeded):
-		return providerPollTimeoutError()
+		return grpcerr.WrapWithReasonCode(
+			codes.DeadlineExceeded,
+			runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+			err,
+			grpcerr.ReasonOptions{Message: "provider polling timed out"},
+		)
 	default:
 		return MapProviderRequestError(err)
 	}

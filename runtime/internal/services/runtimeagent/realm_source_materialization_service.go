@@ -41,19 +41,33 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 
 	release := requestLocks.acquire(request.AccountID, request.RequestID)
 	defer release()
+	stage := "intent-digest"
+	report := func(code sourceMaterializationFailureCodeV3, cause error) {
+		reportRealmSourceMaterializationFailureV3(stage, code, request.RequestID, cause)
+		if s.logger != nil {
+			s.logger.Warn("Realm source materialization failed",
+				"stage", stage, "failure_code", string(code), "request_id", request.RequestID, "error", cause)
+		}
+	}
 	now := s.sourceMaterializationClock()().UTC()
 	intentDigest, err := realmSourceMaterializationIntentDigestV3(request)
 	if err != nil {
+		report(sourceMaterializationFailureInvalidRequestV3, err)
 		return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailureInvalidRequestV3), nil
 	}
+	stage = "canonical-source-ref"
 	sourceRefJSON, err := canonicalRealmSourceMaterializationRefV3(request.SourceRef)
 	if err != nil {
+		report(sourceMaterializationFailureInvalidRequestV3, err)
 		return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailureInvalidRequestV3), nil
 	}
+	stage = "challenge"
 	challenge, err := newRealmSourceMaterializationChallengeV3(runtimeInstanceID, request, intentDigest, now)
 	if err != nil {
+		report(sourceMaterializationFailureIssuerUnavailableV3, err)
 		return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailureIssuerUnavailableV3), nil
 	}
+	stage = "begin-attempt"
 	attempt, disposition, err := repository.beginAttempt(ctx, realmSourceMaterializationAttemptV3{
 		MaterializerAccountID: request.AccountID,
 		RequestID:             request.RequestID,
@@ -65,14 +79,19 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		UpdatedAt:             now,
 	})
 	if err != nil {
+		report(sourceMaterializationFailurePersistenceV3, err)
 		return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailurePersistenceV3), nil
 	}
 	switch disposition {
 	case realmSourceMaterializationBeginConflictV3:
+		stage = "begin-attempt-conflict"
+		report(sourceMaterializationFailureRequestConflictV3, nil)
 		return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailureRequestConflictV3), nil
 	case realmSourceMaterializationBeginCommittedReplayV3:
 		status, statusErr := attempt.sourceContextStatus()
 		if statusErr != nil {
+			stage = "committed-replay-status"
+			report(sourceMaterializationFailurePersistenceV3, statusErr)
 			return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailurePersistenceV3), nil
 		}
 		return &runtimev1.MaterializeRealmSourceResponse{
@@ -80,23 +99,31 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 			ReasonCode: runtimev1.RealmSourceMaterializationReasonCode_REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE,
 		}, nil
 	case realmSourceMaterializationBeginTerminalReplayV3:
+		stage = "terminal-replay"
+		report(attempt.FailureCode, nil)
 		return realmSourceMaterializationFailureResponseV3(attempt.FailureCode), nil
 	case realmSourceMaterializationBeginCreatedV3:
 	default:
+		stage = "begin-attempt-disposition"
+		report(sourceMaterializationFailurePersistenceV3, nil)
 		return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailurePersistenceV3), nil
 	}
 
 	fail := func(cause error) (*runtimev1.MaterializeRealmSourceResponse, error) {
 		code := sourceMaterializationV3FailureCode(cause)
 		if failureErr := repository.failAttempt(ctx, request.AccountID, request.RequestID, code, s.sourceMaterializationClock()().UTC()); failureErr != nil {
+			cause = errors.Join(cause, failureErr)
 			code = sourceMaterializationFailurePersistenceV3
 		}
+		report(code, cause)
 		return realmSourceMaterializationFailureResponseV3(code), nil
 	}
+	stage = "transition-acquiring"
 	if err := repository.transitionAttempt(ctx, request.AccountID, request.RequestID, realmSourceMaterializationAttemptRequestedV3, realmSourceMaterializationAttemptAcquiringV3, "", now); err != nil {
 		return fail(err)
 	}
 
+	stage = "acquire"
 	acquisition, err := issuer.AcquireRealmSourceMaterialization(ctx, RealmSourceMaterializationIssuanceRequest{
 		AuthenticatedAccountID: request.AccountID,
 		RequestID:              request.RequestID,
@@ -124,6 +151,7 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		return fail(sourceMaterializationV3Error(code, "Realm acquisition failed: %v", err))
 	}
 	packetResponse := acquisition.PacketResponse
+	stage = "validate-acquisition"
 	if err := validateSourceMaterializationAcquisitionV3(acquisition, request.AccountID); err != nil {
 		closeErr := closeRealmSourceMaterializationBodiesV3(packetResponse.Body)
 		if closeErr != nil {
@@ -131,11 +159,13 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		}
 		return fail(err)
 	}
+	stage = "wire-budget"
 	wireBudget, err := sourceMaterializationWireBudgetV3(challenge.Limits)
 	if err != nil {
 		_ = closeRealmSourceMaterializationBodiesV3(packetResponse.Body)
 		return fail(err)
 	}
+	stage = "validate-packet-response"
 	if err := validateSourceMaterializationHTTPResponseV3(packetResponse, 201, wireBudget); err != nil {
 		closeErr := closeRealmSourceMaterializationBodiesV3(packetResponse.Body)
 		if closeErr != nil {
@@ -143,6 +173,7 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		}
 		return fail(err)
 	}
+	stage = "stage-packet"
 	stagedPacket, stageErr := staging.stagePacket(ctx, request.AccountID, request.RequestID, packetResponse.Body, wireBudget, packetResponse.ContentLength)
 	packetBodyCloseErr := closeRealmSourceMaterializationBodiesV3(packetResponse.Body)
 	if stageErr != nil {
@@ -155,6 +186,7 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		_ = stagedPacket.cleanup()
 		return fail(sourceMaterializationV3Error(sourceMaterializationFailureCleanupV3, "close staged Packet response: %v", packetBodyCloseErr))
 	}
+	stage = "transition-verifying"
 	if err := repository.transitionAttempt(ctx, request.AccountID, request.RequestID, realmSourceMaterializationAttemptAcquiringV3, realmSourceMaterializationAttemptVerifyingV3, "", s.sourceMaterializationClock()().UTC()); err != nil {
 		if cleanupErr := stagedPacket.cleanup(); cleanupErr != nil {
 			return fail(sourceMaterializationV3Error(sourceMaterializationFailureCleanupV3, "attempt transition and Packet cleanup failed: %v", errors.Join(err, cleanupErr)))
@@ -162,6 +194,7 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		return fail(err)
 	}
 
+	stage = "fetch-jwks"
 	jwksResponse, err := issuer.FetchCurrentRealmSourceMaterializationJWKS(ctx, acquisition.AccountLease)
 	if err != nil {
 		closeErr := stagedPacket.cleanup()
@@ -170,6 +203,7 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		}
 		return fail(sourceMaterializationV3Error(sourceMaterializationFailureIssuerUnavailableV3, "current JWKS fetch failed: %v", err))
 	}
+	stage = "validate-jwks-response"
 	if err := validateSourceMaterializationHTTPResponseV3(jwksResponse, 200, sourceMaterializationJWKSMaxBytesV3); err != nil {
 		closeErr := errors.Join(stagedPacket.cleanup(), closeRealmSourceMaterializationBodiesV3(jwksResponse.Body))
 		if closeErr != nil {
@@ -177,6 +211,7 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		}
 		return fail(err)
 	}
+	stage = "verify-packet"
 	verified, verificationErr := verifySourceMaterializationPacketV3(stagedPacket.reader(), jwksResponse.Body, sourceMaterializationVerificationExpectationV3{
 		Challenge: challenge, ExpectedIssuer: acquisition.ExpectedIssuer,
 		ExpectedAccessPolicyDigest: acquisition.ExpectedAccessPolicyVersionDigest,
@@ -192,6 +227,7 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 	if cleanupErr != nil {
 		return fail(sourceMaterializationV3Error(sourceMaterializationFailureCleanupV3, "verification body cleanup failed: %v", cleanupErr))
 	}
+	stage = "packet-expiry"
 	packetExpiresAt, err := parseSourceMaterializationInstantV3(verified.Packet.ExpiresAt, "packet.expiresAt")
 	if err != nil {
 		return fail(err)
@@ -201,21 +237,26 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		sourceStatus  *runtimev1.LocalAgentSourceContextStatus
 		prepared      *preparedRealmSourceMaterializationProductV3
 	)
+	stage = "commit-guard"
 	guardErr := issuer.WithCurrentRealmSourceMaterializationAccount(ctx, acquisition.AccountLease, func() error {
+		stage = "transition-committing"
 		if err := repository.transitionAttempt(ctx, request.AccountID, request.RequestID, realmSourceMaterializationAttemptVerifyingV3, realmSourceMaterializationAttemptCommittingV3, verified.Packet.PacketHash, s.sourceMaterializationClock()().UTC()); err != nil {
 			return err
 		}
+		stage = "generate-local-agent-ref"
 		generatedRef, err := generateRuntimeLocalAgentRef()
 		if err != nil {
 			return sourceMaterializationV3Error(sourceMaterializationFailurePersistenceV3, "generate LocalAgent identity: %v", err)
 		}
 		localAgentRef = generatedRef
+		stage = "prepare-product"
 		preparedProduct, statusProjection, err := s.prepareRealmSourceMaterializationProductV3(ctx, request.AccountID, localAgentRef, verified)
 		if err != nil {
 			return sourceMaterializationV3Error(sourceMaterializationFailurePersistenceV3, "prepare LocalAgent product: %v", err)
 		}
 		prepared = preparedProduct
 		sourceStatus = statusProjection
+		stage = "finish-commit"
 		commitErr := repository.finishCommit(ctx, attempt, realmSourceMaterializationReplayV3{
 			RuntimeInstanceID: runtimeInstanceID, Issuer: verified.Packet.Issuer,
 			ReplayBindingHash: verified.ReplayBindingHash, NonceDigest: verified.NonceReplayDigest,

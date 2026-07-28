@@ -2,6 +2,8 @@ package grpcerr
 
 import (
 	"encoding/json"
+	"errors"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -124,12 +126,68 @@ func TestExtractReasonMetadata_Roundtrip(t *testing.T) {
 	}
 }
 
+func TestExtractPublicMessageReturnsExplicitSafeMessage(t *testing.T) {
+	err := WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, ReasonOptions{
+		Message:    "managed asset entry is unavailable",
+		ActionHint: "inspect_local_runtime_model_health",
+	})
+	message, ok := ExtractPublicMessage(err)
+	if !ok {
+		t.Fatal("expected explicit public message")
+	}
+	if message != "managed asset entry is unavailable" {
+		t.Fatalf("message = %q", message)
+	}
+
+	if message, ok := ExtractPublicMessage(WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)); ok {
+		t.Fatalf("reason-only status returned a public message: %q", message)
+	}
+}
+
 func TestWithReasonCode_MessageContainsReasonString(t *testing.T) {
 	reason := runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
 	err := WithReasonCode(codes.DeadlineExceeded, reason)
 	st, _ := status.FromError(err)
 	if st.Message() != reason.String() {
 		t.Fatalf("expected message %q, got %q", reason.String(), st.Message())
+	}
+}
+
+func TestWrapWithReasonCode_PreservesCauseAndPublicStatus(t *testing.T) {
+	cause := errors.New("private upstream decode detail")
+	err := WrapWithReasonCode(
+		codes.Internal,
+		runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+		cause,
+		ReasonOptions{Message: "provider response could not be decoded"},
+	)
+
+	if !errors.Is(err, cause) {
+		t.Fatal("expected wrapped cause to remain available in-process")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected wrapped error to remain a gRPC status error")
+	}
+	if st.Code() != codes.Internal {
+		t.Fatalf("expected Internal, got %v", st.Code())
+	}
+	payload := map[string]any{}
+	if err := json.Unmarshal([]byte(st.Message()), &payload); err != nil {
+		t.Fatalf("expected structured public status, got %q: %v", st.Message(), err)
+	}
+	if payload["reasonCode"] != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
+		t.Fatalf("unexpected reason payload: %#v", payload)
+	}
+	if payload["message"] != "provider response could not be decoded" {
+		t.Fatalf("unexpected public message payload: %#v", payload)
+	}
+	if strings.Contains(err.Error(), cause.Error()) {
+		t.Fatalf("public error text leaked private cause: %q", err.Error())
+	}
+	reason, ok := ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+		t.Fatalf("unexpected reason code: %v (ok=%v)", reason, ok)
 	}
 }
 
@@ -163,6 +221,25 @@ func TestWithReasonCodeOptions_WritesActionHintAndRetryableMetadata(t *testing.T
 	}
 	if info.GetMetadata()["retryable"] != "true" {
 		t.Fatalf("unexpected retryable: %q", info.GetMetadata()["retryable"])
+	}
+}
+
+func TestWithReasonCodeOptionsBoundsPublicMessage(t *testing.T) {
+	err := WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, ReasonOptions{
+		ActionHint: "retry_or_check_runtime_logs",
+		Message:    strings.Repeat("x", maxPublicMessageBytes+128),
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error")
+	}
+	payload := map[string]any{}
+	if decodeErr := json.Unmarshal([]byte(st.Message()), &payload); decodeErr != nil {
+		t.Fatalf("expected structured status message: %v", decodeErr)
+	}
+	message, _ := payload["message"].(string)
+	if len(message) != maxPublicMessageBytes {
+		t.Fatalf("public message bytes = %d, want %d", len(message), maxPublicMessageBytes)
 	}
 }
 

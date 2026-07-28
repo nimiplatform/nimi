@@ -2,10 +2,12 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -13,6 +15,8 @@ import (
 	runtimecfg "github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestProviderHelpersAndRouteSelectorWrapper(t *testing.T) {
@@ -100,6 +104,28 @@ func TestRouteSelectorResolvesDefaultAliases(t *testing.T) {
 	}
 	if route != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || modelResolved != "openai/gpt-5.2" {
 		t.Fatalf("unexpected cloud default resolution: route=%v model=%q", route, modelResolved)
+	}
+}
+
+func TestRouteSelectorDefaultAliasErrorPreservesCauseWithoutPublishingConfigDetail(t *testing.T) {
+	selector := &routeSelector{targetConfig: runtimecfg.Config{}}
+
+	_, _, err := selector.resolveBindingRouteModel(
+		runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		"cloud/default",
+	)
+	if err == nil || errors.Unwrap(err) == nil {
+		t.Fatalf("expected preserved default alias resolution cause, got %v", err)
+	}
+	if got := status.Code(err); got != codes.FailedPrecondition {
+		t.Fatalf("gRPC code = %s, want %s", got, codes.FailedPrecondition)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID {
+		t.Fatalf("unexpected reason: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+	}
+	if wireMessage := status.Convert(err).Message(); strings.Contains(wireMessage, "no default cloud provider is configured") {
+		t.Fatalf("wire message leaked private config detail: %q", wireMessage)
 	}
 }
 

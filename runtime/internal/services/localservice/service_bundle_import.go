@@ -337,11 +337,21 @@ func (s *Service) runImportLocalAssetBundle(ctx context.Context, transferID stri
 func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID string, req *runtimev1.ImportLocalAssetBundleRequest) (*runtimev1.LocalAssetRecord, error) {
 	sourceDir, err := validateImportSourceDirectory(req.GetDirectoryPath())
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "bundle source directory is invalid"},
+		)
 	}
 	scan, err := scanBundleDirectory(sourceDir)
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "bundle directory could not be scanned"},
+		)
 	}
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
 	sourceManifestPath := filepath.Join(sourceDir, localAssetManifestFileName)
@@ -355,7 +365,12 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 	if sourceHasManifest {
 		identity, err := parseBundleManifestIdentity(sourceManifestPath)
 		if err != nil {
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "bundle manifest identity is invalid"},
+			)
 		}
 		if isRunnableKind(identity.kind) {
 			logicalModelID = identity.logicalModelID
@@ -366,7 +381,12 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		manifestPath = filepath.Join(destDir, localAssetManifestFileName)
 		manifest, err = normalizeExistingBundleManifest(sourceManifestPath, manifestPath, sourceDir, scan, identity)
 		if err != nil {
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "bundle manifest is invalid"},
+			)
 		}
 	} else {
 		modelName := strings.TrimSpace(req.GetModelName())
@@ -382,7 +402,12 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		manifestPath = filepath.Join(destDir, localAssetManifestFileName)
 		manifest, err = scaffoldBundleManifest(manifestPath, modelName, req.GetCapabilities(), req.GetEngine(), endpoint, sourceDir, scan)
 		if err != nil {
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "bundle manifest could not be prepared"},
+			)
 		}
 	}
 
@@ -402,20 +427,40 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 
 	stageDir, err := prepareManagedModelBundleStageDir(destDir, "bundle-import")
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{Message: err.Error()})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "bundle staging directory could not be prepared"},
+		)
 	}
 	if err := copyDirRecursive(sourceDir, stageDir); err != nil {
 		_ = os.RemoveAll(stageDir)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{Message: fmt.Sprintf("copy bundle directory: %v", err)})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "bundle files could not be staged"},
+		)
 	}
 	if err := writeBundleManifest(filepath.Join(stageDir, localAssetManifestFileName), manifest); err != nil {
 		_ = os.RemoveAll(stageDir)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{Message: err.Error()})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "bundle manifest could not be written"},
+		)
 	}
 	s.updateTransferProgress(transferID, "copy", 1, 1, "bundle staged")
 	activation, err := activateManagedModelBundle(destDir, stageDir)
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{Message: err.Error()})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "bundle could not be activated"},
+		)
 	}
 	s.updateTransferProgress(transferID, "register", 1, 1, "registering bundle")
 	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath, Endpoint: endpoint})
@@ -479,7 +524,12 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 	manifestPath := filepath.Join(bundleDir, localAssetManifestFileName)
 	scan, err := scanBundleDirectory(bundleDir)
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "managed bundle directory could not be scanned"},
+		)
 	}
 	identity := bundleManifestIdentity{
 		assetID:        asset.GetAssetId(),
@@ -495,7 +545,12 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 		manifest, err = scaffoldBundleManifest(manifestPath, asset.GetAssetId(), asset.GetCapabilities(), asset.GetEngine(), asset.GetEndpoint(), bundleDir, scan)
 	}
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "managed bundle manifest could not be refreshed"},
+		)
 	}
 	s.updateTransferProgress(transferID, "manifest", 1, 1, "refreshing bundle manifest")
 	var imported *runtimev1.ImportLocalAssetResponse

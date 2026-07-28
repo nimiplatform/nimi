@@ -1,11 +1,15 @@
 package pagination
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/status"
 )
 
 func TestEncodeDecode_Roundtrip(t *testing.T) {
@@ -33,7 +37,8 @@ func TestDecode_EmptyToken(t *testing.T) {
 }
 
 func TestDecode_InvalidBase64(t *testing.T) {
-	_, _, err := Decode("!!!invalid!!!")
+	const token = "!!!invalid!!!"
+	_, _, err := Decode(token)
 	if err == nil {
 		t.Fatal("expected error for invalid base64")
 	}
@@ -41,17 +46,32 @@ func TestDecode_InvalidBase64(t *testing.T) {
 	if !ok || reason != runtimev1.ReasonCode_PAGE_TOKEN_INVALID {
 		t.Errorf("expected PAGE_TOKEN_INVALID, got %v (ok=%v)", reason, ok)
 	}
+	var corruptInput base64.CorruptInputError
+	if !errors.As(err, &corruptInput) {
+		t.Fatalf("expected base64 decode cause, got %T", errors.Unwrap(err))
+	}
+	if strings.Contains(status.Convert(err).Message(), token) {
+		t.Fatalf("public status leaked page token: %q", status.Convert(err).Message())
+	}
 }
 
 func TestDecode_InvalidJSON(t *testing.T) {
 	// Valid base64 but invalid JSON
-	_, _, err := Decode("bm90anNvbg") // "notjson" in base64url
+	const token = "bm90anNvbg" // "notjson" in base64url
+	_, _, err := Decode(token)
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
 	}
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_PAGE_TOKEN_INVALID {
 		t.Errorf("expected PAGE_TOKEN_INVALID, got %v (ok=%v)", reason, ok)
+	}
+	var syntaxErr *json.SyntaxError
+	if !errors.As(err, &syntaxErr) {
+		t.Fatalf("expected JSON syntax cause, got %T", errors.Unwrap(err))
+	}
+	if strings.Contains(status.Convert(err).Message(), token) {
+		t.Fatalf("public status leaked page token: %q", status.Convert(err).Message())
 	}
 }
 

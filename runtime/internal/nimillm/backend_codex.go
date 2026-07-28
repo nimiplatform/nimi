@@ -142,7 +142,12 @@ func (b *Backend) streamGenerateTextCodexResponses(
 		}
 		var event map[string]any
 		if err := json.Unmarshal([]byte(data), &event); err != nil {
-			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_STREAM_BROKEN,
+				err,
+				grpcerr.ReasonOptions{Message: "provider stream event could not be decoded"},
+			)
 		}
 		switch strings.TrimSpace(ValueAsString(event["type"])) {
 		case "response.output_text.delta":
@@ -161,7 +166,12 @@ func (b *Backend) streamGenerateTextCodexResponses(
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_STREAM_BROKEN,
+			err,
+			grpcerr.ReasonOptions{Message: "provider stream could not be read"},
+		)
 	}
 	if !seenEvent {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)

@@ -65,9 +65,12 @@ export type {
   NimiDesktopOpenSourceHost,
 } from './desktop-open.js';
 export {
+  createRuntimeAccountMediatedDesktopProductRealmTransport,
   createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport,
   createRuntimeAccountMediatedRealmTransport,
+  NIMI_DESKTOP_PRODUCT_REALM_OPERATION_IDS,
   NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS,
+  type NimiDesktopProductRealmOperationID,
   type NimiDesktopSourceReadinessRealmOperationID,
   type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm.js';

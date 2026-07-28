@@ -61,6 +61,7 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(typeof realm.worldCore.worldCoreControllerDiscoverPersonaCharacters, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerDeleteWorldCharacter, 'function');
   assert.equal(typeof realm.worldPublic.worldPublicControllerListWorlds, 'function');
+  assert.equal(typeof realm.worldPublic.worldPublicControllerGetCharacterSource, 'function');
   assert.equal(typeof realm.worldPublic.worldPublicControllerGetWorldDetailWithCharacters, 'function');
   assert.equal(typeof realm.generated.worldCoreControllerGetOasisWorld, 'function');
 

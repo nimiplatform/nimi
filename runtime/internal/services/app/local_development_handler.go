@@ -119,11 +119,11 @@ func (s *Service) EvaluateLocalDevelopmentProject(ctx context.Context, req *runt
 		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	if err := s.localDevelopment.RequireDeveloperMode(ctx, account.GetAccountId(), generation); err != nil {
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED)
+		return nil, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED, err)
 	}
 	project, err := resolveLocalDevelopmentProject(req.GetProjectRoot(), req.GetExpectedAppId(), req.GetShellKind(), account.GetAccountId(), generation)
 	if err != nil {
-		return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "project-authority")
+		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "project-authority", err)
 	}
 	evaluation, err := s.localDevelopment.Evaluate(ctx, project, runID)
 	if err != nil {
@@ -132,7 +132,7 @@ func (s *Service) EvaluateLocalDevelopmentProject(ctx context.Context, req *runt
 	if evaluation.State == runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE {
 		if _, _, kernelErr := s.prepareLocalDevelopmentRecord(ctx, evaluation.Authorization); kernelErr != nil {
 			if !localDevelopmentPreparationInvalidatesAuthorization(kernelErr) {
-				return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record")
+				return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record", kernelErr)
 			}
 			_, _ = s.localDevelopment.RevokeAuthorization(ctx, evaluation.Authorization.ID)
 			_ = s.transitionLocalDevelopmentRecord(context.Background(), evaluation.Authorization, localappkernel.LifecycleStateRemoved, true)
@@ -182,7 +182,7 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 		currentAccountID = account.GetAccountId()
 		currentAccountGeneration = generation
 		if err := s.localDevelopment.RequireDeveloperMode(ctx, currentAccountID, currentAccountGeneration); err != nil {
-			return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED)
+			return nil, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED, err)
 		}
 	}
 	authorization, err := s.localDevelopment.Decide(ctx, evaluationID, req.GetDecision(), currentAccountID, currentAccountGeneration)
@@ -195,7 +195,7 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 				_, _ = s.localDevelopment.RevokeAuthorization(context.Background(), authorization.ID)
 				_ = s.transitionLocalDevelopmentRecord(context.Background(), authorization, localappkernel.LifecycleStateRemoved, true)
 			}
-			return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE)
+			return nil, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, prepareErr)
 		}
 	}
 	reason := runtimev1.ReasonCode_ACTION_EXECUTED
@@ -245,7 +245,10 @@ func (s *Service) RevokeLocalDevelopmentAuthorization(ctx context.Context, req *
 		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	current, err := s.localDevelopment.GetAuthorization(ctx, authorizationID)
-	if err != nil || current.Project.AccountID != account.GetAccountId() {
+	if err != nil {
+		return nil, localDevelopmentFailureFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND, err)
+	}
+	if current.Project.AccountID != account.GetAccountId() {
 		return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
 	authorization, err := s.localDevelopment.RevokeAuthorization(ctx, authorizationID)
@@ -271,7 +274,10 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
 	}
 	authorization, err := s.localDevelopment.GetAuthorization(ctx, authorizationID)
-	if err != nil || authorization.State != localDevelopmentAuthorizationActive {
+	if err != nil {
+		return nil, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, err)
+	}
+	if authorization.State != localDevelopmentAuthorizationActive {
 		// An unknown handle can belong only to an immutable profile in 0K. That
 		// profile has no positive launch implementation until 0P maps admitted
 		// package evidence into this opaque seam.
@@ -282,7 +288,13 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
 	}
 	project, err := resolveLocalDevelopmentProject(authorization.Project.ProjectRoot, authorization.Project.AppID, authorization.Project.ShellKind, account.GetAccountId(), generation)
-	if err != nil || !localDevelopmentProjectsMatch(authorization.Project, project) {
+	if err != nil {
+		if s.logger != nil {
+			s.logger.Warn("local development launch rejected", "stage", "project-authority", "app_id", authorization.Project.AppID, "error", err)
+		}
+		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "project-authority", err)
+	}
+	if !localDevelopmentProjectsMatch(authorization.Project, project) {
 		if s.logger != nil {
 			s.logger.Warn("local development launch rejected", "stage", "project-authority", "app_id", authorization.Project.AppID, "error", err)
 		}
@@ -293,15 +305,15 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		if s.logger != nil {
 			s.logger.Warn("local development launch rejected", "stage", "host-executable", "app_id", authorization.Project.AppID, "error", err)
 		}
-		return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "host-executable")
+		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "host-executable", err)
 	}
 	principal, record, err := s.prepareLocalDevelopmentRecord(ctx, authorization)
 	if err != nil {
-		return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record")
+		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record", err)
 	}
 	expectedHostDigest, err := localDevelopmentDigestIdentifier("host", record.HostExecutableDigest)
 	if err != nil {
-		return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record")
+		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record", err)
 	}
 	ticket, err := s.localDevelopment.PrepareLaunch(ctx, localDevelopmentLaunchRequest{
 		AuthorizationID:    authorizationID,
@@ -321,7 +333,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 			s.logger.Warn("local development launch rejected", "stage", "launch-store", "app_id", authorization.Project.AppID, "error", err)
 		}
 		if errors.Is(err, errLocalDevelopmentProjectChanged) {
-			return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "launch-store")
+			return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "launch-store", err)
 		}
 		return nil, localDevelopmentStoreError(err)
 	}
@@ -338,7 +350,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		}
 	}); err != nil {
 		_ = s.localDevelopment.EndRun(context.Background(), authorizationID, runID)
-		return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
+		return nil, localDevelopmentFailureFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED, err)
 	}
 	return &runtimev1.PrepareLocalAppLaunchResponse{LaunchId: append([]byte(nil), ticket.LaunchID[:]...), BindDeadline: timestamppb.New(ticket.BindDeadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
@@ -377,7 +389,7 @@ func (s *Service) BindLocalAppProcess(ctx context.Context, req *runtimev1.BindLo
 		func() { _ = s.localDevelopment.RevokeLaunch(context.Background(), launchID) },
 	)
 	if err != nil {
-		return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, localDevelopmentBindDiagnosticStage(err))
+		return nil, localDevelopmentFailureAtStageFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, localDevelopmentBindDiagnosticStage(err), err)
 	}
 	return &runtimev1.BindLocalAppProcessResponse{LaunchId: append([]byte(nil), launchID[:]...), BindDeadline: timestamppb.New(deadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
@@ -455,7 +467,7 @@ func (s *Service) finalizeLocalDevelopmentSession(
 	}
 	if _, _, err := s.resolveLocalDevelopmentRecord(ctx, session); err != nil {
 		_ = s.localDevelopment.RevokeSession(ctx, session.SessionID)
-		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+		return authservice.LocalAppSessionProjection{}, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED, err)
 	}
 	nextHandle := protectedlocal.LocalAppSessionHandle{SessionID: session.SessionID, SessionProof: session.SessionProof}
 	var err error
@@ -466,7 +478,7 @@ func (s *Service) finalizeLocalDevelopmentSession(
 	}
 	if err != nil {
 		_ = s.localDevelopment.RevokeSession(ctx, session.SessionID)
-		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+		return authservice.LocalAppSessionProjection{}, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED, err)
 	}
 	connection.ReplaceSessionRevokeHook(func() { _ = s.localDevelopment.RevokeSession(context.Background(), session.SessionID) })
 	return authservice.LocalAppSessionProjection{
@@ -648,30 +660,30 @@ func sameLocalDevelopmentPath(left string, right string) bool {
 func localDevelopmentStoreError(err error) error {
 	switch {
 	case errors.Is(err, errLocalDevelopmentProjectChanged), errors.Is(err, errLocalDevelopmentProjectUnstable):
-		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE)
+		return localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, err)
 	case errors.Is(err, errLocalDevelopmentReapproval):
-		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+		return localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED, err)
 	case errors.Is(err, errLocalDevelopmentAuthorization), errors.Is(err, errLocalDevelopmentEvaluationExpired):
-		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
+		return localDevelopmentFailureFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND, err)
 	case errors.Is(err, errLocalDevelopmentLaunchExpired), errors.Is(err, errLocalDevelopmentSessionRevoked):
-		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+		return localDevelopmentFailureFromCause(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED, err)
 	case errors.Is(err, errLocalDevelopmentLaunchMismatch):
-		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
+		return localDevelopmentFailureFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, err)
 	default:
-		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
+		return localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND, err)
 	}
 }
 
 func localDevelopmentSessionOpenError(err error) error {
 	switch {
 	case errors.Is(err, errLocalDevelopmentAccountChanged):
-		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+		return localDevelopmentFailureFromCause(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED, err)
 	case errors.Is(err, errLocalDevelopmentLaunchMismatch), errors.Is(err, errLocalDevelopmentProcessMismatch):
-		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
+		return localDevelopmentFailureFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, err)
 	case errors.Is(err, errLocalDevelopmentLaunchExpired), errors.Is(err, errLocalDevelopmentSessionRevoked), errors.Is(err, errLocalDevelopmentAuthorization):
-		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+		return localDevelopmentFailureFromCause(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED, err)
 	default:
-		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		return localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, err)
 	}
 }
 
@@ -679,6 +691,27 @@ func localDevelopmentFailure(code codes.Code, reason runtimev1.ReasonCode) error
 	return grpcerr.WithReasonCode(code, reason)
 }
 
+func localDevelopmentFailureFromCause(code codes.Code, reason runtimev1.ReasonCode, cause error) error {
+	return grpcerr.WrapWithReasonCode(
+		code,
+		reason,
+		cause,
+		grpcerr.ReasonOptions{Message: "local development operation failed"},
+	)
+}
+
 func localDevelopmentFailureAtStage(code codes.Code, reason runtimev1.ReasonCode, stage string) error {
 	return grpcerr.WithReasonCodeOptions(code, reason, grpcerr.ReasonOptions{Metadata: map[string]string{"diagnostic_stage": stage}})
+}
+
+func localDevelopmentFailureAtStageFromCause(code codes.Code, reason runtimev1.ReasonCode, stage string, cause error) error {
+	return grpcerr.WrapWithReasonCode(
+		code,
+		reason,
+		cause,
+		grpcerr.ReasonOptions{
+			Message:  "local development operation failed",
+			Metadata: map[string]string{"diagnostic_stage": stage},
+		},
+	)
 }

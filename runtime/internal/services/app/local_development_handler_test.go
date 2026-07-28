@@ -14,6 +14,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/codes"
@@ -129,7 +130,8 @@ permissions: []
 		Decision:                   runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT,
 		RiskDisclosureAcknowledged: true,
 	})
-	if status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED.String() {
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if status.Code(err) != codes.FailedPrecondition || !ok || reason != runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED {
 		t.Fatalf("account switch must disable the previous account's Developer Mode, got %v", err)
 	}
 	account.accountID = "account-development"
@@ -142,7 +144,8 @@ permissions: []
 		Decision:                   runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT,
 		RiskDisclosureAcknowledged: true,
 	})
-	if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND.String() {
+	staleReason, staleReasonOK := grpcerr.ExtractReasonCode(err)
+	if status.Code(err) != codes.PermissionDenied || !staleReasonOK || staleReason != runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND {
 		t.Fatalf("stale evaluation must remain consumed after switching back, got %v", err)
 	}
 }
@@ -279,8 +282,9 @@ func TestLocalDevelopmentSessionOpenErrorPreservesFailureClass(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			failure := status.Convert(localDevelopmentSessionOpenError(test.err))
-			if failure.Code() != test.code || failure.Message() != test.reason.String() {
-				t.Fatalf("session-open failure = %s/%q, want %s/%q", failure.Code(), failure.Message(), test.code, test.reason.String())
+			reason, ok := grpcerr.ExtractReasonCode(localDevelopmentSessionOpenError(test.err))
+			if failure.Code() != test.code || !ok || reason != test.reason {
+				t.Fatalf("session-open failure = %s/%s (present=%v), want %s/%s", failure.Code(), reason, ok, test.code, test.reason)
 			}
 		})
 	}
@@ -354,10 +358,12 @@ permissions: []
 	desktopContext := protectedlocal.ContextWithDesktopConnection(ctx, desktopConnection)
 	runID := localDevelopmentTestIdentifier(0x93)
 	immutableHandle := localDevelopmentTestIdentifier(0x90)
-	if _, err := service.PrepareLocalAppLaunch(desktopContext, &runtimev1.PrepareLocalAppLaunchRequest{
+	_, err = service.PrepareLocalAppLaunch(desktopContext, &runtimev1.PrepareLocalAppLaunchRequest{
 		LocalAppHandle:  immutableHandle[:],
 		SupervisorRunId: runID[:],
-	}); status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE.String() {
+	})
+	launchReason, reasonOK := grpcerr.ExtractReasonCode(err)
+	if status.Code(err) != codes.FailedPrecondition || !reasonOK || launchReason != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
 		t.Fatalf("unadmitted immutable local-app handle must remain typed unavailable, got %v", err)
 	}
 

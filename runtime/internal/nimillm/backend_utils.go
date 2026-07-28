@@ -22,7 +22,15 @@ func (b *Backend) DecodeMedia(ctx context.Context, b64Data string, mediaURL stri
 	if b64Data != "" {
 		payload, err := base64.StdEncoding.DecodeString(b64Data)
 		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+				err,
+				grpcerr.ReasonOptions{
+					ActionHint: "retry_or_check_provider_response",
+					Message:    "provider response media could not be decoded",
+				},
+			)
 		}
 		if len(payload) == 0 {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -45,7 +53,7 @@ func (b *Backend) DecodeMedia(ctx context.Context, b64Data string, mediaURL stri
 		}
 		payload, err := io.ReadAll(io.LimitReader(response.Body, maxDecodedMediaURLBytes+1))
 		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			return nil, providerResponseReadError(err)
 		}
 		if len(payload) > maxDecodedMediaURLBytes {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

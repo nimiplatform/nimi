@@ -24,7 +24,15 @@ func (s *Service) AuthorizeMemoryEmbeddingTarget(_ context.Context, reqContext *
 		}
 		entry, err := s.agentByID(localAgentRef)
 		if err != nil {
-			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+			return grpcerr.WrapWithReasonCode(
+				codes.PermissionDenied,
+				runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+				err,
+				grpcerr.ReasonOptions{
+					ActionHint: "verify_runtime_agent_identity",
+					Message:    "memory embedding target could not be authorized",
+				},
+			)
 		}
 		if strings.TrimSpace(entry.Agent.GetLocalAgentRef()) != localAgentRef ||
 			strings.TrimSpace(entry.Agent.GetOwnerUserId()) != subjectUserID {

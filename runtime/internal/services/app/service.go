@@ -192,7 +192,12 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 			var authorizeErr error
 			localDecision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(ctx, accountservice.LocalAppOperationSendConversationTurn, selector)
 			if authorizeErr != nil {
-				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, accountservice.LocalAppOperationAuthorizationReason(authorizeErr))
+				return nil, grpcerr.WrapWithReasonCode(
+					codes.PermissionDenied,
+					accountservice.LocalAppOperationAuthorizationReason(authorizeErr),
+					authorizeErr,
+					grpcerr.ReasonOptions{Message: "local app message operation was not authorized"},
+				)
 			}
 			ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, localDecision)
 			localAppAuthorized = true
@@ -358,7 +363,12 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 			var authorizeErr error
 			localDecision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(localAppContext, accountservice.LocalAppOperationSubscribeConversation, selector)
 			if authorizeErr != nil {
-				return grpcerr.WithReasonCode(codes.PermissionDenied, accountservice.LocalAppOperationAuthorizationReason(authorizeErr))
+				return grpcerr.WrapWithReasonCode(
+					codes.PermissionDenied,
+					accountservice.LocalAppOperationAuthorizationReason(authorizeErr),
+					authorizeErr,
+					grpcerr.ReasonOptions{Message: "local app subscription was not authorized"},
+				)
 			}
 			localAppContext = accountservice.ContextWithAuthorizedLocalAppDecision(localAppContext, localDecision)
 			localAppAuthorized = true
@@ -444,7 +454,12 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 			)
 			if authorizeErr != nil {
 				reason := accountservice.LocalAppOperationAuthorizationReason(authorizeErr)
-				return grpcerr.WithReasonCode(codes.PermissionDenied, reason)
+				return grpcerr.WrapWithReasonCode(
+					codes.PermissionDenied,
+					reason,
+					authorizeErr,
+					grpcerr.ReasonOptions{Message: "local app subscription authorization is no longer valid"},
+				)
 			}
 			if current.LocalAppPrincipalID != localDecision.LocalAppPrincipalID || current.LocalAppRecordID != localDecision.LocalAppRecordID || current.AccountID != localDecision.AccountID || current.SessionID != localDecision.SessionID {
 				return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)

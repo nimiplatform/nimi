@@ -44,6 +44,7 @@ type fakeLocalImageProfileResolver struct {
 	lastReleaseExt      map[string]any
 	resolveProfileCalls int
 	resolveProfileErr   error
+	resolveSelectionErr error
 	lastRequestedModel  string
 	lastExtensions      map[string]any
 }
@@ -67,6 +68,9 @@ func (f *fakeLocalImageProfileResolver) ResolveManagedMediaBackendTarget(_ conte
 }
 
 func (f *fakeLocalImageProfileResolver) ResolveCanonicalImageSelection(_ context.Context, _ string) (engine.ImageSupervisedMatrixSelection, error) {
+	if f.resolveSelectionErr != nil {
+		return engine.ImageSupervisedMatrixSelection{}, f.resolveSelectionErr
+	}
 	return f.selection, nil
 }
 

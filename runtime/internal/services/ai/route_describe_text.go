@@ -120,7 +120,7 @@ func (s *Service) writeTextGenerateRouteDescribeHeader(
 	}
 	raw, err := json.Marshal(metadataPayload)
 	if err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return routeDescribeEncodingError(err)
 	}
 	encoded := base64.StdEncoding.EncodeToString(raw)
 	if setErr := grpc.SetHeader(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
@@ -150,7 +150,7 @@ func (s *Service) writeTextEmbedRouteDescribeHeader(
 	}
 	raw, err := json.Marshal(metadataPayload)
 	if err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return routeDescribeEncodingError(err)
 	}
 	encoded := base64.StdEncoding.EncodeToString(raw)
 	if setErr := grpc.SetHeader(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
@@ -272,7 +272,9 @@ func (s *Service) describeTextEmbedRouteMetadata(
 				aicapabilities.TextEmbed,
 			)
 			if err != nil && !errors.Is(err, aicatalog.ErrModelNotFound) {
-				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+				return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+					Message: "text embedding route capability could not be read",
+				})
 			}
 			if err == nil && !supported {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -327,7 +329,9 @@ func (s *Service) selectLocalTextGenerateDescribeModel(
 	}
 	models, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, err, grpcerr.ReasonOptions{
+			Message: "local text generation models could not be listed",
+		})
 	}
 
 	selectedModel, reason, detail := selectLocalTextGenerateDescribeModelFromTargetRef(models, head.GetTargetRef())
@@ -358,7 +362,9 @@ func (s *Service) selectLocalTextEmbedDescribeModel(
 	}
 	models, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, err, grpcerr.ReasonOptions{
+			Message: "local text embedding models could not be listed",
+		})
 	}
 
 	selectedModel, reason, detail := selectLocalTextEmbedDescribeModelFromTargetRef(models, head.GetTargetRef())
@@ -399,7 +405,9 @@ func (s *Service) describeRemoteTextGenerateCapabilitySupport(
 		if errors.Is(err, aicatalog.ErrModelNotFound) {
 			return false, nil
 		}
-		return false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return false, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "text generation route capability could not be read",
+		})
 	}
 	return supported, nil
 }

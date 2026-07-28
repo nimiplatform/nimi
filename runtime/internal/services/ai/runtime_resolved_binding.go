@@ -73,8 +73,9 @@ func (s *Service) resolveCloudExecutionBinding(
 	connectorID := strings.TrimSpace(ref.GetConnectorId())
 	rec, found, err := s.connStore.Get(connectorID)
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_runtime_logs",
+			Message:    "failed to read connector configuration",
 		})
 	}
 	if !found {

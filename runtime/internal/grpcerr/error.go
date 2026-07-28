@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -12,6 +14,7 @@ import (
 )
 
 const domain = "nimi.runtime.v1"
+const maxPublicMessageBytes = 2 * 1024
 
 type ReasonOptions struct {
 	ActionHint string
@@ -19,6 +22,23 @@ type ReasonOptions struct {
 	Retryable  *bool
 	Message    string
 	Metadata   map[string]string
+}
+
+type causalStatusError struct {
+	status *status.Status
+	cause  error
+}
+
+func (e *causalStatusError) Error() string {
+	return e.status.Err().Error()
+}
+
+func (e *causalStatusError) Unwrap() error {
+	return e.cause
+}
+
+func (e *causalStatusError) GRPCStatus() *status.Status {
+	return e.status
 }
 
 // WithReasonCode builds a gRPC Status error carrying a google.rpc.ErrorInfo
@@ -29,11 +49,39 @@ func WithReasonCode(code codes.Code, reason runtimev1.ReasonCode) error {
 	return WithReasonCodeOptions(code, reason, ReasonOptions{})
 }
 
+// WrapWithReasonCode builds a structured public gRPC status while retaining
+// cause for in-process errors.Is/errors.As inspection. The cause is never
+// copied into the status message or ErrorInfo metadata; callers must provide
+// only transport-safe text in options.Message.
+func WrapWithReasonCode(
+	code codes.Code,
+	reason runtimev1.ReasonCode,
+	cause error,
+	options ReasonOptions,
+) error {
+	if options.ActionHint == "" {
+		options.ActionHint = defaultActionHint(reason)
+	}
+	publicErr := WithReasonCodeOptions(code, reason, options)
+	if cause == nil {
+		return publicErr
+	}
+	st, ok := status.FromError(publicErr)
+	if !ok {
+		return publicErr
+	}
+	return &causalStatusError{
+		status: st,
+		cause:  cause,
+	}
+}
+
 // WithReasonCodeOptions builds a gRPC status error with ErrorInfo details.
 // Extra transport-safe fields (action_hint/retryable/trace_id) are encoded in
 // ErrorInfo.Metadata and available to bridge/SDK layers.
 func WithReasonCodeOptions(code codes.Code, reason runtimev1.ReasonCode, options ReasonOptions) error {
-	message := options.Message
+	publicMessage := boundedPublicMessage(options.Message)
+	message := publicMessage
 	if message == "" {
 		message = reason.String()
 	}
@@ -71,8 +119,8 @@ func WithReasonCodeOptions(code codes.Code, reason runtimev1.ReasonCode, options
 		if options.Retryable != nil {
 			payload["retryable"] = *options.Retryable
 		}
-		if options.Message != "" {
-			payload["message"] = options.Message
+		if publicMessage != "" {
+			payload["message"] = publicMessage
 		}
 		if encoded, err := json.Marshal(payload); err == nil {
 			message = string(encoded)
@@ -92,6 +140,22 @@ func WithReasonCodeOptions(code codes.Code, reason runtimev1.ReasonCode, options
 		return fmt.Errorf("grpcerr.WithReasonCodeOptions: attach ErrorInfo: %w", err)
 	}
 	return detailed.Err()
+}
+
+func boundedPublicMessage(input string) string {
+	message := strings.TrimSpace(strings.ToValidUTF8(input, "\uFFFD"))
+	if len(message) <= maxPublicMessageBytes {
+		return message
+	}
+	message = message[:maxPublicMessageBytes]
+	for !utf8.ValidString(message) {
+		_, size := utf8.DecodeLastRuneInString(message)
+		if size <= 0 || size > len(message) {
+			return ""
+		}
+		message = message[:len(message)-size]
+	}
+	return strings.TrimSpace(message)
 }
 
 func defaultActionHint(reason runtimev1.ReasonCode) string {
@@ -148,4 +212,34 @@ func ExtractReasonMetadata(err error) (map[string]string, bool) {
 		}
 	}
 	return nil, false
+}
+
+// ExtractPublicMessage returns the explicit transport-safe Message attached by
+// this package. It does not return the fallback ReasonCode string or a raw
+// status payload, and ignores statuses outside the nimi.runtime.v1 domain.
+func ExtractPublicMessage(err error) (string, bool) {
+	reason, ok := ExtractReasonCode(err)
+	if !ok {
+		return "", false
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		return "", false
+	}
+	message := strings.TrimSpace(st.Message())
+	if message == "" || message == reason.String() {
+		return "", false
+	}
+
+	var payload struct {
+		Message string `json:"message"`
+	}
+	if json.Unmarshal([]byte(message), &payload) == nil {
+		explicit := strings.TrimSpace(payload.Message)
+		if explicit == "" {
+			return "", false
+		}
+		return explicit, true
+	}
+	return message, true
 }

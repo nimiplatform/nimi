@@ -414,11 +414,15 @@ func dialLlamaRealtime(ctx context.Context, backend *nimillm.Backend, modelID st
 	}
 	endpoint := strings.TrimSpace(backend.Endpoint())
 	if err := endpointsec.ValidateEndpoint(ctx, endpoint, true); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{
+			Message: "realtime provider endpoint is not allowed",
+		})
 	}
 	targetURL, err := url.Parse(endpoint)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "realtime provider endpoint could not be parsed",
+		})
 	}
 	switch targetURL.Scheme {
 	case "https":
@@ -432,11 +436,15 @@ func dialLlamaRealtime(ctx context.Context, backend *nimillm.Backend, modelID st
 	targetURL.RawQuery = query.Encode()
 	config, err := websocket.NewConfig(targetURL.String(), realtimeWebsocketOrigin(targetURL))
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "realtime provider connection could not be configured",
+		})
 	}
 	connection, err := config.DialContext(ctx)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{
+			Message: "realtime provider connection could not be opened",
+		})
 	}
 	return &websocketRealtimeConn{conn: connection}, nil
 }
@@ -470,7 +478,9 @@ func sendRealtimeEnvelope(record *realtimeSessionRecord, payload map[string]any)
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
 	}
 	if err := conn.Send(payload); err != nil {
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{
+			Message: "realtime provider request could not be sent",
+		})
 	}
 	return nil
 }
@@ -556,15 +566,21 @@ func readRealtimeLocationBytes(ctx context.Context, location string) ([]byte, er
 	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
 		transport, err := endpointsec.NewPinnedTransport(ctx, value, false)
 		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+			return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{
+				Message: "realtime input location is not allowed",
+			})
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, value, nil)
 		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{
+				Message: "realtime input request could not be created",
+			})
 		}
 		resp, err := (&http.Client{Timeout: 30 * time.Second, Transport: transport}).Do(req)
 		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+			return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{
+				Message: "realtime input could not be fetched",
+			})
 		}
 		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -572,7 +588,9 @@ func readRealtimeLocationBytes(ctx context.Context, location string) ([]byte, er
 		}
 		data, err := io.ReadAll(io.LimitReader(resp.Body, maxUploadedArtifactBytes+1))
 		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+			return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{
+				Message: "realtime input body could not be read",
+			})
 		}
 		if len(data) == 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)

@@ -75,7 +75,12 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 
 	tempDir, err := os.MkdirTemp("", "nimi-managed-image-*")
 	if err != nil {
-		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return nil, nil, nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed image workspace could not be created"},
+		)
 	}
 	defer func() { _ = os.RemoveAll(tempDir) }()
 
@@ -167,21 +172,7 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 			"duration_ms", generateDurationMs,
 			"error", err,
 		)
-		switch status.Code(err) {
-		case codes.DeadlineExceeded, codes.Unavailable:
-			return nil, nil, nil, MapProviderRequestError(err)
-		}
-		providerMessage := strings.TrimSpace(err.Error())
-		return nil, nil, nil, grpcerr.WithReasonCodeOptions(
-			codes.Internal,
-			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
-			grpcerr.ReasonOptions{
-				Message: providerMessage,
-				Metadata: map[string]string{
-					"provider_message": providerMessage,
-				},
-			},
-		)
+		return nil, nil, nil, managedImageGenerationError(err)
 	}
 	slog.Info("managed image generate completed",
 		"backend_address", strings.TrimSpace(backendAddress),
@@ -200,7 +191,15 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 	)
 
 	payload, err := os.ReadFile(destinationPath)
-	if err != nil || len(payload) == 0 {
+	if err != nil {
+		return nil, nil, nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "managed image output could not be read"},
+		)
+	}
+	if len(payload) == 0 {
 		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	diag := &ManagedMediaImageDiagnostics{
@@ -219,6 +218,20 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 	}
 	usage := ArtifactUsage(localPrompt, payload, 180)
 	return payload, usage, diag, nil
+}
+
+func managedImageGenerationError(err error) error {
+	switch status.Code(err) {
+	case codes.DeadlineExceeded, codes.Unavailable:
+		return MapProviderRequestError(err)
+	default:
+		return grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed image generation failed"},
+		)
+	}
 }
 
 func parseManagedMediaImageSize(raw string) (int32, int32, error) {
@@ -544,11 +557,21 @@ func (b *Backend) materializeManagedMediaImage(ctx context.Context, source strin
 	}
 	if isRemoteHTTPURL(trimmed) {
 		if err := endpointsec.ValidateEndpoint(ctx, trimmed, b != nil && b.allowLoopbackEndpoint); err != nil {
-			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+			return "", grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+				err,
+				grpcerr.ReasonOptions{Message: "provider media endpoint is not permitted"},
+			)
 		}
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, trimmed, nil)
 		if err != nil {
-			return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return "", grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_INPUT_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "provider media request could not be created"},
+			)
 		}
 		response, err := b.do(request)
 		if err != nil {
@@ -560,7 +583,12 @@ func (b *Backend) materializeManagedMediaImage(ctx context.Context, source strin
 		}
 		payload, err := io.ReadAll(io.LimitReader(response.Body, maxInlineOpenAIMediaBytes+1))
 		if err != nil {
-			return "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+			return "", grpcerr.WrapWithReasonCode(
+				codes.Unavailable,
+				runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "provider media response body could not be read"},
+			)
 		}
 		if len(payload) == 0 || len(payload) > maxInlineOpenAIMediaBytes {
 			return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
@@ -596,7 +624,12 @@ func extensionForManagedMedia(mimeType string, source string) string {
 func writeManagedMediaTempFile(tempDir string, prefix string, extension string, payload []byte) (string, error) {
 	target := filepath.Join(tempDir, prefix+extension)
 	if err := os.WriteFile(target, payload, 0o600); err != nil {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed media temporary file could not be written"},
+		)
 	}
 	return target, nil
 }

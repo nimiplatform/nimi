@@ -222,12 +222,16 @@ func modelHealth(model *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetHealth 
 			detail = "model idle"
 		}
 	}
+	reason := model.GetReasonCode()
+	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		reason = projectionReasonCodeForEngine(model.GetEngine(), detail)
+	}
 	return &runtimev1.LocalAssetHealth{
 		LocalAssetId: model.GetLocalAssetId(),
 		Status:       model.GetStatus(),
 		Detail:       detail,
 		Endpoint:     "",
-		ReasonCode:   projectionReasonCodeForEngine(model.GetEngine(), detail),
+		ReasonCode:   reason,
 	}
 }
 

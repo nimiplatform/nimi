@@ -93,15 +93,30 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
 	if err := validateResolvedModelManifestPath(manifestPath, resolveLocalModelsPath(s.localModelsPath)); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "local asset manifest path is invalid"},
+		)
 	}
 	content, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "local asset manifest could not be read"},
+		)
 	}
 	var manifest map[string]any
 	if err := json.Unmarshal(content, &manifest); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "local asset manifest is not valid JSON"},
+		)
 	}
 
 	if manifestHasAnyKey(manifest, "model_id", "modelId", "artifact_id", "artifactId", "assetId", "asset_kind", "assetKind", "logicalModelId", "localInvokeProfileId") {
@@ -117,14 +132,24 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	}
 	engineConfig, engineConfigErr := manifestStruct(manifest, "engine_config", "engineConfig")
 	if engineConfigErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID,
+			engineConfigErr,
+			grpcerr.ReasonOptions{Message: "local asset manifest engine_config is invalid"},
+		)
 	}
 	if req.GetEngineConfig() != nil {
 		engineConfig = cloneStruct(req.GetEngineConfig())
 	}
 	capabilities, capsErr := manifestStringSlice(manifest, "capabilities")
 	if capsErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID,
+			capsErr,
+			grpcerr.ReasonOptions{Message: "local asset manifest capabilities are invalid"},
+		)
 	}
 	capabilities = normalizeAssetCapabilities(capabilities)
 	if isRunnableKind(kind) && len(capabilities) == 0 {
@@ -135,11 +160,21 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	}
 	artifactRoles, artifactRolesErr := manifestStringSliceKeys(manifest, "artifact_roles", "artifactRoles")
 	if artifactRolesErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID,
+			artifactRolesErr,
+			grpcerr.ReasonOptions{Message: "local asset manifest artifact_roles are invalid"},
+		)
 	}
 	hashes, hashesErr := manifestStringMap(manifest, "hashes")
 	if hashesErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID,
+			hashesErr,
+			grpcerr.ReasonOptions{Message: "local asset manifest hashes are invalid"},
+		)
 	}
 	engine := defaultLocalEngine(manifestStringDefault(manifest, "engine"), capabilities)
 	preferredEngine := manifestStringDefault(manifest, "preferred_engine", "preferredEngine")
@@ -162,9 +197,12 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	)
 	binding = normalizeLocalImportRuntimeBinding(engine, capabilities, kind, binding)
 	if err := validateImportManifestDeclaredFileHashes(manifest, manifestPath, hashes, normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED); err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "local asset manifest requires non-empty sha256 hash declarations"},
+		)
 	}
 	deviceProfile := collectDeviceProfile()
 	importCompatibilityDetail := ""
@@ -201,7 +239,12 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	}
 	fallbackEngines, fallbackEnginesErr := manifestStringSliceKeys(manifest, "fallback_engines", "fallbackEngines")
 	if fallbackEnginesErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID,
+			fallbackEnginesErr,
+			grpcerr.ReasonOptions{Message: "local asset manifest fallback_engines are invalid"},
+		)
 	}
 	logicalModelID := manifestStringDefault(manifest, "logical_model_id")
 	repo := manifestStringDefault(manifest, "repo")
@@ -237,22 +280,31 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		}
 		entryPath, resolveErr := resolveManagedModelEntryAbsolutePath(resolveLocalModelsPath(s.localModelsPath), tempModel)
 		if resolveErr != nil {
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-				Message: resolveErr.Error(),
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				resolveErr,
+				grpcerr.ReasonOptions{Message: "local model entry path is invalid"},
+			)
 		}
 		if validateErr := s.validateManagedModelEntryForModel(entryPath, tempModel); validateErr != nil {
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-				Message: validateErr.Error(),
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				validateErr,
+				grpcerr.ReasonOptions{Message: "local model entry is incompatible with its runtime-supported diffusion or model declaration"},
+			)
 		}
 		bundleFiles := valueAsStringSlice(manifest["files"])
 		if len(bundleFiles) == 0 {
 			discoveredFiles, err := listManagedBundleRelativeFiles(filepath.Dir(manifestPath))
 			if err != nil {
-				return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-					Message: err.Error(),
-				})
+				return nil, grpcerr.WrapWithReasonCode(
+					codes.InvalidArgument,
+					runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+					err,
+					grpcerr.ReasonOptions{Message: "managed model bundle contents could not be enumerated"},
+				)
 			}
 			bundleFiles = discoveredFiles
 		}
@@ -274,9 +326,12 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			},
 		)
 		if augmentErr != nil {
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-				Message: augmentErr.Error(),
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				augmentErr,
+				grpcerr.ReasonOptions{Message: "managed model bundle metadata is invalid"},
+			)
 		}
 		record, err := s.installLocalAssetRecord(
 			assetID,

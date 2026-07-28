@@ -9280,6 +9280,10 @@ type AddGroupParticipantInputDto struct {
 	AccountId string `json:"accountId,omitempty"`
 }
 
+type AddGroupSourceParticipantInputDto struct {
+	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
+}
+
 type AssetDetailDto struct {
 	AuthorId string `json:"authorId,omitempty"`
 	ClonePolicy string `json:"clonePolicy,omitempty"`
@@ -9727,6 +9731,30 @@ type CloneAssetDto struct {
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
 }
 
+type CommitRealmGroupSourceMessageCandidateInputDto struct {
+	AuditLineageRef string `json:"auditLineageRef,omitempty"`
+	Body string `json:"body,omitempty"`
+	BodyHash string `json:"bodyHash,omitempty"`
+	CandidateEvidenceRef string `json:"candidateEvidenceRef,omitempty"`
+	CandidateId string `json:"candidateId,omitempty"`
+	CandidateKind string `json:"candidateKind,omitempty"`
+	CommitDisposition string `json:"commitDisposition,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	EvidenceHash string `json:"evidenceHash,omitempty"`
+	ExpectedRuntimeParticipantSlotId string `json:"expectedRuntimeParticipantSlotId,omitempty"`
+	ExpectedRuntimeSourceRef string `json:"expectedRuntimeSourceRef,omitempty"`
+	ExpiresAt string `json:"expiresAt,omitempty"`
+	IdempotencyKey string `json:"idempotencyKey,omitempty"`
+	MessageType string `json:"messageType,omitempty"`
+	OutputCandidateRef string `json:"outputCandidateRef,omitempty"`
+	PolicyVerdictRef string `json:"policyVerdictRef,omitempty"`
+	RefusalCode string `json:"refusalCode,omitempty"`
+	RefusalHash string `json:"refusalHash,omitempty"`
+	RefusalReason string `json:"refusalReason,omitempty"`
+	RuntimeTraceRef string `json:"runtimeTraceRef,omitempty"`
+	TriggerEvidence *GroupSourceTriggerEvidenceDto `json:"triggerEvidence,omitempty"`
+}
+
 type ConnectDashboardLinkDto struct {
 	Url string `json:"url,omitempty"`
 }
@@ -9794,6 +9822,15 @@ type CreateBundleDto struct {
 type CreateConnectOnboardingDto struct {
 	RefreshUrl string `json:"refreshUrl,omitempty"`
 	ReturnUrl string `json:"returnUrl,omitempty"`
+}
+
+type CreateFeedbackDto struct {
+	AppVersion string `json:"appVersion,omitempty"`
+	ContactEmail string `json:"contactEmail,omitempty"`
+	Description string `json:"description,omitempty"`
+	ScreenshotUrls []string `json:"screenshotUrls,omitempty"`
+	Type string `json:"type,omitempty"`
+	UserAgent string `json:"userAgent,omitempty"`
 }
 
 type CreateGroupInputDto struct {
@@ -10135,6 +10172,10 @@ type GroupMessageAuthorDto struct {
 	AccountId string `json:"accountId,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
+	RuntimeParticipantSlot string `json:"runtimeParticipantSlot,omitempty"`
+	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
+	SourceAuthorityAccountId string `json:"sourceAuthorityAccountId,omitempty"`
+	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
 	Type string `json:"type,omitempty"`
 }
 
@@ -10161,7 +10202,23 @@ type GroupParticipantDto struct {
 	IsOnline bool `json:"isOnline,omitempty"`
 	JoinedAt string `json:"joinedAt,omitempty"`
 	Role string `json:"role,omitempty"`
+	RuntimeParticipantSlot string `json:"runtimeParticipantSlot,omitempty"`
+	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
+	SourceAuthorityAccountId string `json:"sourceAuthorityAccountId,omitempty"`
+	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
 	Type string `json:"type,omitempty"`
+}
+
+type GroupSourceRefDto struct {
+
+}
+
+type GroupSourceTriggerEvidenceDto struct {
+	ActorId string `json:"actorId,omitempty"`
+	ChatId string `json:"chatId,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	MessageId string `json:"messageId,omitempty"`
+	TriggerRef string `json:"triggerRef,omitempty"`
 }
 
 type HandleAvailabilityDto struct {
@@ -10572,10 +10629,6 @@ type OAuthTokenResponseDto struct {
 	TokenType string `json:"token_type,omitempty"`
 }
 
-type Object struct {
-
-}
-
 type PasswordLoginDto struct {
 	Identifier string `json:"identifier,omitempty"`
 	Password string `json:"password,omitempty"`
@@ -10773,6 +10826,12 @@ type RealmCoreOriginDto struct {
 	SourceContentHash string `json:"sourceContentHash,omitempty"`
 	SourceId string `json:"sourceId,omitempty"`
 	SourceVersion string `json:"sourceVersion,omitempty"`
+}
+
+type RealmGroupMessageCandidateCommitResultDto struct {
+	CandidateId string `json:"candidateId,omitempty"`
+	Message *GroupMessageViewDto `json:"message,omitempty"`
+	Status string `json:"status,omitempty"`
 }
 
 type RealmSourceCapabilitiesDto struct {
@@ -11958,6 +12017,10 @@ type WorldPublicCharacterLifeEventDto struct {
 	Title string `json:"title,omitempty"`
 }
 
+type WorldPublicCharacterSourceRequestDto struct {
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+}
+
 type WorldPublicDetailDto struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 	EntityKinds []string `json:"entityKinds,omitempty"`
@@ -12227,6 +12290,25 @@ type RealmAddGroupParticipantOperationRequest struct {
 	Body    AddGroupParticipantInputDto `json:"body,omitempty"`
 }
 
+type RealmAddGroupSourceParticipantOperationPath struct {
+	ChatId string `json:"chatId,omitempty"`
+}
+
+type RealmAddGroupSourceParticipantOperationQuery struct {
+
+}
+
+type RealmAddGroupSourceParticipantOperationHeaders struct {
+
+}
+
+type RealmAddGroupSourceParticipantOperationRequest struct {
+	Path    RealmAddGroupSourceParticipantOperationPath `json:"path,omitempty"`
+	Query   RealmAddGroupSourceParticipantOperationQuery `json:"query,omitempty"`
+	Headers RealmAddGroupSourceParticipantOperationHeaders `json:"headers,omitempty"`
+	Body    AddGroupSourceParticipantInputDto `json:"body,omitempty"`
+}
+
 type RealmArchiveBundleOperationPath struct {
 	BundleId string `json:"bundleId,omitempty"`
 }
@@ -12377,6 +12459,25 @@ type RealmCloneAssetOperationRequest struct {
 	Query   RealmCloneAssetOperationQuery `json:"query,omitempty"`
 	Headers RealmCloneAssetOperationHeaders `json:"headers,omitempty"`
 	Body    CloneAssetDto `json:"body,omitempty"`
+}
+
+type RealmCommitRealmGroupSourceMessageCandidateOperationPath struct {
+	ChatId string `json:"chatId,omitempty"`
+}
+
+type RealmCommitRealmGroupSourceMessageCandidateOperationQuery struct {
+
+}
+
+type RealmCommitRealmGroupSourceMessageCandidateOperationHeaders struct {
+
+}
+
+type RealmCommitRealmGroupSourceMessageCandidateOperationRequest struct {
+	Path    RealmCommitRealmGroupSourceMessageCandidateOperationPath `json:"path,omitempty"`
+	Query   RealmCommitRealmGroupSourceMessageCandidateOperationQuery `json:"query,omitempty"`
+	Headers RealmCommitRealmGroupSourceMessageCandidateOperationHeaders `json:"headers,omitempty"`
+	Body    CommitRealmGroupSourceMessageCandidateInputDto `json:"body,omitempty"`
 }
 
 type RealmCreateAssetOperationPath struct {
@@ -13239,7 +13340,7 @@ type RealmFeedbackControllerSubmitFeedbackOperationRequest struct {
 	Path    RealmFeedbackControllerSubmitFeedbackOperationPath `json:"path,omitempty"`
 	Query   RealmFeedbackControllerSubmitFeedbackOperationQuery `json:"query,omitempty"`
 	Headers RealmFeedbackControllerSubmitFeedbackOperationHeaders `json:"headers,omitempty"`
-	Body    Object `json:"body,omitempty"`
+	Body    CreateFeedbackDto `json:"body,omitempty"`
 }
 
 type RealmFinalizeResourceOperationPath struct {
@@ -14617,6 +14718,26 @@ type RealmRemoveGroupParticipantOperationRequest struct {
 	Path    RealmRemoveGroupParticipantOperationPath `json:"path,omitempty"`
 	Query   RealmRemoveGroupParticipantOperationQuery `json:"query,omitempty"`
 	Headers RealmRemoveGroupParticipantOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmRemoveGroupSourceParticipantOperationPath struct {
+	RuntimeParticipantSlotId string `json:"runtimeParticipantSlotId,omitempty"`
+	ChatId string `json:"chatId,omitempty"`
+}
+
+type RealmRemoveGroupSourceParticipantOperationQuery struct {
+
+}
+
+type RealmRemoveGroupSourceParticipantOperationHeaders struct {
+
+}
+
+type RealmRemoveGroupSourceParticipantOperationRequest struct {
+	Path    RealmRemoveGroupSourceParticipantOperationPath `json:"path,omitempty"`
+	Query   RealmRemoveGroupSourceParticipantOperationQuery `json:"query,omitempty"`
+	Headers RealmRemoveGroupSourceParticipantOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -16066,6 +16187,25 @@ type RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest struct {
 	Body    ReplaceWorldRelationshipCoreDto `json:"body,omitempty"`
 }
 
+type RealmWorldPublicControllerGetCharacterSourceOperationPath struct {
+
+}
+
+type RealmWorldPublicControllerGetCharacterSourceOperationQuery struct {
+
+}
+
+type RealmWorldPublicControllerGetCharacterSourceOperationHeaders struct {
+
+}
+
+type RealmWorldPublicControllerGetCharacterSourceOperationRequest struct {
+	Path    RealmWorldPublicControllerGetCharacterSourceOperationPath `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerGetCharacterSourceOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerGetCharacterSourceOperationHeaders `json:"headers,omitempty"`
+	Body    WorldPublicCharacterSourceRequestDto `json:"body,omitempty"`
+}
+
 type RealmWorldPublicControllerGetWorldOperationPath struct {
 	WorldId string `json:"worldId,omitempty"`
 }
@@ -16174,6 +16314,14 @@ func (c RealmTypedClient) AddGroupParticipant(ctx context.Context, request Realm
 	return decodeTypedResponse[GroupParticipantDto](raw)
 }
 
+func (c RealmTypedClient) AddGroupSourceParticipant(ctx context.Context, request RealmAddGroupSourceParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupParticipantDto, error) {
+	raw, err := c.operationTyped(ctx, "addGroupSourceParticipant", request, metadata, timeoutMS)
+	if err != nil {
+		return GroupParticipantDto{}, err
+	}
+	return decodeTypedResponse[GroupParticipantDto](raw)
+}
+
 func (c RealmTypedClient) ArchiveBundle(ctx context.Context, request RealmArchiveBundleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BundleDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "archiveBundle", request, metadata, timeoutMS)
 	if err != nil {
@@ -16236,6 +16384,14 @@ func (c RealmTypedClient) CloneAsset(ctx context.Context, request RealmCloneAsse
 		return AssetDetailDto{}, err
 	}
 	return decodeTypedResponse[AssetDetailDto](raw)
+}
+
+func (c RealmTypedClient) CommitRealmGroupSourceMessageCandidate(ctx context.Context, request RealmCommitRealmGroupSourceMessageCandidateOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmGroupMessageCandidateCommitResultDto, error) {
+	raw, err := c.operationTyped(ctx, "commitRealmGroupSourceMessageCandidate", request, metadata, timeoutMS)
+	if err != nil {
+		return RealmGroupMessageCandidateCommitResultDto{}, err
+	}
+	return decodeTypedResponse[RealmGroupMessageCandidateCommitResultDto](raw)
 }
 
 func (c RealmTypedClient) CreateAsset(ctx context.Context, request RealmCreateAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
@@ -17158,6 +17314,14 @@ func (c RealmTypedClient) RemoveGroupParticipant(ctx context.Context, request Re
 	return decodeTypedResponse[struct{}](raw)
 }
 
+func (c RealmTypedClient) RemoveGroupSourceParticipant(ctx context.Context, request RealmRemoveGroupSourceParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+	raw, err := c.operationTyped(ctx, "removeGroupSourceParticipant", request, metadata, timeoutMS)
+	if err != nil {
+		return struct{}{}, err
+	}
+	return decodeTypedResponse[struct{}](raw)
+}
+
 func (c RealmTypedClient) ReportControllerCreateReport(ctx context.Context, request RealmReportControllerCreateReportOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReportResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "ReportController_createReport", request, metadata, timeoutMS)
 	if err != nil {
@@ -17740,6 +17904,14 @@ func (c RealmTypedClient) WorldCoreControllerReplaceWorldRelationship(ctx contex
 		return WorldRelationshipCoreDto{}, err
 	}
 	return decodeTypedResponse[WorldRelationshipCoreDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerGetCharacterSource(ctx context.Context, request RealmWorldPublicControllerGetCharacterSourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicSourceCardDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_getCharacterSource", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldPublicSourceCardDto{}, err
+	}
+	return decodeTypedResponse[WorldPublicSourceCardDto](raw)
 }
 
 func (c RealmTypedClient) WorldPublicControllerGetWorld(ctx context.Context, request RealmWorldPublicControllerGetWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicDetailDto, error) {

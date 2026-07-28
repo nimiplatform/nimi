@@ -160,7 +160,7 @@ func ResolveRemoteModelCatalogBinding(modelCatalog *aicatalog.Resolver, subjectU
 	models, _, err := modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrProviderUnsupported) {
-			return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+			return RemoteModelCatalogBinding{}, remoteModelCatalogStaleError(err)
 		}
 		return RemoteModelCatalogBinding{}, err
 	}

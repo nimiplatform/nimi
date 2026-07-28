@@ -26,7 +26,18 @@ func resolvePageBounds(pageToken string, filterDigest string, pageSizeRaw int32,
 	start = 0
 	if cursor != "" {
 		idx, convErr := strconv.Atoi(cursor)
-		if convErr != nil || idx < 0 || idx > total {
+		if convErr != nil {
+			return 0, 0, "", grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_PAGE_TOKEN_INVALID,
+				convErr,
+				grpcerr.ReasonOptions{
+					ActionHint: "provide_valid_page_token",
+					Message:    "page token cursor is invalid",
+				},
+			)
+		}
+		if idx < 0 || idx > total {
 			return 0, 0, "", paginationTokenInvalid()
 		}
 		start = idx

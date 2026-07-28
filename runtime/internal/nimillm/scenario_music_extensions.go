@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"encoding/base64"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -68,7 +69,7 @@ func NormalizeMusicIterationExtension(payload map[string]any) (map[string]any, *
 				return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
 			if _, err := decodeMusicIterationBase64(sourceAudio); err != nil {
-				return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+				return nil, nil, err
 			}
 			iteration.SourceAudioBase64 = sourceAudio
 			out[normalizedKey] = sourceAudio
@@ -239,7 +240,12 @@ func normalizeMusicIterationSecondValue(value any) (float64, error) {
 	case string:
 		next, err := strconv.ParseFloat(strings.TrimSpace(item), 64)
 		if err != nil {
-			return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+			return 0, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "music iteration time could not be parsed"},
+			)
 		}
 		parsed = next
 	default:
@@ -256,11 +262,22 @@ func decodeMusicIterationBase64(value string) ([]byte, error) {
 	if trimmed == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
-	if decoded, err := base64.StdEncoding.DecodeString(trimmed); err == nil && len(decoded) > 0 {
+	decoded, stdErr := base64.StdEncoding.DecodeString(trimmed)
+	if stdErr == nil && len(decoded) > 0 {
 		return decoded, nil
 	}
-	if decoded, err := base64.RawStdEncoding.DecodeString(trimmed); err == nil && len(decoded) > 0 {
+	decoded, rawErr := base64.RawStdEncoding.DecodeString(trimmed)
+	if rawErr == nil && len(decoded) > 0 {
 		return decoded, nil
 	}
-	return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	cause := errors.Join(stdErr, rawErr)
+	if cause == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+	return nil, grpcerr.WrapWithReasonCode(
+		codes.InvalidArgument,
+		runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID,
+		cause,
+		grpcerr.ReasonOptions{Message: "music iteration audio could not be decoded"},
+	)
 }

@@ -53,7 +53,9 @@ func (s *Service) submitScenarioAsyncJob(
 
 	idempotencyScope, err := buildScenarioJobIdempotencyScope(req)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{
+			Message: "scenario job idempotency scope is invalid",
+		})
 	}
 	if idempotencyScope != "" {
 		if existing, ok := s.scenarioJobs.getByIdempotency(idempotencyScope); ok {
@@ -63,7 +65,7 @@ func (s *Service) submitScenarioAsyncJob(
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return nil, schedulerAcquireError(acquireErr)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)

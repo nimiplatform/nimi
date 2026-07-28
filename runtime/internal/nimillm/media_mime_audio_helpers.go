@@ -209,7 +209,15 @@ func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.Speech
 // and any error.
 func FetchAudioFromURI(ctx context.Context, audioURI string) ([]byte, string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(audioURI))
-	if err != nil || parsed == nil || parsed.Scheme == "" {
+	if err != nil {
+		return nil, "", grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "audio source URL could not be parsed"},
+		)
+	}
+	if parsed == nil || parsed.Scheme == "" {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	switch strings.ToLower(strings.TrimSpace(parsed.Scheme)) {
@@ -219,7 +227,12 @@ func FetchAudioFromURI(ctx context.Context, audioURI string) ([]byte, string, er
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, parsed.String(), nil)
 	if err != nil {
-		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		return nil, "", grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "audio source request could not be created"},
+		)
 	}
 	client, err := newSecuredHTTPClient(ctx, parsed.String(), false)
 	if err != nil {
@@ -227,14 +240,27 @@ func FetchAudioFromURI(ctx context.Context, audioURI string) ([]byte, string, er
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return nil, "", grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "audio source request failed"},
+		)
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	payload, err := readLimitedResponseBody(response.Body, maxDecodedMediaURLBytes)
-	if err != nil || len(payload) == 0 {
+	if err != nil {
+		return nil, "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "audio response body could not be read"},
+		)
+	}
+	if len(payload) == 0 {
 		return nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return payload, strings.TrimSpace(response.Header.Get("Content-Type")), nil

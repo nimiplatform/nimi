@@ -20,14 +20,29 @@ func managedImageLoadErrorWithReason(err error) error {
 	switch reason {
 	case runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE,
 		runtimev1.ReasonCode_AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN:
-		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
-			Message:    detail,
-			ActionHint: "inspect_local_runtime_model_health",
-			Metadata: map[string]string{
-				"provider_message": detail,
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			reason,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    managedImageFailurePublicDetail(reason),
+				ActionHint: "inspect_local_runtime_model_health",
 			},
-		})
+		)
 	default:
 		return err
+	}
+}
+
+func managedImageFailurePublicDetail(reason runtimev1.ReasonCode) string {
+	switch reason {
+	case runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE:
+		return "managed image model is incompatible with the local runtime"
+	case runtimev1.ReasonCode_AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN:
+		return "managed image model compatibility could not be verified"
+	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+		return "managed image backend load timed out while waiting for resident readiness"
+	default:
+		return "managed local image backend validation failed"
 	}
 }

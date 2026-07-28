@@ -61,6 +61,24 @@ func newProductionHarnessService(t *testing.T, custody *memoryCustody, opts ...O
 	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), allOpts...)
 }
 
+func TestProductionCustodyRejectsRealmOriginMismatch(t *testing.T) {
+	custody := &memoryCustody{
+		has: true,
+		material: func() AccountMaterial {
+			material := testMaterial("acct-1", "access-dev", "refresh-dev")
+			material.RealmOrigin = "http://127.0.0.1:3002"
+			return material
+		}(),
+	}
+	svc := newProductionHarnessService(t, custody, WithRealmBaseURL("https://realm.nimi.ai"))
+	if svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED {
+		t.Fatalf("Realm origin mismatch state = %s, want reauth required", svc.currentState())
+	}
+	if custody.has {
+		t.Fatal("Realm origin mismatch retained old bearer custody")
+	}
+}
+
 func (m *memoryCustody) Load(context.Context, string) (AccountMaterial, error) {
 	if m.err != nil {
 		return AccountMaterial{}, m.err

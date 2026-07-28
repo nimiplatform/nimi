@@ -331,16 +331,22 @@ func writeTextGenerateArtifactTempFile(mimeType string, payload []byte) (string,
 	ext := extensionForMimeType(mimeType)
 	file, err := os.CreateTemp("", "nimi-text-multimodal-*"+ext)
 	if err != nil {
-		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "failed to create temporary artifact file",
+		})
 	}
 	if _, err := file.Write(payload); err != nil {
 		_ = file.Close()
 		_ = os.Remove(file.Name())
-		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "failed to write temporary artifact file",
+		})
 	}
 	if err := file.Close(); err != nil {
 		_ = os.Remove(file.Name())
-		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+			Message: "failed to close temporary artifact file",
+		})
 	}
 	return file.Name(), func() {
 		_ = os.Remove(file.Name())
@@ -360,7 +366,9 @@ func inlineRemoteTextGenerateImageURL(location string, mimeType string) (string,
 	if strings.HasPrefix(lower, "file://") {
 		parsed, err := url.Parse(value)
 		if err != nil {
-			return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return "", grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{
+				Message: "artifact file URL is invalid",
+			})
 		}
 		pathValue = parsed.Path
 	}

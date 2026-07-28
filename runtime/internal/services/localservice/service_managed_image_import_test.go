@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,8 +33,16 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		t.Fatalf("expected invalid manifest parse error")
 	}
 	st, _ := status.FromError(err)
-	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID.String() {
+	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("unexpected invalid manifest error: %v", err)
+	}
+	assertGRPCReasonCode(t, err, "ImportLocalAsset(invalid JSON)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	var syntaxErr *json.SyntaxError
+	if !errors.As(err, &syntaxErr) {
+		t.Fatalf("expected JSON syntax cause, got %T", errors.Unwrap(err))
+	}
+	if strings.Contains(st.Message(), invalidPath) || strings.Contains(st.Message(), "{not-json") {
+		t.Fatalf("public status leaked manifest path or content: %q", st.Message())
 	}
 
 	schemaInvalidPath := filepath.Join(tmpDir, "resolved", "nimi", "schema-invalid", "asset.manifest.json")
@@ -48,8 +57,12 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		t.Fatalf("expected schema invalid manifest error")
 	}
 	st, _ = status.FromError(err)
-	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID.String() {
+	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("unexpected schema invalid manifest error: %v", err)
+	}
+	assertGRPCReasonCode(t, err, "ImportLocalAsset(invalid capabilities)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+	if errors.Unwrap(err) == nil {
+		t.Fatal("expected manifest schema cause to remain available in-process")
 	}
 
 	validPath := filepath.Join(tmpDir, "resolved", "nimi", "import-manifest-ok", "asset.manifest.json")

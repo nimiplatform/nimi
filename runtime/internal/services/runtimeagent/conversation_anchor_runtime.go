@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -39,7 +40,7 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 			var authorizeErr error
 			decision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(ctx, accountservice.LocalAppOperationOpenConversation, localappop.Selector{AgentID: strings.TrimSpace(req.GetAgentId())})
 			if authorizeErr != nil {
-				return nil, status.Error(codes.PermissionDenied, "local-app conversation permission denied")
+				return nil, localAppConversationAuthorizationError(authorizeErr)
 			}
 			ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision)
 			localAppAuthorized = true
@@ -98,7 +99,12 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		if resumed != nil {
 			metadata, metadataErr := s.chatStateRepo.loadConversationAnchorMetadata(resumed.ConversationAnchorID)
 			if metadataErr != nil {
-				return nil, status.Errorf(codes.Unavailable, "load conversation anchor metadata: %v", metadataErr)
+				return nil, grpcerr.WrapWithReasonCode(
+					codes.Unavailable,
+					runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+					metadataErr,
+					grpcerr.ReasonOptions{Message: "conversation anchor metadata could not be loaded"},
+				)
 			}
 			return &runtimev1.OpenConversationAnchorResponse{Snapshot: s.buildConversationAnchorSnapshotLocked(resumed, metadata)}, nil
 		}
@@ -144,14 +150,24 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		s.chatSurfaceMu.Lock()
 		delete(s.chatAnchors, anchorID)
 		s.chatSurfaceMu.Unlock()
-		return nil, status.Errorf(codes.Unavailable, "capture conversation anchor snapshot: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "conversation anchor snapshot could not be captured"},
+		)
 	}
 	committedMetadata, err := s.chatStateRepo.persistPublicChatSurfaceStateWithAnchorMetadata(snapshotState, anchorID, metadata)
 	if err != nil {
 		s.chatSurfaceMu.Lock()
 		delete(s.chatAnchors, anchorID)
 		s.chatSurfaceMu.Unlock()
-		return nil, status.Errorf(codes.Unavailable, "persist conversation anchor: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "conversation anchor could not be persisted"},
+		)
 	}
 
 	snapshot := s.buildConversationAnchorSnapshotLocked(anchor, committedMetadata)
@@ -256,7 +272,12 @@ func (s *Service) GetConversationAnchorSnapshot(ctx context.Context, req *runtim
 
 	metadata, err := s.chatStateRepo.loadConversationAnchorMetadata(anchorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Unavailable, "load conversation anchor metadata: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "conversation anchor metadata could not be loaded"},
+		)
 	}
 	snapshot := s.buildConversationAnchorSnapshotLocked(&cloned, metadata)
 	return &runtimev1.GetConversationAnchorSnapshotResponse{Snapshot: snapshot}, nil
@@ -303,7 +324,15 @@ func (s *Service) ListAgentConversationSummaries(ctx context.Context, req *runti
 	offset := 0
 	if token := strings.TrimSpace(req.GetPageToken()); token != "" {
 		parsed, parseErr := strconv.Atoi(token)
-		if parseErr != nil || parsed < 0 {
+		if parseErr != nil {
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+				parseErr,
+				grpcerr.ReasonOptions{Message: "page_token must be a non-negative integer offset"},
+			)
+		}
+		if parsed < 0 {
 			return nil, status.Error(codes.InvalidArgument, "page_token must be a non-negative integer offset")
 		}
 		offset = parsed
@@ -364,7 +393,12 @@ func (s *Service) ListAgentConversationSummaries(ctx context.Context, req *runti
 	for _, anchor := range anchors[offset:end] {
 		metadata, err := s.chatStateRepo.loadConversationAnchorMetadata(anchor.ConversationAnchorID)
 		if err != nil {
-			return nil, status.Errorf(codes.Unavailable, "load conversation anchor metadata: %v", err)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Unavailable,
+				runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+				err,
+				grpcerr.ReasonOptions{Message: "conversation anchor metadata could not be loaded"},
+			)
 		}
 		summaries = append(summaries, s.agentConversationSummary(anchor, metadata))
 	}

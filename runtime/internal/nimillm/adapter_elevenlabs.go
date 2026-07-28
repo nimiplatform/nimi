@@ -129,7 +129,7 @@ func doElevenLabsBinaryRequest(ctx context.Context, targetURL, apiKey string, bo
 	}
 	raw, err := readLimitedResponseBody(response.Body, maxDecodedMediaURLBytes)
 	if err != nil {
-		return nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return nil, "", providerResponseReadError(err)
 	}
 	contentType := strings.TrimSpace(response.Header.Get("Content-Type"))
 	return raw, contentType, nil

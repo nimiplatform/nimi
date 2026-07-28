@@ -77,7 +77,12 @@ func (b *Backend) streamDashScopeRealtimeTTS(
 	}
 	config, err := websocket.NewConfig(targetURL, websocketOrigin(targetURL))
 	if err != nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "provider streaming endpoint configuration is invalid"},
+		)
 	}
 	config.Header = http.Header{}
 	for key, value := range b.headers {
@@ -286,10 +291,20 @@ func receiveDashScopeRealtimeTTSFrame(ctx context.Context, connection *websocket
 	var raw []byte
 	if err := websocket.Message.Receive(connection, &raw); err != nil {
 		if errors.Is(err, io.EOF) {
-			return nil, dashScopeRealtimeTTSEvent{}, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+			return nil, dashScopeRealtimeTTSEvent{}, nil, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_STREAM_BROKEN,
+				err,
+				grpcerr.ReasonOptions{Message: "provider stream ended unexpectedly"},
+			)
 		}
 		if isNetworkTimeout(err) {
-			return nil, dashScopeRealtimeTTSEvent{}, nil, grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+			return nil, dashScopeRealtimeTTSEvent{}, nil, grpcerr.WrapWithReasonCode(
+				codes.DeadlineExceeded,
+				runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+				err,
+				grpcerr.ReasonOptions{Message: "provider stream timed out"},
+			)
 		}
 		return nil, dashScopeRealtimeTTSEvent{}, nil, MapProviderRequestError(err)
 	}
@@ -302,7 +317,12 @@ func receiveDashScopeRealtimeTTSFrame(ctx context.Context, connection *websocket
 	}
 	payload := map[string]any{}
 	if err := json.Unmarshal(trimmed, &payload); err != nil {
-		return nil, dashScopeRealtimeTTSEvent{}, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+		return nil, dashScopeRealtimeTTSEvent{}, nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_STREAM_BROKEN,
+			err,
+			grpcerr.ReasonOptions{Message: "provider stream event could not be decoded"},
+		)
 	}
 	header, _ := payload["header"].(map[string]any)
 	return payload, dashScopeRealtimeTTSEvent{
@@ -359,7 +379,15 @@ func normalizeDashScopeRealtimeTTSWebSocketURL(parsed *url.URL) string {
 
 func validateDashScopeRealtimeTTSWebSocketURL(ctx context.Context, targetURL string, allowLoopback bool) error {
 	parsed, err := url.Parse(strings.TrimSpace(targetURL))
-	if err != nil || parsed == nil || strings.TrimSpace(parsed.Host) == "" {
+	if err != nil {
+		return grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "provider streaming endpoint could not be parsed"},
+		)
+	}
+	if parsed == nil || strings.TrimSpace(parsed.Host) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	switch strings.ToLower(strings.TrimSpace(parsed.Scheme)) {
@@ -371,7 +399,12 @@ func validateDashScopeRealtimeTTSWebSocketURL(ctx context.Context, targetURL str
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if err := endpointsec.ValidateEndpoint(ctx, parsed.String(), allowLoopback); err != nil {
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+			err,
+			grpcerr.ReasonOptions{Message: "provider streaming endpoint is not permitted"},
+		)
 	}
 	return nil
 }

@@ -63,7 +63,7 @@ func resolveCatalogVoicesForSubject(
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
 			providerMessage := "model not found in provider voice catalog"
-			return nil, "", "", grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
+			return nil, "", "", grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
 				ActionHint: "switch_tts_model_or_refresh_connector_models",
 				Message:    providerMessage,
 				Metadata: map[string]string{
@@ -74,7 +74,7 @@ func resolveCatalogVoicesForSubject(
 		}
 		if errors.Is(err, catalog.ErrVoiceSetEmpty) {
 			providerMessage := "voice set is empty for selected model"
-			return nil, "", "", grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
+			return nil, "", "", grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, err, grpcerr.ReasonOptions{
 				ActionHint: "adjust_tts_voice_or_audio_options",
 				Message:    providerMessage,
 				Metadata: map[string]string{

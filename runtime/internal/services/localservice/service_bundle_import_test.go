@@ -3,12 +3,38 @@ package localservice
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestImportLocalAssetBundleInvalidSourcePreservesCauseWithoutLeakingPath(t *testing.T) {
+	svc := newTestService(t)
+	privatePath := filepath.Join(t.TempDir(), "private-customer-bundle", "asset.manifest.json")
+
+	_, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+		DirectoryPath: privatePath,
+	})
+	if err == nil {
+		t.Fatal("expected invalid bundle source to fail")
+	}
+
+	var pathErr *os.PathError
+	if !errors.As(err, &pathErr) {
+		t.Fatalf("expected wrapped *os.PathError, got %T: %v", err, err)
+	}
+	if !errors.Is(err, pathErr) {
+		t.Fatalf("expected wrapped error identity to retain the path error: %v", err)
+	}
+	assertGRPCReasonCode(t, err, "import bundle invalid source", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	if strings.Contains(err.Error(), privatePath) || strings.Contains(err.Error(), "private-customer-bundle") {
+		t.Fatalf("public gRPC detail leaked private source path: %v", err)
+	}
+}
 
 func TestImportLocalAssetBundleScaffoldsManagedManifest(t *testing.T) {
 	svc := newTestService(t)

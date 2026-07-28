@@ -5,6 +5,9 @@ import (
 )
 
 const realmBrokerProtectedDesktopSourceReadinessProfile = "protected_desktop_source_readiness"
+const realmBrokerProtectedDesktopProductProfile = "protected_desktop_product"
+const realmBrokerProtectedDesktopSensitiveProfile = "protected_desktop_sensitive"
+const realmBrokerProtectedDesktopCommerceProfile = "protected_desktop_commerce"
 const realmBrokerProtectedBundledAvatarSourceReadinessProfile = "protected_bundled_avatar_source_readiness"
 
 func (operation realmUnaryOperation) admitsCallerMode(mode runtimev1.AccountCallerMode) bool {
@@ -12,13 +15,16 @@ func (operation realmUnaryOperation) admitsCallerMode(mode runtimev1.AccountCall
 	return ok
 }
 
-func (operation realmUnaryOperation) admitsProtectedSourceReadinessCaller(caller *runtimev1.AccountCaller) bool {
+func (operation realmUnaryOperation) admitsProtectedDesktopCaller(caller *runtimev1.AccountCaller) bool {
 	if caller == nil || !operation.admitsCallerMode(caller.GetMode()) {
 		return false
 	}
 	switch caller.GetMode() {
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
 		return operation.authorizationProfile == realmBrokerProtectedDesktopSourceReadinessProfile ||
+			operation.authorizationProfile == realmBrokerProtectedDesktopProductProfile ||
+			operation.authorizationProfile == realmBrokerProtectedDesktopSensitiveProfile ||
+			operation.authorizationProfile == realmBrokerProtectedDesktopCommerceProfile ||
 			operation.authorizationProfile == realmBrokerProtectedBundledAvatarSourceReadinessProfile
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST:
 		return operation.authorizationProfile == realmBrokerProtectedBundledAvatarSourceReadinessProfile

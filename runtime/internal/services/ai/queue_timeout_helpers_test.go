@@ -1,6 +1,8 @@
 package ai
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -71,6 +73,18 @@ func TestActionHintFromStreamErrorUsesRuntimeMetadata(t *testing.T) {
 func TestActionHintFromStreamErrorFallsBackToRetry(t *testing.T) {
 	if got := actionHintFromStreamError(nil); got != "retry_or_reopen_stream" {
 		t.Fatalf("actionHintFromStreamError(nil) = %q, want retry fallback", got)
+	}
+}
+
+func TestSchedulerAcquireErrorPreservesCause(t *testing.T) {
+	cause := context.DeadlineExceeded
+	err := schedulerAcquireError(cause)
+	if !errors.Is(err, cause) {
+		t.Fatal("expected scheduler cause to remain available in-process")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("unexpected reason code: %v (ok=%v)", reason, ok)
 	}
 }
 

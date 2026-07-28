@@ -50,7 +50,12 @@ func (s *Service) Retain(ctx context.Context, req *runtimev1.RetainRequest) (*ru
 		if err := s.cognitionCore.MemoryService().Save(cognitionRecord); err != nil {
 			// K-MEM-007: substrate/engine failure must fail-close as UNAVAILABLE,
 			// not be misclassified as a caller protocol error.
-			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Unavailable,
+				runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "memory record storage unavailable"},
+			)
 		}
 		records = append(records, record)
 	}
@@ -95,7 +100,12 @@ func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*ru
 	if err != nil {
 		// K-MEM-007: substrate/engine failure must fail-close as UNAVAILABLE, not
 		// be misclassified as a caller protocol error.
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "memory search unavailable"},
+		)
 	}
 	includeInvalidated := req.GetQuery().GetIncludeInvalidated()
 	hits := make([]*runtimev1.MemoryRecallHit, 0, len(views))
@@ -146,7 +156,12 @@ func (s *Service) History(ctx context.Context, req *runtimev1.HistoryRequest) (*
 	items, err := s.cognitionCore.MemoryService().List(scopeID)
 	if err != nil {
 		// K-MEM-007: substrate/engine failure must fail-close as UNAVAILABLE.
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "memory listing unavailable"},
+		)
 	}
 	includeInvalidated := req.GetQuery().GetIncludeInvalidated()
 	records := make([]*runtimev1.MemoryRecord, 0, len(items))

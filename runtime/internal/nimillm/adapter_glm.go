@@ -415,7 +415,7 @@ func ExecuteGLMTranscribe(
 	}
 	payload := map[string]any{}
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return "", providerResponseDecodeError(err)
 	}
 	text := strings.TrimSpace(FirstNonEmpty(
 		ValueAsString(payload["text"]),

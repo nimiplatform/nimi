@@ -83,7 +83,15 @@ func (s *Service) CleanupGeneratedVoiceArtifacts(
 	}
 	deleted, err := s.store.CleanupGeneratedVoiceArtifacts(selector)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT,
+			err,
+			grpcerr.ReasonOptions{
+				ActionHint: "retry_or_check_runtime_storage",
+				Message:    "generated voice artifact cleanup failed",
+			},
+		)
 	}
 	sort.Strings(deleted)
 	return &runtimev1.CleanupGeneratedVoiceArtifactsResponse{

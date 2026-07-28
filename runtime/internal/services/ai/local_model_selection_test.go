@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,7 +14,29 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/status"
 )
+
+func TestExecuteFirstRunLocalBaselinePreservesSchedulerCauseWithoutPublishingIt(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := svc.ExecuteFirstRunLocalBaseline(ctx, FirstRunLocalExecutionRequest{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ModelID:      "local/test-model",
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected canceled scheduler cause, got %v", err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("unexpected reason: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if wireMessage := status.Convert(err).Message(); strings.Contains(wireMessage, context.Canceled.Error()) {
+		t.Fatalf("wire message leaked scheduler cause: %q", wireMessage)
+	}
+}
 
 func TestShouldRetryUnhealthyManagedSpeechStartForBaselineSpeechModals(t *testing.T) {
 	asr := &runtimev1.LocalAssetRecord{

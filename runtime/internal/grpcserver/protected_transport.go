@@ -562,16 +562,27 @@ func authorizeProtectedDesktopMethod(ctx context.Context, method string, desktop
 func protectedDesktopSessionAuthorizationError(err error) error {
 	var failure *protectedlocal.Failure
 	if !errors.As(err, &failure) {
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
+		return grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "protected desktop session authorization failed"},
+		)
 	}
 	reasonValue, ok := runtimev1.ReasonCode_value[string(failure.Reason())]
 	if !ok {
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
+		return grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "protected desktop session authorization failed"},
+		)
 	}
 	retryable := failure.Retryable()
-	return grpcerr.WithReasonCodeOptions(protectedDesktopSessionAuthorizationCode(failure.Reason()), runtimev1.ReasonCode(reasonValue), grpcerr.ReasonOptions{
+	return grpcerr.WrapWithReasonCode(protectedDesktopSessionAuthorizationCode(failure.Reason()), runtimev1.ReasonCode(reasonValue), err, grpcerr.ReasonOptions{
 		ActionHint: failure.ActionHint(),
 		Retryable:  &retryable,
+		Message:    "protected desktop session authorization failed",
 	})
 }
 

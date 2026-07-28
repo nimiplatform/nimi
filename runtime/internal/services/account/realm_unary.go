@@ -73,7 +73,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	if !ok {
 		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for Runtime mediation", 0), nil
 	}
-	if !operation.admitsProtectedSourceReadinessCaller(req.GetCaller()) {
+	if !operation.admitsProtectedDesktopCaller(req.GetCaller()) {
 		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for this Runtime caller mode", 0), nil
 	}
 	realmBaseURL, err := s.resolveRealmUnaryBaseURL(req.GetRealmBaseUrl())

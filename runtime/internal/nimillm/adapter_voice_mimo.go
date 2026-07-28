@@ -69,7 +69,16 @@ func resolveMimoWorkflowReferenceAudioDataURI(ctx context.Context, payload map[s
 		if err := validateMimoVoiceReferenceMIME(audioMIME); err != nil {
 			return "", err
 		}
-		if decoded, err := base64.StdEncoding.DecodeString(base64Audio); err != nil || len(decoded) == 0 {
+		decoded, err := base64.StdEncoding.DecodeString(base64Audio)
+		if err != nil {
+			return "", grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "voice reference audio could not be decoded"},
+			)
+		}
+		if len(decoded) == 0 {
 			return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
 		return "data:" + audioMIME + ";base64," + base64Audio, nil

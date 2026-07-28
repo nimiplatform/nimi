@@ -428,7 +428,12 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 		return nil, nil, err
 	}
 	if err != nil {
-		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		return nil, nil, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+			err,
+			grpcerr.ReasonOptions{Message: "provider video fallback routes were unavailable"},
+		)
 	}
 
 	var b64Data string
@@ -481,7 +486,12 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 		return nil, nil, err
 	}
 	if err != nil {
-		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		return nil, nil, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+			err,
+			grpcerr.ReasonOptions{Message: "provider music fallback routes were unavailable"},
+		)
 	}
 
 	var b64Data string

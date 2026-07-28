@@ -71,6 +71,7 @@ type AccountMaterial struct {
 	AccountID            string
 	DisplayName          string
 	RealmEnvironmentID   string
+	RealmOrigin          string
 	WorkspaceMemberships []*runtimev1.WorkspaceMembershipProjection
 	AccessToken          string
 	AccessTokenExpires   time.Time

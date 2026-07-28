@@ -181,10 +181,19 @@ func (s *Service) resolveProfileSlots(
 		}
 		resolved, err := s.resolveManagedAssetEntryPath(installed)
 		if err != nil {
-			return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
-				Message:    fmt.Sprintf("slot %q asset path is unavailable: %v", slot, err),
-				ActionHint: "inspect_profile_slot_asset",
-			})
+			message := "profile slot asset path is unavailable"
+			if publicMessage, ok := grpcerr.ExtractPublicMessage(err); ok {
+				message = publicMessage
+			}
+			return managedMediaProfileSlotResolution{}, grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING,
+				err,
+				grpcerr.ReasonOptions{
+					Message:    message,
+					ActionHint: "inspect_profile_slot_asset",
+				},
+			)
 		}
 		resolution.SlotPaths[slot] = resolved
 		resolution.SlotAssets = append(resolution.SlotAssets, managedMediaProfileSlotAsset{
@@ -476,7 +485,12 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 
 	canonical, err := json.Marshal(profile)
 	if err != nil {
-		return "", nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", nil, nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed media profile could not be serialized"},
+		)
 	}
 	sum := sha256.Sum256(canonical)
 	alias := "nimi-img-" + hex.EncodeToString(sum[:8])

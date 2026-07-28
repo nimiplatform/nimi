@@ -122,7 +122,15 @@ func resolveFishAudioReferenceAudio(ctx context.Context, payload map[string]any)
 	)
 	if strings.TrimSpace(base64Audio) != "" {
 		audioBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(base64Audio))
-		if err != nil || len(audioBytes) == 0 {
+		if err != nil {
+			return nil, "", grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "voice reference audio could not be decoded"},
+			)
+		}
+		if len(audioBytes) == 0 {
 			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
 		audioMIME := FirstNonEmpty(
@@ -213,7 +221,7 @@ func doFishAudioMultipartJSONRequest(
 		return nil
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return providerResponseDecodeError(err)
 	}
 	return nil
 }

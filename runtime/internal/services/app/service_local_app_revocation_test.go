@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"google.golang.org/grpc/status"
 )
 
 type localAppConversationScopeAcceptAll struct{}
@@ -19,7 +22,9 @@ func (localAppConversationScopeAcceptAll) ValidateLocalAppConversationScope(cont
 
 type localAppSubscriptionReasonError struct{ reason runtimev1.ReasonCode }
 
-func (err localAppSubscriptionReasonError) Error() string { return "local-app subscription denied" }
+func (err localAppSubscriptionReasonError) Error() string {
+	return "local-app subscription denied with private token=secret"
+}
 func (err localAppSubscriptionReasonError) LocalAppOperationReasonCode() runtimev1.ReasonCode {
 	return err.reason
 }
@@ -48,9 +53,10 @@ func TestLocalAppSubscriptionRevalidatesAuthorityBeforeEveryDeliveredEvent(t *te
 				LocalAppPrincipalID: "principal-a", LocalAppRecordID: "record-a", OwnerSelectedAgentID: "agent-a",
 				Operation: accountservice.LocalAppOperationSubscribeConversation,
 			}
+			authorizeErr := localAppSubscriptionReasonError{reason: reason}
 			authorizer := localAppSubscriptionAuthorizer{
 				decision: decision,
-				err:      localAppSubscriptionReasonError{reason: reason},
+				err:      authorizeErr,
 			}
 			svc := newTestService(
 				WithLocalAppConversationScopeValidator(localAppConversationScopeAcceptAll{}),
@@ -88,6 +94,12 @@ func TestLocalAppSubscriptionRevalidatesAuthorityBeforeEveryDeliveredEvent(t *te
 				got, _ := grpcerr.ExtractReasonCode(err)
 				if got != reason {
 					t.Fatalf("active stream reason = %s, want %s err=%v", got, reason, err)
+				}
+				if !errors.Is(err, authorizeErr) {
+					t.Fatalf("expected authorization cause to remain available: %v", err)
+				}
+				if strings.Contains(status.Convert(err).Message(), "token=secret") {
+					t.Fatalf("public status leaked authorization cause: %q", status.Convert(err).Message())
 				}
 				stream.mu.Lock()
 				delivered := len(stream.events)

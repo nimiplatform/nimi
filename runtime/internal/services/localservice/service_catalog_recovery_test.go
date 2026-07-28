@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -109,8 +110,9 @@ func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
 
 func TestSearchCatalogModelsHFFailureReturnsReasonCode(t *testing.T) {
 	svc := newTestService(t)
+	upstreamErr := errors.New(`hf timeout for C:\private\models?token=secret`)
 	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
-		return nil, fmt.Errorf("hf timeout")
+		return nil, upstreamErr
 	}
 
 	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
@@ -123,8 +125,12 @@ func TestSearchCatalogModelsHFFailureReturnsReasonCode(t *testing.T) {
 	if st.Code() != codes.Unavailable {
 		t.Fatalf("expected Unavailable, got %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED.String() {
-		t.Fatalf("unexpected reason code: %s", st.Message())
+	assertGRPCReasonCode(t, err, "SearchCatalogModels(HF failure)", runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED)
+	if !errors.Is(err, upstreamErr) {
+		t.Fatal("expected upstream HF error to remain available in-process")
+	}
+	if strings.Contains(st.Message(), upstreamErr.Error()) || strings.Contains(st.Message(), "token=secret") {
+		t.Fatalf("public status leaked upstream error: %q", st.Message())
 	}
 }
 
@@ -142,8 +148,12 @@ func TestSearchCatalogModelsInvalidHFRepoQueryReturnsReasonCode(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID.String() {
-		t.Fatalf("unexpected reason code: %s", st.Message())
+	assertGRPCReasonCode(t, err, "SearchCatalogModels(invalid HF repo)", runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID)
+	if !errors.Is(err, errHfRepoInvalid) {
+		t.Fatal("expected invalid HF repo cause to remain available in-process")
+	}
+	if strings.Contains(st.Message(), "hf://invalid_repo_format") {
+		t.Fatalf("public status leaked invalid repo input: %q", st.Message())
 	}
 }
 
@@ -265,8 +275,12 @@ func TestListCatalogVariantsInvalidRepoReturnsReasonCode(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID.String() {
-		t.Fatalf("unexpected reason code: %s", st.Message())
+	assertGRPCReasonCode(t, err, "ListCatalogVariants(invalid HF repo)", runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID)
+	if !errors.Is(err, errHfRepoInvalid) {
+		t.Fatal("expected invalid HF repo cause to remain available in-process")
+	}
+	if strings.Contains(st.Message(), "invalid_repo_format") {
+		t.Fatalf("public status leaked invalid repo input: %q", st.Message())
 	}
 }
 

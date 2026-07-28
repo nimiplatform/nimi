@@ -4,6 +4,7 @@ package protectedlocal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -59,6 +60,30 @@ func TestWindowsVerifiedLocalAppListenerRequiresSupervisedDevelopmentPeer(t *tes
 	connection, ok := NativeLocalAppConnectionFromNetConn(server)
 	if !ok || connection.LaunchID() != launchID || connection.Process() != bound || connection.Process().ExecutableTrustSetID != WindowsLocalDevelopmentTrustSetID || connection.RuntimeBootEpoch() != boot || connection.TrustClass() != LocalAppTrustLocalDevelopment {
 		t.Fatalf("local-development native authority mismatch: connection=%+v ok=%v", connection, ok)
+	}
+}
+
+func TestWindowsLocalAppPipePendingAcceptStopsOnContextCancellation(t *testing.T) {
+	identity, principal := resolveWindowsDesktopTestBootstrap(t)
+	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-cancel-pending-accept-%d-%d`, os.Getpid(), time.Now().UnixNano())
+	instance, err := createWindowsLocalAppPipeInstance(context.Background(), pipeName, principal, identity, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, acceptErr := instance.Accept(ctx)
+		done <- acceptErr
+	}()
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("pending accept error = %v, want context cancellation", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("pending local-app pipe accept did not stop after context cancellation")
 	}
 }
 

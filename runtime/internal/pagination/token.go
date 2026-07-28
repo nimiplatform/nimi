@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -46,16 +45,26 @@ func Decode(token string) (cursor string, filterDigest string, err error) {
 	}
 	data, decodeErr := base64.RawURLEncoding.DecodeString(token)
 	if decodeErr != nil {
-		return "", "", fmt.Errorf(
-			"pagination.Decode: base64 decode: %w",
-			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID),
+		return "", "", grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PAGE_TOKEN_INVALID,
+			decodeErr,
+			grpcerr.ReasonOptions{
+				ActionHint: "provide_valid_page_token",
+				Message:    "page token is not valid base64",
+			},
 		)
 	}
 	var payload tokenPayload
 	if unmarshalErr := json.Unmarshal(data, &payload); unmarshalErr != nil {
-		return "", "", fmt.Errorf(
-			"pagination.Decode: unmarshal payload: %w",
-			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID),
+		return "", "", grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PAGE_TOKEN_INVALID,
+			unmarshalErr,
+			grpcerr.ReasonOptions{
+				ActionHint: "provide_valid_page_token",
+				Message:    "page token payload is not valid JSON",
+			},
 		)
 	}
 	return payload.Cursor, payload.FilterDigest, nil

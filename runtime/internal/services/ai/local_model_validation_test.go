@@ -13,9 +13,11 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type fakeLocalModelLister struct {
@@ -30,6 +32,136 @@ type fakeLocalModelLister struct {
 	leaseCalls   []string
 	acquireDelay time.Duration
 	managedNames map[string]string
+}
+
+type localModelPrivateCause struct {
+	detail string
+}
+
+func (e *localModelPrivateCause) Error() string {
+	return e.detail
+}
+
+func TestLocalModelResolverErrorsPreserveCauseWithoutPublishingDetails(t *testing.T) {
+	const privateDetail = `C:\Users\private\models\profile.json?api_key=local-secret`
+
+	nativeSelection := engine.ImageSupervisedMatrixSelection{
+		Matched:        true,
+		BackendClass:   engine.ImageBackendClassNativeBinary,
+		ControlPlane:   engine.ImageControlPlaneRuntime,
+		ExecutionPlane: engine.EngineMedia,
+		Entry: &engine.ImageSupervisedMatrixEntry{
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
+			ExecutionPlane: engine.EngineMedia,
+		},
+	}
+	tests := []struct {
+		name          string
+		publicMessage string
+		run           func(error) error
+	}{
+		{
+			name:          "canonical image selection",
+			publicMessage: "local image execution selection could not be resolved",
+			run: func(cause error) error {
+				svc := &Service{localImageProfile: &fakeLocalImageProfileResolver{resolveSelectionErr: cause}}
+				return svc.primeInstalledLocalModelRequest(context.Background(), &runtimev1.LocalAssetRecord{}, "local/private-image", runtimev1.Modal_MODAL_IMAGE, nil)
+			},
+		},
+		{
+			name:          "managed media image profile",
+			publicMessage: "local image execution profile could not be resolved",
+			run: func(cause error) error {
+				svc := &Service{localImageProfile: &fakeLocalImageProfileResolver{
+					selection:         nativeSelection,
+					resolveProfileErr: cause,
+				}}
+				return svc.primeInstalledLocalModelRequest(context.Background(), &runtimev1.LocalAssetRecord{}, "local/private-image", runtimev1.Modal_MODAL_IMAGE, nil)
+			},
+		},
+		{
+			name:          "local model RPC normalization",
+			publicMessage: "local model operation could not be completed",
+			run: func(cause error) error {
+				return normalizeLocalModelRPCError(cause)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cause := &localModelPrivateCause{detail: privateDetail}
+			err := tc.run(cause)
+			if !errors.Is(err, cause) {
+				t.Fatalf("expected wrapped cause, got %v", err)
+			}
+			var typedCause *localModelPrivateCause
+			if !errors.As(err, &typedCause) || typedCause != cause {
+				t.Fatalf("expected typed wrapped cause, got %T: %v", err, err)
+			}
+			if got := status.Code(err); got != codes.FailedPrecondition {
+				t.Fatalf("gRPC code = %s, want %s", got, codes.FailedPrecondition)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+				t.Fatalf("unexpected reason: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+			}
+			wireMessage := status.Convert(err).Message()
+			if strings.Contains(wireMessage, privateDetail) {
+				t.Fatalf("wire message leaked private detail: %q", wireMessage)
+			}
+			if !strings.Contains(wireMessage, tc.publicMessage) {
+				t.Fatalf("wire message = %q, want safe message %q", wireMessage, tc.publicMessage)
+			}
+			metadata, ok := grpcerr.ExtractReasonMetadata(err)
+			if !ok {
+				t.Fatalf("expected ErrorInfo metadata, got %v", err)
+			}
+			if metadata["action_hint"] != "inspect_local_runtime_model_health" {
+				t.Fatalf("action hint = %q, want inspect_local_runtime_model_health", metadata["action_hint"])
+			}
+			if _, exists := metadata["provider_message"]; exists {
+				t.Fatalf("provider_message leaked private cause: %#v", metadata)
+			}
+		})
+	}
+}
+
+func TestLocalModelDefaultTargetErrorPreservesCauseWithoutPublishingConfigDetail(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.localModel = &fakeLocalModelLister{}
+
+	_, err := svc.prepareLocalModelExecutionPlan(context.Background(), "cloud/default", nil, runtimev1.Modal_MODAL_TEXT, nil)
+	cause := errors.Unwrap(err)
+	if err == nil || cause == nil {
+		t.Fatalf("expected preserved default target cause, got %v", err)
+	}
+	if !strings.Contains(cause.Error(), "no default cloud provider is configured") {
+		t.Fatalf("unexpected preserved cause: %v", cause)
+	}
+	if got := status.Code(err); got != codes.FailedPrecondition {
+		t.Fatalf("gRPC code = %s, want %s", got, codes.FailedPrecondition)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID {
+		t.Fatalf("unexpected reason: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+	}
+	wireMessage := status.Convert(err).Message()
+	if strings.Contains(wireMessage, "no default cloud provider is configured") {
+		t.Fatalf("wire message leaked private config detail: %q", wireMessage)
+	}
+	if !strings.Contains(wireMessage, "runtime default target could not be resolved") {
+		t.Fatalf("wire message = %q, want safe default-target message", wireMessage)
+	}
+	metadata, ok := grpcerr.ExtractReasonMetadata(err)
+	if !ok {
+		t.Fatalf("expected ErrorInfo metadata, got %v", err)
+	}
+	if metadata["action_hint"] != "configure_runtime_default_target" {
+		t.Fatalf("action hint = %q, want configure_runtime_default_target", metadata["action_hint"])
+	}
+	if _, exists := metadata["provider_message"]; exists {
+		t.Fatalf("provider_message leaked private cause: %#v", metadata)
+	}
 }
 
 func (f *fakeLocalModelLister) ListLocalAssets(_ context.Context, _ *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {

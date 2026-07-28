@@ -26,6 +26,11 @@ class FakeRuntimeTransport implements CoreTransport {
     reason: 'ok',
   };
   responseMetadata?: Record<string, string>;
+  materializationResponse = {
+    localAgentRef: 'local-agent:materialized-world-character',
+    idempotentReplay: false,
+    reasonCode: RealmSourceMaterializationReasonCode.NONE,
+  };
 
   async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
     this.unaryCalls.push(request);
@@ -59,11 +64,7 @@ class FakeRuntimeTransport implements CoreTransport {
       } as Response;
     }
     if (request.methodId === '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource') {
-      return {
-        localAgentRef: 'local-agent:materialized-world-character',
-        idempotentReplay: false,
-        reasonCode: RealmSourceMaterializationReasonCode.NONE,
-      } as Response;
+      return this.materializationResponse as Response;
     }
     throw Object.assign(new Error(`unexpected unary ${request.methodId}`), {
       code: 'unexpected_runtime_unary',
@@ -188,6 +189,51 @@ test('Runtime facade materializes a Realm source from sourceRef and requestId on
       },
     },
   });
+});
+
+test('Runtime facade rejects a negative Realm source materialization response as structured Runtime failure', async () => {
+  const transport = new FakeRuntimeTransport();
+  transport.materializationResponse = {
+    localAgentRef: '',
+    idempotentReplay: false,
+    reasonCode: RealmSourceMaterializationReasonCode.ACQUISITION_DENIED,
+  };
+  const runtime = createRuntime({
+    appId: 'app.materialization-consumer',
+    getSubjectUserId: () => 'account-1',
+    transport,
+  });
+
+  await assert.rejects(
+    runtime.materializeRealmSource({
+      sourceRef: {
+        kind: 'worldCharacter',
+        id: 'character-1',
+        worldId: 'world-1',
+        worldEntityRef: {
+          kind: 'worldEntity',
+          worldId: 'world-1',
+          entityId: 'entity-1',
+        },
+        sourceHash: 'a'.repeat(64),
+      },
+      requestId: 'materialize-request-rejected',
+    }),
+    (error: unknown) => {
+      const structured = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        source?: string;
+      };
+      assert.equal(
+        structured.reasonCode,
+        'REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED',
+      );
+      assert.equal(structured.actionHint, 'inspect_realm_source_materialization_failure');
+      assert.equal(structured.source, 'runtime');
+      return true;
+    },
+  );
 });
 
 test('Runtime facade materialization fails closed without injected subject context', async () => {

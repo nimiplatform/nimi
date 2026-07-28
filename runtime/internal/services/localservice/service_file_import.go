@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -258,9 +259,12 @@ func (s *Service) importLocalModelFile(
 ) (*runtimev1.ImportLocalAssetFileResponse, error) {
 	sourcePath, _, err := prepareImportSourcePath(req.GetFilePath())
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "local model source file is invalid"},
+		)
 	}
 	capabilities := normalizeAssetCapabilities(req.GetCapabilities())
 	if len(capabilities) == 0 {
@@ -322,24 +326,33 @@ func (s *Service) importLocalModelFile(
 	stageDir, err := prepareManagedModelBundleStageDir(destDir, "import")
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed model staging directory could not be prepared"},
+		)
 	}
 	destFileName := filepath.Base(sourcePath)
 	stageFilePath := filepath.Join(stageDir, destFileName)
 	if err := maybeMoveOrCopyFile(sourcePath, stageFilePath, removeSource); err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("stage managed model file: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("stage managed model file: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed model file could not be staged"},
+		)
 	}
 	stageFileHash, err := computeImportFileSHA256(stageFilePath)
 	if err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("hash staged managed model file: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("hash staged managed model file: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed model file integrity could not be computed"},
+		)
 	}
 	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local model staged")
 	manifestPath := filepath.Join(stageDir, "asset.manifest.json")
@@ -347,9 +360,12 @@ func (s *Service) importLocalModelFile(
 	kindToken, err := localAssetKindToken(kind)
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "local model asset kind is invalid"},
+		)
 	}
 	manifest := map[string]any{
 		"schema_version":     "1.0.0",
@@ -379,39 +395,57 @@ func (s *Service) importLocalModelFile(
 	if err != nil {
 		if _, rollbackErr := s.rollbackManagedModelStageBeforeActivation(modelsRoot, logicalModelID, sourcePath, stageFilePath, stageDir, removeSource, "local_model_import", fmt.Sprintf("serialize manifest: %v", err), modelID); rollbackErr != nil {
 			s.failTransfer(transferID, fmt.Sprintf("serialize runtime managed model manifest: %v; rollback=%v", err, rollbackErr), false)
-			return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-				Message: fmt.Sprintf("serialize runtime managed model manifest: %v", err),
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+				errors.Join(err, rollbackErr),
+				grpcerr.ReasonOptions{Message: "managed model manifest serialization and rollback failed"},
+			)
 		}
 		s.failTransfer(transferID, fmt.Sprintf("serialize runtime managed model manifest: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("serialize runtime managed model manifest: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed model manifest could not be encoded"},
+		)
 	}
 	if err := os.WriteFile(manifestPath, payload, 0o644); err != nil {
 		if _, rollbackErr := s.rollbackManagedModelStageBeforeActivation(modelsRoot, logicalModelID, sourcePath, stageFilePath, stageDir, removeSource, "local_model_import", fmt.Sprintf("write manifest: %v", err), modelID); rollbackErr != nil {
 			s.failTransfer(transferID, fmt.Sprintf("write runtime managed model manifest: %v; rollback=%v", err, rollbackErr), false)
-			return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-				Message: fmt.Sprintf("write runtime managed model manifest: %v", err),
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+				errors.Join(err, rollbackErr),
+				grpcerr.ReasonOptions{Message: "managed model manifest write and rollback failed"},
+			)
 		}
 		s.failTransfer(transferID, fmt.Sprintf("write runtime managed model manifest: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("write runtime managed model manifest: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed model manifest could not be written"},
+		)
 	}
 	activation, err := activateManagedModelBundle(destDir, stageDir)
 	if err != nil {
 		if _, rollbackErr := s.rollbackManagedModelStageBeforeActivation(modelsRoot, logicalModelID, sourcePath, stageFilePath, stageDir, removeSource, "local_model_import", fmt.Sprintf("activate bundle: %v", err), modelID); rollbackErr != nil {
 			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v; rollback=%v", err, rollbackErr), false)
-			return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-				Message: fmt.Sprintf("activate managed model bundle: %v", err),
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+				errors.Join(err, rollbackErr),
+				grpcerr.ReasonOptions{Message: "managed model bundle activation and rollback failed"},
+			)
 		}
 		s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("activate managed model bundle: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed model bundle could not be activated"},
+		)
 	}
 	manifestPath = runtimeManagedAssetManifestPath(modelsRoot, logicalModelID)
 	s.updateTransferProgress(transferID, "register", 1, 1, "registering local model")
@@ -464,9 +498,12 @@ func (s *Service) importLocalPassiveAssetFile(
 ) (*runtimev1.ImportLocalAssetFileResponse, error) {
 	sourcePath, _, err := prepareImportSourcePath(req.GetFilePath())
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "local artifact source file is invalid"},
+		)
 	}
 	kind := req.GetKind()
 	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
@@ -498,31 +535,43 @@ func (s *Service) importLocalPassiveAssetFile(
 	destFilePath := filepath.Join(destDir, destFileName)
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("create runtime managed artifact directory: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("create runtime managed artifact directory: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed artifact directory could not be prepared"},
+		)
 	}
 	if err := maybeMoveOrCopyFile(sourcePath, destFilePath, removeSource); err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("stage managed artifact file: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("stage managed artifact file: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed artifact file could not be staged"},
+		)
 	}
 	destFileHash, err := computeImportFileSHA256(destFilePath)
 	if err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("hash staged managed artifact file: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("hash staged managed artifact file: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed artifact file integrity could not be computed"},
+		)
 	}
 	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local artifact staged")
 	manifestPath := runtimeManagedPassiveAssetManifestPath(modelsRoot, artifactID)
 	kindToken, err := localAssetKindToken(kind)
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "local artifact kind is invalid"},
+		)
 	}
 	manifest := map[string]any{
 		"schema_version":     "1.0.0",
@@ -557,15 +606,21 @@ func (s *Service) importLocalPassiveAssetFile(
 	payload, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("serialize runtime managed artifact manifest: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("serialize runtime managed artifact manifest: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed artifact manifest could not be encoded"},
+		)
 	}
 	if err := os.WriteFile(manifestPath, payload, 0o644); err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("write runtime managed artifact manifest: %v", err), false)
-		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("write runtime managed artifact manifest: %v", err),
-		})
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed artifact manifest could not be written"},
+		)
 	}
 	s.updateTransferProgress(transferID, "register", 1, 1, "registering local artifact")
 	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})

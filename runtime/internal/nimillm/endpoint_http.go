@@ -27,7 +27,12 @@ func newSecuredHTTPRequest(ctx context.Context, method string, targetURL string,
 func newSecuredHTTPClient(ctx context.Context, targetURL string, allowLoopback bool) (*http.Client, error) {
 	transport, err := endpointsec.NewPinnedTransport(ctx, targetURL, allowLoopback)
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+			err,
+			grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"},
+		)
 	}
 	return &http.Client{
 		Timeout:   defaultHTTPTimeout,

@@ -109,10 +109,15 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 			if updateErr == nil {
 				return &runtimev1.StartLocalAssetResponse{Asset: unhealthy}, nil
 			}
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-				Message:    strings.TrimSpace(err.Error()),
-				ActionHint: "inspect_local_runtime_model_health",
-			})
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{
+					Message:    "managed local model runtime is unavailable",
+					ActionHint: "inspect_local_runtime_model_health",
+				},
+			)
 		}
 		if readyModel != nil {
 			current = readyModel
@@ -693,17 +698,43 @@ func (s *Service) setManagedSupervisedSpeechUnhealthy(model *runtimev1.LocalAsse
 }
 
 func (s *Service) transitionModelToUnhealthy(localModelID string, detail string) (*runtimev1.LocalAssetRecord, error) {
+	return s.transitionModelToUnhealthyWithReason(
+		localModelID,
+		detail,
+		runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+	)
+}
+
+func (s *Service) transitionModelToUnhealthyWithReason(
+	localModelID string,
+	detail string,
+	reason runtimev1.ReasonCode,
+) (*runtimev1.LocalAssetRecord, error) {
 	current := s.modelByID(localModelID)
 	if current == nil {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	if current.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		if _, err := s.updateModelWarmState(localModelID, current.GetWarmState(), detail); err != nil {
+		if _, err := s.updateModelAvailabilityAndWarmStateWithReason(
+			localModelID,
+			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED,
+			current.GetWarmState(),
+			detail,
+			true,
+			reason,
+		); err != nil {
 			return nil, err
 		}
 		return s.modelByID(localModelID), nil
 	}
-	return s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, detail)
+	return s.updateModelAvailabilityAndWarmStateWithReason(
+		localModelID,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_UNSPECIFIED,
+		detail,
+		false,
+		reason,
+	)
 }
 
 func (s *Service) ensureModelInstalled(localModelID string, detail string) (*runtimev1.LocalAssetRecord, error) {

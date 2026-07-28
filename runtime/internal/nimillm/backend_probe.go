@@ -79,9 +79,7 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "fireworks" {
 		modelsBaseURL, err := fireworksModelsBaseURL(b.baseURL)
 		if err != nil {
-			return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-				Message: err.Error(),
-			})
+			return fireworksModelDiscoveryError(err)
 		}
 		endpoint := strings.TrimSuffix(modelsBaseURL, "/") + "/v1/accounts/fireworks/models"
 		return b.probeGETAbsolute(ctx, endpoint)
@@ -159,9 +157,7 @@ func (b *Backend) listFireworksModels(ctx context.Context) ([]ProbeModel, error)
 	}
 	modelsBaseURL, err := fireworksModelsBaseURL(b.baseURL)
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message: err.Error(),
-		})
+		return nil, fireworksModelDiscoveryError(err)
 	}
 	endpoint := strings.TrimSuffix(modelsBaseURL, "/") + "/v1/accounts/fireworks/models"
 	var payload fireworksModelsResponse
@@ -169,6 +165,18 @@ func (b *Backend) listFireworksModels(ctx context.Context) ([]ProbeModel, error)
 		return nil, err
 	}
 	return mapFireworksProbeModels(payload), nil
+}
+
+func fireworksModelDiscoveryError(err error) error {
+	return grpcerr.WrapWithReasonCode(
+		codes.Unavailable,
+		runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		err,
+		grpcerr.ReasonOptions{
+			ActionHint: "check_provider_endpoint_or_connector_configuration",
+			Message:    "Fireworks model discovery endpoint is invalid",
+		},
+	)
 }
 
 func fireworksModelsBaseURL(baseURL string) (string, error) {

@@ -2199,6 +2199,74 @@ pub struct RequestLocalAppPermissionResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppPermissionProjection>,
 }
+/// Protected Runtime-owner management plane. These messages are never carried
+/// by the third-party local-app transport.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct IssueLocalAppAgentSelectorHandleRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub local_app_principal_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub permission_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub local_agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct IssueLocalAppAgentSelectorHandleResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(string, tag = "2")]
+    pub selector_handle: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DecideLocalAppPermissionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub local_app_principal_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub permission_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub selector_handle: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub approved: bool,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DecideLocalAppPermissionResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "LocalAppPermissionPosture", tag = "2")]
+    pub posture: i32,
+    #[prost(uint64, tag = "3")]
+    pub owner_revision: u64,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeLocalAppPermissionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub local_app_principal_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub permission_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub selector_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeLocalAppPermissionResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "LocalAppPermissionPosture", tag = "2")]
+    pub posture: i32,
+    #[prost(uint64, tag = "3")]
+    pub owner_revision: u64,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AccountSessionState {
@@ -3236,6 +3304,95 @@ pub mod runtime_account_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAccountService",
                         "RequestLocalAppPermission",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn issue_local_app_agent_selector_handle(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::IssueLocalAppAgentSelectorHandleRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::IssueLocalAppAgentSelectorHandleResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/IssueLocalAppAgentSelectorHandle",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "IssueLocalAppAgentSelectorHandle",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn decide_local_app_permission(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DecideLocalAppPermissionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DecideLocalAppPermissionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "DecideLocalAppPermission",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn revoke_local_app_permission(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RevokeLocalAppPermissionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RevokeLocalAppPermissionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "RevokeLocalAppPermission",
                     ),
                 );
             self.inner.unary(req, path, codec).await

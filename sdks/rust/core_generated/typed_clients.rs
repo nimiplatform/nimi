@@ -35322,6 +35322,11 @@ pub struct AddGroupParticipantInputDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AddGroupSourceParticipantInputDto {
+    pub source_ref: Box<GroupSourceRefDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AssetDetailDto {
     pub author_id: String,
     pub clone_policy: String,
@@ -35796,6 +35801,31 @@ pub struct CloneAssetDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CommitRealmGroupSourceMessageCandidateInputDto {
+    pub audit_lineage_ref: String,
+    pub body: String,
+    pub body_hash: String,
+    pub candidate_evidence_ref: String,
+    pub candidate_id: String,
+    pub candidate_kind: String,
+    pub commit_disposition: String,
+    pub created_at: String,
+    pub evidence_hash: String,
+    pub expected_runtime_participant_slot_id: String,
+    pub expected_runtime_source_ref: String,
+    pub expires_at: String,
+    pub idempotency_key: String,
+    pub message_type: String,
+    pub output_candidate_ref: String,
+    pub policy_verdict_ref: String,
+    pub refusal_code: String,
+    pub refusal_hash: String,
+    pub refusal_reason: String,
+    pub runtime_trace_ref: String,
+    pub trigger_evidence: Box<GroupSourceTriggerEvidenceDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ConnectDashboardLinkDto {
     pub url: String,
 }
@@ -35868,6 +35898,16 @@ pub struct CreateBundleDto {
 pub struct CreateConnectOnboardingDto {
     pub refresh_url: String,
     pub return_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateFeedbackDto {
+    pub app_version: String,
+    pub contact_email: String,
+    pub description: String,
+    pub screenshot_urls: Vec<String>,
+    pub r#type: String,
+    pub user_agent: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -36247,6 +36287,10 @@ pub struct GroupMessageAuthorDto {
     pub account_id: String,
     pub avatar_url: String,
     pub display_name: String,
+    pub runtime_participant_slot: String,
+    pub runtime_source_ref: String,
+    pub source_authority_account_id: String,
+    pub source_ref: Box<GroupSourceRefDto>,
     pub r#type: String,
 }
 
@@ -36275,7 +36319,25 @@ pub struct GroupParticipantDto {
     pub is_online: bool,
     pub joined_at: String,
     pub role: String,
+    pub runtime_participant_slot: String,
+    pub runtime_source_ref: String,
+    pub source_authority_account_id: String,
+    pub source_ref: Box<GroupSourceRefDto>,
     pub r#type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GroupSourceRefDto {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GroupSourceTriggerEvidenceDto {
+    pub actor_id: String,
+    pub chat_id: String,
+    pub kind: String,
+    pub message_id: String,
+    pub trigger_ref: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -36707,11 +36769,6 @@ pub struct OAuthTokenResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct Object {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PasswordLoginDto {
     pub identifier: String,
     pub password: String,
@@ -36932,6 +36989,13 @@ pub struct RealmCoreOriginDto {
     pub source_content_hash: String,
     pub source_id: String,
     pub source_version: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGroupMessageCandidateCommitResultDto {
+    pub candidate_id: String,
+    pub message: Box<GroupMessageViewDto>,
+    pub status: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38222,6 +38286,11 @@ pub struct WorldPublicCharacterLifeEventDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicCharacterSourceRequestDto {
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicDetailDto {
     pub created_at: String,
     pub entity_kinds: Vec<String>,
@@ -38523,6 +38592,29 @@ pub struct RealmAddGroupParticipantOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmAddGroupSourceParticipantOperationPath {
+    pub chat_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmAddGroupSourceParticipantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmAddGroupSourceParticipantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmAddGroupSourceParticipantOperationRequest {
+    pub path: RealmAddGroupSourceParticipantOperationPath,
+    pub query: RealmAddGroupSourceParticipantOperationQuery,
+    pub headers: RealmAddGroupSourceParticipantOperationHeaders,
+    pub body: AddGroupSourceParticipantInputDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmArchiveBundleOperationPath {
     pub bundle_id: String,
 }
@@ -38704,6 +38796,29 @@ pub struct RealmCloneAssetOperationRequest {
     pub query: RealmCloneAssetOperationQuery,
     pub headers: RealmCloneAssetOperationHeaders,
     pub body: CloneAssetDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCommitRealmGroupSourceMessageCandidateOperationPath {
+    pub chat_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCommitRealmGroupSourceMessageCandidateOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCommitRealmGroupSourceMessageCandidateOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCommitRealmGroupSourceMessageCandidateOperationRequest {
+    pub path: RealmCommitRealmGroupSourceMessageCandidateOperationPath,
+    pub query: RealmCommitRealmGroupSourceMessageCandidateOperationQuery,
+    pub headers: RealmCommitRealmGroupSourceMessageCandidateOperationHeaders,
+    pub body: CommitRealmGroupSourceMessageCandidateInputDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39746,7 +39861,7 @@ pub struct RealmFeedbackControllerSubmitFeedbackOperationRequest {
     pub path: RealmFeedbackControllerSubmitFeedbackOperationPath,
     pub query: RealmFeedbackControllerSubmitFeedbackOperationQuery,
     pub headers: RealmFeedbackControllerSubmitFeedbackOperationHeaders,
-    pub body: Object,
+    pub body: CreateFeedbackDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41404,6 +41519,30 @@ pub struct RealmRemoveGroupParticipantOperationRequest {
     pub path: RealmRemoveGroupParticipantOperationPath,
     pub query: RealmRemoveGroupParticipantOperationQuery,
     pub headers: RealmRemoveGroupParticipantOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRemoveGroupSourceParticipantOperationPath {
+    pub runtime_participant_slot_id: String,
+    pub chat_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRemoveGroupSourceParticipantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRemoveGroupSourceParticipantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRemoveGroupSourceParticipantOperationRequest {
+    pub path: RealmRemoveGroupSourceParticipantOperationPath,
+    pub query: RealmRemoveGroupSourceParticipantOperationQuery,
+    pub headers: RealmRemoveGroupSourceParticipantOperationHeaders,
     pub body: (),
 }
 
@@ -43146,6 +43285,29 @@ pub struct RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetCharacterSourceOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetCharacterSourceOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetCharacterSourceOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetCharacterSourceOperationRequest {
+    pub path: RealmWorldPublicControllerGetCharacterSourceOperationPath,
+    pub query: RealmWorldPublicControllerGetCharacterSourceOperationQuery,
+    pub headers: RealmWorldPublicControllerGetCharacterSourceOperationHeaders,
+    pub body: WorldPublicCharacterSourceRequestDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldPublicControllerGetWorldOperationPath {
     pub world_id: String,
 }
@@ -43262,6 +43424,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupParticipant");
     }
 
+    pub fn add_group_source_participant(&self, _request: RealmAddGroupSourceParticipantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupSourceParticipant");
+    }
+
     pub fn archive_bundle(&self, _request: RealmArchiveBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for archiveBundle");
     }
@@ -43307,6 +43473,10 @@ where
 
     pub fn clone_asset(&self, _request: RealmCloneAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for cloneAsset");
+    }
+
+    pub fn commit_realm_group_source_message_candidate(&self, _request: RealmCommitRealmGroupSourceMessageCandidateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmGroupMessageCandidateCommitResultDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for commitRealmGroupSourceMessageCandidate");
     }
 
     pub fn create_asset(&self, _request: RealmCreateAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
@@ -43891,6 +44061,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeGroupParticipant");
     }
 
+    pub fn remove_group_source_participant(&self, _request: RealmRemoveGroupSourceParticipantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeGroupSourceParticipant");
+    }
+
     pub fn report_controller_create_report(&self, _request: RealmReportControllerCreateReportOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReportResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReportController_createReport");
     }
@@ -44254,6 +44428,10 @@ where
 
     pub fn world_core_controller_replace_world_relationship(&self, _request: RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRelationshipCoreDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceWorldRelationship");
+    }
+
+    pub fn world_public_controller_get_character_source(&self, _request: RealmWorldPublicControllerGetCharacterSourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldPublicSourceCardDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldPublicController_getCharacterSource");
     }
 
     pub fn world_public_controller_get_world(&self, _request: RealmWorldPublicControllerGetWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldPublicDetailDto, T::Error> {

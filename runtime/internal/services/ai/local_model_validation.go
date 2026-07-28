@@ -93,10 +93,7 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 	}
 	resolvedModelID, err := texttarget.ResolveInternalDefaultAlias(s.selector.targetConfig, requestedModelID)
 	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-			ActionHint: "configure_runtime_default_target",
-			Message:    err.Error(),
-		})
+		return nil, defaultTargetResolutionError(err)
 	}
 	if preferredRoute(resolvedModelID) != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nil, nil
@@ -243,7 +240,7 @@ func (s *Service) primeInstalledLocalModelRequest(ctx context.Context, selected 
 	}
 	selection, err := s.localImageProfile.ResolveCanonicalImageSelection(ctx, requestedModelID)
 	if err != nil {
-		return localModelUnavailableError(err.Error())
+		return localModelUnavailableCauseError(err, "local image execution selection could not be resolved")
 	}
 	if !selection.Matched || selection.Conflict || selection.Entry == nil {
 		return localModelUnavailableError(strings.TrimSpace(selection.CompatibilityDetail))
@@ -254,7 +251,7 @@ func (s *Service) primeInstalledLocalModelRequest(ctx context.Context, selected 
 		return nil
 	}
 	if _, _, _, err := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, requestedModelID, scenarioExtensions); err != nil {
-		return localModelUnavailableError(err.Error())
+		return localModelUnavailableCauseError(err, "local image execution profile could not be resolved")
 	}
 	return nil
 }
@@ -453,6 +450,18 @@ func localModelUnavailableError(detail string) error {
 	)
 }
 
+func localModelUnavailableCauseError(cause error, publicMessage string) error {
+	return grpcerr.WrapWithReasonCode(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+		cause,
+		grpcerr.ReasonOptions{
+			ActionHint: "inspect_local_runtime_model_health",
+			Message:    publicMessage,
+		},
+	)
+}
+
 func normalizeLocalModelRPCError(err error) error {
 	if err == nil {
 		return nil
@@ -460,7 +469,7 @@ func normalizeLocalModelRPCError(err error) error {
 	if _, ok := grpcerr.ExtractReasonCode(err); ok {
 		return err
 	}
-	return localModelUnavailableError(err.Error())
+	return localModelUnavailableCauseError(err, "local model operation could not be completed")
 }
 
 func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalAssetRecord, endpointOverride string) {

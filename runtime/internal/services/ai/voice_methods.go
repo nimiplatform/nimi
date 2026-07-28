@@ -75,7 +75,9 @@ func (s *Service) ListVoiceAssets(ctx context.Context, req *runtimev1.ListVoiceA
 
 	offset, err := parseVoiceAssetPageToken(req.GetPageToken())
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, err, grpcerr.ReasonOptions{
+			Message: "voice asset page token is invalid",
+		})
 	}
 	if offset > len(items) {
 		offset = len(items)

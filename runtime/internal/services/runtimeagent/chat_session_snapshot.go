@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -291,7 +292,12 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	session.UpdatedAt = time.Now().UTC()
 	if err := s.persistPublicChatSurfaceStateLocked(); err != nil {
 		rollback()
-		return status.Errorf(codes.Internal, "persist committed Runtime transcript: %v", err)
+		return grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "committed Runtime transcript could not be persisted"},
+		)
 	}
 	return nil
 }

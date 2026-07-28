@@ -160,9 +160,19 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "catalog repository is invalid"},
+			)
 		}
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED,
+			err,
+			grpcerr.ReasonOptions{Message: "catalog search failed"},
+		)
 	}
 	for _, item := range hfItems {
 		if !matchesCatalogFilters(item, query, capability, categoryFilter, engineFilter) {
@@ -206,9 +216,19 @@ func (s *Service) ListCatalogVariants(ctx context.Context, req *runtimev1.ListCa
 	variants, err := s.listHFCatalogVariants(ctx, req.GetRepo())
 	if err != nil {
 		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "catalog repository is invalid"},
+			)
 		}
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED,
+			err,
+			grpcerr.ReasonOptions{Message: "catalog search failed"},
+		)
 	}
 	return &runtimev1.ListCatalogVariantsResponse{Variants: variants}, nil
 }

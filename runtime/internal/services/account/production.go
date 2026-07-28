@@ -44,6 +44,7 @@ type custodySnapshot struct {
 	AccountID            string                        `json:"accountId"`
 	DisplayName          string                        `json:"displayName,omitempty"`
 	RealmEnvironmentID   string                        `json:"realmEnvironmentId,omitempty"`
+	RealmOrigin          string                        `json:"realmOrigin,omitempty"`
 	WorkspaceMemberships []workspaceMembershipSnapshot `json:"workspaceMemberships,omitempty"`
 	AccessToken          string                        `json:"accessToken"`
 	AccessTokenExpires   string                        `json:"accessTokenExpires"`
@@ -61,6 +62,7 @@ type workspaceMembershipSnapshot struct {
 
 type realmOAuthExchanger struct {
 	httpClient       *http.Client
+	realmOrigin      string
 	authorizationURL string
 	tokenURL         string
 	clientID         string
@@ -158,6 +160,7 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 func newRealmOAuthExchanger(cfg ProductionConfig) realmOAuthExchanger {
 	return realmOAuthExchanger{
 		httpClient:       cfg.HTTPClient,
+		realmOrigin:      cfg.RealmBaseURL,
 		authorizationURL: cfg.AuthorizationURL,
 		tokenURL:         cfg.TokenURL,
 		clientID:         cfg.ClientID,
@@ -201,7 +204,12 @@ func (r realmOAuthExchanger) exchangeForm(ctx context.Context, carrier realmv1.O
 		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrLoginExchangeFailure, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	return materialFromTokenResponse(resp)
+	material, parseErr := materialFromTokenResponse(resp)
+	if parseErr != nil {
+		return AccountMaterial{}, parseErr
+	}
+	material.RealmOrigin = trimURL(r.realmOrigin)
+	return material, nil
 }
 
 func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMaterial) (AccountMaterial, error) {

@@ -37,7 +37,12 @@ func (s *Service) AddLink(ctx context.Context, req *runtimev1.AddLinkRequest) (*
 		UpdatedAt:    now,
 	}
 	if err := s.cognitionCore.RuntimeBridge().PutKnowledgeRelation(ctx, access, relation); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_KNOWLEDGE_LINK_INVALID)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_KNOWLEDGE_LINK_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "knowledge link is invalid"},
+		)
 	}
 	return &runtimev1.AddLinkResponse{Link: relationToRuntimeLink(scope.ScopeID, relation)}, nil
 }
@@ -63,7 +68,12 @@ func (s *Service) RemoveLink(ctx context.Context, req *runtimev1.RemoveLinkReque
 			continue
 		}
 		if err := s.cognitionCore.RuntimeBridge().DeleteKnowledgeRelation(ctx, writeAccess, scope.ScopeID, relation.FromPageID, relation.ToPageID, relation.RelationType); err != nil {
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge link deletion failed"},
+			)
 		}
 		return &runtimev1.RemoveLinkResponse{Ack: okAck()}, nil
 	}

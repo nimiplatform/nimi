@@ -302,7 +302,12 @@ func (b *Backend) Endpoint() string {
 func (b *Backend) newRequest(ctx context.Context, method string, endpoint string, body io.Reader) (*http.Request, error) {
 	if b.enforceEndpointSecurity {
 		if err := endpointsec.ValidateEndpoint(ctx, endpoint, b.allowLoopbackEndpoint); err != nil {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+				err,
+				grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"},
+			)
 		}
 	}
 	request, err := http.NewRequestWithContext(ctx, method, endpoint, body)
@@ -622,7 +627,12 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 
 		var chunk streamResponse
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+				codes.Internal,
+				runtimev1.ReasonCode_AI_STREAM_BROKEN,
+				err,
+				grpcerr.ReasonOptions{Message: "provider stream event could not be decoded"},
+			)
 		}
 		if len(chunk.Choices) > 0 {
 			if handler.OnText != nil {
@@ -668,9 +678,19 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 	}
 	if err := scanner.Err(); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+				codes.DeadlineExceeded,
+				runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+				err,
+				grpcerr.ReasonOptions{Message: "provider stream timed out"},
+			)
 		}
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_STREAM_BROKEN,
+			err,
+			grpcerr.ReasonOptions{Message: "provider stream could not be read"},
+		)
 	}
 
 	outputText := outputBuilder.String()

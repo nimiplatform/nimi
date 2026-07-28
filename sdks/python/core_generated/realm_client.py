@@ -20,6 +20,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/group-chats/{chatId}/participants"
   },
   {
+    "operation_id": "addGroupSourceParticipant",
+    "service": "Group Chats",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/source-participants"
+  },
+  {
     "operation_id": "archiveBundle",
     "service": "Bundles",
     "method": "POST",
@@ -66,6 +72,12 @@ REALM_OPERATIONS = [
     "service": "Assets",
     "method": "POST",
     "path": "/api/assets/{assetId}/clone"
+  },
+  {
+    "operation_id": "commitRealmGroupSourceMessageCandidate",
+    "service": "Group Chats",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/source-message-candidate-commits"
   },
   {
     "operation_id": "createAsset",
@@ -758,6 +770,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
   },
   {
+    "operation_id": "removeGroupSourceParticipant",
+    "service": "Group Chats",
+    "method": "DELETE",
+    "path": "/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"
+  },
+  {
     "operation_id": "ReportController_createReport",
     "service": "Governance",
     "method": "POST",
@@ -1194,6 +1212,12 @@ REALM_OPERATIONS = [
     "service": "Realm Core",
     "method": "PUT",
     "path": "/api/realm/core/world-relationships/{relationshipId}"
+  },
+  {
+    "operation_id": "WorldPublicController_getCharacterSource",
+    "service": "World",
+    "method": "POST",
+    "path": "/api/world/character-sources/public-projection"
   },
   {
     "operation_id": "WorldPublicController_getWorld",

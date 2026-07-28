@@ -509,3 +509,31 @@ func TestCleanupGeneratedVoiceArtifactsRejectsEmptySelector(t *testing.T) {
 		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
 }
+
+type failingGeneratedVoiceCleanupStore struct {
+	Store
+	err error
+}
+
+func (s failingGeneratedVoiceCleanupStore) CleanupGeneratedVoiceArtifacts(GeneratedVoiceArtifactSelector) ([]string, error) {
+	return nil, s.err
+}
+
+func TestCleanupGeneratedVoiceArtifactsPreservesStoreCause(t *testing.T) {
+	cause := errors.New("private artifact store detail")
+	svc := New(failingGeneratedVoiceCleanupStore{
+		Store: NewMemoryStore(),
+		err:   cause,
+	}, slog.Default())
+
+	_, err := svc.CleanupGeneratedVoiceArtifacts(context.Background(), &runtimev1.CleanupGeneratedVoiceArtifactsRequest{
+		AgentId: "agent-cause",
+	})
+	if !errors.Is(err, cause) {
+		t.Fatalf("cleanup error does not retain store cause: %v", err)
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT {
+		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+	}
+}

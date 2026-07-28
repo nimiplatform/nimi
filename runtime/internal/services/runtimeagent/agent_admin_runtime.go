@@ -90,7 +90,12 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		r.svc.events = previousEvents
 		r.svc.sequence = previousSequence
 		r.svc.mu.Unlock()
-		return nil, status.Errorf(codes.Internal, "capture atomic agent deletion state: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "atomic agent deletion state could not be captured"},
+		)
 	}
 
 	r.svc.chatSurfaceMu.Lock()
@@ -101,7 +106,12 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		r.svc.sequence = previousSequence
 		r.svc.chatSurfaceMu.Unlock()
 		r.svc.mu.Unlock()
-		return nil, status.Errorf(codes.Internal, "capture atomic chat deletion state: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "atomic chat deletion state could not be captured"},
+		)
 	}
 	_, err = r.svc.memorySvc.DeleteAgentScopedBanksWithTxHook(ctx, localAgentRef, func(_ context.Context, tx *sql.Tx, bankLocatorKeys []string) error {
 		projectionHook, err := agentAtomicProjectionDeletionHook(r.svc, localAgentRef, bankLocatorKeys, chatSnapshot, removedAnchorIDs)
@@ -120,7 +130,12 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		if status.Code(err) != codes.Unknown {
 			return nil, err
 		}
-		return nil, status.Errorf(codes.Internal, "atomic agent deletion failed: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "atomic agent deletion failed"},
+		)
 	}
 
 	// Cancel in-flight chat work only after the shared transaction commits.

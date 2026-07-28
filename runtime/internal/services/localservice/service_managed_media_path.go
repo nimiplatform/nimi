@@ -49,12 +49,22 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	}
 	rootAbs, err := filepath.Abs(root)
 	if err != nil {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "local models root path could not be resolved"},
+		)
 	}
 	rootAbs = canonicalManagedPath(rootAbs)
 	cleanEntry, err := sanitizeManagedEntryPath(artifact.GetEntry())
 	if err != nil {
-		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "managed asset entry path is invalid"},
+		)
 	}
 	var absPath string
 	if isRunnableKind(artifact.GetKind()) {
@@ -68,17 +78,32 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	}
 	absPath, err = filepath.Abs(absPath)
 	if err != nil {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed asset path could not be resolved"},
+		)
 	}
 	if !strings.HasPrefix(absPath, rootAbs+string(filepath.Separator)) && absPath != rootAbs {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	if _, statErr := os.Stat(absPath); statErr != nil {
-		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			statErr,
+			grpcerr.ReasonOptions{Message: "managed asset entry is unavailable"},
+		)
 	}
 	relPath, err := filepath.Rel(rootAbs, absPath)
 	if err != nil {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed asset relative path could not be resolved"},
+		)
 	}
 	return filepath.ToSlash(relPath), nil
 }
@@ -101,7 +126,12 @@ func resolveManagedEntryRelativePath(modelsRoot string, itemID string, sourceRep
 	}
 	rootAbs, err := filepath.Abs(root)
 	if err != nil {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "local models root path could not be resolved"},
+		)
 	}
 	rootAbs = canonicalManagedPath(rootAbs)
 	baseDir, err := resolveManagedBaseDir(rootAbs, itemID, sourceRepo)
@@ -116,7 +146,12 @@ func resolveManagedEntryRelativePath(modelsRoot string, itemID string, sourceRep
 	absPath := filepath.Join(baseDir, cleanEntry)
 	absPath, err = filepath.Abs(absPath)
 	if err != nil {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed asset path could not be resolved"},
+		)
 	}
 	if !strings.HasPrefix(absPath, rootAbs+string(filepath.Separator)) && absPath != rootAbs {
 		return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
@@ -125,11 +160,21 @@ func resolveManagedEntryRelativePath(modelsRoot string, itemID string, sourceRep
 		})
 	}
 	if _, statErr := os.Stat(absPath); statErr != nil {
-		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			statErr,
+			grpcerr.ReasonOptions{Message: "managed asset entry is unavailable"},
+		)
 	}
 	relPath, err := filepath.Rel(rootAbs, absPath)
 	if err != nil {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return "", grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+			err,
+			grpcerr.ReasonOptions{Message: "managed asset relative path could not be resolved"},
+		)
 	}
 	return filepath.ToSlash(relPath), nil
 }
@@ -144,7 +189,15 @@ func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) 
 	}
 	if strings.HasPrefix(repo, "file://") {
 		path, err := resolveManagedFileRepoPath(repo)
-		if err != nil || strings.TrimSpace(path) == "" {
+		if err != nil {
+			return "", grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "managed asset file source is invalid"},
+			)
+		}
+		if strings.TrimSpace(path) == "" {
 			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 		}
 		if !strings.EqualFold(filepath.Base(path), "asset.manifest.json") {
@@ -155,11 +208,21 @@ func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) 
 		}
 		baseDir, err := filepath.Abs(filepath.Dir(path))
 		if err != nil {
-			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+			return "", grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "managed asset base directory could not be resolved"},
+			)
 		}
 		resolvedBaseDir, err := filepath.EvalSymlinks(baseDir)
 		if err != nil {
-			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+			return "", grpcerr.WrapWithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+				err,
+				grpcerr.ReasonOptions{Message: "managed asset base directory is unavailable"},
+			)
 		}
 		return resolvedBaseDir, nil
 	}

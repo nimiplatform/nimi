@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -91,7 +92,12 @@ func (s *Service) committedRuntimeAgentAIConfigByAgentInstanceID(agentInstanceID
 	}
 	config, exists, err := s.agentAIConfigRepo.load(trimmedAgentInstanceID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "load runtime agent ai config: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "runtime agent ai config could not be loaded"},
+		)
 	}
 	if !exists {
 		return nil, status.Error(codes.Internal, "runtime agent ai config missing for initialized local agent")
@@ -124,7 +130,12 @@ func (s *Service) seedRuntimeAgentAIConfigIfMissing(agentInstanceID string) (*ru
 func (s *Service) loadOrSeedRuntimeAgentAIConfigLocked(agentInstanceID string) (*runtimev1.RuntimeAgentAIConfig, bool, error) {
 	config, exists, err := s.agentAIConfigRepo.load(agentInstanceID)
 	if err != nil {
-		return nil, false, status.Errorf(codes.Internal, "load runtime agent ai config: %v", err)
+		return nil, false, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "runtime agent ai config could not be loaded"},
+		)
 	}
 	if exists {
 		return config, false, nil
@@ -134,14 +145,24 @@ func (s *Service) loadOrSeedRuntimeAgentAIConfigLocked(agentInstanceID string) (
 		if errors.Is(err, errAgentAIConfigAlreadySeeded) {
 			config, exists, err := s.agentAIConfigRepo.load(agentInstanceID)
 			if err != nil {
-				return nil, false, status.Errorf(codes.Internal, "load runtime agent ai config after seed race: %v", err)
+				return nil, false, grpcerr.WrapWithReasonCode(
+					codes.Internal,
+					runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+					err,
+					grpcerr.ReasonOptions{Message: "runtime agent ai config could not be reloaded"},
+				)
 			}
 			if !exists {
 				return nil, false, status.Error(codes.Internal, "runtime agent ai config seed race left no committed row")
 			}
 			return config, false, nil
 		}
-		return nil, false, status.Errorf(codes.Internal, "seed runtime agent ai config: %v", err)
+		return nil, false, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "runtime agent ai config could not be initialized"},
+		)
 	}
 	s.recordRuntimeAgentAIConfigAudit(seed, runtimeAgentAIConfigSeededEventType)
 	if s.logger != nil {
@@ -240,7 +261,12 @@ func (s *Service) upsertRuntimeAgentAIConfig(ctx *runtimev1.AgentRequestContext,
 		if errors.Is(err, errAgentAIConfigMissing) {
 			return nil, status.Error(codes.Internal, "runtime agent ai config missing after seed (K-AGCORE-150)")
 		}
-		return nil, status.Errorf(codes.Internal, "commit runtime agent ai config: %v", err)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "runtime agent ai config could not be committed"},
+		)
 	}
 	s.agentAIConfigMu.Unlock()
 

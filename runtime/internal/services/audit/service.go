@@ -631,11 +631,19 @@ func parsePageToken(token string, filterDigest string) (int, error) {
 		return 0, err
 	}
 	value, convErr := strconv.Atoi(cursor)
-	if convErr != nil || value < 0 {
-		return 0, fmt.Errorf(
-			"audit.parsePageToken: %w",
-			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID),
+	if convErr != nil {
+		return 0, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PAGE_TOKEN_INVALID,
+			convErr,
+			grpcerr.ReasonOptions{
+				ActionHint: "provide_valid_page_token",
+				Message:    "audit page token cursor is invalid",
+			},
 		)
+	}
+	if value < 0 {
+		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
 	}
 	return value, nil
 }

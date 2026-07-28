@@ -114,7 +114,15 @@ func decodeCursor(token string) (uint64, error) {
 	}
 	value, err := strconv.ParseUint(trimmed, 10, 64)
 	if err != nil {
-		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return 0, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			err,
+			grpcerr.ReasonOptions{
+				ActionHint: "provide_valid_page_cursor",
+				Message:    "page cursor is invalid",
+			},
+		)
 	}
 	return value, nil
 }

@@ -76,6 +76,58 @@ func TestProviderPollTimeoutError(t *testing.T) {
 	}
 }
 
+func TestProviderPollContextErrorPreservesContextCauseWithoutLeakingDetails(t *testing.T) {
+	tests := []struct {
+		name        string
+		contextErr  error
+		wantCode    codes.Code
+		wantReason  runtimev1.ReasonCode
+		wantMessage string
+	}{
+		{
+			name:        "canceled",
+			contextErr:  context.Canceled,
+			wantCode:    codes.Canceled,
+			wantReason:  runtimev1.ReasonCode_ACTION_EXECUTED,
+			wantMessage: "provider polling was canceled",
+		},
+		{
+			name:        "deadline",
+			contextErr:  context.DeadlineExceeded,
+			wantCode:    codes.DeadlineExceeded,
+			wantReason:  runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+			wantMessage: "provider polling timed out",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			const privateDetail = "private-provider-poll-detail"
+			cause := errors.Join(tt.contextErr, errors.New(privateDetail))
+
+			err := providerPollContextError(cause)
+			if !errors.Is(err, tt.contextErr) {
+				t.Fatalf("expected context cause %v to remain available in-process", tt.contextErr)
+			}
+			st, ok := status.FromError(err)
+			if !ok {
+				t.Fatal("expected gRPC status error")
+			}
+			if st.Code() != tt.wantCode {
+				t.Fatalf("unexpected status code: got %v want %v", st.Code(), tt.wantCode)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != tt.wantReason {
+				t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
+			}
+			if strings.Contains(st.Message(), privateDetail) {
+				t.Fatalf("public status leaked private detail: %q", st.Message())
+			}
+			if message := structuredStatusMessage(t, st.Message()); message != tt.wantMessage {
+				t.Fatalf("unexpected public message: got %q want %q", message, tt.wantMessage)
+			}
+		})
+	}
+}
+
 func TestProviderPollDelayBackoff(t *testing.T) {
 	if got := providerPollDelay(0); got != 2*time.Second {
 		t.Fatalf("providerPollDelay(0)=%s want=%s", got, 2*time.Second)
