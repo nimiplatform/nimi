@@ -116,7 +116,7 @@ function ChatModeUnavailable({ mode }: { mode: string }) {
     Nimi: 'Nimi mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
   };
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center px-6 text-center text-sm text-[var(--nimi-text-secondary)]">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 items-center justify-center px-6 text-center text-sm text-[var(--nimi-text-secondary)]">
       {copyByMode[mode] ?? `${mode} mode is temporarily unavailable. Switch to another conversation mode or reopen the app.`}
     </div>
   );
@@ -287,14 +287,14 @@ export function ChatPage() {
   ].join(':');
 
   return (
-    <div data-testid={E2E_IDS.chatPage} data-chat-page-layout="split" className="relative flex min-h-0 min-w-0 flex-1">
+    <div data-testid={E2E_IDS.chatPage} data-chat-page-layout="split" className="relative flex h-full min-h-0 min-w-0 flex-1">
       {chatMode === 'human' ? (
         <ChatModeSurfaceErrorBoundary
           mode="human"
           resetKey={surfaceResetKey}
           fallback={<ChatModeUnavailable mode="Human" />}
         >
-          <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
+          <Suspense fallback={<div className="flex h-full min-h-0 min-w-0 flex-1" />}>
             <ChatHumanModeContent {...sharedProps} />
           </Suspense>
         </ChatModeSurfaceErrorBoundary>
@@ -305,7 +305,7 @@ export function ChatPage() {
           resetKey={surfaceResetKey}
           fallback={<ChatModeUnavailable mode="Nimi" />}
         >
-          <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
+          <Suspense fallback={<div className="flex h-full min-h-0 min-w-0 flex-1" />}>
             <ChatNimiModeContent
               {...sharedProps}
               threadListOpen={nimiThreadListOpen}
@@ -320,7 +320,7 @@ export function ChatPage() {
           resetKey={surfaceResetKey}
           fallback={<ChatModeUnavailable mode="Agent" />}
         >
-          <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
+          <Suspense fallback={<div className="flex h-full min-h-0 min-w-0 flex-1" />}>
             <ChatAgentModeContent {...sharedProps} />
           </Suspense>
         </ChatModeSurfaceErrorBoundary>
@@ -331,7 +331,7 @@ export function ChatPage() {
           resetKey={surfaceResetKey}
           fallback={<ChatModeUnavailable mode="Group" />}
         >
-          <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
+          <Suspense fallback={<div className="flex h-full min-h-0 min-w-0 flex-1" />}>
             <ChatGroupModeContent {...sharedProps} />
           </Suspense>
         </ChatModeSurfaceErrorBoundary>

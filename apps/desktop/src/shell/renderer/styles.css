@@ -1,6 +1,7 @@
 @scope (.nimi-ui-module--desktop) {
 :scope[data-nimi-semantic-id="desktop-main-root"] {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -10,10 +11,14 @@
 }
 
 :scope [data-nimi-semantic-id="desktop-main-content"] {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .desktop-shell-titlebar-search {

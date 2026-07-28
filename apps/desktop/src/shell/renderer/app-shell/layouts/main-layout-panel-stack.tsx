@@ -147,7 +147,7 @@ export function MainLayoutPanelStack({
         ) : null}
 
         {activeTab === 'chat' ? (
-          <MotionPanelFrame panelId="chat" className="flex min-h-0 flex-1">
+          <MotionPanelFrame panelId="chat" className="flex h-full min-h-0 flex-1">
             <ChatPage />
           </MotionPanelFrame>
         ) : null}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, type ReactNode } from 'react';
 import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
+import { cn } from '@nimiplatform/kit/ui';
 import type {
   ConversationMode,
   ConversationSetupAction,
@@ -69,9 +70,9 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
   const shouldRenderSettings = Boolean(props.selectedTarget && props.settingsOpen && settingsContent);
 
   return (
-    <div className={props.className || 'flex min-h-0 min-w-0 flex-1'}>
+    <div className={cn('flex h-full min-h-0 min-w-0 flex-1', props.className)}>
       <CanonicalConversationShell
-        className="min-h-0 flex-1"
+        className="h-full min-h-0 flex-1"
         chrome="transparent"
         hideTargetPane
         hideCharacterRail

@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import type { AIScopeRef } from '@nimiplatform/sdk/ai';
@@ -6,6 +8,57 @@ import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless'
 
 const NIMI_SCOPE: AIScopeRef = { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'nimi' };
 const AGENT_SCOPE: AIScopeRef = { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'agent' };
+
+function readDesktopFile(relativePath: string): string {
+  return readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
+}
+
+test('the desktop-owned chat layout preserves a full-height chain for every mode', () => {
+  const panelStackSource = readDesktopFile(
+    'src/shell/renderer/app-shell/layouts/main-layout-panel-stack.tsx',
+  );
+  const chatPageSource = readDesktopFile(
+    'src/shell/renderer/features/chat/chat-page.tsx',
+  );
+  const canonicalFrameSource = readDesktopFile(
+    'src/shell/renderer/features/chat/chat-canonical-mode-frame.tsx',
+  );
+  const rendererFactorySource = readDesktopFile(
+    'src/shell/renderer/renderer/factory.tsx',
+  );
+  const rendererStylesSource = readDesktopFile(
+    'src/shell/renderer/styles.css',
+  );
+
+  assert.match(
+    rendererFactorySource,
+    /data-nimi-semantic-id="desktop-main-content"\s+className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"/u,
+  );
+  assert.match(
+    rendererStylesSource,
+    /:scope\[data-nimi-semantic-id="desktop-main-root"\]\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*height:\s*100%;/su,
+  );
+  assert.match(
+    rendererStylesSource,
+    /:scope \[data-nimi-semantic-id="desktop-main-content"\]\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 1 0%;[^}]*height:\s*100%;[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;/su,
+  );
+  assert.match(
+    panelStackSource,
+    /<MotionPanelFrame panelId="chat" className="flex h-full min-h-0 flex-1">/u,
+  );
+  assert.match(
+    chatPageSource,
+    /data-chat-page-layout="split" className="relative flex h-full min-h-0 min-w-0 flex-1"/u,
+  );
+  assert.match(
+    canonicalFrameSource,
+    /cn\('flex h-full min-h-0 min-w-0 flex-1', props\.className\)/u,
+  );
+  assert.match(
+    canonicalFrameSource,
+    /<CanonicalConversationShell[\s\S]*className="h-full min-h-0 flex-1"/u,
+  );
+});
 
 test('the chat mode switcher exercises exactly the four product modes', async () => {
   const {
