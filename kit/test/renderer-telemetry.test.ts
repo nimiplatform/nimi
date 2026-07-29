@@ -15,8 +15,16 @@ import {
 
 type TestGlobal = typeof globalThis & {
   __NIMI_RENDERER_ENV__?: Record<string, string>;
+  __NIMI_ELECTRON_TEST__?: {
+    invoke?: (command: string, payload?: unknown) => Promise<unknown>;
+  };
   __NIMI_TAURI_TEST__?: {
     invoke?: (command: string, payload?: unknown) => Promise<unknown>;
+  };
+  __TAURI__?: {
+    core?: {
+      invoke?: (command: string, payload?: unknown) => Promise<unknown>;
+    };
   };
 };
 
@@ -26,7 +34,9 @@ function testGlobal(): TestGlobal {
 
 afterEach(() => {
   delete testGlobal().__NIMI_RENDERER_ENV__;
+  delete testGlobal().__NIMI_ELECTRON_TEST__;
   delete testGlobal().__NIMI_TAURI_TEST__;
+  delete testGlobal().__TAURI__;
   resetRendererDebugBufferForTest();
   resetRendererSessionTraceIdForTest();
   setRuntimeLogger(null);
@@ -68,13 +78,13 @@ describe('kit renderer telemetry', () => {
     expect(details.self).toBe('[CIRCULAR]');
   });
 
-  test('forwards through the installed renderer runtime bridge test hook', async () => {
+  test('forwards through the installed Electron renderer hook', async () => {
     testGlobal().__NIMI_RENDERER_ENV__ = {
       VITE_NIMI_DEBUG_BOOT: '1',
       VITE_NIMI_VERBOSE_RENDERER_LOGS: '1',
     };
     const calls: Array<{ command: string; payload: unknown }> = [];
-    testGlobal().__NIMI_TAURI_TEST__ = {
+    testGlobal().__NIMI_ELECTRON_TEST__ = {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
         return null;
@@ -101,7 +111,29 @@ describe('kit renderer telemetry', () => {
     expect(getRendererDebugLogsForTest()).toHaveLength(1);
   });
 
-  test('logRendererEvent persists local debug evidence without a transport', () => {
+  test('retains the real third-party Tauri invoke surface', async () => {
+    const calls: Array<{ command: string; payload: unknown }> = [];
+    testGlobal().__TAURI__ = {
+      core: {
+        invoke: async (command, payload) => {
+          calls.push({ command, payload });
+          return null;
+        },
+      },
+    };
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await emitRendererLog({
+      level: 'warn',
+      area: 'third-party-app',
+      message: 'action:third-party-warning',
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.command).toBe('log_renderer_event');
+  });
+
+  test('logRendererEvent retains a local debug entry without a transport', () => {
     logRendererEvent({
       level: 'warn',
       area: 'desktop',

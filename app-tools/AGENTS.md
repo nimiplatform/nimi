@@ -10,7 +10,7 @@
 - The explicit `tester-reference` profile may carry the full reference app when the caller intentionally asks for that profile and the active scaffolding contract admits it.
 - `templates/default-starter/**` and `templates/default-starter.manifest.json` are committed, hand-authored generic starter sources for default scaffold profiles. They must stay free of tester product semantics.
 - `templates/app-source/**` and `templates/app-source.manifest.json` are derived build artifacts (gitignored, like `dist/`) for packaged tester-reference scaffold sources. They are never committed and never hand-edited. In a monorepo checkout, generator-owned code may read `apps/tester` live only for the explicit `tester-reference` path.
-- Generated app projects must consume platform surfaces through `@nimiplatform/sdk`, `@nimiplatform/kit`, and `nimi-shell-tauri` contracts. They must not create local registry/admission truth.
+- Generated app projects must consume platform surfaces through `@nimiplatform/sdk` and `@nimiplatform/kit`; supervised local development uses the Kit Electron app-host bridge. Independent Tauri shell glue, where present, is bounded OS integration and must not become a second local-development carrier or create local registry/admission truth.
 - Platform review owns listing admission, permission grants, release descriptors, installed-app visibility, and update truth.
 - Keep scaffold-managed glue explicit and reviewable in generator-owned code. Do not hide shared Runtime/SDK/Kit/shell behavior inside app-owned tester product files.
 - Do not add install-time side effects that mutate `.nimi/**`; activation belongs to explicit `nimi-app init`.

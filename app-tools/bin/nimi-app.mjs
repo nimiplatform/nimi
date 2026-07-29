@@ -93,7 +93,7 @@ function printUsage() {
       '  nimi-app doctor [--dir path] [--json]',
       '  nimi-app doctor [--dir path] --conformance simulator',
       '  nimi-app update [--dir path] [--json]',
-      '  nimi-app dev [--dir path] [--shell electron|tauri]',
+      '  nimi-app dev [--dir path] [--shell electron]',
       '',
     ].join('\n'),
   );
@@ -140,7 +140,7 @@ try {
     case 'dev':
       await runDevShell(process.cwd(), {
         dir,
-        shell: shell || 'tauri',
+        shell: shell || 'electron',
       });
       break;
     default:

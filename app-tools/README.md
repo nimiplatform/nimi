@@ -9,7 +9,7 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app doctor --dir path/to/app
 pnpm dlx --package @nimiplatform/app-tools nimi-app update --dir path/to/app
 ```
 
-`nimi-app create` emits a local-development Tauri app-authoring scaffold. The
+`nimi-app create` emits an Electron-supervised local-development app-authoring scaffold. The
 generated project is designed to install its own dependencies with
 `pnpm install`, initialize with `pnpm run init`, run with `pnpm dev`, run local
 checks, and remain directly usable without
@@ -20,11 +20,10 @@ pinned local `nimicoding sync --apply` projection for `.nimi/{config,contracts,m
 and writes app-scaffold lock state. It does not use
 `npx` or mutate `.nimi/**` from package install side effects.
 
-`pnpm dev` enters the official `nimi-app dev` launcher and selects Tauri by
-default. `pnpm dev:shell -- --shell electron` and `pnpm dev:shell -- --shell
-tauri` select a shell explicitly. On Windows, both admitted shell intents are
-accepted. On macOS, only `--shell electron` is accepted; the independent Tauri
-carrier remains fail-closed. Nimi Desktop shows the canonical project, app
+`pnpm dev` enters the official `nimi-app dev` launcher and selects Electron.
+`pnpm dev:shell -- --shell electron` is the explicit equivalent. Windows and
+macOS accept only the Desktop-supervised Electron carrier; Tauri is not an
+admitted local-development path. Nimi Desktop shows the canonical project, app
 identity, shell, current account, and requested capabilities. The user may
 allow only this run, remember the project, or deny.
 Desktop then owns the dev server and native host lifecycle; ordinary direct
@@ -67,7 +66,7 @@ pnpm add @nimiplatform/sdk @nimiplatform/kit
 
 ```bash
 nimi-app create [--dir path] [--profile standalone|workspace-app|tester-reference] [--app-id id] [--title title] [--package-name name] [--author author]
-nimi-app dev [--dir path] [--shell electron|tauri]
+nimi-app dev [--dir path] [--shell electron]
 nimi-app init [--dir path] [--json]
 nimi-app doctor [--dir path] [--json]
 nimi-app doctor [--dir path] --conformance simulator

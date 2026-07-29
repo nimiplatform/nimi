@@ -25,6 +25,7 @@ const SCAN_EXCLUDED_DIRS = new Set([
   'docs',
   'node_modules',
   'target',
+  '.tmp',
 ]);
 const SCAN_EXCLUDED_FILES = new Set([
   'Cargo.lock',
@@ -398,33 +399,80 @@ function assertRequiredSupportFiles(targetDir, snapshot) {
   }
 }
 
-function assertProjectConfiguration(targetDir) {
+function assertProjectConfiguration(targetDir, parsedManifest = null) {
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
   const manifest = readFileSync(manifestPath, 'utf8');
   assertManifestPermissionRequirements(manifest, manifestPath);
-  assertOfficialDevelopmentEntrypoints(targetDir);
+  let document = parsedManifest;
+  if (!document) {
+    try {
+      document = parseYaml(manifest);
+    } catch (error) {
+      throw new Error(`Submitted manifest YAML cannot be parsed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  const rendererOrigin = assertElectronLocalDevelopmentManifest(document);
+  assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin);
 }
 
-function assertOfficialDevelopmentEntrypoints(targetDir) {
+function assertElectronLocalDevelopmentManifest(document) {
+  const rendererOrigin = document?.local_development?.electron?.renderer_origin;
+  if (typeof rendererOrigin !== 'string' || rendererOrigin.trim() !== rendererOrigin) {
+    throw new Error('nimi.app.yaml must declare local_development.electron.renderer_origin');
+  }
+  let parsed;
+  try {
+    parsed = new URL(rendererOrigin);
+  } catch {
+    throw new Error('nimi.app.yaml local_development.electron.renderer_origin must be a canonical loopback origin');
+  }
+  if (
+    parsed.protocol !== 'http:'
+    || parsed.hostname !== '127.0.0.1'
+    || !parsed.port
+    || parsed.username
+    || parsed.password
+    || parsed.pathname !== '/'
+    || parsed.search
+    || parsed.hash
+    || rendererOrigin !== parsed.origin
+  ) {
+    throw new Error('nimi.app.yaml local_development.electron.renderer_origin must be a canonical 127.0.0.1 origin');
+  }
+  return parsed.origin;
+}
+
+function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin) {
   const packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json');
   const scripts = packageJson?.scripts;
   if (!scripts || typeof scripts !== 'object' || Array.isArray(scripts)) {
     throw new Error('package.json scripts are required');
   }
+  const rendererPort = new URL(rendererOrigin).port;
   const required = {
-    dev: 'nimi-app dev --shell tauri',
+    dev: 'nimi-app dev --shell electron',
     'dev:shell': 'nimi-app dev',
-    'dev:electron': 'nimi-app dev --shell electron',
+    'dev:renderer': `vite --host 127.0.0.1 --port ${rendererPort} --strictPort`,
   };
   for (const [name, command] of Object.entries(required)) {
     if (scripts[name] !== command) {
       throw new Error(`package.json ${name} must use the official local-development launcher: ${command}`);
     }
   }
+  if (
+    typeof scripts['build:electron'] !== 'string'
+    || scripts['build:electron'].trim() !== scripts['build:electron']
+    || scripts['build:electron'].length === 0
+  ) {
+    throw new Error('package.json build:electron must build the Desktop-supervised Electron host');
+  }
   for (const [name, value] of Object.entries(scripts)) {
     const command = typeof value === 'string' ? value.trim() : '';
+    if (/--shell\s+tauri(?:\s|$)/i.test(command)) {
+      throw new Error(`package.json ${name} selects the retired Tauri local-development carrier`);
+    }
     if (/(?:^|\s)(?:(?:pnpm\s+(?:exec\s+)?)|(?:npx\s+))?tauri\s+dev(?:\s|$)/i.test(command)) {
-      throw new Error(`package.json ${name} bypasses the Desktop-owned Tauri development supervisor`);
+      throw new Error(`package.json ${name} bypasses the Desktop-owned Electron development supervisor`);
     }
     if (/^(?:(?:pnpm\s+(?:exec\s+)?)|(?:npx\s+))?electron(?:\.cmd)?(?:\s|$)/i.test(command)) {
       throw new Error(`package.json ${name} bypasses the Desktop-owned Electron development supervisor`);
@@ -505,8 +553,7 @@ function validateExistingSubmittedApp(targetDir) {
   if (parsed?.manifest_role !== 'submitted-input') {
     throw new Error('Submitted manifest marker missing');
   }
-  assertManifestPermissionRequirements(manifest, manifestPath);
-  assertOfficialDevelopmentEntrypoints(targetDir);
+  assertProjectConfiguration(targetDir, parsed);
   const forbiddenFindings = scanForbiddenPatterns(targetDir, profile, LOCAL_DEVELOPMENT_BYPASS_LABELS);
   if (forbiddenFindings.length > 0) {
     throw new Error(`Forbidden local-development bypasses detected: ${forbiddenFindings.join('; ')}`);

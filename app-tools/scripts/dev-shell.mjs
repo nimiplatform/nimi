@@ -19,7 +19,7 @@ const TERMINAL_STATES = new Set([
 ]);
 
 export async function runDevShell(cwd, options = {}) {
-  const shell = normalizeShell(options.shell || 'tauri');
+  const shell = normalizeShell(options.shell || 'electron');
   assertLocalDevelopmentPlatform(process.platform, shell);
   const projectRoot = await canonicalProjectRoot(cwd, options.dir);
   const appId = await readAppId(projectRoot);
@@ -101,14 +101,13 @@ export async function runDevShell(cwd, options = {}) {
 }
 
 export function assertLocalDevelopmentPlatform(platform, shell) {
-  if (platform === 'win32') return;
-  if (platform === 'darwin' && shell === 'electron') return;
-  if (platform === 'darwin') {
+  if (shell !== 'electron') {
     throw new DevShellError(
       'local-development-platform-unsupported',
-      'Nimi macOS local development currently accepts only the independently verified Electron carrier; Tauri remains fail-closed.',
+      'Nimi local development accepts only the Desktop-supervised Electron carrier.',
     );
   }
+  if (platform === 'win32' || platform === 'darwin') return;
   throw new DevShellError(
     'local-development-platform-unsupported',
     'Nimi protected local development is not admitted on this platform.',
@@ -258,7 +257,7 @@ function parseBridgeRun(response) {
   }
   const state = requireText(run.state);
   const runId = requireText(run.runId);
-  if (!isSelector(runId, 'dev-run') || !isExactIdentifier(run.appId) || !['electron', 'tauri'].includes(run.shell)) {
+  if (!isSelector(runId, 'dev-run') || !isExactIdentifier(run.appId) || run.shell !== 'electron') {
     throw new DevShellError('local-development-launcher-unavailable', 'Desktop run identity validation failed.');
   }
   const logs = Array.isArray(run.logs)
@@ -319,8 +318,11 @@ function installSignalHandlers(cancel, enabled) {
 }
 
 function normalizeShell(value) {
-  if (value !== 'electron' && value !== 'tauri') {
-    throw new DevShellError('local-development-project-changed', '--shell must be electron or tauri.');
+  if (value !== 'electron') {
+    throw new DevShellError(
+      'local-development-platform-unsupported',
+      '--shell must be electron; Tauri is not an admitted local-development carrier.',
+    );
   }
   return value;
 }

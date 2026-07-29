@@ -59,7 +59,6 @@ test('official dev launcher sends only project intent and keeps technical materi
       throw new Error(`unexpected route: ${url}`);
     };
     await runDevShell(input.project, {
-      shell: 'electron',
       descriptorPath: input.descriptorPath,
       now: () => Date.parse('2026-07-12T00:00:02.000Z'),
       fetch,
@@ -146,14 +145,18 @@ test('official dev launcher rejects stale or non-loopback Desktop presence befor
   }
 });
 
-test('platform matrix admits macOS Electron intent but keeps macOS Tauri and Linux fail-closed', () => {
+test('platform matrix admits only Electron on Windows and macOS', () => {
   assert.doesNotThrow(() => assertLocalDevelopmentPlatform('win32', 'electron'));
-  assert.doesNotThrow(() => assertLocalDevelopmentPlatform('win32', 'tauri'));
   assert.doesNotThrow(() => assertLocalDevelopmentPlatform('darwin', 'electron'));
+  assert.throws(
+    () => assertLocalDevelopmentPlatform('win32', 'tauri'),
+    (error) => error?.reasonCode === 'local-development-platform-unsupported'
+      && /only the Desktop-supervised Electron carrier/u.test(error.message),
+  );
   assert.throws(
     () => assertLocalDevelopmentPlatform('darwin', 'tauri'),
     (error) => error?.reasonCode === 'local-development-platform-unsupported'
-      && /Tauri remains fail-closed/u.test(error.message),
+      && /only the Desktop-supervised Electron carrier/u.test(error.message),
   );
   assert.throws(
     () => assertLocalDevelopmentPlatform('linux', 'electron'),

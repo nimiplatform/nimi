@@ -11,7 +11,7 @@ import {
 export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
-export const SCAFFOLD_VERSION = '2026-07-28.local-development-v1';
+export const SCAFFOLD_VERSION = '2026-07-29.electron-local-development-v2';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
@@ -239,7 +239,7 @@ function buildPackageJson(profile, versions, identity) {
       access: 'public',
     },
     scripts: {
-      dev: 'nimi-app dev --shell tauri',
+      dev: 'nimi-app dev --shell electron',
       'dev:renderer': `vite --host 127.0.0.1 --port ${identity.devPort} --strictPort`,
       'dev:shell': 'nimi-app dev',
       'dev:electron': 'nimi-app dev --shell electron',
@@ -348,6 +348,9 @@ function buildNimiAppManifest(identity) {
     `profile: ${identity.profile}`,
     'manifest_role: submitted-input',
     ...permissionLines,
+    'local_development:',
+    '  electron:',
+    `    renderer_origin: http://127.0.0.1:${identity.devPort}`,
     '',
   ].join('\n');
 }

@@ -257,6 +257,10 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.match(packageJson.scripts['dev:renderer'], /^vite --host 127\.0\.0\.1 --port \d+ --strictPort$/);
     const devPort = devPortFromScript(packageJson.scripts['dev:renderer']);
     assert.ok(devPort >= 1430 && devPort < 1530);
+    assert.match(
+      generated.read('nimi.app.yaml'),
+      new RegExp(`^    renderer_origin: http://127\\.0\\.0\\.1:${devPort}$`, 'm'),
+    );
 
     // Identity is rewritten everywhere; no reference-app identity leaks through.
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme\.widget/);
@@ -317,9 +321,14 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(appOwned.some((file) => file.startsWith('src/tester/')), false);
     assert.equal(appOwned.some((file) => file.startsWith('src/shell/ai/')), false);
     assert.equal(appOwned.some((file) => file.startsWith('src-electron/')), false);
-    assert.match(generated.read('src-electron/main.ts'), /registerNimiElectronAppBridge/);
-    assert.match(generated.read('src-electron/main.ts'), /onProtectedSessionFailure: \(\) => app\.quit\(\)/);
-    assert.doesNotMatch(generated.read('src-electron/main.ts'), /runtimeEndpoint|sessionProof|launchTicket/);
+    const electronMain = generated.read('src-electron/main.ts');
+    assert.match(electronMain, /registerNimiElectronAppBridge/);
+    assert.match(electronMain, /const allowedRendererUrls = \[rendererUrl\];/);
+    assert.match(electronMain, /allowedRendererUrls,\n    ipcMain,/);
+    assert.match(electronMain, /isAllowedElectronRendererUrl\(url, allowedRendererUrls\)/);
+    assert.equal(electronMain.match(/\[rendererUrl\]/g)?.length, 1);
+    assert.match(electronMain, /onProtectedSessionFailure: \(\) => app\.quit\(\)/);
+    assert.doesNotMatch(electronMain, /runtimeEndpoint|sessionProof|launchTicket/);
     assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
     assert.equal(lock.managedFileHashes['src/shell/auth/auth-gate.tsx'].class, 'scaffold-managed glue');
     assert.equal(lock.managedFileHashes['package.json'].class, 'scaffold-managed glue');
@@ -347,6 +356,11 @@ test('tester-reference scaffold keeps the full reference app explicit', () => {
     assert.equal(packageJson.devDependencies.esbuild, versions.esbuildVersion);
     assert.equal(packageJson.devDependencies.playwright, undefined);
     assert.match(generated.read('nimi.app.yaml'), /profile: tester-reference/);
+    const devPort = devPortFromScript(packageJson.scripts['dev:renderer']);
+    assert.match(
+      generated.read('nimi.app.yaml'),
+      new RegExp(`^    renderer_origin: http://127\\.0\\.0\\.1:${devPort}$`, 'm'),
+    );
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
     assert.match(generated.read('src/tester/tester-runtime.ts'), /session posture, public permission posture\/request, and app-private JSON storage/);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
@@ -442,9 +456,10 @@ test('generated package.json scripts reference only commands and existing local 
   const generated = scaffold('standalone');
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
-    assert.equal(packageJson.scripts.dev, 'nimi-app dev --shell tauri');
+    assert.equal(packageJson.scripts.dev, 'nimi-app dev --shell electron');
     assert.equal(packageJson.scripts['dev:shell'], 'nimi-app dev');
     assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
+    assert.doesNotMatch(JSON.stringify(packageJson.scripts), /--shell\s+tauri/);
     assert.doesNotMatch(JSON.stringify(packageJson.scripts), /(?:^|\s)tauri dev(?:\s|$)/);
     // Any `node scripts/<file>` script must point at a file the scaffold actually
     // emits — a dangling reference (e.g. a deleted dev-shell.mjs) makes the
@@ -757,27 +772,38 @@ test('doctor audits an existing submitted app without converting it into a manag
       private: true,
       type: 'module',
       scripts: {
-        dev: 'nimi-app dev --shell tauri',
+        dev: 'nimi-app dev --shell electron',
         'dev:shell': 'nimi-app dev',
         'dev:electron': 'nimi-app dev --shell electron',
         'dev:renderer': 'vite --host 127.0.0.1 --port 1468 --strictPort',
         'build:electron': 'tsc -p tsconfig.electron.json',
       },
     }, null, 2)}\n`);
-    writeFileSync(path.join(target, 'nimi.app.yaml'), [
+    const manifestPath = path.join(target, 'nimi.app.yaml');
+    const manifest = [
       'app_id: existing.app',
       'display_name: Existing App',
       'profile: standalone',
       'manifest_role: submitted-input',
       'permissions: []',
+      'local_development:',
+      '  electron:',
+      '    renderer_origin: http://127.0.0.1:1468',
       '',
-    ].join('\n'));
+    ].join('\n');
+    writeFileSync(manifestPath, manifest);
     writeFileSync(path.join(target, 'src', 'main.ts'), 'export const app = true;\n');
     writeFileSync(path.join(target, 'pnpm-lock.yaml'), "packages:\n  '@grpc/grpc-js@1.14.4': {}\n");
 
     let result = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(existsSync(path.join(target, '.nimi', 'app-scaffold', 'lock.json')), false);
+
+    writeFileSync(manifestPath, manifest.replace(':1468', ':1469'));
+    result = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /dev:renderer.*1469/);
+    writeFileSync(manifestPath, manifest);
 
     writeFileSync(path.join(target, 'src', 'bypass.ts'), "import '@grpc/grpc-js';\n");
     result = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
@@ -919,7 +945,13 @@ test('doctor requires official Desktop-supervised development scripts', () => {
       mutate(scripts) {
         scripts.dev = 'tauri dev';
       },
-      pattern: /official local-development launcher|Tauri development supervisor/,
+      pattern: /official local-development launcher|Electron development supervisor/,
+    },
+    {
+      mutate(scripts) {
+        scripts['dev:tauri'] = 'nimi-app dev --shell tauri';
+      },
+      pattern: /retired Tauri local-development carrier/,
     },
     {
       mutate(scripts) {

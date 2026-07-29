@@ -7,7 +7,6 @@
     "dev": "nimi-app dev --shell electron",
     "dev:renderer": "vite --host 127.0.0.1 --port 1468 --strictPort",
     "dev:electron": "nimi-app dev --shell electron",
-    "dev:tauri": "nimi-app dev --shell tauri",
     "dev:shell": "nimi-app dev",
     "init": "nimi-app init",
     "prepare:workspace-surfaces": "corepack pnpm --filter @nimiplatform/sdk build && corepack pnpm --filter @nimiplatform/kit build",
