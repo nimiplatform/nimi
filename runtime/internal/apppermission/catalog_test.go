@@ -14,6 +14,7 @@ func TestPublicPermissionCatalogIsClosedWithOnlyAgentsInteractAdmitted(t *testin
 		t.Fatalf("agents.interact publication = %+v, known=%v", descriptor, ok)
 	}
 	reserved := []string{
+		"agents.configure", "agents.voice", "agents.delegate",
 		"artifacts.open", "account.profile.read", "memory.read", "memory.write",
 		"knowledge.read", "knowledge.write", "notifications.send", "notifications.receive",
 		"files.open", "files.save", "realm.library.read", "realm.library.manage",

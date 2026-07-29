@@ -104,29 +104,85 @@ public_permissions:
     selector_shape: account_scope_all_local_agents_including_future
     title_key: AppPermissions.agentsInteract.title
     description_key: AppPermissions.agentsInteract.description
-    user_semantics: interact with every current and future local Agent in the owner-granted account scope through bounded text conversation operations and receive outputs from those app-owned conversations
+    user_semantics: interact with all local Agents in the owner-granted account scope, including future Agents, and receive bounded Runtime-owned state and outputs
     selector_projection: runtime_materialized_opaque_agent_handles_without_pregrant_inventory_or_selector_construction
     internal_operation_families:
       - agent_conversation_open
       - agent_conversation_turn_send
       - agent_conversation_turn_subscribe
       - agent_conversation_snapshot
+    reserved_scope_extensions:
+      - Runtime conversation history for granted Agents, including disclosed cross-surface visibility
+      - bounded source and turn summaries
+      - bounded companion state and presence
+      - calling-app Agent events and redacted delegation read projections
+      - Avatar live-instance handoff without raw Avatar control
+      - image bytes derived from the calling app's Conversation
     forbidden_operation_families:
       - agent_inventory_before_owner_grant
       - agent_selector_construction
-      - agent_voice_transcribe
-      - agent_voice_stream_subscribe
-      - derived_conversation_artifact_read
       - principal_substitution
       - direct_avatar_control
       - embedded_avatar_rendering
     invariants:
       - no_zero_permission_full_agent_inventory
       - runtime_materializes_current_and_future_agent_handles_from_account_scope
-      - only_calling_app_conversation_anchors
+      - runtime_history_for_granted_agents_is_cross_surface_visible
+      - automatic_image_bytes_remain_bound_to_calling_app_conversation
+      - generic_artifact_access_requires_artifacts_open
+      - voice_requires_agents_voice
+      - delegation_decision_requires_agents_delegate
       - microphone_capture_remains_os_right
       - ai_usage_remains_metered
-    atomic_publication_requirement: P-PERM-017 Runtime-owned account-scope selector, durable account-scope decision, SDK and Kit surface, Desktop approval and settings UX, revoke, audit, and enforcement at all four endpoint families
+    atomic_publication_requirement: P-PERM-017 applies independently to the currently admitted four-operation slice and every reserved scope extension
+  - permission_id: agents.configure
+    admission: reserved
+    authority_class: user_permission
+    decision_owner: runtime
+    manifest_allowed: true
+    decision_mode: durable_revocable
+    selector_owner: runtime
+    selector_shape: account_local_agents_scope_intersect_agents_interact
+    user_semantics: read complete public Agent Center state and change AI configuration, model configuration, autonomy, and appearance for Agents in the effective agents.interact scope
+    invariants:
+      - no_provider_credentials
+      - no_turn_execution
+      - no_avatar_raw_control
+      - no_third_party_realm_character_materialization
+      - revision_aware_settings
+      - agents_interact_revoke_invalidates_effective_grant_but_preserves_owner_history
+    admission_blocker: complete closed operation mapping, endpoint enforcement, carrier and SDK surface, combined JIT item, settings, revoke, audit, and atomic publication are not admitted
+  - permission_id: agents.voice
+    admission: reserved
+    authority_class: user_permission
+    decision_owner: runtime
+    manifest_allowed: true
+    decision_mode: durable_revocable
+    selector_owner: runtime
+    selector_shape: account_local_agents_scope_intersect_agents_interact_and_calling_app_conversation
+    user_semantics: transcribe voice and replay voice streams and final voice artifacts for calling-app Conversations with Agents in the effective agents.interact scope
+    invariants:
+      - microphone_capture_remains_os_right
+      - final_voice_artifact_replay_does_not_require_artifacts_open
+      - stream_revalidates_effective_grant
+      - agents_interact_revoke_invalidates_effective_grant_but_preserves_owner_history
+    admission_blocker: transcription, stream playback, final artifact replay, OS-right separation, endpoint enforcement, carrier and SDK surface, combined JIT item, settings, revoke, audit, and atomic publication are not admitted
+  - permission_id: agents.delegate
+    admission: reserved
+    authority_class: user_permission
+    decision_owner: runtime
+    manifest_allowed: true
+    decision_mode: durable_revocable
+    selector_owner: runtime
+    selector_shape: account_local_agents_scope_intersect_agents_interact_and_calling_app_conversation
+    user_semantics: approve or deny pending delegation requests for calling-app Conversations with Agents in the effective agents.interact scope
+    invariants:
+      - every_decision_requires_explicit_user_presence
+      - every_decision_requires_expected_revision
+      - every_decision_is_consumed_once
+      - completed_external_effects_are_not_reversed_by_revoke
+      - agents_interact_revoke_invalidates_effective_grant_but_preserves_owner_history
+    admission_blocker: presence, expected-revision and single-consumption enforcement, endpoint mapping, carrier and SDK surface, combined JIT item, settings, revoke, audit, and atomic publication are not admitted
   - permission_id: artifacts.open
     admission: reserved
     authority_class: one_shot_consent
@@ -154,9 +210,13 @@ public_permissions:
     manifest_allowed: false
     decision_mode: durable_revocable
     selector_owner: cognition_memory_picker
-    selector_shape: selected_memory_collections_and_time_bounds
-    user_semantics: read the personal memory ranges selected by the user
-    admission_blocker: public selector and endpoint enforcement are not admitted
+    selector_shape: selected_memory_collections_and_time_bounds_intersect_agents_interact
+    user_semantics: read only bounded Memory Observatory records from the collections and time ranges selected by the user for Agents in the effective agents.interact scope
+    invariants:
+      - observatory_read_only
+      - server_enforced_record_and_time_bounds
+      - no_memory_write
+    admission_blocker: public Cognition selector, Agent-scope intersection, bounded Observatory endpoint enforcement, combined JIT item, settings, revoke, audit, and atomic publication are not admitted
   - permission_id: memory.write
     admission: reserved
     authority_class: user_permission

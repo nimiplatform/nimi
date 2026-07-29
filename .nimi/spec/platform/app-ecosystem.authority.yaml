@@ -230,7 +230,7 @@ units:
     kind: rule
     title: P-PERM-002 closed catalog and current admission
     modality: must
-    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for Runtime session-derived access through an owner-granted current-account scope covering all current and future LocalAgents, dynamically materialized only as app-bound opaque Agent handles for the open-conversation, send-turn, subscribe-turn, and conversation-snapshot operation families; the other fifteen catalog rows remain reserved, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
+    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for Runtime session-derived access through an owner-granted account scope dynamically materialized as opaque LocalAgent handle projections and the open-conversation, send-turn, subscribe-turn, and conversation-snapshot operation families, all agents.interact scope extensions and the other eighteen catalog rows remain reserved pending their own atomic admission slices, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
     condition: Whenever manifest permission eligibility or requestability is evaluated.
     failure: Deny unknown, reserved, legacy-scope, Runtime-operation, and endpoint-string identifiers without preventing a zero-permission app from running.
     relations:
@@ -250,7 +250,7 @@ units:
     kind: rule
     title: P-PERM-003 public posture and app request boundary
     modality: must
-    statement: App-facing posture is exactly prompt, pending, granted, denied, or unavailable; an app may inspect only its own posture and request one admitted permission with a user-facing reason, and cannot approve, revoke, mint, carry, or inspect owner-internal decision records.
+    statement: App-facing posture is exactly prompt, pending, granted, denied, or unavailable; an app may inspect only its own posture and request each admitted permission with a user-facing reason, an owner may present multiple requested recognizable intents as separately identified items in one just-in-time consent surface while issuing independent decisions, and the app cannot approve, revoke, mint, carry, or inspect owner-internal decision records.
     condition: Whenever permission posture or request controls are exposed to an app.
     failure: Reject a posture outside the closed set or any app attempt to exercise owner decision authority.
     relations:
@@ -260,7 +260,7 @@ units:
     kind: rule
     title: P-PERM-003 durable owner lifecycle
     modality: must
-    statement: An admitted durable owner lifecycle uses monotonic revisions and only pending, granted, denied, expired, or revoked internal states; expired and revoked history remains owner and audit truth rather than app workflow API, and no positive Runtime-local permission lifecycle or store exists until admitted.
+    statement: An admitted durable owner lifecycle uses monotonic revisions and only pending, granted, denied, expired, or revoked internal states; expired and revoked history remains owner and audit truth rather than app workflow API, each permission is independently revocable except that revoking agents.interact immediately invalidates the effective agents.configure, agents.voice, and agents.delegate grants that depend on its Agent scope while preserving their owner history, and no positive Runtime-local permission lifecycle or store exists until admitted.
     condition: Whenever durable permission decision state is implemented or projected.
     failure: Deny use of non-monotonic, non-canonical, app-owned, or unadmitted Runtime-local lifecycle state.
     relations:
@@ -426,7 +426,7 @@ units:
     kind: rule
     title: P-PERM-013 future Runtime permission binding
     modality: must
-    statement: Any later-admitted Runtime-owned permission lifecycle binds OS-user anchor, current account, opaque app principal, public permission id, and owner selector digest; for agents.interact the canonical Runtime owner binds one account scope covering all current and future local Agents and dynamically materializes only app-bound opaque handles, and each protected endpoint re-reads the current decision, live Agent ownership, active lifecycle, and owner policy; display app id and trust tier are never positive keys.
+    statement: Any later-admitted Runtime-owned permission lifecycle binds OS-user anchor, current account, opaque app principal, public permission id, and owner selector digest, where an owner selector may grant the current account scope of all local Agents including future additions and Runtime dynamically materializes only opaque handle projections from that scope; each protected endpoint re-reads current decision, dependent permission scope, and owner policy, while display app id and trust tier are never positive keys.
     condition: Whenever a Runtime-owned public permission is admitted and used.
     failure: Deny the endpoint when exact current binding and policy cannot be re-read.
     relations:
@@ -468,7 +468,7 @@ units:
     kind: rule
     title: P-PERM-016 public intent with exact internal enforcement
     modality: must
-    statement: One public permission may expand only inside its owner into exact operations, provenance checks, quotas, budgets, rates, and policies, and every call still enforces least privilege while the public surface remains one human-recognizable intent.
+    statement: One public permission may expand only inside its owner into exact operations, provenance checks, quotas, budgets, rates, and policies, and every call still enforces least privilege while the public surface remains one human-recognizable intent; after each corresponding atomic extension slice is admitted, agents.interact additionally covers the granted Agents' Runtime-owned history list with disclosed cross-surface visibility, bounded source and turn summaries, companion state and presence, Agent events, redacted delegation read projections, Avatar live-instance handoff without raw Avatar control, and image bytes derived from the calling app's Conversation, while agents.configure, agents.voice, and agents.delegate remain separate reserved intents until their own complete slices are admitted.
     condition: Whenever a public permission maps to internal enforcement.
     failure: Deny calls lacking exact internal checks without exposing those checks as public permissions.
     relations:
@@ -488,7 +488,7 @@ units:
     kind: rule
     title: P-PERM-017 atomic owner-complete admission
     modality: must
-    statement: Public permission admission atomically includes catalog row, one decision owner, manifest validation, owner selector, durable decision or one-shot proof, closed internal mapping, enforcement at every endpoint, SDK and Kit surface, just-in-time approval UI, and audit; durable permissions also include settings and revoke UI, while one-shot consent includes exact preview, selection, expiry, single consumption, cancellation, and replay rejection and creates no durable settings row.
+    statement: Public permission admission, including any new operation family added to an already admitted permission, atomically includes catalog row, one decision owner, manifest validation, owner selector, durable decision or one-shot proof, closed internal mapping, enforcement at every endpoint, SDK and Kit surface, just-in-time approval UI, and audit; durable permissions also include settings and revoke UI, while one-shot consent includes exact preview, selection, expiry, single consumption, cancellation, and replay rejection and creates no durable settings row.
     condition: Whenever a public permission row moves to admitted.
     failure: Keep the permission reserved if any conjunct is absent or non-atomic.
     relations:
@@ -500,7 +500,7 @@ units:
     kind: rule
     title: P-PERM-017 bounded permission UX
     modality: must
-    statement: Permission UX presents one decision per recognizable intent and owner-selected resource scope; agents.interact uses one account scope covering all current and future local Agents without per-Agent authorization, while choosing a current Agent remains operation UI state; a normal app using only its own data receives zero Nimi permission prompts, and install-time permission walls, method-level prompts, hidden scope or qualifier editors, raw resource ids, and duplicate Runtime and Realm approvals are forbidden.
+    statement: Permission UX preserves one independent decision per recognizable intent and owner-selected resource scope, may combine interact, configure, memory, voice, and delegation as separately described items in one just-in-time surface using the same account scope without per-Agent authorization, gives a normal app using only its own data zero Nimi permission prompts, and forbids install-time permission walls, method-level prompts, hidden scope or qualifier editors, raw resource ids, and duplicate Runtime and Realm approvals.
     condition: Whenever install, launch, or just-in-time permission UX is rendered.
     failure: Reject an over-broad, duplicated, internalized, or unnecessary prompt flow.
     relations:
