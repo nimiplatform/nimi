@@ -24,7 +24,7 @@ export const MODULES: Record<ModuleId, ModuleMeta> = {
   },
   zhiyu: {
     id: 'zhiyu',
-    name: '织语',
+    name: '织羽',
     en: 'Zhiyu',
     tag: 'AI 写作空间 · main',
     desc: '面向长文本的应用自有 AI 会话空间。',

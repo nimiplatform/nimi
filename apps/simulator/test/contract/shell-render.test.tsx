@@ -52,7 +52,7 @@ test('committed shell retains persistent disclosure with the compact depth works
   assert.ok(!markup.includes('WORLDS'));
   assert.ok(!markup.includes('>世界<'));
   assert.ok(!markup.includes('生态地图'));
-  assert.ok(!markup.includes('带入织语'));
+  assert.ok(!markup.includes('带入织羽'));
   assert.ok(!markup.includes('可撤销'));
   assert.ok(!markup.includes('记录足迹'));
   assert.ok(!markup.includes('Starport · presentation only'));

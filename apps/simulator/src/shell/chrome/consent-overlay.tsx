@@ -43,7 +43,7 @@ export function ConsentOverlay() {
           <span className="consent-arrow">→</span>
           <div className="consent-party">
             <span className="t-caption">目标</span>
-            <b>织语 Zhiyu</b>
+            <b>织羽 Zhiyu</b>
             <span className="t-mono">应用实例</span>
           </div>
         </div>

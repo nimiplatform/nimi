@@ -46,7 +46,7 @@ export function DesktopMain({ win }: { win: SimWindow }) {
           <div className="chat-footer">
             <span className="t-caption">此处显示 Runtime 对 Nimi LocalAgent 的应用投影（aurora 为投影标识）</span>
             <button type="button" className="sys-btn primary small" onClick={() => runFlow('local-agent.project')}>
-              让 Nimi 把摘要带到织语
+              让 Nimi 把摘要带到织羽
             </button>
           </div>
         </div>
@@ -69,7 +69,7 @@ export function DesktopMain({ win }: { win: SimWindow }) {
                 {pinned ? '已收录' : '收录进生态足迹'}
               </button>
               <button type="button" className="sys-btn small" onClick={() => runFlow('handoff.zhiyu')}>
-                带入织语继续
+                带入织羽继续
               </button>
             </div>
             <p className="cradle-note dim">

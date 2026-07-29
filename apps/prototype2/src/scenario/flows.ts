@@ -74,7 +74,7 @@ export const FLOWS: Record<string, FlowDef> = {
 
   'handoff.zhiyu': {
     id: 'handoff.zhiyu',
-    title: '意图交接 · 带入织语',
+    title: '意图交接 · 带入织羽',
     requiredGrant: null,
     consentable: false,
     origin: 'desktop',
@@ -97,15 +97,15 @@ export const FLOWS: Record<string, FlowDef> = {
         type: 'ledger',
         kind: 'flow',
         title: '意图交接 · Desktop → Zhiyu',
-        detail: '「在织语中继续」被翻译为 Zhiyu 的实例路由状态；未发生应用间私有调用。',
+        detail: '「在织羽中继续」被翻译为 Zhiyu 的实例路由状态；未发生应用间私有调用。',
         actors: ['Desktop', 'Zhiyu'],
         result: 'committed',
       },
       { type: 'focus-app', moduleId: 'zhiyu' },
       {
         type: 'toast',
-        title: '已交接 · 回声谷 → 织语',
-        detail: '意图已翻译为织语的实例路由状态',
+        title: '已交接 · 回声谷 → 织羽',
+        detail: '意图已翻译为织羽的实例路由状态',
       },
       {
         type: 'agent', status: 'observing', location: 'zhiyu',
@@ -115,7 +115,7 @@ export const FLOWS: Record<string, FlowDef> = {
 
   'local-agent.project': {
     id: 'local-agent.project',
-    title: 'context 携带 · Nimi → 织语',
+    title: 'context 携带 · Nimi → 织羽',
     requiredGrant: 'g-local-agent-context-projection',
     consentable: true,
     origin: 'desktop',
@@ -159,7 +159,7 @@ export const FLOWS: Record<string, FlowDef> = {
       { type: 'focus-app', moduleId: 'zhiyu' },
       {
         type: 'toast',
-        title: '摘要已投递 · Nimi → 织语',
+        title: '摘要已投递 · Nimi → 织羽',
         detail: '只读投影 · 不含任何写权限',
       },
       {

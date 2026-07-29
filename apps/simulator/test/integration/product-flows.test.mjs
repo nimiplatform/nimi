@@ -169,7 +169,7 @@ test('handoff.surface routes the target surfaces and posts the ledger entry atom
     interactionEnvelope(instanceIds.desktop, 'handoff.surface.commit', {
       targetSurfaceId: 'main',
       route,
-      card: { title: '在织语中继续', detail: '模拟交接卡片' },
+      card: { title: '在织羽中继续', detail: '模拟交接卡片' },
     }, ['zhiyu']),
     { kind: 'instance', moduleId: 'desktop', instanceId: instanceIds.desktop },
   );
@@ -181,7 +181,7 @@ test('handoff.surface routes the target surfaces and posts the ledger entry atom
   assert.equal(desktopInstance.route.pathname, '/login');
 
   const zhiyu = engine.projectInstance(instanceIds.zhiyu);
-  assert.equal(zhiyu.value.handoff.card.title, '在织语中继续');
+  assert.equal(zhiyu.value.handoff.card.title, '在织羽中继续');
   assert.deepEqual(zhiyu.value.handoff.route, route);
 
   const entry = shellProduct(engine).ledger.at(-1);
@@ -190,7 +190,7 @@ test('handoff.surface routes the target surfaces and posts the ledger entry atom
   assert.match(entry.detail, /模拟/u);
 
   const ecosystem = engine.getCommitted().partitions.ecosystem;
-  assert.equal(ecosystem.handoff.card.title, '在织语中继续');
+  assert.equal(ecosystem.handoff.card.title, '在织羽中继续');
 });
 
 test('local-agent.context.project delivers the carry payload, route, and both ledger entries', async () => {
@@ -263,7 +263,7 @@ test('product interactions fail typed with no state commit when a target is miss
     interactionEnvelope(instanceIds.desktop, 'handoff.surface.commit', {
       targetSurfaceId: 'main',
       route: { pathname: '/', search: [], fragment: null },
-      card: { title: '在织语中继续', detail: '模拟交接卡片' },
+      card: { title: '在织羽中继续', detail: '模拟交接卡片' },
     }, ['zhiyu']),
     { kind: 'instance', moduleId: 'desktop', instanceId: instanceIds.desktop },
   );

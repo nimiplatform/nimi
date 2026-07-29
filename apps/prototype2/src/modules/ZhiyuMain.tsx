@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSim, type SimWindow } from '../engine/SimContext';
 
-/** Mock of the Zhiyu (织语) main surface.
+/** Mock of the Zhiyu (织羽) main surface.
  * Its AI session is APP-OWNED — visually and verbally distinct from the
  * Runtime LocalAgent projection. This contrast teaches the real boundary. */
 export function ZhiyuMain({ win }: { win: SimWindow }) {
@@ -24,7 +24,7 @@ export function ZhiyuMain({ win }: { win: SimWindow }) {
       <div className="appai-banner">
         <span className="dot appai-dot" />
         <div>
-          <b>织语 AI · 应用自有会话</b>
+          <b>织羽 AI · 应用自有会话</b>
           <p className="t-caption">它只属于这个应用实例；Runtime LocalAgent 投影是另一种存在。</p>
         </div>
       </div>
@@ -32,7 +32,7 @@ export function ZhiyuMain({ win }: { win: SimWindow }) {
       <div className="mod-panel zh-scroll">
         {state.zhiyuCards.length === 0 ? (
           <div className="mod-empty inline">
-            <p>暂无交接内容。从 Desktop「带入织语继续」，或让 Nimi 经授权携带摘要过来。</p>
+            <p>暂无交接内容。从 Desktop「带入织羽继续」，或让 Nimi 经授权携带摘要过来。</p>
           </div>
         ) : (
           state.zhiyuCards.map((c) => (
@@ -49,7 +49,7 @@ export function ZhiyuMain({ win }: { win: SimWindow }) {
 
         {replies.map((r, i) => (
           <article key={i} className="zh-card" data-kind="app-ai">
-            <span className="chip" data-tone="success">织语 AI · 应用自有</span>
+            <span className="chip" data-tone="success">织羽 AI · 应用自有</span>
             <p>{r}</p>
           </article>
         ))}
@@ -62,7 +62,7 @@ export function ZhiyuMain({ win }: { win: SimWindow }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter') ask();
           }}
-          placeholder="向织语 AI 提问（应用自有会话 · 模拟）"
+          placeholder="向织羽 AI 提问（应用自有会话 · 模拟）"
         />
         <button type="button" className="sys-btn small" onClick={ask}>
           发送

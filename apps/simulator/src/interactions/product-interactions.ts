@@ -167,7 +167,7 @@ const handoffInteraction: SimulatorInteractionDeclaration = {
         ledger: Object.freeze([Object.freeze({
           kind: 'flow' as const,
           title: '意图交接 · Desktop → Zhiyu',
-          detail: '模拟交接：「在织语中继续」被翻译为 Zhiyu 的实例路由状态；未发生应用间私有调用。',
+          detail: '模拟交接：「在织羽中继续」被翻译为 Zhiyu 的实例路由状态；未发生应用间私有调用。',
           actors: Object.freeze(['Desktop', 'Zhiyu']),
           result: 'committed' as const,
         })]),
