@@ -8,7 +8,8 @@
   },
   "scripts": {
     "preinstall": "node scripts/check-go-env.mjs",
-    "build": "pnpm build:sdk && pnpm build:kit && pnpm build:install-gateway && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm --filter @nimiplatform/tester build",
+    "build": "node scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
+    "build:prepared": "pnpm build:install-gateway && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm --filter @nimiplatform/tester build",
     "build:all": "pnpm -r build",
     "build:avatar": "node scripts/build-avatar.mjs",
     "smoke:avatar-live2d": "pnpm --filter @nimiplatform/avatar run smoke:agent-center-live2d",

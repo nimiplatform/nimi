@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -67,6 +67,19 @@ test('SDK dist lock runner does not use deprecated shell args on Windows', () =>
 
   assertSuccessful(result);
   assert.equal(result.stdout, 'locked');
+});
+
+test('root build holds the workspace surface lock across consumer builds', () => {
+  const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+
+  assert.equal(
+    packageJson.scripts.build,
+    'node scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared',
+  );
+  assert.equal(
+    packageJson.scripts['build:prepared'],
+    'pnpm build:install-gateway && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm --filter @nimiplatform/tester build',
+  );
 });
 
 test('SDK dist lock immediately reclaims a fresh lock owned by a dead process', () => {

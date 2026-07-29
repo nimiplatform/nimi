@@ -36,7 +36,7 @@ test('signed Electron product-control native package materializes, reads, and re
     assert.equal(read.value.profileId, 'default');
     assert.equal(read.value.title, 'Default Local Speech Ready');
 
-    const profilePath = path.join(home, '.nimi', 'accounts', 'account-native-smoke', 'profiles', 'default.json');
+    const profilePath = path.join(dataRoot, 'accounts', 'account-native-smoke', 'profiles', 'default.json');
     const record = JSON.parse(await readFile(profilePath, 'utf8'));
     record.contentHash = `sha256:${'0'.repeat(64)}`;
     await writeFile(profilePath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');

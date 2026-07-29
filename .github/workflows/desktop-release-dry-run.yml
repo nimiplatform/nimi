@@ -109,6 +109,10 @@ jobs:
       - name: Build SDK surfaces (desktop runtime dependency)
         run: pnpm build:sdk
 
+      - name: Provision Windows native test signer
+        shell: pwsh
+        run: pnpm provision:windows-dev-trust
+
       - name: Desktop Product Control native smoke (lower-level only)
         run: pnpm --filter @nimiplatform/desktop test:windows:product-control-native
 
