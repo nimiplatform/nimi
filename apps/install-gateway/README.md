@@ -4,7 +4,7 @@ Cloudflare Worker serving release distribution.
 
 ## Overview
 
-Install Gateway is a Cloudflare Worker that serves install scripts, platform manifests, and updater metadata for Nimi releases. It fetches release data from the GitHub API, validates checksums, and serves platform-specific assets.
+Install Gateway is a Cloudflare Worker that serves the Runtime install script and Runtime release manifest. It fetches Runtime release data from the GitHub API, validates archive checksums, and serves the fixed Runtime distribution routes.
 
 ## Tech Stack
 

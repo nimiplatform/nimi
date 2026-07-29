@@ -157,38 +157,6 @@ function versionFromTag(tagName, track) {
   return raw.slice(prefix.length).replace(/^v/u, '');
 }
 
-function normalizeDesktopArch(assetNameLower) {
-  if (
-    assetNameLower.includes('aarch64')
-    || assetNameLower.includes('arm64')
-  ) {
-    return 'aarch64';
-  }
-  if (
-    assetNameLower.includes('x86_64')
-    || assetNameLower.includes('x64')
-    || assetNameLower.includes('amd64')
-  ) {
-    return 'x86_64';
-  }
-  return '';
-}
-
-function inferDesktopPlatform(assetName) {
-  const normalized = normalizeText(assetName).toLowerCase();
-  if (normalized.endsWith('.sig')) {
-    return '';
-  }
-  const arch = normalizeDesktopArch(normalized);
-  if (!arch) {
-    return '';
-  }
-  if (normalized.includes('nsis') && normalized.endsWith('.zip')) {
-    return `windows-${arch}`;
-  }
-  return '';
-}
-
 export async function buildRuntimeManifest(release, fetchImpl = fetch) {
   const assets = Array.isArray(release?.assets) ? release.assets : [];
   const checksumsAsset = assets.find((asset) => normalizeText(asset?.name) === 'checksums.txt');
@@ -226,78 +194,6 @@ export async function buildRuntimeManifest(release, fetchImpl = fetch) {
     version: versionFromTag(release?.tag_name, 'runtime'),
     checksumsUrl,
     archives,
-  };
-}
-
-export function collectDesktopUpdaterArtifacts(release) {
-  const assets = Array.isArray(release?.assets) ? release.assets : [];
-  const signatures = new Map();
-  for (const asset of assets) {
-    const name = normalizeText(asset?.name);
-    if (!name.endsWith('.sig')) {
-      continue;
-    }
-    signatures.set(name.slice(0, -4), asset);
-  }
-
-  const artifacts = [];
-  for (const asset of assets) {
-    const platform = inferDesktopPlatform(asset?.name);
-    if (!platform) {
-      continue;
-    }
-    const signatureAsset = signatures.get(normalizeText(asset.name));
-    if (!signatureAsset?.browser_download_url) {
-      throw new Error(`DESKTOP_RELEASE_INVALID: signature missing for ${normalizeText(asset.name)}`);
-    }
-    artifacts.push({
-      platform,
-      bundleUrl: normalizeText(asset.browser_download_url),
-      signatureUrl: normalizeText(signatureAsset.browser_download_url),
-    });
-  }
-
-  if (artifacts.length === 0) {
-    throw new Error('DESKTOP_RELEASE_INVALID: updater artifacts are missing');
-  }
-
-  return artifacts;
-}
-
-async function fetchSignatureText(url, fetchImpl) {
-  const response = await fetchImpl(url);
-  if (!response.ok) {
-    throw new Error(`DESKTOP_SIGNATURE_FETCH_FAILED: status=${response.status}`);
-  }
-  return normalizeText(await response.text());
-}
-
-export async function buildDesktopLatestManifest(release, fetchImpl = fetch) {
-  const artifacts = collectDesktopUpdaterArtifacts(release);
-  const platformEntries = await Promise.all(
-    artifacts.map(async (artifact) => ({
-      platform: artifact.platform,
-      url: artifact.bundleUrl,
-      signature: await fetchSignatureText(artifact.signatureUrl, fetchImpl),
-    })),
-  );
-
-  const platforms = {};
-  for (const entry of platformEntries) {
-    if (!entry.signature) {
-      throw new Error(`DESKTOP_RELEASE_INVALID: empty signature for ${entry.platform}`);
-    }
-    platforms[entry.platform] = {
-      signature: entry.signature,
-      url: entry.url,
-    };
-  }
-
-  return {
-    version: versionFromTag(release?.tag_name, 'desktop'),
-    notes: normalizeText(release?.body) || null,
-    pub_date: normalizeText(release?.published_at || release?.created_at) || null,
-    platforms,
   };
 }
 

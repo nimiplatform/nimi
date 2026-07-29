@@ -24,7 +24,7 @@ requirement.
 | app-tools | npm | `@nimiplatform/app-tools` |
 | nimi-shell-tauri | crates.io | `nimi-shell-tauri` |
 | proto | buf.build (`nimiplatform`) | Proto schema |
-| desktop | GitHub Releases | Windows installer; macOS follows its deferred admission track |
+| desktop | Deferred | Electron production distribution is not yet admitted and has no release workflow |
 
 ## Release Steps
 
@@ -80,10 +80,9 @@ Nimi shell Tauri crate 发布前必须更新：
 
 - `kit/shell/tauri/Cargo.toml`
 
-Desktop 发布前必须更新并对齐以下版本号（`desktop/vX.Y.Z` 与配置严格一致）：
-
-- `apps/desktop/package.json`
-- `apps/desktop/src-tauri/tauri.conf.json`
+Desktop 当前只维护 `apps/desktop/package.json` 的产品版本。取得所需平台发布资质并完成
+Electron 生产分发 authority 与 workflow 之前，不创建 `desktop/v*` 发布 tag，也不把本地
+ad-hoc development candidate 表述为 release。
 
 Proto 发布由 tag 驱动（`proto/vX.Y.Z`），不依赖仓库内单独版本文件。
 
@@ -114,8 +113,6 @@ git push origin app-tools/v0.x.x
 git tag proto/v0.x.x
 git push origin proto/v0.x.x
 
-git tag desktop/v0.x.x
-git push origin desktop/v0.x.x
 ```
 
 对应工作流行为：
@@ -126,7 +123,6 @@ git push origin desktop/v0.x.x
 - `kit/v*` -> `.github/workflows/release-kit.yml`（发布 `@nimiplatform/kit`）
 - `app-tools/v*` -> `.github/workflows/release-app-tools.yml`（发布 `@nimiplatform/app-tools`）
 - `proto/v*` -> `.github/workflows/release.yml` `release-proto` job（`buf push`）
-- `desktop/v*` -> `.github/workflows/release.yml` `release-desktop` job（Tauri 多平台构建并上传到 GitHub Release）
 
 必需 secrets：
 
@@ -136,28 +132,12 @@ git push origin desktop/v0.x.x
 
 必需权限（workflow/job permissions）：
 
-- `id-token: write`（runtime / desktop 发布产物的 keyless cosign 签名）
+- `id-token: write`（runtime 发布产物的 keyless cosign 签名）
 - `contents: write`（向 GitHub Release 上传产物与签名/SBOM）
-
-desktop 发布前置契约（Zero-Bundle）：
-
-1. `release-desktop` job 不得 checkout 或打包任何外部 mod 仓产物。
-2. 发布包必须允许在零已安装 mod 状态启动。
-3. 构建 desktop 前必须先执行 `pnpm build:sdk`，确保 `sdks/typescript`
-   中 `@nimiplatform/sdk` 的 `dist/*` 产物可被 Vite 解析；独立 adapter
-   package 如参与发布，也必须先完成各自 build。
-4. 如需做安装链验证，只能使用预构建 mod 包作为测试输入，不得把其打进桌面发布产物。
 
 支持 dry-run：
 
 - 手动触发 `.github/workflows/release.yml`，选择 `target + version + publish=false`。
-
-desktop 本地 dry-run（用于复现 release-desktop 构建输入）：
-
-```bash
-pnpm build:sdk
-pnpm -C apps/desktop run build
-```
 
 ### 5. Post-release
 
@@ -169,9 +149,8 @@ pnpm -C apps/desktop run build
   - `pnpm dlx @nimiplatform/app-tools nimi-app --help`
 - Verify proto module on buf.build
 - Verify runtime binaries on GitHub Releases
-- Verify desktop bundles on GitHub Releases
 - Verify `checksums.txt` exists in release assets
-- Verify runtime/desktop release assets include:
+- Verify runtime release assets include:
   - `*.spdx.json` SBOM
   - `*.sigstore.json` keyless signing bundles
 - Verify signatures:

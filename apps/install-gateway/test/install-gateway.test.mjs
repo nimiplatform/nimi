@@ -2,14 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  buildDesktopLatestManifest,
   buildRuntimeManifest,
-  collectDesktopUpdaterArtifacts,
   githubReleaseApiUrl,
   matchesReleaseTrack,
   parseRuntimeChecksums,
   selectLatestRelease,
 } from '../src/release-feed.mjs';
+import { handleInstallGatewayRequest } from '../src/index.mjs';
 
 const runtimeRelease = {
   tag_name: 'runtime/v1.2.3',
@@ -40,26 +39,9 @@ async function fetchRuntimeChecksumsFixture(url) {
   return new Response(runtimeChecksums);
 }
 
-const desktopRelease = {
-  tag_name: 'desktop/v2.0.0',
-  name: 'desktop/v2.0.0',
-  body: 'Desktop release notes',
-  published_at: '2026-03-16T10:00:00Z',
-  assets: [
-    {
-      name: 'Nimi_2.0.0_x64-setup.nsis.zip',
-      browser_download_url: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip',
-    },
-    {
-      name: 'Nimi_2.0.0_x64-setup.nsis.zip.sig',
-      browser_download_url: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip.sig',
-    },
-  ],
-};
-
 test('matchesReleaseTrack checks tag and name prefixes', () => {
   assert.equal(matchesReleaseTrack({ tag_name: 'runtime/v1.0.0' }, 'runtime'), true);
-  assert.equal(matchesReleaseTrack({ name: 'desktop/v1.0.0' }, 'desktop'), true);
+  assert.equal(matchesReleaseTrack({ name: 'runtime/v1.0.0' }, 'runtime'), true);
   assert.equal(matchesReleaseTrack({ tag_name: 'sdk/v1.0.0' }, 'runtime'), false);
 });
 
@@ -162,40 +144,13 @@ test('buildRuntimeManifest rejects runtime archives without checksum evidence', 
   );
 });
 
-test('collectDesktopUpdaterArtifacts finds updater bundles and signatures', () => {
-  assert.deepEqual(collectDesktopUpdaterArtifacts(desktopRelease), [
-    {
-      platform: 'windows-x86_64',
-      bundleUrl: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip',
-      signatureUrl: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip.sig',
-    },
-  ]);
-});
-
-test('buildDesktopLatestManifest synthesizes the Windows updater json', async () => {
-  const manifest = await buildDesktopLatestManifest(desktopRelease, async (url) => new Response(`sig:${url}`));
-  assert.deepEqual(manifest, {
-    version: '2.0.0',
-    notes: 'Desktop release notes',
-    pub_date: '2026-03-16T10:00:00Z',
-    platforms: {
-      'windows-x86_64': {
-        signature: 'sig:https://example.com/Nimi_2.0.0_x64-setup.nsis.zip.sig',
-        url: 'https://example.com/Nimi_2.0.0_x64-setup.nsis.zip',
-      },
-    },
-  });
-});
-
-test('buildDesktopLatestManifest rejects releases without updater signatures', async () => {
-  await assert.rejects(
-    buildDesktopLatestManifest(
-      {
-        ...desktopRelease,
-        assets: desktopRelease.assets.filter((asset) => !asset.name.endsWith('.sig')),
-      },
-      async () => new Response('sig'),
-    ),
-    /signature missing/u,
+test('retired Desktop updater feed is not routable', async () => {
+  const response = await handleInstallGatewayRequest(
+    new Request('https://install.nimi.ai/desktop/latest.json'),
+    {},
+    { waitUntil: () => undefined },
+    { fetchImpl: async () => { throw new Error('unexpected GitHub fetch'); } },
   );
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), { error: 'NOT_FOUND' });
 });

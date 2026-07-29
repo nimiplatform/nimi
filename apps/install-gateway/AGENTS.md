@@ -2,7 +2,7 @@
 
 ## Scope
 - Applies to `apps/install-gateway/**`.
-- Cloudflare Worker serving release distribution: install scripts, platform manifests, updater metadata.
+- Cloudflare Worker serving Runtime release distribution: install script and Runtime platform manifest.
 
 ## Hard Boundaries
 - Pure ESM, no build transpilation. No frameworks or React.
