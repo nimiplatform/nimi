@@ -372,7 +372,7 @@ local_app_operation_contract:
       command: local-app.conversationOpen
       operation_id: runtime_agent.conversation.open
       authority_class: user_permission
-      request_fields: [selectedAgentHandle, disposition]
+      request_fields: [agentHandle, disposition]
       response_fields: [conversationAnchorId, activeTurnId, activeStreamId]
       transport_boundary: unary
       effect_boundary: write
@@ -382,7 +382,7 @@ local_app_operation_contract:
       command: local-app.conversationSendTurn
       operation_id: runtime_agent.conversation.turn_send
       authority_class: user_permission
-      request_fields: [selectedAgentHandle, conversationAnchorId, requestId, text]
+      request_fields: [agentHandle, conversationAnchorId, requestId, text]
       response_fields: [messageId]
       transport_boundary: unary
       effect_boundary: write
@@ -392,7 +392,7 @@ local_app_operation_contract:
       command: local-app.conversationSubscribe
       operation_id: runtime_agent.conversation.turn_subscribe
       authority_class: user_permission
-      request_fields: [selectedAgentHandle, conversationAnchorId]
+      request_fields: [agentHandle, conversationAnchorId]
       response_fields: [subscriptionId]
       event_fields: [eventType, sequence, messageId, messageType, payload, reasonCode, traceId, timestampUnixMs]
       transport_boundary: server_stream
@@ -403,7 +403,7 @@ local_app_operation_contract:
       command: local-app.conversationSnapshot
       operation_id: runtime_agent.conversation.snapshot
       authority_class: user_permission
-      request_fields: [selectedAgentHandle, conversationAnchorId]
+      request_fields: [agentHandle, conversationAnchorId]
       response_fields: [snapshot]
       transport_boundary: unary
       effect_boundary: read

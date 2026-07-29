@@ -387,6 +387,17 @@ message LocalAppPermissionProjection {
   LocalAppPermissionPosture posture = 2;
   bool can_request = 3;
   ReasonCode reason_code = 4;
+  // Runtime dynamically materializes one opaque handle for every active Agent
+  // in the granted account scope. Present only while posture is granted; raw
+  // LocalAgent identity never crosses the third-party app projection.
+  reserved 5, 6;
+  reserved "selected_agent_handles", "selected_agents";
+  repeated LocalAppPermissionAgentHandle agents = 7;
+}
+
+message LocalAppPermissionAgentHandle {
+  string agent_handle = 1;
+  string display_name = 2;
 }
 
 message GetLocalAppPermissionStatusRequest {
@@ -404,21 +415,6 @@ message RequestLocalAppPermissionRequest {
 
 message RequestLocalAppPermissionResponse {
   LocalAppPermissionProjection projection = 1;
-}
-
-// Protected Runtime-owner management plane. These messages are never carried
-// by the third-party local-app transport.
-message IssueLocalAppAgentSelectorHandleRequest {
-  AccountCaller caller = 1;
-  string local_app_principal_id = 2;
-  string permission_id = 3;
-  string local_agent_id = 4;
-}
-
-message IssueLocalAppAgentSelectorHandleResponse {
-  bool accepted = 1;
-  string selector_handle = 2;
-  ReasonCode reason_code = 3;
 }
 
 message LocalAppPermissionPendingRequest {
@@ -461,7 +457,7 @@ enum LocalAppPermissionOwnerPosture {
   LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED = 5;
 }
 
-message LocalAppPermissionSelectedAgent {
+message LocalAppPermissionCoveredAgent {
   string local_agent_id = 1;
   string display_name = 2;
 }
@@ -471,10 +467,12 @@ message LocalAppPermissionOwnerProjection {
   string display_app_id = 2;
   string permission_id = 3;
   LocalAppPermissionOwnerPosture posture = 4;
-  repeated LocalAppPermissionSelectedAgent selected_agents = 5;
+  reserved 5;
+  reserved "selected_agents";
   uint64 owner_revision = 6;
   google.protobuf.Timestamp requested_at = 7;
   google.protobuf.Timestamp decided_at = 8;
+  repeated LocalAppPermissionCoveredAgent covered_agents = 9;
 }
 
 message GetLocalAppPermissionOwnerProjectionRequest {
@@ -488,11 +486,22 @@ message GetLocalAppPermissionOwnerProjectionResponse {
   ReasonCode reason_code = 3;
 }
 
+message ListLocalAppPermissionOwnerProjectionsRequest {
+  AccountCaller caller = 1;
+}
+
+message ListLocalAppPermissionOwnerProjectionsResponse {
+  bool accepted = 1;
+  repeated LocalAppPermissionOwnerProjection permissions = 2;
+  ReasonCode reason_code = 3;
+}
+
 message DecideLocalAppPermissionRequest {
   AccountCaller caller = 1;
   string local_app_principal_id = 2;
   string permission_id = 3;
-  string selector_handle = 4;
+  reserved 4;
+  reserved "selector_handle";
   bool approved = 5;
   uint64 expected_owner_revision = 6;
 }
@@ -508,7 +517,8 @@ message RevokeLocalAppPermissionRequest {
   AccountCaller caller = 1;
   string local_app_principal_id = 2;
   string permission_id = 3;
-  string selector_handle = 4;
+  reserved 4;
+  reserved "selector_handle";
 }
 
 message RevokeLocalAppPermissionResponse {
@@ -531,10 +541,10 @@ service RuntimeAccountService {
   rpc RevokeWorkspaceBinding(RevokeWorkspaceBindingRequest) returns (RevokeWorkspaceBindingResponse);
   rpc GetLocalAppPermissionStatus(GetLocalAppPermissionStatusRequest) returns (GetLocalAppPermissionStatusResponse);
   rpc RequestLocalAppPermission(RequestLocalAppPermissionRequest) returns (RequestLocalAppPermissionResponse);
-  rpc IssueLocalAppAgentSelectorHandle(IssueLocalAppAgentSelectorHandleRequest) returns (IssueLocalAppAgentSelectorHandleResponse);
   rpc ListLocalAppPermissionRequests(ListLocalAppPermissionRequestsRequest) returns (ListLocalAppPermissionRequestsResponse);
   rpc SubscribeLocalAppPermissionRequests(SubscribeLocalAppPermissionRequestsRequest) returns (stream LocalAppPermissionInboxEvent);
   rpc GetLocalAppPermissionOwnerProjection(GetLocalAppPermissionOwnerProjectionRequest) returns (GetLocalAppPermissionOwnerProjectionResponse);
+  rpc ListLocalAppPermissionOwnerProjections(ListLocalAppPermissionOwnerProjectionsRequest) returns (ListLocalAppPermissionOwnerProjectionsResponse);
   rpc DecideLocalAppPermission(DecideLocalAppPermissionRequest) returns (DecideLocalAppPermissionResponse);
   rpc RevokeLocalAppPermission(RevokeLocalAppPermissionRequest) returns (RevokeLocalAppPermissionResponse);
 }

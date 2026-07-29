@@ -8,7 +8,7 @@ import type {
   ZhiyuProactiveInterruptibilityState,
   ZhiyuProactiveInterruptibilityStatus,
 } from '../app/evidence';
-import type { ZhiyuLocalAgentStatus } from './local-agent-discovery';
+import type { ZhiyuLocalAgentStatus } from './local-agent-status';
 import {
   initialZhiyuCompanionEmotionProjection,
   projectZhiyuCompanionEmotion,
@@ -69,55 +69,22 @@ export async function probeZhiyuRuntimeCompanionState(
     });
   }
 
-  const reader = options.readAgentState ?? readRuntimeAgentState;
-  if (!options.readAgentState && !await hasRuntimeBridge()) {
+  if (!options.readAgentState) {
     return companionUnavailable({
-      reasonCode: 'electron-runtime-bridge-unavailable',
-      actionHint: 'restart_zhiyu_electron_shell',
-      source: 'renderer',
-      message: 'Electron Runtime bridge is not available.',
+      reasonCode: 'zhiyu-companion-state-capability-not-admitted',
+      actionHint: 'admit_zhiyu_companion_state_capability',
+      source: 'sdk',
+      message: 'Companion state is not admitted on the Zhiyu local-app carrier.',
       ...identity,
     });
   }
 
   try {
-    const snapshot = await reader(identity);
+    const snapshot = await options.readAgentState(identity);
     return companionAvailable(snapshot, identity, stringOr(options.observedAt, new Date().toISOString()));
   } catch (error) {
     return normalizeCompanionStateError(error, identity);
   }
-}
-
-async function readRuntimeAgentState(
-  input: ZhiyuCompanionStateReadInput,
-): Promise<NimiRuntimeAgentStateSnapshot> {
-  const {
-    buildRuntimeAgentRequestContext,
-    projectNimiRuntimeAgentStateSnapshot,
-  } = await import('@nimiplatform/sdk/runtime');
-  const {
-    withZhiyuRuntimeAgentAccessRequired,
-  } = await import('../agent-chat/runtime-agent-access');
-  const { getZhiyuRuntime } = await import('../auth/runtime-platform');
-  const runtime = getZhiyuRuntime();
-  const context = buildRuntimeAgentRequestContext({
-    runtimeAppId: APP_ID,
-    subjectUserId: input.ownerUserId,
-    ...input,
-  });
-  const response = await withZhiyuRuntimeAgentAccessRequired(['runtime.agent.read'], (callOptions) => runtime.agents.getAgentState({
-    context,
-    agentId: input.localAgentRef,
-  }, callOptions));
-  return projectNimiRuntimeAgentStateSnapshot(response.state);
-}
-
-async function hasRuntimeBridge(): Promise<boolean> {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  const { hasElectronRuntime } = await import('@nimiplatform/kit/shell/renderer/bridge');
-  return hasElectronRuntime();
 }
 
 function companionAvailable(

@@ -1,13 +1,18 @@
+use prost::Message;
 use tonic::transport::Channel;
 use url::Url;
 
+use crate::first_party_profiles_generated::DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER;
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::{
     AccountCaller, AccountCallerMode, AccountEventType, AccountProjection, AccountReasonCode,
     AccountSessionDeliveryKind, AccountSessionEvent, AccountSessionSnapshot, AccountSessionState,
     BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse,
-    GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest,
-    InvokeRealmUnaryResponse, LogoutRequest, LogoutResponse, ReasonCode,
+    DecideLocalAppPermissionRequest, GetAccountSessionStatusRequest,
+    GetAccountSessionStatusResponse, GetLocalAppPermissionOwnerProjectionRequest,
+    InvokeRealmUnaryRequest, InvokeRealmUnaryResponse,
+    ListLocalAppPermissionOwnerProjectionsRequest, ListLocalAppPermissionRequestsRequest,
+    LogoutRequest, LogoutResponse, ReasonCode, RevokeLocalAppPermissionRequest,
     SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse,
 };
 use crate::grpc_status::host_error_from_status;
@@ -18,7 +23,8 @@ use crate::{
     DesktopAccountSessionDeliveryKind, DesktopAccountSessionEvent,
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
-    NimiHostError, NimiHostErrorReasonCode,
+    DesktopPermissionOwnerUnaryMethod, DesktopPermissionOwnerUnaryRequest,
+    DesktopPermissionOwnerUnaryResponse, NimiHostError, NimiHostErrorReasonCode,
 };
 
 const DESKTOP_ACCOUNT_SOURCE_HOST: &str = "protected-local-desktop-account-host";
@@ -241,6 +247,80 @@ pub(crate) async fn invoke_realm_unary(
     })
 }
 
+pub(crate) async fn invoke_permission_owner_unary(
+    channel: Channel,
+    input: DesktopPermissionOwnerUnaryRequest,
+) -> Result<DesktopPermissionOwnerUnaryResponse, NimiHostError> {
+    let response_bytes = match input.method {
+        DesktopPermissionOwnerUnaryMethod::ListRequests => {
+            let mut message =
+                ListLocalAppPermissionRequestsRequest::decode(input.request_bytes.as_slice())
+                    .map_err(|_| untrusted())?;
+            message.caller = Some(desktop_account_caller()?);
+            let response = RuntimeAccountServiceClient::new(channel)
+                .list_local_app_permission_requests(protected_account_product_request(message)?)
+                .await
+                .map_err(host_error_from_status)?
+                .into_inner();
+            response.encode_to_vec()
+        }
+        DesktopPermissionOwnerUnaryMethod::GetProjection => {
+            let mut message =
+                GetLocalAppPermissionOwnerProjectionRequest::decode(input.request_bytes.as_slice())
+                    .map_err(|_| untrusted())?;
+            message.caller = Some(desktop_account_caller()?);
+            let response = RuntimeAccountServiceClient::new(channel)
+                .get_local_app_permission_owner_projection(protected_account_product_request(
+                    message,
+                )?)
+                .await
+                .map_err(host_error_from_status)?
+                .into_inner();
+            response.encode_to_vec()
+        }
+        DesktopPermissionOwnerUnaryMethod::ListProjections => {
+            let mut message = ListLocalAppPermissionOwnerProjectionsRequest::decode(
+                input.request_bytes.as_slice(),
+            )
+            .map_err(|_| untrusted())?;
+            message.caller = Some(desktop_account_caller()?);
+            let response = RuntimeAccountServiceClient::new(channel)
+                .list_local_app_permission_owner_projections(protected_account_product_request(
+                    message,
+                )?)
+                .await
+                .map_err(host_error_from_status)?
+                .into_inner();
+            response.encode_to_vec()
+        }
+        DesktopPermissionOwnerUnaryMethod::Decide => {
+            let mut message =
+                DecideLocalAppPermissionRequest::decode(input.request_bytes.as_slice())
+                    .map_err(|_| untrusted())?;
+            message.caller = Some(desktop_account_caller()?);
+            let response = RuntimeAccountServiceClient::new(channel)
+                .decide_local_app_permission(protected_account_product_request(message)?)
+                .await
+                .map_err(host_error_from_status)?
+                .into_inner();
+            response.encode_to_vec()
+        }
+        DesktopPermissionOwnerUnaryMethod::Revoke => {
+            let mut message =
+                RevokeLocalAppPermissionRequest::decode(input.request_bytes.as_slice())
+                    .map_err(|_| untrusted())?;
+            message.caller = Some(desktop_account_caller()?);
+            let response = RuntimeAccountServiceClient::new(channel)
+                .revoke_local_app_permission(protected_account_product_request(message)?)
+                .await
+                .map_err(host_error_from_status)?
+                .into_inner();
+            response.encode_to_vec()
+        }
+    };
+    Ok(DesktopPermissionOwnerUnaryResponse { response_bytes })
+}
+
 pub(crate) async fn logout(
     channel: Channel,
     input: DesktopAccountActionRequest,
@@ -338,6 +418,16 @@ fn protected_request<T>(message: T) -> Result<tonic::Request<T>, NimiHostError> 
         DESKTOP_ACCOUNT_APP_INSTANCE_ID,
     )?;
     insert_metadata(&mut request, "x-nimi-device-id", DESKTOP_ACCOUNT_DEVICE_ID)?;
+    Ok(request)
+}
+
+fn protected_account_product_request<T>(message: T) -> Result<tonic::Request<T>, NimiHostError> {
+    let mut request = protected_request(message)?;
+    insert_metadata(
+        &mut request,
+        "x-nimi-protected-first-party-profile",
+        DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER,
+    )?;
     Ok(request)
 }
 

@@ -1,10 +1,7 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import {
-  createNimiRuntimeAgentClient,
-} from '@nimiplatform/sdk/runtime';
-import { withZhiyuRuntimeAgentAccessRequired } from '../agent-chat/runtime-agent-access';
+import type { NimiLocalAppAgentHandle, NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { getZhiyuRuntime } from '../auth/runtime-platform';
+import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
 import {
   clearZhiyuAgentConversationAnchorBinding,
   getZhiyuAgentConversationAnchorBinding,
@@ -13,13 +10,11 @@ import {
   persistZhiyuAgentConversationAnchorBindingsToStorage,
   type ZhiyuAgentConversationAnchorBinding,
 } from './conversation-anchor-binding-storage';
-import type { ZhiyuLocalAgentStatus } from './local-agent-discovery';
+import type { ZhiyuLocalAgentStatus } from './local-agent-status';
 
 export type ZhiyuConversationHomeStatus = ZhiyuEvidence['conversation'];
 type LocalAgentIdentity = {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
+  readonly agentHandle: NimiLocalAppAgentHandle;
 };
 
 export async function probeZhiyuRuntimeConversationHome(
@@ -29,94 +24,49 @@ export async function probeZhiyuRuntimeConversationHome(
   if (!identity) {
     return conversationUnavailable({
       reasonCode: 'zhiyu-local-agent-required',
-      actionHint: 'select_runtime_owned_partner',
+      actionHint: localAgent.actionHint || 'request_agents_interact_permission',
       source: localAgent.source,
-      message: 'Zhiyu requires a Runtime-owned LocalAgent before opening a conversation anchor.',
+      message: 'Zhiyu requires an owner-granted Agent before opening a conversation.',
+      agentHandle: localAgent.agentHandle,
       ownerUserId: localAgent.ownerUserId,
       runtimeSourceRef: localAgent.runtimeSourceRef,
       localAgentRef: localAgent.localAgentRef,
     });
   }
-
   if (typeof window === 'undefined' || !hasElectronRuntime()) {
     return conversationUnavailable({
       reasonCode: 'electron-runtime-bridge-unavailable',
       actionHint: 'restart_zhiyu_electron_shell',
       source: 'renderer',
-      message: 'Electron Runtime bridge is not available.',
+      message: 'Electron local-app bridge is not available.',
       ...identity,
     });
   }
 
-  const runtime = getZhiyuRuntime();
-  const client = createNimiRuntimeAgentClient({
-    runtime,
-    appId: 'nimi.zhiyu',
-    getSubjectUserId: () => identity.ownerUserId,
-    withScopes: withZhiyuRuntimeAgentAccessRequired,
-  });
-
+  const conversation = getZhiyuLocalAppClient().conversation;
   try {
     await hydrateZhiyuAgentConversationAnchorBindingsFromStorage();
-    const existingBinding = getZhiyuAgentConversationAnchorBinding(identity.localAgentRef);
-    if (bindingMatchesIdentity(existingBinding, identity)) {
-      const upstreamBinding = await ensureConversationAnchorBindingUpstream({
-        client,
-        identity,
-        binding: existingBinding,
-      });
-      if (upstreamBinding) {
-        return conversationReady(identity, upstreamBinding.conversationAnchorId, upstreamBinding.threadId);
-      }
-    } else if (existingBinding) {
-      clearZhiyuAgentConversationAnchorBinding(identity.localAgentRef);
+    const existing = getZhiyuAgentConversationAnchorBinding(identity.agentHandle);
+    if (bindingMatchesIdentity(existing, identity)) {
+      const recovered = await ensureConversationAnchorBindingUpstream({ conversation, identity, binding: existing });
+      if (recovered) return conversationReady(identity, recovered.conversationAnchorId, recovered.threadId);
+    } else if (existing) {
+      clearZhiyuAgentConversationAnchorBinding(identity.agentHandle);
       await persistZhiyuAgentConversationAnchorBindingsToStorage();
     }
 
-    const upstream = await client.listConversationSummaries({
-      ...identity,
-      statusFilter: ['active'],
-      pageSize: 2,
-      pageToken: '',
+    const opened = await conversation.open({
+      agentHandle: identity.agentHandle,
+      disposition: 'create-or-resume',
     });
-    if (upstream.summaries.length > 1 || upstream.nextPageToken) {
-      return conversationUnavailable({
-        reasonCode: 'zhiyu-conversation-anchor-ambiguous',
-        actionHint: 'select_runtime_conversation_anchor',
-        source: 'runtime',
-        message: 'Multiple active Runtime conversation anchors require an explicit selection.',
-        ...identity,
-      });
-    }
-    const upstreamAnchorId = stringOr(upstream.summaries[0]?.anchor?.conversationAnchorId, '');
-    if (upstreamAnchorId) {
-      const threadId = await readRuntimeConversationThreadId(client, identity, upstreamAnchorId);
-      const upstreamBinding = persistZhiyuAgentConversationAnchorBinding({
-        ...identity,
-        conversationAnchorId: upstreamAnchorId,
-        threadId,
-        updatedAtMs: Date.now(),
-      });
-      await persistZhiyuAgentConversationAnchorBindingsToStorage();
-      return conversationReady(identity, upstreamBinding.conversationAnchorId, upstreamBinding.threadId);
-    }
-
-    const snapshot = await client.openConversation(openConversationRequest(identity));
-    const conversationAnchorId = stringOr(snapshot.anchor?.conversationAnchorId, '');
-    if (!conversationAnchorId) {
-      return conversationUnavailable({
-        reasonCode: 'zhiyu-conversation-anchor-missing',
-        actionHint: 'check_runtime_agent_open_conversation',
-        source: 'runtime',
-        message: 'Runtime Agent openConversation returned no conversation anchor id.',
-        ...identity,
-      });
-    }
-    const threadId = await readRuntimeConversationThreadId(client, identity, conversationAnchorId);
+    const snapshot = await conversation.snapshot({
+      agentHandle: identity.agentHandle,
+      conversationAnchorId: opened.conversationAnchorId,
+    });
     const binding = persistZhiyuAgentConversationAnchorBinding({
       ...identity,
-      conversationAnchorId,
-      threadId,
+      conversationAnchorId: opened.conversationAnchorId,
+      threadId: requireRuntimeThreadId(snapshot),
       updatedAtMs: Date.now(),
     });
     await persistZhiyuAgentConversationAnchorBindingsToStorage();
@@ -126,42 +76,18 @@ export async function probeZhiyuRuntimeConversationHome(
   }
 }
 
-function openConversationRequest(identity: LocalAgentIdentity): {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-  readonly metadata: {
-    readonly appId: 'nimi.zhiyu';
-    readonly surface: 'zhiyu.home';
-  };
-} {
-  return {
-    ...identity,
-    metadata: {
-      appId: 'nimi.zhiyu',
-      surface: 'zhiyu.home',
-    },
-  };
-}
-
 async function ensureConversationAnchorBindingUpstream(input: {
-  readonly client: {
-    readonly getSessionSnapshot: (request: LocalAgentIdentity & {
-      readonly conversationAnchorId: string;
-    }) => Promise<{ readonly threadId?: string }>;
-  };
+  readonly conversation: NimiLocalAppClient['conversation'];
   readonly identity: LocalAgentIdentity;
   readonly binding: ZhiyuAgentConversationAnchorBinding;
 }): Promise<ZhiyuAgentConversationAnchorBinding | null> {
   try {
-    const snapshot = await input.client.getSessionSnapshot({
-      ...input.identity,
+    const snapshot = await input.conversation.snapshot({
+      agentHandle: input.identity.agentHandle,
       conversationAnchorId: input.binding.conversationAnchorId,
     });
     const threadId = requireRuntimeThreadId(snapshot);
-    if (threadId === input.binding.threadId) {
-      return input.binding;
-    }
+    if (threadId === input.binding.threadId) return input.binding;
     const refreshed = persistZhiyuAgentConversationAnchorBinding({
       ...input.binding,
       threadId,
@@ -170,10 +96,8 @@ async function ensureConversationAnchorBindingUpstream(input: {
     await persistZhiyuAgentConversationAnchorBindingsToStorage();
     return refreshed;
   } catch (error) {
-    if (!isRecoverableRuntimeAnchorError(error)) {
-      throw error;
-    }
-    clearZhiyuAgentConversationAnchorBinding(input.identity.localAgentRef);
+    if (!isRecoverableRuntimeAnchorError(error)) throw error;
+    clearZhiyuAgentConversationAnchorBinding(input.identity.agentHandle);
     await persistZhiyuAgentConversationAnchorBindingsToStorage();
     return null;
   }
@@ -183,12 +107,8 @@ function bindingMatchesIdentity(
   binding: ZhiyuAgentConversationAnchorBinding | null,
   identity: LocalAgentIdentity,
 ): binding is ZhiyuAgentConversationAnchorBinding {
-  if (!binding) {
-    return false;
-  }
-  return binding.ownerUserId === identity.ownerUserId
-    && binding.runtimeSourceRef === identity.runtimeSourceRef
-    && binding.localAgentRef === identity.localAgentRef;
+  return Boolean(binding
+    && binding.agentHandle === identity.agentHandle);
 }
 
 function conversationReady(
@@ -202,32 +122,22 @@ function conversationReady(
     reasonCode: 'conversation-anchor-open',
     actionHint: 'send_runtime_agent_turn',
     source: 'runtime',
-    message: 'Runtime-owned conversation anchor is open.',
-    ...identity,
+    message: 'Runtime-owned conversation anchor is open through localApp.conversation.',
+    agentHandle: identity.agentHandle,
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
     conversationAnchorId,
     threadId,
   };
 }
 
-async function readRuntimeConversationThreadId(
-  client: {
-    readonly getSessionSnapshot: (request: LocalAgentIdentity & {
-      readonly conversationAnchorId: string;
-    }) => Promise<{ readonly threadId?: string }>;
-  },
-  identity: LocalAgentIdentity,
-  conversationAnchorId: string,
-): Promise<string> {
-  const snapshot = await client.getSessionSnapshot({ ...identity, conversationAnchorId });
-  return requireRuntimeThreadId(snapshot);
-}
-
-function requireRuntimeThreadId(snapshot: { readonly threadId?: string }): string {
-  const threadId = stringOr(snapshot?.threadId, '');
+function requireRuntimeThreadId(snapshot: Readonly<Record<string, unknown>>): string {
+  const threadId = stringOr(snapshot.threadId ?? snapshot.thread_id, '');
   if (!threadId) {
-    throw Object.assign(new Error('Runtime conversation session snapshot returned no thread id.'), {
+    throw Object.assign(new Error('Runtime conversation snapshot returned no thread id.'), {
       reasonCode: 'zhiyu-conversation-thread-id-missing',
-      actionHint: 'check_runtime_agent_session_snapshot',
+      actionHint: 'check_local_app_conversation_snapshot',
       source: 'runtime',
     });
   }
@@ -235,49 +145,28 @@ function requireRuntimeThreadId(snapshot: { readonly threadId?: string }): strin
 }
 
 function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): LocalAgentIdentity | null {
-  if (!localAgent.ready) {
-    return null;
-  }
-  const ownerUserId = stringOr(localAgent.ownerUserId, '');
-  const runtimeSourceRef = stringOr(localAgent.runtimeSourceRef, '');
-  const localAgentRef = stringOr(localAgent.localAgentRef, '');
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
-    return null;
-  }
-  return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-  };
+  if (!localAgent.ready) return null;
+  const handle = stringOr(localAgent.agentHandle, '');
+  return handle ? { agentHandle: agentHandle(handle) } : null;
 }
 
-function normalizeConversationError(
-  error: unknown,
-  identity: LocalAgentIdentity,
-): ZhiyuConversationHomeStatus {
+function normalizeConversationError(error: unknown, identity: LocalAgentIdentity): ZhiyuConversationHomeStatus {
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   return conversationUnavailable({
     reasonCode: stringOr(record.reasonCode, 'zhiyu-conversation-anchor-unavailable'),
-    actionHint: stringOr(record.actionHint, 'check_runtime_agent_open_conversation'),
+    actionHint: stringOr(record.actionHint, 'check_local_app_conversation'),
     source: stringOr(record.source, 'sdk'),
-    message: error instanceof Error && error.message.trim()
-      ? error.message.trim()
-      : 'Runtime conversation anchor is unavailable.',
+    message: error instanceof Error && error.message.trim() ? error.message.trim() : 'Runtime conversation is unavailable.',
     ...identity,
   });
 }
 
 function isRecoverableRuntimeAnchorError(error: unknown): boolean {
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
-  const reasonCode = stringOr(record.reasonCode, '');
-  const message = error instanceof Error
-    ? error.message.trim().toLowerCase()
-    : stringOr(record.message, '').toLowerCase();
-  return reasonCode === 'RUNTIME_GRPC_NOT_FOUND'
-    || reasonCode === 'RUNTIME_GRPC_FAILED_PRECONDITION'
-    || message.includes('conversation anchor not found')
-    || message.includes('conversation anchor is closed')
-    || message.includes('conversation anchor agent_id mismatch');
+  const reasonCode = stringOr(record.reasonCode, '').toLowerCase();
+  return reasonCode.includes('not-found') || reasonCode.includes('not_found')
+    || reasonCode.includes('failed-precondition') || reasonCode.includes('failed_precondition')
+    || reasonCode.includes('anchor');
 }
 
 function conversationUnavailable(input: {
@@ -285,23 +174,25 @@ function conversationUnavailable(input: {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
+  readonly agentHandle?: string | null;
   readonly ownerUserId?: string | null;
   readonly runtimeSourceRef?: string | null;
   readonly localAgentRef?: string | null;
 }): ZhiyuConversationHomeStatus {
   return {
-    transport: 'electron-ipc',
-    ready: false,
-    reasonCode: input.reasonCode,
-    actionHint: input.actionHint,
-    source: input.source,
-    message: input.message,
+    transport: 'electron-ipc', ready: false,
+    reasonCode: input.reasonCode, actionHint: input.actionHint, source: input.source, message: input.message,
+    agentHandle: input.agentHandle ?? null,
     ownerUserId: input.ownerUserId ?? null,
     runtimeSourceRef: input.runtimeSourceRef ?? null,
     localAgentRef: input.localAgentRef ?? null,
     conversationAnchorId: null,
     threadId: null,
   };
+}
+
+function agentHandle(value: string): NimiLocalAppAgentHandle {
+  return value as NimiLocalAppAgentHandle;
 }
 
 function stringOr(value: unknown, fallback: string): string {

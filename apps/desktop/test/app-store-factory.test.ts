@@ -394,6 +394,14 @@ function createCanonicalBindings(input: {
         voiceCapture: createUnavailableDesktopRendererVoiceCapturePort('TEST_VOICE_CAPTURE_UNAVAILABLE'),
         localModelProgress: createMemoryDesktopRendererLocalModelProgressPort(),
         virtualization: createDeterministicDesktopVirtualizationPort(),
+        localAppPermissions: Object.freeze({
+          async listPending() { return []; },
+          async approve() { throw new Error('TEST_PERMISSION_OWNER_UNADMITTED'); },
+          async deny() { throw new Error('TEST_PERMISSION_OWNER_UNADMITTED'); },
+          async revoke() { throw new Error('TEST_PERMISSION_OWNER_UNADMITTED'); },
+          async getProjection() { throw new Error('TEST_PERMISSION_OWNER_UNADMITTED'); },
+          async listProjections() { return []; },
+        }),
         avatarHandoff: createUnavailableDesktopRendererAvatarHandoffPort('TEST_AVATAR_HANDOFF_UNAVAILABLE'),
         connectorAuth: Object.freeze({
           async proxyHttp() { throw new Error('TEST_CONNECTOR_AUTH_UNADMITTED'); },
@@ -447,6 +455,7 @@ function createCanonicalBindings(input: {
         subscribeDeveloperMode: () => () => undefined,
         subscribeProductControlRecord: () => () => undefined,
         async subscribeLocalDevelopmentApprovals() { return () => undefined; },
+        async subscribeLocalAppPermissionRequests() { return () => undefined; },
         connectDesktopOpenIntents: () => () => undefined,
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']

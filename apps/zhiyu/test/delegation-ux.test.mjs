@@ -198,7 +198,7 @@ test('separates required delegation scopes from granted and admitted scope evide
   assert.notDeepEqual(status.requiredScopes, status.grantedScopes);
 });
 
-test('fails closed before Runtime delegation RPC when host operation context is unavailable', async () => {
+test('fails closed before Runtime delegation RPC while the local-app capability is not admitted', async () => {
   const { probeZhiyuRuntimeDelegationUx } = await loadModule();
   const calls = [];
   globalThis.__NIMI_ELECTRON_TEST__ = {
@@ -208,14 +208,12 @@ test('fails closed before Runtime delegation RPC when host operation context is 
     },
   };
   try {
-    const status = await probeZhiyuRuntimeDelegationUx(conversationReady(), {
-      hasRuntimeBridge: async () => true,
-    });
+    const status = await probeZhiyuRuntimeDelegationUx(conversationReady());
 
     assert.equal(status.ready, false);
     assert.equal(status.state, 'blocked');
-    assert.equal(status.reasonCode, 'ZHIYU_RUNTIME_AGENT_OPERATION_CONTEXT_REQUIRED');
-    assert.equal(status.actionHint, 'attach_protected_local_app_carrier');
+    assert.equal(status.reasonCode, 'zhiyu-delegation-capability-not-admitted');
+    assert.equal(status.actionHint, 'admit_zhiyu_delegation_capability');
     assert.deepEqual(calls, []);
   } finally {
     delete globalThis.__NIMI_ELECTRON_TEST__;

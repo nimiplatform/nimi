@@ -8,7 +8,8 @@ use nimi_shell_protected_local::{
     DesktopAccountProductUnaryRequest, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
     DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
     DesktopAccountSessionStatusRequest, DesktopMachineProductUnaryMethod,
-    DesktopMachineProductUnaryRequest, FixedRuntimeServiceControl, LocalAppConversationEvent,
+    DesktopMachineProductUnaryRequest, DesktopPermissionOwnerUnaryMethod,
+    DesktopPermissionOwnerUnaryRequest, FixedRuntimeServiceControl, LocalAppConversationEvent,
     LocalAppConversationOpenRequest, LocalAppConversationSendRequest,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
@@ -221,6 +222,39 @@ pub async fn desktop_account_session_status() -> NativeJsonOutcome {
         Err(error) => {
             clear_desktop_control_on_host_failure(&control, &error).await;
             NativeJsonOutcome::host_error(error)
+        }
+    }
+}
+
+#[napi(js_name = "desktopPermissionOwnerUnary")]
+pub async fn desktop_permission_owner_unary(
+    input: NativeFirstPartyProductInput,
+) -> NativeBytesOutcome {
+    let Some(method) = DesktopPermissionOwnerUnaryMethod::from_method_id(input.method_id.trim())
+    else {
+        return NativeBytesOutcome::error("runtime-service-untrusted", false);
+    };
+    if input
+        .timeout_ms
+        .is_some_and(|value| value == 0 || value > 30_000)
+    {
+        return NativeBytesOutcome::error("runtime-service-untrusted", false);
+    }
+    let control = match current_or_open_desktop_control().await {
+        Ok(control) => control,
+        Err(error) => return NativeBytesOutcome::host_error(error),
+    };
+    match control
+        .invoke_permission_owner_unary(DesktopPermissionOwnerUnaryRequest {
+            method,
+            request_bytes: input.request_bytes.to_vec(),
+        })
+        .await
+    {
+        Ok(response) => NativeBytesOutcome::success(response.response_bytes),
+        Err(error) => {
+            clear_desktop_control_on_host_failure(&control, &error).await;
+            NativeBytesOutcome::host_error(error)
         }
     }
 }

@@ -155,7 +155,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		authorizationProfile:   "protected_desktop_product",
 		pathParameterKinds:     map[string]realmUnaryParameterKind{"worldId": realmUnaryParameterString},
 		requiredPathParameters: map[string]struct{}{"worldId": {}},
-		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{"limit": realmUnaryParameterNumber},
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,

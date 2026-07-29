@@ -44,6 +44,14 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'invalid-path',
 ] as const);
 
+const PERMISSION_STATES: ReadonlySet<string> = new Set([
+  'prompt',
+  'pending',
+  'granted',
+  'denied',
+  'unavailable',
+] as const);
+
 const FORBIDDEN_PROJECTION_KEYS: ReadonlySet<string> = new Set([
   'endpoint',
   'authorization',
@@ -74,6 +82,19 @@ export type NimiElectronLocalAppRecord = {
   readonly [key: string]: NimiElectronLocalAppJson;
 };
 
+export type NimiElectronLocalAppAgentHandle = NimiElectronLocalAppRecord & {
+  readonly agentHandle: string;
+  readonly displayName: string;
+};
+
+export type NimiElectronLocalAppPermissionStatus = NimiElectronLocalAppRecord & {
+  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'unavailable';
+  readonly permissionId: string;
+  readonly canRequest: boolean;
+  readonly reasonCode: string;
+  readonly agents: readonly NimiElectronLocalAppAgentHandle[];
+};
+
 type NativeLocalAppOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | { readonly status: 'error'; readonly reasonCode: string; readonly retryable: boolean };
@@ -97,8 +118,8 @@ export type NimiElectronProtectedLocalBinding = {
 export type NimiElectronLocalAppHost = {
   readonly sessionStatus: () => Promise<NimiElectronLocalAppRecord>;
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
-  readonly permissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly permissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
+  readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -140,12 +161,18 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppSessionRenew());
   }
 
-  permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppPermissionStatus(input));
+  permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
+    return invokePermissionStatus(
+      () => this.binding.localAppPermissionStatus(input),
+      exactText(input.permissionId),
+    );
   }
 
-  permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppPermissionRequest(input));
+  permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
+    return invokePermissionStatus(
+      () => this.binding.localAppPermissionRequest(input),
+      exactText(input.permissionId),
+    );
   }
 
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -202,11 +229,11 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().renewTechnicalSession();
   }
 
-  permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+  permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
     return this.resolve().permissionStatus(input);
   }
 
-  permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+  permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
     return this.resolve().permissionRequest(input);
   }
 
@@ -370,6 +397,48 @@ async function invoke(call: () => Promise<NativeLocalAppOutcome>): Promise<unkno
 
 async function invokeRecord(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
   return validateProjection(await invoke(call));
+}
+
+async function invokePermissionStatus(
+  call: () => Promise<NativeLocalAppOutcome>,
+  requestedPermissionId: string,
+): Promise<NimiElectronLocalAppPermissionStatus> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value)
+    || !hasExactKeys(value, ['state', 'permissionId', 'canRequest', 'reasonCode', 'agents'])
+    || typeof value.state !== 'string'
+    || !PERMISSION_STATES.has(value.state)
+    || value.permissionId !== requestedPermissionId
+    || typeof value.canRequest !== 'boolean'
+    || value.canRequest !== (value.state === 'prompt')
+    || typeof value.reasonCode !== 'string'
+    || !value.reasonCode
+    || value.reasonCode.trim() !== value.reasonCode
+    || value.reasonCode.length > 512
+    || !Array.isArray(value.agents)
+    || (value.state !== 'granted' && value.agents.length > 0)) {
+    throw untrustedRuntimeError();
+  }
+  const seen = new Set<string>();
+  const agents = value.agents.map((entry) => {
+    if (!isPlainRecord(entry) || !hasExactKeys(entry, ['agentHandle', 'displayName'])) {
+      throw untrustedRuntimeError();
+    }
+    const agentHandle = exactText(entry.agentHandle);
+    const displayName = exactText(entry.displayName);
+    if (Buffer.byteLength(displayName, 'utf8') > 240 || seen.has(agentHandle)) {
+      throw untrustedRuntimeError();
+    }
+    seen.add(agentHandle);
+    return Object.freeze({ agentHandle, displayName });
+  });
+  return Object.freeze({
+    state: value.state as NimiElectronLocalAppPermissionStatus['state'],
+    permissionId: requestedPermissionId,
+    canRequest: value.canRequest,
+    reasonCode: value.reasonCode,
+    agents: Object.freeze(agents),
+  });
 }
 
 async function invokeStorageDocument(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {

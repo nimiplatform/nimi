@@ -24,6 +24,26 @@ test('surfaces the Electron host action hint for a capability-set rejection', as
   );
 });
 
+test('local-app platform exposes admitted conversation directly without a Runtime compatibility facade', async () => {
+  const runtimePlatform = await loadRuntimePlatform({ reasonCode: 'unused' });
+  const sent = [];
+  globalThis.__nimiZhiyuLocalAppSend = async (input) => {
+    sent.push(input);
+    return { messageId: 'message-1' };
+  };
+  const client = runtimePlatform.getZhiyuLocalAppClient();
+  const response = await client.conversation.send({
+    agentHandle: 'opaque-handle',
+    conversationAnchorId: 'anchor-1',
+    requestId: 'request-1',
+    text: 'hello',
+  });
+  assert.equal(response.messageId, 'message-1');
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].agentHandle, 'opaque-handle');
+  assert.equal('getZhiyuRuntime' in runtimePlatform, false);
+});
+
 test('never suggests starting a daemon when a capability-set rejection omits its action hint', async () => {
   const runtimePlatform = await loadRuntimePlatform({
     reasonCode: 'electron-standard-capability-not-in-host-set',
@@ -73,11 +93,18 @@ function sdkStubPlugin() {
         contents: `
           export function createNimiClient() {
             return {
-              runtime: {
-                async ready() {
+              auth: {
+                async status() {
                   throw globalThis.__nimiZhiyuRuntimeReadyError;
                 },
               },
+              permissions: {},
+              conversation: {
+                async send(input) {
+                  return globalThis.__nimiZhiyuLocalAppSend(input);
+                },
+              },
+              storage: {},
             };
           }
         `,
@@ -88,7 +115,27 @@ function sdkStubPlugin() {
       }));
       buildApi.onLoad({ filter: /.*/, namespace: 'sdk-runtime-stub' }, () => ({
         loader: 'js',
-        contents: 'export function createNimiLocalFirstPartyRuntimeAccountCaller() { return {}; }',
+        contents: `
+          export function fromNimiRuntimeProtoStruct(value) { return value || {}; }
+          export function toNimiRuntimeProtoStruct(value) { return value || {}; }
+          export function runNimiRuntimeScenarioJob() { throw new Error('not called'); }
+        `,
+      }));
+      buildApi.onResolve({ filter: /^@nimiplatform\/sdk\/runtime\/wire-types$/ }, () => ({
+        path: 'sdk-runtime-wire-stub',
+        namespace: 'sdk-runtime-wire-stub',
+      }));
+      buildApi.onLoad({ filter: /.*/, namespace: 'sdk-runtime-wire-stub' }, () => ({
+        loader: 'js',
+        contents: 'export const RuntimeHealthStatus = { READY: 1 };',
+      }));
+      buildApi.onResolve({ filter: /^@nimiplatform\/kit\/shell\/renderer\/bridge$/ }, () => ({
+        path: 'kit-bridge-stub',
+        namespace: 'kit-bridge-stub',
+      }));
+      buildApi.onLoad({ filter: /.*/, namespace: 'kit-bridge-stub' }, () => ({
+        loader: 'js',
+        contents: 'export function createNimiLocalAppStandardShellSurface() { return {}; }',
       }));
       buildApi.onResolve({ filter: /^@nimiplatform\/sdk\/types$/ }, () => ({
         path: 'sdk-types-stub',

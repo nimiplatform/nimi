@@ -390,12 +390,24 @@ export class NimiRuntimeUnavailableError extends Error {
   }
 }
 
+export type NimiDesktopPermissionOwnerRuntimeClient = Pick<
+  RuntimeTypedClient,
+  | 'listLocalAppPermissionRequests'
+  | 'subscribeLocalAppPermissionRequests'
+  | 'getLocalAppPermissionOwnerProjection'
+  | 'listLocalAppPermissionOwnerProjections'
+  | 'decideLocalAppPermission'
+  | 'revokeLocalAppPermission'
+>;
+
 export class Runtime {
   readonly #core: CoreClient;
   readonly #appId: string;
   readonly #getSubjectUserId: () => string | Promise<string | undefined> | undefined;
   readonly #materializeRealmSource: RuntimeTypedClient['materializeRealmSource'];
   readonly generated: RuntimePublicGeneratedClient;
+  /** Protected Desktop owner plane; present only for host-owned Runtime clients. */
+  readonly desktopPermissionOwner?: NimiDesktopPermissionOwnerRuntimeClient;
   readonly account: RuntimeAccountModule;
   readonly agents: RuntimeAgentModule;
   readonly ai: RuntimeAiModule;
@@ -423,6 +435,16 @@ export class Runtime {
     const generated = new RuntimeTypedClient(this.#core);
     this.#materializeRealmSource = generated.materializeRealmSource.bind(generated);
     this.generated = createPublicRuntimeGeneratedClient(generated);
+    if (options.hostOwnedIdentity === true) {
+      this.desktopPermissionOwner = bindRuntimeModule(generated, [
+        'listLocalAppPermissionRequests',
+        'subscribeLocalAppPermissionRequests',
+        'getLocalAppPermissionOwnerProjection',
+        'listLocalAppPermissionOwnerProjections',
+        'decideLocalAppPermission',
+        'revokeLocalAppPermission',
+      ] as const);
+    }
     this.account = bindRuntimeModule(this.generated, RUNTIME_ACCOUNT_METHODS);
     this.agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);
     this.ai = bindRuntimeModule(generated, RUNTIME_AI_METHODS);

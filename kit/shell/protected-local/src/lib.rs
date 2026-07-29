@@ -70,16 +70,16 @@ pub use bundled_avatar::{
     BundledAvatarRuntimeStreamReceiver,
 };
 pub use carrier::{
-    DesktopControlFuture, LocalAppConversationEvent, LocalAppConversationOpenRequest,
-    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
-    LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
-    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
-    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionState,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
-    LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus, LocalAppStorageDocument,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
-    LocalAppStorageWriteRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
-    NimiProtectedLocalHostCarrier,
+    DesktopControlFuture, LocalAppAgentHandle, LocalAppConversationEvent,
+    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
+    LocalAppConversationSendRequest, LocalAppConversationSendResult,
+    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
+    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
+    LocalAppPermissionState, LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
+    LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiDesktopControl,
+    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
@@ -88,6 +88,8 @@ pub use desktop_account::{
     DesktopAccountSessionDeliveryKind, DesktopAccountSessionEvent,
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
+    DesktopPermissionOwnerUnaryMethod, DesktopPermissionOwnerUnaryRequest,
+    DesktopPermissionOwnerUnaryResponse,
 };
 pub use first_party_product::{
     DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,

@@ -28,54 +28,28 @@ test('Zhiyu voice capture derives readiness from Runtime audio.transcribe AI Con
   assert.equal(readiness.connectorId, 'connector-stt');
 });
 
-test('Zhiyu voice capture uses the first-party Runtime speech scenario without local-app carrier expansion', async () => {
+test('Zhiyu voice transcription fails closed while the local-app capability is not admitted', async () => {
   const module = await importVoiceCapture();
-  const calls = [];
-  globalThis.__nimiZhiyuVoiceTranscribeCalls = calls;
-  globalThis.__nimiZhiyuVoiceTranscribeResult = {
-    text: '你好，知予',
-    job: { jobId: 'job-voice-1' },
-    traceId: 'trace-voice-1',
-  };
-  try {
-    const transcribe = module.createElectronVoiceCaptureTranscriber({
-      agentId: 'agent-a',
-      ownerUserId: 'user-a',
-    });
-    const audio = Uint8Array.from([1, 2, 3]);
-    assert.deepEqual(await transcribe({
-      bytes: audio,
+  const transcribe = module.createElectronVoiceCaptureTranscriber({
+    agentId: 'agent-a',
+    ownerUserId: 'user-a',
+  });
+  await assert.rejects(
+    transcribe({
+      bytes: Uint8Array.from([1, 2, 3]),
       mimeType: 'audio/webm',
       requestId: 'voice-capture-test-request',
-    }), { text: '你好，知予', jobId: 'job-voice-1', traceId: 'trace-voice-1' });
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0].runtime, globalThis.__nimiZhiyuVoiceRuntime);
-    assert.deepEqual(calls[0].head, { appId: 'nimi.zhiyu', subjectUserId: 'user-a' });
-    assert.deepEqual(calls[0].audio, { type: 'bytes', bytes: audio });
-    assert.deepEqual({
-      mimeType: calls[0].mimeType,
-      requestId: calls[0].requestId,
-      idempotencyKey: calls[0].idempotencyKey,
-      labels: calls[0].labels,
-    }, {
-      mimeType: 'audio/webm',
-      requestId: 'voice-capture-test-request',
-      idempotencyKey: 'nimi.zhiyu:voice-transcription:voice-capture-test-request',
-      labels: { surface: 'zhiyu.agent-chat', localAgentRef: 'agent-a' },
-    });
-    assert.throws(
-      () => module.createElectronVoiceCaptureTranscriber({ agentId: '  ', ownerUserId: 'user-a' }),
-      (error) => error?.reasonCode === 'runtime-voice-capture-agent-required',
-    );
-    assert.throws(
-      () => module.createElectronVoiceCaptureTranscriber({ agentId: 'agent-a', ownerUserId: '  ' }),
-      (error) => error?.reasonCode === 'runtime-voice-capture-owner-required',
-    );
-  } finally {
-    delete globalThis.__nimiZhiyuVoiceTranscribeCalls;
-    delete globalThis.__nimiZhiyuVoiceTranscribeResult;
-    delete globalThis.__nimiZhiyuVoiceRuntime;
-  }
+    }),
+    (error) => error?.reasonCode === 'zhiyu-voice-transcription-capability-not-admitted',
+  );
+  assert.throws(
+    () => module.createElectronVoiceCaptureTranscriber({ agentId: '  ', ownerUserId: 'user-a' }),
+    (error) => error?.reasonCode === 'runtime-voice-capture-agent-required',
+  );
+  assert.throws(
+    () => module.createElectronVoiceCaptureTranscriber({ agentId: 'agent-a', ownerUserId: '  ' }),
+    (error) => error?.reasonCode === 'runtime-voice-capture-owner-required',
+  );
 });
 
 test('Zhiyu voice capture records bytes, calls Runtime STT, and returns transcript text', async () => {
@@ -215,28 +189,15 @@ async function buildVoiceCapture() {
     target: 'es2022',
     sourcemap: false,
     logLevel: 'silent',
-    plugins: [sdkAliasPlugin()],
+    plugins: [localAppCapabilityStubPlugin()],
   });
   return buildDir;
 }
 
-function sdkAliasPlugin() {
+function localAppCapabilityStubPlugin() {
   return {
-    name: 'runtime-speech-scenario-alias',
+    name: 'local-app-capability-stub',
     setup(buildApi) {
-      buildApi.onResolve({ filter: /^@nimiplatform\/sdk\/features\/generation$/ }, () => ({
-        path: 'runtime-generation-stub',
-        namespace: 'runtime-generation-stub',
-      }));
-      buildApi.onLoad({ filter: /.*/, namespace: 'runtime-generation-stub' }, () => ({
-        loader: 'js',
-        contents: `
-          export async function runNimiRuntimeSpeechTranscription(input) {
-            globalThis.__nimiZhiyuVoiceTranscribeCalls.push(input);
-            return globalThis.__nimiZhiyuVoiceTranscribeResult;
-          }
-        `,
-      }));
       buildApi.onResolve({ filter: /auth\/runtime-platform$/ }, () => ({
         path: 'runtime-platform-stub',
         namespace: 'runtime-platform-stub',
@@ -244,13 +205,13 @@ function sdkAliasPlugin() {
       buildApi.onLoad({ filter: /.*/, namespace: 'runtime-platform-stub' }, () => ({
         loader: 'js',
         contents: `
-          export const appId = 'nimi.zhiyu';
-          export async function getRuntimePlatformProjection() {
-            globalThis.__nimiZhiyuVoiceRuntime ||= { name: 'runtime-stub' };
-            return {
-              status: 'ready',
-              accountRuntime: globalThis.__nimiZhiyuVoiceRuntime,
-            };
+          export function requireZhiyuLocalAppCapability(capability) {
+            throw Object.assign(new Error('Zhiyu local-app capability is not admitted.'), {
+              reasonCode: \`zhiyu-\${capability}-capability-not-admitted\`,
+              actionHint: \`admit_zhiyu_\${capability.replaceAll('-', '_')}_capability\`,
+              source: 'sdk',
+              retryable: false,
+            });
           }
         `,
       }));

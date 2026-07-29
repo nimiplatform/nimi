@@ -17,7 +17,7 @@ type Descriptor struct {
 }
 
 var catalog = map[string]Descriptor{
-	"agents.interact":       {ID: "agents.interact", Admission: AdmissionReserved, ManifestAllowed: true},
+	"agents.interact":       {ID: "agents.interact", Admission: AdmissionAdmitted, ManifestAllowed: true},
 	"artifacts.open":        {ID: "artifacts.open", Admission: AdmissionReserved},
 	"account.profile.read":  {ID: "account.profile.read", Admission: AdmissionReserved},
 	"memory.read":           {ID: "memory.read", Admission: AdmissionReserved},

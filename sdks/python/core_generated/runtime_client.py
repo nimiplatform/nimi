@@ -24,12 +24,28 @@ RUNTIME_METHODS = [
     "response_type": "CompleteLoginResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
+    "service": "RuntimeAccountService",
+    "method": "DecideLocalAppPermission",
+    "kind": "unary",
+    "request_type": "DecideLocalAppPermissionRequest",
+    "response_type": "DecideLocalAppPermissionResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "service": "RuntimeAccountService",
     "method": "GetAccountSessionStatus",
     "kind": "unary",
     "request_type": "GetAccountSessionStatusRequest",
     "response_type": "GetAccountSessionStatusResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
+    "service": "RuntimeAccountService",
+    "method": "GetLocalAppPermissionOwnerProjection",
+    "kind": "unary",
+    "request_type": "GetLocalAppPermissionOwnerProjectionRequest",
+    "response_type": "GetLocalAppPermissionOwnerProjectionResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
@@ -56,6 +72,22 @@ RUNTIME_METHODS = [
     "response_type": "IssueWorkspaceBindingResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
+    "service": "RuntimeAccountService",
+    "method": "ListLocalAppPermissionOwnerProjections",
+    "kind": "unary",
+    "request_type": "ListLocalAppPermissionOwnerProjectionsRequest",
+    "response_type": "ListLocalAppPermissionOwnerProjectionsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
+    "service": "RuntimeAccountService",
+    "method": "ListLocalAppPermissionRequests",
+    "kind": "unary",
+    "request_type": "ListLocalAppPermissionRequestsRequest",
+    "response_type": "ListLocalAppPermissionRequestsResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/Logout",
     "service": "RuntimeAccountService",
     "method": "Logout",
@@ -80,6 +112,14 @@ RUNTIME_METHODS = [
     "response_type": "RequestPresenceVerificationResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
+    "service": "RuntimeAccountService",
+    "method": "RevokeLocalAppPermission",
+    "kind": "unary",
+    "request_type": "RevokeLocalAppPermissionRequest",
+    "response_type": "RevokeLocalAppPermissionResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "service": "RuntimeAccountService",
     "method": "RevokeWorkspaceBinding",
@@ -94,6 +134,14 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "SubscribeAccountSessionEventsRequest",
     "response_type": "AccountSessionEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
+    "service": "RuntimeAccountService",
+    "method": "SubscribeLocalAppPermissionRequests",
+    "kind": "server_stream",
+    "request_type": "SubscribeLocalAppPermissionRequestsRequest",
+    "response_type": "LocalAppPermissionInboxEvent"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",

@@ -153,6 +153,60 @@
           "response_type": "RequestLocalAppPermissionResponse",
           "request_stream": false,
           "response_stream": false
+        },
+        {
+          "name": "ListLocalAppPermissionRequests",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
+          "kind": "unary",
+          "request_type": "ListLocalAppPermissionRequestsRequest",
+          "response_type": "ListLocalAppPermissionRequestsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubscribeLocalAppPermissionRequests",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
+          "kind": "server_stream",
+          "request_type": "SubscribeLocalAppPermissionRequestsRequest",
+          "response_type": "LocalAppPermissionInboxEvent",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "GetLocalAppPermissionOwnerProjection",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
+          "kind": "unary",
+          "request_type": "GetLocalAppPermissionOwnerProjectionRequest",
+          "response_type": "GetLocalAppPermissionOwnerProjectionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListLocalAppPermissionOwnerProjections",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
+          "kind": "unary",
+          "request_type": "ListLocalAppPermissionOwnerProjectionsRequest",
+          "response_type": "ListLocalAppPermissionOwnerProjectionsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "DecideLocalAppPermission",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
+          "kind": "unary",
+          "request_type": "DecideLocalAppPermissionRequest",
+          "response_type": "DecideLocalAppPermissionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RevokeLocalAppPermission",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
+          "kind": "unary",
+          "request_type": "RevokeLocalAppPermissionRequest",
+          "response_type": "RevokeLocalAppPermissionResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     },
@@ -2215,15 +2269,21 @@
   "method_ids": [
     "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
     "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
+    "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+    "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
     "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
     "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
     "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
+    "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
+    "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
     "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
     "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+    "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+    "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
     "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
@@ -2463,12 +2523,28 @@
       "response_type": "CompleteLoginResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
+      "service": "RuntimeAccountService",
+      "method": "DecideLocalAppPermission",
+      "kind": "unary",
+      "request_type": "DecideLocalAppPermissionRequest",
+      "response_type": "DecideLocalAppPermissionResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
       "service": "RuntimeAccountService",
       "method": "GetAccountSessionStatus",
       "kind": "unary",
       "request_type": "GetAccountSessionStatusRequest",
       "response_type": "GetAccountSessionStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
+      "service": "RuntimeAccountService",
+      "method": "GetLocalAppPermissionOwnerProjection",
+      "kind": "unary",
+      "request_type": "GetLocalAppPermissionOwnerProjectionRequest",
+      "response_type": "GetLocalAppPermissionOwnerProjectionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
@@ -2495,6 +2571,22 @@
       "response_type": "IssueWorkspaceBindingResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
+      "service": "RuntimeAccountService",
+      "method": "ListLocalAppPermissionOwnerProjections",
+      "kind": "unary",
+      "request_type": "ListLocalAppPermissionOwnerProjectionsRequest",
+      "response_type": "ListLocalAppPermissionOwnerProjectionsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
+      "service": "RuntimeAccountService",
+      "method": "ListLocalAppPermissionRequests",
+      "kind": "unary",
+      "request_type": "ListLocalAppPermissionRequestsRequest",
+      "response_type": "ListLocalAppPermissionRequestsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/Logout",
       "service": "RuntimeAccountService",
       "method": "Logout",
@@ -2519,6 +2611,14 @@
       "response_type": "RequestPresenceVerificationResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
+      "service": "RuntimeAccountService",
+      "method": "RevokeLocalAppPermission",
+      "kind": "unary",
+      "request_type": "RevokeLocalAppPermissionRequest",
+      "response_type": "RevokeLocalAppPermissionResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
       "service": "RuntimeAccountService",
       "method": "RevokeWorkspaceBinding",
@@ -2533,6 +2633,14 @@
       "kind": "server_stream",
       "request_type": "SubscribeAccountSessionEventsRequest",
       "response_type": "AccountSessionEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
+      "service": "RuntimeAccountService",
+      "method": "SubscribeLocalAppPermissionRequests",
+      "kind": "server_stream",
+      "request_type": "SubscribeLocalAppPermissionRequestsRequest",
+      "response_type": "LocalAppPermissionInboxEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
@@ -4313,12 +4421,28 @@
       "response_type": "CompleteLoginResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
+      "service": "RuntimeAccountService",
+      "method": "DecideLocalAppPermission",
+      "kind": "unary",
+      "request_type": "DecideLocalAppPermissionRequest",
+      "response_type": "DecideLocalAppPermissionResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
       "service": "RuntimeAccountService",
       "method": "GetAccountSessionStatus",
       "kind": "unary",
       "request_type": "GetAccountSessionStatusRequest",
       "response_type": "GetAccountSessionStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
+      "service": "RuntimeAccountService",
+      "method": "GetLocalAppPermissionOwnerProjection",
+      "kind": "unary",
+      "request_type": "GetLocalAppPermissionOwnerProjectionRequest",
+      "response_type": "GetLocalAppPermissionOwnerProjectionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
@@ -4345,6 +4469,22 @@
       "response_type": "IssueWorkspaceBindingResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
+      "service": "RuntimeAccountService",
+      "method": "ListLocalAppPermissionOwnerProjections",
+      "kind": "unary",
+      "request_type": "ListLocalAppPermissionOwnerProjectionsRequest",
+      "response_type": "ListLocalAppPermissionOwnerProjectionsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
+      "service": "RuntimeAccountService",
+      "method": "ListLocalAppPermissionRequests",
+      "kind": "unary",
+      "request_type": "ListLocalAppPermissionRequestsRequest",
+      "response_type": "ListLocalAppPermissionRequestsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/Logout",
       "service": "RuntimeAccountService",
       "method": "Logout",
@@ -4369,6 +4509,14 @@
       "response_type": "RequestPresenceVerificationResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
+      "service": "RuntimeAccountService",
+      "method": "RevokeLocalAppPermission",
+      "kind": "unary",
+      "request_type": "RevokeLocalAppPermissionRequest",
+      "response_type": "RevokeLocalAppPermissionResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
       "service": "RuntimeAccountService",
       "method": "RevokeWorkspaceBinding",
@@ -4383,6 +4531,14 @@
       "kind": "server_stream",
       "request_type": "SubscribeAccountSessionEventsRequest",
       "response_type": "AccountSessionEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
+      "service": "RuntimeAccountService",
+      "method": "SubscribeLocalAppPermissionRequests",
+      "kind": "server_stream",
+      "request_type": "SubscribeLocalAppPermissionRequestsRequest",
+      "response_type": "LocalAppPermissionInboxEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
@@ -6275,6 +6431,8 @@
       "CreateConnectorResponse",
       "CreateKnowledgeBankRequest",
       "CreateKnowledgeBankResponse",
+      "DecideLocalAppPermissionRequest",
+      "DecideLocalAppPermissionResponse",
       "DecideLocalDevelopmentProjectRequest",
       "DecideLocalDevelopmentProjectResponse",
       "DelegatedApprovalRequest",
@@ -6370,6 +6528,8 @@
       "GetIngestTaskResponse",
       "GetKnowledgeBankRequest",
       "GetKnowledgeBankResponse",
+      "GetLocalAppPermissionOwnerProjectionRequest",
+      "GetLocalAppPermissionOwnerProjectionResponse",
       "GetLocalAppPermissionStatusRequest",
       "GetLocalAppPermissionStatusResponse",
       "GetLocalDevelopmentAuthoritySummaryRequest",
@@ -6475,6 +6635,10 @@
       "ListKnowledgeBanksResponse",
       "ListLinksRequest",
       "ListLinksResponse",
+      "ListLocalAppPermissionOwnerProjectionsRequest",
+      "ListLocalAppPermissionOwnerProjectionsResponse",
+      "ListLocalAppPermissionRequestsRequest",
+      "ListLocalAppPermissionRequestsResponse",
       "ListLocalAssetsRequest",
       "ListLocalAssetsResponse",
       "ListLocalAuditsRequest",
@@ -6514,6 +6678,11 @@
       "LocalAgentRecord",
       "LocalAgentSourceContextStatus",
       "LocalAgentSourceCoverageSectionStatus",
+      "LocalAppPermissionAgentHandle",
+      "LocalAppPermissionCoveredAgent",
+      "LocalAppPermissionInboxEvent",
+      "LocalAppPermissionOwnerProjection",
+      "LocalAppPermissionPendingRequest",
       "LocalAppPermissionProjection",
       "LocalAssetHealth",
       "LocalAssetRecord",
@@ -6734,6 +6903,8 @@
       "RetryLocalEnvironmentDependencyJobRequest",
       "RetryLocalEnvironmentDependencyJobResponse",
       "RevokeExternalPrincipalSessionRequest",
+      "RevokeLocalAppPermissionRequest",
+      "RevokeLocalAppPermissionResponse",
       "RevokeLocalDevelopmentAuthorizationRequest",
       "RevokeLocalDevelopmentAuthorizationResponse",
       "RevokeSessionRequest",
@@ -6826,6 +6997,7 @@
       "SubscribeAgentEventsRequest",
       "SubscribeAgentVoiceStreamRequest",
       "SubscribeAppMessagesRequest",
+      "SubscribeLocalAppPermissionRequestsRequest",
       "SubscribeMemoryEventsRequest",
       "SubscribeRuntimeAgentAIConfigReadinessRequest",
       "SubscribeRuntimeHealthEventsRequest",
@@ -6983,6 +7155,7 @@
       "HookTriggerFamily",
       "KnowledgeBankScope",
       "KnowledgeIngestTaskStatus",
+      "LocalAppPermissionOwnerPosture",
       "LocalAppPermissionPosture",
       "LocalAppSessionState",
       "LocalAppTrustClass",
@@ -12858,6 +13031,81 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "DecideLocalAppPermissionRequest",
+        "fields": [
+          {
+            "name": "caller",
+            "type": "AccountCaller",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "local_app_principal_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "permission_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "approved",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "expected_owner_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "DecideLocalAppPermissionResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "posture",
+            "type": "LocalAppPermissionPosture",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "owner_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
         "name": "DecideLocalDevelopmentProjectRequest",
         "fields": [
           {
@@ -15663,6 +15911,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "GetLocalAppPermissionOwnerProjectionRequest",
+        "fields": [
+          {
+            "name": "caller",
+            "type": "AccountCaller",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "local_app_principal_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "GetLocalAppPermissionOwnerProjectionResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "permissions",
+            "type": "LocalAppPermissionOwnerProjection",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "GetLocalAppPermissionStatusRequest",
@@ -18647,6 +18942,86 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "ListLocalAppPermissionOwnerProjectionsRequest",
+        "fields": [
+          {
+            "name": "caller",
+            "type": "AccountCaller",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "ListLocalAppPermissionOwnerProjectionsResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "permissions",
+            "type": "LocalAppPermissionOwnerProjection",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "ListLocalAppPermissionRequestsRequest",
+        "fields": [
+          {
+            "name": "caller",
+            "type": "AccountCaller",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "ListLocalAppPermissionRequestsResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "requests",
+            "type": "LocalAppPermissionPendingRequest",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
         "name": "ListLocalAssetsRequest",
         "fields": [
           {
@@ -19800,6 +20175,197 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
+        "name": "LocalAppPermissionAgentHandle",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "LocalAppPermissionCoveredAgent",
+        "fields": [
+          {
+            "name": "local_agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "LocalAppPermissionInboxEvent",
+        "fields": [
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "emitted_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "requests",
+            "type": "LocalAppPermissionPendingRequest",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "LocalAppPermissionOwnerProjection",
+        "fields": [
+          {
+            "name": "local_app_principal_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "permission_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "posture",
+            "type": "LocalAppPermissionOwnerPosture",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "owner_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "requested_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "decided_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "covered_agents",
+            "type": "LocalAppPermissionCoveredAgent",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "LocalAppPermissionPendingRequest",
+        "fields": [
+          {
+            "name": "local_app_principal_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "permission_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "requested_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "owner_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
         "name": "LocalAppPermissionProjection",
         "fields": [
           {
@@ -19829,6 +20395,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "agents",
+            "type": "LocalAppPermissionAgentHandle",
+            "repeated": true,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -29112,6 +29685,67 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
+        "name": "RevokeLocalAppPermissionRequest",
+        "fields": [
+          {
+            "name": "caller",
+            "type": "AccountCaller",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "local_app_principal_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "permission_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "RevokeLocalAppPermissionResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "posture",
+            "type": "LocalAppPermissionPosture",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "owner_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
         "name": "RevokeLocalDevelopmentAuthorizationRequest",
         "fields": [
           {
@@ -32258,6 +32892,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "SubscribeLocalAppPermissionRequestsRequest",
+        "fields": [
+          {
+            "name": "caller",
+            "type": "AccountCaller",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "SubscribeMemoryEventsRequest",
@@ -35664,6 +36311,18 @@
           "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "LocalAppPermissionOwnerPosture",
+        "values": [
+          "LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED",
+          "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING",
+          "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED",
+          "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED",
+          "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED",
+          "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED"
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "LocalAppPermissionPosture",

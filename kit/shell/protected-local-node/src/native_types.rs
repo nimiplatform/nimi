@@ -168,13 +168,13 @@ pub struct NativeStorageRemoveInput {
 
 #[napi(object)]
 pub struct NativeConversationOpenInput {
-    pub selected_agent_handle: String,
+    pub agent_handle: String,
     pub disposition: String,
 }
 
 #[napi(object)]
 pub struct NativeConversationSendInput {
-    pub selected_agent_handle: String,
+    pub agent_handle: String,
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub text: String,
@@ -182,7 +182,7 @@ pub struct NativeConversationSendInput {
 
 #[napi(object)]
 pub struct NativeConversationScopeInput {
-    pub selected_agent_handle: String,
+    pub agent_handle: String,
     pub conversation_anchor_id: String,
 }
 

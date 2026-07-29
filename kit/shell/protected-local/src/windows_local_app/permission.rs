@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use tonic::transport::Channel;
 
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
@@ -7,8 +9,8 @@ use crate::generated::{
 };
 use crate::grpc_status::{local_app_error_from_status, local_app_reason_from_proto};
 use crate::{
-    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionState,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
+    LocalAppAgentHandle, LocalAppOperationError, LocalAppPermissionRequest,
+    LocalAppPermissionState, LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
 };
 
 use super::{require_text, untrusted};
@@ -67,7 +69,19 @@ fn project_permission_status(
         ProtoPermissionPosture::Unavailable => LocalAppPermissionState::Unavailable,
         ProtoPermissionPosture::Unspecified => return Err(untrusted()),
     };
-    if projection.can_request != matches!(state, LocalAppPermissionState::Prompt) {
+    let mut seen_agent_handles = HashSet::with_capacity(projection.agents.len());
+    if projection.can_request != matches!(state, LocalAppPermissionState::Prompt)
+        || (!matches!(state, LocalAppPermissionState::Granted) && !projection.agents.is_empty())
+        || projection.agents.iter().any(|agent| {
+            agent.agent_handle.trim() != agent.agent_handle
+                || agent.agent_handle.is_empty()
+                || agent.agent_handle.len() > 240
+                || !seen_agent_handles.insert(agent.agent_handle.as_str())
+                || agent.display_name.trim() != agent.display_name
+                || agent.display_name.is_empty()
+                || agent.display_name.len() > 240
+        })
+    {
         return Err(untrusted());
     }
     let runtime_reason = ReasonCode::try_from(projection.reason_code).map_err(|_| untrusted())?;
@@ -77,6 +91,14 @@ fn project_permission_status(
         permission_id,
         can_request: projection.can_request,
         reason_code,
+        agents: projection
+            .agents
+            .into_iter()
+            .map(|agent| LocalAppAgentHandle {
+                agent_handle: agent.agent_handle,
+                display_name: agent.display_name,
+            })
+            .collect(),
     })
 }
 
@@ -91,6 +113,7 @@ mod tests {
             posture: ProtoPermissionPosture::Unavailable as i32,
             can_request: false,
             reason_code: ReasonCode::LocalAppOperationUnavailable as i32,
+            agents: Vec::new(),
         };
         let status = project_permission_status(projection, "agents.interact".to_string())
             .expect("reserved posture");
@@ -105,6 +128,38 @@ mod tests {
             posture: ProtoPermissionPosture::Unavailable as i32,
             can_request: false,
             reason_code: ReasonCode::LocalAppOperationUnavailable as i32,
+            agents: Vec::new(),
+        };
+        assert!(project_permission_status(projection, "agents.interact".to_string()).is_err());
+    }
+
+    #[test]
+    fn granted_permission_allows_an_empty_current_agent_scope() {
+        let projection = LocalAppPermissionProjection {
+            permission_id: "agents.interact".to_string(),
+            posture: ProtoPermissionPosture::Granted as i32,
+            can_request: false,
+            reason_code: ReasonCode::ActionExecuted as i32,
+            agents: Vec::new(),
+        };
+        let status = project_permission_status(projection, "agents.interact".to_string())
+            .expect("granted account scope");
+        assert_eq!(status.state, LocalAppPermissionState::Granted);
+        assert!(status.agents.is_empty());
+    }
+
+    #[test]
+    fn permission_projection_rejects_duplicate_agent_handles() {
+        let agent = crate::generated::LocalAppPermissionAgentHandle {
+            agent_handle: "lah_v1_opaque".to_string(),
+            display_name: "Owned Agent".to_string(),
+        };
+        let projection = LocalAppPermissionProjection {
+            permission_id: "agents.interact".to_string(),
+            posture: ProtoPermissionPosture::Granted as i32,
+            can_request: false,
+            reason_code: ReasonCode::ActionExecuted as i32,
+            agents: vec![agent.clone(), agent],
         };
         assert!(project_permission_status(projection, "agents.interact".to_string()).is_err());
     }

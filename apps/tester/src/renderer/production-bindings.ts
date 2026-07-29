@@ -31,6 +31,7 @@ import {
 } from '../tester/tester-ai-config-store.js';
 import { loadTesterAIConfigSummary } from '../tester/tester-ai-config.js';
 import { saveTesterArtifact } from '../tester/tester-artifact-storage.js';
+import { runTesterConversationJourney } from '../tester/local-app-conversation-journey.js';
 import { saveTesterExport } from '../tester/tester-export.js';
 import { appendTesterRunHistory, loadTesterRunHistory } from '../tester/tester-history-storage.js';
 import { appendTesterImageHistoryRecord } from '../tester/tester-image-history.js';
@@ -231,6 +232,17 @@ export function createTesterProductionBindings(
         },
         async localAppPermissionRequest(input: { readonly permissionId: PermissionID; readonly reason: string }) {
           return testerLocalAppClient.permissions.request(input);
+        },
+        async localAppConversationJourney(input: Parameters<TesterRendererCommandPort['localAppConversationJourney']>[0]) {
+          return runTesterConversationJourney({
+            conversation: testerLocalAppClient.conversation,
+            agentHandle: input.agentHandle,
+            requestId: createNimiClientId('tester-turn'),
+            text: input.text,
+          });
+        },
+        async localAppConversationSnapshot(input: Parameters<TesterRendererCommandPort['localAppConversationSnapshot']>[0]) {
+          return testerLocalAppClient.conversation.snapshot(input);
         },
         async localAppStorageRoundTrip(input: { readonly relativePath: string; readonly value: Readonly<Record<string, string | number>> }) {
           const written = await testerLocalAppClient.storage.writeJson(input.relativePath, input.value);

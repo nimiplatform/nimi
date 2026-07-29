@@ -21,18 +21,6 @@ func (p runtimeAgentTestStructPayload) AsMap() map[string]any {
 	return p.values
 }
 
-type runtimeAgentTestLocalAppAuthorizationError struct {
-	reason runtimev1.ReasonCode
-}
-
-func (e runtimeAgentTestLocalAppAuthorizationError) Error() string {
-	return "private local-app authorization detail"
-}
-
-func (e runtimeAgentTestLocalAppAuthorizationError) LocalAppOperationReasonCode() runtimev1.ReasonCode {
-	return e.reason
-}
-
 func TestCommittedRuntimeAgentAIConfigPreservesRepositoryCause(t *testing.T) {
 	svc, closeService := newAgentAIConfigTestServiceWithClose(t, t.TempDir()+"/runtime-state.json")
 	closeService()
@@ -107,22 +95,6 @@ func TestCompanionParticipationPayloadPreservesStructCause(t *testing.T) {
 	}
 	if strings.Contains(status.Convert(err).Message(), "chan") {
 		t.Fatalf("public status leaked struct detail: %q", status.Convert(err).Message())
-	}
-}
-
-func TestLocalAppConversationAuthorizationErrorPreservesCauseAndReason(t *testing.T) {
-	cause := runtimeAgentTestLocalAppAuthorizationError{
-		reason: runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED,
-	}
-	err := localAppConversationAuthorizationError(cause)
-	if !errors.Is(err, cause) {
-		t.Fatalf("authorization cause was discarded: %T: %v", errors.Unwrap(err), err)
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED {
-		t.Fatalf("reason = %s, ok = %v", reason, ok)
-	}
-	if strings.Contains(status.Convert(err).Message(), cause.Error()) {
-		t.Fatalf("public status leaked authorization detail: %q", status.Convert(err).Message())
 	}
 }
 

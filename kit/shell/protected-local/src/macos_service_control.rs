@@ -30,7 +30,8 @@ use crate::{
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
     DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
-    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest,
+    DesktopPermissionOwnerUnaryRequest, DesktopPermissionOwnerUnaryResponse, DeveloperModeStatus,
     FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
@@ -232,6 +233,25 @@ impl NimiDesktopControl for MacOSDesktopControl {
     > {
         Box::pin(async move {
             crate::windows_desktop_account::open_account_session_events(
+                self.host_channel()?,
+                request,
+            )
+            .await
+        })
+    }
+
+    fn invoke_permission_owner_unary(
+        &self,
+        request: DesktopPermissionOwnerUnaryRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopPermissionOwnerUnaryResponse, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            crate::windows_desktop_account::invoke_permission_owner_unary(
                 self.host_channel()?,
                 request,
             )

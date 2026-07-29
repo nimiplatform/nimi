@@ -7,6 +7,7 @@ const DESKTOP_ACCOUNT_COMMANDS = [
   'runtime_account_session_status',
   'runtime_account_session_events_open',
   'runtime_account_session_events_close',
+  'runtime_account_permission_owner_unary',
   'runtime_account_begin_login',
   'runtime_account_complete_login',
   'runtime_account_invoke_realm_unary',
@@ -25,6 +26,11 @@ export type NimiElectronDesktopAccountBinding = {
   readonly desktopAccountSessionEventsOpen: (input: { readonly afterSequence: string }) => Promise<NativeJsonOutcome>;
   readonly desktopAccountSessionEventsNext: (input: { readonly streamId: string }) => Promise<NativeJsonOutcome>;
   readonly desktopAccountSessionEventsClose: (input: { readonly streamId: string }) => Promise<NativeJsonOutcome>;
+  readonly desktopPermissionOwnerUnary: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => Promise<NativeJsonOutcome>;
   readonly desktopAccountBeginLogin: (input: unknown) => Promise<NativeJsonOutcome>;
   readonly desktopAccountCompleteLogin: (input: unknown) => Promise<NativeJsonOutcome>;
   readonly desktopAccountInvokeRealmUnary: (input: unknown) => Promise<NativeJsonOutcome>;
@@ -79,6 +85,9 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
     if (command === 'runtime_account_session_events_close') {
       return this.closeEvents(payload);
     }
+    if (command === 'runtime_account_permission_owner_unary') {
+      return this.permissionOwnerUnary(payload);
+    }
     assertExactKeys(
       payload,
       command === 'runtime_account_session_status' ? [] : ['payload'],
@@ -106,6 +115,38 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
       throw desktopAccountError('runtime-service-untrusted', false, command);
     }
     return outcome.value;
+  }
+
+  private async permissionOwnerUnary(payload: Readonly<Record<string, unknown>>): Promise<unknown> {
+    assertExactKeys(payload, ['methodId', 'requestBytesBase64', 'timeoutMs'], 'runtime_account_permission_owner_unary');
+    const methodId = String(payload.methodId || '').trim();
+    if (!PERMISSION_OWNER_METHODS.has(methodId)) {
+      throw desktopAccountError('runtime-service-untrusted', false, 'runtime_account_permission_owner_unary');
+    }
+    const requestBytesBase64 = String(payload.requestBytesBase64 || '');
+    if (!isCanonicalBase64(requestBytesBase64)) {
+      throw desktopAccountError('runtime-service-untrusted', false, 'runtime_account_permission_owner_unary');
+    }
+    const timeoutMs = payload.timeoutMs;
+    if (typeof timeoutMs !== 'number' || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30_000) {
+      throw desktopAccountError('runtime-service-untrusted', false, 'runtime_account_permission_owner_unary');
+    }
+    let outcome: NativeJsonOutcome;
+    try {
+      outcome = await this.binding.desktopPermissionOwnerUnary({
+        methodId,
+        requestBytes: Uint8Array.from(Buffer.from(requestBytesBase64, 'base64')),
+        timeoutMs,
+      });
+    } catch {
+      throw desktopAccountError('runtime-service-untrusted', false, 'runtime_account_permission_owner_unary');
+    }
+    if (outcome.status === 'error') throw nativeOutcomeError(outcome, 'runtime_account_permission_owner_unary');
+    const bytes = outcome.value;
+    if (!(bytes instanceof Uint8Array)) {
+      throw desktopAccountError('runtime-service-untrusted', false, 'runtime_account_permission_owner_unary');
+    }
+    return { responseBytesBase64: Buffer.from(bytes).toString('base64') };
   }
 
   close(): void {
@@ -287,6 +328,7 @@ function validateBinding(value: unknown): NimiElectronDesktopAccountBinding {
   for (const method of [
     ...Object.values(BINDING_METHOD_BY_COMMAND),
     'desktopAccountSessionEventsOpen',
+    'desktopPermissionOwnerUnary',
     'desktopAccountSessionEventsNext',
     'desktopAccountSessionEventsClose',
   ]) {
@@ -362,6 +404,20 @@ function desktopAccountError(reasonCode: string, retryable: boolean, command: st
     source: reasonCode === 'protected-carrier-required' ? 'electron' : 'runtime',
     details: { command, retryable },
   });
+}
+
+const PERMISSION_OWNER_METHODS = new Set([
+  '/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests',
+  '/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection',
+  '/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections',
+  '/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission',
+  '/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission',
+]);
+
+function isCanonicalBase64(value: string): boolean {
+  return value.length <= 4 * 1024 * 1024
+    && value.length % 4 === 0
+    && /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value);
 }
 
 function isBoundedReasonCode(value: string): boolean {

@@ -56,6 +56,7 @@ import {
   getDesktopLocalAssetAdminClient,
   getDesktopLocalAuditClient,
   getDesktopMachineProductClient,
+  getDesktopPermissionOwnerClient,
   getDesktopRealm,
   getDesktopRouteHostAccessClient,
   getDesktopRouteOptionsClient,
@@ -106,6 +107,7 @@ import {
   ensureProductAccountDefaultProfile,
   getAccountDefaultProfileForScopeInit,
 } from '../bridge/runtime-bridge/product-control.js';
+import { createDesktopLocalAppPermissionOwnerPort } from '../features/apps/local-app-permission-owner.js';
 import {
   createAccountProfileLibraryProfile,
   deleteAccountProfileLibraryProfile,
@@ -167,6 +169,10 @@ export function createDesktopProductionBindings(
   const runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort();
   const runtimeRouteAccess = createDesktopRuntimeRouteAccess(getDesktopRouteHostAccessClient);
   const offline = createDesktopProductionOfflinePort(getOfflineCoordinator());
+  const localAppPermissions = createDesktopLocalAppPermissionOwnerPort({
+    runtime: getDesktopPermissionOwnerClient,
+    caller: getDesktopRuntimeAccountCaller,
+  });
   const runtimeHealthCoordinator = createRuntimeHealthCoordinator(
     getDesktopAuditAdminClient,
     {
@@ -265,6 +271,14 @@ export function createDesktopProductionBindings(
         voiceCapture: createDesktopProductionVoiceCapturePort(),
         localModelProgress: createDesktopProductionLocalModelProgressPort(),
         virtualization: createDesktopProductionVirtualizationPort(),
+        localAppPermissions: Object.freeze({
+          listPending: localAppPermissions.listPending,
+          approve: localAppPermissions.approve,
+          deny: localAppPermissions.deny,
+          revoke: localAppPermissions.revoke,
+          getProjection: localAppPermissions.getProjection,
+          listProjections: localAppPermissions.listProjections,
+        }),
         avatarHandoff: Object.freeze({
           available: hasTauriInvoke,
           list: (agentId: string) => listDesktopAvatarLiveInstances({ agentId }),
@@ -485,6 +499,7 @@ export function createDesktopProductionBindings(
         subscribeAttention: attention.subscribe,
         subscribeDeveloperMode,
         subscribeLocalDevelopmentApprovals,
+        subscribeLocalAppPermissionRequests: localAppPermissions.subscribePending,
         subscribeProductControlRecord(listener: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['subscribeProductControlRecord']
         >[0]) {

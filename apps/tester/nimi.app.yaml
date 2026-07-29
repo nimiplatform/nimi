@@ -2,7 +2,9 @@ app_id: nimi.tester
 display_name: Nimi Lab
 profile: standalone
 manifest_role: submitted-input
-permissions: []
+permissions:
+  - id: agents.interact
+    reason: Nimi Lab needs access to all current and future Agents on this account to verify conversation journeys.
 local_development:
   electron:
     renderer_origin: http://127.0.0.1:1468

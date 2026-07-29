@@ -445,11 +445,17 @@ function createCommandPort(context: TesterSimulatorPrepareContext) {
       return { state: 'unavailable', sessionBound: false };
     },
     async localAppPermissionStatus(_permissionId: PermissionID) {
-      return { posture: 'unavailable', canRequest: false, detail: 'Reserved permission is intentionally unavailable in the simulation.' };
+      return { posture: 'unavailable', canRequest: false, agents: [], detail: 'Permission is unavailable in the selected simulation.' };
     },
     async localAppPermissionRequest(input: { readonly permissionId: PermissionID; readonly reason: string }) {
       await recordAction(context, 'permission-request', input.permissionId, { reason: input.reason, admitted: false });
       throw hostError('Reserved permission request rejected by the simulated host.', 'TESTER_SIMULATED_PERMISSION_UNAVAILABLE');
+    },
+    async localAppConversationJourney() {
+      return unmodeledEffect('Local-app conversation journey');
+    },
+    async localAppConversationSnapshot() {
+      return unmodeledEffect('Local-app conversation snapshot');
     },
     async localAppStorageRoundTrip(input: { readonly relativePath: string; readonly value: Readonly<Record<string, string | number>> }) {
       return unmodeledEffect(`App-private storage round trip (${input.relativePath})`);

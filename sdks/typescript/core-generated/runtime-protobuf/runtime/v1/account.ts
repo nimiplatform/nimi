@@ -721,6 +721,23 @@ export interface LocalAppPermissionProjection {
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
      */
     reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppPermissionAgentHandle agents = 7
+     */
+    agents: LocalAppPermissionAgentHandle[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppPermissionAgentHandle
+ */
+export interface LocalAppPermissionAgentHandle {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppPermissionStatusRequest
@@ -761,6 +778,285 @@ export interface RequestLocalAppPermissionResponse {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppPermissionProjection projection = 1
      */
     projection?: LocalAppPermissionProjection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppPermissionPendingRequest
+ */
+export interface LocalAppPermissionPendingRequest {
+    /**
+     * @generated from protobuf field: string local_app_principal_id = 1
+     */
+    localAppPrincipalId: string;
+    /**
+     * @generated from protobuf field: string display_app_id = 2
+     */
+    displayAppId: string;
+    /**
+     * @generated from protobuf field: string permission_id = 3
+     */
+    permissionId: string;
+    /**
+     * @generated from protobuf field: string reason = 4
+     */
+    reason: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp requested_at = 5
+     */
+    requestedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: uint64 owner_revision = 6
+     */
+    ownerRevision: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppPermissionRequestsRequest
+ */
+export interface ListLocalAppPermissionRequestsRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
+     */
+    caller?: AccountCaller;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppPermissionRequestsResponse
+ */
+export interface ListLocalAppPermissionRequestsResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppPermissionPendingRequest requests = 2
+     */
+    requests: LocalAppPermissionPendingRequest[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest
+ */
+export interface SubscribeLocalAppPermissionRequestsRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
+     */
+    caller?: AccountCaller;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppPermissionInboxEvent
+ */
+export interface LocalAppPermissionInboxEvent {
+    /**
+     * @generated from protobuf field: uint64 sequence = 1
+     */
+    sequence: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp emitted_at = 2
+     */
+    emittedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppPermissionPendingRequest requests = 3
+     */
+    requests: LocalAppPermissionPendingRequest[];
+    /**
+     * @generated from protobuf field: bool accepted = 4
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppPermissionCoveredAgent
+ */
+export interface LocalAppPermissionCoveredAgent {
+    /**
+     * @generated from protobuf field: string local_agent_id = 1
+     */
+    localAgentId: string;
+    /**
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppPermissionOwnerProjection
+ */
+export interface LocalAppPermissionOwnerProjection {
+    /**
+     * @generated from protobuf field: string local_app_principal_id = 1
+     */
+    localAppPrincipalId: string;
+    /**
+     * @generated from protobuf field: string display_app_id = 2
+     */
+    displayAppId: string;
+    /**
+     * @generated from protobuf field: string permission_id = 3
+     */
+    permissionId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppPermissionOwnerPosture posture = 4
+     */
+    posture: LocalAppPermissionOwnerPosture;
+    /**
+     * @generated from protobuf field: uint64 owner_revision = 6
+     */
+    ownerRevision: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp requested_at = 7
+     */
+    requestedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp decided_at = 8
+     */
+    decidedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppPermissionCoveredAgent covered_agents = 9
+     */
+    coveredAgents: LocalAppPermissionCoveredAgent[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest
+ */
+export interface GetLocalAppPermissionOwnerProjectionRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
+     */
+    caller?: AccountCaller;
+    /**
+     * @generated from protobuf field: string local_app_principal_id = 2
+     */
+    localAppPrincipalId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse
+ */
+export interface GetLocalAppPermissionOwnerProjectionResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppPermissionOwnerProjection permissions = 2
+     */
+    permissions: LocalAppPermissionOwnerProjection[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsRequest
+ */
+export interface ListLocalAppPermissionOwnerProjectionsRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
+     */
+    caller?: AccountCaller;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsResponse
+ */
+export interface ListLocalAppPermissionOwnerProjectionsResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppPermissionOwnerProjection permissions = 2
+     */
+    permissions: LocalAppPermissionOwnerProjection[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DecideLocalAppPermissionRequest
+ */
+export interface DecideLocalAppPermissionRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
+     */
+    caller?: AccountCaller;
+    /**
+     * @generated from protobuf field: string local_app_principal_id = 2
+     */
+    localAppPrincipalId: string;
+    /**
+     * @generated from protobuf field: string permission_id = 3
+     */
+    permissionId: string;
+    /**
+     * @generated from protobuf field: bool approved = 5
+     */
+    approved: boolean;
+    /**
+     * @generated from protobuf field: uint64 expected_owner_revision = 6
+     */
+    expectedOwnerRevision: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DecideLocalAppPermissionResponse
+ */
+export interface DecideLocalAppPermissionResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppPermissionPosture posture = 2
+     */
+    posture: LocalAppPermissionPosture;
+    /**
+     * @generated from protobuf field: uint64 owner_revision = 3
+     */
+    ownerRevision: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RevokeLocalAppPermissionRequest
+ */
+export interface RevokeLocalAppPermissionRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
+     */
+    caller?: AccountCaller;
+    /**
+     * @generated from protobuf field: string local_app_principal_id = 2
+     */
+    localAppPrincipalId: string;
+    /**
+     * @generated from protobuf field: string permission_id = 3
+     */
+    permissionId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RevokeLocalAppPermissionResponse
+ */
+export interface RevokeLocalAppPermissionResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppPermissionPosture posture = 2
+     */
+    posture: LocalAppPermissionPosture;
+    /**
+     * @generated from protobuf field: uint64 owner_revision = 3
+     */
+    ownerRevision: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
+     */
+    reasonCode: ReasonCode;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AccountSessionState
@@ -1256,6 +1552,35 @@ export enum LocalAppPermissionPosture {
      * @generated from protobuf enum value: LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE = 5;
      */
     UNAVAILABLE = 5
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppPermissionOwnerPosture
+ */
+export enum LocalAppPermissionOwnerPosture {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING = 1;
+     */
+    PENDING = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED = 2;
+     */
+    GRANTED = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED = 3;
+     */
+    DENIED = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED = 4;
+     */
+    EXPIRED = 4,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED = 5;
+     */
+    REVOKED = 5
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class WorkspaceMembershipProjection$Type extends MessageType<WorkspaceMembershipProjection> {
@@ -3350,7 +3675,8 @@ class LocalAppPermissionProjection$Type extends MessageType<LocalAppPermissionPr
             { no: 1, name: "permission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "posture", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppPermissionPosture", LocalAppPermissionPosture, "LOCAL_APP_PERMISSION_POSTURE_"] },
             { no: 3, name: "can_request", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 7, name: "agents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppPermissionAgentHandle }
         ]);
     }
     create(value?: PartialMessage<LocalAppPermissionProjection>): LocalAppPermissionProjection {
@@ -3359,6 +3685,7 @@ class LocalAppPermissionProjection$Type extends MessageType<LocalAppPermissionPr
         message.posture = 0;
         message.canRequest = false;
         message.reasonCode = 0;
+        message.agents = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAppPermissionProjection>(this, message, value);
         return message;
@@ -3379,6 +3706,9 @@ class LocalAppPermissionProjection$Type extends MessageType<LocalAppPermissionPr
                     break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
                     message.reasonCode = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppPermissionAgentHandle agents */ 7:
+                    message.agents.push(LocalAppPermissionAgentHandle.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3404,6 +3734,9 @@ class LocalAppPermissionProjection$Type extends MessageType<LocalAppPermissionPr
         /* nimi.runtime.v1.ReasonCode reason_code = 4; */
         if (message.reasonCode !== 0)
             writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        /* repeated nimi.runtime.v1.LocalAppPermissionAgentHandle agents = 7; */
+        for (let i = 0; i < message.agents.length; i++)
+            LocalAppPermissionAgentHandle.internalBinaryWrite(message.agents[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3414,6 +3747,61 @@ class LocalAppPermissionProjection$Type extends MessageType<LocalAppPermissionPr
  * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppPermissionProjection
  */
 export const LocalAppPermissionProjection = new LocalAppPermissionProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppPermissionAgentHandle$Type extends MessageType<LocalAppPermissionAgentHandle> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppPermissionAgentHandle", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppPermissionAgentHandle>): LocalAppPermissionAgentHandle {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppPermissionAgentHandle>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppPermissionAgentHandle): LocalAppPermissionAgentHandle {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppPermissionAgentHandle, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppPermissionAgentHandle
+ */
+export const LocalAppPermissionAgentHandle = new LocalAppPermissionAgentHandle$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetLocalAppPermissionStatusRequest$Type extends MessageType<GetLocalAppPermissionStatusRequest> {
     constructor() {
@@ -3608,3 +3996,986 @@ class RequestLocalAppPermissionResponse$Type extends MessageType<RequestLocalApp
  * @generated MessageType for protobuf message nimi.runtime.v1.RequestLocalAppPermissionResponse
  */
 export const RequestLocalAppPermissionResponse = new RequestLocalAppPermissionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppPermissionPendingRequest$Type extends MessageType<LocalAppPermissionPendingRequest> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppPermissionPendingRequest", [
+            { no: 1, name: "local_app_principal_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "permission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "requested_at", kind: "message", T: () => Timestamp },
+            { no: 6, name: "owner_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppPermissionPendingRequest>): LocalAppPermissionPendingRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAppPrincipalId = "";
+        message.displayAppId = "";
+        message.permissionId = "";
+        message.reason = "";
+        message.ownerRevision = "0";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppPermissionPendingRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppPermissionPendingRequest): LocalAppPermissionPendingRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string local_app_principal_id */ 1:
+                    message.localAppPrincipalId = reader.string();
+                    break;
+                case /* string display_app_id */ 2:
+                    message.displayAppId = reader.string();
+                    break;
+                case /* string permission_id */ 3:
+                    message.permissionId = reader.string();
+                    break;
+                case /* string reason */ 4:
+                    message.reason = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp requested_at */ 5:
+                    message.requestedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.requestedAt);
+                    break;
+                case /* uint64 owner_revision */ 6:
+                    message.ownerRevision = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppPermissionPendingRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_app_principal_id = 1; */
+        if (message.localAppPrincipalId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localAppPrincipalId);
+        /* string display_app_id = 2; */
+        if (message.displayAppId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayAppId);
+        /* string permission_id = 3; */
+        if (message.permissionId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.permissionId);
+        /* string reason = 4; */
+        if (message.reason !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.reason);
+        /* google.protobuf.Timestamp requested_at = 5; */
+        if (message.requestedAt)
+            Timestamp.internalBinaryWrite(message.requestedAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 owner_revision = 6; */
+        if (message.ownerRevision !== "0")
+            writer.tag(6, WireType.Varint).uint64(message.ownerRevision);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppPermissionPendingRequest
+ */
+export const LocalAppPermissionPendingRequest = new LocalAppPermissionPendingRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppPermissionRequestsRequest$Type extends MessageType<ListLocalAppPermissionRequestsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppPermissionRequestsRequest", [
+            { no: 1, name: "caller", kind: "message", T: () => AccountCaller }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppPermissionRequestsRequest>): ListLocalAppPermissionRequestsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppPermissionRequestsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppPermissionRequestsRequest): ListLocalAppPermissionRequestsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AccountCaller caller */ 1:
+                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppPermissionRequestsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AccountCaller caller = 1; */
+        if (message.caller)
+            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppPermissionRequestsRequest
+ */
+export const ListLocalAppPermissionRequestsRequest = new ListLocalAppPermissionRequestsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppPermissionRequestsResponse$Type extends MessageType<ListLocalAppPermissionRequestsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppPermissionRequestsResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "requests", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppPermissionPendingRequest },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppPermissionRequestsResponse>): ListLocalAppPermissionRequestsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.requests = [];
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppPermissionRequestsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppPermissionRequestsResponse): ListLocalAppPermissionRequestsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppPermissionPendingRequest requests */ 2:
+                    message.requests.push(LocalAppPermissionPendingRequest.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppPermissionRequestsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* repeated nimi.runtime.v1.LocalAppPermissionPendingRequest requests = 2; */
+        for (let i = 0; i < message.requests.length; i++)
+            LocalAppPermissionPendingRequest.internalBinaryWrite(message.requests[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppPermissionRequestsResponse
+ */
+export const ListLocalAppPermissionRequestsResponse = new ListLocalAppPermissionRequestsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubscribeLocalAppPermissionRequestsRequest$Type extends MessageType<SubscribeLocalAppPermissionRequestsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest", [
+            { no: 1, name: "caller", kind: "message", T: () => AccountCaller }
+        ]);
+    }
+    create(value?: PartialMessage<SubscribeLocalAppPermissionRequestsRequest>): SubscribeLocalAppPermissionRequestsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<SubscribeLocalAppPermissionRequestsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeLocalAppPermissionRequestsRequest): SubscribeLocalAppPermissionRequestsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AccountCaller caller */ 1:
+                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubscribeLocalAppPermissionRequestsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AccountCaller caller = 1; */
+        if (message.caller)
+            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest
+ */
+export const SubscribeLocalAppPermissionRequestsRequest = new SubscribeLocalAppPermissionRequestsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppPermissionInboxEvent$Type extends MessageType<LocalAppPermissionInboxEvent> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppPermissionInboxEvent", [
+            { no: 1, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "emitted_at", kind: "message", T: () => Timestamp },
+            { no: 3, name: "requests", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppPermissionPendingRequest },
+            { no: 4, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppPermissionInboxEvent>): LocalAppPermissionInboxEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sequence = "0";
+        message.requests = [];
+        message.accepted = false;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppPermissionInboxEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppPermissionInboxEvent): LocalAppPermissionInboxEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 sequence */ 1:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                case /* google.protobuf.Timestamp emitted_at */ 2:
+                    message.emittedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.emittedAt);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppPermissionPendingRequest requests */ 3:
+                    message.requests.push(LocalAppPermissionPendingRequest.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool accepted */ 4:
+                    message.accepted = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppPermissionInboxEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 sequence = 1; */
+        if (message.sequence !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.sequence);
+        /* google.protobuf.Timestamp emitted_at = 2; */
+        if (message.emittedAt)
+            Timestamp.internalBinaryWrite(message.emittedAt, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppPermissionPendingRequest requests = 3; */
+        for (let i = 0; i < message.requests.length; i++)
+            LocalAppPermissionPendingRequest.internalBinaryWrite(message.requests[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* bool accepted = 4; */
+        if (message.accepted !== false)
+            writer.tag(4, WireType.Varint).bool(message.accepted);
+        /* nimi.runtime.v1.ReasonCode reason_code = 5; */
+        if (message.reasonCode !== 0)
+            writer.tag(5, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppPermissionInboxEvent
+ */
+export const LocalAppPermissionInboxEvent = new LocalAppPermissionInboxEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppPermissionCoveredAgent$Type extends MessageType<LocalAppPermissionCoveredAgent> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppPermissionCoveredAgent", [
+            { no: 1, name: "local_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppPermissionCoveredAgent>): LocalAppPermissionCoveredAgent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAgentId = "";
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppPermissionCoveredAgent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppPermissionCoveredAgent): LocalAppPermissionCoveredAgent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string local_agent_id */ 1:
+                    message.localAgentId = reader.string();
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppPermissionCoveredAgent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_agent_id = 1; */
+        if (message.localAgentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localAgentId);
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppPermissionCoveredAgent
+ */
+export const LocalAppPermissionCoveredAgent = new LocalAppPermissionCoveredAgent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppPermissionOwnerProjection$Type extends MessageType<LocalAppPermissionOwnerProjection> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppPermissionOwnerProjection", [
+            { no: 1, name: "local_app_principal_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "permission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "posture", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppPermissionOwnerPosture", LocalAppPermissionOwnerPosture, "LOCAL_APP_PERMISSION_OWNER_POSTURE_"] },
+            { no: 6, name: "owner_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "requested_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "decided_at", kind: "message", T: () => Timestamp },
+            { no: 9, name: "covered_agents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppPermissionCoveredAgent }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppPermissionOwnerProjection>): LocalAppPermissionOwnerProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAppPrincipalId = "";
+        message.displayAppId = "";
+        message.permissionId = "";
+        message.posture = 0;
+        message.ownerRevision = "0";
+        message.coveredAgents = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppPermissionOwnerProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppPermissionOwnerProjection): LocalAppPermissionOwnerProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string local_app_principal_id */ 1:
+                    message.localAppPrincipalId = reader.string();
+                    break;
+                case /* string display_app_id */ 2:
+                    message.displayAppId = reader.string();
+                    break;
+                case /* string permission_id */ 3:
+                    message.permissionId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppPermissionOwnerPosture posture */ 4:
+                    message.posture = reader.int32();
+                    break;
+                case /* uint64 owner_revision */ 6:
+                    message.ownerRevision = reader.uint64().toString();
+                    break;
+                case /* google.protobuf.Timestamp requested_at */ 7:
+                    message.requestedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.requestedAt);
+                    break;
+                case /* google.protobuf.Timestamp decided_at */ 8:
+                    message.decidedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.decidedAt);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppPermissionCoveredAgent covered_agents */ 9:
+                    message.coveredAgents.push(LocalAppPermissionCoveredAgent.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppPermissionOwnerProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_app_principal_id = 1; */
+        if (message.localAppPrincipalId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localAppPrincipalId);
+        /* string display_app_id = 2; */
+        if (message.displayAppId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayAppId);
+        /* string permission_id = 3; */
+        if (message.permissionId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.permissionId);
+        /* nimi.runtime.v1.LocalAppPermissionOwnerPosture posture = 4; */
+        if (message.posture !== 0)
+            writer.tag(4, WireType.Varint).int32(message.posture);
+        /* uint64 owner_revision = 6; */
+        if (message.ownerRevision !== "0")
+            writer.tag(6, WireType.Varint).uint64(message.ownerRevision);
+        /* google.protobuf.Timestamp requested_at = 7; */
+        if (message.requestedAt)
+            Timestamp.internalBinaryWrite(message.requestedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp decided_at = 8; */
+        if (message.decidedAt)
+            Timestamp.internalBinaryWrite(message.decidedAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppPermissionCoveredAgent covered_agents = 9; */
+        for (let i = 0; i < message.coveredAgents.length; i++)
+            LocalAppPermissionCoveredAgent.internalBinaryWrite(message.coveredAgents[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppPermissionOwnerProjection
+ */
+export const LocalAppPermissionOwnerProjection = new LocalAppPermissionOwnerProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalAppPermissionOwnerProjectionRequest$Type extends MessageType<GetLocalAppPermissionOwnerProjectionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest", [
+            { no: 1, name: "caller", kind: "message", T: () => AccountCaller },
+            { no: 2, name: "local_app_principal_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalAppPermissionOwnerProjectionRequest>): GetLocalAppPermissionOwnerProjectionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAppPrincipalId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalAppPermissionOwnerProjectionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalAppPermissionOwnerProjectionRequest): GetLocalAppPermissionOwnerProjectionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AccountCaller caller */ 1:
+                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
+                    break;
+                case /* string local_app_principal_id */ 2:
+                    message.localAppPrincipalId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalAppPermissionOwnerProjectionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AccountCaller caller = 1; */
+        if (message.caller)
+            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string local_app_principal_id = 2; */
+        if (message.localAppPrincipalId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.localAppPrincipalId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest
+ */
+export const GetLocalAppPermissionOwnerProjectionRequest = new GetLocalAppPermissionOwnerProjectionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalAppPermissionOwnerProjectionResponse$Type extends MessageType<GetLocalAppPermissionOwnerProjectionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "permissions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppPermissionOwnerProjection },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalAppPermissionOwnerProjectionResponse>): GetLocalAppPermissionOwnerProjectionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.permissions = [];
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalAppPermissionOwnerProjectionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalAppPermissionOwnerProjectionResponse): GetLocalAppPermissionOwnerProjectionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppPermissionOwnerProjection permissions */ 2:
+                    message.permissions.push(LocalAppPermissionOwnerProjection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalAppPermissionOwnerProjectionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* repeated nimi.runtime.v1.LocalAppPermissionOwnerProjection permissions = 2; */
+        for (let i = 0; i < message.permissions.length; i++)
+            LocalAppPermissionOwnerProjection.internalBinaryWrite(message.permissions[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse
+ */
+export const GetLocalAppPermissionOwnerProjectionResponse = new GetLocalAppPermissionOwnerProjectionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppPermissionOwnerProjectionsRequest$Type extends MessageType<ListLocalAppPermissionOwnerProjectionsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsRequest", [
+            { no: 1, name: "caller", kind: "message", T: () => AccountCaller }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppPermissionOwnerProjectionsRequest>): ListLocalAppPermissionOwnerProjectionsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppPermissionOwnerProjectionsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppPermissionOwnerProjectionsRequest): ListLocalAppPermissionOwnerProjectionsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AccountCaller caller */ 1:
+                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppPermissionOwnerProjectionsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AccountCaller caller = 1; */
+        if (message.caller)
+            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsRequest
+ */
+export const ListLocalAppPermissionOwnerProjectionsRequest = new ListLocalAppPermissionOwnerProjectionsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppPermissionOwnerProjectionsResponse$Type extends MessageType<ListLocalAppPermissionOwnerProjectionsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "permissions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppPermissionOwnerProjection },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppPermissionOwnerProjectionsResponse>): ListLocalAppPermissionOwnerProjectionsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.permissions = [];
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppPermissionOwnerProjectionsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppPermissionOwnerProjectionsResponse): ListLocalAppPermissionOwnerProjectionsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppPermissionOwnerProjection permissions */ 2:
+                    message.permissions.push(LocalAppPermissionOwnerProjection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppPermissionOwnerProjectionsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* repeated nimi.runtime.v1.LocalAppPermissionOwnerProjection permissions = 2; */
+        for (let i = 0; i < message.permissions.length; i++)
+            LocalAppPermissionOwnerProjection.internalBinaryWrite(message.permissions[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsResponse
+ */
+export const ListLocalAppPermissionOwnerProjectionsResponse = new ListLocalAppPermissionOwnerProjectionsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DecideLocalAppPermissionRequest$Type extends MessageType<DecideLocalAppPermissionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.DecideLocalAppPermissionRequest", [
+            { no: 1, name: "caller", kind: "message", T: () => AccountCaller },
+            { no: 2, name: "local_app_principal_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "permission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "approved", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "expected_owner_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DecideLocalAppPermissionRequest>): DecideLocalAppPermissionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAppPrincipalId = "";
+        message.permissionId = "";
+        message.approved = false;
+        message.expectedOwnerRevision = "0";
+        if (value !== undefined)
+            reflectionMergePartial<DecideLocalAppPermissionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DecideLocalAppPermissionRequest): DecideLocalAppPermissionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AccountCaller caller */ 1:
+                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
+                    break;
+                case /* string local_app_principal_id */ 2:
+                    message.localAppPrincipalId = reader.string();
+                    break;
+                case /* string permission_id */ 3:
+                    message.permissionId = reader.string();
+                    break;
+                case /* bool approved */ 5:
+                    message.approved = reader.bool();
+                    break;
+                case /* uint64 expected_owner_revision */ 6:
+                    message.expectedOwnerRevision = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DecideLocalAppPermissionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AccountCaller caller = 1; */
+        if (message.caller)
+            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string local_app_principal_id = 2; */
+        if (message.localAppPrincipalId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.localAppPrincipalId);
+        /* string permission_id = 3; */
+        if (message.permissionId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.permissionId);
+        /* bool approved = 5; */
+        if (message.approved !== false)
+            writer.tag(5, WireType.Varint).bool(message.approved);
+        /* uint64 expected_owner_revision = 6; */
+        if (message.expectedOwnerRevision !== "0")
+            writer.tag(6, WireType.Varint).uint64(message.expectedOwnerRevision);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DecideLocalAppPermissionRequest
+ */
+export const DecideLocalAppPermissionRequest = new DecideLocalAppPermissionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DecideLocalAppPermissionResponse$Type extends MessageType<DecideLocalAppPermissionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.DecideLocalAppPermissionResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "posture", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppPermissionPosture", LocalAppPermissionPosture, "LOCAL_APP_PERMISSION_POSTURE_"] },
+            { no: 3, name: "owner_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<DecideLocalAppPermissionResponse>): DecideLocalAppPermissionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.posture = 0;
+        message.ownerRevision = "0";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<DecideLocalAppPermissionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DecideLocalAppPermissionResponse): DecideLocalAppPermissionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.LocalAppPermissionPosture posture */ 2:
+                    message.posture = reader.int32();
+                    break;
+                case /* uint64 owner_revision */ 3:
+                    message.ownerRevision = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DecideLocalAppPermissionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* nimi.runtime.v1.LocalAppPermissionPosture posture = 2; */
+        if (message.posture !== 0)
+            writer.tag(2, WireType.Varint).int32(message.posture);
+        /* uint64 owner_revision = 3; */
+        if (message.ownerRevision !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.ownerRevision);
+        /* nimi.runtime.v1.ReasonCode reason_code = 4; */
+        if (message.reasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DecideLocalAppPermissionResponse
+ */
+export const DecideLocalAppPermissionResponse = new DecideLocalAppPermissionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RevokeLocalAppPermissionRequest$Type extends MessageType<RevokeLocalAppPermissionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RevokeLocalAppPermissionRequest", [
+            { no: 1, name: "caller", kind: "message", T: () => AccountCaller },
+            { no: 2, name: "local_app_principal_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "permission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RevokeLocalAppPermissionRequest>): RevokeLocalAppPermissionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAppPrincipalId = "";
+        message.permissionId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RevokeLocalAppPermissionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevokeLocalAppPermissionRequest): RevokeLocalAppPermissionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AccountCaller caller */ 1:
+                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
+                    break;
+                case /* string local_app_principal_id */ 2:
+                    message.localAppPrincipalId = reader.string();
+                    break;
+                case /* string permission_id */ 3:
+                    message.permissionId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RevokeLocalAppPermissionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AccountCaller caller = 1; */
+        if (message.caller)
+            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string local_app_principal_id = 2; */
+        if (message.localAppPrincipalId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.localAppPrincipalId);
+        /* string permission_id = 3; */
+        if (message.permissionId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.permissionId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RevokeLocalAppPermissionRequest
+ */
+export const RevokeLocalAppPermissionRequest = new RevokeLocalAppPermissionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RevokeLocalAppPermissionResponse$Type extends MessageType<RevokeLocalAppPermissionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RevokeLocalAppPermissionResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "posture", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppPermissionPosture", LocalAppPermissionPosture, "LOCAL_APP_PERMISSION_POSTURE_"] },
+            { no: 3, name: "owner_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<RevokeLocalAppPermissionResponse>): RevokeLocalAppPermissionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.posture = 0;
+        message.ownerRevision = "0";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RevokeLocalAppPermissionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevokeLocalAppPermissionResponse): RevokeLocalAppPermissionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.LocalAppPermissionPosture posture */ 2:
+                    message.posture = reader.int32();
+                    break;
+                case /* uint64 owner_revision */ 3:
+                    message.ownerRevision = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RevokeLocalAppPermissionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* nimi.runtime.v1.LocalAppPermissionPosture posture = 2; */
+        if (message.posture !== 0)
+            writer.tag(2, WireType.Varint).int32(message.posture);
+        /* uint64 owner_revision = 3; */
+        if (message.ownerRevision !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.ownerRevision);
+        /* nimi.runtime.v1.ReasonCode reason_code = 4; */
+        if (message.reasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RevokeLocalAppPermissionResponse
+ */
+export const RevokeLocalAppPermissionResponse = new RevokeLocalAppPermissionResponse$Type();

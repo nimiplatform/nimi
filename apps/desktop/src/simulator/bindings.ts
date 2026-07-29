@@ -266,6 +266,14 @@ export function createDesktopSimulatorBindings(
         ),
         localModelProgress: createMemoryDesktopRendererLocalModelProgressPort(),
         virtualization: createDeterministicDesktopVirtualizationPort(),
+        localAppPermissions: Object.freeze({
+          async listPending() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
+          async approve() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
+          async deny() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
+          async revoke() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
+          async getProjection() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
+          async listProjections() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
+        }),
         avatarHandoff: createUnavailableDesktopRendererAvatarHandoffPort(
           'DESKTOP_SIMULATOR_AVATAR_HANDOFF_UNADMITTED',
         ),
@@ -423,6 +431,9 @@ export function createDesktopSimulatorBindings(
         subscribeDeveloperMode: () => () => undefined,
         async subscribeLocalDevelopmentApprovals() {
           throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
+        },
+        async subscribeLocalAppPermissionRequests() {
+          throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED');
         },
         subscribeProductControlRecord(listener: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['subscribeProductControlRecord']

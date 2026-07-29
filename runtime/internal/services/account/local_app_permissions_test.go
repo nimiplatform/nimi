@@ -12,6 +12,30 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 )
 
+type mutableLocalAgentOwnershipFixture struct {
+	accountID string
+	agents    []LocalAgentOwnerProjection
+}
+
+func (fixture *mutableLocalAgentOwnershipFixture) OwnsActiveLocalAgent(_ context.Context, accountID string, localAgentID string) (bool, error) {
+	if fixture == nil || accountID != fixture.accountID {
+		return false, nil
+	}
+	for _, agent := range fixture.agents {
+		if agent.LocalAgentID == localAgentID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (fixture *mutableLocalAgentOwnershipFixture) ListOwnedActiveLocalAgents(_ context.Context, accountID string) ([]LocalAgentOwnerProjection, error) {
+	if fixture == nil || accountID != fixture.accountID {
+		return nil, ErrLocalAppSelectorMismatch
+	}
+	return append([]LocalAgentOwnerProjection(nil), fixture.agents...), nil
+}
+
 func TestLocalAppPublicPermissionStatusKeepsReservedCatalogUnavailable(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	response, err := fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{PermissionId: "agents.interact"})
@@ -38,16 +62,19 @@ func TestAdmittedLocalAppPermissionRequestPersistsAndRefreshesPending(t *testing
 	fixture.resolver.binding.Capabilities = []string{"agents.interact"}
 
 	first, err := fixture.service.RequestLocalAppPermission(context.Background(), &runtimev1.RequestLocalAppPermissionRequest{
-		PermissionId: "agents.interact", Reason: "Open a conversation with my selected Agent",
+		PermissionId: "agents.interact", Reason: "Open conversations with my Agents",
 	})
 	if err != nil || first.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING || first.GetProjection().GetCanRequest() {
 		t.Fatalf("first request = (%+v, %v)", first, err)
+	}
+	if len(first.GetProjection().GetAgents()) != 0 {
+		t.Fatalf("pending permission leaked Agent metadata: %+v", first.GetProjection())
 	}
 	request, err := fixture.kernel.PermissionGrants().GetPendingRequest(context.Background(), fixture.kernel.LocalOSUserAnchor(), "acct-1", fixture.resolver.binding.LocalAppPrincipalID, "agents.interact")
 	if err != nil || request.Revision != 1 || request.DisplayAppID != "sample.nimi.app" {
 		t.Fatalf("persisted request = (%+v, %v)", request, err)
 	}
-	secondReason := "Continue the selected Agent conversation"
+	secondReason := "Continue conversations with my Agents"
 	second, err := fixture.service.RequestLocalAppPermission(context.Background(), &runtimev1.RequestLocalAppPermissionRequest{
 		PermissionId: "agents.interact", Reason: secondReason,
 	})
@@ -114,13 +141,9 @@ func TestResolvedLocalAppPermissionRequestDoesNotRevivePending(t *testing.T) {
 			if err != nil || requested.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING {
 				t.Fatalf("request = (%+v, %v)", requested, err)
 			}
-			issued, err := fixture.service.IssueOwnerLocalAppAgentSelectorHandle(context.Background(), desktopAccountControlCaller(), fixture.resolver.binding.LocalAppPrincipalID, "agents.interact", "agent-owned")
-			if err != nil {
-				t.Fatal(err)
-			}
 			decisionRequest := &runtimev1.DecideLocalAppPermissionRequest{
 				Caller: desktopAccountControlCaller(), LocalAppPrincipalId: fixture.resolver.binding.LocalAppPrincipalID,
-				PermissionId: "agents.interact", SelectorHandle: map[bool]string{true: issued.Handle}[test.approved], Approved: test.approved, ExpectedOwnerRevision: 1,
+				PermissionId: "agents.interact", Approved: test.approved, ExpectedOwnerRevision: 1,
 			}
 			decision, err := fixture.service.DecideLocalAppPermission(context.Background(), decisionRequest)
 			if err != nil || !decision.GetAccepted() || decision.GetOwnerRevision() != 2 {
@@ -154,46 +177,130 @@ func TestAdmittedLocalAppPermissionManagementGrantUseAndRevoke(t *testing.T) {
 	if err != nil || requested.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING {
 		t.Fatalf("request = (%+v, %v)", requested, err)
 	}
-	issued, err := fixture.service.IssueLocalAppAgentSelectorHandle(context.Background(), &runtimev1.IssueLocalAppAgentSelectorHandleRequest{
-		Caller: desktopAccountControlCaller(), LocalAppPrincipalId: fixture.resolver.binding.LocalAppPrincipalID,
-		PermissionId: "agents.interact", LocalAgentId: "agent-owned",
-	})
-	if err != nil || !issued.GetAccepted() || issued.GetSelectorHandle() == "" {
-		t.Fatalf("issue selector = (%+v, %v)", issued, err)
-	}
 	decided, err := fixture.service.DecideLocalAppPermission(context.Background(), &runtimev1.DecideLocalAppPermissionRequest{
 		Caller: desktopAccountControlCaller(), LocalAppPrincipalId: fixture.resolver.binding.LocalAppPrincipalID,
-		PermissionId: "agents.interact", SelectorHandle: issued.GetSelectorHandle(), Approved: true, ExpectedOwnerRevision: 1,
+		PermissionId: "agents.interact", Approved: true, ExpectedOwnerRevision: 1,
 	})
 	if err != nil || !decided.GetAccepted() || decided.GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_GRANTED || decided.GetOwnerRevision() != 2 {
 		t.Fatalf("approve permission = (%+v, %v)", decided, err)
 	}
 	statusResponse, err := fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{PermissionId: "agents.interact"})
-	if err != nil || statusResponse.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_GRANTED {
+	if err != nil || statusResponse.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_GRANTED ||
+		len(statusResponse.GetProjection().GetAgents()) != 1 ||
+		statusResponse.GetProjection().GetAgents()[0].GetAgentHandle() == "" ||
+		statusResponse.GetProjection().GetAgents()[0].GetAgentHandle() == "agent-owned" ||
+		statusResponse.GetProjection().GetAgents()[0].GetDisplayName() != "Owned Agent" {
 		t.Fatalf("granted status = (%+v, %v)", statusResponse, err)
 	}
+	agentHandle := statusResponse.GetProjection().GetAgents()[0].GetAgentHandle()
 	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
-	operationDecision, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: issued.GetSelectorHandle()})
-	if err != nil || operationDecision.OwnerSelectedAgentID != "agent-owned" || operationDecision.OperationCapability != "agents.interact" {
+	operationDecision, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: agentHandle})
+	if err != nil || operationDecision.LocalAgentID != "agent-owned" || operationDecision.OperationCapability != "agents.interact" {
 		t.Fatalf("granted operation = (%+v, %v)", operationDecision, err)
 	}
 	revoked, err := fixture.service.RevokeLocalAppPermission(context.Background(), &runtimev1.RevokeLocalAppPermissionRequest{
 		Caller: desktopAccountControlCaller(), LocalAppPrincipalId: fixture.resolver.binding.LocalAppPrincipalID,
-		PermissionId: "agents.interact", SelectorHandle: issued.GetSelectorHandle(),
+		PermissionId: "agents.interact",
 	})
 	if err != nil || !revoked.GetAccepted() || revoked.GetOwnerRevision() != 3 {
 		t.Fatalf("revoke permission = (%+v, %v)", revoked, err)
 	}
-	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: issued.GetSelectorHandle()}); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED {
+	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: agentHandle}); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED {
 		t.Fatalf("revoked operation reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
 	}
 	statusResponse, err = fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{PermissionId: "agents.interact"})
-	if err != nil || statusResponse.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED {
+	if err != nil || statusResponse.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED ||
+		len(statusResponse.GetProjection().GetAgents()) != 0 {
 		t.Fatalf("revoked public status = (%+v, %v)", statusResponse, err)
 	}
 	audits, err := fixture.service.auditStore.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "local_app_permission"})
 	if err != nil || len(audits.GetEvents()) != 4 {
 		t.Fatalf("permission audit count = (%d, %v)", len(audits.GetEvents()), err)
+	}
+}
+
+func TestAccountScopeGrantCoversZeroCurrentAndAllFutureAgents(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	fixture.service.permissionAdmitted = func(id string) bool { return id == "agents.interact" }
+	fixture.service.auditStore = auditlog.New(64, 64)
+	ownership := &mutableLocalAgentOwnershipFixture{accountID: "acct-1"}
+	fixture.service.SetLocalAgentOwnershipResolver(ownership)
+	fixture.resolver.binding.Capabilities = []string{"agents.interact"}
+
+	requested, err := fixture.service.RequestLocalAppPermission(context.Background(), &runtimev1.RequestLocalAppPermissionRequest{
+		PermissionId: "agents.interact", Reason: "Open conversations with all of my Agents",
+	})
+	if err != nil || requested.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING {
+		t.Fatalf("request = (%+v, %v)", requested, err)
+	}
+	decided, err := fixture.service.DecideLocalAppPermission(context.Background(), &runtimev1.DecideLocalAppPermissionRequest{
+		Caller: desktopAccountControlCaller(), LocalAppPrincipalId: fixture.resolver.binding.LocalAppPrincipalID,
+		PermissionId: "agents.interact", Approved: true, ExpectedOwnerRevision: 1,
+	})
+	if err != nil || !decided.GetAccepted() {
+		t.Fatalf("approve account scope = (%+v, %v)", decided, err)
+	}
+	empty, err := fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{
+		PermissionId: "agents.interact",
+	})
+	if err != nil || empty.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_GRANTED ||
+		len(empty.GetProjection().GetAgents()) != 0 {
+		t.Fatalf("zero-Agent grant = (%+v, %v)", empty, err)
+	}
+
+	ownership.agents = []LocalAgentOwnerProjection{
+		{LocalAgentID: "agent-a", DisplayName: "Agent A"},
+		{LocalAgentID: "agent-b", DisplayName: "Agent B"},
+	}
+	withAgents, err := fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{
+		PermissionId: "agents.interact",
+	})
+	if err != nil || withAgents.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_GRANTED ||
+		len(withAgents.GetProjection().GetAgents()) != 2 {
+		t.Fatalf("future Agents materialization = (%+v, %v)", withAgents, err)
+	}
+	handles := make(map[string]string, 2)
+	for _, agent := range withAgents.GetProjection().GetAgents() {
+		if agent.GetAgentHandle() == "" {
+			t.Fatalf("empty Agent handle: %+v", agent)
+		}
+		handles[agent.GetDisplayName()] = agent.GetAgentHandle()
+	}
+	repeated, err := fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{
+		PermissionId: "agents.interact",
+	})
+	if err != nil || len(repeated.GetProjection().GetAgents()) != 2 {
+		t.Fatalf("repeated materialization = (%+v, %v)", repeated, err)
+	}
+	for _, agent := range repeated.GetProjection().GetAgents() {
+		if handles[agent.GetDisplayName()] != agent.GetAgentHandle() {
+			t.Fatalf("unstable Agent handle: before=%q after=%q", handles[agent.GetDisplayName()], agent.GetAgentHandle())
+		}
+	}
+
+	ownership.agents = ownership.agents[1:]
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(
+		ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: handles["Agent A"]},
+	); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED {
+		t.Fatalf("removed Agent handle reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
+	}
+	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(
+		ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: handles["Agent B"]},
+	); err != nil {
+		t.Fatalf("remaining Agent handle denied: %v", err)
+	}
+	revoked, err := fixture.service.RevokeLocalAppPermission(context.Background(), &runtimev1.RevokeLocalAppPermissionRequest{
+		Caller: desktopAccountControlCaller(), LocalAppPrincipalId: fixture.resolver.binding.LocalAppPrincipalID,
+		PermissionId: "agents.interact",
+	})
+	if err != nil || !revoked.GetAccepted() {
+		t.Fatalf("revoke account scope = (%+v, %v)", revoked, err)
+	}
+	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(
+		ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: handles["Agent B"]},
+	); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED {
+		t.Fatalf("revoked future-Agent handle reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
 	}
 }
 
@@ -209,13 +316,9 @@ func TestPermissionDecisionFailsClosedWhenAuditStoreUnavailable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issued, err := fixture.service.IssueOwnerLocalAppAgentSelectorHandle(context.Background(), desktopAccountControlCaller(), fixture.resolver.binding.LocalAppPrincipalID, "agents.interact", "agent-owned")
-	if err != nil {
-		t.Fatal(err)
-	}
 	decision, err := fixture.service.DecideLocalAppPermission(context.Background(), &runtimev1.DecideLocalAppPermissionRequest{
 		Caller: desktopAccountControlCaller(), LocalAppPrincipalId: fixture.resolver.binding.LocalAppPrincipalID,
-		PermissionId: "agents.interact", SelectorHandle: issued.Handle, Approved: true, ExpectedOwnerRevision: 1,
+		PermissionId: "agents.interact", Approved: true, ExpectedOwnerRevision: 1,
 	})
 	if err != nil || decision.GetAccepted() || decision.GetReasonCode() != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
 		t.Fatalf("audit-failed decision = (%+v, %v)", decision, err)

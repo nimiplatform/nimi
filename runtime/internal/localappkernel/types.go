@@ -227,7 +227,7 @@ type TransitionPermissionGrantInput struct {
 	ExpiresAt        *time.Time
 }
 
-type AgentSelectorHandle struct {
+type AgentHandle struct {
 	Handle              string
 	LocalOSUserAnchor   string
 	AccountID           string
@@ -238,14 +238,15 @@ type AgentSelectorHandle struct {
 	IssuedAt            time.Time
 }
 
-type IssueAgentSelectorHandleInput struct {
+type EnsureAccountScopeAgentHandleInput struct {
 	AccountID           string
 	LocalAppPrincipalID string
 	PermissionID        string
+	OwnerSelectorDigest string
 	LocalAgentID        string
 }
 
-type ResolveAgentSelectorHandleInput struct {
+type ResolveAgentHandleInput struct {
 	Handle              string
 	AccountID           string
 	LocalAppPrincipalID string

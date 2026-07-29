@@ -67,8 +67,10 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onStopChat: () => void;
   readonly onVoiceCaptureToggle: () => Promise<void> | void;
   readonly onVoicePlayback: () => Promise<void> | void;
-  readonly onSelectLocalAgent: (localAgentRef: string) => void;
+  readonly onSelectLocalAgent: (agentHandle: string) => void;
   readonly onRefreshLocalAgentInventory: () => void;
+  readonly onRequestAgentInteractionPermission: () => Promise<void> | void;
+  readonly onDesktopOpenAgentConfig: () => Promise<void> | void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
@@ -89,6 +91,8 @@ export function ZhiyuAgentChatSurface({
   onVoicePlayback,
   onSelectLocalAgent,
   onRefreshLocalAgentInventory,
+  onRequestAgentInteractionPermission,
+  onDesktopOpenAgentConfig,
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
@@ -96,12 +100,14 @@ export function ZhiyuAgentChatSurface({
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
+  const agentPermissionRequestable = evidence.inventory.actionHint === 'request_agents_interact_permission';
   const localAgentSourceNotReady = !hasCurrentPartner
     && evidence.localAgent.reasonCode === 'zhiyu-runtime-local-agent-source-not-ready';
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
   const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
   const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
   const [desktopOpenPending, setDesktopOpenPending] = useState(false);
+  const [permissionRequestPending, setPermissionRequestPending] = useState(false);
   const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
   const emptyTitle = hasCurrentPartner
     ? '开始一段对话'
@@ -193,23 +199,33 @@ export function ZhiyuAgentChatSurface({
         <p className="zhiyu-no-local-partner-empty__eyebrow">ZHI YU</p>
         <h2>还没有本地伙伴</h2>
         <p className="zhiyu-no-local-partner-empty__copy">
-          从世界中选择一位角色加入本地后，就可以和他开始对话。
+          {agentPermissionRequestable
+            ? '由你在 Nimi 桌面端选择并授予可与织羽交互的 Agent。'
+            : evidence.inventory.message}
         </p>
         <button
           type="button"
           className="zhiyu-no-local-partner-empty__action"
-          data-zhiyu-no-local-partner-action="desktop-open-select-partner"
-          data-zhiyu-desktop-open-action="desktop_open_select_partner"
-          data-zhiyu-no-local-partner-action-state={desktopOpenPending ? 'pending' : desktopOpenResult?.state ?? (showNoPartnerGuidance ? 'expanded' : 'idle')}
+          data-zhiyu-no-local-partner-action={agentPermissionRequestable ? 'request-agents-interact-permission' : 'desktop-open-select-partner'}
+          data-zhiyu-desktop-open-action={agentPermissionRequestable ? undefined : 'desktop_open_select_partner'}
+          data-zhiyu-no-local-partner-action-state={(desktopOpenPending || permissionRequestPending) ? 'pending' : desktopOpenResult?.state ?? (showNoPartnerGuidance ? 'expanded' : 'idle')}
           aria-expanded={showNoPartnerGuidance}
           aria-controls="zhiyu-no-local-partner-guidance"
           onClick={() => {
             setShowNoPartnerGuidance(true);
-            void handleDesktopOpenSelectPartner();
+            if (agentPermissionRequestable) {
+              setPermissionRequestPending(true);
+              void Promise.resolve(onRequestAgentInteractionPermission()).finally(() => {
+                setPermissionRequestPending(false);
+                onRefreshLocalAgentInventory();
+              });
+            } else {
+              void handleDesktopOpenSelectPartner();
+            }
           }}
-          disabled={desktopOpenPending}
+          disabled={desktopOpenPending || permissionRequestPending}
         >
-          <span>{desktopOpenPending ? '打开中' : '去探索伙伴'}</span>
+          <span>{permissionRequestPending ? '请求中' : desktopOpenPending ? '打开中' : agentPermissionRequestable ? '请求授权' : '去探索伙伴'}</span>
           <ChevronRight size={16} aria-hidden="true" />
         </button>
         <p className="zhiyu-no-local-partner-empty__assurance">
@@ -234,7 +250,7 @@ export function ZhiyuAgentChatSurface({
     },
   };
   const chatDisabled = !evidence.conversation.ready
-    || !evidence.route.ready
+    || !evidence.turn.ready
     || evidence.chat.state === 'streaming';
   const chatRuntimeHint = chatDisabled && (hasCurrentPartner || evidence.chat.state === 'streaming')
     ? (
@@ -345,12 +361,12 @@ export function ZhiyuAgentChatSurface({
       >
         <DesktopPresenceRail
           agents={evidence.inventory.localAgents.map((agent) => ({
-            itemKey: agent.localAgentRef,
-            localAgentRef: agent.localAgentRef,
+            itemKey: agent.agentHandle,
+            agentHandle: agent.agentHandle,
             displayName: agent.displayName,
             sourceReady: agent.sourceReady,
           }))}
-          currentLocalAgentRef={evidence.localAgent.localAgentRef}
+          currentAgentHandle={evidence.localAgent.agentHandle}
           currentPartnerName={currentPartnerName}
           hasCurrentPartner={hasCurrentPartner}
           onOpenCurrentAgent={() => {
@@ -358,9 +374,9 @@ export function ZhiyuAgentChatSurface({
             setActiveAgentTab('overview');
           }}
           onOpenSettings={openAdvancedSettings}
-          onSelectLocalAgent={(localAgentRef) => {
+          onSelectAgent={(agentHandle) => {
             setActiveAgentTab('overview');
-            onSelectLocalAgent(localAgentRef);
+            onSelectLocalAgent(agentHandle);
           }}
         />
 
@@ -480,6 +496,7 @@ export function ZhiyuAgentChatSurface({
             onActiveTabChange={setActiveAgentTab}
             onClose={() => setRightPanelMode('closed')}
             onOpenModelConfig={openModelConfig}
+            onOpenDesktopAgentConfig={() => { void onDesktopOpenAgentConfig(); }}
             onAvatarLaunch={onAvatarLaunch}
             appearanceAdapter={agentCenterAdapters.appearance}
             runtimeAdapter={agentCenterAdapters.runtime}

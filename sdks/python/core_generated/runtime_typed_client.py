@@ -167,6 +167,7 @@ HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED"]
 HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
+LocalAppPermissionOwnerPosture = Literal["LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING", "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED"]
 LocalAppPermissionPosture = Literal["LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED", "LOCAL_APP_PERMISSION_POSTURE_PROMPT", "LOCAL_APP_PERMISSION_POSTURE_PENDING", "LOCAL_APP_PERMISSION_POSTURE_GRANTED", "LOCAL_APP_PERMISSION_POSTURE_DENIED", "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"]
 LocalAppSessionState = Literal["LOCAL_APP_SESSION_STATE_UNSPECIFIED", "LOCAL_APP_SESSION_STATE_READY", "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE", "LOCAL_APP_SESSION_STATE_REVOKED", "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED", "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED"]
 LocalAppTrustClass = Literal["LOCAL_APP_TRUST_CLASS_UNSPECIFIED", "LOCAL_APP_TRUST_CLASS_VERIFIED", "LOCAL_APP_TRUST_CLASS_USER_IMPORTED", "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"]
@@ -1350,6 +1351,21 @@ class CreateKnowledgeBankResponse:
     bank: KnowledgeBank | None = None
 
 @dataclass(frozen=True)
+class DecideLocalAppPermissionRequest:
+    caller: AccountCaller | None = None
+    local_app_principal_id: str | None = None
+    permission_id: str | None = None
+    approved: bool | None = None
+    expected_owner_revision: int | None = None
+
+@dataclass(frozen=True)
+class DecideLocalAppPermissionResponse:
+    accepted: bool | None = None
+    posture: LocalAppPermissionPosture | None = None
+    owner_revision: int | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
 class DecideLocalDevelopmentProjectRequest:
     evaluation_id: bytes | None = None
     decision: LocalDevelopmentDecision | None = None
@@ -1956,6 +1972,17 @@ class GetKnowledgeBankRequest:
 @dataclass(frozen=True)
 class GetKnowledgeBankResponse:
     bank: KnowledgeBank | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppPermissionOwnerProjectionRequest:
+    caller: AccountCaller | None = None
+    local_app_principal_id: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppPermissionOwnerProjectionResponse:
+    accepted: bool | None = None
+    permissions: tuple[LocalAppPermissionOwnerProjection, ...] = field(default_factory=tuple)
+    reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
 class GetLocalAppPermissionStatusRequest:
@@ -2617,6 +2644,26 @@ class ListLinksResponse:
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
+class ListLocalAppPermissionOwnerProjectionsRequest:
+    caller: AccountCaller | None = None
+
+@dataclass(frozen=True)
+class ListLocalAppPermissionOwnerProjectionsResponse:
+    accepted: bool | None = None
+    permissions: tuple[LocalAppPermissionOwnerProjection, ...] = field(default_factory=tuple)
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class ListLocalAppPermissionRequestsRequest:
+    caller: AccountCaller | None = None
+
+@dataclass(frozen=True)
+class ListLocalAppPermissionRequestsResponse:
+    accepted: bool | None = None
+    requests: tuple[LocalAppPermissionPendingRequest, ...] = field(default_factory=tuple)
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
 class ListLocalAssetsRequest:
     status_filter: LocalAssetStatus | None = None
     kind_filter: LocalAssetKind | None = None
@@ -2871,11 +2918,50 @@ class LocalAgentSourceCoverageSectionStatus:
     omitted_count: int | None = None
 
 @dataclass(frozen=True)
+class LocalAppPermissionAgentHandle:
+    agent_handle: str | None = None
+    display_name: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppPermissionCoveredAgent:
+    local_agent_id: str | None = None
+    display_name: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppPermissionInboxEvent:
+    sequence: int | None = None
+    emitted_at: str | None = None
+    requests: tuple[LocalAppPermissionPendingRequest, ...] = field(default_factory=tuple)
+    accepted: bool | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class LocalAppPermissionOwnerProjection:
+    local_app_principal_id: str | None = None
+    display_app_id: str | None = None
+    permission_id: str | None = None
+    posture: LocalAppPermissionOwnerPosture | None = None
+    owner_revision: int | None = None
+    requested_at: str | None = None
+    decided_at: str | None = None
+    covered_agents: tuple[LocalAppPermissionCoveredAgent, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppPermissionPendingRequest:
+    local_app_principal_id: str | None = None
+    display_app_id: str | None = None
+    permission_id: str | None = None
+    reason: str | None = None
+    requested_at: str | None = None
+    owner_revision: int | None = None
+
+@dataclass(frozen=True)
 class LocalAppPermissionProjection:
     permission_id: str | None = None
     posture: LocalAppPermissionPosture | None = None
     can_request: bool | None = None
     reason_code: ReasonCode | None = None
+    agents: tuple[LocalAppPermissionAgentHandle, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LocalAssetHealth:
@@ -4677,6 +4763,19 @@ class RevokeExternalPrincipalSessionRequest:
     external_session_id: str | None = None
 
 @dataclass(frozen=True)
+class RevokeLocalAppPermissionRequest:
+    caller: AccountCaller | None = None
+    local_app_principal_id: str | None = None
+    permission_id: str | None = None
+
+@dataclass(frozen=True)
+class RevokeLocalAppPermissionResponse:
+    accepted: bool | None = None
+    posture: LocalAppPermissionPosture | None = None
+    owner_revision: int | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
 class RevokeLocalDevelopmentAuthorizationRequest:
     authorization_id: bytes | None = None
 
@@ -5326,6 +5425,10 @@ class SubscribeAppMessagesRequest:
     conversation_anchor_id: str | None = None
 
 @dataclass(frozen=True)
+class SubscribeLocalAppPermissionRequestsRequest:
+    caller: AccountCaller | None = None
+
+@dataclass(frozen=True)
 class SubscribeMemoryEventsRequest:
     context: MemoryRequestContext | None = None
     scope_filters: tuple[MemoryBankScope, ...] = field(default_factory=tuple)
@@ -5875,9 +5978,17 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/CompleteLogin", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CompleteLoginResponse, raw)
 
+    async def decide_local_app_permission(self, request: DecideLocalAppPermissionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DecideLocalAppPermissionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(DecideLocalAppPermissionResponse, raw)
+
     async def get_account_session_status(self, request: GetAccountSessionStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAccountSessionStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAccountSessionStatusResponse, raw)
+
+    async def get_local_app_permission_owner_projection(self, request: GetLocalAppPermissionOwnerProjectionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppPermissionOwnerProjectionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppPermissionOwnerProjectionResponse, raw)
 
     async def get_local_app_permission_status(self, request: GetLocalAppPermissionStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppPermissionStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -5891,6 +6002,14 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IssueWorkspaceBindingResponse, raw)
 
+    async def list_local_app_permission_owner_projections(self, request: ListLocalAppPermissionOwnerProjectionsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppPermissionOwnerProjectionsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppPermissionOwnerProjectionsResponse, raw)
+
+    async def list_local_app_permission_requests(self, request: ListLocalAppPermissionRequestsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppPermissionRequestsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppPermissionRequestsResponse, raw)
+
     async def logout(self, request: LogoutRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LogoutResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/Logout", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LogoutResponse, raw)
@@ -5903,12 +6022,19 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RequestPresenceVerificationResponse, raw)
 
+    async def revoke_local_app_permission(self, request: RevokeLocalAppPermissionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RevokeLocalAppPermissionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RevokeLocalAppPermissionResponse, raw)
+
     async def revoke_workspace_binding(self, request: RevokeWorkspaceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RevokeWorkspaceBindingResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RevokeWorkspaceBindingResponse, raw)
 
     def subscribe_account_session_events(self, request: SubscribeAccountSessionEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AccountSessionEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents", _model_body(request), AccountSessionEvent, metadata=metadata, timeout_ms=timeout_ms)
+
+    def subscribe_local_app_permission_requests(self, request: SubscribeLocalAppPermissionRequestsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppPermissionInboxEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests", _model_body(request), LocalAppPermissionInboxEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def switch_account(self, request: SwitchAccountRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SwitchAccountResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/SwitchAccount", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

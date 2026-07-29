@@ -21,6 +21,9 @@ const FORBIDDEN_PROJECTION_KEYS = new Set([
 const LOCAL_APP_STATUS_STATES = new Set([
   'authorizing', 'ready', 'denied', 'runtime-unavailable', 'revoked', 'project-changed',
 ]);
+const LOCAL_APP_PERMISSION_STATES = new Set([
+  'prompt', 'pending', 'granted', 'denied', 'unavailable',
+]);
 
 export type NimiLocalAppSessionStatus = {
   readonly state: 'authorizing' | 'ready' | 'denied' | 'runtime-unavailable' | 'revoked' | 'project-changed';
@@ -36,6 +39,19 @@ export type NimiLocalAppPermissionRequestInput = NimiLocalAppPermissionStatusInp
   readonly reason: string;
 };
 
+export type NimiLocalAppAgentHandle = {
+  readonly agentHandle: string;
+  readonly displayName: string;
+};
+
+export type NimiLocalAppPermissionStatus = {
+  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'unavailable';
+  readonly permissionId: string;
+  readonly canRequest: boolean;
+  readonly reasonCode: string;
+  readonly agents: readonly NimiLocalAppAgentHandle[];
+};
+
 export type NimiLocalAppStorageDocument = {
   readonly value: JsonValue;
   readonly sizeBytes: number;
@@ -46,7 +62,7 @@ export type NimiLocalAppStorageRemoveResult = {
 };
 
 export type NimiLocalAppConversationScopeInput = {
-  readonly selectedAgentHandle: string;
+  readonly agentHandle: string;
   readonly conversationAnchorId: string;
 };
 
@@ -60,8 +76,8 @@ export type NimiLocalAppStandardShellSurface = {
     readonly status: () => Promise<NimiLocalAppSessionStatus>;
   };
   readonly permission: {
-    readonly status: (input: NimiLocalAppPermissionStatusInput) => Promise<JsonObject>;
-    readonly request: (input: NimiLocalAppPermissionRequestInput) => Promise<JsonObject>;
+    readonly status: (input: NimiLocalAppPermissionStatusInput) => Promise<NimiLocalAppPermissionStatus>;
+    readonly request: (input: NimiLocalAppPermissionRequestInput) => Promise<NimiLocalAppPermissionStatus>;
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiLocalAppStorageDocument>;
@@ -70,7 +86,7 @@ export type NimiLocalAppStandardShellSurface = {
   };
   readonly conversation: {
     readonly open: (input: {
-      readonly selectedAgentHandle: string;
+      readonly agentHandle: string;
       readonly disposition: 'create-or-resume' | 'create-new';
     }) => Promise<JsonObject>;
     readonly send: (input: NimiLocalAppConversationScopeInput & {
@@ -110,36 +126,44 @@ export function getNimiLocalAppSessionStatus(): Promise<NimiLocalAppSessionStatu
 
 export function getNimiLocalAppPermissionStatus(
   input: NimiLocalAppPermissionStatusInput,
-): Promise<JsonObject> {
+): Promise<NimiLocalAppPermissionStatus> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'];
-  return invokeLocalAppRecord(command, identifiers(input, ['permissionId'], command));
+  assertExactInput(input, ['permissionId'], command);
+  const permissionId = requiredText(input.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH);
+  return invokeChecked(
+    command,
+    { payload: { permissionId } },
+    (value) => parsePermissionStatus(value, permissionId, command),
+  );
 }
 
 export function requestNimiLocalAppPermission(
   input: NimiLocalAppPermissionRequestInput,
-): Promise<JsonObject> {
+): Promise<NimiLocalAppPermissionStatus> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'];
   assertExactInput(input, ['permissionId', 'reason'], command);
-  return invokeLocalAppRecord(
+  const permissionId = requiredText(input.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH);
+  return invokeChecked(
     command,
-    {
-      permissionId: requiredText(input.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH),
+    { payload: {
+      permissionId,
       reason: requiredUtf8Text(input.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
-    },
+    } },
+    (value) => parsePermissionStatus(value, permissionId, command),
   );
 }
 
 export function openNimiLocalAppConversation(input: {
-  readonly selectedAgentHandle: string;
+  readonly agentHandle: string;
   readonly disposition: 'create-or-resume' | 'create-new';
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'];
-  assertExactInput(input, ['selectedAgentHandle', 'disposition'], command);
+  assertExactInput(input, ['agentHandle', 'disposition'], command);
   if (input.disposition !== 'create-or-resume' && input.disposition !== 'create-new') {
     throw invalidInput(command, 'disposition is invalid');
   }
   return invokeLocalAppRecord(command, {
-    selectedAgentHandle: requiredText(input.selectedAgentHandle, 'selectedAgentHandle', command, MAX_IDENTIFIER_LENGTH),
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     disposition: input.disposition,
   });
 }
@@ -149,9 +173,9 @@ export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversation
   readonly text: string;
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'];
-  assertExactInput(input, ['selectedAgentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
   return invokeLocalAppRecord(command, {
-    selectedAgentHandle: requiredText(input.selectedAgentHandle, 'selectedAgentHandle', command, MAX_IDENTIFIER_LENGTH),
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
     requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
     text: requiredUtf8Text(input.text, 'text', command, 64 * 1024),
@@ -162,7 +186,7 @@ export async function subscribeNimiLocalAppConversation(
   input: NimiLocalAppConversationScopeInput,
 ): Promise<NimiLocalAppConversationSubscription> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'];
-  const scope = identifiers(input, ['selectedAgentHandle', 'conversationAnchorId'], command);
+  const scope = identifiers(input, ['agentHandle', 'conversationAnchorId'], command);
   const opened = await invokeChecked(command, { payload: scope }, (value) => {
     const record = assertRecord(value, `${command} returned invalid payload`);
     assertProjectionKeys(record, ['subscriptionId', 'eventName'], command, 'conversation subscription');
@@ -187,7 +211,7 @@ export function getNimiLocalAppConversationSnapshot(
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'];
   return invokeLocalAppRecord(
     command,
-    identifiers(input, ['selectedAgentHandle', 'conversationAnchorId'], command),
+    identifiers(input, ['agentHandle', 'conversationAnchorId'], command),
   );
 }
 
@@ -382,6 +406,48 @@ function parseSessionStatus(value: unknown, command: string): NimiLocalAppSessio
     throw new Error(`${command}: session status projection is invalid`);
   }
   return { state: state as NimiLocalAppSessionStatus['state'], reasonCode, retryable: record.retryable };
+}
+
+function parsePermissionStatus(
+  value: unknown,
+  requestedPermissionId: string,
+  command: string,
+): NimiLocalAppPermissionStatus {
+  const record = parseSafeProjection(value, command);
+  assertProjectionKeys(
+    record,
+    ['state', 'permissionId', 'canRequest', 'reasonCode', 'agents'],
+    command,
+    'permission status',
+  );
+  const state = requiredText(record.state, 'state', command, MAX_IDENTIFIER_LENGTH);
+  const permissionId = requiredText(record.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH);
+  const reasonCode = requiredText(record.reasonCode, 'reasonCode', command, MAX_IDENTIFIER_LENGTH);
+  if (!LOCAL_APP_PERMISSION_STATES.has(state)
+    || permissionId !== requestedPermissionId
+    || typeof record.canRequest !== 'boolean'
+    || record.canRequest !== (state === 'prompt')
+    || !Array.isArray(record.agents)
+    || (state !== 'granted' && record.agents.length > 0)) {
+    throw new Error(`${command}: permission status projection is invalid`);
+  }
+  const seen = new Set<string>();
+  const agents = record.agents.map((value) => {
+    const agent = assertRecord(value, `${command} returned invalid agent handle`);
+    assertProjectionKeys(agent, ['agentHandle', 'displayName'], command, 'permission agent');
+    const agentHandle = requiredText(agent.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH);
+    const displayName = requiredUtf8Text(agent.displayName, 'displayName', command, 240);
+    if (seen.has(agentHandle)) throw new Error(`${command}: permission agent handle is duplicated`);
+    seen.add(agentHandle);
+    return Object.freeze({ agentHandle, displayName });
+  });
+  return Object.freeze({
+    state: state as NimiLocalAppPermissionStatus['state'],
+    permissionId,
+    canRequest: record.canRequest,
+    reasonCode,
+    agents: Object.freeze(agents),
+  });
 }
 
 function parseStorageDocument(value: unknown, command: string): NimiLocalAppStorageDocument {

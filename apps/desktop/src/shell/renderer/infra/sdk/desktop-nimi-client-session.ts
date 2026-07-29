@@ -6,6 +6,7 @@ import {
   type NimiDesktopAccountProductRuntimeClient,
   type NimiDesktopFirstPartyRuntimeClients,
   type NimiDesktopMachineProductRuntimeClient,
+  type NimiDesktopPermissionOwnerRuntimeClient,
   type NimiDesktopRuntimeAgentPurposeClient,
   type NimiDesktopRuntimeAiScenarioJobClient,
   type NimiHostRuntimeAgentDelegatedControlClient,
@@ -32,6 +33,7 @@ import {
   switchRuntimeAccount,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { DESKTOP_RUNTIME_PROTECTED_SCOPES } from '../../../shared/runtime-account-contract';
+import { createDesktopPermissionOwnerAccountControlClient } from '../../bridge/runtime-bridge/permission-owner-account-control.js';
 
 export interface DesktopNimiClientSession {
   readonly appId: string;
@@ -44,6 +46,7 @@ export interface DesktopNimiClientSession {
 
 export interface DesktopRuntimeRealmSession extends DesktopNimiClientSession {
   readonly runtimeTransport: DesktopRuntimeTransport;
+  readonly permissionOwner: Omit<NimiDesktopPermissionOwnerRuntimeClient, 'subscribeLocalAppPermissionRequests'>;
   readonly runtimeClients: NimiDesktopFirstPartyRuntimeClients;
   readonly accountRuntime: DesktopAccountRuntime;
   readonly accountCaller: NimiRuntimeAccountCaller;
@@ -113,6 +116,7 @@ export async function configureDesktopRuntimeRealmSession(
     },
   });
   const accountRuntime = createDesktopProtectedAccountRuntime(runtimeClients.auth);
+  const permissionOwner = createDesktopPermissionOwnerAccountControlClient();
   const realm = new Realm({
     transport: createRuntimeAccountMediatedDesktopProductRealmTransport({
       runtime: accountRuntime,
@@ -124,6 +128,7 @@ export async function configureDesktopRuntimeRealmSession(
     runtimeTransport,
     runtimeClients,
     accountRuntime,
+    permissionOwner,
     realm,
     accountCaller,
   };
@@ -252,6 +257,13 @@ export function getDesktopMachineProductClient(): NimiDesktopMachineProductRunti
 
 export function getDesktopAccountProductClient(): NimiDesktopAccountProductRuntimeClient {
   return getDesktopRuntimeRealmSession().runtimeClients.accountProduct;
+}
+
+export function getDesktopPermissionOwnerClient(): Omit<
+  NimiDesktopPermissionOwnerRuntimeClient,
+  'subscribeLocalAppPermissionRequests'
+> {
+  return getDesktopRuntimeRealmSession().permissionOwner;
 }
 
 export function getDesktopConnectorAdminClient() {

@@ -170,9 +170,11 @@ export type {
   AgentCenterShellHostScope,
 } from './agent-center.js';
 export type {
+  NimiLocalAppAgentHandle,
   NimiLocalAppConversationScopeInput,
   NimiLocalAppConversationSubscription,
   NimiLocalAppPermissionRequestInput,
+  NimiLocalAppPermissionStatus,
   NimiLocalAppPermissionStatusInput,
   NimiLocalAppSessionStatus,
   NimiLocalAppStorageDocument,

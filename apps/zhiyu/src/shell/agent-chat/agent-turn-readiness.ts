@@ -1,25 +1,28 @@
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
-import {
-  resolveZhiyuRuntimeAgentAccessDecision,
-  resolveZhiyuRuntimeAgentAccessDecisionFromHost,
-  type ZhiyuRuntimeAgentAccessDecision,
-} from './runtime-agent-access';
 
 export type ZhiyuRuntimeTurnStatus = ZhiyuEvidence['turn'];
 
-export {
-  resolveZhiyuRuntimeAgentAccessDecision,
-};
-
-// Turn readiness is projection-only: the conversation anchor plus Runtime
-// Agent AI Config readiness plus the current host operation context. Route truth stays
-// with Runtime Agent AI Config (K-AGCORE-147); Zhiyu never re-derives it.
+// The admitted local-app conversation surface is the execution boundary.
+// Readiness depends only on the current account permission projection and the
+// opaque Agent/conversation handles materialized by that surface.
 export function probeZhiyuAgentTurnReadiness(
   conversation: ZhiyuConversationHomeStatus,
-  route: Pick<ZhiyuEvidence['route'], 'ready' | 'reasonCode' | 'actionHint' | 'source' | 'message'>,
-  runtimeAccess: ZhiyuRuntimeAgentAccessDecision = resolveZhiyuRuntimeAgentAccessDecisionFromHost(),
+  inventory: ZhiyuEvidence['inventory'],
 ): ZhiyuRuntimeTurnStatus {
+  if (!inventory.ready) {
+    return turnUnavailable({
+      reasonCode: inventory.reasonCode,
+      actionHint: inventory.actionHint,
+      source: inventory.source,
+      message: inventory.message,
+      ownerUserId: conversation.ownerUserId,
+      runtimeSourceRef: conversation.runtimeSourceRef,
+      localAgentRef: conversation.localAgentRef,
+      conversationAnchorId: conversation.conversationAnchorId,
+    });
+  }
+
   const identity = conversationIdentity(conversation);
   if (!identity) {
     return turnUnavailable({
@@ -34,24 +37,12 @@ export function probeZhiyuAgentTurnReadiness(
     });
   }
 
-  if (!route.ready) {
+  if (!inventory.localAgents.some((agent) => agent.agentHandle === identity.agentHandle)) {
     return turnUnavailable({
-      reasonCode: route.reasonCode === 'not-probed'
-        ? 'zhiyu-runtime-agent-ai-config-readiness-required'
-        : route.reasonCode,
-      actionHint: route.actionHint || 'configure_runtime_agent_ai_config',
-      source: route.source,
-      message: route.message,
-      ...identity,
-    });
-  }
-
-  if (runtimeAccess.kind === 'missing') {
-    return turnUnavailable({
-      reasonCode: runtimeAccess.reasonCode,
-      actionHint: runtimeAccess.actionHint,
+      reasonCode: 'zhiyu-agent-handle-not-covered',
+      actionHint: 'refresh_agents_interact_permission',
       source: 'runtime',
-      message: runtimeAccess.message,
+      message: 'The active Agent handle is no longer covered by the account permission projection.',
       ...identity,
     });
   }
@@ -72,26 +63,32 @@ export function probeZhiyuAgentTurnReadiness(
 }
 
 function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
+  readonly agentHandle: string;
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
   readonly conversationAnchorId: string;
+  readonly threadId: string;
 } | null {
   if (!conversation.ready) {
     return null;
   }
+  const agentHandle = stringOr(conversation.agentHandle, '');
   const ownerUserId = stringOr(conversation.ownerUserId, '');
   const runtimeSourceRef = stringOr(conversation.runtimeSourceRef, '');
   const localAgentRef = stringOr(conversation.localAgentRef, '');
   const conversationAnchorId = stringOr(conversation.conversationAnchorId, '');
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId) {
+  const threadId = stringOr(conversation.threadId, '');
+  if (!agentHandle || !ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId || !threadId) {
     return null;
   }
   return {
+    agentHandle,
     ownerUserId,
     runtimeSourceRef,
     localAgentRef,
     conversationAnchorId,
+    threadId,
   };
 }
 

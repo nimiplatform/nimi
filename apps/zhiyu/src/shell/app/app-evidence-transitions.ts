@@ -10,29 +10,20 @@ import type { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-ada
 export function chatStatusFromSubmitRefreshFailure({
   current,
   conversation,
-  route,
   turn,
 }: {
   readonly current: ZhiyuRuntimeAgentChatStatus;
   readonly conversation: ZhiyuEvidence['conversation'];
-  readonly route: ZhiyuEvidence['route'];
   readonly turn: ZhiyuEvidence['turn'];
 }): ZhiyuRuntimeAgentChatStatus {
-  const routeBlocked = !route.ready;
   return {
     transport: 'electron-ipc',
     ready: false,
     state: 'failed',
-    reasonCode: routeBlocked
-      ? 'zhiyu-submit-route-refresh-stale'
-      : 'zhiyu-submit-turn-refresh-blocked',
-    actionHint: routeBlocked
-      ? route.actionHint || 'configure_runtime_agent_ai_config'
-      : turn.actionHint || 'resolve_runtime_agent_binding',
-    source: routeBlocked ? route.source : turn.source,
-    message: routeBlocked
-      ? `Runtime route changed before submit. ${route.message}`
-      : `Runtime Agent turn channel became unavailable before submit. ${turn.message}`,
+    reasonCode: 'zhiyu-submit-turn-refresh-blocked',
+    actionHint: turn.actionHint || 'refresh_agents_interact_permission',
+    source: turn.source,
+    message: `The direct local-app conversation became unavailable before submit. ${turn.message}`,
     ownerUserId: conversation.ownerUserId,
     runtimeSourceRef: conversation.runtimeSourceRef,
     localAgentRef: conversation.localAgentRef,

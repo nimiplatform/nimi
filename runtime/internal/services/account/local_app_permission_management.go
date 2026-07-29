@@ -8,19 +8,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 )
 
-func (s *Service) IssueLocalAppAgentSelectorHandle(ctx context.Context, req *runtimev1.IssueLocalAppAgentSelectorHandleRequest) (*runtimev1.IssueLocalAppAgentSelectorHandleResponse, error) {
-	if req == nil || s.permissionAdmitted == nil || !s.permissionAdmitted(req.GetPermissionId()) {
-		return &runtimev1.IssueLocalAppAgentSelectorHandleResponse{ReasonCode: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE}, nil
-	}
-	issued, err := s.IssueOwnerLocalAppAgentSelectorHandle(ctx, req.GetCaller(), req.GetLocalAppPrincipalId(), req.GetPermissionId(), req.GetLocalAgentId())
-	if err != nil {
-		return &runtimev1.IssueLocalAppAgentSelectorHandleResponse{ReasonCode: runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED}, nil
-	}
-	return &runtimev1.IssueLocalAppAgentSelectorHandleResponse{Accepted: true, SelectorHandle: issued.Handle, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
-}
-
 func (s *Service) DecideLocalAppPermission(ctx context.Context, req *runtimev1.DecideLocalAppPermissionRequest) (*runtimev1.DecideLocalAppPermissionResponse, error) {
-	if req == nil || req.GetExpectedOwnerRevision() == 0 || (req.GetApproved() && req.GetSelectorHandle() == "") || (!req.GetApproved() && req.GetSelectorHandle() != "") {
+	if req == nil || req.GetExpectedOwnerRevision() == 0 {
 		return ownerDecisionResponse(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID), nil
 	}
 	if s.permissionAdmitted == nil || !s.permissionAdmitted(req.GetPermissionId()) || !apppermission.IsManifestAllowed(req.GetPermissionId()) {
@@ -42,13 +31,9 @@ func (s *Service) DecideLocalAppPermission(ctx context.Context, req *runtimev1.D
 	nextPosture := apppermission.PostureDenied
 	selectorDigest := ""
 	if req.GetApproved() {
-		selector, resolvedPrincipal, resolvedAccountID, resolved := s.resolveOwnerPermissionSelector(ctx, req.GetCaller(), req.GetLocalAppPrincipalId(), req.GetPermissionId(), req.GetSelectorHandle())
-		if !resolved || resolvedPrincipal.LocalAppPrincipalID != principal.LocalAppPrincipalID || resolvedAccountID != accountID {
-			return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
-		}
 		nextState = localappkernel.PermissionGrantStateGranted
 		nextPosture = apppermission.PostureGranted
-		selectorDigest = selector.OwnerSelectorDigest
+		selectorDigest = localappkernel.AgentAccountScopeDigest(accountID)
 	}
 	key := localappkernel.PermissionGrantKey{LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), AccountID: accountID,
 		LocalAppPrincipalID: principal.LocalAppPrincipalID, PermissionID: req.GetPermissionId(), OwnerSelectorDigest: selectorDigest}
@@ -80,13 +65,14 @@ func (s *Service) RevokeLocalAppPermission(ctx context.Context, req *runtimev1.R
 	if req == nil {
 		return ownerRevokeResponse(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID), nil
 	}
-	selector, principal, accountID, ok := s.resolveOwnerPermissionSelector(ctx, req.GetCaller(), req.GetLocalAppPrincipalId(), req.GetPermissionId(), req.GetSelectorHandle())
+	principal, accountID, ok := s.resolveOwnerPermissionAccountScope(ctx, req.GetCaller(), req.GetLocalAppPrincipalId(), req.GetPermissionId())
 	if !ok {
 		return ownerRevokeResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
 	}
 	key := localappkernel.PermissionGrantKey{
 		LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), AccountID: accountID,
-		LocalAppPrincipalID: principal.LocalAppPrincipalID, PermissionID: req.GetPermissionId(), OwnerSelectorDigest: selector.OwnerSelectorDigest,
+		LocalAppPrincipalID: principal.LocalAppPrincipalID, PermissionID: req.GetPermissionId(),
+		OwnerSelectorDigest: localappkernel.AgentAccountScopeDigest(accountID),
 	}
 	grant, err := s.localAppKernel.PermissionGrants().Get(ctx, key)
 	if err != nil {
@@ -108,33 +94,23 @@ func (s *Service) RevokeLocalAppPermission(ctx context.Context, req *runtimev1.R
 	}, nil
 }
 
-func (s *Service) resolveOwnerPermissionSelector(ctx context.Context, caller *runtimev1.AccountCaller, principalID string, permissionID string, handle string) (localappkernel.AgentSelectorHandle, localappkernel.Principal, string, bool) {
-	if s == nil || s.localAppKernel == nil || s.localAgentOwnership == nil || s.permissionAdmitted == nil || !s.permissionAdmitted(permissionID) || !apppermission.IsManifestAllowed(permissionID) {
-		return localappkernel.AgentSelectorHandle{}, localappkernel.Principal{}, "", false
+func (s *Service) resolveOwnerPermissionAccountScope(ctx context.Context, caller *runtimev1.AccountCaller, principalID string, permissionID string) (localappkernel.Principal, string, bool) {
+	if s == nil || s.localAppKernel == nil || s.permissionAdmitted == nil || !s.permissionAdmitted(permissionID) || !apppermission.IsManifestAllowed(permissionID) {
+		return localappkernel.Principal{}, "", false
 	}
 	if reason, ok := s.validateRuntimeAccountControlCaller(ctx, caller); !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
-		return localappkernel.AgentSelectorHandle{}, localappkernel.Principal{}, "", false
+		return localappkernel.Principal{}, "", false
 	}
 	projection, _, authenticated := s.AuthenticatedRuntimeSecurityContext(ctx)
 	accountID := projection.GetAccountId()
 	if !authenticated || accountID == "" {
-		return localappkernel.AgentSelectorHandle{}, localappkernel.Principal{}, "", false
+		return localappkernel.Principal{}, "", false
 	}
 	principal, err := s.localAppKernel.Principals().Get(ctx, principalID)
 	if err != nil || principal.State != localappkernel.PrincipalStateActive {
-		return localappkernel.AgentSelectorHandle{}, localappkernel.Principal{}, "", false
+		return localappkernel.Principal{}, "", false
 	}
-	selector, err := s.localAppKernel.AgentSelectorHandles().Resolve(ctx, localappkernel.ResolveAgentSelectorHandleInput{
-		Handle: handle, AccountID: accountID, LocalAppPrincipalID: principalID, PermissionID: permissionID,
-	})
-	if err != nil {
-		return localappkernel.AgentSelectorHandle{}, localappkernel.Principal{}, "", false
-	}
-	owned, err := s.localAgentOwnership.OwnsActiveLocalAgent(ctx, accountID, selector.LocalAgentID)
-	if err != nil || !owned {
-		return localappkernel.AgentSelectorHandle{}, localappkernel.Principal{}, "", false
-	}
-	return selector, principal, accountID, true
+	return principal, accountID, true
 }
 
 func (s *Service) permissionAuditBinding(principal localappkernel.Principal, accountID string, key localappkernel.PermissionGrantKey, oldPosture apppermission.Posture, newPosture apppermission.Posture, trigger string, revision uint64) apppermission.AuditBinding {

@@ -76,6 +76,44 @@ pub struct DesktopAccountActionRequest {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DesktopPermissionOwnerUnaryMethod {
+    ListRequests,
+    GetProjection,
+    ListProjections,
+    Decide,
+    Revoke,
+}
+
+impl DesktopPermissionOwnerUnaryMethod {
+    pub fn from_method_id(method_id: &str) -> Option<Self> {
+        match method_id {
+            "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests" => {
+                Some(Self::ListRequests)
+            }
+            "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection" => {
+                Some(Self::GetProjection)
+            }
+            "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections" => {
+                Some(Self::ListProjections)
+            }
+            "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission" => Some(Self::Decide),
+            "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission" => Some(Self::Revoke),
+            _ => None,
+        }
+    }
+}
+
+pub struct DesktopPermissionOwnerUnaryRequest {
+    pub method: DesktopPermissionOwnerUnaryMethod,
+    pub request_bytes: Vec<u8>,
+}
+
+#[derive(Debug)]
+pub struct DesktopPermissionOwnerUnaryResponse {
+    pub response_bytes: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DesktopAccountSessionState {
     Anonymous,
     LoginPending,

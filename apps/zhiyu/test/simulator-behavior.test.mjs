@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import { zhiyuSimulatorBehavior } from '../src/simulator/behavior.ts';
@@ -12,6 +14,7 @@ const initialInput = {
 };
 
 const context = { now: 42, drawRandom: () => 0.5 };
+const root = path.resolve(import.meta.dirname, '..');
 
 const persona = {
   accountId: 'sim-account-linche',
@@ -92,7 +95,7 @@ test('zhiyu handoff.accept stores the handoff card and route without emitting ev
     interactionId: '1:instance:1:sim-handoff-1',
     targetSurfaceId: 'main',
     route,
-    card: { title: '在织语中继续', detail: '模拟交接卡片' },
+    card: { title: '在织羽中继续', detail: '模拟交接卡片' },
     committedAt: 42,
   };
   const reduced = zhiyuSimulatorBehavior.reduce(
@@ -105,7 +108,7 @@ test('zhiyu handoff.accept stores the handoff card and route without emitting ev
   assert.deepEqual(reduced.state.handoff, {
     targetSurfaceId: 'main',
     route,
-    card: { title: '在织语中继续', detail: '模拟交接卡片' },
+    card: { title: '在织羽中继续', detail: '模拟交接卡片' },
     committedAt: 42,
   });
 });
@@ -145,5 +148,17 @@ test('zhiyu behavior keeps undeclared commands fail-closed', () => {
       context,
     ),
     /ZHIYU_SIMULATOR_COMMAND_UNDECLARED/,
+  );
+});
+
+test('zhiyu simulator source context maps the raw source identity back to its opaque Agent handle', () => {
+  const source = readFileSync(path.join(root, 'src/simulator/bindings.ts'), 'utf8');
+  assert.match(
+    source,
+    /simulatedHome\(context,\s*simulatedAgentHandle\(input\.localAgentRef\)\)/u,
+  );
+  assert.doesNotMatch(
+    source,
+    /simulatedHome\(context,\s*input\.localAgentRef\)/u,
   );
 });

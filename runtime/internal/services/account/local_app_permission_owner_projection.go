@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"sort"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
@@ -34,6 +35,26 @@ func (s *Service) GetLocalAppPermissionOwnerProjection(ctx context.Context, req 
 		permissions = append(permissions, projection)
 	}
 	return &runtimev1.GetLocalAppPermissionOwnerProjectionResponse{Accepted: true, Permissions: permissions, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+}
+
+func (s *Service) ListLocalAppPermissionOwnerProjections(ctx context.Context, req *runtimev1.ListLocalAppPermissionOwnerProjectionsRequest) (*runtimev1.ListLocalAppPermissionOwnerProjectionsResponse, error) {
+	accountID, ok := s.authorizePermissionOwner(ctx, req.GetCaller())
+	if !ok {
+		return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
+	}
+	requests, err := s.localAppKernel.PermissionGrants().ListPermissionRequests(ctx, s.localAppKernel.LocalOSUserAnchor(), accountID)
+	if err != nil {
+		return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+	}
+	permissions := make([]*runtimev1.LocalAppPermissionOwnerProjection, 0, len(requests))
+	for _, request := range requests {
+		projection, projectionErr := s.projectOwnerPermission(ctx, accountID, request)
+		if projectionErr != nil {
+			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+		}
+		permissions = append(permissions, projection)
+	}
+	return &runtimev1.ListLocalAppPermissionOwnerProjectionsResponse{Accepted: true, Permissions: permissions, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
 func (s *Service) projectOwnerPermission(ctx context.Context, accountID string, request localappkernel.PermissionRequest) (*runtimev1.LocalAppPermissionOwnerProjection, error) {
@@ -79,21 +100,44 @@ func (s *Service) projectOwnerPermission(ctx context.Context, accountID string, 
 	default:
 		return nil, localappkernel.ErrStateConflict
 	}
-	selector, err := s.localAppKernel.AgentSelectorHandles().ResolveByDigest(ctx, accountID, request.LocalAppPrincipalID, request.PermissionID, decision.OwnerSelectorDigest)
+	if projection.Posture != runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED {
+		return projection, nil
+	}
+	if decision.OwnerSelectorDigest != localappkernel.AgentAccountScopeDigest(accountID) || s.localAgentOwnership == nil {
+		return nil, ErrLocalAppSelectorUnavailable
+	}
+	agents, err := s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
 	if err != nil {
-		return nil, err
-	}
-	if s.localAgentOwnership == nil {
 		return nil, ErrLocalAppSelectorUnavailable
 	}
-	agent, err := s.localAgentOwnership.ProjectOwnedLocalAgent(ctx, accountID, selector.LocalAgentID)
-	if err != nil || agent.LocalAgentID == "" || agent.DisplayName == "" {
-		return nil, ErrLocalAppSelectorUnavailable
+	sort.Slice(agents, func(i, j int) bool {
+		if agents[i].DisplayName == agents[j].DisplayName {
+			return agents[i].LocalAgentID < agents[j].LocalAgentID
+		}
+		return agents[i].DisplayName < agents[j].DisplayName
+	})
+	projection.CoveredAgents = make([]*runtimev1.LocalAppPermissionCoveredAgent, 0, len(agents))
+	seenAgentIDs := make(map[string]struct{}, len(agents))
+	for _, agent := range agents {
+		if !exactSelectorText(agent.LocalAgentID) || !canonicalLocalAppAgentDisplayName(agent.DisplayName) {
+			return nil, ErrLocalAppSelectorUnavailable
+		}
+		if _, duplicate := seenAgentIDs[agent.LocalAgentID]; duplicate {
+			return nil, ErrLocalAppSelectorUnavailable
+		}
+		seenAgentIDs[agent.LocalAgentID] = struct{}{}
+		projection.CoveredAgents = append(projection.CoveredAgents, &runtimev1.LocalAppPermissionCoveredAgent{
+			LocalAgentId: agent.LocalAgentID,
+			DisplayName:  agent.DisplayName,
+		})
 	}
-	projection.SelectedAgents = []*runtimev1.LocalAppPermissionSelectedAgent{{LocalAgentId: agent.LocalAgentID, DisplayName: agent.DisplayName}}
 	return projection, nil
 }
 
 func ownerPermissionProjectionResponse(reason runtimev1.ReasonCode) *runtimev1.GetLocalAppPermissionOwnerProjectionResponse {
 	return &runtimev1.GetLocalAppPermissionOwnerProjectionResponse{ReasonCode: reason}
+}
+
+func listOwnerPermissionProjectionsResponse(reason runtimev1.ReasonCode) *runtimev1.ListLocalAppPermissionOwnerProjectionsResponse {
+	return &runtimev1.ListLocalAppPermissionOwnerProjectionsResponse{ReasonCode: reason}
 }

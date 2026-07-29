@@ -19,6 +19,7 @@ import {
   selectNimiAppFactoryAIProfileForFirstRun,
   type NimiAppAIProfileFactoryRow,
   type NimiAppInventoryEntry,
+  type NimiLocalAppAgentHandle,
   type NimiAppLocalRecordRow,
   type NimiAppScopeRef,
   type NimiAppStatus,
@@ -91,6 +92,7 @@ function permissionStatus(overrides: Partial<PermissionStatus> = {}): Permission
     permissionId: 'agents.interact',
     posture: 'unavailable',
     canRequest: false,
+    agents: [],
     ...overrides,
   };
 }
@@ -98,11 +100,12 @@ function permissionStatus(overrides: Partial<PermissionStatus> = {}): Permission
 class StubPermissionTransport implements PermissionTransport {
   constructor(private readonly behavior: {
     readonly status?: PermissionStatus;
+    readonly request?: PermissionStatus;
     readonly subscribe?: PermissionPostureEvent;
   } = {}) {}
   async status(): Promise<PermissionStatus> { return this.behavior.status ?? permissionStatus(); }
   async request(): Promise<PermissionStatus> {
-    throw new Error('no public permission is admitted');
+    return this.behavior.request ?? permissionStatus({ posture: 'pending' });
   }
   subscribe(_permissionId: PermissionID, callback: (event: PermissionPostureEvent) => void): () => void {
     callback(this.behavior.subscribe ?? { status: permissionStatus() });
@@ -111,9 +114,9 @@ class StubPermissionTransport implements PermissionTransport {
 }
 
 describe('vNext app surface', () => {
-  it('exports product permission ids with an empty admitted request set', () => {
+  it('exports agents.interact as the first admitted request permission', () => {
     assert.equal(KNOWN_PERMISSION_IDS.includes('agents.interact'), true);
-    assert.equal(ADMITTED_PERMISSION_IDS.length, 0);
+    assert.deepEqual(ADMITTED_PERMISSION_IDS, ['agents.interact']);
     assert.equal(KNOWN_PERMISSION_IDS.includes('realm_source.snapshot.consume' as never), false);
   });
 
@@ -152,7 +155,7 @@ describe('vNext app surface', () => {
     );
   });
 
-  it('uses explicit permission transport and exposes reserved posture only', async () => {
+  it('uses explicit permission transport for admitted posture and requests', async () => {
     const client = createPermissionClient(new StubPermissionTransport());
     assert.equal(client instanceof PermissionClient, true);
     assert.deepEqual(createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' }), scopeRef);
@@ -160,19 +163,40 @@ describe('vNext app surface', () => {
     const events: PermissionPostureEvent[] = [];
     client.subscribe('agents.interact', (event) => events.push(event))();
     assert.equal(events[0]?.status.posture, 'unavailable');
-    await assert.rejects(
-      client.request({ permissionId: 'agents.interact', reason: 'Talk with an Agent selected by me' }),
-      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_NOT_ADMITTED',
-    );
+    assert.equal((await client.request({
+      permissionId: 'agents.interact',
+      reason: 'Talk with an Agent selected by me',
+    })).posture, 'pending');
   });
 
-  it('fails closed when transport projects a reserved permission as granted', async () => {
-    await assert.rejects(
-      createPermissionClient(new StubPermissionTransport({
-        status: permissionStatus({ posture: 'granted' }),
-      })).status('agents.interact'),
-      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_RESPONSE_INVALID',
-    );
+  it('accepts a granted account permission with no current Agents', async () => {
+    const status = await createPermissionClient(new StubPermissionTransport({
+      status: permissionStatus({ posture: 'granted' }),
+    })).status('agents.interact');
+    assert.equal(status.posture, 'granted');
+    assert.deepEqual(status.agents, []);
+  });
+
+  it('fails closed on duplicate Agent handles and Agents attached to non-granted posture', async () => {
+    const handle = 'lash_runtime_materialized' as NimiLocalAppAgentHandle;
+    for (const status of [
+      permissionStatus({
+        posture: 'granted',
+        agents: [
+          { agentHandle: handle, displayName: 'One' },
+          { agentHandle: handle, displayName: 'Two' },
+        ],
+      }),
+      permissionStatus({
+        posture: 'denied',
+        agents: [{ agentHandle: handle, displayName: 'One' }],
+      }),
+    ]) {
+      await assert.rejects(
+        createPermissionClient(new StubPermissionTransport({ status })).status('agents.interact'),
+        (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_RESPONSE_INVALID',
+      );
+    }
   });
 
   it('selects admitted first-run local baselines only', () => {

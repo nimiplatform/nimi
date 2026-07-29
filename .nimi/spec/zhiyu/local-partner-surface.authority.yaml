@@ -62,9 +62,9 @@ units:
     kind: rule
     title: Partner selection is explicit and local
     modality: must
-    statement: Zhiyu identifies the target localAgentId explicitly for each operation, while current or recent partner selection remains Zhiyu UI state and never becomes a platform default LocalAgent.
+    statement: Zhiyu selects each partner only from Runtime's dynamically materialized opaque handle projection for the owner-granted account scope and presents that handle explicitly for each operation, while current or recent partner selection remains Zhiyu UI state and never becomes a platform default LocalAgent or caller-authored selector.
     condition: Whenever Zhiyu selects or invokes a partner.
-    failure: Reject implicit global selection or inferred LocalAgent identity.
+    failure: Reject raw, implicit, inferred, stale, or out-of-scope LocalAgent identity.
     relations:
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.product-surface

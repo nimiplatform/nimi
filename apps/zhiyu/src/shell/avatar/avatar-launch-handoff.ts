@@ -5,15 +5,12 @@ import {
   type AvatarLaunchHandoffResult,
 } from '@nimiplatform/kit/features/avatar/headless';
 import {
-  createNimiRuntimeAgentConsumeClient,
   type NimiRuntimeAgentConsumeClient,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { getZhiyuRuntime } from '../auth/runtime-platform';
+import { requireZhiyuLocalAppCapability } from '../auth/runtime-platform';
 import type { ZhiyuAvatarLaunchAction } from './avatar-launch';
 import { withZhiyuRuntimeAgentAccessRequired } from '../agent-chat/runtime-agent-access';
-
-const APP_ID = 'nimi.zhiyu';
 
 export type ZhiyuAvatarLiveInstanceRegistration = {
   readonly ownerUserId: string;
@@ -137,11 +134,7 @@ export async function invokeZhiyuAvatarLaunchHandoff(
 }
 
 function createDefaultRuntimeAgentClient(): NimiRuntimeAgentConsumeClient {
-  const runtime = getZhiyuRuntime();
-  return createNimiRuntimeAgentConsumeClient({
-    runtime,
-    runtimeAppId: APP_ID,
-  });
+  return requireZhiyuLocalAppCapability('avatar-live-instance');
 }
 
 function requireText(value: unknown, field: string): string {

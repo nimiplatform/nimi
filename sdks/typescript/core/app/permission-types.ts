@@ -29,9 +29,9 @@ export const KNOWN_PERMISSION_IDS = [
 
 export type PermissionID = (typeof KNOWN_PERMISSION_IDS)[number];
 
-// The positive request set is intentionally empty until one complete
-// catalog+selector+owner+SDK+Kit+Desktop+audit+revoke slice is admitted.
-export const ADMITTED_PERMISSION_IDS: readonly PermissionID[] = [];
+// agents.interact is the first complete public permission slice. Runtime's
+// publication row remains the final fail-closed gate during staged rollout.
+export const ADMITTED_PERMISSION_IDS: readonly PermissionID[] = ['agents.interact'];
 
 export const PERMISSION_POSTURES = [
   'prompt',
@@ -43,6 +43,19 @@ export const PERMISSION_POSTURES = [
 
 export type PermissionPosture = (typeof PERMISSION_POSTURES)[number];
 
+declare const localAppAgentHandleBrand: unique symbol;
+
+/** Opaque Runtime-materialized handle for one Agent covered by an account grant. */
+export type NimiLocalAppAgentHandle = string & {
+  readonly [localAppAgentHandleBrand]: 'runtime-materialized-local-app-agent-handle';
+};
+
+/** Bounded display metadata for one Agent currently covered by the account grant. */
+export interface NimiLocalAppAgent {
+  readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly displayName: string;
+}
+
 export interface PermissionRequestInput {
   readonly permissionId: PermissionID;
   readonly reason: string;
@@ -52,6 +65,7 @@ export interface PermissionStatus {
   readonly permissionId: PermissionID;
   readonly posture: PermissionPosture;
   readonly canRequest: boolean;
+  readonly agents: readonly NimiLocalAppAgent[];
   readonly detail?: string;
 }
 

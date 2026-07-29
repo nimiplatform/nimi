@@ -6,6 +6,17 @@
 @import "@nimiplatform/kit/auth/styles.css";
 @import "tailwindcss" source(none);
 
+/* Keep Tailwind scanning bounded while including the app composition and the
+   Kit source utilities consumed through dist package exports. */
+@source "./**/*.{ts,tsx}";
+@source "../../../kit/ui/src/**/*.{ts,tsx}";
+@source "../../../kit/auth/src/**/*.{ts,tsx}";
+@source "../../../kit/features/chat/src/**/*.{ts,tsx}";
+@source "../../../kit/features/agent-center/src/**/*.{ts,tsx}";
+@source "../../../kit/features/avatar/src/**/*.{ts,tsx}";
+@source "../../../kit/features/model-config/src/**/*.{ts,tsx}";
+@source "../../../kit/features/model-picker/src/**/*.{ts,tsx}";
+
 :root {
   color-scheme: light;
 }

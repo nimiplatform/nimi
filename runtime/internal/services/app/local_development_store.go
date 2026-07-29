@@ -16,6 +16,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	_ "modernc.org/sqlite"
 )
@@ -435,12 +436,16 @@ func validateLocalDevelopmentProject(project localDevelopmentProjectSnapshot) er
 		filepath.Clean(project.ManifestPath) != project.ManifestPath || !pathWithinLocalDevelopmentRoot(project.ProjectRoot, project.ManifestPath) ||
 		(project.ShellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON && project.ShellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_TAURI) ||
 		strings.TrimSpace(project.AccountID) == "" || project.AccountID != strings.TrimSpace(project.AccountID) || project.AccountGeneration == 0 ||
-		len(project.PermissionRequirements) != 0 || project.PermissionRequirementFingerprint == (protectedlocal.Identifier{}) || project.PermissionRequirementFingerprint != localDevelopmentPermissionRequirementFingerprint(project.PermissionRequirements) {
+		project.PermissionRequirementFingerprint == (protectedlocal.Identifier{}) || project.PermissionRequirementFingerprint != localDevelopmentPermissionRequirementFingerprint(project.PermissionRequirements) {
 		return errLocalDevelopmentInvalid
 	}
 	seen := make(map[string]struct{}, len(project.PermissionRequirements))
 	for _, requirement := range project.PermissionRequirements {
 		if requirement.PermissionID == "" || requirement.PermissionID != strings.TrimSpace(requirement.PermissionID) || requirement.Reason == "" || requirement.Reason != strings.TrimSpace(requirement.Reason) || len([]byte(requirement.Reason)) > 240 {
+			return errLocalDevelopmentInvalid
+		}
+		descriptor, known := apppermission.Lookup(requirement.PermissionID)
+		if !known || descriptor.ID != requirement.PermissionID || descriptor.Admission != apppermission.AdmissionAdmitted || !descriptor.ManifestAllowed {
 			return errLocalDevelopmentInvalid
 		}
 		if _, duplicate := seen[requirement.PermissionID]; duplicate {

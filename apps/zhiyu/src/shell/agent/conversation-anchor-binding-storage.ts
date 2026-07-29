@@ -1,33 +1,30 @@
 import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
-import { projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 import { zhiyuLocalAppStorage } from '../app/local-app-storage';
 
 export type ZhiyuAgentConversationAnchorBinding = {
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  agentHandle: string;
   conversationAnchorId: string;
   threadId: string;
   updatedAtMs: number;
 };
 
-const anchorBindingsByLocalAgentRef = new Map<string, ZhiyuAgentConversationAnchorBinding>();
+const anchorBindingsByAgentHandle = new Map<string, ZhiyuAgentConversationAnchorBinding>();
 let anchorBindingVersion = 0;
 const anchorBindingListeners = new Set<() => void>();
 let storageHydrated = false;
 let storageHydration: Promise<void> | null = null;
 
 const STORAGE_PATH = 'agent-chat/conversation-anchor-bindings.json';
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 
 export function getZhiyuAgentConversationAnchorBinding(
-  localAgentRef: string | null | undefined,
+  agentHandle: string | null | undefined,
 ): ZhiyuAgentConversationAnchorBinding | null {
-  const normalizedLocalAgentRef = normalizeText(localAgentRef);
-  if (!normalizedLocalAgentRef) {
+  const normalizedAgentHandle = normalizeText(agentHandle);
+  if (!normalizedAgentHandle) {
     return null;
   }
-  return anchorBindingsByLocalAgentRef.get(normalizedLocalAgentRef) || null;
+  return anchorBindingsByAgentHandle.get(normalizedAgentHandle) || null;
 }
 
 export function persistZhiyuAgentConversationAnchorBinding(
@@ -37,7 +34,7 @@ export function persistZhiyuAgentConversationAnchorBinding(
   if (!normalizedBinding) {
     throw new Error('zhiyu agent conversation anchor binding is invalid');
   }
-  anchorBindingsByLocalAgentRef.set(normalizedBinding.localAgentRef, normalizedBinding);
+  anchorBindingsByAgentHandle.set(normalizedBinding.agentHandle, normalizedBinding);
   notifyAnchorBindingListeners();
   return normalizedBinding;
 }
@@ -62,7 +59,7 @@ export async function hydrateZhiyuAgentConversationAnchorBindingsFromStorage(): 
     }
     const bindings = parseStoredBindings(stored);
     for (const binding of bindings) {
-      anchorBindingsByLocalAgentRef.set(binding.localAgentRef, binding);
+      anchorBindingsByAgentHandle.set(binding.agentHandle, binding);
     }
     if (bindings.length > 0) {
       notifyAnchorBindingListeners();
@@ -79,23 +76,23 @@ export async function persistZhiyuAgentConversationAnchorBindingsToStorage(): Pr
 }
 
 export function clearZhiyuAgentConversationAnchorBinding(
-  localAgentRef: string | null | undefined,
+  agentHandle: string | null | undefined,
 ): void {
-  const normalizedLocalAgentRef = normalizeText(localAgentRef);
-  if (!normalizedLocalAgentRef) {
+  const normalizedAgentHandle = normalizeText(agentHandle);
+  if (!normalizedAgentHandle) {
     return;
   }
-  if (!anchorBindingsByLocalAgentRef.delete(normalizedLocalAgentRef)) {
+  if (!anchorBindingsByAgentHandle.delete(normalizedAgentHandle)) {
     return;
   }
   notifyAnchorBindingListeners();
 }
 
 export function clearAllZhiyuAgentConversationAnchorBindings(): void {
-  if (anchorBindingsByLocalAgentRef.size === 0) {
+  if (anchorBindingsByAgentHandle.size === 0) {
     return;
   }
-  anchorBindingsByLocalAgentRef.clear();
+  anchorBindingsByAgentHandle.clear();
   notifyAnchorBindingListeners();
 }
 
@@ -117,23 +114,14 @@ function normalizeBinding(
     return null;
   }
   const record = value as Record<string, unknown>;
-  const ownerUserId = normalizeText(record.ownerUserId);
-  const runtimeSourceRef = normalizeText(record.runtimeSourceRef);
-  const localAgentRef = normalizeText(record.localAgentRef);
+  const agentHandle = normalizeText(record.agentHandle);
   const conversationAnchorId = normalizeText(record.conversationAnchorId);
   const threadId = normalizeText(record.threadId);
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId || !threadId) {
-    return null;
-  }
-  try {
-    projectRuntimeLocalAgentIdentity({ ownerUserId, runtimeSourceRef, localAgentRef });
-  } catch {
+  if (!agentHandle || !conversationAnchorId || !threadId) {
     return null;
   }
   return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
+    agentHandle,
     conversationAnchorId,
     threadId,
     updatedAtMs: normalizeUpdatedAtMs(record.updatedAtMs),
@@ -143,10 +131,8 @@ function normalizeBinding(
 function encodeStoredBindings(): JsonValue {
   return {
     version: STORAGE_VERSION,
-    bindings: [...anchorBindingsByLocalAgentRef.values()].map((binding) => ({
-      ownerUserId: binding.ownerUserId,
-      runtimeSourceRef: binding.runtimeSourceRef,
-      localAgentRef: binding.localAgentRef,
+    bindings: [...anchorBindingsByAgentHandle.values()].map((binding) => ({
+      agentHandle: binding.agentHandle,
       conversationAnchorId: binding.conversationAnchorId,
       threadId: binding.threadId,
       updatedAtMs: binding.updatedAtMs,

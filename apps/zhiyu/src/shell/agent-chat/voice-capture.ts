@@ -1,5 +1,4 @@
-import { runNimiRuntimeSpeechTranscription } from '@nimiplatform/sdk/features/generation';
-import { appId, getRuntimePlatformProjection } from '../auth/runtime-platform';
+import { requireZhiyuLocalAppCapability } from '../auth/runtime-platform';
 import {
   voiceCaptureEvidence,
   type ZhiyuVoiceCaptureEvidence,
@@ -177,34 +176,8 @@ export function createElectronVoiceCaptureTranscriber(input: {
     });
   }
   return async (request) => {
-    const projection = await getRuntimePlatformProjection();
-    if (projection.status !== 'ready') {
-      throw Object.assign(new Error(projection.message), {
-        reasonCode: projection.reasonCode,
-        actionHint: projection.actionHint || 'start_external_runtime_daemon',
-        source: 'runtime',
-      });
-    }
-    const result = await runNimiRuntimeSpeechTranscription({
-      runtime: projection.accountRuntime,
-      head: {
-        appId,
-        subjectUserId: ownerUserId,
-      },
-      audio: { type: 'bytes', bytes: request.bytes },
-      mimeType: request.mimeType,
-      requestId: request.requestId,
-      idempotencyKey: `${appId}:voice-transcription:${request.requestId}`,
-      labels: {
-        surface: 'zhiyu.agent-chat',
-        localAgentRef: agentId,
-      },
-    });
-    return {
-      text: result.text,
-      jobId: result.job.jobId,
-      traceId: result.traceId,
-    };
+    void request;
+    return requireZhiyuLocalAppCapability('voice-transcription');
   };
 }
 

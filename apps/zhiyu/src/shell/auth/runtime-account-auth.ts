@@ -1,52 +1,23 @@
 import type { NimiClient } from '@nimiplatform/sdk';
 import type { NimiRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
-import {
-  getRuntimeAccountCaller,
-  runtimeAccountLoginEnabled,
-} from './runtime-platform';
+import { runtimeAccountLoginEnabled } from './runtime-platform';
 
-export { getRuntimeAccountCaller };
+/** Retained compatibility entry point; third-party local apps cannot mint account callers. */
+export function getRuntimeAccountCaller(): NimiRuntimeAccountCaller {
+  throw Object.assign(new Error('Zhiyu account caller capability is not admitted.'), {
+    reasonCode: 'zhiyu-account-caller-capability-not-admitted',
+    actionHint: 'admit_zhiyu_account_caller_capability',
+    source: 'sdk',
+  });
+}
 
-type RuntimeAccountClient = Pick<NimiClient, 'runtime'> & {
-  runtime: NimiClient['runtime'] & {
-    account: NimiClient['runtime']['account'] & {
-      getAccountSessionStatus(input: { caller: NimiRuntimeAccountCaller }): Promise<{
-        accepted: boolean;
-        reasonCode?: unknown;
-        accountReasonCode?: unknown;
-        snapshot?: {
-          state: AccountSessionState;
-          accountProjection?: {
-            accountId?: string | null;
-            displayName?: string | null;
-          } | null;
-        } | null;
-      }>;
-    };
-  };
-};
-
-export async function loadRuntimeAccountUser(client: RuntimeAccountClient | NimiClient) {
+export async function loadRuntimeAccountUser(_client: NimiClient) {
   if (!runtimeAccountLoginEnabled) {
     return null;
   }
-  const response = await client.runtime.account.getAccountSessionStatus({
-    caller: getRuntimeAccountCaller(),
-  });
-  if (!response.accepted || !response.snapshot) {
-    throw new Error(
-      `Runtime account status rejected: ${String(response.accountReasonCode || response.reasonCode || 'missing_snapshot')}`,
-    );
-  }
-  if (
-    response.snapshot.state !== AccountSessionState.AUTHENTICATED
-    || !response.snapshot.accountProjection?.accountId
-  ) {
-    return null;
-  }
-  return {
-    id: response.snapshot.accountProjection.accountId,
-    displayName: response.snapshot.accountProjection.displayName || 'Runtime account',
-  };
+  return Promise.reject(Object.assign(new Error('Zhiyu account caller capability is not admitted.'), {
+    reasonCode: 'zhiyu-account-caller-capability-not-admitted',
+    actionHint: 'admit_zhiyu_account_caller_capability',
+    source: 'sdk',
+  }));
 }

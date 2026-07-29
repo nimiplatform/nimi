@@ -6,7 +6,7 @@ export type ZhiyuHomeProductStage =
   | 'source-required'
   | 'agent-required'
   | 'conversation-required'
-  | 'route-required'
+  | 'turn-required'
   | 'ready';
 
 export type ZhiyuHomeStatusTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
@@ -127,8 +127,8 @@ function resolveStage(evidence: ZhiyuEvidence): ZhiyuHomeProductStage {
   if (!evidence.conversation.ready) {
     return 'conversation-required';
   }
-  if (!evidence.route.ready || !evidence.turn.ready) {
-    return 'route-required';
+  if (!evidence.turn.ready) {
+    return 'turn-required';
   }
   return 'ready';
 }
@@ -169,11 +169,11 @@ function primaryCopy(stage: ZhiyuHomeProductStage): {
         description: '当前伙伴已选定，正在准备对话入口。',
         actionHint: '稍候片刻，或打开诊断查看阻塞原因。',
       };
-    case 'route-required':
+    case 'turn-required':
       return {
-        title: '需要先配置模型',
-        description: '当前伙伴已经选定；配置文字模型后，就可以开始对话。',
-        actionHint: '打开模型配置，选择用于对话的本地或云端模型。',
+        title: '需要恢复当前会话权限',
+        description: '当前伙伴已经选定，但账户授权或会话句柄已发生变化。',
+        actionHint: '刷新伙伴列表并确认账户级 Agent 交互授权。',
       };
     case 'ready':
       return {

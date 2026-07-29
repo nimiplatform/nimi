@@ -1,36 +1,26 @@
-import { createNimiClient, type NimiClient } from '@nimiplatform/sdk';
-import {
-  createNimiLocalFirstPartyRuntimeAccountCaller,
-  type NimiRuntimeAccountCaller,
-  type Runtime,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiClient } from '@nimiplatform/sdk';
+import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
 
 export const appId = 'nimi.zhiyu';
 export const appTitle = '织羽 Zhiyu';
-export const runtimeAccountLoginEnabled = true;
-
-const runtimeClientIdPrefix = normalizeClientIdPrefix(appId);
-const runtimeAccountAppInstanceId = `${appId}.local-first-party`;
-const runtimeAccountDeviceId = `${runtimeClientIdPrefix}-local-first-party-device`;
+export const runtimeAccountLoginEnabled = false;
 
 export type RuntimeAuthMode = 'first-party-local-app';
+export type ZhiyuLocalAppClient = NimiLocalAppClient;
 
 export type RuntimePlatformReadyProjection = {
   readonly status: 'ready';
   readonly mode: RuntimeAuthMode;
-  readonly client: NimiClient;
-  readonly accountRuntime: Runtime;
-  readonly accountCaller: NimiRuntimeAccountCaller;
+  readonly client: ZhiyuLocalAppClient;
 };
 
 export type RuntimePlatformLoginRequiredProjection = {
   readonly status: 'login-required';
   readonly mode: RuntimeAuthMode;
-  readonly client: NimiClient;
-  readonly accountRuntime: Runtime;
-  readonly accountCaller: NimiRuntimeAccountCaller;
+  readonly client: ZhiyuLocalAppClient;
   readonly reasonCode: string;
   readonly message: string;
   readonly actionHint: string;
@@ -50,66 +40,55 @@ export type RuntimePlatformProjection =
   | RuntimePlatformUnavailableProjection;
 
 let runtimeProjection: Promise<RuntimePlatformProjection> | null = null;
-let runtimeReadyProjection: RuntimePlatformReadyProjection | null = null;
-let runtimeAccountCaller: NimiRuntimeAccountCaller | null = null;
-let runtimeClient: NimiClient | null = null;
+let localAppClient: ZhiyuLocalAppClient | null = null;
 
 export function clearRuntimePlatformProjection(): void {
   runtimeProjection = null;
-  runtimeReadyProjection = null;
-  runtimeClient = null;
+  localAppClient = null;
 }
 
 export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjection> {
-  runtimeProjection ??= createFirstPartyRuntimeProjection('first-party-local-app');
+  runtimeProjection ??= createLocalAppRuntimeProjection('first-party-local-app');
   return runtimeProjection;
 }
 
-export function getRuntimeNimiClient(): NimiClient {
-  if (!runtimeReadyProjection) {
-    throw new Error('Zhiyu Runtime client is not initialized. Wait for Runtime platform projection to become ready.');
-  }
-  return runtimeReadyProjection.client;
-}
-
-export function getZhiyuRuntime(): Runtime {
-  runtimeClient ??= createNimiClient({
-    appId,
-    runtime: {
-      appId,
-      transport: { type: 'electron-ipc' },
+export function getZhiyuLocalAppClient(): ZhiyuLocalAppClient {
+  localAppClient ??= createNimiClient({
+    localApp: {
+      standardShell: createNimiLocalAppStandardShellSurface(),
     },
-    realm: false,
-    app: false,
-    permissions: false,
   });
-  return runtimeClient.runtime;
+  return localAppClient;
 }
 
-export function getRuntimeAccountCaller(): NimiRuntimeAccountCaller {
-  runtimeAccountCaller ??= createNimiLocalFirstPartyRuntimeAccountCaller({
-    appId,
-    appInstanceId: runtimeAccountAppInstanceId,
-    deviceId: runtimeAccountDeviceId,
+export function requireZhiyuLocalAppCapability(capability: string): never {
+  const normalized = capability.trim() || 'unknown';
+  throw Object.assign(new Error(`Zhiyu local-app capability "${normalized}" is not admitted.`), {
+    reasonCode: `zhiyu-${normalized.replaceAll('.', '-')}-capability-not-admitted`,
+    actionHint: `admit_zhiyu_${normalized.replaceAll('.', '_').replaceAll('-', '_')}_capability`,
+    source: 'sdk',
+    retryable: false,
   });
-  return runtimeAccountCaller;
 }
 
-async function createFirstPartyRuntimeProjection(
+async function createLocalAppRuntimeProjection(
   mode: RuntimeAuthMode,
 ): Promise<RuntimePlatformProjection> {
   try {
-    const accountRuntime = getZhiyuRuntime();
-    const client = runtimeClient!;
-    await client.runtime.ready();
-    runtimeReadyProjection = {
+    const client = getZhiyuLocalAppClient();
+    const session = await client.auth.status();
+    if (!session.sessionBound) {
+      throw Object.assign(new Error('Zhiyu local-app session is not bound.'), {
+        reasonCode: session.reasonCode,
+        actionHint: session.actionHint,
+        source: 'sdk',
+      });
+    }
+    return {
       status: 'ready',
       mode,
       client,
-      accountRuntime,
-      accountCaller: getRuntimeAccountCaller(),
     };
-    return runtimeReadyProjection;
   } catch (error) {
     return unavailableFromError(mode, error);
   }
@@ -145,10 +124,6 @@ function fallbackActionHint(reasonCode: string): string {
   return reasonCode === 'electron-standard-capability-not-in-host-set'
     ? 'use_command_admitted_by_electron_standard_shell_capability_set'
     : 'start_external_runtime_daemon';
-}
-
-function normalizeClientIdPrefix(value: string): string {
-  return value.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'nimi-app';
 }
 
 function normalizeText(value: unknown): string {

@@ -476,7 +476,7 @@ units:
     kind: rule
     title: Current public permission admission is bounded
     modality: must
-    statement: The admitted third-party LocalAgent interaction permission covers only owner-selected Conversation operations, Runtime owns its durable revocable decision lifecycle and enforcement, and a restricted process-bound App session may otherwise use only admitted base entitlements without account-wide LocalAgent inventory, caller-built selectors, principal substitution, direct Avatar control, or embedded rendering.
+    statement: The admitted third-party LocalAgent interaction permission covers only the open-conversation, send-turn, subscribe-turn, and conversation-snapshot operation families over an owner-granted current-account scope covering all current and future LocalAgents, dynamically materialized only as app-bound opaque Agent handles; Runtime owns its durable revocable decision lifecycle and enforcement, and pre-grant or zero-permission sessions cannot enumerate LocalAgents, build selectors, substitute principals, control Avatar directly, or embed rendering.
     condition: Whenever a third-party public permission, decision, selector, or protected operation is evaluated.
     failure: Admit only the complete P-PERM-017 agents.interact four-operation slice and return typed unavailable for incomplete, denied, expired, revoked, mismatched, or out-of-subset access.
     relations:
@@ -486,7 +486,7 @@ units:
     kind: rule
     title: Future permission identity is owner-bound
     modality: must
-    statement: Any future Runtime-owned public permission lifecycle binds local_os_user_anchor, account_id, local_app_principal_id, permission_id, and owner_selector_digest, and the selector is produced by the canonical owner rather than supplied as authority by the app.
+    statement: Any future Runtime-owned public permission lifecycle binds local_os_user_anchor, account_id, local_app_principal_id, permission_id, and owner_selector_digest; for agents.interact the selector is a canonical Runtime-owned account scope covering all current and future LocalAgents, Runtime materializes only app-bound opaque handles from that scope, and each protected operation revalidates live ownership and active lifecycle while no app-supplied Agent identity or selector carries authority.
     condition: Whenever a Runtime-owned public permission is atomically admitted.
     failure: Deny creation or use when any binding is missing, mismatched, or app-authored.
     relations:

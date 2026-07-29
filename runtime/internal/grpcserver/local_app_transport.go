@@ -304,7 +304,7 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 		}
 		fields := req.GetPayload().GetFields()
 		return accountservice.LocalAppOperationSendConversationTurn, localappop.Selector{
-			AgentID: fields["local_agent_ref"].GetStringValue(), ConversationAnchorID: fields["conversation_anchor_id"].GetStringValue(), TurnID: fields["turn_id"].GetStringValue(),
+			AgentID: fields["local_agent_ref"].GetStringValue(), ConversationAnchorID: fields["conversation_anchor_id"].GetStringValue(), TurnID: fields["request_id"].GetStringValue(),
 		}, true
 	case protectedConversationSnapshotMethod:
 		req, ok := request.(*runtimev1.GetPublicChatSessionSnapshotRequest)

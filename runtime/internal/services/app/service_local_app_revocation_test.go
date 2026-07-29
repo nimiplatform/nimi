@@ -50,7 +50,7 @@ func TestLocalAppSubscriptionRevalidatesAuthorityBeforeEveryDeliveredEvent(t *te
 		t.Run(reason.String(), func(t *testing.T) {
 			decision := accountservice.LocalAppCallerDecision{
 				SessionID: accountServiceIdentifier(0x91), AppID: "nimi.zhiyu", AccountID: "account-a",
-				LocalAppPrincipalID: "principal-a", LocalAppRecordID: "record-a", OwnerSelectedAgentID: "agent-a",
+				LocalAppPrincipalID: "principal-a", LocalAppRecordID: "record-a", LocalAgentID: "agent-a",
 				Operation: accountservice.LocalAppOperationSubscribeConversation,
 			}
 			authorizeErr := localAppSubscriptionReasonError{reason: reason}

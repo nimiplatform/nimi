@@ -184,11 +184,26 @@ pub const DESKTOP_MACHINE_PRODUCT_STREAM_METHODS: &[DesktopMachineProductStreamM
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopAccountProductUnaryMethod { MaterializeRealmSource, ListAgents, GetAgent, OpenConversationAnchor, GetConversationAnchorSnapshot, ListAgentConversationSummaries, GetPublicChatSessionSnapshot, RegisterAvatarLiveInstanceBinding, ResolveAvatarLiveInstanceBinding, SetAgentPresentationProfile, GetRuntimeAgentAiConfig, UpsertRuntimeAgentAiConfig, GetRuntimeAgentAiConfigReadiness, GetAgentCanonicalMemoryBankStatus, RequestAgentCanonicalMemoryBankBind, SendAppMessage, ReadArtifactBytes, CleanupGeneratedVoiceArtifacts, ListModelCatalogProviders, ListCatalogProviderModels, GetCatalogModelDetail, UpsertModelCatalogProvider, DeleteModelCatalogProvider, UpsertCatalogModelOverlay, DeleteCatalogModelOverlay, ListConnectors, CreateConnector, UpdateConnector, DeleteConnector, TestConnector, ListConnectorModels, GetAgentState, ListPendingHooks, QueryAgentMemory, UpdateAgentState, EnableAutonomy, DisableAutonomy, SetAutonomyConfig, CancelHook, GetDelegatedControlSurfaceSnapshot, GetDelegatedReplayTrace, SubmitDelegatedApprovalDecision }
+pub enum DesktopAccountProductUnaryMethod { ListLocalAppPermissionRequests, GetLocalAppPermissionOwnerProjection, ListLocalAppPermissionOwnerProjections, DecideLocalAppPermission, RevokeLocalAppPermission, MaterializeRealmSource, ListAgents, GetAgent, OpenConversationAnchor, GetConversationAnchorSnapshot, ListAgentConversationSummaries, GetPublicChatSessionSnapshot, RegisterAvatarLiveInstanceBinding, ResolveAvatarLiveInstanceBinding, SetAgentPresentationProfile, GetRuntimeAgentAiConfig, UpsertRuntimeAgentAiConfig, GetRuntimeAgentAiConfigReadiness, GetAgentCanonicalMemoryBankStatus, RequestAgentCanonicalMemoryBankBind, SendAppMessage, ReadArtifactBytes, CleanupGeneratedVoiceArtifacts, ListModelCatalogProviders, ListCatalogProviderModels, GetCatalogModelDetail, UpsertModelCatalogProvider, DeleteModelCatalogProvider, UpsertCatalogModelOverlay, DeleteCatalogModelOverlay, ListConnectors, CreateConnector, UpdateConnector, DeleteConnector, TestConnector, ListConnectorModels, GetAgentState, ListPendingHooks, QueryAgentMemory, UpdateAgentState, EnableAutonomy, DisableAutonomy, SetAutonomyConfig, CancelHook, GetDelegatedControlSurfaceSnapshot, GetDelegatedReplayTrace, SubmitDelegatedApprovalDecision }
 
 impl DesktopAccountProductUnaryMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
         Some(match method_id {
+            "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests" => {
+                Self::ListLocalAppPermissionRequests
+            }
+            "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection" => {
+                Self::GetLocalAppPermissionOwnerProjection
+            }
+            "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections" => {
+                Self::ListLocalAppPermissionOwnerProjections
+            }
+            "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission" => {
+                Self::DecideLocalAppPermission
+            }
+            "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission" => {
+                Self::RevokeLocalAppPermission
+            }
             "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource" => {
                 Self::MaterializeRealmSource
             }
@@ -287,6 +302,21 @@ impl DesktopAccountProductUnaryMethod {
 
     pub const fn method_id(self) -> &'static str {
         match self {
+            Self::ListLocalAppPermissionRequests => {
+                "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests"
+            }
+            Self::GetLocalAppPermissionOwnerProjection => {
+                "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection"
+            }
+            Self::ListLocalAppPermissionOwnerProjections => {
+                "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections"
+            }
+            Self::DecideLocalAppPermission => {
+                "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission"
+            }
+            Self::RevokeLocalAppPermission => {
+                "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission"
+            }
             Self::MaterializeRealmSource => {
                 "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource"
             }
@@ -384,15 +414,18 @@ impl DesktopAccountProductUnaryMethod {
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS: &[DesktopAccountProductUnaryMethod] = &[DesktopAccountProductUnaryMethod::MaterializeRealmSource, DesktopAccountProductUnaryMethod::ListAgents, DesktopAccountProductUnaryMethod::GetAgent, DesktopAccountProductUnaryMethod::OpenConversationAnchor, DesktopAccountProductUnaryMethod::GetConversationAnchorSnapshot, DesktopAccountProductUnaryMethod::ListAgentConversationSummaries, DesktopAccountProductUnaryMethod::GetPublicChatSessionSnapshot, DesktopAccountProductUnaryMethod::RegisterAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::ResolveAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::SetAgentPresentationProfile, DesktopAccountProductUnaryMethod::GetRuntimeAgentAiConfig, DesktopAccountProductUnaryMethod::UpsertRuntimeAgentAiConfig, DesktopAccountProductUnaryMethod::GetRuntimeAgentAiConfigReadiness, DesktopAccountProductUnaryMethod::GetAgentCanonicalMemoryBankStatus, DesktopAccountProductUnaryMethod::RequestAgentCanonicalMemoryBankBind, DesktopAccountProductUnaryMethod::SendAppMessage, DesktopAccountProductUnaryMethod::ReadArtifactBytes, DesktopAccountProductUnaryMethod::CleanupGeneratedVoiceArtifacts, DesktopAccountProductUnaryMethod::ListModelCatalogProviders, DesktopAccountProductUnaryMethod::ListCatalogProviderModels, DesktopAccountProductUnaryMethod::GetCatalogModelDetail, DesktopAccountProductUnaryMethod::UpsertModelCatalogProvider, DesktopAccountProductUnaryMethod::DeleteModelCatalogProvider, DesktopAccountProductUnaryMethod::UpsertCatalogModelOverlay, DesktopAccountProductUnaryMethod::DeleteCatalogModelOverlay, DesktopAccountProductUnaryMethod::ListConnectors, DesktopAccountProductUnaryMethod::CreateConnector, DesktopAccountProductUnaryMethod::UpdateConnector, DesktopAccountProductUnaryMethod::DeleteConnector, DesktopAccountProductUnaryMethod::TestConnector, DesktopAccountProductUnaryMethod::ListConnectorModels, DesktopAccountProductUnaryMethod::GetAgentState, DesktopAccountProductUnaryMethod::ListPendingHooks, DesktopAccountProductUnaryMethod::QueryAgentMemory, DesktopAccountProductUnaryMethod::UpdateAgentState, DesktopAccountProductUnaryMethod::EnableAutonomy, DesktopAccountProductUnaryMethod::DisableAutonomy, DesktopAccountProductUnaryMethod::SetAutonomyConfig, DesktopAccountProductUnaryMethod::CancelHook, DesktopAccountProductUnaryMethod::GetDelegatedControlSurfaceSnapshot, DesktopAccountProductUnaryMethod::GetDelegatedReplayTrace, DesktopAccountProductUnaryMethod::SubmitDelegatedApprovalDecision];
+pub const DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS: &[DesktopAccountProductUnaryMethod] = &[DesktopAccountProductUnaryMethod::ListLocalAppPermissionRequests, DesktopAccountProductUnaryMethod::GetLocalAppPermissionOwnerProjection, DesktopAccountProductUnaryMethod::ListLocalAppPermissionOwnerProjections, DesktopAccountProductUnaryMethod::DecideLocalAppPermission, DesktopAccountProductUnaryMethod::RevokeLocalAppPermission, DesktopAccountProductUnaryMethod::MaterializeRealmSource, DesktopAccountProductUnaryMethod::ListAgents, DesktopAccountProductUnaryMethod::GetAgent, DesktopAccountProductUnaryMethod::OpenConversationAnchor, DesktopAccountProductUnaryMethod::GetConversationAnchorSnapshot, DesktopAccountProductUnaryMethod::ListAgentConversationSummaries, DesktopAccountProductUnaryMethod::GetPublicChatSessionSnapshot, DesktopAccountProductUnaryMethod::RegisterAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::ResolveAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::SetAgentPresentationProfile, DesktopAccountProductUnaryMethod::GetRuntimeAgentAiConfig, DesktopAccountProductUnaryMethod::UpsertRuntimeAgentAiConfig, DesktopAccountProductUnaryMethod::GetRuntimeAgentAiConfigReadiness, DesktopAccountProductUnaryMethod::GetAgentCanonicalMemoryBankStatus, DesktopAccountProductUnaryMethod::RequestAgentCanonicalMemoryBankBind, DesktopAccountProductUnaryMethod::SendAppMessage, DesktopAccountProductUnaryMethod::ReadArtifactBytes, DesktopAccountProductUnaryMethod::CleanupGeneratedVoiceArtifacts, DesktopAccountProductUnaryMethod::ListModelCatalogProviders, DesktopAccountProductUnaryMethod::ListCatalogProviderModels, DesktopAccountProductUnaryMethod::GetCatalogModelDetail, DesktopAccountProductUnaryMethod::UpsertModelCatalogProvider, DesktopAccountProductUnaryMethod::DeleteModelCatalogProvider, DesktopAccountProductUnaryMethod::UpsertCatalogModelOverlay, DesktopAccountProductUnaryMethod::DeleteCatalogModelOverlay, DesktopAccountProductUnaryMethod::ListConnectors, DesktopAccountProductUnaryMethod::CreateConnector, DesktopAccountProductUnaryMethod::UpdateConnector, DesktopAccountProductUnaryMethod::DeleteConnector, DesktopAccountProductUnaryMethod::TestConnector, DesktopAccountProductUnaryMethod::ListConnectorModels, DesktopAccountProductUnaryMethod::GetAgentState, DesktopAccountProductUnaryMethod::ListPendingHooks, DesktopAccountProductUnaryMethod::QueryAgentMemory, DesktopAccountProductUnaryMethod::UpdateAgentState, DesktopAccountProductUnaryMethod::EnableAutonomy, DesktopAccountProductUnaryMethod::DisableAutonomy, DesktopAccountProductUnaryMethod::SetAutonomyConfig, DesktopAccountProductUnaryMethod::CancelHook, DesktopAccountProductUnaryMethod::GetDelegatedControlSurfaceSnapshot, DesktopAccountProductUnaryMethod::GetDelegatedReplayTrace, DesktopAccountProductUnaryMethod::SubmitDelegatedApprovalDecision];
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopAccountProductStreamMethod { SubscribeRuntimeAgentAiConfigReadiness, SubscribeAppMessages, SubscribeAgentEvents }
+pub enum DesktopAccountProductStreamMethod { SubscribeLocalAppPermissionRequests, SubscribeRuntimeAgentAiConfigReadiness, SubscribeAppMessages, SubscribeAgentEvents }
 
 impl DesktopAccountProductStreamMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
         Some(match method_id {
+            "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests" => {
+                Self::SubscribeLocalAppPermissionRequests
+            }
             "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness" => {
                 Self::SubscribeRuntimeAgentAiConfigReadiness
             }
@@ -406,6 +439,9 @@ impl DesktopAccountProductStreamMethod {
 
     pub const fn method_id(self) -> &'static str {
         match self {
+            Self::SubscribeLocalAppPermissionRequests => {
+                "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests"
+            }
             Self::SubscribeRuntimeAgentAiConfigReadiness => {
                 "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness"
             }
@@ -418,7 +454,7 @@ impl DesktopAccountProductStreamMethod {
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS: &[DesktopAccountProductStreamMethod] = &[DesktopAccountProductStreamMethod::SubscribeRuntimeAgentAiConfigReadiness, DesktopAccountProductStreamMethod::SubscribeAppMessages, DesktopAccountProductStreamMethod::SubscribeAgentEvents];
+pub const DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS: &[DesktopAccountProductStreamMethod] = &[DesktopAccountProductStreamMethod::SubscribeLocalAppPermissionRequests, DesktopAccountProductStreamMethod::SubscribeRuntimeAgentAiConfigReadiness, DesktopAccountProductStreamMethod::SubscribeAppMessages, DesktopAccountProductStreamMethod::SubscribeAgentEvents];
 
 pub const BUNDLED_AVATAR_APP_ID: &str = "nimi.avatar";
 pub const BUNDLED_AVATAR_NATIVE_PROFILE_MARKER: &str = "avatar-v1";

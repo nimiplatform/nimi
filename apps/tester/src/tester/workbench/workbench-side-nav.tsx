@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import {
   Boxes,
   Compass,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button, Tooltip } from '@nimiplatform/kit/ui';
 import { getTesterCapability, type TesterCapabilityId } from '../tester-capabilities.js';
@@ -12,6 +13,7 @@ type WorkbenchSideNavProps = {
   view: WorkbenchView;
   onSelectCapability: (id: TesterCapabilityId) => void;
   onSelectRecipes: () => void;
+  onSelectPermissionLab: () => void;
   accountSlot?: ReactNode;
 };
 
@@ -19,6 +21,7 @@ export function WorkbenchSideNav({
   view,
   onSelectCapability,
   onSelectRecipes,
+  onSelectPermissionLab,
   accountSlot,
 }: WorkbenchSideNavProps) {
   const activeCapabilityId = view.kind === 'capability' ? view.capabilityId : null;
@@ -108,6 +111,27 @@ export function WorkbenchSideNav({
                 >
                   <Boxes size={18} strokeWidth={1.9} aria-hidden="true" />
                   <span className="workbench-side-nav__item-label" data-workbench-rail-label="">UI Recipes</span>
+                </Button>
+              </Tooltip>
+            </li>
+            <li>
+              <Tooltip
+                content="Permission Lab"
+                placement="right"
+                className="w-full"
+              >
+                <Button
+                  type="button"
+                  tone="ghost"
+                  size="sm"
+                  data-workbench-rail-item=""
+                  className={view.kind === 'permission-lab' ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
+                  onClick={onSelectPermissionLab}
+                  aria-label="Permission Lab"
+                  aria-current={view.kind === 'permission-lab' ? 'page' : undefined}
+                >
+                  <ShieldCheck size={18} strokeWidth={1.9} aria-hidden="true" />
+                  <span className="workbench-side-nav__item-label" data-workbench-rail-label="">Permission Lab</span>
                 </Button>
               </Tooltip>
             </li>

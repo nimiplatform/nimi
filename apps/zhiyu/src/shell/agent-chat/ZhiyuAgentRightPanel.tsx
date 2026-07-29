@@ -35,6 +35,7 @@ type RightAgentPanelProps = {
   readonly onActiveTabChange: (tab: AgentPanelTab) => void;
   readonly onClose: () => void;
   readonly onOpenModelConfig: () => void;
+  readonly onOpenDesktopAgentConfig: () => void;
   readonly onAvatarLaunch?: () => void;
   readonly appearanceAdapter: AgentCenterAppearanceAdapter;
   readonly runtimeAdapter: AgentCenterRuntimeAdapter | null;
@@ -463,7 +464,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
             onSectionChange={props.onActiveTabChange}
             placementActions={{
               close: props.onClose,
-              openRuntimeSettings: props.onOpenModelConfig,
+              openRuntimeSettings: props.onOpenDesktopAgentConfig,
               launchAvatar: props.onAvatarLaunch,
             }}
             appearanceAdapter={props.appearanceAdapter}

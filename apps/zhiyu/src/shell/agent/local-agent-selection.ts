@@ -1,9 +1,9 @@
 import type { ZhiyuRuntimeAgentInventoryStatus } from './agent-inventory';
-import type { ZhiyuLocalAgentStatus } from './local-agent-discovery';
+import type { ZhiyuLocalAgentStatus } from './local-agent-status';
 
 export type ZhiyuRuntimeLocalAgentSelectionInput = {
   readonly inventory: ZhiyuRuntimeAgentInventoryStatus;
-  readonly selectedLocalAgentRef?: string | null;
+  readonly selectedAgentHandle?: string | null;
 };
 
 export function resolveZhiyuRuntimeLocalAgentSelection(
@@ -29,9 +29,9 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
       ownerUserId: input.inventory.ownerUserId,
     });
   }
-  const selectedLocalAgentRef = stringOr(input.selectedLocalAgentRef, '');
-  if (selectedLocalAgentRef) {
-    const selected = localAgents.find((agent) => agent.localAgentRef === selectedLocalAgentRef);
+  const selectedAgentHandle = stringOr(input.selectedAgentHandle, '');
+  if (selectedAgentHandle) {
+    const selected = localAgents.find((agent) => agent.agentHandle === selectedAgentHandle);
     if (selected?.sourceReady === true) {
       return localAgentSelected(selected);
     }
@@ -41,8 +41,6 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
         actionHint: 'desktop_open_select_partner',
         source: 'runtime',
         message: 'The selected Runtime LocalAgent source snapshot is not ready. Continue source selection in Desktop Explore, then refresh the Runtime inventory.',
-        ownerUserId: selected.ownerUserId,
-        runtimeSourceRef: selected.runtimeSourceRef,
       });
     }
     return localAgentUnavailable({
@@ -56,9 +54,9 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   if (localAgents.length === 0) {
     return localAgentUnavailable({
       reasonCode: 'zhiyu-runtime-local-agent-inventory-empty',
-      actionHint: 'desktop_open_select_partner',
+      actionHint: 'wait_for_account_agent_inventory',
       source: 'runtime',
-      message: 'Runtime inventory has no active Runtime-owned partner for Zhiyu to open. Use Desktop Explore character/persona context and return after Runtime reports an available partner.',
+      message: '账户级授权已生效，但当前没有可用 Agent；后续新增 Agent 会自动出现在织羽中。',
       ownerUserId: input.inventory.ownerUserId,
     });
   }
@@ -78,11 +76,10 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   }
   return localAgentUnavailable({
     reasonCode: 'zhiyu-runtime-local-agent-source-not-ready',
-    actionHint: 'desktop_open_select_partner',
+    actionHint: 'wait_for_account_agent_inventory',
     source: 'runtime',
-    message: 'The Runtime LocalAgent source snapshot is not ready. Continue source selection in Desktop Explore, then refresh the Runtime inventory.',
-    ownerUserId: only?.ownerUserId ?? input.inventory.ownerUserId,
-    runtimeSourceRef: only?.runtimeSourceRef ?? null,
+    message: 'The covered Agent is not currently ready. Wait for the account Agent inventory to refresh.',
+    ownerUserId: input.inventory.ownerUserId,
   });
 }
 
@@ -101,6 +98,7 @@ function localAgentUnavailable(input: {
     actionHint: input.actionHint,
     source: input.source,
     message: input.message,
+    agentHandle: null,
     ownerUserId: input.ownerUserId ?? null,
     runtimeSourceRef: input.runtimeSourceRef ?? null,
     localAgentRef: null,
@@ -116,10 +114,11 @@ function localAgentSelected(
     reasonCode: 'runtime-local-agent-selected',
     actionHint: 'open_runtime_agent_home',
     source: 'runtime',
-    message: 'Runtime-owned LocalAgent was selected from the upstream inventory projection.',
-    ownerUserId: agent.ownerUserId,
-    runtimeSourceRef: agent.runtimeSourceRef,
-    localAgentRef: agent.localAgentRef,
+    message: '账户授权范围内的 Agent 已通过不透明 handle 选中。',
+    agentHandle: agent.agentHandle,
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
   };
 }
 

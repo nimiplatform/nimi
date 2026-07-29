@@ -2166,7 +2166,7 @@ pub struct RevokeWorkspaceBindingResponse {
     #[prost(bool, tag = "5")]
     pub production_inert: bool,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppPermissionProjection {
     #[prost(string, tag = "1")]
     pub permission_id: ::prost::alloc::string::String,
@@ -2176,13 +2176,22 @@ pub struct LocalAppPermissionProjection {
     pub can_request: bool,
     #[prost(enumeration = "ReasonCode", tag = "4")]
     pub reason_code: i32,
+    #[prost(message, repeated, tag = "7")]
+    pub agents: ::prost::alloc::vec::Vec<LocalAppPermissionAgentHandle>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppPermissionAgentHandle {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppPermissionStatusRequest {
     #[prost(string, tag = "1")]
     pub permission_id: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetLocalAppPermissionStatusResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppPermissionProjection>,
@@ -2194,30 +2203,111 @@ pub struct RequestLocalAppPermissionRequest {
     #[prost(string, tag = "2")]
     pub reason: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RequestLocalAppPermissionResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppPermissionProjection>,
 }
-/// Protected Runtime-owner management plane. These messages are never carried
-/// by the third-party local-app transport.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct IssueLocalAppAgentSelectorHandleRequest {
+pub struct LocalAppPermissionPendingRequest {
+    #[prost(string, tag = "1")]
+    pub local_app_principal_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub permission_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub reason: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub requested_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint64, tag = "6")]
+    pub owner_revision: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppPermissionRequestsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppPermissionRequestsResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(message, repeated, tag = "2")]
+    pub requests: ::prost::alloc::vec::Vec<LocalAppPermissionPendingRequest>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeLocalAppPermissionRequestsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppPermissionInboxEvent {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(message, optional, tag = "2")]
+    pub emitted_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "3")]
+    pub requests: ::prost::alloc::vec::Vec<LocalAppPermissionPendingRequest>,
+    #[prost(bool, tag = "4")]
+    pub accepted: bool,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppPermissionCoveredAgent {
+    #[prost(string, tag = "1")]
+    pub local_agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppPermissionOwnerProjection {
+    #[prost(string, tag = "1")]
+    pub local_app_principal_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub permission_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppPermissionOwnerPosture", tag = "4")]
+    pub posture: i32,
+    #[prost(uint64, tag = "6")]
+    pub owner_revision: u64,
+    #[prost(message, optional, tag = "7")]
+    pub requested_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub decided_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "9")]
+    pub covered_agents: ::prost::alloc::vec::Vec<LocalAppPermissionCoveredAgent>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppPermissionOwnerProjectionRequest {
     #[prost(message, optional, tag = "1")]
     pub caller: ::core::option::Option<AccountCaller>,
     #[prost(string, tag = "2")]
     pub local_app_principal_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub permission_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub local_agent_id: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct IssueLocalAppAgentSelectorHandleResponse {
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalAppPermissionOwnerProjectionResponse {
     #[prost(bool, tag = "1")]
     pub accepted: bool,
-    #[prost(string, tag = "2")]
-    pub selector_handle: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub permissions: ::prost::alloc::vec::Vec<LocalAppPermissionOwnerProjection>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppPermissionOwnerProjectionsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppPermissionOwnerProjectionsResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(message, repeated, tag = "2")]
+    pub permissions: ::prost::alloc::vec::Vec<LocalAppPermissionOwnerProjection>,
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
 }
@@ -2229,10 +2319,10 @@ pub struct DecideLocalAppPermissionRequest {
     pub local_app_principal_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub permission_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub selector_handle: ::prost::alloc::string::String,
     #[prost(bool, tag = "5")]
     pub approved: bool,
+    #[prost(uint64, tag = "6")]
+    pub expected_owner_revision: u64,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DecideLocalAppPermissionResponse {
@@ -2253,8 +2343,6 @@ pub struct RevokeLocalAppPermissionRequest {
     pub local_app_principal_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub permission_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub selector_handle: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RevokeLocalAppPermissionResponse {
@@ -2875,6 +2963,44 @@ impl LocalAppPermissionPosture {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppPermissionOwnerPosture {
+    Unspecified = 0,
+    Pending = 1,
+    Granted = 2,
+    Denied = 3,
+    Expired = 4,
+    Revoked = 5,
+}
+impl LocalAppPermissionOwnerPosture {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED",
+            Self::Pending => "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING",
+            Self::Granted => "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED",
+            Self::Denied => "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED",
+            Self::Expired => "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED",
+            Self::Revoked => "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING" => Some(Self::Pending),
+            "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED" => Some(Self::Granted),
+            "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED" => Some(Self::Denied),
+            "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED" => Some(Self::Expired),
+            "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED" => Some(Self::Revoked),
+            _ => None,
+        }
+    }
+}
 /// Generated client implementations.
 pub mod runtime_account_service_client {
     #![allow(
@@ -3308,13 +3434,13 @@ pub mod runtime_account_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn issue_local_app_agent_selector_handle(
+        pub async fn list_local_app_permission_requests(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::IssueLocalAppAgentSelectorHandleRequest,
+                super::ListLocalAppPermissionRequestsRequest,
             >,
         ) -> std::result::Result<
-            tonic::Response<super::IssueLocalAppAgentSelectorHandleResponse>,
+            tonic::Response<super::ListLocalAppPermissionRequestsResponse>,
             tonic::Status,
         > {
             self.inner
@@ -3327,14 +3453,109 @@ pub mod runtime_account_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/IssueLocalAppAgentSelectorHandle",
+                "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAccountService",
-                        "IssueLocalAppAgentSelectorHandle",
+                        "ListLocalAppPermissionRequests",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_local_app_permission_requests(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubscribeLocalAppPermissionRequestsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<
+                tonic::codec::Streaming<super::LocalAppPermissionInboxEvent>,
+            >,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "SubscribeLocalAppPermissionRequests",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn get_local_app_permission_owner_projection(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppPermissionOwnerProjectionRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppPermissionOwnerProjectionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "GetLocalAppPermissionOwnerProjection",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_permission_owner_projections(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListLocalAppPermissionOwnerProjectionsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppPermissionOwnerProjectionsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "ListLocalAppPermissionOwnerProjections",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -74,12 +74,16 @@ function companionStatusText(value: Projection): string {
   return '等待与你对话';
 }
 
+function simulatedAgentHandle(localAgentRef: string): string {
+  return `sim-agent-handle:${localAgentRef}`;
+}
+
 function simulatedHome(
   context: ZhiyuSimulatorPrepareContext,
-  selectedLocalAgentRef: string | null,
+  selectedAgentHandle: string | null,
 ): ZhiyuHomeProjection {
   const scenario = projection(context).scenario;
-  const selected = scenario.agents.find((agent) => agent.localAgentRef === selectedLocalAgentRef)
+  const selected = scenario.agents.find((agent) => simulatedAgentHandle(agent.localAgentRef) === selectedAgentHandle)
     ?? scenario.agents[0];
   if (!selected) throw new Error('ZHIYU_SIMULATOR_AGENT_REQUIRED');
   const currentProjection = projection(context);
@@ -132,8 +136,8 @@ function simulatedHome(
       ownerUserId: scenario.ownerUserId,
       count: scenario.agents.length,
       localAgents: scenario.agents.map((agent) => ({
-        ...agent,
-        ownerUserId: scenario.ownerUserId,
+        agentHandle: simulatedAgentHandle(agent.localAgentRef),
+        displayName: agent.displayName,
         sourceReady: true,
       })),
     },
@@ -143,6 +147,7 @@ function simulatedHome(
       reasonCode: 'runtime-local-agent-selected',
       actionHint: 'open_runtime_agent_home',
       ...simulatedStatus,
+      agentHandle: simulatedAgentHandle(selected.localAgentRef),
       ...identity,
     },
     conversation: {
@@ -151,6 +156,7 @@ function simulatedHome(
       reasonCode: 'conversation-anchor-open',
       actionHint: 'send_runtime_agent_turn',
       ...simulatedStatus,
+      agentHandle: simulatedAgentHandle(selected.localAgentRef),
       ...identity,
       conversationAnchorId: `sim-conversation:${selected.localAgentRef}`,
       threadId: `sim-thread:${selected.localAgentRef}`,
@@ -371,16 +377,17 @@ export function createZhiyuSimulatorBindings(
     app: {
       projection: Object.freeze({
         agentCenterAdapters: simulatedAgentCenterAdapters,
-        loadHome: ({ selectedLocalAgentRef }: { readonly selectedLocalAgentRef: string | null }) => (
-          Promise.resolve(simulatedHome(context, selectedLocalAgentRef))
+        loadHome: ({ selectedAgentHandle }: { readonly selectedAgentHandle: string | null }) => (
+          Promise.resolve(simulatedHome(context, selectedAgentHandle))
         ),
+        loadAgentInventory: async () => simulatedHome(context, null).inventory,
         loadExecutionRoute: async () => simulatedRoute(context),
         projectTurnReadiness: simulatedTurnReady,
         async hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
           return { source: input.currentSource, chat: input.currentChat };
         },
         async loadSourceContext(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadSourceContext']>[0]) {
-          const home = simulatedHome(context, input.localAgentRef);
+          const home = simulatedHome(context, simulatedAgentHandle(input.localAgentRef));
           return home.source;
         },
       }),
@@ -392,8 +399,7 @@ export function createZhiyuSimulatorBindings(
         async runTurn(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['runTurn']>[0]): Promise<ZhiyuRuntimeAgentChatTurnResult> {
           const requestId = typeof input.requestId === 'string' ? input.requestId.trim() : '';
           const text = typeof input.text === 'string' ? input.text.trim() : '';
-          if (!requestId || !text || !input.conversation.ownerUserId || !input.conversation.runtimeSourceRef
-            || !input.conversation.localAgentRef || !input.conversation.conversationAnchorId) {
+          if (!requestId || !text || !input.conversation.agentHandle || !input.conversation.conversationAnchorId) {
             throw new Error('ZHIYU_SIMULATOR_TURN_INPUT_INVALID');
           }
           if (input.signal?.aborted) throw new Error('ZHIYU_SIMULATOR_TURN_ABORTED');
@@ -402,12 +408,12 @@ export function createZhiyuSimulatorBindings(
           const createdAt = new Date(context.clock.now()).toISOString();
           const identity = input.conversation;
           const conversationAnchorId = identity.conversationAnchorId;
-          const localAgentRef = identity.localAgentRef;
-          if (!conversationAnchorId || !localAgentRef) throw new Error('ZHIYU_SIMULATOR_TURN_IDENTITY_LOST');
+          const agentHandle = identity.agentHandle;
+          if (!conversationAnchorId || !agentHandle) throw new Error('ZHIYU_SIMULATOR_TURN_IDENTITY_LOST');
           const messages = [{
             id: `${requestId}:user`,
             sessionId: conversationAnchorId,
-            targetId: localAgentRef,
+            targetId: agentHandle,
             source: 'human' as const,
             role: 'user' as const,
             text,
@@ -418,7 +424,7 @@ export function createZhiyuSimulatorBindings(
           }, {
             id: `${requestId}:assistant`,
             sessionId: conversationAnchorId,
-            targetId: localAgentRef,
+            targetId: agentHandle,
             source: 'agent' as const,
             role: 'agent' as const,
             text: scenario.responseText,
@@ -435,9 +441,10 @@ export function createZhiyuSimulatorBindings(
             actionHint: 'send_runtime_agent_turn',
             source: 'simulator',
             message: 'Deterministic Simulator response committed.',
+            agentHandle,
             ownerUserId: identity.ownerUserId,
             runtimeSourceRef: identity.runtimeSourceRef,
-            localAgentRef,
+            localAgentRef: identity.localAgentRef,
             conversationAnchorId,
             requestId,
             events: [],
@@ -470,6 +477,12 @@ export function createZhiyuSimulatorBindings(
             source: 'simulator',
             message: 'Audio playback is intentionally unavailable in the Simulator.',
           };
+        },
+        async requestAgentInteractionPermission(): ReturnType<ZhiyuCanonicalRendererBindings['app']['commands']['requestAgentInteractionPermission']> {
+          return (latestProjection ?? simulatedHome(context, null)).inventory;
+        },
+        async openDesktopAgentConfig(): Promise<void> {
+          return undefined;
         },
         async openDesktopSelectPartner(): ReturnType<ZhiyuCanonicalRendererBindings['app']['commands']['openDesktopSelectPartner']> {
           return {

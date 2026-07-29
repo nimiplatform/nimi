@@ -93,49 +93,81 @@ test('Zhiyu AI Config route evidence fails closed with typed zhiyu reason codes'
 
   const identityMissing = await module.fetchZhiyuAgentAIConfigRouteEvidence({ subjectUserId: 'user-1' });
   assert.equal(identityMissing.reasonCode, 'zhiyu-agent-ai-config-identity-required');
+
+  assert.throws(
+    () => module.getZhiyuAgentAIConfig({
+      subjectUserId: 'user-1',
+      ownerUserId: 'user-1',
+      runtimeSourceRef: 'runtime-source:opaque',
+      localAgentRef: 'runtime-local-agent:opaque',
+    }),
+    (error) => error?.reasonCode === 'zhiyu-agent-ai-config-capability-not-admitted',
+  );
 });
 
-test('Zhiyu turn readiness gates on conversation anchor, Agent AI Config readiness, and host operation context', async () => {
+test('Zhiyu turn readiness gates on account permission, covered Agent handle, and conversation anchor', async () => {
   const module = await importTurnReadinessModule();
-  const routeReady = {
-    ready: true,
-    reasonCode: 'runtime-agent-ai-config-ready',
-    actionHint: 'send_runtime_agent_turn',
-    source: 'runtime',
-    message: 'ready',
-  };
-  const routeNotConfigured = {
-    ready: false,
-    reasonCode: 'zhiyu-agent-ai-config-not-configured',
-    actionHint: 'configure_runtime_agent_ai_config',
-    source: 'runtime',
-    message: 'Runtime agent AI Config has no ready text.generate binding yet.',
-  };
 
-  const blockedByRoute = module.probeZhiyuAgentTurnReadiness(
+  const blockedByPermission = module.probeZhiyuAgentTurnReadiness(
     conversationReady(),
-    routeNotConfigured,
-    runtimeAccessDecision(module),
+    {
+      ...inventoryReady(),
+      ready: false,
+      localAgents: [],
+      reasonCode: 'zhiyu-agents-interact-permission-denied',
+      actionHint: 'request_agents_interact_permission_again',
+      message: 'Account permission was denied.',
+    },
   );
-  assert.equal(blockedByRoute.ready, false);
-  assert.equal(blockedByRoute.reasonCode, 'zhiyu-agent-ai-config-not-configured');
+  assert.equal(blockedByPermission.ready, false);
+  assert.equal(blockedByPermission.reasonCode, 'zhiyu-agents-interact-permission-denied');
 
-  const blockedByAccess = module.probeZhiyuAgentTurnReadiness(
+  const blockedByCoverage = module.probeZhiyuAgentTurnReadiness(
     conversationReady(),
-    routeReady,
-    module.resolveZhiyuRuntimeAgentAccessDecision(),
+    {
+      ...inventoryReady(),
+      localAgents: [{
+        agentHandle: 'lah_v1_other_agent',
+        displayName: '其他伙伴',
+        sourceReady: true,
+      }],
+    },
   );
-  assert.equal(blockedByAccess.ready, false);
-  assert.equal(blockedByAccess.reasonCode, 'ZHIYU_RUNTIME_AGENT_OPERATION_CONTEXT_REQUIRED');
+  assert.equal(blockedByCoverage.ready, false);
+  assert.equal(blockedByCoverage.reasonCode, 'zhiyu-agent-handle-not-covered');
+
+  const blockedByConversation = module.probeZhiyuAgentTurnReadiness(
+    conversationReady({ conversationAnchorId: null }),
+    inventoryReady(),
+  );
+  assert.equal(blockedByConversation.ready, false);
+  assert.equal(blockedByConversation.reasonCode, 'zhiyu-conversation-anchor-required');
 
   const ready = module.probeZhiyuAgentTurnReadiness(
     conversationReady(),
-    routeReady,
-    runtimeAccessDecision(module),
+    inventoryReady(),
   );
   assert.equal(ready.ready, true);
   assert.equal(ready.reasonCode, 'runtime-turn-ready');
 });
+
+function inventoryReady() {
+  return {
+    transport: 'electron-ipc',
+    ready: true,
+    reasonCode: 'runtime-local-agent-grant-projection-ready',
+    actionHint: 'select_runtime_local_agent',
+    source: 'runtime',
+    message: 'Account permission projection is ready.',
+    ownerUserId: null,
+    count: 1,
+    localAgents: [{
+      agentHandle: 'lah_v1_agent_opaque',
+      displayName: '伙伴',
+      sourceReady: true,
+    }],
+  };
+}
 
 test('Zhiyu composer copy maps Agent AI Config readiness tri-state to Chinese product copy', async () => {
   const module = await importLabelsModule();
@@ -321,11 +353,13 @@ function workspaceStubPlugin() {
       buildApi.onLoad({ filter: /.*/, namespace: 'zhiyu-runtime-platform-stub' }, () => ({
         loader: 'js',
         contents: `
-          import { Runtime } from '@nimiplatform/sdk/runtime';
-          let runtime;
-          export function getZhiyuRuntime() {
-            runtime ??= new Runtime({ appId: 'nimi.zhiyu', transport: { type: 'test' } });
-            return runtime;
+          export function requireZhiyuLocalAppCapability(capability) {
+            throw Object.assign(new Error('Zhiyu local-app capability is not admitted.'), {
+              reasonCode: \`zhiyu-\${capability}-capability-not-admitted\`,
+              actionHint: \`admit_zhiyu_\${capability.replaceAll('-', '_')}_capability\`,
+              source: 'sdk',
+              retryable: false,
+            });
           }
         `,
       }));
@@ -447,18 +481,12 @@ function conversationReady(overrides = {}) {
     actionHint: 'send_runtime_agent_turn',
     source: 'runtime',
     message: 'Runtime-owned conversation anchor is open.',
+    agentHandle: 'lah_v1_agent_opaque',
     ownerUserId: 'user-1',
     runtimeSourceRef: 'runtime-source:opaque',
     localAgentRef: 'runtime-local-agent:opaque',
     conversationAnchorId: 'conversation-anchor:opaque',
+    threadId: 'runtime-thread:opaque',
     ...overrides,
   };
-}
-
-function runtimeAccessDecision(module) {
-  return module.resolveZhiyuRuntimeAgentAccessDecision({
-    localAppCarrier: {
-      kind: 'protected-local-app-carrier',
-    },
-  });
 }

@@ -1,7 +1,6 @@
 import type { ZhiyuEvidence } from '../app/evidence';
-import type { ZhiyuLocalAgentStatus } from '../agent/local-agent-discovery';
+import type { ZhiyuLocalAgentStatus } from '../agent/local-agent-status';
 
-const APP_ID = 'nimi.zhiyu';
 const RUNTIME_PRESENTATION_PROFILE_REF = 'runtime-agent-presentation-profile';
 const UNSUPPORTED_AVATAR_FIELDS = [
   'configurationId',
@@ -51,7 +50,6 @@ export type ZhiyuRuntimePresentationProfileReader = (
 export interface ZhiyuAvatarPresenceProbeOptions {
   readonly readAvatarPresence?: ZhiyuAvatarPresenceReader;
   readonly readPresentationProfile?: ZhiyuRuntimePresentationProfileReader;
-  readonly hasRuntimeBridge?: () => Promise<boolean>;
 }
 
 export async function probeZhiyuAvatarPresence(
@@ -91,60 +89,22 @@ export async function probeZhiyuAvatarPresence(
     }
   }
 
-  const bridgeAvailable = options.hasRuntimeBridge
-    ? await options.hasRuntimeBridge()
-    : options.readPresentationProfile
-      ? true
-      : await hasRuntimeBridge();
-  if (!bridgeAvailable) {
+  if (!options.readPresentationProfile) {
     return avatarUnavailable({
-      reasonCode: 'electron-runtime-bridge-unavailable',
-      actionHint: 'restart_zhiyu_electron_shell',
-      source: 'renderer',
-      message: 'Electron Runtime bridge is not available.',
+      reasonCode: 'zhiyu-avatar-presence-capability-not-admitted',
+      actionHint: 'admit_zhiyu_avatar_presence_capability',
+      source: 'sdk',
+      message: 'Avatar presence is not admitted on the Zhiyu local-app carrier.',
       ...identity,
     });
   }
 
   try {
-    const reader = options.readPresentationProfile ?? readRuntimeAgentPresentationProfile;
-    const projection = await reader(identity);
+    const projection = await options.readPresentationProfile(identity);
     return avatarPresenceFromPresentationProfile(projection, identity);
   } catch (error) {
     return normalizeAvatarPresenceError(error, identity);
   }
-}
-
-async function readRuntimeAgentPresentationProfile(
-  input: ZhiyuAvatarPresenceReadInput,
-): Promise<ZhiyuRuntimePresentationProfileProjection | null> {
-  const {
-    buildRuntimeAgentRequestContext,
-    readNimiRuntimeAgentPresentationProfile,
-  } = await import('@nimiplatform/sdk/runtime');
-  const {
-    withZhiyuRuntimeAgentAccessRequired,
-  } = await import('../agent-chat/runtime-agent-access');
-  const { getZhiyuRuntime } = await import('../auth/runtime-platform');
-  const runtime = getZhiyuRuntime();
-  const context = buildRuntimeAgentRequestContext({
-    runtimeAppId: APP_ID,
-    subjectUserId: input.ownerUserId,
-    ...input,
-  });
-  const response = await withZhiyuRuntimeAgentAccessRequired(['runtime.agent.read'], (callOptions) => runtime.agents.getAgent({
-    context,
-    agentId: input.localAgentRef,
-  }, callOptions));
-  return readNimiRuntimeAgentPresentationProfile(response.agent);
-}
-
-async function hasRuntimeBridge(): Promise<boolean> {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  const { hasElectronRuntime } = await import('@nimiplatform/kit/shell/renderer/bridge');
-  return hasElectronRuntime();
 }
 
 function avatarPresenceFromPresentationProfile(

@@ -230,7 +230,7 @@ units:
     kind: rule
     title: P-PERM-002 closed catalog and current admission
     modality: must
-    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for Runtime session-derived access to an authorized localAgentId and the open-conversation, send-turn, subscribe-turn, and conversation-snapshot operation families, the other fifteen catalog rows remain reserved, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
+    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for Runtime session-derived access through an owner-granted current-account scope covering all current and future LocalAgents, dynamically materialized only as app-bound opaque Agent handles for the open-conversation, send-turn, subscribe-turn, and conversation-snapshot operation families; the other fifteen catalog rows remain reserved, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
     condition: Whenever manifest permission eligibility or requestability is evaluated.
     failure: Deny unknown, reserved, legacy-scope, Runtime-operation, and endpoint-string identifiers without preventing a zero-permission app from running.
     relations:
@@ -426,7 +426,7 @@ units:
     kind: rule
     title: P-PERM-013 future Runtime permission binding
     modality: must
-    statement: Any later-admitted Runtime-owned permission lifecycle binds OS-user anchor, current account, opaque app principal, public permission id, and owner selector digest, and each protected endpoint re-reads current decision and owner policy; display app id and trust tier are never positive keys.
+    statement: Any later-admitted Runtime-owned permission lifecycle binds OS-user anchor, current account, opaque app principal, public permission id, and owner selector digest; for agents.interact the canonical Runtime owner binds one account scope covering all current and future local Agents and dynamically materializes only app-bound opaque handles, and each protected endpoint re-reads the current decision, live Agent ownership, active lifecycle, and owner policy; display app id and trust tier are never positive keys.
     condition: Whenever a Runtime-owned public permission is admitted and used.
     failure: Deny the endpoint when exact current binding and policy cannot be re-read.
     relations:
@@ -500,7 +500,7 @@ units:
     kind: rule
     title: P-PERM-017 bounded permission UX
     modality: must
-    statement: Permission UX presents one decision per recognizable intent and selected resource set, gives a normal app using only its own data zero Nimi permission prompts, and forbids install-time permission walls, method-level prompts, hidden scope or qualifier editors, raw resource ids, and duplicate Runtime and Realm approvals.
+    statement: Permission UX presents one decision per recognizable intent and owner-selected resource scope; agents.interact uses one account scope covering all current and future local Agents without per-Agent authorization, while choosing a current Agent remains operation UI state; a normal app using only its own data receives zero Nimi permission prompts, and install-time permission walls, method-level prompts, hidden scope or qualifier editors, raw resource ids, and duplicate Runtime and Realm approvals are forbidden.
     condition: Whenever install, launch, or just-in-time permission UX is rendered.
     failure: Reject an over-broad, duplicated, internalized, or unnecessary prompt flow.
     relations:

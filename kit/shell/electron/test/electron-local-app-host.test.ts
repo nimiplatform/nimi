@@ -82,17 +82,17 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ value: { version: 2 }, sizeBytes: 13 });
     await expect(host.storageRemoveJson({ relativePath: 'agent-chat/state.json' }))
       .resolves.toEqual({ removed: false });
-    await expect(host.conversationOpen({ selectedAgentHandle: 'lash_one', disposition: 'create-new' }))
+    await expect(host.conversationOpen({ agentHandle: 'lash_one', disposition: 'create-new' }))
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null });
-    await expect(host.conversationSendTurn({ selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }))
+    await expect(host.conversationSendTurn({ agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }))
       .resolves.toEqual({ messageId: 'message-1' });
-    await expect(host.conversationSubscribe({ selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
+    await expect(host.conversationSubscribe({ agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
       .resolves.toEqual({ streamId: 'conversation-1' });
     await expect(host.conversationStreamNext({ streamId: 'conversation-1' }))
       .resolves.toEqual({ completed: true });
     await expect(host.conversationStreamClose({ streamId: 'conversation-1' }))
       .resolves.toEqual({ closed: true });
-    await expect(host.conversationSnapshot({ selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
+    await expect(host.conversationSnapshot({ agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
       .resolves.toEqual({ anchor: { conversationAnchorId: 'anchor-1' } });
 
     expect(calls.map(({ method }) => method)).toEqual([
@@ -128,6 +128,40 @@ describe('Electron protected local-app host', () => {
     await expect(createNimiElectronLocalAppHostForBinding(unknown).permissionStatus({
       permissionId: 'agents.interact',
     })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
+  });
+
+  it('projects the current account Agent handles and allows an empty granted account', async () => {
+    const withAgent = {
+      ...binding([]),
+      localAppPermissionStatus: async () => ({
+        status: 'ok' as const,
+        value: {
+          state: 'granted',
+          permissionId: 'agents.interact',
+          canRequest: false,
+          reasonCode: 'action-executed',
+          agents: [{ agentHandle: 'lash_one', displayName: 'Owned Agent' }],
+        },
+      }),
+      localAppPermissionRequest: async () => ({
+        status: 'ok' as const,
+        value: {
+          state: 'granted',
+          permissionId: 'agents.interact',
+          canRequest: false,
+          reasonCode: 'action-executed',
+          agents: [],
+        },
+      }),
+    };
+    const host = createNimiElectronLocalAppHostForBinding(withAgent);
+    await expect(host.permissionStatus({ permissionId: 'agents.interact' })).resolves.toMatchObject({
+      agents: [{ agentHandle: 'lash_one', displayName: 'Owned Agent' }],
+    });
+    await expect(host.permissionRequest({
+      permissionId: 'agents.interact',
+      reason: 'Continue the conversation',
+    })).resolves.toMatchObject({ state: 'granted', agents: [] });
   });
 
   it('rejects protected authority material returned by the native carrier', async () => {
@@ -169,7 +203,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
   };
   const unavailable = {
     state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
-    reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+    reasonCode: 'local-app-operation-unavailable', agents: [],
   };
   return {
     localAppSessionStatus: record('localAppSessionStatus', statusProjection()),

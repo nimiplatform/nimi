@@ -74,7 +74,18 @@ func TestLocalDevelopmentStoreReusesAllowedProjectAndRequiresReapprovalOnAuthori
 	permissionExpanded := project
 	permissionExpanded.PermissionRequirements = []localDevelopmentPermissionRequirement{{PermissionID: "agents.interact", Reason: "Talk with an Agent selected by me."}}
 	permissionExpanded.PermissionRequirementFingerprint = localDevelopmentPermissionRequirementFingerprint(permissionExpanded.PermissionRequirements)
-	if _, err := store.Evaluate(ctx, permissionExpanded, localDevelopmentTestIdentifier(0x13)); !errors.Is(err, errLocalDevelopmentInvalid) {
+	expanded, err := store.Evaluate(ctx, permissionExpanded, localDevelopmentTestIdentifier(0x13))
+	if err != nil {
+		t.Fatalf("Evaluate admitted permission requirement: %v", err)
+	}
+	if expanded.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED || expanded.EvaluationID == (protectedlocal.Identifier{}) {
+		t.Fatalf("admitted permission expansion must require reapproval: %#v", expanded)
+	}
+
+	reservedPermission := project
+	reservedPermission.PermissionRequirements = []localDevelopmentPermissionRequirement{{PermissionID: "artifacts.open", Reason: "Open an artifact selected by me."}}
+	reservedPermission.PermissionRequirementFingerprint = localDevelopmentPermissionRequirementFingerprint(reservedPermission.PermissionRequirements)
+	if _, err := store.Evaluate(ctx, reservedPermission, localDevelopmentTestIdentifier(0x13)); !errors.Is(err, errLocalDevelopmentInvalid) {
 		t.Fatalf("reserved permission requirement must fail before reapproval: %v", err)
 	}
 	projectChanged := project

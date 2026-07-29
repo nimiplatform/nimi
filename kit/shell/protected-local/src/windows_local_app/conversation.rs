@@ -28,7 +28,7 @@ pub(super) async fn open_conversation(
     channel: Channel,
     request: LocalAppConversationOpenRequest,
 ) -> Result<LocalAppConversationOpenResult, LocalAppOperationError> {
-    require_text(&request.selected_agent_handle)?;
+    require_text(&request.agent_handle)?;
     let disposition = match request.disposition.as_str() {
         "create-or-resume" | "create-new" => request.disposition,
         _ => return Err(invalid_payload()),
@@ -44,7 +44,7 @@ pub(super) async fn open_conversation(
     let response = RuntimeAgentServiceClient::new(channel)
         .open_conversation_anchor(OpenConversationAnchorRequest {
             context: None,
-            agent_id: request.selected_agent_handle,
+            agent_id: request.agent_handle,
             subject_user_id: String::new(),
             metadata: Some(metadata),
             local_agent_ref: String::new(),
@@ -68,7 +68,7 @@ pub(super) async fn send_turn(
     channel: Channel,
     request: LocalAppConversationSendRequest,
 ) -> Result<LocalAppConversationSendResult, LocalAppOperationError> {
-    require_text(&request.selected_agent_handle)?;
+    require_text(&request.agent_handle)?;
     require_text(&request.conversation_anchor_id)?;
     require_text(&request.request_id)?;
     require_text(&request.text)?;
@@ -82,7 +82,7 @@ pub(super) async fn send_turn(
         fields: BTreeMap::from([
             (
                 "local_agent_ref".to_string(),
-                string_value(request.selected_agent_handle),
+                string_value(request.agent_handle),
             ),
             (
                 "conversation_anchor_id".to_string(),
@@ -131,12 +131,12 @@ pub(super) async fn conversation_snapshot(
     channel: Channel,
     request: LocalAppConversationSnapshotRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    require_text(&request.selected_agent_handle)?;
+    require_text(&request.agent_handle)?;
     require_text(&request.conversation_anchor_id)?;
     let response = RuntimeAgentServiceClient::new(channel)
         .get_public_chat_session_snapshot(GetPublicChatSessionSnapshotRequest {
             context: None,
-            agent_id: request.selected_agent_handle,
+            agent_id: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
             request_id: String::new(),
             world_id: String::new(),
@@ -151,7 +151,7 @@ pub(super) async fn subscribe(
     channel: Channel,
     request: LocalAppConversationSubscribeRequest,
 ) -> Result<LocalAppConversationSubscriptionReceiver, LocalAppOperationError> {
-    require_text(&request.selected_agent_handle)?;
+    require_text(&request.agent_handle)?;
     require_text(&request.conversation_anchor_id)?;
     let mut stream = RuntimeAppServiceClient::new(channel)
         .subscribe_app_messages(SubscribeAppMessagesRequest {
@@ -159,7 +159,7 @@ pub(super) async fn subscribe(
             subject_user_id: String::new(),
             cursor: String::new(),
             from_app_ids: vec!["runtime.agent".to_string()],
-            local_agent_ref: request.selected_agent_handle,
+            local_agent_ref: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
         })
         .await

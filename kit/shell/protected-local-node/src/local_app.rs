@@ -139,7 +139,7 @@ pub async fn local_app_conversation_open(input: NativeConversationOpenInput) -> 
     invoke_agent(|session| async move {
         session
             .conversation_open(LocalAppConversationOpenRequest {
-                selected_agent_handle: input.selected_agent_handle,
+                agent_handle: input.agent_handle,
                 disposition: input.disposition,
             })
             .await
@@ -161,7 +161,7 @@ pub async fn local_app_conversation_send_turn(
     invoke_agent(|session| async move {
         session
             .conversation_send_turn(LocalAppConversationSendRequest {
-                selected_agent_handle: input.selected_agent_handle,
+                agent_handle: input.agent_handle,
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
                 text: input.text,
@@ -179,7 +179,7 @@ pub async fn local_app_conversation_snapshot(
     invoke_agent(|session| async move {
         session
             .conversation_snapshot(LocalAppConversationSnapshotRequest {
-                selected_agent_handle: input.selected_agent_handle,
+                agent_handle: input.agent_handle,
                 conversation_anchor_id: input.conversation_anchor_id,
             })
             .await
@@ -210,7 +210,7 @@ pub async fn local_app_conversation_subscribe(
     }
     let receiver = match session
         .conversation_subscribe(LocalAppConversationSubscribeRequest {
-            selected_agent_handle: input.selected_agent_handle,
+            agent_handle: input.agent_handle,
             conversation_anchor_id: input.conversation_anchor_id,
         })
         .await

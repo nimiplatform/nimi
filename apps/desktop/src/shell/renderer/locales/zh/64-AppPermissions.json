@@ -1,0 +1,45 @@
+{
+  "approval": {
+    "title": "{{app}} 请求与你账户内的全部 Agent 交互",
+    "subtitle": "授权后，此 App 可访问你账户内当前及未来创建的全部 Agent。",
+    "queue": "还有 {{count}} 个授权请求等待处理。"
+  },
+  "intent": {
+    "agentsInteract": "与你账户内的全部 Agent 交互"
+  },
+  "scope": {
+    "title": "此账户内的全部 Agent",
+    "description": "当前及未来创建的 Agent 会自动纳入；撤销后将同时失去对全部 Agent 的访问。"
+  },
+  "field": {
+    "app": "App",
+    "reason": "请求原因"
+  },
+  "posture": {
+    "prompt": "尚未请求",
+    "pending": "等待处理",
+    "granted": "已授权",
+    "denied": "已拒绝",
+    "unavailable": "暂不可用"
+  },
+  "state": {
+    "loading": "正在加载…",
+    "denied": "请求已拒绝。",
+    "error": "授权管理暂不可用，请重试。"
+  },
+  "settings": {
+    "title": "App 权限",
+    "description": "管理此 App 对 Nimi 所有能力的访问。",
+    "currentAgents": "当前覆盖的 Agent",
+    "noCurrentAgents": "此账户目前还没有 Agent；未来创建的 Agent 会自动纳入。",
+    "revokeConfirm": "撤销对此账户内当前及未来全部 Agent 的访问？"
+  },
+  "action": {
+    "approve": "批准",
+    "deny": "拒绝",
+    "revoke": "撤销授权",
+    "confirmRevoke": "确认撤销",
+    "cancel": "取消",
+    "retry": "重试"
+  }
+}

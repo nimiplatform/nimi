@@ -8,7 +8,8 @@ use crate::{
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
     DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
-    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest,
+    DesktopPermissionOwnerUnaryRequest, DesktopPermissionOwnerUnaryResponse, DeveloperModeStatus,
     FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
@@ -158,11 +159,18 @@ impl LocalAppPermissionState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalAppAgentHandle {
+    pub agent_handle: String,
+    pub display_name: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalAppPermissionStatus {
     pub state: LocalAppPermissionState,
     pub permission_id: String,
     pub can_request: bool,
     pub reason_code: LocalAppReasonCode,
+    pub agents: Vec<LocalAppAgentHandle>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -194,7 +202,7 @@ pub struct LocalAppStorageRemoveResult {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationOpenRequest {
-    pub selected_agent_handle: String,
+    pub agent_handle: String,
     pub disposition: String,
 }
 
@@ -207,7 +215,7 @@ pub struct LocalAppConversationOpenResult {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSendRequest {
-    pub selected_agent_handle: String,
+    pub agent_handle: String,
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub text: String,
@@ -220,13 +228,13 @@ pub struct LocalAppConversationSendResult {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSubscribeRequest {
-    pub selected_agent_handle: String,
+    pub agent_handle: String,
     pub conversation_anchor_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSnapshotRequest {
-    pub selected_agent_handle: String,
+    pub agent_handle: String,
     pub conversation_anchor_id: String,
 }
 
@@ -353,6 +361,17 @@ pub trait NimiDesktopControl: Send + Sync {
     ) -> Pin<
         Box<
             dyn Future<Output = Result<DesktopAccountSessionEventReceiver, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn invoke_permission_owner_unary(
+        &self,
+        request: DesktopPermissionOwnerUnaryRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopPermissionOwnerUnaryResponse, NimiHostError>>
                 + Send
                 + '_,
         >,

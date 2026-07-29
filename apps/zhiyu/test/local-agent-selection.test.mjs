@@ -37,7 +37,7 @@ function inventory(localAgents) {
     actionHint: 'select_runtime_local_agent',
     source: 'runtime',
     message: 'Runtime LocalAgent inventory was listed through SDK.',
-    ownerUserId: 'user-1',
+    ownerUserId: null,
     count: localAgents.length,
     localAgents,
   };
@@ -45,36 +45,28 @@ function inventory(localAgents) {
 
 function inventoryAgent(overrides = {}) {
   return {
-    localAgentRef: 'runtime-local-agent:opaque-1',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'opaque-source-ref-1',
+    agentHandle: 'opaque-agent-handle-1',
     displayName: 'Runtime LocalAgent',
-    sourceKind: null,
-    sourceWorldId: null,
-    sourceWorldName: null,
-    sourceId: null,
-    sourceHash: null,
-    sourceReady: false,
+    sourceReady: true,
     ...overrides,
   };
 }
 
-test('does not promote bare Runtime inventory without bounded materialization status', async () => {
+test('selects a covered Agent without promoting its opaque handle into raw identity', async () => {
   const { resolveZhiyuRuntimeLocalAgentSelection } = await loadSelectionModule();
 
   const selected = resolveZhiyuRuntimeLocalAgentSelection({
     inventory: inventory([inventoryAgent()]),
   });
 
-  assert.equal(selected.ready, false);
-  assert.equal(selected.reasonCode, 'zhiyu-runtime-local-agent-source-not-ready');
+  assert.equal(selected.ready, true);
+  assert.equal(selected.reasonCode, 'runtime-local-agent-selected');
   assert.equal(selected.source, 'runtime');
-  assert.equal(selected.ownerUserId, 'user-1');
-  assert.equal(selected.runtimeSourceRef, 'opaque-source-ref-1');
+  assert.equal(selected.agentHandle, 'opaque-agent-handle-1');
+  assert.equal(selected.ownerUserId, null);
+  assert.equal(selected.runtimeSourceRef, null);
   assert.equal(selected.localAgentRef, null);
-  assert.equal(selected.actionHint, 'desktop_open_select_partner');
-  assert.match(selected.message, /source snapshot is not ready/);
-  assert.match(selected.message, /Desktop Explore/);
+  assert.equal(selected.actionHint, 'open_runtime_agent_home');
 });
 
 test('auto-selects the only inventory item only when bounded source status is ready', async () => {
@@ -82,13 +74,13 @@ test('auto-selects the only inventory item only when bounded source status is re
 
   const selected = resolveZhiyuRuntimeLocalAgentSelection({
     inventory: inventory([inventoryAgent({
-      localAgentRef: 'runtime-local-agent:opaque-2',
-      runtimeSourceRef: 'opaque-source-ref-2',
+      agentHandle: 'opaque-agent-handle-2',
       sourceReady: true,
     })]),
   });
 
-  assert.equal(selected.localAgentRef, 'runtime-local-agent:opaque-2');
+  assert.equal(selected.agentHandle, 'opaque-agent-handle-2');
+  assert.equal(selected.localAgentRef, null);
   assert.equal(selected.reasonCode, 'runtime-local-agent-selected');
 });
 
@@ -98,26 +90,25 @@ test('promotes an explicitly selected Runtime inventory partner projection witho
   const selected = resolveZhiyuRuntimeLocalAgentSelection({
     inventory: inventory([
       inventoryAgent({
-        localAgentRef: 'runtime-local-agent:yan-zhenqing',
-        runtimeSourceRef: 'runtime-source:yan-zhenqing',
+        agentHandle: 'opaque-agent-handle-yan-zhenqing',
         displayName: '颜真卿',
         sourceReady: true,
       }),
       inventoryAgent({
-        localAgentRef: 'runtime-local-agent:second',
-        runtimeSourceRef: 'runtime-source:second',
+        agentHandle: 'opaque-agent-handle-second',
         displayName: 'Second Partner',
       }),
     ]),
-    selectedLocalAgentRef: 'runtime-local-agent:yan-zhenqing',
+    selectedAgentHandle: 'opaque-agent-handle-yan-zhenqing',
   });
 
   assert.equal(selected.ready, true);
   assert.equal(selected.reasonCode, 'runtime-local-agent-selected');
   assert.equal(selected.source, 'runtime');
-  assert.equal(selected.ownerUserId, 'user-1');
-  assert.equal(selected.runtimeSourceRef, 'runtime-source:yan-zhenqing');
-  assert.equal(selected.localAgentRef, 'runtime-local-agent:yan-zhenqing');
+  assert.equal(selected.agentHandle, 'opaque-agent-handle-yan-zhenqing');
+  assert.equal(selected.ownerUserId, null);
+  assert.equal(selected.runtimeSourceRef, null);
+  assert.equal(selected.localAgentRef, null);
   assert.equal(selected.actionHint, 'open_runtime_agent_home');
   assert.doesNotMatch(selected.message, /create|materialize|profile/i);
 });
@@ -130,14 +121,13 @@ test('fails closed when Runtime inventory is empty or ambiguous', async () => {
   });
   assert.equal(empty.ready, false);
   assert.equal(empty.reasonCode, 'zhiyu-runtime-local-agent-inventory-empty');
-  assert.equal(empty.actionHint, 'desktop_open_select_partner');
-  assert.doesNotMatch(empty.actionHint, /materialize|create|select_or_create/);
-  assert.match(empty.message, /Desktop Explore/);
+  assert.equal(empty.actionHint, 'wait_for_account_agent_inventory');
+  assert.match(empty.message, /账户级授权已生效/);
 
   const ambiguous = resolveZhiyuRuntimeLocalAgentSelection({
     inventory: inventory([
-      inventoryAgent({ localAgentRef: 'runtime-local-agent:opaque-1' }),
-      inventoryAgent({ localAgentRef: 'runtime-local-agent:opaque-2' }),
+      inventoryAgent({ agentHandle: 'opaque-agent-handle-1' }),
+      inventoryAgent({ agentHandle: 'opaque-agent-handle-2' }),
     ]),
   });
   assert.equal(ambiguous.ready, false);

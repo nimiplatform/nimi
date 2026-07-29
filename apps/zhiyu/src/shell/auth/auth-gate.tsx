@@ -4,12 +4,10 @@ import { StatusBadge } from '@nimiplatform/kit/ui';
 import {
   clearRuntimePlatformProjection,
   getRuntimePlatformProjection,
-  runtimeAccountLoginEnabled,
   type RuntimePlatformLoginRequiredProjection,
   type RuntimePlatformReadyProjection,
   type RuntimePlatformUnavailableProjection,
 } from './runtime-platform';
-import { loadRuntimeAccountUser } from './runtime-account-auth';
 import { RuntimeLoginPage } from './runtime-login-page';
 import { RuntimeUnavailablePage } from './runtime-unavailable-page';
 
@@ -48,19 +46,7 @@ async function resolveGateState(): Promise<GateState> {
   }
   runtimeGateOfflineCoordinator.markRuntimeReachability('reachable');
 
-  if (!runtimeAccountLoginEnabled) {
-    return { kind: 'ready', projection };
-  }
-
-  try {
-    const user = await loadRuntimeAccountUser(projection.client);
-    if (user) {
-      return { kind: 'ready', projection };
-    }
-    return { kind: 'login-required', projection };
-  } catch (error) {
-    return { kind: 'login-required', projection, message: toMessage(error) };
-  }
+  return { kind: 'ready', projection };
 }
 
 export function AuthGate({ children }: { readonly children: ReactNode }) {

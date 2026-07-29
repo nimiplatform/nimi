@@ -35,8 +35,14 @@ export function chatBlockedHint(evidence: ZhiyuEvidence): string {
   if (!evidence.conversation.ready) {
     return conversationReadinessHint(evidence.conversation);
   }
-  if (!evidence.route.ready) {
-    return agentAIConfigReadinessHint(evidence.route);
+  if (!evidence.turn.ready) {
+    if (evidence.turn.reasonCode.includes('permission')) {
+      return '请先完成账户级 Agent 交互授权。';
+    }
+    if (evidence.turn.reasonCode === 'zhiyu-agent-handle-not-covered') {
+      return '当前伙伴已不在账户授权范围内，请刷新伙伴列表。';
+    }
+    return '当前会话暂时不能发送，请刷新伙伴或重新打开会话。';
   }
   return '当前暂时不能发送，请稍后重试。';
 }
@@ -58,9 +64,18 @@ function conversationReadinessHint(conversation: ZhiyuEvidence['conversation']):
     || reasonCode.includes('unavailable')
     || reasonCode.includes('missing')
   ) {
-    return '会话没有打开成功，请重新选择伙伴或重启织羽后再试。';
+    return withDevelopmentReasonCode(
+      '会话没有打开成功，请重新选择伙伴或重启织羽后再试。',
+      reasonCode,
+    );
   }
-  return '会话暂时不可用，请稍后重试。';
+  return withDevelopmentReasonCode('会话暂时不可用，请稍后重试。', reasonCode);
+}
+
+function withDevelopmentReasonCode(message: string, reasonCode: string): string {
+  return import.meta.env?.DEV
+    ? `${message} (reasonCode: ${reasonCode})`
+    : message;
 }
 
 // Readiness tri-state product copy for the composer gate. The unavailable
@@ -106,8 +121,8 @@ function executionUnavailableReasonCopy(reasonCode: string): string {
 }
 
 export function currentPartnerDisplayName(evidence: ZhiyuEvidence): string {
-  const selectedRef = evidence.localAgent.localAgentRef;
-  const fromInventory = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === selectedRef);
+  const selectedHandle = evidence.localAgent.agentHandle;
+  const fromInventory = evidence.inventory.localAgents.find((agent) => agent.agentHandle === selectedHandle);
   const displayName = normalizedPartnerName(fromInventory?.displayName);
   if (displayName) {
     return displayName;

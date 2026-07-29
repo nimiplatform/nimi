@@ -71,6 +71,10 @@ pub async fn permission_status_for_host(
         "permissionId": posture.permission_id,
         "canRequest": posture.can_request,
         "reasonCode": posture.reason_code.as_str(),
+        "agents": posture.agents.into_iter().map(|agent| json!({
+            "agentHandle": agent.agent_handle,
+            "displayName": agent.display_name,
+        })).collect::<Vec<_>>(),
     }))
 }
 
@@ -101,6 +105,10 @@ pub async fn permission_request_for_host(
         "permissionId": posture.permission_id,
         "canRequest": posture.can_request,
         "reasonCode": posture.reason_code.as_str(),
+        "agents": posture.agents.into_iter().map(|agent| json!({
+            "agentHandle": agent.agent_handle,
+            "displayName": agent.display_name,
+        })).collect::<Vec<_>>(),
     }))
 }
 

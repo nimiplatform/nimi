@@ -4,30 +4,16 @@ import {
   reduceRuntimeAgentConversationProjectionEvent,
   streamRuntimeAgentTurnRunnerPartsAsConversationEvents,
   type ConversationTurnEvent,
-  type RuntimeAgentArtifactPreviewInput,
   type RuntimeAgentConversationProjectionState,
   type RuntimeAgentTurnRunnerPartLike,
 } from '@nimiplatform/kit/features/chat/headless';
-import {
-  createNimiRuntimeAgentTurnsModule,
-  runNimiRuntimeAgentTurn,
-  type NimiRuntimeAgentTurnRequest,
-} from '@nimiplatform/sdk/runtime';
+import type {
+  NimiLocalAppAgentHandle,
+  NimiLocalAppClient,
+  NimiLocalAppConversationEvent,
+} from '@nimiplatform/sdk/app';
 import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
-import type { ZhiyuEvidence } from '../app/evidence';
-import { getZhiyuRuntime } from '../auth/runtime-platform';
-import {
-  createZhiyuRuntimeAgentAccessScopeRunner,
-  resolveZhiyuRuntimeAgentAccessDecision,
-  resolveZhiyuRuntimeAgentAccessDecisionFromHost,
-  withZhiyuRuntimeAgentAccess,
-  type ZhiyuRuntimeAgentAccessDecision,
-} from './runtime-agent-access';
-
-export type ZhiyuRuntimeAgentChatRouteEvidence = Pick<
-  ZhiyuEvidence['route'],
-  'ready' | 'reasonCode' | 'actionHint' | 'source' | 'message' | 'executionBinding'
->;
+import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
 
 export type ZhiyuRuntimeAgentChatState =
   | 'idle'
@@ -44,6 +30,7 @@ export type ZhiyuRuntimeAgentChatTurnResult = {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
+  readonly agentHandle: string | null;
   readonly ownerUserId: string | null;
   readonly runtimeSourceRef: string | null;
   readonly localAgentRef: string | null;
@@ -57,7 +44,7 @@ export type ZhiyuRuntimeAgentChatTurnResult = {
 };
 
 export type ZhiyuRuntimeAgentChatStreamTurn = (
-  request: NimiRuntimeAgentTurnRequest,
+  request: ZhiyuLocalAppTurnRequest,
   options?: {
     readonly signal?: AbortSignal;
   },
@@ -65,27 +52,27 @@ export type ZhiyuRuntimeAgentChatStreamTurn = (
   readonly stream: AsyncIterable<RuntimeAgentTurnRunnerPartLike | unknown>;
 }>;
 
+export type ZhiyuLocalAppTurnRequest = {
+  readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly conversationAnchorId: string;
+  readonly threadId: string;
+  readonly requestId: string;
+  readonly text: string;
+};
+
 export type ZhiyuRuntimeAgentChatTurnInput = {
   readonly conversation: ZhiyuConversationHomeStatus;
-  readonly route: ZhiyuRuntimeAgentChatRouteEvidence;
-  readonly runtimeAccess?: ZhiyuRuntimeAgentAccessDecision;
   readonly text: unknown;
   readonly requestId?: unknown;
   readonly attachments?: readonly unknown[];
   readonly expectedConversationAnchorId?: unknown;
   readonly signal?: AbortSignal;
   readonly streamTurn?: ZhiyuRuntimeAgentChatStreamTurn;
-  readonly resolveArtifactPreviewUri?: (
-    artifact: RuntimeAgentArtifactPreviewInput,
-  ) => Promise<string | null | undefined> | string | null | undefined;
+  readonly conversationClient?: NimiLocalAppClient['conversation'];
   readonly onEvent?: (
     event: ConversationTurnEvent,
     state: RuntimeAgentConversationProjectionState,
   ) => void;
-};
-
-export {
-  resolveZhiyuRuntimeAgentAccessDecision,
 };
 
 export async function runZhiyuAgentChatTurn(
@@ -98,6 +85,7 @@ export async function runZhiyuAgentChatTurn(
       actionHint: 'open_runtime_conversation_anchor',
       source: input.conversation.source,
       message: 'Zhiyu requires a Runtime-owned conversation anchor before sending a chat turn.',
+      agentHandle: input.conversation.agentHandle,
       ownerUserId: input.conversation.ownerUserId,
       runtimeSourceRef: input.conversation.runtimeSourceRef,
       localAgentRef: input.conversation.localAgentRef,
@@ -113,22 +101,6 @@ export async function runZhiyuAgentChatTurn(
       actionHint: 'refresh_runtime_conversation_anchor',
       source: 'renderer',
       message: 'Runtime Agent chat turn was blocked because the active conversation anchor changed.',
-      ...identity,
-      requestId: stringOr(input.requestId, null),
-    });
-  }
-
-  // Display-evidence gate only: the runtime resolves each turn against its
-  // committed Runtime Agent AI Config (K-AGCORE-147); Zhiyu just refuses to
-  // submit while the projected text.generate readiness is not 'ready'.
-  if (!input.route.ready) {
-    return chatUnavailable({
-      reasonCode: input.route.reasonCode === 'not-probed'
-        ? 'zhiyu-runtime-agent-ai-config-readiness-required'
-        : input.route.reasonCode,
-      actionHint: input.route.actionHint || 'configure_runtime_agent_ai_config',
-      source: input.route.source,
-      message: input.route.message,
       ...identity,
       requestId: stringOr(input.requestId, null),
     });
@@ -157,47 +129,22 @@ export async function runZhiyuAgentChatTurn(
     });
   }
 
-  const runtimeAccess = input.runtimeAccess ?? resolveZhiyuRuntimeAgentAccessDecisionFromHost();
-  if (runtimeAccess.kind === 'missing') {
-    return chatUnavailable({
-      reasonCode: runtimeAccess.reasonCode,
-      actionHint: runtimeAccess.actionHint,
-      source: 'runtime',
-      message: runtimeAccess.message,
-      ...identity,
-      requestId: stringOr(input.requestId, null),
-    });
-  }
-  try {
-    await withZhiyuRuntimeAgentAccess(runtimeAccess, async () => undefined);
-  } catch (error) {
-    return chatUnavailable({
-      reasonCode: errorReasonCode(error),
-      actionHint: errorActionHint(error),
-      source: errorSource(error),
-      message: errorMessage(error),
-      ...identity,
-      requestId: stringOr(input.requestId, null),
-    });
-  }
-
   const requestId = stringOr(input.requestId, createTurnRequestId());
-  const request = buildRuntimeAgentTurnRequest({
+  const request = buildLocalAppTurnRequest({
     ...identity,
-    route: input.route,
     requestId,
     text,
   });
   const streamTurn = input.streamTurn
-    ?? createElectronRuntimeAgentStreamTurn(identity.ownerUserId, runtimeAccess);
+    ?? createLocalAppStreamTurn(input.conversationClient ?? getZhiyuLocalAppClient().conversation);
   const initialProjection = createRuntimeAgentConversationProjectionState({
     modeId: 'runtime-agent-chat-v1',
     threadId: identity.threadId,
     turnId: requestId,
     sessionId: identity.conversationAnchorId,
-    targetId: identity.localAgentRef,
+    targetId: identity.agentHandle,
     conversationAnchorId: identity.conversationAnchorId,
-    localAgentRef: identity.localAgentRef,
+    localAgentRef: null,
     userMessage: {
       id: `${requestId}:user`,
       text,
@@ -208,15 +155,12 @@ export async function runZhiyuAgentChatTurn(
 
   try {
     const streamed = await streamTurn(request, { signal: input.signal });
-    const resolveArtifactPreviewUri = input.resolveArtifactPreviewUri
-      ?? (input.streamTurn ? undefined : createElectronRuntimeArtifactPreviewResolver(runtimeAccess));
     let projection = initialProjection;
     for await (const event of streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
       modeId: 'runtime-agent-chat-v1',
       threadId: identity.threadId,
       turnId: requestId,
       parts: streamed.stream,
-      resolveArtifactPreviewUri,
     })) {
       projection = reduceRuntimeAgentConversationProjectionEvent(projection, event);
       input.onEvent?.(event, projection);
@@ -242,48 +186,24 @@ export async function runZhiyuAgentChatTurn(
 // Turn requests never carry model bindings: the runtime resolves each turn
 // against its committed Runtime Agent AI Config (K-AGCORE-147). The local text
 // binding gate above is route-readiness display evidence only.
-function buildRuntimeAgentTurnRequest(input: {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
+function buildLocalAppTurnRequest(input: {
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly threadId: string;
-  readonly route: ZhiyuRuntimeAgentChatRouteEvidence;
   readonly requestId: string;
   readonly text: string;
-}): NimiRuntimeAgentTurnRequest {
-  const reasoning = runtimeAgentReasoningRequest(input.route);
+}): ZhiyuLocalAppTurnRequest {
   return {
-    ownerUserId: input.ownerUserId,
-    runtimeSourceRef: input.runtimeSourceRef,
-    localAgentRef: input.localAgentRef,
+    agentHandle: input.agentHandle,
     conversationAnchorId: input.conversationAnchorId,
     requestId: input.requestId,
     threadId: input.threadId,
-    messages: [
-      {
-        role: 'user',
-        content: input.text,
-      },
-    ],
-    ...(reasoning ? { reasoning } : {}),
+    text: input.text,
   };
 }
 
-function runtimeAgentReasoningRequest(
-  route: ZhiyuRuntimeAgentChatRouteEvidence,
-): NimiRuntimeAgentTurnRequest['reasoning'] | undefined {
-  return route.ready && route.executionBinding?.route === 'local'
-    ? {
-      mode: 'on',
-      traceMode: 'separate',
-    }
-    : undefined;
-}
-
-function createElectronRuntimeAgentStreamTurn(
-  ownerUserId: string,
-  runtimeAccess: Exclude<ZhiyuRuntimeAgentAccessDecision, { readonly kind: 'missing' }>,
+function createLocalAppStreamTurn(
+  conversation: NimiLocalAppClient['conversation'],
 ): ZhiyuRuntimeAgentChatStreamTurn {
   return async (request, options) => {
     if (typeof window === 'undefined' || !hasElectronRuntime()) {
@@ -293,127 +213,132 @@ function createElectronRuntimeAgentStreamTurn(
         source: 'renderer',
       });
     }
-    const runtime = getZhiyuRuntime();
-    const turns = createNimiRuntimeAgentTurnsModule({
-      runtime: {
-        appId: 'nimi.zhiyu',
-        auth: runtime.auth,
-        agents: runtime.agents,
-        appMessages: runtime.appMessages,
-      },
-      getSubjectUserId: () => ownerUserId,
-      withScopes: createZhiyuRuntimeAgentAccessScopeRunner(() => runtimeAccess),
-    });
-    return runNimiRuntimeAgentTurn({
-      turns,
-      subscribe: {
-        ownerUserId: request.ownerUserId,
-        runtimeSourceRef: request.runtimeSourceRef,
-        localAgentRef: request.localAgentRef,
-        conversationAnchorId: request.conversationAnchorId,
-        includeAgentEvents: false,
-      },
-      request,
-      signal: options?.signal,
-      interruptReason: 'user_cancel',
-    });
-  };
-}
-
-function createElectronRuntimeArtifactPreviewResolver(
-  runtimeAccess: Exclude<ZhiyuRuntimeAgentAccessDecision, { readonly kind: 'missing' }>,
-): (artifact: RuntimeAgentArtifactPreviewInput) => Promise<string | null> {
-  return async (artifact) => {
-    const artifactId = stringOr(artifact.artifactId, '');
-    const declaredMimeType = stringOr(artifact.mimeType, '');
-    if (!artifactId || !declaredMimeType.toLowerCase().startsWith('image/')) {
-      return null;
-    }
-    if (typeof window === 'undefined' || !hasElectronRuntime()) {
-      throw Object.assign(new Error('Electron Runtime bridge is not available for Runtime artifact preview.'), {
-        reasonCode: 'electron-runtime-bridge-unavailable',
-        actionHint: 'restart_zhiyu_electron_shell',
-        source: 'renderer',
-      });
-    }
-    const runtime = getZhiyuRuntime();
-    const response = await withZhiyuRuntimeAgentAccess(
-      runtimeAccess,
-      (options) => runtime.artifacts.readArtifactBytes({ artifactId }, options),
-    );
-    const mimeType = stringOr(response.mimeType, declaredMimeType);
-    if (!mimeType.toLowerCase().startsWith('image/')) {
-      return null;
-    }
-    const bytes = byteArray(response.bytes);
-    if (bytes.byteLength === 0) {
-      return null;
-    }
-    return `data:${mimeType};base64,${bytesToBase64(bytes)}`;
-  };
-}
-
-function byteArray(value: unknown): Uint8Array {
-  if (value instanceof Uint8Array) {
-    return value;
-  }
-  if (value instanceof ArrayBuffer) {
-    return new Uint8Array(value);
-  }
-  if (ArrayBuffer.isView(value)) {
-    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  }
-  if (Array.isArray(value)) {
-    return Uint8Array.from(value.filter((item): item is number => Number.isInteger(item) && item >= 0 && item <= 255));
-  }
-  return new Uint8Array();
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  const bufferCtor = (globalThis as typeof globalThis & {
-    readonly Buffer?: {
-      readonly from: (input: Uint8Array) => { toString: (encoding: 'base64') => string };
+    return {
+      stream: localAppConversationParts(conversation, request, options?.signal),
     };
-  }).Buffer;
-  if (bufferCtor) {
-    return bufferCtor.from(bytes).toString('base64');
-  }
-  if (typeof btoa !== 'function') {
-    throw Object.assign(new Error('Browser base64 encoder is not available for Runtime artifact preview.'), {
-      reasonCode: 'zhiyu-runtime-artifact-preview-encoder-unavailable',
-      actionHint: 'retry_in_browser_runtime',
-      source: 'renderer',
+  };
+}
+
+async function* localAppConversationParts(
+  conversation: NimiLocalAppClient['conversation'],
+  request: ZhiyuLocalAppTurnRequest,
+  signal?: AbortSignal,
+): AsyncIterable<RuntimeAgentTurnRunnerPartLike> {
+  const scope = {
+    agentHandle: request.agentHandle,
+    conversationAnchorId: request.conversationAnchorId,
+  } as const;
+  const subscription = await conversation.subscribe(scope);
+  let runtimeTurnId = '';
+  try {
+    await conversation.send({
+      ...scope,
+      requestId: request.requestId,
+      text: request.text,
     });
+    for await (const event of subscription) {
+      if (signal?.aborted) {
+        yield { type: 'turn-canceled', scope: 'turn' };
+        return;
+      }
+      const payload = eventPayload(event);
+      const eventTurnId = stringOr(payload.turn_id ?? payload.turnId, '');
+      if (event.messageType === 'runtime.agent.turn.accepted') {
+        const detail = eventDetail(payload);
+        if (stringOr(detail.request_id ?? detail.requestId, '') !== request.requestId || !eventTurnId) {
+          continue;
+        }
+        runtimeTurnId = eventTurnId;
+        continue;
+      }
+      if (!runtimeTurnId || eventTurnId !== runtimeTurnId) {
+        continue;
+      }
+      const part = localAppEventPart(event, payload);
+      if (part) {
+        yield part;
+      }
+      if (part?.type === 'turn-completed'
+        || part?.type === 'turn-failed'
+        || part?.type === 'turn-canceled') {
+        return;
+      }
+    }
+  } finally {
+    await subscription.cancel();
   }
-  let binary = '';
-  for (let index = 0; index < bytes.byteLength; index += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+}
+
+function localAppEventPart(
+  event: NimiLocalAppConversationEvent,
+  payload: Record<string, unknown>,
+): RuntimeAgentTurnRunnerPartLike | null {
+  const detail = eventDetail(payload);
+  switch (event.messageType) {
+    case 'runtime.agent.turn.reasoning_delta':
+      return { type: 'reasoning-delta', textDelta: detail.text };
+    case 'runtime.agent.turn.text_delta':
+      return { type: 'text-delta', textDelta: detail.text };
+    case 'runtime.agent.turn.message_committed':
+      return {
+        type: 'message-sealed',
+        envelope: {
+          message: {
+            messageId: detail.message_id ?? detail.messageId ?? payload.message_id ?? payload.messageId,
+            text: detail.text,
+          },
+        },
+      };
+    case 'runtime.agent.turn.completed':
+      return {
+        type: 'turn-completed',
+        finishReason: detail.terminal_reason ?? detail.terminalReason,
+        diagnostics: { runtimeTurnId: payload.turn_id ?? payload.turnId },
+      };
+    case 'runtime.agent.turn.failed':
+      return {
+        type: 'turn-failed',
+        error: {
+          code: event.reasonCode || 'RUNTIME_AGENT_TURN_FAILED',
+          message: stringOr(detail.message, 'Runtime Agent turn failed.'),
+        },
+      };
+    case 'runtime.agent.turn.interrupted':
+      return { type: 'turn-canceled', scope: 'turn' };
+    default:
+      return null;
   }
-  return btoa(binary);
+}
+
+function eventPayload(event: NimiLocalAppConversationEvent): Record<string, unknown> {
+  return event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
+    ? event.payload as Record<string, unknown>
+    : {};
+}
+
+function eventDetail(payload: Record<string, unknown>): Record<string, unknown> {
+  const detail = payload.detail;
+  return detail && typeof detail === 'object' && !Array.isArray(detail)
+    ? detail as Record<string, unknown>
+    : {};
 }
 
 function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly threadId: string;
 } | null {
   if (!conversation.ready) {
     return null;
   }
-  const ownerUserId = stringOr(conversation.ownerUserId, '');
-  const runtimeSourceRef = stringOr(conversation.runtimeSourceRef, '');
-  const localAgentRef = stringOr(conversation.localAgentRef, '');
+  const agentHandle = stringOr(conversation.agentHandle, '');
   const conversationAnchorId = stringOr(conversation.conversationAnchorId, '');
   const threadId = stringOr(conversation.threadId, '');
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId || !threadId) {
+  if (!agentHandle || !conversationAnchorId || !threadId) {
     return null;
   }
   return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
+    agentHandle: agentHandle as NimiLocalAppAgentHandle,
     conversationAnchorId,
     threadId,
   };
@@ -422,9 +347,7 @@ function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
 function chatResultFromProjection(
   projection: RuntimeAgentConversationProjectionState,
   identity: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
+    readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;
     readonly requestId: string;
   },
@@ -439,9 +362,10 @@ function chatResultFromProjection(
       : 'inspect_runtime_agent_chat_stream',
     source: 'runtime',
     message: projection.message,
-    ownerUserId: identity.ownerUserId,
-    runtimeSourceRef: identity.runtimeSourceRef,
-    localAgentRef: identity.localAgentRef,
+    agentHandle: identity.agentHandle,
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
     conversationAnchorId: identity.conversationAnchorId,
     requestId: identity.requestId,
     events: projection.events,
@@ -457,6 +381,7 @@ function chatUnavailable(input: {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
+  readonly agentHandle?: string | null;
   readonly ownerUserId?: string | null;
   readonly runtimeSourceRef?: string | null;
   readonly localAgentRef?: string | null;
@@ -473,6 +398,7 @@ function chatUnavailable(input: {
     actionHint: input.actionHint,
     source: input.source,
     message: input.message,
+    agentHandle: input.agentHandle ?? null,
     ownerUserId: input.ownerUserId ?? null,
     runtimeSourceRef: input.runtimeSourceRef ?? null,
     localAgentRef: input.localAgentRef ?? null,

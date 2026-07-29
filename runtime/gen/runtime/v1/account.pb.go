@@ -2871,11 +2871,12 @@ func (x *RevokeWorkspaceBindingResponse) GetProductionInert() bool {
 }
 
 type LocalAppPermissionProjection struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	PermissionId  string                    `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
-	Posture       LocalAppPermissionPosture `protobuf:"varint,2,opt,name=posture,proto3,enum=nimi.runtime.v1.LocalAppPermissionPosture" json:"posture,omitempty"`
-	CanRequest    bool                      `protobuf:"varint,3,opt,name=can_request,json=canRequest,proto3" json:"can_request,omitempty"`
-	ReasonCode    ReasonCode                `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	state         protoimpl.MessageState           `protogen:"open.v1"`
+	PermissionId  string                           `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
+	Posture       LocalAppPermissionPosture        `protobuf:"varint,2,opt,name=posture,proto3,enum=nimi.runtime.v1.LocalAppPermissionPosture" json:"posture,omitempty"`
+	CanRequest    bool                             `protobuf:"varint,3,opt,name=can_request,json=canRequest,proto3" json:"can_request,omitempty"`
+	ReasonCode    ReasonCode                       `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	Agents        []*LocalAppPermissionAgentHandle `protobuf:"bytes,7,rep,name=agents,proto3" json:"agents,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2938,6 +2939,65 @@ func (x *LocalAppPermissionProjection) GetReasonCode() ReasonCode {
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
+func (x *LocalAppPermissionProjection) GetAgents() []*LocalAppPermissionAgentHandle {
+	if x != nil {
+		return x.Agents
+	}
+	return nil
+}
+
+type LocalAppPermissionAgentHandle struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgentHandle   string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppPermissionAgentHandle) Reset() {
+	*x = LocalAppPermissionAgentHandle{}
+	mi := &file_runtime_v1_account_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppPermissionAgentHandle) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppPermissionAgentHandle) ProtoMessage() {}
+
+func (x *LocalAppPermissionAgentHandle) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppPermissionAgentHandle.ProtoReflect.Descriptor instead.
+func (*LocalAppPermissionAgentHandle) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *LocalAppPermissionAgentHandle) GetAgentHandle() string {
+	if x != nil {
+		return x.AgentHandle
+	}
+	return ""
+}
+
+func (x *LocalAppPermissionAgentHandle) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
 type GetLocalAppPermissionStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PermissionId  string                 `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
@@ -2947,7 +3007,7 @@ type GetLocalAppPermissionStatusRequest struct {
 
 func (x *GetLocalAppPermissionStatusRequest) Reset() {
 	*x = GetLocalAppPermissionStatusRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[26]
+	mi := &file_runtime_v1_account_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2959,7 +3019,7 @@ func (x *GetLocalAppPermissionStatusRequest) String() string {
 func (*GetLocalAppPermissionStatusRequest) ProtoMessage() {}
 
 func (x *GetLocalAppPermissionStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[26]
+	mi := &file_runtime_v1_account_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2972,7 +3032,7 @@ func (x *GetLocalAppPermissionStatusRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetLocalAppPermissionStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalAppPermissionStatusRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetLocalAppPermissionStatusRequest) GetPermissionId() string {
@@ -2991,7 +3051,7 @@ type GetLocalAppPermissionStatusResponse struct {
 
 func (x *GetLocalAppPermissionStatusResponse) Reset() {
 	*x = GetLocalAppPermissionStatusResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[27]
+	mi := &file_runtime_v1_account_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3003,7 +3063,7 @@ func (x *GetLocalAppPermissionStatusResponse) String() string {
 func (*GetLocalAppPermissionStatusResponse) ProtoMessage() {}
 
 func (x *GetLocalAppPermissionStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[27]
+	mi := &file_runtime_v1_account_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3016,7 +3076,7 @@ func (x *GetLocalAppPermissionStatusResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use GetLocalAppPermissionStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalAppPermissionStatusResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetLocalAppPermissionStatusResponse) GetProjection() *LocalAppPermissionProjection {
@@ -3036,7 +3096,7 @@ type RequestLocalAppPermissionRequest struct {
 
 func (x *RequestLocalAppPermissionRequest) Reset() {
 	*x = RequestLocalAppPermissionRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[28]
+	mi := &file_runtime_v1_account_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3048,7 +3108,7 @@ func (x *RequestLocalAppPermissionRequest) String() string {
 func (*RequestLocalAppPermissionRequest) ProtoMessage() {}
 
 func (x *RequestLocalAppPermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[28]
+	mi := &file_runtime_v1_account_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3061,7 +3121,7 @@ func (x *RequestLocalAppPermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestLocalAppPermissionRequest.ProtoReflect.Descriptor instead.
 func (*RequestLocalAppPermissionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *RequestLocalAppPermissionRequest) GetPermissionId() string {
@@ -3087,7 +3147,7 @@ type RequestLocalAppPermissionResponse struct {
 
 func (x *RequestLocalAppPermissionResponse) Reset() {
 	*x = RequestLocalAppPermissionResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[29]
+	mi := &file_runtime_v1_account_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3099,7 +3159,7 @@ func (x *RequestLocalAppPermissionResponse) String() string {
 func (*RequestLocalAppPermissionResponse) ProtoMessage() {}
 
 func (x *RequestLocalAppPermissionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[29]
+	mi := &file_runtime_v1_account_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3112,7 +3172,7 @@ func (x *RequestLocalAppPermissionResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use RequestLocalAppPermissionResponse.ProtoReflect.Descriptor instead.
 func (*RequestLocalAppPermissionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *RequestLocalAppPermissionResponse) GetProjection() *LocalAppPermissionProjection {
@@ -3120,136 +3180,6 @@ func (x *RequestLocalAppPermissionResponse) GetProjection() *LocalAppPermissionP
 		return x.Projection
 	}
 	return nil
-}
-
-// Protected Runtime-owner management plane. These messages are never carried
-// by the third-party local-app transport.
-type IssueLocalAppAgentSelectorHandleRequest struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Caller              *AccountCaller         `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
-	LocalAppPrincipalId string                 `protobuf:"bytes,2,opt,name=local_app_principal_id,json=localAppPrincipalId,proto3" json:"local_app_principal_id,omitempty"`
-	PermissionId        string                 `protobuf:"bytes,3,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
-	LocalAgentId        string                 `protobuf:"bytes,4,opt,name=local_agent_id,json=localAgentId,proto3" json:"local_agent_id,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *IssueLocalAppAgentSelectorHandleRequest) Reset() {
-	*x = IssueLocalAppAgentSelectorHandleRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IssueLocalAppAgentSelectorHandleRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IssueLocalAppAgentSelectorHandleRequest) ProtoMessage() {}
-
-func (x *IssueLocalAppAgentSelectorHandleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IssueLocalAppAgentSelectorHandleRequest.ProtoReflect.Descriptor instead.
-func (*IssueLocalAppAgentSelectorHandleRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *IssueLocalAppAgentSelectorHandleRequest) GetCaller() *AccountCaller {
-	if x != nil {
-		return x.Caller
-	}
-	return nil
-}
-
-func (x *IssueLocalAppAgentSelectorHandleRequest) GetLocalAppPrincipalId() string {
-	if x != nil {
-		return x.LocalAppPrincipalId
-	}
-	return ""
-}
-
-func (x *IssueLocalAppAgentSelectorHandleRequest) GetPermissionId() string {
-	if x != nil {
-		return x.PermissionId
-	}
-	return ""
-}
-
-func (x *IssueLocalAppAgentSelectorHandleRequest) GetLocalAgentId() string {
-	if x != nil {
-		return x.LocalAgentId
-	}
-	return ""
-}
-
-type IssueLocalAppAgentSelectorHandleResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Accepted       bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	SelectorHandle string                 `protobuf:"bytes,2,opt,name=selector_handle,json=selectorHandle,proto3" json:"selector_handle,omitempty"`
-	ReasonCode     ReasonCode             `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *IssueLocalAppAgentSelectorHandleResponse) Reset() {
-	*x = IssueLocalAppAgentSelectorHandleResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IssueLocalAppAgentSelectorHandleResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IssueLocalAppAgentSelectorHandleResponse) ProtoMessage() {}
-
-func (x *IssueLocalAppAgentSelectorHandleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IssueLocalAppAgentSelectorHandleResponse.ProtoReflect.Descriptor instead.
-func (*IssueLocalAppAgentSelectorHandleResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{31}
-}
-
-func (x *IssueLocalAppAgentSelectorHandleResponse) GetAccepted() bool {
-	if x != nil {
-		return x.Accepted
-	}
-	return false
-}
-
-func (x *IssueLocalAppAgentSelectorHandleResponse) GetSelectorHandle() string {
-	if x != nil {
-		return x.SelectorHandle
-	}
-	return ""
-}
-
-func (x *IssueLocalAppAgentSelectorHandleResponse) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
 type LocalAppPermissionPendingRequest struct {
@@ -3266,7 +3196,7 @@ type LocalAppPermissionPendingRequest struct {
 
 func (x *LocalAppPermissionPendingRequest) Reset() {
 	*x = LocalAppPermissionPendingRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[32]
+	mi := &file_runtime_v1_account_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3278,7 +3208,7 @@ func (x *LocalAppPermissionPendingRequest) String() string {
 func (*LocalAppPermissionPendingRequest) ProtoMessage() {}
 
 func (x *LocalAppPermissionPendingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[32]
+	mi := &file_runtime_v1_account_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3291,7 +3221,7 @@ func (x *LocalAppPermissionPendingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppPermissionPendingRequest.ProtoReflect.Descriptor instead.
 func (*LocalAppPermissionPendingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *LocalAppPermissionPendingRequest) GetLocalAppPrincipalId() string {
@@ -3345,7 +3275,7 @@ type ListLocalAppPermissionRequestsRequest struct {
 
 func (x *ListLocalAppPermissionRequestsRequest) Reset() {
 	*x = ListLocalAppPermissionRequestsRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[33]
+	mi := &file_runtime_v1_account_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3357,7 +3287,7 @@ func (x *ListLocalAppPermissionRequestsRequest) String() string {
 func (*ListLocalAppPermissionRequestsRequest) ProtoMessage() {}
 
 func (x *ListLocalAppPermissionRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[33]
+	mi := &file_runtime_v1_account_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3370,7 +3300,7 @@ func (x *ListLocalAppPermissionRequestsRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use ListLocalAppPermissionRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalAppPermissionRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListLocalAppPermissionRequestsRequest) GetCaller() *AccountCaller {
@@ -3391,7 +3321,7 @@ type ListLocalAppPermissionRequestsResponse struct {
 
 func (x *ListLocalAppPermissionRequestsResponse) Reset() {
 	*x = ListLocalAppPermissionRequestsResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[34]
+	mi := &file_runtime_v1_account_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3403,7 +3333,7 @@ func (x *ListLocalAppPermissionRequestsResponse) String() string {
 func (*ListLocalAppPermissionRequestsResponse) ProtoMessage() {}
 
 func (x *ListLocalAppPermissionRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[34]
+	mi := &file_runtime_v1_account_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3416,7 +3346,7 @@ func (x *ListLocalAppPermissionRequestsResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use ListLocalAppPermissionRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListLocalAppPermissionRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListLocalAppPermissionRequestsResponse) GetAccepted() bool {
@@ -3449,7 +3379,7 @@ type SubscribeLocalAppPermissionRequestsRequest struct {
 
 func (x *SubscribeLocalAppPermissionRequestsRequest) Reset() {
 	*x = SubscribeLocalAppPermissionRequestsRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[35]
+	mi := &file_runtime_v1_account_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3461,7 +3391,7 @@ func (x *SubscribeLocalAppPermissionRequestsRequest) String() string {
 func (*SubscribeLocalAppPermissionRequestsRequest) ProtoMessage() {}
 
 func (x *SubscribeLocalAppPermissionRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[35]
+	mi := &file_runtime_v1_account_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3474,7 +3404,7 @@ func (x *SubscribeLocalAppPermissionRequestsRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use SubscribeLocalAppPermissionRequestsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeLocalAppPermissionRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *SubscribeLocalAppPermissionRequestsRequest) GetCaller() *AccountCaller {
@@ -3497,7 +3427,7 @@ type LocalAppPermissionInboxEvent struct {
 
 func (x *LocalAppPermissionInboxEvent) Reset() {
 	*x = LocalAppPermissionInboxEvent{}
-	mi := &file_runtime_v1_account_proto_msgTypes[36]
+	mi := &file_runtime_v1_account_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3509,7 +3439,7 @@ func (x *LocalAppPermissionInboxEvent) String() string {
 func (*LocalAppPermissionInboxEvent) ProtoMessage() {}
 
 func (x *LocalAppPermissionInboxEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[36]
+	mi := &file_runtime_v1_account_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3522,7 +3452,7 @@ func (x *LocalAppPermissionInboxEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppPermissionInboxEvent.ProtoReflect.Descriptor instead.
 func (*LocalAppPermissionInboxEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *LocalAppPermissionInboxEvent) GetSequence() uint64 {
@@ -3560,7 +3490,7 @@ func (x *LocalAppPermissionInboxEvent) GetReasonCode() ReasonCode {
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
-type LocalAppPermissionSelectedAgent struct {
+type LocalAppPermissionCoveredAgent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LocalAgentId  string                 `protobuf:"bytes,1,opt,name=local_agent_id,json=localAgentId,proto3" json:"local_agent_id,omitempty"`
 	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
@@ -3568,21 +3498,21 @@ type LocalAppPermissionSelectedAgent struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppPermissionSelectedAgent) Reset() {
-	*x = LocalAppPermissionSelectedAgent{}
-	mi := &file_runtime_v1_account_proto_msgTypes[37]
+func (x *LocalAppPermissionCoveredAgent) Reset() {
+	*x = LocalAppPermissionCoveredAgent{}
+	mi := &file_runtime_v1_account_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppPermissionSelectedAgent) String() string {
+func (x *LocalAppPermissionCoveredAgent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppPermissionSelectedAgent) ProtoMessage() {}
+func (*LocalAppPermissionCoveredAgent) ProtoMessage() {}
 
-func (x *LocalAppPermissionSelectedAgent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[37]
+func (x *LocalAppPermissionCoveredAgent) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3593,19 +3523,19 @@ func (x *LocalAppPermissionSelectedAgent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppPermissionSelectedAgent.ProtoReflect.Descriptor instead.
-func (*LocalAppPermissionSelectedAgent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{37}
+// Deprecated: Use LocalAppPermissionCoveredAgent.ProtoReflect.Descriptor instead.
+func (*LocalAppPermissionCoveredAgent) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{36}
 }
 
-func (x *LocalAppPermissionSelectedAgent) GetLocalAgentId() string {
+func (x *LocalAppPermissionCoveredAgent) GetLocalAgentId() string {
 	if x != nil {
 		return x.LocalAgentId
 	}
 	return ""
 }
 
-func (x *LocalAppPermissionSelectedAgent) GetDisplayName() string {
+func (x *LocalAppPermissionCoveredAgent) GetDisplayName() string {
 	if x != nil {
 		return x.DisplayName
 	}
@@ -3613,22 +3543,22 @@ func (x *LocalAppPermissionSelectedAgent) GetDisplayName() string {
 }
 
 type LocalAppPermissionOwnerProjection struct {
-	state               protoimpl.MessageState             `protogen:"open.v1"`
-	LocalAppPrincipalId string                             `protobuf:"bytes,1,opt,name=local_app_principal_id,json=localAppPrincipalId,proto3" json:"local_app_principal_id,omitempty"`
-	DisplayAppId        string                             `protobuf:"bytes,2,opt,name=display_app_id,json=displayAppId,proto3" json:"display_app_id,omitempty"`
-	PermissionId        string                             `protobuf:"bytes,3,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
-	Posture             LocalAppPermissionOwnerPosture     `protobuf:"varint,4,opt,name=posture,proto3,enum=nimi.runtime.v1.LocalAppPermissionOwnerPosture" json:"posture,omitempty"`
-	SelectedAgents      []*LocalAppPermissionSelectedAgent `protobuf:"bytes,5,rep,name=selected_agents,json=selectedAgents,proto3" json:"selected_agents,omitempty"`
-	OwnerRevision       uint64                             `protobuf:"varint,6,opt,name=owner_revision,json=ownerRevision,proto3" json:"owner_revision,omitempty"`
-	RequestedAt         *timestamppb.Timestamp             `protobuf:"bytes,7,opt,name=requested_at,json=requestedAt,proto3" json:"requested_at,omitempty"`
-	DecidedAt           *timestamppb.Timestamp             `protobuf:"bytes,8,opt,name=decided_at,json=decidedAt,proto3" json:"decided_at,omitempty"`
+	state               protoimpl.MessageState            `protogen:"open.v1"`
+	LocalAppPrincipalId string                            `protobuf:"bytes,1,opt,name=local_app_principal_id,json=localAppPrincipalId,proto3" json:"local_app_principal_id,omitempty"`
+	DisplayAppId        string                            `protobuf:"bytes,2,opt,name=display_app_id,json=displayAppId,proto3" json:"display_app_id,omitempty"`
+	PermissionId        string                            `protobuf:"bytes,3,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
+	Posture             LocalAppPermissionOwnerPosture    `protobuf:"varint,4,opt,name=posture,proto3,enum=nimi.runtime.v1.LocalAppPermissionOwnerPosture" json:"posture,omitempty"`
+	OwnerRevision       uint64                            `protobuf:"varint,6,opt,name=owner_revision,json=ownerRevision,proto3" json:"owner_revision,omitempty"`
+	RequestedAt         *timestamppb.Timestamp            `protobuf:"bytes,7,opt,name=requested_at,json=requestedAt,proto3" json:"requested_at,omitempty"`
+	DecidedAt           *timestamppb.Timestamp            `protobuf:"bytes,8,opt,name=decided_at,json=decidedAt,proto3" json:"decided_at,omitempty"`
+	CoveredAgents       []*LocalAppPermissionCoveredAgent `protobuf:"bytes,9,rep,name=covered_agents,json=coveredAgents,proto3" json:"covered_agents,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
 
 func (x *LocalAppPermissionOwnerProjection) Reset() {
 	*x = LocalAppPermissionOwnerProjection{}
-	mi := &file_runtime_v1_account_proto_msgTypes[38]
+	mi := &file_runtime_v1_account_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3640,7 +3570,7 @@ func (x *LocalAppPermissionOwnerProjection) String() string {
 func (*LocalAppPermissionOwnerProjection) ProtoMessage() {}
 
 func (x *LocalAppPermissionOwnerProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[38]
+	mi := &file_runtime_v1_account_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3653,7 +3583,7 @@ func (x *LocalAppPermissionOwnerProjection) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LocalAppPermissionOwnerProjection.ProtoReflect.Descriptor instead.
 func (*LocalAppPermissionOwnerProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *LocalAppPermissionOwnerProjection) GetLocalAppPrincipalId() string {
@@ -3684,13 +3614,6 @@ func (x *LocalAppPermissionOwnerProjection) GetPosture() LocalAppPermissionOwner
 	return LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED
 }
 
-func (x *LocalAppPermissionOwnerProjection) GetSelectedAgents() []*LocalAppPermissionSelectedAgent {
-	if x != nil {
-		return x.SelectedAgents
-	}
-	return nil
-}
-
 func (x *LocalAppPermissionOwnerProjection) GetOwnerRevision() uint64 {
 	if x != nil {
 		return x.OwnerRevision
@@ -3712,6 +3635,13 @@ func (x *LocalAppPermissionOwnerProjection) GetDecidedAt() *timestamppb.Timestam
 	return nil
 }
 
+func (x *LocalAppPermissionOwnerProjection) GetCoveredAgents() []*LocalAppPermissionCoveredAgent {
+	if x != nil {
+		return x.CoveredAgents
+	}
+	return nil
+}
+
 type GetLocalAppPermissionOwnerProjectionRequest struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Caller              *AccountCaller         `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
@@ -3722,7 +3652,7 @@ type GetLocalAppPermissionOwnerProjectionRequest struct {
 
 func (x *GetLocalAppPermissionOwnerProjectionRequest) Reset() {
 	*x = GetLocalAppPermissionOwnerProjectionRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[39]
+	mi := &file_runtime_v1_account_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3734,7 +3664,7 @@ func (x *GetLocalAppPermissionOwnerProjectionRequest) String() string {
 func (*GetLocalAppPermissionOwnerProjectionRequest) ProtoMessage() {}
 
 func (x *GetLocalAppPermissionOwnerProjectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[39]
+	mi := &file_runtime_v1_account_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3747,7 +3677,7 @@ func (x *GetLocalAppPermissionOwnerProjectionRequest) ProtoReflect() protoreflec
 
 // Deprecated: Use GetLocalAppPermissionOwnerProjectionRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalAppPermissionOwnerProjectionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *GetLocalAppPermissionOwnerProjectionRequest) GetCaller() *AccountCaller {
@@ -3775,7 +3705,7 @@ type GetLocalAppPermissionOwnerProjectionResponse struct {
 
 func (x *GetLocalAppPermissionOwnerProjectionResponse) Reset() {
 	*x = GetLocalAppPermissionOwnerProjectionResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[40]
+	mi := &file_runtime_v1_account_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3787,7 +3717,7 @@ func (x *GetLocalAppPermissionOwnerProjectionResponse) String() string {
 func (*GetLocalAppPermissionOwnerProjectionResponse) ProtoMessage() {}
 
 func (x *GetLocalAppPermissionOwnerProjectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[40]
+	mi := &file_runtime_v1_account_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3800,7 +3730,7 @@ func (x *GetLocalAppPermissionOwnerProjectionResponse) ProtoReflect() protorefle
 
 // Deprecated: Use GetLocalAppPermissionOwnerProjectionResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalAppPermissionOwnerProjectionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *GetLocalAppPermissionOwnerProjectionResponse) GetAccepted() bool {
@@ -3824,12 +3754,115 @@ func (x *GetLocalAppPermissionOwnerProjectionResponse) GetReasonCode() ReasonCod
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
+type ListLocalAppPermissionOwnerProjectionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Caller        *AccountCaller         `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLocalAppPermissionOwnerProjectionsRequest) Reset() {
+	*x = ListLocalAppPermissionOwnerProjectionsRequest{}
+	mi := &file_runtime_v1_account_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLocalAppPermissionOwnerProjectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLocalAppPermissionOwnerProjectionsRequest) ProtoMessage() {}
+
+func (x *ListLocalAppPermissionOwnerProjectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLocalAppPermissionOwnerProjectionsRequest.ProtoReflect.Descriptor instead.
+func (*ListLocalAppPermissionOwnerProjectionsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *ListLocalAppPermissionOwnerProjectionsRequest) GetCaller() *AccountCaller {
+	if x != nil {
+		return x.Caller
+	}
+	return nil
+}
+
+type ListLocalAppPermissionOwnerProjectionsResponse struct {
+	state         protoimpl.MessageState               `protogen:"open.v1"`
+	Accepted      bool                                 `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	Permissions   []*LocalAppPermissionOwnerProjection `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	ReasonCode    ReasonCode                           `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLocalAppPermissionOwnerProjectionsResponse) Reset() {
+	*x = ListLocalAppPermissionOwnerProjectionsResponse{}
+	mi := &file_runtime_v1_account_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLocalAppPermissionOwnerProjectionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLocalAppPermissionOwnerProjectionsResponse) ProtoMessage() {}
+
+func (x *ListLocalAppPermissionOwnerProjectionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLocalAppPermissionOwnerProjectionsResponse.ProtoReflect.Descriptor instead.
+func (*ListLocalAppPermissionOwnerProjectionsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *ListLocalAppPermissionOwnerProjectionsResponse) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *ListLocalAppPermissionOwnerProjectionsResponse) GetPermissions() []*LocalAppPermissionOwnerProjection {
+	if x != nil {
+		return x.Permissions
+	}
+	return nil
+}
+
+func (x *ListLocalAppPermissionOwnerProjectionsResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
 type DecideLocalAppPermissionRequest struct {
 	state                 protoimpl.MessageState `protogen:"open.v1"`
 	Caller                *AccountCaller         `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
 	LocalAppPrincipalId   string                 `protobuf:"bytes,2,opt,name=local_app_principal_id,json=localAppPrincipalId,proto3" json:"local_app_principal_id,omitempty"`
 	PermissionId          string                 `protobuf:"bytes,3,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
-	SelectorHandle        string                 `protobuf:"bytes,4,opt,name=selector_handle,json=selectorHandle,proto3" json:"selector_handle,omitempty"`
 	Approved              bool                   `protobuf:"varint,5,opt,name=approved,proto3" json:"approved,omitempty"`
 	ExpectedOwnerRevision uint64                 `protobuf:"varint,6,opt,name=expected_owner_revision,json=expectedOwnerRevision,proto3" json:"expected_owner_revision,omitempty"`
 	unknownFields         protoimpl.UnknownFields
@@ -3838,7 +3871,7 @@ type DecideLocalAppPermissionRequest struct {
 
 func (x *DecideLocalAppPermissionRequest) Reset() {
 	*x = DecideLocalAppPermissionRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[41]
+	mi := &file_runtime_v1_account_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3850,7 +3883,7 @@ func (x *DecideLocalAppPermissionRequest) String() string {
 func (*DecideLocalAppPermissionRequest) ProtoMessage() {}
 
 func (x *DecideLocalAppPermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[41]
+	mi := &file_runtime_v1_account_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3863,7 +3896,7 @@ func (x *DecideLocalAppPermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideLocalAppPermissionRequest.ProtoReflect.Descriptor instead.
 func (*DecideLocalAppPermissionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *DecideLocalAppPermissionRequest) GetCaller() *AccountCaller {
@@ -3883,13 +3916,6 @@ func (x *DecideLocalAppPermissionRequest) GetLocalAppPrincipalId() string {
 func (x *DecideLocalAppPermissionRequest) GetPermissionId() string {
 	if x != nil {
 		return x.PermissionId
-	}
-	return ""
-}
-
-func (x *DecideLocalAppPermissionRequest) GetSelectorHandle() string {
-	if x != nil {
-		return x.SelectorHandle
 	}
 	return ""
 }
@@ -3920,7 +3946,7 @@ type DecideLocalAppPermissionResponse struct {
 
 func (x *DecideLocalAppPermissionResponse) Reset() {
 	*x = DecideLocalAppPermissionResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[42]
+	mi := &file_runtime_v1_account_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3932,7 +3958,7 @@ func (x *DecideLocalAppPermissionResponse) String() string {
 func (*DecideLocalAppPermissionResponse) ProtoMessage() {}
 
 func (x *DecideLocalAppPermissionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[42]
+	mi := &file_runtime_v1_account_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3945,7 +3971,7 @@ func (x *DecideLocalAppPermissionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideLocalAppPermissionResponse.ProtoReflect.Descriptor instead.
 func (*DecideLocalAppPermissionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{42}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *DecideLocalAppPermissionResponse) GetAccepted() bool {
@@ -3981,14 +4007,13 @@ type RevokeLocalAppPermissionRequest struct {
 	Caller              *AccountCaller         `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
 	LocalAppPrincipalId string                 `protobuf:"bytes,2,opt,name=local_app_principal_id,json=localAppPrincipalId,proto3" json:"local_app_principal_id,omitempty"`
 	PermissionId        string                 `protobuf:"bytes,3,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
-	SelectorHandle      string                 `protobuf:"bytes,4,opt,name=selector_handle,json=selectorHandle,proto3" json:"selector_handle,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
 
 func (x *RevokeLocalAppPermissionRequest) Reset() {
 	*x = RevokeLocalAppPermissionRequest{}
-	mi := &file_runtime_v1_account_proto_msgTypes[43]
+	mi := &file_runtime_v1_account_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4000,7 +4025,7 @@ func (x *RevokeLocalAppPermissionRequest) String() string {
 func (*RevokeLocalAppPermissionRequest) ProtoMessage() {}
 
 func (x *RevokeLocalAppPermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[43]
+	mi := &file_runtime_v1_account_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4013,7 +4038,7 @@ func (x *RevokeLocalAppPermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeLocalAppPermissionRequest.ProtoReflect.Descriptor instead.
 func (*RevokeLocalAppPermissionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{43}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *RevokeLocalAppPermissionRequest) GetCaller() *AccountCaller {
@@ -4037,13 +4062,6 @@ func (x *RevokeLocalAppPermissionRequest) GetPermissionId() string {
 	return ""
 }
 
-func (x *RevokeLocalAppPermissionRequest) GetSelectorHandle() string {
-	if x != nil {
-		return x.SelectorHandle
-	}
-	return ""
-}
-
 type RevokeLocalAppPermissionResponse struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Accepted      bool                      `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
@@ -4056,7 +4074,7 @@ type RevokeLocalAppPermissionResponse struct {
 
 func (x *RevokeLocalAppPermissionResponse) Reset() {
 	*x = RevokeLocalAppPermissionResponse{}
-	mi := &file_runtime_v1_account_proto_msgTypes[44]
+	mi := &file_runtime_v1_account_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4068,7 +4086,7 @@ func (x *RevokeLocalAppPermissionResponse) String() string {
 func (*RevokeLocalAppPermissionResponse) ProtoMessage() {}
 
 func (x *RevokeLocalAppPermissionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_account_proto_msgTypes[44]
+	mi := &file_runtime_v1_account_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4081,7 +4099,7 @@ func (x *RevokeLocalAppPermissionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeLocalAppPermissionResponse.ProtoReflect.Descriptor instead.
 func (*RevokeLocalAppPermissionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_account_proto_rawDescGZIP(), []int{44}
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *RevokeLocalAppPermissionResponse) GetAccepted() bool {
@@ -4318,14 +4336,18 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x04 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\x05 \x01(\bR\x0fproductionInert\"\xe8\x01\n" +
+	"\x10production_inert\x18\x05 \x01(\bR\x0fproductionInert\"\xe5\x02\n" +
 	"\x1cLocalAppPermissionProjection\x12#\n" +
 	"\rpermission_id\x18\x01 \x01(\tR\fpermissionId\x12D\n" +
 	"\aposture\x18\x02 \x01(\x0e2*.nimi.runtime.v1.LocalAppPermissionPostureR\aposture\x12\x1f\n" +
 	"\vcan_request\x18\x03 \x01(\bR\n" +
 	"canRequest\x12<\n" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"I\n" +
+	"reasonCode\x12F\n" +
+	"\x06agents\x18\a \x03(\v2..nimi.runtime.v1.LocalAppPermissionAgentHandleR\x06agentsJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aR\x16selected_agent_handlesR\x0fselected_agents\"e\n" +
+	"\x1dLocalAppPermissionAgentHandle\x12!\n" +
+	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"I\n" +
 	"\"GetLocalAppPermissionStatusRequest\x12#\n" +
 	"\rpermission_id\x18\x01 \x01(\tR\fpermissionId\"t\n" +
 	"#GetLocalAppPermissionStatusResponse\x12M\n" +
@@ -4338,17 +4360,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"!RequestLocalAppPermissionResponse\x12M\n" +
 	"\n" +
 	"projection\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalAppPermissionProjectionR\n" +
-	"projection\"\xe1\x01\n" +
-	"'IssueLocalAppAgentSelectorHandleRequest\x126\n" +
-	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x123\n" +
-	"\x16local_app_principal_id\x18\x02 \x01(\tR\x13localAppPrincipalId\x12#\n" +
-	"\rpermission_id\x18\x03 \x01(\tR\fpermissionId\x12$\n" +
-	"\x0elocal_agent_id\x18\x04 \x01(\tR\flocalAgentId\"\xad\x01\n" +
-	"(IssueLocalAppAgentSelectorHandleResponse\x12\x1a\n" +
-	"\baccepted\x18\x01 \x01(\bR\baccepted\x12'\n" +
-	"\x0fselector_handle\x18\x02 \x01(\tR\x0eselectorHandle\x12<\n" +
-	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xa0\x02\n" +
+	"projection\"\xa0\x02\n" +
 	" LocalAppPermissionPendingRequest\x123\n" +
 	"\x16local_app_principal_id\x18\x01 \x01(\tR\x13localAppPrincipalId\x12$\n" +
 	"\x0edisplay_app_id\x18\x02 \x01(\tR\fdisplayAppId\x12#\n" +
@@ -4372,20 +4384,20 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\brequests\x18\x03 \x03(\v21.nimi.runtime.v1.LocalAppPermissionPendingRequestR\brequests\x12\x1a\n" +
 	"\baccepted\x18\x04 \x01(\bR\baccepted\x12<\n" +
 	"\vreason_code\x18\x05 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"j\n" +
-	"\x1fLocalAppPermissionSelectedAgent\x12$\n" +
+	"reasonCode\"i\n" +
+	"\x1eLocalAppPermissionCoveredAgent\x12$\n" +
 	"\x0elocal_agent_id\x18\x01 \x01(\tR\flocalAgentId\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"\xea\x03\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"\xfe\x03\n" +
 	"!LocalAppPermissionOwnerProjection\x123\n" +
 	"\x16local_app_principal_id\x18\x01 \x01(\tR\x13localAppPrincipalId\x12$\n" +
 	"\x0edisplay_app_id\x18\x02 \x01(\tR\fdisplayAppId\x12#\n" +
 	"\rpermission_id\x18\x03 \x01(\tR\fpermissionId\x12I\n" +
-	"\aposture\x18\x04 \x01(\x0e2/.nimi.runtime.v1.LocalAppPermissionOwnerPostureR\aposture\x12Y\n" +
-	"\x0fselected_agents\x18\x05 \x03(\v20.nimi.runtime.v1.LocalAppPermissionSelectedAgentR\x0eselectedAgents\x12%\n" +
+	"\aposture\x18\x04 \x01(\x0e2/.nimi.runtime.v1.LocalAppPermissionOwnerPostureR\aposture\x12%\n" +
 	"\x0eowner_revision\x18\x06 \x01(\x04R\rownerRevision\x12=\n" +
 	"\frequested_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vrequestedAt\x129\n" +
 	"\n" +
-	"decided_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tdecidedAt\"\x9a\x01\n" +
+	"decided_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tdecidedAt\x12V\n" +
+	"\x0ecovered_agents\x18\t \x03(\v2/.nimi.runtime.v1.LocalAppPermissionCoveredAgentR\rcoveredAgentsJ\x04\b\x05\x10\x06R\x0fselected_agents\"\x9a\x01\n" +
 	"+GetLocalAppPermissionOwnerProjectionRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x123\n" +
 	"\x16local_app_principal_id\x18\x02 \x01(\tR\x13localAppPrincipalId\"\xde\x01\n" +
@@ -4393,25 +4405,30 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12T\n" +
 	"\vpermissions\x18\x02 \x03(\v22.nimi.runtime.v1.LocalAppPermissionOwnerProjectionR\vpermissions\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xb0\x02\n" +
+	"reasonCode\"g\n" +
+	"-ListLocalAppPermissionOwnerProjectionsRequest\x126\n" +
+	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\"\xe0\x01\n" +
+	".ListLocalAppPermissionOwnerProjectionsResponse\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12T\n" +
+	"\vpermissions\x18\x02 \x03(\v22.nimi.runtime.v1.LocalAppPermissionOwnerProjectionR\vpermissions\x12<\n" +
+	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\x9e\x02\n" +
 	"\x1fDecideLocalAppPermissionRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x123\n" +
 	"\x16local_app_principal_id\x18\x02 \x01(\tR\x13localAppPrincipalId\x12#\n" +
-	"\rpermission_id\x18\x03 \x01(\tR\fpermissionId\x12'\n" +
-	"\x0fselector_handle\x18\x04 \x01(\tR\x0eselectorHandle\x12\x1a\n" +
+	"\rpermission_id\x18\x03 \x01(\tR\fpermissionId\x12\x1a\n" +
 	"\bapproved\x18\x05 \x01(\bR\bapproved\x126\n" +
-	"\x17expected_owner_revision\x18\x06 \x01(\x04R\x15expectedOwnerRevision\"\xe9\x01\n" +
+	"\x17expected_owner_revision\x18\x06 \x01(\x04R\x15expectedOwnerRevisionJ\x04\b\x04\x10\x05R\x0fselector_handle\"\xe9\x01\n" +
 	" DecideLocalAppPermissionResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12D\n" +
 	"\aposture\x18\x02 \x01(\x0e2*.nimi.runtime.v1.LocalAppPermissionPostureR\aposture\x12%\n" +
 	"\x0eowner_revision\x18\x03 \x01(\x04R\rownerRevision\x12<\n" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xdc\x01\n" +
+	"reasonCode\"\xca\x01\n" +
 	"\x1fRevokeLocalAppPermissionRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x123\n" +
 	"\x16local_app_principal_id\x18\x02 \x01(\tR\x13localAppPrincipalId\x12#\n" +
-	"\rpermission_id\x18\x03 \x01(\tR\fpermissionId\x12'\n" +
-	"\x0fselector_handle\x18\x04 \x01(\tR\x0eselectorHandle\"\xe9\x01\n" +
+	"\rpermission_id\x18\x03 \x01(\tR\fpermissionIdJ\x04\b\x04\x10\x05R\x0fselector_handle\"\xe9\x01\n" +
 	" RevokeLocalAppPermissionResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12D\n" +
 	"\aposture\x18\x02 \x01(\x0e2*.nimi.runtime.v1.LocalAppPermissionPostureR\aposture\x12%\n" +
@@ -4546,7 +4563,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"*LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED\x10\x02\x12-\n" +
 	")LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED\x10\x03\x12.\n" +
 	"*LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED\x10\x04\x12.\n" +
-	"*LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED\x10\x052\xda\x11\n" +
+	"*LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED\x10\x052\xec\x11\n" +
 	"\x15RuntimeAccountService\x12|\n" +
 	"\x17GetAccountSessionStatus\x12/.nimi.runtime.v1.GetAccountSessionStatusRequest\x1a0.nimi.runtime.v1.GetAccountSessionStatusResponse\x12~\n" +
 	"\x1dSubscribeAccountSessionEvents\x125.nimi.runtime.v1.SubscribeAccountSessionEventsRequest\x1a$.nimi.runtime.v1.AccountSessionEvent0\x01\x12U\n" +
@@ -4560,11 +4577,11 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\x15IssueWorkspaceBinding\x12-.nimi.runtime.v1.IssueWorkspaceBindingRequest\x1a..nimi.runtime.v1.IssueWorkspaceBindingResponse\x12y\n" +
 	"\x16RevokeWorkspaceBinding\x12..nimi.runtime.v1.RevokeWorkspaceBindingRequest\x1a/.nimi.runtime.v1.RevokeWorkspaceBindingResponse\x12\x88\x01\n" +
 	"\x1bGetLocalAppPermissionStatus\x123.nimi.runtime.v1.GetLocalAppPermissionStatusRequest\x1a4.nimi.runtime.v1.GetLocalAppPermissionStatusResponse\x12\x82\x01\n" +
-	"\x19RequestLocalAppPermission\x121.nimi.runtime.v1.RequestLocalAppPermissionRequest\x1a2.nimi.runtime.v1.RequestLocalAppPermissionResponse\x12\x97\x01\n" +
-	" IssueLocalAppAgentSelectorHandle\x128.nimi.runtime.v1.IssueLocalAppAgentSelectorHandleRequest\x1a9.nimi.runtime.v1.IssueLocalAppAgentSelectorHandleResponse\x12\x91\x01\n" +
+	"\x19RequestLocalAppPermission\x121.nimi.runtime.v1.RequestLocalAppPermissionRequest\x1a2.nimi.runtime.v1.RequestLocalAppPermissionResponse\x12\x91\x01\n" +
 	"\x1eListLocalAppPermissionRequests\x126.nimi.runtime.v1.ListLocalAppPermissionRequestsRequest\x1a7.nimi.runtime.v1.ListLocalAppPermissionRequestsResponse\x12\x93\x01\n" +
 	"#SubscribeLocalAppPermissionRequests\x12;.nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest\x1a-.nimi.runtime.v1.LocalAppPermissionInboxEvent0\x01\x12\xa3\x01\n" +
-	"$GetLocalAppPermissionOwnerProjection\x12<.nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest\x1a=.nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse\x12\x7f\n" +
+	"$GetLocalAppPermissionOwnerProjection\x12<.nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest\x1a=.nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse\x12\xa9\x01\n" +
+	"&ListLocalAppPermissionOwnerProjections\x12>.nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsRequest\x1a?.nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsResponse\x12\x7f\n" +
 	"\x18DecideLocalAppPermission\x120.nimi.runtime.v1.DecideLocalAppPermissionRequest\x1a1.nimi.runtime.v1.DecideLocalAppPermissionResponse\x12\x7f\n" +
 	"\x18RevokeLocalAppPermission\x120.nimi.runtime.v1.RevokeLocalAppPermissionRequest\x1a1.nimi.runtime.v1.RevokeLocalAppPermissionResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
@@ -4581,200 +4598,203 @@ func file_runtime_v1_account_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_account_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
-var file_runtime_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_runtime_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_runtime_v1_account_proto_goTypes = []any{
-	(AccountSessionState)(0),                             // 0: nimi.runtime.v1.AccountSessionState
-	(AccountEventType)(0),                                // 1: nimi.runtime.v1.AccountEventType
-	(AccountSessionDeliveryKind)(0),                      // 2: nimi.runtime.v1.AccountSessionDeliveryKind
-	(AccountReasonCode)(0),                               // 3: nimi.runtime.v1.AccountReasonCode
-	(PresenceVerificationState)(0),                       // 4: nimi.runtime.v1.PresenceVerificationState
-	(PresenceVerificationMethod)(0),                      // 5: nimi.runtime.v1.PresenceVerificationMethod
-	(AccountCallerMode)(0),                               // 6: nimi.runtime.v1.AccountCallerMode
-	(WorkspaceMembershipState)(0),                        // 7: nimi.runtime.v1.WorkspaceMembershipState
-	(WorkspaceBindingPurpose)(0),                         // 8: nimi.runtime.v1.WorkspaceBindingPurpose
-	(WorkspaceBindingState)(0),                           // 9: nimi.runtime.v1.WorkspaceBindingState
-	(LocalAppPermissionPosture)(0),                       // 10: nimi.runtime.v1.LocalAppPermissionPosture
-	(LocalAppPermissionOwnerPosture)(0),                  // 11: nimi.runtime.v1.LocalAppPermissionOwnerPosture
-	(*WorkspaceMembershipProjection)(nil),                // 12: nimi.runtime.v1.WorkspaceMembershipProjection
-	(*AccountProjection)(nil),                            // 13: nimi.runtime.v1.AccountProjection
-	(*AccountSessionSnapshot)(nil),                       // 14: nimi.runtime.v1.AccountSessionSnapshot
-	(*AccountCaller)(nil),                                // 15: nimi.runtime.v1.AccountCaller
-	(*WorkspaceBindingRelation)(nil),                     // 16: nimi.runtime.v1.WorkspaceBindingRelation
-	(*AccountSessionEvent)(nil),                          // 17: nimi.runtime.v1.AccountSessionEvent
-	(*GetAccountSessionStatusRequest)(nil),               // 18: nimi.runtime.v1.GetAccountSessionStatusRequest
-	(*GetAccountSessionStatusResponse)(nil),              // 19: nimi.runtime.v1.GetAccountSessionStatusResponse
-	(*SubscribeAccountSessionEventsRequest)(nil),         // 20: nimi.runtime.v1.SubscribeAccountSessionEventsRequest
-	(*BeginLoginRequest)(nil),                            // 21: nimi.runtime.v1.BeginLoginRequest
-	(*BeginLoginResponse)(nil),                           // 22: nimi.runtime.v1.BeginLoginResponse
-	(*CompleteLoginRequest)(nil),                         // 23: nimi.runtime.v1.CompleteLoginRequest
-	(*CompleteLoginResponse)(nil),                        // 24: nimi.runtime.v1.CompleteLoginResponse
-	(*RequestPresenceVerificationRequest)(nil),           // 25: nimi.runtime.v1.RequestPresenceVerificationRequest
-	(*RequestPresenceVerificationResponse)(nil),          // 26: nimi.runtime.v1.RequestPresenceVerificationResponse
-	(*InvokeRealmUnaryRequest)(nil),                      // 27: nimi.runtime.v1.InvokeRealmUnaryRequest
-	(*InvokeRealmUnaryResponse)(nil),                     // 28: nimi.runtime.v1.InvokeRealmUnaryResponse
-	(*LogoutRequest)(nil),                                // 29: nimi.runtime.v1.LogoutRequest
-	(*LogoutResponse)(nil),                               // 30: nimi.runtime.v1.LogoutResponse
-	(*SwitchAccountRequest)(nil),                         // 31: nimi.runtime.v1.SwitchAccountRequest
-	(*SwitchAccountResponse)(nil),                        // 32: nimi.runtime.v1.SwitchAccountResponse
-	(*IssueWorkspaceBindingRequest)(nil),                 // 33: nimi.runtime.v1.IssueWorkspaceBindingRequest
-	(*IssueWorkspaceBindingResponse)(nil),                // 34: nimi.runtime.v1.IssueWorkspaceBindingResponse
-	(*RevokeWorkspaceBindingRequest)(nil),                // 35: nimi.runtime.v1.RevokeWorkspaceBindingRequest
-	(*RevokeWorkspaceBindingResponse)(nil),               // 36: nimi.runtime.v1.RevokeWorkspaceBindingResponse
-	(*LocalAppPermissionProjection)(nil),                 // 37: nimi.runtime.v1.LocalAppPermissionProjection
-	(*GetLocalAppPermissionStatusRequest)(nil),           // 38: nimi.runtime.v1.GetLocalAppPermissionStatusRequest
-	(*GetLocalAppPermissionStatusResponse)(nil),          // 39: nimi.runtime.v1.GetLocalAppPermissionStatusResponse
-	(*RequestLocalAppPermissionRequest)(nil),             // 40: nimi.runtime.v1.RequestLocalAppPermissionRequest
-	(*RequestLocalAppPermissionResponse)(nil),            // 41: nimi.runtime.v1.RequestLocalAppPermissionResponse
-	(*IssueLocalAppAgentSelectorHandleRequest)(nil),      // 42: nimi.runtime.v1.IssueLocalAppAgentSelectorHandleRequest
-	(*IssueLocalAppAgentSelectorHandleResponse)(nil),     // 43: nimi.runtime.v1.IssueLocalAppAgentSelectorHandleResponse
-	(*LocalAppPermissionPendingRequest)(nil),             // 44: nimi.runtime.v1.LocalAppPermissionPendingRequest
-	(*ListLocalAppPermissionRequestsRequest)(nil),        // 45: nimi.runtime.v1.ListLocalAppPermissionRequestsRequest
-	(*ListLocalAppPermissionRequestsResponse)(nil),       // 46: nimi.runtime.v1.ListLocalAppPermissionRequestsResponse
-	(*SubscribeLocalAppPermissionRequestsRequest)(nil),   // 47: nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest
-	(*LocalAppPermissionInboxEvent)(nil),                 // 48: nimi.runtime.v1.LocalAppPermissionInboxEvent
-	(*LocalAppPermissionSelectedAgent)(nil),              // 49: nimi.runtime.v1.LocalAppPermissionSelectedAgent
-	(*LocalAppPermissionOwnerProjection)(nil),            // 50: nimi.runtime.v1.LocalAppPermissionOwnerProjection
-	(*GetLocalAppPermissionOwnerProjectionRequest)(nil),  // 51: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest
-	(*GetLocalAppPermissionOwnerProjectionResponse)(nil), // 52: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse
-	(*DecideLocalAppPermissionRequest)(nil),              // 53: nimi.runtime.v1.DecideLocalAppPermissionRequest
-	(*DecideLocalAppPermissionResponse)(nil),             // 54: nimi.runtime.v1.DecideLocalAppPermissionResponse
-	(*RevokeLocalAppPermissionRequest)(nil),              // 55: nimi.runtime.v1.RevokeLocalAppPermissionRequest
-	(*RevokeLocalAppPermissionResponse)(nil),             // 56: nimi.runtime.v1.RevokeLocalAppPermissionResponse
-	nil,                                                  // 57: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
-	(*timestamppb.Timestamp)(nil),                        // 58: google.protobuf.Timestamp
-	(ReasonCode)(0),                                      // 59: nimi.runtime.v1.ReasonCode
-	(*WorkspaceBindingAttachment)(nil),                   // 60: nimi.runtime.v1.WorkspaceBindingAttachment
+	(AccountSessionState)(0),                               // 0: nimi.runtime.v1.AccountSessionState
+	(AccountEventType)(0),                                  // 1: nimi.runtime.v1.AccountEventType
+	(AccountSessionDeliveryKind)(0),                        // 2: nimi.runtime.v1.AccountSessionDeliveryKind
+	(AccountReasonCode)(0),                                 // 3: nimi.runtime.v1.AccountReasonCode
+	(PresenceVerificationState)(0),                         // 4: nimi.runtime.v1.PresenceVerificationState
+	(PresenceVerificationMethod)(0),                        // 5: nimi.runtime.v1.PresenceVerificationMethod
+	(AccountCallerMode)(0),                                 // 6: nimi.runtime.v1.AccountCallerMode
+	(WorkspaceMembershipState)(0),                          // 7: nimi.runtime.v1.WorkspaceMembershipState
+	(WorkspaceBindingPurpose)(0),                           // 8: nimi.runtime.v1.WorkspaceBindingPurpose
+	(WorkspaceBindingState)(0),                             // 9: nimi.runtime.v1.WorkspaceBindingState
+	(LocalAppPermissionPosture)(0),                         // 10: nimi.runtime.v1.LocalAppPermissionPosture
+	(LocalAppPermissionOwnerPosture)(0),                    // 11: nimi.runtime.v1.LocalAppPermissionOwnerPosture
+	(*WorkspaceMembershipProjection)(nil),                  // 12: nimi.runtime.v1.WorkspaceMembershipProjection
+	(*AccountProjection)(nil),                              // 13: nimi.runtime.v1.AccountProjection
+	(*AccountSessionSnapshot)(nil),                         // 14: nimi.runtime.v1.AccountSessionSnapshot
+	(*AccountCaller)(nil),                                  // 15: nimi.runtime.v1.AccountCaller
+	(*WorkspaceBindingRelation)(nil),                       // 16: nimi.runtime.v1.WorkspaceBindingRelation
+	(*AccountSessionEvent)(nil),                            // 17: nimi.runtime.v1.AccountSessionEvent
+	(*GetAccountSessionStatusRequest)(nil),                 // 18: nimi.runtime.v1.GetAccountSessionStatusRequest
+	(*GetAccountSessionStatusResponse)(nil),                // 19: nimi.runtime.v1.GetAccountSessionStatusResponse
+	(*SubscribeAccountSessionEventsRequest)(nil),           // 20: nimi.runtime.v1.SubscribeAccountSessionEventsRequest
+	(*BeginLoginRequest)(nil),                              // 21: nimi.runtime.v1.BeginLoginRequest
+	(*BeginLoginResponse)(nil),                             // 22: nimi.runtime.v1.BeginLoginResponse
+	(*CompleteLoginRequest)(nil),                           // 23: nimi.runtime.v1.CompleteLoginRequest
+	(*CompleteLoginResponse)(nil),                          // 24: nimi.runtime.v1.CompleteLoginResponse
+	(*RequestPresenceVerificationRequest)(nil),             // 25: nimi.runtime.v1.RequestPresenceVerificationRequest
+	(*RequestPresenceVerificationResponse)(nil),            // 26: nimi.runtime.v1.RequestPresenceVerificationResponse
+	(*InvokeRealmUnaryRequest)(nil),                        // 27: nimi.runtime.v1.InvokeRealmUnaryRequest
+	(*InvokeRealmUnaryResponse)(nil),                       // 28: nimi.runtime.v1.InvokeRealmUnaryResponse
+	(*LogoutRequest)(nil),                                  // 29: nimi.runtime.v1.LogoutRequest
+	(*LogoutResponse)(nil),                                 // 30: nimi.runtime.v1.LogoutResponse
+	(*SwitchAccountRequest)(nil),                           // 31: nimi.runtime.v1.SwitchAccountRequest
+	(*SwitchAccountResponse)(nil),                          // 32: nimi.runtime.v1.SwitchAccountResponse
+	(*IssueWorkspaceBindingRequest)(nil),                   // 33: nimi.runtime.v1.IssueWorkspaceBindingRequest
+	(*IssueWorkspaceBindingResponse)(nil),                  // 34: nimi.runtime.v1.IssueWorkspaceBindingResponse
+	(*RevokeWorkspaceBindingRequest)(nil),                  // 35: nimi.runtime.v1.RevokeWorkspaceBindingRequest
+	(*RevokeWorkspaceBindingResponse)(nil),                 // 36: nimi.runtime.v1.RevokeWorkspaceBindingResponse
+	(*LocalAppPermissionProjection)(nil),                   // 37: nimi.runtime.v1.LocalAppPermissionProjection
+	(*LocalAppPermissionAgentHandle)(nil),                  // 38: nimi.runtime.v1.LocalAppPermissionAgentHandle
+	(*GetLocalAppPermissionStatusRequest)(nil),             // 39: nimi.runtime.v1.GetLocalAppPermissionStatusRequest
+	(*GetLocalAppPermissionStatusResponse)(nil),            // 40: nimi.runtime.v1.GetLocalAppPermissionStatusResponse
+	(*RequestLocalAppPermissionRequest)(nil),               // 41: nimi.runtime.v1.RequestLocalAppPermissionRequest
+	(*RequestLocalAppPermissionResponse)(nil),              // 42: nimi.runtime.v1.RequestLocalAppPermissionResponse
+	(*LocalAppPermissionPendingRequest)(nil),               // 43: nimi.runtime.v1.LocalAppPermissionPendingRequest
+	(*ListLocalAppPermissionRequestsRequest)(nil),          // 44: nimi.runtime.v1.ListLocalAppPermissionRequestsRequest
+	(*ListLocalAppPermissionRequestsResponse)(nil),         // 45: nimi.runtime.v1.ListLocalAppPermissionRequestsResponse
+	(*SubscribeLocalAppPermissionRequestsRequest)(nil),     // 46: nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest
+	(*LocalAppPermissionInboxEvent)(nil),                   // 47: nimi.runtime.v1.LocalAppPermissionInboxEvent
+	(*LocalAppPermissionCoveredAgent)(nil),                 // 48: nimi.runtime.v1.LocalAppPermissionCoveredAgent
+	(*LocalAppPermissionOwnerProjection)(nil),              // 49: nimi.runtime.v1.LocalAppPermissionOwnerProjection
+	(*GetLocalAppPermissionOwnerProjectionRequest)(nil),    // 50: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest
+	(*GetLocalAppPermissionOwnerProjectionResponse)(nil),   // 51: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse
+	(*ListLocalAppPermissionOwnerProjectionsRequest)(nil),  // 52: nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsRequest
+	(*ListLocalAppPermissionOwnerProjectionsResponse)(nil), // 53: nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsResponse
+	(*DecideLocalAppPermissionRequest)(nil),                // 54: nimi.runtime.v1.DecideLocalAppPermissionRequest
+	(*DecideLocalAppPermissionResponse)(nil),               // 55: nimi.runtime.v1.DecideLocalAppPermissionResponse
+	(*RevokeLocalAppPermissionRequest)(nil),                // 56: nimi.runtime.v1.RevokeLocalAppPermissionRequest
+	(*RevokeLocalAppPermissionResponse)(nil),               // 57: nimi.runtime.v1.RevokeLocalAppPermissionResponse
+	nil,                                                    // 58: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
+	(*timestamppb.Timestamp)(nil),                          // 59: google.protobuf.Timestamp
+	(ReasonCode)(0),                                        // 60: nimi.runtime.v1.ReasonCode
+	(*WorkspaceBindingAttachment)(nil),                     // 61: nimi.runtime.v1.WorkspaceBindingAttachment
 }
 var file_runtime_v1_account_proto_depIdxs = []int32{
 	7,   // 0: nimi.runtime.v1.WorkspaceMembershipProjection.membership_state:type_name -> nimi.runtime.v1.WorkspaceMembershipState
-	58,  // 1: nimi.runtime.v1.WorkspaceMembershipProjection.observed_at:type_name -> google.protobuf.Timestamp
-	57,  // 2: nimi.runtime.v1.WorkspaceMembershipProjection.display_metadata:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
+	59,  // 1: nimi.runtime.v1.WorkspaceMembershipProjection.observed_at:type_name -> google.protobuf.Timestamp
+	58,  // 2: nimi.runtime.v1.WorkspaceMembershipProjection.display_metadata:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
 	12,  // 3: nimi.runtime.v1.AccountProjection.workspace_memberships:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection
 	0,   // 4: nimi.runtime.v1.AccountSessionSnapshot.state:type_name -> nimi.runtime.v1.AccountSessionState
-	59,  // 5: nimi.runtime.v1.AccountSessionSnapshot.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 5: nimi.runtime.v1.AccountSessionSnapshot.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 6: nimi.runtime.v1.AccountSessionSnapshot.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	13,  // 7: nimi.runtime.v1.AccountSessionSnapshot.account_projection:type_name -> nimi.runtime.v1.AccountProjection
 	6,   // 8: nimi.runtime.v1.AccountCaller.mode:type_name -> nimi.runtime.v1.AccountCallerMode
 	8,   // 9: nimi.runtime.v1.WorkspaceBindingRelation.purpose:type_name -> nimi.runtime.v1.WorkspaceBindingPurpose
-	58,  // 10: nimi.runtime.v1.WorkspaceBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
-	58,  // 11: nimi.runtime.v1.WorkspaceBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
+	59,  // 10: nimi.runtime.v1.WorkspaceBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
+	59,  // 11: nimi.runtime.v1.WorkspaceBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
 	9,   // 12: nimi.runtime.v1.WorkspaceBindingRelation.state:type_name -> nimi.runtime.v1.WorkspaceBindingState
-	59,  // 13: nimi.runtime.v1.WorkspaceBindingRelation.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	58,  // 14: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
+	60,  // 13: nimi.runtime.v1.WorkspaceBindingRelation.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 14: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
 	1,   // 15: nimi.runtime.v1.AccountSessionEvent.event_type:type_name -> nimi.runtime.v1.AccountEventType
 	2,   // 16: nimi.runtime.v1.AccountSessionEvent.delivery_kind:type_name -> nimi.runtime.v1.AccountSessionDeliveryKind
 	14,  // 17: nimi.runtime.v1.AccountSessionEvent.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
 	15,  // 18: nimi.runtime.v1.GetAccountSessionStatusRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	59,  // 19: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 19: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 20: nimi.runtime.v1.GetAccountSessionStatusResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	14,  // 21: nimi.runtime.v1.GetAccountSessionStatusResponse.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
 	15,  // 22: nimi.runtime.v1.SubscribeAccountSessionEventsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	15,  // 23: nimi.runtime.v1.BeginLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	58,  // 24: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
-	59,  // 25: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 24: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	60,  // 25: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 26: nimi.runtime.v1.BeginLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	15,  // 27: nimi.runtime.v1.CompleteLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,   // 28: nimi.runtime.v1.CompleteLoginResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
 	13,  // 29: nimi.runtime.v1.CompleteLoginResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	59,  // 30: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 30: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 31: nimi.runtime.v1.CompleteLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	15,  // 32: nimi.runtime.v1.RequestPresenceVerificationRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	4,   // 33: nimi.runtime.v1.RequestPresenceVerificationResponse.state:type_name -> nimi.runtime.v1.PresenceVerificationState
 	5,   // 34: nimi.runtime.v1.RequestPresenceVerificationResponse.method:type_name -> nimi.runtime.v1.PresenceVerificationMethod
-	58,  // 35: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
+	59,  // 35: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
 	13,  // 36: nimi.runtime.v1.RequestPresenceVerificationResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	59,  // 37: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 37: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 38: nimi.runtime.v1.RequestPresenceVerificationResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	15,  // 39: nimi.runtime.v1.InvokeRealmUnaryRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	59,  // 40: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 40: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 41: nimi.runtime.v1.InvokeRealmUnaryResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	15,  // 42: nimi.runtime.v1.LogoutRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,   // 43: nimi.runtime.v1.LogoutResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	59,  // 44: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 44: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 45: nimi.runtime.v1.LogoutResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	15,  // 46: nimi.runtime.v1.SwitchAccountRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,   // 47: nimi.runtime.v1.SwitchAccountResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
 	13,  // 48: nimi.runtime.v1.SwitchAccountResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	59,  // 49: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 49: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 50: nimi.runtime.v1.SwitchAccountResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	15,  // 51: nimi.runtime.v1.IssueWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	60,  // 52: nimi.runtime.v1.IssueWorkspaceBindingResponse.attachment:type_name -> nimi.runtime.v1.WorkspaceBindingAttachment
+	61,  // 52: nimi.runtime.v1.IssueWorkspaceBindingResponse.attachment:type_name -> nimi.runtime.v1.WorkspaceBindingAttachment
 	16,  // 53: nimi.runtime.v1.IssueWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
-	59,  // 54: nimi.runtime.v1.IssueWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 54: nimi.runtime.v1.IssueWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 55: nimi.runtime.v1.IssueWorkspaceBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	15,  // 56: nimi.runtime.v1.RevokeWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	59,  // 57: nimi.runtime.v1.RevokeWorkspaceBindingRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 57: nimi.runtime.v1.RevokeWorkspaceBindingRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	16,  // 58: nimi.runtime.v1.RevokeWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
-	59,  // 59: nimi.runtime.v1.RevokeWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60,  // 59: nimi.runtime.v1.RevokeWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 60: nimi.runtime.v1.RevokeWorkspaceBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	10,  // 61: nimi.runtime.v1.LocalAppPermissionProjection.posture:type_name -> nimi.runtime.v1.LocalAppPermissionPosture
-	59,  // 62: nimi.runtime.v1.LocalAppPermissionProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	37,  // 63: nimi.runtime.v1.GetLocalAppPermissionStatusResponse.projection:type_name -> nimi.runtime.v1.LocalAppPermissionProjection
-	37,  // 64: nimi.runtime.v1.RequestLocalAppPermissionResponse.projection:type_name -> nimi.runtime.v1.LocalAppPermissionProjection
-	15,  // 65: nimi.runtime.v1.IssueLocalAppAgentSelectorHandleRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	59,  // 66: nimi.runtime.v1.IssueLocalAppAgentSelectorHandleResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	58,  // 67: nimi.runtime.v1.LocalAppPermissionPendingRequest.requested_at:type_name -> google.protobuf.Timestamp
-	15,  // 68: nimi.runtime.v1.ListLocalAppPermissionRequestsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	44,  // 69: nimi.runtime.v1.ListLocalAppPermissionRequestsResponse.requests:type_name -> nimi.runtime.v1.LocalAppPermissionPendingRequest
-	59,  // 70: nimi.runtime.v1.ListLocalAppPermissionRequestsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15,  // 71: nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	58,  // 72: nimi.runtime.v1.LocalAppPermissionInboxEvent.emitted_at:type_name -> google.protobuf.Timestamp
-	44,  // 73: nimi.runtime.v1.LocalAppPermissionInboxEvent.requests:type_name -> nimi.runtime.v1.LocalAppPermissionPendingRequest
-	59,  // 74: nimi.runtime.v1.LocalAppPermissionInboxEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	11,  // 75: nimi.runtime.v1.LocalAppPermissionOwnerProjection.posture:type_name -> nimi.runtime.v1.LocalAppPermissionOwnerPosture
-	49,  // 76: nimi.runtime.v1.LocalAppPermissionOwnerProjection.selected_agents:type_name -> nimi.runtime.v1.LocalAppPermissionSelectedAgent
-	58,  // 77: nimi.runtime.v1.LocalAppPermissionOwnerProjection.requested_at:type_name -> google.protobuf.Timestamp
-	58,  // 78: nimi.runtime.v1.LocalAppPermissionOwnerProjection.decided_at:type_name -> google.protobuf.Timestamp
-	15,  // 79: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	50,  // 80: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse.permissions:type_name -> nimi.runtime.v1.LocalAppPermissionOwnerProjection
-	59,  // 81: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15,  // 82: nimi.runtime.v1.DecideLocalAppPermissionRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	10,  // 83: nimi.runtime.v1.DecideLocalAppPermissionResponse.posture:type_name -> nimi.runtime.v1.LocalAppPermissionPosture
-	59,  // 84: nimi.runtime.v1.DecideLocalAppPermissionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15,  // 85: nimi.runtime.v1.RevokeLocalAppPermissionRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	10,  // 86: nimi.runtime.v1.RevokeLocalAppPermissionResponse.posture:type_name -> nimi.runtime.v1.LocalAppPermissionPosture
-	59,  // 87: nimi.runtime.v1.RevokeLocalAppPermissionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	18,  // 88: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
-	20,  // 89: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
-	21,  // 90: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
-	23,  // 91: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
-	25,  // 92: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
-	27,  // 93: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
-	29,  // 94: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
-	31,  // 95: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
-	33,  // 96: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:input_type -> nimi.runtime.v1.IssueWorkspaceBindingRequest
-	35,  // 97: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:input_type -> nimi.runtime.v1.RevokeWorkspaceBindingRequest
-	38,  // 98: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionStatus:input_type -> nimi.runtime.v1.GetLocalAppPermissionStatusRequest
-	40,  // 99: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppPermission:input_type -> nimi.runtime.v1.RequestLocalAppPermissionRequest
-	42,  // 100: nimi.runtime.v1.RuntimeAccountService.IssueLocalAppAgentSelectorHandle:input_type -> nimi.runtime.v1.IssueLocalAppAgentSelectorHandleRequest
-	45,  // 101: nimi.runtime.v1.RuntimeAccountService.ListLocalAppPermissionRequests:input_type -> nimi.runtime.v1.ListLocalAppPermissionRequestsRequest
-	47,  // 102: nimi.runtime.v1.RuntimeAccountService.SubscribeLocalAppPermissionRequests:input_type -> nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest
-	51,  // 103: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionOwnerProjection:input_type -> nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest
-	53,  // 104: nimi.runtime.v1.RuntimeAccountService.DecideLocalAppPermission:input_type -> nimi.runtime.v1.DecideLocalAppPermissionRequest
-	55,  // 105: nimi.runtime.v1.RuntimeAccountService.RevokeLocalAppPermission:input_type -> nimi.runtime.v1.RevokeLocalAppPermissionRequest
-	19,  // 106: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
-	17,  // 107: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
-	22,  // 108: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
-	24,  // 109: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
-	26,  // 110: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
-	28,  // 111: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
-	30,  // 112: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
-	32,  // 113: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
-	34,  // 114: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:output_type -> nimi.runtime.v1.IssueWorkspaceBindingResponse
-	36,  // 115: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:output_type -> nimi.runtime.v1.RevokeWorkspaceBindingResponse
-	39,  // 116: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionStatus:output_type -> nimi.runtime.v1.GetLocalAppPermissionStatusResponse
-	41,  // 117: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppPermission:output_type -> nimi.runtime.v1.RequestLocalAppPermissionResponse
-	43,  // 118: nimi.runtime.v1.RuntimeAccountService.IssueLocalAppAgentSelectorHandle:output_type -> nimi.runtime.v1.IssueLocalAppAgentSelectorHandleResponse
-	46,  // 119: nimi.runtime.v1.RuntimeAccountService.ListLocalAppPermissionRequests:output_type -> nimi.runtime.v1.ListLocalAppPermissionRequestsResponse
-	48,  // 120: nimi.runtime.v1.RuntimeAccountService.SubscribeLocalAppPermissionRequests:output_type -> nimi.runtime.v1.LocalAppPermissionInboxEvent
-	52,  // 121: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionOwnerProjection:output_type -> nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse
-	54,  // 122: nimi.runtime.v1.RuntimeAccountService.DecideLocalAppPermission:output_type -> nimi.runtime.v1.DecideLocalAppPermissionResponse
-	56,  // 123: nimi.runtime.v1.RuntimeAccountService.RevokeLocalAppPermission:output_type -> nimi.runtime.v1.RevokeLocalAppPermissionResponse
-	106, // [106:124] is the sub-list for method output_type
-	88,  // [88:106] is the sub-list for method input_type
-	88,  // [88:88] is the sub-list for extension type_name
-	88,  // [88:88] is the sub-list for extension extendee
-	0,   // [0:88] is the sub-list for field type_name
+	60,  // 62: nimi.runtime.v1.LocalAppPermissionProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	38,  // 63: nimi.runtime.v1.LocalAppPermissionProjection.agents:type_name -> nimi.runtime.v1.LocalAppPermissionAgentHandle
+	37,  // 64: nimi.runtime.v1.GetLocalAppPermissionStatusResponse.projection:type_name -> nimi.runtime.v1.LocalAppPermissionProjection
+	37,  // 65: nimi.runtime.v1.RequestLocalAppPermissionResponse.projection:type_name -> nimi.runtime.v1.LocalAppPermissionProjection
+	59,  // 66: nimi.runtime.v1.LocalAppPermissionPendingRequest.requested_at:type_name -> google.protobuf.Timestamp
+	15,  // 67: nimi.runtime.v1.ListLocalAppPermissionRequestsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	43,  // 68: nimi.runtime.v1.ListLocalAppPermissionRequestsResponse.requests:type_name -> nimi.runtime.v1.LocalAppPermissionPendingRequest
+	60,  // 69: nimi.runtime.v1.ListLocalAppPermissionRequestsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15,  // 70: nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	59,  // 71: nimi.runtime.v1.LocalAppPermissionInboxEvent.emitted_at:type_name -> google.protobuf.Timestamp
+	43,  // 72: nimi.runtime.v1.LocalAppPermissionInboxEvent.requests:type_name -> nimi.runtime.v1.LocalAppPermissionPendingRequest
+	60,  // 73: nimi.runtime.v1.LocalAppPermissionInboxEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	11,  // 74: nimi.runtime.v1.LocalAppPermissionOwnerProjection.posture:type_name -> nimi.runtime.v1.LocalAppPermissionOwnerPosture
+	59,  // 75: nimi.runtime.v1.LocalAppPermissionOwnerProjection.requested_at:type_name -> google.protobuf.Timestamp
+	59,  // 76: nimi.runtime.v1.LocalAppPermissionOwnerProjection.decided_at:type_name -> google.protobuf.Timestamp
+	48,  // 77: nimi.runtime.v1.LocalAppPermissionOwnerProjection.covered_agents:type_name -> nimi.runtime.v1.LocalAppPermissionCoveredAgent
+	15,  // 78: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	49,  // 79: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse.permissions:type_name -> nimi.runtime.v1.LocalAppPermissionOwnerProjection
+	60,  // 80: nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15,  // 81: nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	49,  // 82: nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsResponse.permissions:type_name -> nimi.runtime.v1.LocalAppPermissionOwnerProjection
+	60,  // 83: nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15,  // 84: nimi.runtime.v1.DecideLocalAppPermissionRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	10,  // 85: nimi.runtime.v1.DecideLocalAppPermissionResponse.posture:type_name -> nimi.runtime.v1.LocalAppPermissionPosture
+	60,  // 86: nimi.runtime.v1.DecideLocalAppPermissionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15,  // 87: nimi.runtime.v1.RevokeLocalAppPermissionRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	10,  // 88: nimi.runtime.v1.RevokeLocalAppPermissionResponse.posture:type_name -> nimi.runtime.v1.LocalAppPermissionPosture
+	60,  // 89: nimi.runtime.v1.RevokeLocalAppPermissionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18,  // 90: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
+	20,  // 91: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
+	21,  // 92: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
+	23,  // 93: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
+	25,  // 94: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
+	27,  // 95: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
+	29,  // 96: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
+	31,  // 97: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
+	33,  // 98: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:input_type -> nimi.runtime.v1.IssueWorkspaceBindingRequest
+	35,  // 99: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:input_type -> nimi.runtime.v1.RevokeWorkspaceBindingRequest
+	39,  // 100: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionStatus:input_type -> nimi.runtime.v1.GetLocalAppPermissionStatusRequest
+	41,  // 101: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppPermission:input_type -> nimi.runtime.v1.RequestLocalAppPermissionRequest
+	44,  // 102: nimi.runtime.v1.RuntimeAccountService.ListLocalAppPermissionRequests:input_type -> nimi.runtime.v1.ListLocalAppPermissionRequestsRequest
+	46,  // 103: nimi.runtime.v1.RuntimeAccountService.SubscribeLocalAppPermissionRequests:input_type -> nimi.runtime.v1.SubscribeLocalAppPermissionRequestsRequest
+	50,  // 104: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionOwnerProjection:input_type -> nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionRequest
+	52,  // 105: nimi.runtime.v1.RuntimeAccountService.ListLocalAppPermissionOwnerProjections:input_type -> nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsRequest
+	54,  // 106: nimi.runtime.v1.RuntimeAccountService.DecideLocalAppPermission:input_type -> nimi.runtime.v1.DecideLocalAppPermissionRequest
+	56,  // 107: nimi.runtime.v1.RuntimeAccountService.RevokeLocalAppPermission:input_type -> nimi.runtime.v1.RevokeLocalAppPermissionRequest
+	19,  // 108: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
+	17,  // 109: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
+	22,  // 110: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
+	24,  // 111: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
+	26,  // 112: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
+	28,  // 113: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
+	30,  // 114: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
+	32,  // 115: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
+	34,  // 116: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:output_type -> nimi.runtime.v1.IssueWorkspaceBindingResponse
+	36,  // 117: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:output_type -> nimi.runtime.v1.RevokeWorkspaceBindingResponse
+	40,  // 118: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionStatus:output_type -> nimi.runtime.v1.GetLocalAppPermissionStatusResponse
+	42,  // 119: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppPermission:output_type -> nimi.runtime.v1.RequestLocalAppPermissionResponse
+	45,  // 120: nimi.runtime.v1.RuntimeAccountService.ListLocalAppPermissionRequests:output_type -> nimi.runtime.v1.ListLocalAppPermissionRequestsResponse
+	47,  // 121: nimi.runtime.v1.RuntimeAccountService.SubscribeLocalAppPermissionRequests:output_type -> nimi.runtime.v1.LocalAppPermissionInboxEvent
+	51,  // 122: nimi.runtime.v1.RuntimeAccountService.GetLocalAppPermissionOwnerProjection:output_type -> nimi.runtime.v1.GetLocalAppPermissionOwnerProjectionResponse
+	53,  // 123: nimi.runtime.v1.RuntimeAccountService.ListLocalAppPermissionOwnerProjections:output_type -> nimi.runtime.v1.ListLocalAppPermissionOwnerProjectionsResponse
+	55,  // 124: nimi.runtime.v1.RuntimeAccountService.DecideLocalAppPermission:output_type -> nimi.runtime.v1.DecideLocalAppPermissionResponse
+	57,  // 125: nimi.runtime.v1.RuntimeAccountService.RevokeLocalAppPermission:output_type -> nimi.runtime.v1.RevokeLocalAppPermissionResponse
+	108, // [108:126] is the sub-list for method output_type
+	90,  // [90:108] is the sub-list for method input_type
+	90,  // [90:90] is the sub-list for extension type_name
+	90,  // [90:90] is the sub-list for extension extendee
+	0,   // [0:90] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_account_proto_init() }
@@ -4789,7 +4809,7 @@ func file_runtime_v1_account_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_account_proto_rawDesc), len(file_runtime_v1_account_proto_rawDesc)),
 			NumEnums:      12,
-			NumMessages:   46,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -3,8 +3,8 @@ import test from 'node:test';
 
 import { createNimiClient } from '../../root-client';
 import type {
+  NimiLocalAppAgentHandle,
   NimiLocalAppClientInput,
-  NimiSelectedAgentHandle,
 } from './local-app-runtime-platform';
 
 function createLocalAppClient(input: NimiLocalAppClientInput) {
@@ -22,12 +22,14 @@ function standardShell(overrides: Record<string, unknown> = {}) {
         state: 'unavailable',
         canRequest: false,
         reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+        agents: [],
       }),
       request: async ({ permissionId }: { permissionId: string }) => ({
         permissionId,
         state: 'unavailable',
         canRequest: false,
         reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+        agents: [],
       }),
     },
     storage: {
@@ -63,7 +65,7 @@ test('local-app client exposes only admitted typed namespaces', async () => {
   assert.equal('artifacts' in client, false);
 });
 
-test('reserved product permission status is visible without leaking internal selectors', async () => {
+test('admitted SDK permission remains fail-closed while Runtime publication is held', async () => {
   const calls: unknown[] = [];
   const client = createLocalAppClient({
     standardShell: standardShell({
@@ -75,9 +77,19 @@ test('reserved product permission status is visible without leaking internal sel
             state: 'unavailable',
             canRequest: false,
             reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+            agents: [],
           };
         },
-        request: async () => { throw new Error('reserved permission must not reach transport'); },
+        request: async (input: unknown) => {
+          calls.push(input);
+          return {
+            permissionId: 'agents.interact',
+            state: 'unavailable',
+            canRequest: false,
+            reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+            agents: [],
+          };
+        },
       },
     }),
   });
@@ -85,15 +97,107 @@ test('reserved product permission status is visible without leaking internal sel
     permissionId: 'agents.interact',
     posture: 'unavailable',
     canRequest: false,
+    agents: [],
     detail: 'LOCAL_APP_OPERATION_UNAVAILABLE',
   });
   assert.deepEqual(calls, [{ permissionId: 'agents.interact' }]);
-  await assert.rejects(
-    () => client.permissions.request({ permissionId: 'agents.interact', reason: 'Continue the conversation' }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_NOT_ADMITTED',
-  );
+  assert.equal((await client.permissions.request({
+    permissionId: 'agents.interact',
+    reason: 'Continue the conversation',
+  })).posture, 'unavailable');
   assert.equal(JSON.stringify(calls).includes('operationId'), false);
   assert.equal(JSON.stringify(calls).includes('resourceRef'), false);
+});
+
+test('granted account permission projects only branded opaque Agent handles', async () => {
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      permission: {
+        status: async () => ({
+          permissionId: 'agents.interact',
+          state: 'granted',
+          canRequest: false,
+          reasonCode: 'ACTION_EXECUTED',
+          agents: [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent' }],
+        }),
+        request: async () => ({}),
+      },
+    }),
+  });
+  assert.deepEqual(await client.permissions.status('agents.interact'), {
+    permissionId: 'agents.interact',
+    posture: 'granted',
+    canRequest: false,
+    agents: [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent' }],
+    detail: 'ACTION_EXECUTED',
+  });
+});
+
+test('granted account permission accepts zero current Agents', async () => {
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      permission: {
+        status: async () => ({
+          permissionId: 'agents.interact',
+          state: 'granted',
+          canRequest: false,
+          reasonCode: 'ACTION_EXECUTED',
+          agents: [],
+        }),
+        request: async () => ({}),
+      },
+    }),
+  });
+  assert.deepEqual((await client.permissions.status('agents.interact')).agents, []);
+});
+
+test('permission projection rejects duplicate, malformed, or non-granted Agent handles', async () => {
+  const invalidAgents = [
+    [
+      { agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent' },
+      { agentHandle: 'opaque-runtime-handle', displayName: 'Other Agent' },
+    ],
+    [{ agentHandle: ' opaque-runtime-handle', displayName: 'Owned Agent' }],
+    [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent', selectorHandle: 'legacy' }],
+  ];
+  for (const agents of invalidAgents) {
+    const client = createLocalAppClient({
+      standardShell: standardShell({
+        permission: {
+          status: async () => ({
+            permissionId: 'agents.interact',
+            state: 'granted',
+            canRequest: false,
+            reasonCode: 'ACTION_EXECUTED',
+            agents,
+          }),
+          request: async () => ({}),
+        },
+      }),
+    });
+    await assert.rejects(
+      () => client.permissions.status('agents.interact'),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+    );
+  }
+  const nonGranted = createLocalAppClient({
+    standardShell: standardShell({
+      permission: {
+        status: async () => ({
+          permissionId: 'agents.interact',
+          state: 'denied',
+          canRequest: true,
+          reasonCode: 'PERMISSION_DENIED',
+          agents: [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent' }],
+        }),
+        request: async () => ({}),
+      },
+    }),
+  });
+  await assert.rejects(
+    () => nonGranted.permissions.status('agents.interact'),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
 });
 
 test('permission ids and projections are closed to the public catalog', async () => {
@@ -107,7 +211,7 @@ test('permission ids and projections are closed to the public catalog', async ()
     standardShell: standardShell({
       permission: {
         status: async () => ({
-          permissionId: 'artifacts.open', state: 'unavailable', canRequest: false, reasonCode: 'unavailable',
+          permissionId: 'artifacts.open', state: 'unavailable', canRequest: false, reasonCode: 'unavailable', agents: [],
         }),
         request: async () => ({}),
       },
@@ -158,8 +262,8 @@ test('app-private storage rejects path escape and non-JSON values before transpo
   );
 });
 
-test('conversation namespace preserves opaque selectors and reserved typed failures', async () => {
-  const handle = 'lash_owner_issued' as NimiSelectedAgentHandle;
+test('conversation namespace preserves opaque Agent handles and reserved typed failures', async () => {
+  const handle = 'lash_runtime_materialized' as NimiLocalAppAgentHandle;
   const calls: unknown[] = [];
   const unavailable = async (input: unknown): Promise<never> => {
     calls.push(input);
@@ -179,15 +283,15 @@ test('conversation namespace preserves opaque selectors and reserved typed failu
     }),
   });
   const operations = [
-    () => client.conversation.open({ selectedAgentHandle: handle, disposition: 'create-new' }),
+    () => client.conversation.open({ agentHandle: handle, disposition: 'create-new' }),
     () => client.conversation.send({
-      selectedAgentHandle: handle,
+      agentHandle: handle,
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
       text: 'hello',
     }),
-    () => client.conversation.subscribe({ selectedAgentHandle: handle, conversationAnchorId: 'anchor-1' }),
-    () => client.conversation.snapshot({ selectedAgentHandle: handle, conversationAnchorId: 'anchor-1' }),
+    () => client.conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'anchor-1' }),
+    () => client.conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor-1' }),
   ];
   for (const operation of operations) {
     await assert.rejects(
@@ -200,7 +304,7 @@ test('conversation namespace preserves opaque selectors and reserved typed failu
 });
 
 test('conversation subscription validates events and cancels exactly once', async () => {
-  const handle = 'lash_owner_issued' as NimiSelectedAgentHandle;
+  const handle = 'lash_runtime_materialized' as NimiLocalAppAgentHandle;
   let cancelCount = 0;
   const client = createLocalAppClient({
     standardShell: standardShell({
@@ -228,11 +332,11 @@ test('conversation subscription validates events and cancels exactly once', asyn
       },
     }),
   });
-  assert.deepEqual(await client.conversation.open({ selectedAgentHandle: handle, disposition: 'create-new' }), {
+  assert.deepEqual(await client.conversation.open({ agentHandle: handle, disposition: 'create-new' }), {
     conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null,
   });
   const subscription = await client.conversation.subscribe({
-    selectedAgentHandle: handle,
+    agentHandle: handle,
     conversationAnchorId: 'anchor-1',
   });
   const events = [];

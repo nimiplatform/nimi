@@ -1,9 +1,12 @@
 package app
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 )
 
@@ -17,12 +20,12 @@ func TestNormalizeLocalDevelopmentPermissionRequestsAcceptsZeroPermissionApp(t *
 	}
 }
 
-func TestNormalizeLocalDevelopmentPermissionRequestsRejectsReservedAndUnknownIDs(t *testing.T) {
+func TestNormalizeLocalDevelopmentPermissionRequestsRejectsReservedAndInvalidIDs(t *testing.T) {
 	for _, test := range []struct {
 		name    string
 		request localAppManifestPermissionRequest
 	}{
-		{name: "reserved", request: localAppManifestPermissionRequest{PermissionID: "agents.interact", Reason: "Talk with an Agent selected by me"}},
+		{name: "reserved", request: localAppManifestPermissionRequest{PermissionID: "artifacts.open", Reason: "Open an artifact"}},
 		{name: "unknown", request: localAppManifestPermissionRequest{PermissionID: "runtime.agent.turn.write", Reason: "Internal operation is not a permission"}},
 		{name: "whitespace", request: localAppManifestPermissionRequest{PermissionID: " agents.interact", Reason: "Not canonical"}},
 		{name: "missing reason", request: localAppManifestPermissionRequest{PermissionID: "agents.interact"}},
@@ -33,6 +36,41 @@ func TestNormalizeLocalDevelopmentPermissionRequestsRejectsReservedAndUnknownIDs
 				t.Fatal("non-admitted permission request was accepted")
 			}
 		})
+	}
+}
+
+func TestNormalizeLocalDevelopmentPermissionRequestsAcceptsPublishedAgentsInteract(t *testing.T) {
+	request := localAppManifestPermissionRequest{PermissionID: "agents.interact", Reason: "Talk with selected Agents"}
+	permissions, err := normalizeLocalDevelopmentPermissionRequests([]localAppManifestPermissionRequest{request}, nil)
+	if err != nil || len(permissions) != 1 || permissions[0].PermissionID != request.PermissionID {
+		t.Fatalf("published permission request = (%+v, %v)", permissions, err)
+	}
+}
+
+func TestResolveLocalDevelopmentProjectAcceptsPublishedManifestPermission(t *testing.T) {
+	root := t.TempDir()
+	manifest := []byte(`app_id: nimi.permission-test
+display_name: Permission Test
+permissions:
+  - id: agents.interact
+    reason: Talk with selected Agents
+`)
+	if err := os.WriteFile(filepath.Join(root, "nimi.app.yaml"), manifest, 0o600); err != nil {
+		t.Fatalf("write local app manifest: %v", err)
+	}
+
+	project, err := resolveLocalDevelopmentProject(
+		root,
+		"nimi.permission-test",
+		runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+		"account-a",
+		1,
+	)
+	if err != nil {
+		t.Fatalf("resolve admitted manifest permission: %v", err)
+	}
+	if len(project.PermissionRequirements) != 1 || project.PermissionRequirements[0].PermissionID != "agents.interact" {
+		t.Fatalf("resolved permission requirements = %+v", project.PermissionRequirements)
 	}
 }
 

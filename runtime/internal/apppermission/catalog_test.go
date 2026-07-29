@@ -8,14 +8,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestPublicPermissionCatalogIsClosedAndReservedUntilCompleteAdmission(t *testing.T) {
-	known := []string{
-		"agents.interact", "artifacts.open", "account.profile.read", "memory.read",
-		"memory.write", "knowledge.read", "knowledge.write", "notifications.send",
-		"notifications.receive", "files.open", "files.save", "realm.library.read",
-		"realm.library.manage", "realm.publish", "ai.background", "shared_resources.open",
+func TestPublicPermissionCatalogIsClosedWithOnlyAgentsInteractAdmitted(t *testing.T) {
+	descriptor, ok := Lookup("agents.interact")
+	if !ok || descriptor.Admission != AdmissionAdmitted || !descriptor.ManifestAllowed || !IsAdmitted("agents.interact") {
+		t.Fatalf("agents.interact publication = %+v, known=%v", descriptor, ok)
 	}
-	for _, id := range known {
+	reserved := []string{
+		"artifacts.open", "account.profile.read", "memory.read", "memory.write",
+		"knowledge.read", "knowledge.write", "notifications.send", "notifications.receive",
+		"files.open", "files.save", "realm.library.read", "realm.library.manage",
+		"realm.publish", "ai.background", "shared_resources.open",
+	}
+	for _, id := range reserved {
 		descriptor, ok := Lookup(id)
 		if !ok || descriptor.ID != id || descriptor.Admission != AdmissionReserved || IsAdmitted(id) {
 			t.Fatalf("permission %q has unexpected descriptor: %+v, known=%v", id, descriptor, ok)
@@ -28,7 +32,7 @@ func TestPublicPermissionCatalogIsClosedAndReservedUntilCompleteAdmission(t *tes
 	}
 }
 
-func TestProtectedOperationsMapToProductPermissionsWithoutAdmittingThem(t *testing.T) {
+func TestProtectedOperationsMapToTheirPublishedProductPermission(t *testing.T) {
 	operations := map[string]string{
 		"artifacts.read_runtime_bytes":              "artifacts.open",
 		"runtime_agent.conversation.open":           "agents.interact",
@@ -38,7 +42,11 @@ func TestProtectedOperationsMapToProductPermissionsWithoutAdmittingThem(t *testi
 	}
 	for operationID, permissionID := range operations {
 		descriptor, ok := ForOperation(operationID)
-		if !ok || descriptor.ID != permissionID || descriptor.Admission != AdmissionReserved {
+		expectedAdmission := AdmissionReserved
+		if permissionID == "agents.interact" {
+			expectedAdmission = AdmissionAdmitted
+		}
+		if !ok || descriptor.ID != permissionID || descriptor.Admission != expectedAdmission {
 			t.Fatalf("operation %q mapping = %+v, known=%v", operationID, descriptor, ok)
 		}
 	}
@@ -57,7 +65,7 @@ type permissionCatalogFile struct {
 	} `yaml:"public_permissions"`
 }
 
-func TestRuntimeCatalogMatchesProductCatalogWithExplicitAtomicPublicationHold(t *testing.T) {
+func TestRuntimeCatalogMatchesPublishedProductCatalog(t *testing.T) {
 	path := filepath.Clean(filepath.Join("..", "..", "..", "config", "platform-nimi-app-permission-catalog.yaml"))
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -79,12 +87,6 @@ func TestRuntimeCatalogMatchesProductCatalogWithExplicitAtomicPublicationHold(t 
 		descriptor, ok := Lookup(row.PermissionID)
 		if !ok || descriptor.ManifestAllowed != row.ManifestAllowed {
 			t.Fatalf("catalog row drift for %q: Runtime=%+v config manifest_allowed=%v", row.PermissionID, descriptor, row.ManifestAllowed)
-		}
-		if row.PermissionID == "agents.interact" {
-			if row.Admission != string(AdmissionAdmitted) || descriptor.Admission != AdmissionReserved {
-				t.Fatalf("agents.interact must remain on the explicit W3-W5 atomic publication hold: Runtime=%s config=%s", descriptor.Admission, row.Admission)
-			}
-			continue
 		}
 		if descriptor.Admission != Admission(row.Admission) {
 			t.Fatalf("admission drift for %q: Runtime=%s config=%s", row.PermissionID, descriptor.Admission, row.Admission)

@@ -49,11 +49,11 @@ type Kernel struct {
 	now    func() time.Time
 	mu     sync.Mutex
 
-	principals  *PrincipalStore
-	records     *RecordStore
-	permissions *PermissionGrantStore
-	selectors   *AgentSelectorHandleStore
-	keys        *KeyDeriver
+	principals   *PrincipalStore
+	records      *RecordStore
+	permissions  *PermissionGrantStore
+	agentHandles *AgentHandleStore
+	keys         *KeyDeriver
 }
 
 func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocalOSUserIdentity, options Options) (*Kernel, error) {
@@ -96,7 +96,7 @@ func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	kernel.principals = &PrincipalStore{kernel: kernel}
 	kernel.records = &RecordStore{kernel: kernel}
 	kernel.permissions = &PermissionGrantStore{kernel: kernel}
-	kernel.selectors = &AgentSelectorHandleStore{kernel: kernel}
+	kernel.agentHandles = &AgentHandleStore{kernel: kernel}
 	kernel.keys = &KeyDeriver{kernel: kernel}
 	return kernel, nil
 }
@@ -136,11 +136,11 @@ func (kernel *Kernel) PermissionGrants() *PermissionGrantStore {
 	return kernel.permissions
 }
 
-func (kernel *Kernel) AgentSelectorHandles() *AgentSelectorHandleStore {
+func (kernel *Kernel) AgentHandles() *AgentHandleStore {
 	if kernel == nil {
 		return nil
 	}
-	return kernel.selectors
+	return kernel.agentHandles
 }
 
 func (kernel *Kernel) SecurityKeys() *KeyDeriver {
@@ -274,7 +274,7 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 			FOREIGN KEY(local_os_user_anchor, account_id, local_app_principal_id, permission_id, owner_selector_digest)
 				REFERENCES local_app_permission_grants(local_os_user_anchor, account_id, local_app_principal_id, permission_id, owner_selector_digest)
 		)`,
-		`CREATE TABLE IF NOT EXISTS local_app_agent_selector_handles (
+		`CREATE TABLE IF NOT EXISTS local_app_agent_handles (
 			handle TEXT PRIMARY KEY,
 			local_os_user_anchor TEXT NOT NULL,
 			account_id TEXT NOT NULL,
@@ -283,6 +283,7 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 			owner_selector_digest TEXT NOT NULL,
 			local_agent_id TEXT NOT NULL,
 			issued_unix_nano INTEGER NOT NULL,
+			UNIQUE(local_os_user_anchor, account_id, local_app_principal_id, permission_id, owner_selector_digest, local_agent_id),
 			FOREIGN KEY(local_os_user_anchor, local_app_principal_id) REFERENCES local_app_principals(local_os_user_anchor, local_app_principal_id)
 		)`,
 		`CREATE TRIGGER IF NOT EXISTS local_app_principal_identity_immutable
@@ -327,12 +328,12 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 		`CREATE TRIGGER IF NOT EXISTS local_app_permission_grant_history_immutable_delete
 		BEFORE DELETE ON local_app_permission_grant_history
 		BEGIN SELECT RAISE(ABORT, 'local app permission grant history is immutable'); END`,
-		`CREATE TRIGGER IF NOT EXISTS local_app_agent_selector_handle_immutable_update
-		BEFORE UPDATE ON local_app_agent_selector_handles
-		BEGIN SELECT RAISE(ABORT, 'local app Agent selector handle is immutable'); END`,
-		`CREATE TRIGGER IF NOT EXISTS local_app_agent_selector_handle_immutable_delete
-		BEFORE DELETE ON local_app_agent_selector_handles
-		BEGIN SELECT RAISE(ABORT, 'local app Agent selector handle is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS local_app_agent_handle_immutable_update
+		BEFORE UPDATE ON local_app_agent_handles
+		BEGIN SELECT RAISE(ABORT, 'local app Agent handle is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS local_app_agent_handle_immutable_delete
+		BEFORE DELETE ON local_app_agent_handles
+		BEGIN SELECT RAISE(ABORT, 'local app Agent handle is immutable'); END`,
 	}
 	for _, statement := range statements {
 		if _, err := kernel.db.ExecContext(ctx, statement); err != nil {

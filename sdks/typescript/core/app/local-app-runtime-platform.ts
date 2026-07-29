@@ -30,6 +30,8 @@ import {
   isAdmittedPermissionID,
   isKnownPermissionID,
   isPermissionPosture,
+  type NimiLocalAppAgent,
+  type NimiLocalAppAgentHandle,
   type PermissionID,
   type PermissionRequestInput,
   type PermissionStatus,
@@ -45,8 +47,9 @@ export type {
   NimiLocalAppConversationShellSubscription,
   NimiLocalAppConversationSnapshot,
   NimiLocalAppConversationSubscription,
-  NimiSelectedAgentHandle,
+  NimiLocalAppAgentHandle,
 } from './local-app-runtime-platform-conversation.js';
+export type { NimiLocalAppAgent } from './permission-types.js';
 export type {
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
@@ -216,7 +219,7 @@ function projectPermissionStatus(
   const record = asRecord(value);
   assertExactProjectionKeys(
     record,
-    ['state', 'permissionId', 'canRequest', 'reasonCode'],
+    ['state', 'permissionId', 'canRequest', 'reasonCode', 'agents'],
     'permission',
   );
   const state = String(record.state || '');
@@ -225,14 +228,35 @@ function projectPermissionStatus(
   if (permissionId !== requestedPermissionId || !isKnownPermissionID(permissionId)) {
     localAppProjectionError('permission id binding');
   }
-  if (typeof record.canRequest !== 'boolean') localAppProjectionError('permission request posture');
+  if (typeof record.canRequest !== 'boolean' || !Array.isArray(record.agents)) {
+    localAppProjectionError('permission request posture');
+  }
   if (!isAdmittedPermissionID(permissionId) && (state !== 'unavailable' || record.canRequest)) {
     localAppProjectionError('reserved permission posture');
+  }
+  const seenAgentHandles = new Set<string>();
+  const agents = record.agents.map((value): NimiLocalAppAgent => {
+    const agent = asRecord(value);
+    assertExactProjectionKeys(agent, ['agentHandle', 'displayName'], 'local-app Agent');
+    const agentHandle = projectionText(agent.agentHandle, 'agentHandle') as NimiLocalAppAgentHandle;
+    const displayName = projectionText(agent.displayName, 'displayName');
+    if (new TextEncoder().encode(agentHandle).length > 240
+      || new TextEncoder().encode(displayName).length > 240
+      || seenAgentHandles.has(agentHandle)) {
+      localAppProjectionError('permission Agent projection');
+    }
+    seenAgentHandles.add(agentHandle);
+    return Object.freeze({ agentHandle, displayName });
+  });
+  if (record.canRequest !== (state === 'prompt')
+    || (state !== 'granted' && agents.length > 0)) {
+    localAppProjectionError('permission Agents');
   }
   return {
     permissionId,
     posture: state,
     canRequest: record.canRequest,
+    agents: Object.freeze(agents),
     detail: projectionText(record.reasonCode, 'reasonCode'),
   };
 }

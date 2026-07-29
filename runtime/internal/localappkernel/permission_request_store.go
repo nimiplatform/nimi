@@ -143,6 +143,35 @@ func (store *PermissionGrantStore) ListPermissionRequestsForPrincipal(ctx contex
 	return requests, nil
 }
 
+func (store *PermissionGrantStore) ListPermissionRequests(ctx context.Context, localOSUserAnchor, accountID string) ([]PermissionRequest, error) {
+	if store == nil || store.kernel == nil {
+		return nil, fmt.Errorf("%w: permission grant store", ErrInvalidArgument)
+	}
+	if err := store.validatePermissionRequestPartition(localOSUserAnchor, accountID); err != nil {
+		return nil, err
+	}
+	rows, err := store.kernel.db.QueryContext(ctx, `SELECT local_os_user_anchor, account_id, local_app_principal_id,
+		permission_id, display_app_id, reason, revision, requested_unix_nano, created_unix_nano
+		FROM local_app_permission_requests WHERE local_os_user_anchor = ? AND account_id = ?
+		ORDER BY display_app_id, local_app_principal_id, permission_id`, localOSUserAnchor, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("list local-app permission requests: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	requests := make([]PermissionRequest, 0)
+	for rows.Next() {
+		request, scanErr := scanPermissionRequest(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		requests = append(requests, request)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read local-app permission requests: %w", err)
+	}
+	return requests, nil
+}
+
 func (store *PermissionGrantStore) ListPendingRequests(ctx context.Context, localOSUserAnchor, accountID string) ([]PermissionRequest, error) {
 	if store == nil || store.kernel == nil {
 		return nil, fmt.Errorf("%w: permission grant store", ErrInvalidArgument)

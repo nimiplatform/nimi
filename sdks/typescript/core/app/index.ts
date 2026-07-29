@@ -94,7 +94,8 @@ export type {
   NimiLocalAppConversationShellSubscription,
   NimiLocalAppConversationSnapshot,
   NimiLocalAppConversationSubscription,
-  NimiSelectedAgentHandle,
+  NimiLocalAppAgent,
+  NimiLocalAppAgentHandle,
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform.js';
@@ -295,8 +296,34 @@ function validatePermissionStatus(status: PermissionStatus | null | undefined, e
   if (status.permissionId !== expectedPermissionId || !isKnownPermissionID(status.permissionId)) {
     appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission response id does not match request', 'fix_permission_transport_response');
   }
-  if (!isPermissionPosture(status.posture) || typeof status.canRequest !== 'boolean') {
+  const seenAgentHandles = new Set<string>();
+  if (!isPermissionPosture(status.posture) || typeof status.canRequest !== 'boolean'
+    || !Array.isArray(status.agents)
+    || status.agents.some((agent) => {
+      const fields = agent && typeof agent === 'object' ? Object.keys(agent) : [];
+      if (!agent || typeof agent !== 'object'
+        || fields.length !== 2
+        || !fields.includes('agentHandle')
+        || !fields.includes('displayName')
+        || typeof agent.agentHandle !== 'string'
+        || agent.agentHandle.trim() !== agent.agentHandle
+        || new TextEncoder().encode(agent.agentHandle).length === 0
+        || new TextEncoder().encode(agent.agentHandle).length > 240
+        || seenAgentHandles.has(agent.agentHandle)
+        || typeof agent.displayName !== 'string'
+        || agent.displayName.trim() !== agent.displayName
+        || new TextEncoder().encode(agent.displayName).length === 0
+        || new TextEncoder().encode(agent.displayName).length > 240) {
+        return true;
+      }
+      seenAgentHandles.add(agent.agentHandle);
+      return false;
+    })) {
     appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission response posture is not canonical', 'fix_permission_transport_response');
+  }
+  if (status.canRequest !== (status.posture === 'prompt')
+    || (status.posture !== 'granted' && status.agents.length > 0)) {
+    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission Agent projection does not match posture', 'fix_permission_transport_response');
   }
   if (!isAdmittedPermissionID(status.permissionId) && (status.posture !== 'unavailable' || status.canRequest)) {
     appError('SDK_PERMISSION_RESPONSE_INVALID', 'reserved permission must remain unavailable', 'fix_permission_transport_response');

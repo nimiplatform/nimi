@@ -37,16 +37,20 @@ describe('renderer local-app standard-shell surface', () => {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
         return {
-          state: 'unavailable',
+          state: 'granted',
           permissionId: 'agents.interact',
           canRequest: false,
-          reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+          reasonCode: 'action-executed',
+          agents: [{ agentHandle: 'lash_owner_issued', displayName: 'Owned Agent' }],
         };
       },
       listen: () => () => {},
     };
     const surface = createNimiLocalAppStandardShellSurface();
-    await surface.permission.status({ permissionId: 'agents.interact' });
+    await expect(surface.permission.status({ permissionId: 'agents.interact' })).resolves.toMatchObject({
+      state: 'granted',
+      agents: [{ agentHandle: 'lash_owner_issued', displayName: 'Owned Agent' }],
+    });
     await surface.permission.request({ permissionId: 'agents.interact', reason: 'Continue the conversation' });
     expect(invocations).toEqual([
       {
@@ -82,6 +86,7 @@ describe('renderer local-app standard-shell surface', () => {
         permissionId: 'agents.interact',
         canRequest: false,
         reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+        agents: [],
         grantId: 'forbidden',
       }),
       listen: () => () => {},
@@ -112,7 +117,7 @@ describe('renderer local-app standard-shell surface', () => {
       },
     };
     const subscription = await createNimiLocalAppStandardShellSurface().conversation.subscribe({
-      selectedAgentHandle: 'lash_owner_issued',
+      agentHandle: 'lash_owner_issued',
       conversationAnchorId: 'anchor-1',
     });
     const iterator = subscription.events[Symbol.asyncIterator]();
@@ -140,7 +145,7 @@ describe('renderer local-app standard-shell surface', () => {
     expect(invocations).toEqual([
       {
         command: 'nimi.shell.localApp.conversationSubscribe',
-        payload: { payload: { selectedAgentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1' } },
+        payload: { payload: { agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1' } },
       },
       {
         command: 'nimi.shell.localApp.conversationSubscribe',

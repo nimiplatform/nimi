@@ -19,24 +19,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAccountService_GetAccountSessionStatus_FullMethodName              = "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus"
-	RuntimeAccountService_SubscribeAccountSessionEvents_FullMethodName        = "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents"
-	RuntimeAccountService_BeginLogin_FullMethodName                           = "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
-	RuntimeAccountService_CompleteLogin_FullMethodName                        = "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin"
-	RuntimeAccountService_RequestPresenceVerification_FullMethodName          = "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification"
-	RuntimeAccountService_InvokeRealmUnary_FullMethodName                     = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
-	RuntimeAccountService_Logout_FullMethodName                               = "/nimi.runtime.v1.RuntimeAccountService/Logout"
-	RuntimeAccountService_SwitchAccount_FullMethodName                        = "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount"
-	RuntimeAccountService_IssueWorkspaceBinding_FullMethodName                = "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding"
-	RuntimeAccountService_RevokeWorkspaceBinding_FullMethodName               = "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding"
-	RuntimeAccountService_GetLocalAppPermissionStatus_FullMethodName          = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus"
-	RuntimeAccountService_RequestLocalAppPermission_FullMethodName            = "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission"
-	RuntimeAccountService_IssueLocalAppAgentSelectorHandle_FullMethodName     = "/nimi.runtime.v1.RuntimeAccountService/IssueLocalAppAgentSelectorHandle"
-	RuntimeAccountService_ListLocalAppPermissionRequests_FullMethodName       = "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests"
-	RuntimeAccountService_SubscribeLocalAppPermissionRequests_FullMethodName  = "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests"
-	RuntimeAccountService_GetLocalAppPermissionOwnerProjection_FullMethodName = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection"
-	RuntimeAccountService_DecideLocalAppPermission_FullMethodName             = "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission"
-	RuntimeAccountService_RevokeLocalAppPermission_FullMethodName             = "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission"
+	RuntimeAccountService_GetAccountSessionStatus_FullMethodName                = "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus"
+	RuntimeAccountService_SubscribeAccountSessionEvents_FullMethodName          = "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents"
+	RuntimeAccountService_BeginLogin_FullMethodName                             = "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
+	RuntimeAccountService_CompleteLogin_FullMethodName                          = "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin"
+	RuntimeAccountService_RequestPresenceVerification_FullMethodName            = "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification"
+	RuntimeAccountService_InvokeRealmUnary_FullMethodName                       = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
+	RuntimeAccountService_Logout_FullMethodName                                 = "/nimi.runtime.v1.RuntimeAccountService/Logout"
+	RuntimeAccountService_SwitchAccount_FullMethodName                          = "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount"
+	RuntimeAccountService_IssueWorkspaceBinding_FullMethodName                  = "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding"
+	RuntimeAccountService_RevokeWorkspaceBinding_FullMethodName                 = "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding"
+	RuntimeAccountService_GetLocalAppPermissionStatus_FullMethodName            = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus"
+	RuntimeAccountService_RequestLocalAppPermission_FullMethodName              = "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission"
+	RuntimeAccountService_ListLocalAppPermissionRequests_FullMethodName         = "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests"
+	RuntimeAccountService_SubscribeLocalAppPermissionRequests_FullMethodName    = "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests"
+	RuntimeAccountService_GetLocalAppPermissionOwnerProjection_FullMethodName   = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection"
+	RuntimeAccountService_ListLocalAppPermissionOwnerProjections_FullMethodName = "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections"
+	RuntimeAccountService_DecideLocalAppPermission_FullMethodName               = "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission"
+	RuntimeAccountService_RevokeLocalAppPermission_FullMethodName               = "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission"
 )
 
 // RuntimeAccountServiceClient is the client API for RuntimeAccountService service.
@@ -55,10 +55,10 @@ type RuntimeAccountServiceClient interface {
 	RevokeWorkspaceBinding(ctx context.Context, in *RevokeWorkspaceBindingRequest, opts ...grpc.CallOption) (*RevokeWorkspaceBindingResponse, error)
 	GetLocalAppPermissionStatus(ctx context.Context, in *GetLocalAppPermissionStatusRequest, opts ...grpc.CallOption) (*GetLocalAppPermissionStatusResponse, error)
 	RequestLocalAppPermission(ctx context.Context, in *RequestLocalAppPermissionRequest, opts ...grpc.CallOption) (*RequestLocalAppPermissionResponse, error)
-	IssueLocalAppAgentSelectorHandle(ctx context.Context, in *IssueLocalAppAgentSelectorHandleRequest, opts ...grpc.CallOption) (*IssueLocalAppAgentSelectorHandleResponse, error)
 	ListLocalAppPermissionRequests(ctx context.Context, in *ListLocalAppPermissionRequestsRequest, opts ...grpc.CallOption) (*ListLocalAppPermissionRequestsResponse, error)
 	SubscribeLocalAppPermissionRequests(ctx context.Context, in *SubscribeLocalAppPermissionRequestsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppPermissionInboxEvent], error)
 	GetLocalAppPermissionOwnerProjection(ctx context.Context, in *GetLocalAppPermissionOwnerProjectionRequest, opts ...grpc.CallOption) (*GetLocalAppPermissionOwnerProjectionResponse, error)
+	ListLocalAppPermissionOwnerProjections(ctx context.Context, in *ListLocalAppPermissionOwnerProjectionsRequest, opts ...grpc.CallOption) (*ListLocalAppPermissionOwnerProjectionsResponse, error)
 	DecideLocalAppPermission(ctx context.Context, in *DecideLocalAppPermissionRequest, opts ...grpc.CallOption) (*DecideLocalAppPermissionResponse, error)
 	RevokeLocalAppPermission(ctx context.Context, in *RevokeLocalAppPermissionRequest, opts ...grpc.CallOption) (*RevokeLocalAppPermissionResponse, error)
 }
@@ -200,16 +200,6 @@ func (c *runtimeAccountServiceClient) RequestLocalAppPermission(ctx context.Cont
 	return out, nil
 }
 
-func (c *runtimeAccountServiceClient) IssueLocalAppAgentSelectorHandle(ctx context.Context, in *IssueLocalAppAgentSelectorHandleRequest, opts ...grpc.CallOption) (*IssueLocalAppAgentSelectorHandleResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IssueLocalAppAgentSelectorHandleResponse)
-	err := c.cc.Invoke(ctx, RuntimeAccountService_IssueLocalAppAgentSelectorHandle_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAccountServiceClient) ListLocalAppPermissionRequests(ctx context.Context, in *ListLocalAppPermissionRequestsRequest, opts ...grpc.CallOption) (*ListLocalAppPermissionRequestsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListLocalAppPermissionRequestsResponse)
@@ -243,6 +233,16 @@ func (c *runtimeAccountServiceClient) GetLocalAppPermissionOwnerProjection(ctx c
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetLocalAppPermissionOwnerProjectionResponse)
 	err := c.cc.Invoke(ctx, RuntimeAccountService_GetLocalAppPermissionOwnerProjection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAccountServiceClient) ListLocalAppPermissionOwnerProjections(ctx context.Context, in *ListLocalAppPermissionOwnerProjectionsRequest, opts ...grpc.CallOption) (*ListLocalAppPermissionOwnerProjectionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalAppPermissionOwnerProjectionsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_ListLocalAppPermissionOwnerProjections_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -285,10 +285,10 @@ type RuntimeAccountServiceServer interface {
 	RevokeWorkspaceBinding(context.Context, *RevokeWorkspaceBindingRequest) (*RevokeWorkspaceBindingResponse, error)
 	GetLocalAppPermissionStatus(context.Context, *GetLocalAppPermissionStatusRequest) (*GetLocalAppPermissionStatusResponse, error)
 	RequestLocalAppPermission(context.Context, *RequestLocalAppPermissionRequest) (*RequestLocalAppPermissionResponse, error)
-	IssueLocalAppAgentSelectorHandle(context.Context, *IssueLocalAppAgentSelectorHandleRequest) (*IssueLocalAppAgentSelectorHandleResponse, error)
 	ListLocalAppPermissionRequests(context.Context, *ListLocalAppPermissionRequestsRequest) (*ListLocalAppPermissionRequestsResponse, error)
 	SubscribeLocalAppPermissionRequests(*SubscribeLocalAppPermissionRequestsRequest, grpc.ServerStreamingServer[LocalAppPermissionInboxEvent]) error
 	GetLocalAppPermissionOwnerProjection(context.Context, *GetLocalAppPermissionOwnerProjectionRequest) (*GetLocalAppPermissionOwnerProjectionResponse, error)
+	ListLocalAppPermissionOwnerProjections(context.Context, *ListLocalAppPermissionOwnerProjectionsRequest) (*ListLocalAppPermissionOwnerProjectionsResponse, error)
 	DecideLocalAppPermission(context.Context, *DecideLocalAppPermissionRequest) (*DecideLocalAppPermissionResponse, error)
 	RevokeLocalAppPermission(context.Context, *RevokeLocalAppPermissionRequest) (*RevokeLocalAppPermissionResponse, error)
 }
@@ -336,9 +336,6 @@ func (UnimplementedRuntimeAccountServiceServer) GetLocalAppPermissionStatus(cont
 func (UnimplementedRuntimeAccountServiceServer) RequestLocalAppPermission(context.Context, *RequestLocalAppPermissionRequest) (*RequestLocalAppPermissionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RequestLocalAppPermission not implemented")
 }
-func (UnimplementedRuntimeAccountServiceServer) IssueLocalAppAgentSelectorHandle(context.Context, *IssueLocalAppAgentSelectorHandleRequest) (*IssueLocalAppAgentSelectorHandleResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method IssueLocalAppAgentSelectorHandle not implemented")
-}
 func (UnimplementedRuntimeAccountServiceServer) ListLocalAppPermissionRequests(context.Context, *ListLocalAppPermissionRequestsRequest) (*ListLocalAppPermissionRequestsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalAppPermissionRequests not implemented")
 }
@@ -347,6 +344,9 @@ func (UnimplementedRuntimeAccountServiceServer) SubscribeLocalAppPermissionReque
 }
 func (UnimplementedRuntimeAccountServiceServer) GetLocalAppPermissionOwnerProjection(context.Context, *GetLocalAppPermissionOwnerProjectionRequest) (*GetLocalAppPermissionOwnerProjectionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppPermissionOwnerProjection not implemented")
+}
+func (UnimplementedRuntimeAccountServiceServer) ListLocalAppPermissionOwnerProjections(context.Context, *ListLocalAppPermissionOwnerProjectionsRequest) (*ListLocalAppPermissionOwnerProjectionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalAppPermissionOwnerProjections not implemented")
 }
 func (UnimplementedRuntimeAccountServiceServer) DecideLocalAppPermission(context.Context, *DecideLocalAppPermissionRequest) (*DecideLocalAppPermissionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DecideLocalAppPermission not implemented")
@@ -583,24 +583,6 @@ func _RuntimeAccountService_RequestLocalAppPermission_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAccountService_IssueLocalAppAgentSelectorHandle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IssueLocalAppAgentSelectorHandleRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAccountServiceServer).IssueLocalAppAgentSelectorHandle(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAccountService_IssueLocalAppAgentSelectorHandle_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAccountServiceServer).IssueLocalAppAgentSelectorHandle(ctx, req.(*IssueLocalAppAgentSelectorHandleRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeAccountService_ListLocalAppPermissionRequests_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListLocalAppPermissionRequestsRequest)
 	if err := dec(in); err != nil {
@@ -644,6 +626,24 @@ func _RuntimeAccountService_GetLocalAppPermissionOwnerProjection_Handler(srv int
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAccountServiceServer).GetLocalAppPermissionOwnerProjection(ctx, req.(*GetLocalAppPermissionOwnerProjectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAccountService_ListLocalAppPermissionOwnerProjections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalAppPermissionOwnerProjectionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).ListLocalAppPermissionOwnerProjections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_ListLocalAppPermissionOwnerProjections_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).ListLocalAppPermissionOwnerProjections(ctx, req.(*ListLocalAppPermissionOwnerProjectionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -736,16 +736,16 @@ var RuntimeAccountService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAccountService_RequestLocalAppPermission_Handler,
 		},
 		{
-			MethodName: "IssueLocalAppAgentSelectorHandle",
-			Handler:    _RuntimeAccountService_IssueLocalAppAgentSelectorHandle_Handler,
-		},
-		{
 			MethodName: "ListLocalAppPermissionRequests",
 			Handler:    _RuntimeAccountService_ListLocalAppPermissionRequests_Handler,
 		},
 		{
 			MethodName: "GetLocalAppPermissionOwnerProjection",
 			Handler:    _RuntimeAccountService_GetLocalAppPermissionOwnerProjection_Handler,
+		},
+		{
+			MethodName: "ListLocalAppPermissionOwnerProjections",
+			Handler:    _RuntimeAccountService_ListLocalAppPermissionOwnerProjections_Handler,
 		},
 		{
 			MethodName: "DecideLocalAppPermission",

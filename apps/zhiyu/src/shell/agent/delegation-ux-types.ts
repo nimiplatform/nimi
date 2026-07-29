@@ -106,7 +106,6 @@ export type ZhiyuDelegationReplayLoader = (
 
 export interface ZhiyuDelegationUxProbeOptions {
   readonly observedAt?: string;
-  readonly hasRuntimeBridge?: () => Promise<boolean>;
   readonly loadSnapshot?: ZhiyuDelegationSnapshotReader;
   readonly submitApprovalDecision?: ZhiyuDelegationApprovalSubmitter;
   readonly loadReplayTrace?: ZhiyuDelegationReplayLoader;

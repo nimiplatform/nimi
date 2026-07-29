@@ -1,7 +1,9 @@
 schema_version: 1
 app_id: nimi.zhiyu
-display_name: 知语 Zhiyu
-permissions: []
+display_name: 织羽 Zhiyu
+permissions:
+  - id: agents.interact
+    reason: 与您账户中当前及未来的全部 Agent 开始和继续对话。
 disposition: bundled_component_with_isolated_integration_build
 local_development:
   electron:

@@ -103,19 +103,19 @@ function validatePayload(
         reason: requiredUtf8Text(payload.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
       };
     case 'conversationOpen':
-      assertExactKeys(payload, ['selectedAgentHandle', 'disposition'], command);
+      assertExactKeys(payload, ['agentHandle', 'disposition'], command);
       if (payload.disposition !== 'create-or-resume' && payload.disposition !== 'create-new') {
         throw invalidPayload(command, 'disposition is invalid');
       }
       return {
-        selectedAgentHandle: requiredText(payload.selectedAgentHandle, 'selectedAgentHandle', command, MAX_IDENTIFIER_LENGTH),
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
         disposition: payload.disposition,
       };
     case 'conversationSendTurn':
-      assertExactKeys(payload, ['selectedAgentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
+      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
       return {
-        ...identifiers(payload, ['selectedAgentHandle', 'conversationAnchorId', 'requestId'], command,
-          new Set(), ['selectedAgentHandle', 'conversationAnchorId', 'requestId', 'text']),
+        ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command,
+          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'text']),
         text: requiredUtf8Text(payload.text, 'text', command, 64 * 1024),
       };
     case 'conversationSubscribe':
@@ -125,9 +125,9 @@ function validatePayload(
           action: 'cancel',
         };
       }
-      return identifiers(payload, ['selectedAgentHandle', 'conversationAnchorId'], command);
+      return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSnapshot':
-      return identifiers(payload, ['selectedAgentHandle', 'conversationAnchorId'], command);
+      return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'storageReadJson':
     case 'storageRemoveJson':
       return storagePathPayload(payload, command);

@@ -9,7 +9,11 @@ import type {
 } from '@nimiplatform/sdk/realm';
 import type { NimiAIScopeRef } from '@nimiplatform/sdk/ai';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
-import type { PermissionID } from '@nimiplatform/sdk/app';
+import type {
+  NimiLocalAppAgent,
+  NimiLocalAppAgentHandle,
+  PermissionID,
+} from '@nimiplatform/sdk/app';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
 import type {
   AnyNimiCanonicalRendererHostBindingsV1,
@@ -29,6 +33,7 @@ import type {
   TesterPromptDraftSaveResult,
   TesterPreferences,
 } from '../tester/tester-preferences.js';
+import type { TesterConversationJourneyResult } from '../tester/local-app-conversation-journey.js';
 import type { TesterCapabilityRunInput, TesterCapabilityRunResult } from '../tester/tester-runtime.js';
 import type { TesterRunHistory, TesterRunHistoryRecord } from '../tester/tester-history.js';
 import type {
@@ -73,8 +78,10 @@ export interface TesterRendererCommandPort {
   claimWorldTourViewerLaunch(input: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture>;
   saveWorldTourViewerPreset(input: { readonly manifestPath: string; readonly presetJson: string }): Promise<{ readonly manifestPath: string; readonly presetPath: string }>;
   localAppSessionStatus(): Promise<{ readonly state: string; readonly sessionBound: boolean }>;
-  localAppPermissionStatus(permissionId: PermissionID): Promise<{ readonly posture: string; readonly canRequest: boolean; readonly detail?: string }>;
+  localAppPermissionStatus(permissionId: PermissionID): Promise<{ readonly posture: string; readonly canRequest: boolean; readonly agents: readonly NimiLocalAppAgent[]; readonly detail?: string }>;
   localAppPermissionRequest(input: { readonly permissionId: PermissionID; readonly reason: string }): Promise<{ readonly posture: string }>;
+  localAppConversationJourney(input: { readonly agentHandle: NimiLocalAppAgentHandle; readonly text: string }): Promise<TesterConversationJourneyResult>;
+  localAppConversationSnapshot(input: { readonly agentHandle: NimiLocalAppAgentHandle; readonly conversationAnchorId: string }): Promise<Readonly<Record<string, unknown>>>;
   localAppStorageRoundTrip(input: { readonly relativePath: string; readonly value: Readonly<Record<string, string | number>> }): Promise<{ readonly sizeBytes: number; readonly removed: boolean }>;
   runtimeLog(input: Readonly<Record<string, unknown>>): Promise<NimiRendererHostResult<{ readonly recorded: boolean }>>;
   rendererLog(input: Readonly<Record<string, unknown>>): Promise<NimiRendererHostResult<{ readonly recorded: boolean }>>;

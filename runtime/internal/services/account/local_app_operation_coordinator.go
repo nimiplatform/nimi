@@ -101,18 +101,18 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		if err != nil {
 			return LocalAppCallerDecision{}, localAppOperationDenied(localAppAuthorityErrorReason(err))
 		}
-		resolvedSelector, resolveErr := s.ResolveLocalAppAgentSelectorHandle(ctx, selector.AgentID, permission.ID)
+		resolvedAgent, resolveErr := s.ResolveLocalAppAgentHandle(ctx, selector.AgentID, permission.ID)
 		if resolveErr != nil {
 			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
 		}
-		selector.AgentID = resolvedSelector.LocalAgentID
+		selector.AgentID = resolvedAgent.LocalAgentID
 		resourceRef, err = localAppOperationResourceRef(operation, selector)
 		if err != nil {
 			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 		}
 		grantKey := localappkernel.PermissionGrantKey{
 			LocalOSUserAnchor: caller.LocalOSUserAnchor, AccountID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID,
-			PermissionID: permission.ID, OwnerSelectorDigest: resolvedSelector.OwnerSelectorDigest,
+			PermissionID: permission.ID, OwnerSelectorDigest: resolvedAgent.OwnerSelectorDigest,
 		}
 		grant, grantErr := s.localAppKernel.PermissionGrants().Get(ctx, grantKey)
 		if grantErr != nil {
@@ -128,8 +128,8 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 			}
 			return LocalAppCallerDecision{}, localAppOperationDenied(reason)
 		}
-		binding = localAppOperationBinding{operationID: string(operation), resourceRef: resourceRef, capability: permission.ID, fingerprint: resolvedSelector.OwnerSelectorDigest}
-		caller.OwnerSelectedAgentID = resolvedSelector.LocalAgentID
+		binding = localAppOperationBinding{operationID: string(operation), resourceRef: resourceRef, capability: permission.ID, fingerprint: resolvedAgent.OwnerSelectorDigest}
+		caller.LocalAgentID = resolvedAgent.LocalAgentID
 	default:
 		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}

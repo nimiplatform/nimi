@@ -36,6 +36,10 @@ import type { DesktopRendererSupportLogsPort } from './support-logs-port.js';
 import type { DesktopRendererLocalModelProgressPort } from './local-model-progress-port.js';
 import type { DesktopRendererAvatarHandoffPort } from './avatar-handoff-port.js';
 import type { DesktopRendererVirtualizationPort } from './virtualization-port.js';
+import type {
+  DesktopLocalAppPermissionOwnerPort,
+  DesktopLocalAppPermissionRequest,
+} from '../features/apps/local-app-permission-owner.js';
 
 export type DesktopRendererInitialState = {
   readonly aiConfig: NimiAIConfig;
@@ -78,6 +82,7 @@ export interface DesktopRendererCommandPort {
   readonly localModelProgress: DesktopRendererLocalModelProgressPort;
   readonly avatarHandoff: DesktopRendererAvatarHandoffPort;
   readonly virtualization: DesktopRendererVirtualizationPort;
+  readonly localAppPermissions: Omit<DesktopLocalAppPermissionOwnerPort, 'subscribePending'>;
   readonly connectorAuth: Pick<
     NimiConnectorAuthAcquisitionHost,
     'proxyHttp' | 'oauthTokenExchange'
@@ -157,6 +162,10 @@ export interface DesktopRendererEventPort {
   subscribeLocalDevelopmentApprovals(
     listener: (approval: LocalDevelopmentApproval) => void,
   ): Promise<() => void>;
+  subscribeLocalAppPermissionRequests(input: {
+    readonly onRequests: (requests: readonly DesktopLocalAppPermissionRequest[]) => void;
+    readonly onError: (error: unknown) => void;
+  }): Promise<() => void>;
   subscribeDeveloperMode(listener: (enabled: boolean) => void): () => void;
   subscribeProductControlRecord(
     listener: (result:

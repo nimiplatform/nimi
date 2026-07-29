@@ -196,9 +196,7 @@ export type ZhiyuEvidence = {
     readonly ownerUserId: string | null;
     readonly count: number;
     readonly localAgents: readonly {
-      readonly localAgentRef: string;
-      readonly ownerUserId: string;
-      readonly runtimeSourceRef: string;
+      readonly agentHandle: string;
       readonly displayName: string;
       readonly sourceReady: boolean;
     }[];
@@ -210,6 +208,7 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
+    readonly agentHandle: string | null;
     readonly ownerUserId: string | null;
     readonly runtimeSourceRef: string | null;
     readonly localAgentRef: string | null;
@@ -221,6 +220,7 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
+    readonly agentHandle: string | null;
     readonly ownerUserId: string | null;
     readonly runtimeSourceRef: string | null;
     readonly localAgentRef: string | null;
@@ -466,6 +466,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       actionHint: 'probe_local_agent_discovery',
       source: 'renderer',
       message: 'LocalAgent discovery has not been probed.',
+      agentHandle: null,
       ownerUserId: null,
       runtimeSourceRef: null,
       localAgentRef: null,
@@ -477,6 +478,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       actionHint: 'open_runtime_conversation_anchor',
       source: 'renderer',
       message: 'Runtime conversation home has not been probed.',
+      agentHandle: null,
       ownerUserId: null,
       runtimeSourceRef: null,
       localAgentRef: null,

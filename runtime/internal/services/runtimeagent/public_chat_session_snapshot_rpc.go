@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
@@ -36,26 +34,12 @@ func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtime
 	requestContext := req.GetContext()
 	callerAppID := strings.TrimSpace(requestContext.GetAppId())
 	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	if !localAppAuthorized {
-		if connection, protected := protectedlocal.LocalAppConnectionFromContext(ctx); protected && connection != nil {
-			if s.localAppOperationAuth == nil {
-				return nil, status.Error(codes.PermissionDenied, "local-app operation authorizer unavailable")
-			}
-			var authorizeErr error
-			localDecision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(ctx, accountservice.LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: agentID, ConversationAnchorID: anchorID})
-			if authorizeErr != nil {
-				return nil, localAppConversationAuthorizationError(authorizeErr)
-			}
-			ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, localDecision)
-			localAppAuthorized = true
-		}
-	}
 	if localAppAuthorized {
 		if localDecision.Operation != accountservice.LocalAppOperationConversationSnapshot || requestContext != nil {
 			return nil, status.Error(codes.PermissionDenied, "local-app conversation snapshot selector is invalid")
 		}
 		callerAppID = localDecision.AppID
-		agentID = localDecision.OwnerSelectedAgentID
+		agentID = localDecision.LocalAgentID
 		if strings.TrimSpace(agentID) == "" {
 			return nil, status.Error(codes.PermissionDenied, "local-app owner Agent selector is unavailable")
 		}

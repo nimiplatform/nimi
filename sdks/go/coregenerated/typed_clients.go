@@ -758,6 +758,17 @@ const (
 	KNOWLEDGEINGESTTASKSTATUSFAILED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
 )
 
+type LocalAppPermissionOwnerPosture string
+
+const (
+	LOCALAPPPERMISSIONOWNERPOSTUREUNSPECIFIED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED"
+	LOCALAPPPERMISSIONOWNERPOSTUREPENDING LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING"
+	LOCALAPPPERMISSIONOWNERPOSTUREGRANTED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED"
+	LOCALAPPPERMISSIONOWNERPOSTUREDENIED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED"
+	LOCALAPPPERMISSIONOWNERPOSTUREEXPIRED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED"
+	LOCALAPPPERMISSIONOWNERPOSTUREREVOKED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED"
+)
+
 type LocalAppPermissionPosture string
 
 const (
@@ -2807,6 +2818,21 @@ type CreateKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
 }
 
+type DecideLocalAppPermissionRequest struct {
+	Caller *AccountCaller `json:"caller,omitempty"`
+	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
+	PermissionId string `json:"permission_id,omitempty"`
+	Approved bool `json:"approved,omitempty"`
+	ExpectedOwnerRevision uint64 `json:"expected_owner_revision,omitempty"`
+}
+
+type DecideLocalAppPermissionResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
+	Posture LocalAppPermissionPosture `json:"posture,omitempty"`
+	OwnerRevision uint64 `json:"owner_revision,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type DecideLocalDevelopmentProjectRequest struct {
 	EvaluationId []byte `json:"evaluation_id,omitempty"`
 	Decision LocalDevelopmentDecision `json:"decision,omitempty"`
@@ -3413,6 +3439,17 @@ type GetKnowledgeBankRequest struct {
 
 type GetKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
+}
+
+type GetLocalAppPermissionOwnerProjectionRequest struct {
+	Caller *AccountCaller `json:"caller,omitempty"`
+	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
+}
+
+type GetLocalAppPermissionOwnerProjectionResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
+	Permissions []LocalAppPermissionOwnerProjection `json:"permissions,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type GetLocalAppPermissionStatusRequest struct {
@@ -4074,6 +4111,26 @@ type ListLinksResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
+type ListLocalAppPermissionOwnerProjectionsRequest struct {
+	Caller *AccountCaller `json:"caller,omitempty"`
+}
+
+type ListLocalAppPermissionOwnerProjectionsResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
+	Permissions []LocalAppPermissionOwnerProjection `json:"permissions,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type ListLocalAppPermissionRequestsRequest struct {
+	Caller *AccountCaller `json:"caller,omitempty"`
+}
+
+type ListLocalAppPermissionRequestsResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
+	Requests []LocalAppPermissionPendingRequest `json:"requests,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type ListLocalAssetsRequest struct {
 	StatusFilter LocalAssetStatus `json:"status_filter,omitempty"`
 	KindFilter LocalAssetKind `json:"kind_filter,omitempty"`
@@ -4328,11 +4385,50 @@ type LocalAgentSourceCoverageSectionStatus struct {
 	OmittedCount uint32 `json:"omitted_count,omitempty"`
 }
 
+type LocalAppPermissionAgentHandle struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+}
+
+type LocalAppPermissionCoveredAgent struct {
+	LocalAgentId string `json:"local_agent_id,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+}
+
+type LocalAppPermissionInboxEvent struct {
+	Sequence uint64 `json:"sequence,omitempty"`
+	EmittedAt string `json:"emitted_at,omitempty"`
+	Requests []LocalAppPermissionPendingRequest `json:"requests,omitempty"`
+	Accepted bool `json:"accepted,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type LocalAppPermissionOwnerProjection struct {
+	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
+	DisplayAppId string `json:"display_app_id,omitempty"`
+	PermissionId string `json:"permission_id,omitempty"`
+	Posture LocalAppPermissionOwnerPosture `json:"posture,omitempty"`
+	OwnerRevision uint64 `json:"owner_revision,omitempty"`
+	RequestedAt string `json:"requested_at,omitempty"`
+	DecidedAt string `json:"decided_at,omitempty"`
+	CoveredAgents []LocalAppPermissionCoveredAgent `json:"covered_agents,omitempty"`
+}
+
+type LocalAppPermissionPendingRequest struct {
+	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
+	DisplayAppId string `json:"display_app_id,omitempty"`
+	PermissionId string `json:"permission_id,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	RequestedAt string `json:"requested_at,omitempty"`
+	OwnerRevision uint64 `json:"owner_revision,omitempty"`
+}
+
 type LocalAppPermissionProjection struct {
 	PermissionId string `json:"permission_id,omitempty"`
 	Posture LocalAppPermissionPosture `json:"posture,omitempty"`
 	CanRequest bool `json:"can_request,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Agents []LocalAppPermissionAgentHandle `json:"agents,omitempty"`
 }
 
 type LocalAssetHealth struct {
@@ -6134,6 +6230,19 @@ type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
 }
 
+type RevokeLocalAppPermissionRequest struct {
+	Caller *AccountCaller `json:"caller,omitempty"`
+	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
+	PermissionId string `json:"permission_id,omitempty"`
+}
+
+type RevokeLocalAppPermissionResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
+	Posture LocalAppPermissionPosture `json:"posture,omitempty"`
+	OwnerRevision uint64 `json:"owner_revision,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type RevokeLocalDevelopmentAuthorizationRequest struct {
 	AuthorizationId []byte `json:"authorization_id,omitempty"`
 }
@@ -6781,6 +6890,10 @@ type SubscribeAppMessagesRequest struct {
 	FromAppIds []string `json:"from_app_ids,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
+type SubscribeLocalAppPermissionRequestsRequest struct {
+	Caller *AccountCaller `json:"caller,omitempty"`
 }
 
 type SubscribeMemoryEventsRequest struct {
@@ -7440,12 +7553,28 @@ func (c RuntimeTypedClient) CompleteLogin(ctx context.Context, request CompleteL
 	return decodeRuntimeTypedResponse[CompleteLoginResponse](raw, "CompleteLoginResponse")
 }
 
+func (c RuntimeTypedClient) DecideLocalAppPermission(ctx context.Context, request DecideLocalAppPermissionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DecideLocalAppPermissionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission", request, metadata, timeoutMS)
+	if err != nil {
+		return DecideLocalAppPermissionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DecideLocalAppPermissionResponse](raw, "DecideLocalAppPermissionResponse")
+}
+
 func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request GetAccountSessionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountSessionStatusResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAccountSessionStatusResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetAccountSessionStatusResponse](raw, "GetAccountSessionStatusResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalAppPermissionOwnerProjection(ctx context.Context, request GetLocalAppPermissionOwnerProjectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppPermissionOwnerProjectionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppPermissionOwnerProjectionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppPermissionOwnerProjectionResponse](raw, "GetLocalAppPermissionOwnerProjectionResponse")
 }
 
 func (c RuntimeTypedClient) GetLocalAppPermissionStatus(ctx context.Context, request GetLocalAppPermissionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppPermissionStatusResponse, error) {
@@ -7472,6 +7601,22 @@ func (c RuntimeTypedClient) IssueWorkspaceBinding(ctx context.Context, request I
 	return decodeRuntimeTypedResponse[IssueWorkspaceBindingResponse](raw, "IssueWorkspaceBindingResponse")
 }
 
+func (c RuntimeTypedClient) ListLocalAppPermissionOwnerProjections(ctx context.Context, request ListLocalAppPermissionOwnerProjectionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppPermissionOwnerProjectionsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppPermissionOwnerProjectionsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppPermissionOwnerProjectionsResponse](raw, "ListLocalAppPermissionOwnerProjectionsResponse")
+}
+
+func (c RuntimeTypedClient) ListLocalAppPermissionRequests(ctx context.Context, request ListLocalAppPermissionRequestsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppPermissionRequestsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppPermissionRequestsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppPermissionRequestsResponse](raw, "ListLocalAppPermissionRequestsResponse")
+}
+
 func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LogoutResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/Logout", request, metadata, timeoutMS)
 	if err != nil {
@@ -7496,6 +7641,14 @@ func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, req
 	return decodeRuntimeTypedResponse[RequestPresenceVerificationResponse](raw, "RequestPresenceVerificationResponse")
 }
 
+func (c RuntimeTypedClient) RevokeLocalAppPermission(ctx context.Context, request RevokeLocalAppPermissionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeLocalAppPermissionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission", request, metadata, timeoutMS)
+	if err != nil {
+		return RevokeLocalAppPermissionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RevokeLocalAppPermissionResponse](raw, "RevokeLocalAppPermissionResponse")
+}
+
 func (c RuntimeTypedClient) RevokeWorkspaceBinding(ctx context.Context, request RevokeWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeWorkspaceBindingResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", request, metadata, timeoutMS)
 	if err != nil {
@@ -7510,6 +7663,14 @@ func (c RuntimeTypedClient) SubscribeAccountSessionEvents(ctx context.Context, r
 		return nil, err
 	}
 	return &RuntimeTypedStream[AccountSessionEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubscribeLocalAppPermissionRequests(ctx context.Context, request SubscribeLocalAppPermissionRequestsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppPermissionInboxEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[LocalAppPermissionInboxEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAccountRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SwitchAccountResponse, error) {
@@ -16249,7 +16410,7 @@ type RealmWorldPublicControllerListWorldCharactersOperationPath struct {
 }
 
 type RealmWorldPublicControllerListWorldCharactersOperationQuery struct {
-
+	Limit float64 `json:"limit,omitempty"`
 }
 
 type RealmWorldPublicControllerListWorldCharactersOperationHeaders struct {

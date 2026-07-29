@@ -3,7 +3,7 @@
 
 import { CoreClient } from '../core-client';
 import type { CoreMetadata, CoreResponseMetadataObserver } from '../types';
-import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, GetLocalAppPermissionStatusRequest, GetLocalAppPermissionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RequestLocalAppPermissionRequest, RequestLocalAppPermissionResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
+import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, DecideLocalAppPermissionRequest, DecideLocalAppPermissionResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, GetLocalAppPermissionOwnerProjectionRequest, GetLocalAppPermissionOwnerProjectionResponse, GetLocalAppPermissionStatusRequest, GetLocalAppPermissionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, ListLocalAppPermissionOwnerProjectionsRequest, ListLocalAppPermissionOwnerProjectionsResponse, ListLocalAppPermissionRequestsRequest, ListLocalAppPermissionRequestsResponse, LocalAppPermissionInboxEvent, LogoutRequest, LogoutResponse, RequestLocalAppPermissionRequest, RequestLocalAppPermissionResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeLocalAppPermissionRequest, RevokeLocalAppPermissionResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SubscribeLocalAppPermissionRequestsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
 import type { CancelCompanionParticipationRequest, CancelCompanionParticipationResponse, GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse, OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse, RequestCompanionParticipationRequest, RequestCompanionParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_companion";
 import type { AgentEvent, AgentVoiceStreamEvent, CancelHookRequest, CancelHookResponse, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentCanonicalMemoryReviewStatusRequest, GetAgentCanonicalMemoryReviewStatusResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetRuntimeAgentAIConfigReadinessRequest, GetRuntimeAgentAIConfigReadinessResponse, GetRuntimeAgentAIConfigRequest, GetRuntimeAgentAIConfigResponse, InterruptAgentVoicePlaybackRequest, InterruptAgentVoicePlaybackResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListPendingHooksRequest, ListPendingHooksResponse, OpenConversationAnchorRequest, OpenConversationAnchorResponse, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, RuntimeAgentAIConfigReadinessSnapshot, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubmitAvatarDebugProbeResultRequest, SubmitAvatarDebugProbeResultResponse, SubscribeAgentEventsRequest, SubscribeAgentVoiceStreamRequest, SubscribeRuntimeAgentAIConfigReadinessRequest, TerminateAgentRequest, TerminateAgentResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, UpsertRuntimeAgentAIConfigRequest, UpsertRuntimeAgentAIConfigResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
 import type { MaterializeRealmSourceRequest, MaterializeRealmSourceResponse } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
@@ -34,7 +34,7 @@ export interface RuntimeTypedCallOptions {
   readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
-export type { AccountCaller, AccountProjection, AccountSessionEvent, AccountSessionSnapshot, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, GetLocalAppPermissionStatusRequest, GetLocalAppPermissionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LocalAppPermissionProjection, LogoutRequest, LogoutResponse, RequestLocalAppPermissionRequest, RequestLocalAppPermissionResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceBindingRelation, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
+export type { AccountCaller, AccountProjection, AccountSessionEvent, AccountSessionSnapshot, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, DecideLocalAppPermissionRequest, DecideLocalAppPermissionResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, GetLocalAppPermissionOwnerProjectionRequest, GetLocalAppPermissionOwnerProjectionResponse, GetLocalAppPermissionStatusRequest, GetLocalAppPermissionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, ListLocalAppPermissionOwnerProjectionsRequest, ListLocalAppPermissionOwnerProjectionsResponse, ListLocalAppPermissionRequestsRequest, ListLocalAppPermissionRequestsResponse, LocalAppPermissionAgentHandle, LocalAppPermissionCoveredAgent, LocalAppPermissionInboxEvent, LocalAppPermissionOwnerProjection, LocalAppPermissionPendingRequest, LocalAppPermissionProjection, LogoutRequest, LogoutResponse, RequestLocalAppPermissionRequest, RequestLocalAppPermissionResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeLocalAppPermissionRequest, RevokeLocalAppPermissionResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SubscribeLocalAppPermissionRequestsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceBindingRelation, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
 export type { AgentRequestContext } from "./runtime-protobuf/runtime/v1/agent_common";
 export type { CancelCompanionParticipationRequest, CancelCompanionParticipationResponse, CompanionParticipationProjection, GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse, OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse, RequestCompanionParticipationRequest, RequestCompanionParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_companion";
 export type { AgentPresentationEventDetail, AgentPresentationProfile, AgentPresentationProfilePatch, ClearAgentPresentationProfile } from "./runtime-protobuf/runtime/v1/agent_presentation";
@@ -65,7 +65,7 @@ export type { RequestRuntimeRestartRequest, RequestRuntimeRestartResponse } from
 export type { RuntimeDurableCloudTargetRef, RuntimeDurableLocalTargetRef, RuntimeDurableTargetRef, RuntimeResolvedCloudExecutionBinding, RuntimeResolvedExecutionBinding, RuntimeResolvedLocalExecutionBinding } from "./runtime-protobuf/runtime/v1/runtime_target_identity";
 export type { DeleteVoiceAssetRequest, DeleteVoiceAssetResponse, GetVoiceAssetRequest, GetVoiceAssetResponse, ListPresetVoicesRequest, ListPresetVoicesResponse, ListVoiceAssetsRequest, ListVoiceAssetsResponse, VoiceAsset, VoicePresetDescriptor, VoiceReference, VoiceT2VInput, VoiceV2VInput } from "./runtime-protobuf/runtime/v1/voice";
 
-export { AccountCallerMode, AccountEventType, AccountReasonCode, AccountSessionDeliveryKind, AccountSessionState, LocalAppPermissionPosture, PresenceVerificationMethod, PresenceVerificationState, WorkspaceBindingPurpose, WorkspaceBindingState, WorkspaceMembershipState } from "./runtime-protobuf/runtime/v1/account";
+export { AccountCallerMode, AccountEventType, AccountReasonCode, AccountSessionDeliveryKind, AccountSessionState, LocalAppPermissionOwnerPosture, LocalAppPermissionPosture, PresenceVerificationMethod, PresenceVerificationState, WorkspaceBindingPurpose, WorkspaceBindingState, WorkspaceMembershipState } from "./runtime-protobuf/runtime/v1/account";
 export { CompanionParticipationStatus, CompanionParticipationSurfaceKind, CompanionParticipationTriggerSource } from "./runtime-protobuf/runtime/v1/agent_companion";
 export { AgentPresentationBackendKind, AgentPresentationEventFamily } from "./runtime-protobuf/runtime/v1/agent_presentation";
 export { AgentAutonomyMode, AgentCanonicalMemoryBankMode, AgentCanonicalMemoryReviewReadiness, AgentEventType, AgentExecutionState, AgentLifecycleStatus, AgentProactiveDeliveryChannel, AgentProactiveEffectClass, AgentProactiveEventFamily, AgentProactiveFrequencyCapState, AgentProactiveOptInState, AgentProactiveQuietHoursState, AgentProactiveSuppressionReason, AgentProactiveTriggerSource, AgentStateEventFamily, AgentTrackType, AvatarDebugEventFamily, AvatarDebugProbeKind, AvatarDebugProbeStatus, AvatarDebugReplayRedactionState, AvatarDebugReplayVisibility, AvatarDebugRequestedBy, ConversationAnchorStatus, HookAdmissionState, HookEffect, HookTriggerFamily, RuntimeAgentAIConfigReadinessState } from "./runtime-protobuf/runtime/v1/agent_service";
@@ -114,9 +114,31 @@ export class RuntimeTypedClient {
     });
   }
 
+  async decideLocalAppPermission(request: DecideLocalAppPermissionRequest, options: RuntimeTypedCallOptions = {}): Promise<DecideLocalAppPermissionResponse> {
+    return this.core.unary<DecideLocalAppPermissionResponse, DecideLocalAppPermissionRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async getAccountSessionStatus(request: GetAccountSessionStatusRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAccountSessionStatusResponse> {
     return this.core.unary<GetAccountSessionStatusResponse, GetAccountSessionStatusRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getLocalAppPermissionOwnerProjection(request: GetLocalAppPermissionOwnerProjectionRequest, options: RuntimeTypedCallOptions = {}): Promise<GetLocalAppPermissionOwnerProjectionResponse> {
+    return this.core.unary<GetLocalAppPermissionOwnerProjectionResponse, GetLocalAppPermissionOwnerProjectionRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -158,6 +180,28 @@ export class RuntimeTypedClient {
     });
   }
 
+  async listLocalAppPermissionOwnerProjections(request: ListLocalAppPermissionOwnerProjectionsRequest, options: RuntimeTypedCallOptions = {}): Promise<ListLocalAppPermissionOwnerProjectionsResponse> {
+    return this.core.unary<ListLocalAppPermissionOwnerProjectionsResponse, ListLocalAppPermissionOwnerProjectionsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async listLocalAppPermissionRequests(request: ListLocalAppPermissionRequestsRequest, options: RuntimeTypedCallOptions = {}): Promise<ListLocalAppPermissionRequestsResponse> {
+    return this.core.unary<ListLocalAppPermissionRequestsResponse, ListLocalAppPermissionRequestsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async logout(request: LogoutRequest, options: RuntimeTypedCallOptions = {}): Promise<LogoutResponse> {
     return this.core.unary<LogoutResponse, LogoutRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAccountService/Logout",
@@ -191,6 +235,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async revokeLocalAppPermission(request: RevokeLocalAppPermissionRequest, options: RuntimeTypedCallOptions = {}): Promise<RevokeLocalAppPermissionResponse> {
+    return this.core.unary<RevokeLocalAppPermissionResponse, RevokeLocalAppPermissionRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async revokeWorkspaceBinding(request: RevokeWorkspaceBindingRequest, options: RuntimeTypedCallOptions = {}): Promise<RevokeWorkspaceBindingResponse> {
     return this.core.unary<RevokeWorkspaceBindingResponse, RevokeWorkspaceBindingRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
@@ -205,6 +260,17 @@ export class RuntimeTypedClient {
   subscribeAccountSessionEvents(request: SubscribeAccountSessionEventsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<AccountSessionEvent> {
     return this.core.serverStream<AccountSessionEvent, SubscribeAccountSessionEventsRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  subscribeLocalAppPermissionRequests(request: SubscribeLocalAppPermissionRequestsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<LocalAppPermissionInboxEvent> {
+    return this.core.serverStream<LocalAppPermissionInboxEvent, SubscribeLocalAppPermissionRequestsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

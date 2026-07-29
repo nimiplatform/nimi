@@ -1,0 +1,45 @@
+{
+  "approval": {
+    "title": "{{app}} requests to interact with your Agents",
+    "subtitle": "This grants access to every Agent in your account, including Agents you create later.",
+    "queue": "{{count}} permission requests are waiting."
+  },
+  "intent": {
+    "agentsInteract": "Interact with all Agents in your account"
+  },
+  "scope": {
+    "title": "All Agents in this account",
+    "description": "Current and future Agents are included automatically. Revoking this permission removes access to all of them."
+  },
+  "field": {
+    "app": "App",
+    "reason": "Reason"
+  },
+  "posture": {
+    "prompt": "Not requested",
+    "pending": "Pending",
+    "granted": "Granted",
+    "denied": "Denied",
+    "unavailable": "Unavailable"
+  },
+  "state": {
+    "loading": "Loading…",
+    "denied": "Request denied.",
+    "error": "Permission management is unavailable. Try again."
+  },
+  "settings": {
+    "title": "App permissions",
+    "description": "Manage access to Nimi-owned capabilities.",
+    "currentAgents": "Agents currently covered",
+    "noCurrentAgents": "No Agents exist in this account yet; future Agents are included automatically.",
+    "revokeConfirm": "Revoke access to all current and future Agents?"
+  },
+  "action": {
+    "approve": "Approve",
+    "deny": "Deny",
+    "revoke": "Revoke",
+    "confirmRevoke": "Confirm revoke",
+    "cancel": "Cancel",
+    "retry": "Retry"
+  }
+}

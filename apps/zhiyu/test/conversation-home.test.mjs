@@ -42,73 +42,47 @@ test('Zhiyu conversation home reuses the Desktop-parity anchor binding for the s
   assert.equal(opened.length, 1);
 });
 
-test('Zhiyu conversation home adopts the sole active Runtime anchor created on Desktop', async () => {
+test('Zhiyu conversation home delegates resume selection to the admitted localApp open operation', async () => {
   const module = await importConversationHome();
   globalThis.window = {};
   globalThis.__zhiyuConversationAnchorStorageValue = null;
   const opened = [];
-  const listed = [];
-  globalThis.__zhiyuConversationHomeTestListSummaries = async (request) => {
-    listed.push(request);
-    return {
-      summaries: [{
-        anchor: {
-          conversationAnchorId: 'agent_anchor_desktop',
-          ownerUserId: request.ownerUserId,
-          runtimeSourceRef: request.runtimeSourceRef,
-          localAgentRef: request.localAgentRef,
-          agentId: request.localAgentRef,
-        },
-        transcriptMessageCount: 8,
-      }],
-    };
-  };
   globalThis.__zhiyuConversationHomeTestOpenConversation = async (request) => {
     opened.push(request);
-    return { anchor: { conversationAnchorId: 'agent_anchor_replacement' } };
+    return { anchor: { conversationAnchorId: 'agent_anchor_resumed' } };
   };
   globalThis.__zhiyuConversationHomeTestGetSessionSnapshot = async () => ({
-    threadId: 'agent-thread:desktop-owned-runtime-thread',
+    threadId: 'agent-thread:runtime-owned',
   });
 
   const result = await module.probeZhiyuRuntimeConversationHome(localAgentReady());
 
   assert.equal(result.ready, true);
-  assert.equal(result.conversationAnchorId, 'agent_anchor_desktop');
-  assert.equal(result.threadId, 'agent-thread:desktop-owned-runtime-thread');
-  assert.equal(opened.length, 0, 'Zhiyu must not replace the sole Runtime-owned Desktop anchor');
-  assert.equal(listed.length, 1);
-  assert.deepEqual(listed[0].statusFilter, ['active']);
-  assert.equal(listed[0].pageSize, 2);
+  assert.equal(result.conversationAnchorId, 'agent_anchor_resumed');
+  assert.equal(result.threadId, 'agent-thread:runtime-owned');
+  assert.equal(opened.length, 1);
+  assert.equal(opened[0].agentHandle, 'opaque-owner-agent-handle');
+  assert.equal(opened[0].disposition, 'create-or-resume');
 });
 
-test('Zhiyu conversation home fails closed instead of guessing between active Runtime anchors', async () => {
+test('Zhiyu conversation home never calls account-wide conversation inventory', async () => {
   const module = await importConversationHome();
   globalThis.window = {};
   globalThis.__zhiyuConversationAnchorStorageValue = null;
-  const opened = [];
-  globalThis.__zhiyuConversationHomeTestListSummaries = async (request) => ({
-    summaries: ['one', 'two'].map((suffix) => ({
-      anchor: {
-        conversationAnchorId: `agent_anchor_${suffix}`,
-        ownerUserId: request.ownerUserId,
-        runtimeSourceRef: request.runtimeSourceRef,
-        localAgentRef: request.localAgentRef,
-        agentId: request.localAgentRef,
-      },
-      transcriptMessageCount: 2,
-    })),
-  });
-  globalThis.__zhiyuConversationHomeTestOpenConversation = async (request) => {
-    opened.push(request);
-    return { anchor: { conversationAnchorId: 'agent_anchor_replacement' } };
+  let listed = false;
+  globalThis.__zhiyuConversationHomeTestListSummaries = async () => {
+    listed = true;
+    throw new Error('forbidden inventory wire');
   };
+  globalThis.__zhiyuConversationHomeTestOpenConversation = async () => ({
+    anchor: { conversationAnchorId: 'agent_anchor_local_app' },
+  });
 
   const result = await module.probeZhiyuRuntimeConversationHome(localAgentReady());
 
-  assert.equal(result.ready, false);
-  assert.equal(result.reasonCode, 'zhiyu-conversation-anchor-ambiguous');
-  assert.equal(opened.length, 0);
+  assert.equal(result.ready, true);
+  assert.equal(result.conversationAnchorId, 'agent_anchor_local_app');
+  assert.equal(listed, false);
 });
 
 test('Zhiyu conversation home treats materialized inventory identity as terminal before opening an anchor', async () => {
@@ -155,12 +129,8 @@ test('Zhiyu conversation home clears a stale anchor binding before opening a rep
     return { threadId: `runtime-thread:${request.conversationAnchorId}` };
   };
 
-  const first = await module.probeZhiyuRuntimeConversationHome(localAgentReady({
-    localAgentRef: 'runtime-local-agent:stale',
-  }));
-  const second = await module.probeZhiyuRuntimeConversationHome(localAgentReady({
-    localAgentRef: 'runtime-local-agent:stale',
-  }));
+  const first = await module.probeZhiyuRuntimeConversationHome(localAgentReady('opaque-stale-agent-handle'));
+  const second = await module.probeZhiyuRuntimeConversationHome(localAgentReady('opaque-stale-agent-handle'));
 
   assert.equal(first.conversationAnchorId, 'agent_anchor_1');
   assert.equal(second.conversationAnchorId, 'agent_anchor_2');
@@ -192,13 +162,9 @@ test('Zhiyu conversation home restores anchor binding from standard shell storag
     return { threadId: `runtime-thread:${request.conversationAnchorId}`, transcript: [] };
   };
 
-  const first = await module.probeZhiyuRuntimeConversationHome(localAgentReady({
-    localAgentRef: 'runtime-local-agent:persisted',
-  }));
+  const first = await module.probeZhiyuRuntimeConversationHome(localAgentReady('opaque-persisted-agent-handle'));
   const restartedModule = await importConversationHome();
-  const restored = await restartedModule.probeZhiyuRuntimeConversationHome(localAgentReady({
-    localAgentRef: 'runtime-local-agent:persisted',
-  }));
+  const restored = await restartedModule.probeZhiyuRuntimeConversationHome(localAgentReady('opaque-persisted-agent-handle'));
 
   assert.equal(first.ready, true);
   assert.equal(restored.ready, true);
@@ -248,11 +214,24 @@ function zhiyuRuntimePlatformStubPlugin() {
       buildApi.onLoad({ filter: /.*/, namespace: 'zhiyu-runtime-platform-stub' }, () => ({
         loader: 'js',
         contents: `
-          import { Runtime } from '@nimiplatform/sdk/runtime';
-          let runtime;
-          export function getZhiyuRuntime() {
-            runtime ??= new Runtime({ appId: 'nimi.zhiyu', transport: { type: 'test' } });
-            return runtime;
+          export function getZhiyuLocalAppClient() {
+            return {
+              conversation: {
+                async open(request) {
+                  if (typeof globalThis.__zhiyuConversationHomeTestOpenConversation !== 'function') {
+                    throw new Error('missing open test hook');
+                  }
+                  const result = await globalThis.__zhiyuConversationHomeTestOpenConversation(request);
+                  return { conversationAnchorId: result.conversationAnchorId || result.anchor?.conversationAnchorId };
+                },
+                async snapshot(request) {
+                  if (typeof globalThis.__zhiyuConversationHomeTestGetSessionSnapshot === 'function') {
+                    return globalThis.__zhiyuConversationHomeTestGetSessionSnapshot(request);
+                  }
+                  return { threadId: 'runtime-thread:' + request.conversationAnchorId };
+                },
+              },
+            };
           }
         `,
       }));
@@ -279,6 +258,12 @@ function workspaceKitSourceAliasPlugin() {
               permission: {
                 async status(input) { return { state: 'unavailable', ...input, canRequest: false, reasonCode: 'permission-not-admitted' }; },
                 async request(input) { return { state: 'unavailable', ...input, canRequest: false, reasonCode: 'permission-not-admitted' }; },
+              },
+              conversation: {
+                async open() { throw new Error('not used by storage client'); },
+                async send() { throw new Error('not used by storage client'); },
+                async subscribe() { throw new Error('not used by storage client'); },
+                async snapshot() { throw new Error('not used by storage client'); },
               },
               storage: {
                 async readJson() {
@@ -379,6 +364,11 @@ function workspaceSdkSourceAliasPlugin() {
             };
           }
           export function projectRuntimeLocalAgentIdentity(input) {
+            if (typeof input.localAgentRef !== 'string' || !input.localAgentRef.startsWith('local-agent:')) {
+              throw Object.assign(new Error('runtime local agent identity localAgentRef is malformed'), {
+                reasonCode: 'AI_INPUT_INVALID',
+              });
+            }
             return input;
           }
         `,
@@ -387,17 +377,17 @@ function workspaceSdkSourceAliasPlugin() {
   };
 }
 
-function localAgentReady(overrides = {}) {
+function localAgentReady(agentHandle = 'opaque-owner-agent-handle') {
   return {
     transport: 'electron-ipc',
     ready: true,
     reasonCode: 'runtime-local-agent-selected',
     actionHint: 'open_runtime_conversation_anchor',
     source: 'runtime',
-    message: 'Runtime LocalAgent is selected.',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:opaque',
-    localAgentRef: 'runtime-local-agent:opaque',
-    ...overrides,
+    message: 'Runtime account-covered Agent handle is selected.',
+    agentHandle,
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
   };
 }

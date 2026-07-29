@@ -25,15 +25,21 @@ import { zhiyuAgentAIConfigRouteInputFromEvidence } from './agent-ai-config-rout
 import { projectZhiyuCompanionFromRuntimeProjectionEvents } from '../agent-chat/agent-conversation-state';
 import { projectZhiyuVoiceCaptureReadiness } from '../agent-chat/voice-capture-evidence';
 import type { ZhiyuCanonicalRendererBindings, ZhiyuVoiceCaptureControllerPort } from '../../renderer/contract';
+import { sameZhiyuRuntimeAgentInventory } from '../agent/agent-inventory-projection';
+import {
+  isZhiyuDirectLocalAppSubmitEnabled,
+  refreshZhiyuDirectLocalAppSubmitGate,
+} from './direct-local-app-submit-gate';
 
 export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRendererBindings }) {
   const { bindings } = props;
   const [evidence, setEvidence] = useState<ZhiyuEvidence>(() => createInitialZhiyuEvidence());
-  const [selectedLocalAgentRef, setSelectedLocalAgentRef] = useState<string | null>(null);
+  const [selectedAgentHandle, setSelectedAgentHandle] = useState<string | null>(null);
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
   const activeChatAbortRef = useRef<AbortController | null>(null);
   const activeVoiceCaptureRef = useRef<ZhiyuVoiceCaptureControllerPort | null>(null);
+  const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
   const agentAIConfigRouteInputRef = useRef<ZhiyuAgentAIConfigRouteEvidenceInput>({ subjectUserId: '' });
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
@@ -43,6 +49,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   useEffect(() => {
     const routeInput = zhiyuAgentAIConfigRouteInputFromEvidence(renderEvidence);
     agentAIConfigRouteInputRef.current = routeInput;
+    latestAgentInventoryRef.current = renderEvidence.inventory;
     bindings.app.events.onProjectionChanged?.(renderEvidence);
     latestConversationIdentityRef.current = zhiyuRuntimeChatApplyIdentity(renderEvidence.conversation);
   }, [bindings, renderEvidence]);
@@ -50,12 +57,12 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   useEffect(() => {
     let active = true;
     void (async () => {
-      const home = await bindings.app.projection.loadHome({ selectedLocalAgentRef });
+      const home = await bindings.app.projection.loadHome({ selectedAgentHandle });
       if (!active) {
         return;
       }
       setEvidence((current) => {
-        const turn = bindings.app.projection.projectTurnReadiness(home.conversation, current.route);
+        const turn = bindings.app.projection.projectTurnReadiness(home.conversation, home.inventory);
         return {
           ...current,
           ...home,
@@ -66,13 +73,43 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     return () => {
       active = false;
     };
-  }, [bindings, selectedLocalAgentRef, selectedLocalAgentRefreshKey]);
+  }, [bindings, selectedAgentHandle, selectedLocalAgentRefreshKey]);
+
+  useEffect(() => {
+    let active = true;
+    let inFlight = false;
+    const refreshPermissionProjection = async () => {
+      if (!active || inFlight) return;
+      inFlight = true;
+      try {
+        const inventory = await bindings.app.projection.loadAgentInventory();
+        if (!active || sameZhiyuRuntimeAgentInventory(latestAgentInventoryRef.current, inventory)) return;
+        latestAgentInventoryRef.current = inventory;
+        setEvidence((current) => ({ ...current, inventory }));
+        setSelectedLocalAgentRefreshKey((current) => current + 1);
+      } finally {
+        inFlight = false;
+      }
+    };
+    const handleWindowFocus = () => {
+      void refreshPermissionProjection();
+    };
+    const interval = window.setInterval(() => {
+      void refreshPermissionProjection();
+    }, 2_000);
+    window.addEventListener('focus', handleWindowFocus);
+    void refreshPermissionProjection();
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [bindings]);
 
   const applyExecutionRoute = useCallback((route: ZhiyuEvidence['route']) => {
     setEvidence((current) => ({
       ...current,
       route,
-      turn: bindings.app.projection.projectTurnReadiness(current.conversation, route),
       voiceCapture: current.voiceCapture.state === 'recording' || current.voiceCapture.state === 'transcribing'
         ? current.voiceCapture
         : projectZhiyuVoiceCaptureReadiness(route),
@@ -192,24 +229,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     [bindings, renderEvidence],
   );
 
-  const recoverableFailedTurn = renderEvidence.chat.state === 'failed'
-    && renderEvidence.chat.source === 'runtime'
-    && renderEvidence.turn.source === 'runtime'
-    && Boolean(renderEvidence.chat.requestId)
-    && renderEvidence.chat.requestId === renderEvidence.turn.requestId
-    && Boolean(renderEvidence.turn.messageId);
-  const recoverableCanceledTurn = renderEvidence.chat.state === 'canceled'
-    && renderEvidence.chat.reasonCode === 'runtime-agent-chat-user-canceled'
-    && renderEvidence.turn.reasonCode === 'runtime-agent-chat-user-canceled'
-    && Boolean(renderEvidence.chat.requestId)
-    && renderEvidence.chat.requestId === renderEvidence.turn.requestId;
-  const turnSubmitReady = renderEvidence.turn.ready || recoverableFailedTurn || recoverableCanceledTurn;
-  const submitEnabled = renderEvidence.conversation.ready
-    && renderEvidence.route.ready
-    && turnSubmitReady
-    && renderEvidence.chat.state !== 'streaming'
-    && renderEvidence.composer.submitState !== 'submitting'
-    && draft.trim().length > 0;
+  const submitEnabled = isZhiyuDirectLocalAppSubmitEnabled({
+    evidence: renderEvidence,
+    draft,
+  });
   const composerState = evidence.chat.state === 'streaming' || evidence.composer.submitState === 'submitting'
     ? 'submitting'
     : submitEnabled
@@ -228,27 +251,32 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         submittedConversation,
         signal: activeChatAbort.signal,
       });
-    // Submit refresh re-reads the runtime AI Config + readiness; the
-    // turn itself carries no bindings (K-AGCORE-147).
-    const refreshedRoute = await bindings.app.projection.loadExecutionRoute(agentAIConfigRouteInputRef.current);
-    const refreshedTurn = bindings.app.projection.projectTurnReadiness(evidence.conversation, refreshedRoute);
+    // Re-read the account permission projection immediately before submit so
+    // revoke, ownership transfer, or Agent deletion cannot use a stale handle.
+    const {
+      inventory: refreshedInventory,
+      turn: refreshedTurn,
+    } = await refreshZhiyuDirectLocalAppSubmitGate({
+      conversation: evidence.conversation,
+      loadAgentInventory: bindings.app.projection.loadAgentInventory,
+      projectTurnReadiness: bindings.app.projection.projectTurnReadiness,
+    });
     if (!submitStillCurrent()) {
       if (activeChatAbortRef.current === activeChatAbort) {
         activeChatAbortRef.current = null;
       }
       return;
     }
-    if (!refreshedRoute.ready || !refreshedTurn.ready) {
+    if (!refreshedTurn.ready) {
       setEvidence((current) => {
         const chat = chatStatusFromSubmitRefreshFailure({
           current: current.chat,
           conversation: current.conversation,
-          route: refreshedRoute,
           turn: refreshedTurn,
         });
         return {
           ...current,
-          route: refreshedRoute,
+          inventory: refreshedInventory,
           turn: refreshedTurn,
           chat,
           composer: {
@@ -268,7 +296,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     const requestId = await bindings.app.commands.allocateTurnRequestId();
     setEvidence((current) => ({
       ...current,
-      route: refreshedRoute,
+      inventory: refreshedInventory,
       turn: refreshedTurn,
       composer: {
         ...current.composer,
@@ -297,7 +325,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     }));
     const submitted = await bindings.app.commands.runTurn({
       conversation: evidence.conversation,
-      route: refreshedRoute,
       text,
       requestId,
       expectedConversationAnchorId: submittedConversation.conversationAnchorId,
@@ -519,14 +546,14 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     }
   }
 
-  function handleSelectLocalAgent(localAgentRef: string) {
-    const selected = localAgentRef.trim();
+  function handleSelectLocalAgent(agentHandle: string) {
+    const selected = agentHandle.trim();
     if (!selected) {
       return;
     }
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_local_agent_changed');
     const initial = createInitialZhiyuEvidence();
-    setSelectedLocalAgentRef(selected);
+    setSelectedAgentHandle(selected);
     setSelectedLocalAgentRefreshKey((current) => current + 1);
     setDraft('');
     setEvidence((current) => ({
@@ -587,6 +614,11 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       onRefreshLocalAgentInventory={() => {
         setSelectedLocalAgentRefreshKey((current) => current + 1);
       }}
+      onRequestAgentInteractionPermission={async () => {
+        const inventory = await bindings.app.commands.requestAgentInteractionPermission();
+        setEvidence((current) => ({ ...current, inventory }));
+      }}
+      onDesktopOpenAgentConfig={bindings.app.commands.openDesktopAgentConfig}
       onDesktopOpenSelectPartner={bindings.app.commands.openDesktopSelectPartner}
       onAvatarLaunch={() => {
         void handleAvatarLaunch();

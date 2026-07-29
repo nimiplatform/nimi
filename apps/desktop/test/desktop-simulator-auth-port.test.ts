@@ -465,7 +465,7 @@ test('Desktop Simulator routes handoff and carry requests through typed interact
     originInstanceId: '1:instance:1',
     targetSurfaceId: 'main',
     route: handoffRoute,
-    card: { title: '在织语中继续', detail: '模拟交接卡片' },
+    card: { title: '在织羽中继续', detail: '模拟交接卡片' },
   });
   assert.equal(handoffResult.ok, true);
   const carryResult = await engine.invoke('desktop.context-projection.request', {

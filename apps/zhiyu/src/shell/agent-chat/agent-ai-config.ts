@@ -1,8 +1,4 @@
-import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
-  createNimiHostRuntimeAgentInspectSurface,
-  createNimiHostRuntimeAgentPresentationProfileSurface,
-  createNimiRuntimeAgentClient,
   type NimiRuntimeAgentAIConfigIntents,
   type NimiRuntimeAgentAIConfigModule,
   type NimiRuntimeAgentAIConfigSnapshot,
@@ -12,11 +8,7 @@ import {
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence, ZhiyuExecutionCapabilityEvidence, ZhiyuAgentAIConfigReadinessState } from '../app/evidence';
-import { getZhiyuRuntime } from '../auth/runtime-platform';
-import {
-  createZhiyuRuntimeAgentAccessScopeRunner,
-  resolveZhiyuRuntimeAgentAccessDecisionFromHost,
-} from './runtime-agent-access';
+import { requireZhiyuLocalAppCapability } from '../auth/runtime-platform';
 
 // Z-AUTH-006: Zhiyu is a pure projection + config-editor surface over the
 // runtime-owned Runtime Agent AI Config (K-AGCORE-144~150). This module never
@@ -79,35 +71,15 @@ export function subscribeZhiyuAgentAIConfigReadiness(
 export function createZhiyuAgentInspectSurface(
   subjectUserId: string,
 ): NimiRuntimeAgentInspectSurface {
-  const { runtime, subject, withScopes } = zhiyuRuntimeAgentProtectedSurface(
-    subjectUserId,
-  );
-  return createNimiHostRuntimeAgentInspectSurface({
-    getRuntime: () => ({
-      appId: 'nimi.zhiyu',
-      auth: runtime.auth,
-      agent: runtime.agents,
-    }),
-    getSubjectUserId: () => subject,
-    withScopes,
-  });
+  void subjectUserId;
+  return requireZhiyuLocalAppCapability('agent-inspect');
 }
 
 export function createZhiyuAgentPresentationProfileSurface(
   subjectUserId: string,
 ): NimiRuntimeAgentPresentationProfileSurface {
-  const { runtime, subject, withScopes } = zhiyuRuntimeAgentProtectedSurface(
-    subjectUserId,
-  );
-  return createNimiHostRuntimeAgentPresentationProfileSurface({
-    getRuntime: () => ({
-      appId: 'nimi.zhiyu',
-      auth: runtime.auth,
-      agent: runtime.agents,
-    }),
-    getSubjectUserId: () => subject,
-    withScopes,
-  });
+  void subjectUserId;
+  return requireZhiyuLocalAppCapability('agent-presentation-profile');
 }
 
 // Startup + on-demand refresh: one committed-config read plus one readiness
@@ -257,19 +229,6 @@ export function zhiyuAgentAIConfigRouteUnavailable(error: unknown): ZhiyuRuntime
 function zhiyuAgentAIConfigModule(
   subjectUserId: string,
 ): NimiRuntimeAgentAIConfigModule {
-  const { runtime, subject, withScopes } = zhiyuRuntimeAgentProtectedSurface(subjectUserId);
-  const client = createNimiRuntimeAgentClient({
-    runtime,
-    appId: 'nimi.zhiyu',
-    getSubjectUserId: () => subject,
-    withScopes,
-  });
-  return client.agentAIConfig;
-}
-
-function zhiyuRuntimeAgentProtectedSurface(
-  subjectUserId: string,
-) {
   const subject = subjectUserId.trim();
   if (!subject) {
     throw Object.assign(new Error('Zhiyu Runtime Agent AI Config requires an authenticated subject user id.'), {
@@ -278,20 +237,7 @@ function zhiyuRuntimeAgentProtectedSurface(
       source: 'renderer',
     });
   }
-  if (typeof window === 'undefined' || !hasElectronRuntime()) {
-    throw Object.assign(new Error('Electron Runtime bridge is not available for the Runtime Agent AI Config.'), {
-      reasonCode: 'electron-runtime-bridge-unavailable',
-      actionHint: 'restart_zhiyu_electron_shell',
-      source: 'renderer',
-    });
-  }
-  // Fail closed before any RPC when the host has not injected the current
-  // protected local-app operation context.
-  const runtime = getZhiyuRuntime();
-  const withScopes = createZhiyuRuntimeAgentAccessScopeRunner(
-    resolveZhiyuRuntimeAgentAccessDecisionFromHost,
-  );
-  return { runtime, subject, withScopes };
+  return requireZhiyuLocalAppCapability('agent-ai-config');
 }
 
 function normalizeRouteIdentity(

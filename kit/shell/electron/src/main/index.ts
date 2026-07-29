@@ -13,7 +13,9 @@ export {
 export {
   createNimiElectronLocalAppHost,
   NimiElectronLocalAppHostError,
+  type NimiElectronLocalAppAgentHandle,
   type NimiElectronLocalAppHost,
+  type NimiElectronLocalAppPermissionStatus,
   type NimiElectronLocalAppRecord,
 } from './local-app-host.js';
 export { resolveElectronRuntimeDefaults } from './runtime.js';

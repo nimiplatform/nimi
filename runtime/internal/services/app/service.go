@@ -187,7 +187,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 			selector := localappop.Selector{
 				AgentID:              strings.TrimSpace(fields["local_agent_ref"].GetStringValue()),
 				ConversationAnchorID: strings.TrimSpace(fields["conversation_anchor_id"].GetStringValue()),
-				TurnID:               strings.TrimSpace(fields["turn_id"].GetStringValue()),
+				TurnID:               strings.TrimSpace(fields["request_id"].GetStringValue()),
 			}
 			var authorizeErr error
 			localDecision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(ctx, accountservice.LocalAppOperationSendConversationTurn, selector)
@@ -218,10 +218,10 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		cloned.FromAppId = localDecision.AppID
 		cloned.SubjectUserId = localDecision.AccountID
 		payload, payloadOK := proto.Clone(cloned.GetPayload()).(*structpb.Struct)
-		if !payloadOK || strings.TrimSpace(localDecision.OwnerSelectedAgentID) == "" {
+		if !payloadOK || strings.TrimSpace(localDecision.LocalAgentID) == "" {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
 		}
-		payload.Fields["local_agent_ref"] = structpb.NewStringValue(localDecision.OwnerSelectedAgentID)
+		payload.Fields["local_agent_ref"] = structpb.NewStringValue(localDecision.LocalAgentID)
 		cloned.Payload = payload
 		req = cloned
 	}
@@ -383,14 +383,14 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 		if localDecision.Operation != accountservice.LocalAppOperationSubscribeConversation || len(req.GetFromAppIds()) != 1 || req.GetFromAppIds()[0] != "runtime.agent" || strings.TrimSpace(req.GetLocalAgentRef()) == "" || strings.TrimSpace(req.GetConversationAnchorId()) == "" {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 		}
-		selectorHandle := strings.TrimSpace(req.GetLocalAgentRef())
+		agentHandle := strings.TrimSpace(req.GetLocalAgentRef())
 		cloned, ok := proto.Clone(req).(*runtimev1.SubscribeAppMessagesRequest)
-		if !ok || strings.TrimSpace(localDecision.OwnerSelectedAgentID) == "" {
+		if !ok || strings.TrimSpace(localDecision.LocalAgentID) == "" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 		cloned.AppId = localDecision.AppID
 		cloned.SubjectUserId = localDecision.AccountID
-		cloned.LocalAgentRef = localDecision.OwnerSelectedAgentID
+		cloned.LocalAgentRef = localDecision.LocalAgentID
 		req = cloned
 		if s.localAppConversationScope == nil || s.localAppConversationScope.ValidateLocalAppConversationScope(
 			localAppContext, strings.TrimSpace(req.GetLocalAgentRef()), strings.TrimSpace(req.GetConversationAnchorId()),
@@ -401,7 +401,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 		}
 		localAppSelector = localappop.Selector{
-			AgentID: selectorHandle, ConversationAnchorID: strings.TrimSpace(req.GetConversationAnchorId()),
+			AgentID: agentHandle, ConversationAnchorID: strings.TrimSpace(req.GetConversationAnchorId()),
 		}
 	}
 	if protectedAuthorized {

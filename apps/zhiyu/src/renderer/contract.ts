@@ -36,11 +36,12 @@ export interface ZhiyuRendererProjectionPort {
     readonly appearance: AgentCenterAppearanceAdapter;
     readonly runtime: AgentCenterRuntimeAdapter | null;
   };
-  loadHome(input: { readonly selectedLocalAgentRef: string | null }): Promise<ZhiyuHomeProjection>;
+  loadHome(input: { readonly selectedAgentHandle: string | null }): Promise<ZhiyuHomeProjection>;
+  loadAgentInventory(): Promise<ZhiyuEvidence['inventory']>;
   loadExecutionRoute(input: ZhiyuAgentAIConfigRouteEvidenceInput): Promise<ZhiyuEvidence['route']>;
   projectTurnReadiness(
     conversation: ZhiyuEvidence['conversation'],
-    route: ZhiyuEvidence['route'],
+    inventory: ZhiyuEvidence['inventory'],
   ): ZhiyuEvidence['turn'];
   hydrateConversation(input: {
     readonly ownerUserId: string;
@@ -73,6 +74,8 @@ export interface ZhiyuRendererCommandPort {
     readonly onStateChange: (state: ZhiyuVoiceCaptureEvidence) => void;
   }): ZhiyuVoiceCaptureControllerPort;
   runVoicePlayback(evidence: ZhiyuEvidence): Promise<ZhiyuEvidence['companion']>;
+  requestAgentInteractionPermission(): Promise<ZhiyuEvidence['inventory']>;
+  openDesktopAgentConfig(): Promise<void>;
   openDesktopSelectPartner(): Promise<ZhiyuDesktopOpenActionResult>;
   launchAvatar(input: {
     readonly evidence: ZhiyuEvidence;

@@ -20,12 +20,12 @@ func TestLocalAppConversationResumeIsPrincipalScopedAndCreateNewStaysExplicit(t 
 			t.Fatal(err)
 		}
 		ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
-			AppID:                "nimi.zhiyu",
-			AccountID:            fixture.ownerUserID,
-			LocalAppPrincipalID:  principalID,
-			LocalAppRecordID:     "record-" + principalID,
-			OwnerSelectedAgentID: fixture.localAgentRef,
-			Operation:            accountservice.LocalAppOperationOpenConversation,
+			AppID:               "nimi.zhiyu",
+			AccountID:           fixture.ownerUserID,
+			LocalAppPrincipalID: principalID,
+			LocalAppRecordID:    "record-" + principalID,
+			LocalAgentID:        fixture.localAgentRef,
+			Operation:           accountservice.LocalAppOperationOpenConversation,
 		})
 		response, err := svc.OpenConversationAnchor(ctx, &runtimev1.OpenConversationAnchorRequest{
 			AgentId:  fixture.localAgentRef,
@@ -70,7 +70,7 @@ func TestLocalAppConversationRejectsMissingTrustedDisposition(t *testing.T) {
 	fixture := initializeLocalAppConversationAgentFixture(t, svc)
 	ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
 		AppID: "nimi.zhiyu", AccountID: fixture.ownerUserID, LocalAppPrincipalID: "principal-a",
-		LocalAppRecordID: "record-a", OwnerSelectedAgentID: fixture.localAgentRef, Operation: accountservice.LocalAppOperationOpenConversation,
+		LocalAppRecordID: "record-a", LocalAgentID: fixture.localAgentRef, Operation: accountservice.LocalAppOperationOpenConversation,
 	})
 	if _, err := svc.OpenConversationAnchor(ctx, &runtimev1.OpenConversationAnchorRequest{AgentId: fixture.localAgentRef}); err == nil {
 		t.Fatal("local-app open accepted a missing trusted anchor disposition")

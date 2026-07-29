@@ -79,7 +79,7 @@ type LocalAgentOwnerProjection struct {
 
 type LocalAgentOwnershipResolver interface {
 	OwnsActiveLocalAgent(context.Context, string, string) (bool, error)
-	ProjectOwnedLocalAgent(context.Context, string, string) (LocalAgentOwnerProjection, error)
+	ListOwnedActiveLocalAgents(context.Context, string) ([]LocalAgentOwnerProjection, error)
 }
 
 // LocalAppCallerDecision is an immutable per-call origin/account decision.
@@ -100,7 +100,7 @@ type LocalAppCallerDecision struct {
 	Operation               LocalAppOperation
 	AuthorityClass          localappop.AuthorityClass
 	OperationCapability     string
-	OwnerSelectedAgentID    string
+	LocalAgentID            string
 	TrustClass              LocalAppTrustClass
 	AuthorizationID         protectedlocal.Identifier
 	AuthorizationGeneration uint64

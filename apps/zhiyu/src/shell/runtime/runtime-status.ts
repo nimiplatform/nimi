@@ -1,7 +1,6 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { getZhiyuRuntime } from '../auth/runtime-platform';
+import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from './electron-runtime-unavailable';
 
 export type ZhiyuRuntimeStatus = ZhiyuEvidence['runtime'];
@@ -18,18 +17,17 @@ export async function probeZhiyuRuntimeStatus(): Promise<ZhiyuRuntimeStatus> {
     };
   }
 
-  const runtime = getZhiyuRuntime();
-
   try {
-    const health = await runtime.ready();
-    const statusLabel = runtimeHealthStatusLabel(health.status);
+    const session = await getZhiyuLocalAppClient().auth.status();
     return {
       transport: 'electron-ipc',
-      ready: health.status === RuntimeHealthStatus.READY,
-      reasonCode: String(health.reason || statusLabel || 'runtime-ready'),
-      actionHint: 'none',
+      ready: session.sessionBound,
+      reasonCode: session.reasonCode,
+      actionHint: session.actionHint,
       source: 'runtime',
-      message: `Runtime status: ${statusLabel}.`,
+      message: session.sessionBound
+        ? 'Zhiyu local-app session is bound.'
+        : 'Zhiyu local-app session requires attention.',
     };
   } catch (error) {
     return serializeRuntimeStatusError(error);
@@ -51,10 +49,4 @@ function serializeRuntimeStatusError(error: unknown): ZhiyuRuntimeStatus {
 
 function stringOr(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
-}
-
-function runtimeHealthStatusLabel(status: unknown): string {
-  return typeof status === 'number'
-    ? RuntimeHealthStatus[status] ?? String(status)
-    : String(status || RuntimeHealthStatus.UNSPECIFIED);
 }

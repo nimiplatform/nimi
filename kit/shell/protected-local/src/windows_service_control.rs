@@ -29,7 +29,8 @@ use crate::{
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
     DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
-    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest,
+    DesktopPermissionOwnerUnaryRequest, DesktopPermissionOwnerUnaryResponse, DeveloperModeStatus,
     LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
@@ -227,6 +228,21 @@ impl NimiDesktopControl for WindowsDesktopControl {
             self.channel(),
             request,
         ))
+    }
+
+    fn invoke_permission_owner_unary(
+        &self,
+        request: DesktopPermissionOwnerUnaryRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopPermissionOwnerUnaryResponse, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(
+            crate::windows_desktop_account::invoke_permission_owner_unary(self.channel(), request),
+        )
     }
 
     fn begin_account_login(

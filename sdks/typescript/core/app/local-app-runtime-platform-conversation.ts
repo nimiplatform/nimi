@@ -1,4 +1,5 @@
 import type { JsonObject, JsonValue } from '../../types/index.js';
+import type { NimiLocalAppAgentHandle } from './permission-types.js';
 import {
   asRecord,
   assertExactKeys,
@@ -11,15 +12,10 @@ import {
   requireText,
 } from './local-app-runtime-platform-validation.js';
 
-declare const selectedAgentHandleBrand: unique symbol;
-
-/** Opaque owner-issued selector. Apps cannot use a raw LocalAgent id as authority input. */
-export type NimiSelectedAgentHandle = string & {
-  readonly [selectedAgentHandleBrand]: 'owner-issued-selected-agent-handle';
-};
+export type { NimiLocalAppAgentHandle } from './permission-types.js';
 
 export type NimiLocalAppConversationOpenInput = {
-  readonly selectedAgentHandle: NimiSelectedAgentHandle;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly disposition: 'create-or-resume' | 'create-new';
 };
 
@@ -30,7 +26,7 @@ export type NimiLocalAppConversationOpenResult = {
 };
 
 export type NimiLocalAppConversationSendInput = {
-  readonly selectedAgentHandle: NimiSelectedAgentHandle;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly requestId: string;
   readonly text: string;
@@ -41,7 +37,7 @@ export type NimiLocalAppConversationSendResult = {
 };
 
 export type NimiLocalAppConversationScopeInput = {
-  readonly selectedAgentHandle: NimiSelectedAgentHandle;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
 };
 
@@ -69,21 +65,21 @@ export type NimiLocalAppConversationShellSubscription = {
 
 export type NimiLocalAppConversationShell = {
   readonly open: (input: {
-    readonly selectedAgentHandle: string;
+    readonly agentHandle: string;
     readonly disposition: NimiLocalAppConversationOpenInput['disposition'];
   }) => Promise<unknown>;
   readonly send: (input: {
-    readonly selectedAgentHandle: string;
+    readonly agentHandle: string;
     readonly conversationAnchorId: string;
     readonly requestId: string;
     readonly text: string;
   }) => Promise<unknown>;
   readonly subscribe: (input: {
-    readonly selectedAgentHandle: string;
+    readonly agentHandle: string;
     readonly conversationAnchorId: string;
   }) => Promise<NimiLocalAppConversationShellSubscription>;
   readonly snapshot: (input: {
-    readonly selectedAgentHandle: string;
+    readonly agentHandle: string;
     readonly conversationAnchorId: string;
   }) => Promise<unknown>;
 };
@@ -91,9 +87,9 @@ export type NimiLocalAppConversationShell = {
 export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversationShell) {
   return Object.freeze({
     open: async (input: NimiLocalAppConversationOpenInput): Promise<NimiLocalAppConversationOpenResult> => {
-      assertExactKeys(input, ['selectedAgentHandle', 'disposition'], 'local-app conversation open input');
+      assertExactKeys(input, ['agentHandle', 'disposition'], 'local-app conversation open input');
       assertNoAuthorityMaterial(input);
-      const selectedAgentHandle = requireText(input.selectedAgentHandle, 'selectedAgentHandle');
+      const agentHandle = requireText(input.agentHandle, 'agentHandle');
       if (input.disposition !== 'create-or-resume' && input.disposition !== 'create-new') {
         return localAppError(
           'Local-app conversation disposition is invalid.',
@@ -101,12 +97,12 @@ export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversa
           'use_declared_conversation_disposition',
         );
       }
-      return projectOpen(await shell.open({ selectedAgentHandle, disposition: input.disposition }));
+      return projectOpen(await shell.open({ agentHandle, disposition: input.disposition }));
     },
     send: async (input: NimiLocalAppConversationSendInput): Promise<NimiLocalAppConversationSendResult> => {
       assertExactKeys(
         input,
-        ['selectedAgentHandle', 'conversationAnchorId', 'requestId', 'text'],
+        ['agentHandle', 'conversationAnchorId', 'requestId', 'text'],
         'local-app conversation send input',
       );
       assertNoAuthorityMaterial(input);
@@ -119,7 +115,7 @@ export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversa
         );
       }
       const value = await shell.send({
-        selectedAgentHandle: requireText(input.selectedAgentHandle, 'selectedAgentHandle'),
+        agentHandle: requireText(input.agentHandle, 'agentHandle'),
         conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
         requestId: requireText(input.requestId, 'requestId'),
         text,
@@ -172,15 +168,15 @@ export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversa
 function conversationScope(
   input: NimiLocalAppConversationScopeInput,
   operation: string,
-): { readonly selectedAgentHandle: string; readonly conversationAnchorId: string } {
+): { readonly agentHandle: string; readonly conversationAnchorId: string } {
   assertExactKeys(
     input,
-    ['selectedAgentHandle', 'conversationAnchorId'],
+    ['agentHandle', 'conversationAnchorId'],
     `local-app conversation ${operation} input`,
   );
   assertNoAuthorityMaterial(input);
   return {
-    selectedAgentHandle: requireText(input.selectedAgentHandle, 'selectedAgentHandle'),
+    agentHandle: requireText(input.agentHandle, 'agentHandle'),
     conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
   };
 }

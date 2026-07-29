@@ -4,6 +4,7 @@ import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { deriveIconGlyph } from './apps-card-fields.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
+import { LocalAppPermissionSettings } from './local-app-permission-settings.js';
 
 export interface AppsDetailViewProps {
   readonly entry: DesktopAppsEntry | null;
@@ -68,6 +69,8 @@ export function AppsDetailView({
             </ul>
           )}
         </div>
+
+        <LocalAppPermissionSettings displayAppId={authorization.appId} />
       </div>
     </OverlayShell>
   );

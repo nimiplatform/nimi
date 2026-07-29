@@ -52,6 +52,7 @@ import section59 from './60-Downloads.json';
 import section60 from './61-DeveloperTools.json';
 import section61 from './62-Agents.json';
 import section62 from './63-LocalDevelopment.json';
+import section63 from './64-AppPermissions.json';
 
 const messages = {
   "Navigation": section0,
@@ -108,6 +109,7 @@ const messages = {
   "DeveloperTools": section60,
   "Agents": section61,
   "LocalDevelopment": section62,
+  "AppPermissions": section63,
 };
 
 export default messages;

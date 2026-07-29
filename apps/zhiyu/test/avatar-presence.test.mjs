@@ -177,23 +177,15 @@ test('fails closed when Runtime presentation profile is not projected', async ()
   assert.equal(avatar.voiceReadiness, 'not_projected');
 });
 
-test('fails closed before default Runtime presentation read when Electron bridge is unavailable', async () => {
+test('fails closed when Avatar presence is not admitted on the local-app carrier', async () => {
   const { probeZhiyuAvatarPresence } = await loadModule();
-  let called = false;
-  const avatar = await probeZhiyuAvatarPresence(localAgentReady(), {
-    hasRuntimeBridge: async () => false,
-    readPresentationProfile: async () => {
-      called = true;
-      return runtimePresentationProfile();
-    },
-  });
+  const avatar = await probeZhiyuAvatarPresence(localAgentReady());
 
-  assert.equal(called, false);
   assert.equal(avatar.ready, false);
   assert.equal(avatar.state, 'blocked');
-  assert.equal(avatar.reasonCode, 'electron-runtime-bridge-unavailable');
-  assert.equal(avatar.actionHint, 'restart_zhiyu_electron_shell');
-  assert.equal(avatar.source, 'renderer');
+  assert.equal(avatar.reasonCode, 'zhiyu-avatar-presence-capability-not-admitted');
+  assert.equal(avatar.actionHint, 'admit_zhiyu_avatar_presence_capability');
+  assert.equal(avatar.source, 'sdk');
   assert.equal(avatar.projectionRef, null);
 });
 

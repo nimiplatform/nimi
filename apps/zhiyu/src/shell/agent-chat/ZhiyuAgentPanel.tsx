@@ -7,26 +7,26 @@ import nimiLogoImage from '../assets/logo.png';
 type DesktopPresenceRailProps = {
   readonly agents: readonly {
     readonly itemKey: string;
-    readonly localAgentRef: string | null;
+    readonly agentHandle: string | null;
     readonly displayName?: string | null;
     readonly sourceReady: boolean;
   }[];
-  readonly currentLocalAgentRef: string | null;
+  readonly currentAgentHandle: string | null;
   readonly currentPartnerName: string;
   readonly hasCurrentPartner: boolean;
   readonly onOpenCurrentAgent: () => void;
   readonly onOpenSettings: () => void;
-  readonly onSelectLocalAgent: (localAgentRef: string) => void;
+  readonly onSelectAgent: (agentHandle: string) => void;
 };
 
 export function DesktopPresenceRail({
   agents,
-  currentLocalAgentRef,
+  currentAgentHandle,
   currentPartnerName,
   hasCurrentPartner,
   onOpenCurrentAgent,
   onOpenSettings,
-  onSelectLocalAgent,
+  onSelectAgent,
 }: DesktopPresenceRailProps) {
   return (
     <Surface
@@ -50,12 +50,12 @@ export function DesktopPresenceRail({
         {agents.length > 0 ? <div className="zhiyu-agent-rail__separator" aria-hidden="true" /> : null}
         {agents.map((agent) => {
           const displayName = normalizedDisplayName(agent.displayName) ?? currentPartnerName;
-          const isCurrent = hasCurrentPartner && agent.localAgentRef === currentLocalAgentRef;
+          const isCurrent = hasCurrentPartner && agent.agentHandle === currentAgentHandle;
           const sourceReady = agent.sourceReady === true;
-          const canSelect = Boolean(agent.localAgentRef) && sourceReady && !isCurrent;
+          const canSelect = Boolean(agent.agentHandle) && sourceReady && !isCurrent;
           return (
             <div
-              key={agent.localAgentRef ?? agent.itemKey}
+              key={agent.agentHandle ?? agent.itemKey}
               className={`zhiyu-agent-rail__agent-row${sourceReady ? '' : ' is-unavailable'}`}
               data-zhiyu-local-agent-row="true"
               data-zhiyu-local-agent-source-ready={String(sourceReady)}
@@ -72,11 +72,11 @@ export function DesktopPresenceRail({
                 data-zhiyu-local-agent-candidate="true"
                 data-zhiyu-local-agent-candidate-active={String(isCurrent)}
                 data-zhiyu-local-agent-candidate-ready={String(sourceReady)}
-                data-zhiyu-local-agent-ref={agent.localAgentRef ?? ''}
-                disabled={!agent.localAgentRef || !sourceReady}
+                data-zhiyu-agent-handle={agent.agentHandle ?? ''}
+                disabled={!agent.agentHandle || !sourceReady}
                 onClick={() => {
-                  if (canSelect && agent.localAgentRef) {
-                    onSelectLocalAgent(agent.localAgentRef);
+                  if (canSelect && agent.agentHandle) {
+                    onSelectAgent(agent.agentHandle);
                     return;
                   }
                   if (isCurrent) {

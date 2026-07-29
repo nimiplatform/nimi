@@ -4,7 +4,7 @@ import type {
   NimiRuntimeAgentMemoryObservatorySnapshot,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence } from '../app/evidence';
-import type { ZhiyuLocalAgentStatus } from './local-agent-discovery';
+import type { ZhiyuLocalAgentStatus } from './local-agent-status';
 
 const APP_ID = 'nimi.zhiyu';
 const DEFAULT_MAX_RECORDS = 50;
@@ -48,20 +48,18 @@ export async function probeZhiyuRuntimeMemoryObservatory(
     });
   }
 
-  const reader = options.readMemoryObservatory ?? readRuntimeMemoryObservatory;
-  if (!options.readMemoryObservatory && !await hasRuntimeBridge()) {
+  if (!options.readMemoryObservatory) {
     return memoryUnavailable({
-      state: 'runtime-unavailable',
-      reasonCode: 'electron-runtime-bridge-unavailable',
-      actionHint: 'restart_zhiyu_electron_shell',
-      source: 'renderer',
-      message: 'Electron Runtime bridge is not available.',
+      reasonCode: 'zhiyu-memory-observatory-capability-not-admitted',
+      actionHint: 'admit_zhiyu_memory_observatory_capability',
+      source: 'sdk',
+      message: 'Memory Observatory is not admitted on the Zhiyu local-app carrier.',
       ...identity,
     });
   }
 
   try {
-    const snapshot = await reader({
+    const snapshot = await options.readMemoryObservatory({
       ...identity,
       exportedAt: stringOr(options.exportedAt, new Date().toISOString()),
       maxRecords: normalizeMaxRecords(options.maxRecords),
@@ -70,40 +68,6 @@ export async function probeZhiyuRuntimeMemoryObservatory(
   } catch (error) {
     return normalizeMemoryError(error, identity);
   }
-}
-
-async function readRuntimeMemoryObservatory(
-  input: ZhiyuMemoryObservatoryReadInput,
-): Promise<NimiRuntimeAgentMemoryObservatorySnapshot> {
-  const {
-    createNimiRuntimeAgentMemoryObservatory,
-  } = await import('@nimiplatform/sdk/runtime');
-  const {
-    withZhiyuRuntimeAgentAccessRequired,
-  } = await import('../agent-chat/runtime-agent-access');
-  const { getZhiyuRuntime } = await import('../auth/runtime-platform');
-  const runtime = getZhiyuRuntime();
-  return createNimiRuntimeAgentMemoryObservatory({
-    appId: APP_ID,
-    auth: runtime.auth,
-    agent: runtime.agents,
-  }, {
-    ownerUserId: input.ownerUserId,
-    runtimeSourceRef: input.runtimeSourceRef,
-    localAgentRef: input.localAgentRef,
-    exportedAt: input.exportedAt,
-    maxRecords: input.maxRecords,
-    getSubjectUserId: () => input.ownerUserId,
-    withScopes: withZhiyuRuntimeAgentAccessRequired,
-  });
-}
-
-async function hasRuntimeBridge(): Promise<boolean> {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  const { hasElectronRuntime } = await import('@nimiplatform/kit/shell/renderer/bridge');
-  return hasElectronRuntime();
 }
 
 function memoryAvailable(

@@ -13,7 +13,6 @@ import {
   stringOr,
 } from './delegation-ux-projection';
 import {
-  APP_ID,
   type DelegationControlSurface,
   type DelegationIdentity,
   type ZhiyuDelegationUxProbeOptions,
@@ -156,57 +155,12 @@ async function resolveDelegationSurface(
     };
   }
 
-  if (!await runtimeBridgeAvailable(options)) {
-    throw Object.assign(new Error('Electron Runtime bridge is not available.'), {
-      reasonCode: 'electron-runtime-bridge-unavailable',
-      actionHint: 'restart_zhiyu_electron_shell',
-      source: 'renderer',
-    });
-  }
-
-  const {
-    createNimiHostRuntimeAgentDelegatedControlSurface,
-  } = await import('@nimiplatform/sdk/runtime');
-  const {
-    createZhiyuRuntimeAgentAccessScopeRunner,
-    resolveZhiyuRuntimeAgentAccessDecisionFromHost,
-  } = await import('../agent-chat/runtime-agent-access');
-  const { getZhiyuRuntime } = await import('../auth/runtime-platform');
-  const runtimeAccess = resolveZhiyuRuntimeAgentAccessDecisionFromHost();
-  if (runtimeAccess.kind === 'missing') {
-    throw Object.assign(new Error(runtimeAccess.message), {
-      reasonCode: runtimeAccess.reasonCode,
-      actionHint: runtimeAccess.actionHint,
-      source: 'renderer',
-    });
-  }
-  const runtime = getZhiyuRuntime();
-  const sdkSurface = (identity: DelegationIdentity) => createNimiHostRuntimeAgentDelegatedControlSurface({
-    getRuntime: () => ({
-      appId: APP_ID,
-      auth: runtime.auth,
-      agent: runtime.agents,
-    }),
-    getSubjectUserId: () => identity.ownerUserId,
-    withScopes: createZhiyuRuntimeAgentAccessScopeRunner(() => runtimeAccess),
+  void identity;
+  throw Object.assign(new Error('Delegation is not admitted on the Zhiyu local-app carrier.'), {
+    reasonCode: 'zhiyu-delegation-capability-not-admitted',
+    actionHint: 'admit_zhiyu_delegation_capability',
+    source: 'sdk',
   });
-
-  return {
-    loadSnapshot: async (input) => sdkSurface(input).loadSnapshot(input),
-    submitApprovalDecision: async (input) => sdkSurface(input).submitApprovalDecision(input),
-    loadReplayTrace: async (input) => sdkSurface(input).loadReplayTrace(input),
-  };
-}
-
-async function runtimeBridgeAvailable(options: ZhiyuDelegationUxProbeOptions): Promise<boolean> {
-  if (options.hasRuntimeBridge) {
-    return options.hasRuntimeBridge();
-  }
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  const { hasElectronRuntime } = await import('@nimiplatform/kit/shell/renderer/bridge');
-  return hasElectronRuntime();
 }
 
 async function missingSubmitter(): Promise<never> {

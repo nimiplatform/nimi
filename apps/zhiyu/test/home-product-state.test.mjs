@@ -349,7 +349,7 @@ test('projects explicit Runtime inventory selection as current partner without s
     },
   }));
 
-  assert.equal(product.stage, 'route-required');
+  assert.equal(product.stage, 'turn-required');
   assert.equal(product.statusCards.find((card) => card.key === 'source')?.ready, false);
   assert.equal(product.statusCards.find((card) => card.key === 'localAgent')?.ready, true);
 });

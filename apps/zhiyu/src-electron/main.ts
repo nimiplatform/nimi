@@ -56,6 +56,7 @@ app.on('before-quit', () => {
 
 function configureZhiyuElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
+  app.commandLine.appendSwitch('remote-debugging-port', '9333');
 }
 
 app.on('window-all-closed', () => {

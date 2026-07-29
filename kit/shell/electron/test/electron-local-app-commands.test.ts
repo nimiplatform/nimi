@@ -21,7 +21,7 @@ describe('Electron local-app standard-shell operations', () => {
       payload: { payload: { permissionId: 'agents.interact' } },
     })).resolves.toEqual({
       state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
-      reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+      reasonCode: 'local-app-operation-unavailable', agents: [],
     });
     expect(calls).toEqual([['permissionStatus', { permissionId: 'agents.interact' }]]);
   });
@@ -50,10 +50,10 @@ describe('Electron local-app standard-shell operations', () => {
 
   it('reaches all four conversation operations but preserves reserved typed-unavailable', async () => {
     const requests = [
-      ['local-app.conversationOpen', { selectedAgentHandle: 'lash_one', disposition: 'create-new' }],
-      ['local-app.conversationSendTurn', { selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }],
-      ['local-app.conversationSubscribe', { selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
-      ['local-app.conversationSnapshot', { selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
+      ['local-app.conversationOpen', { agentHandle: 'lash_one', disposition: 'create-new' }],
+      ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }],
+      ['local-app.conversationSubscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
+      ['local-app.conversationSnapshot', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
     ] as const;
     for (const [operation, payload] of requests) {
       const ipcMain = new FakeIpcMain();
@@ -105,7 +105,7 @@ describe('Electron local-app standard-shell operations', () => {
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'];
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command,
-      payload: { payload: { selectedAgentHandle: 'lash_one', conversationAnchorId: 'anchor-1' } },
+      payload: { payload: { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' } },
     })).resolves.toEqual({
       subscriptionId: 'conversation-1',
       eventName: 'local-app-conversation.conversation-1',
@@ -158,14 +158,14 @@ function localAppHost(calls: unknown[]) {
       calls.push(['permissionStatus', input]);
       return {
         state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
-        reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+        reasonCode: 'local-app-operation-unavailable', agents: [],
       };
     },
     permissionRequest: async (input: unknown) => {
       calls.push(['permissionRequest', input]);
       return {
         state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
-        reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+        reasonCode: 'local-app-operation-unavailable', agents: [],
       };
     },
     storageReadJson: async (input: unknown) => { calls.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },

@@ -100,19 +100,19 @@ public_permissions:
     decision_owner: runtime
     manifest_allowed: true
     decision_mode: durable_revocable
-    selector_owner: desktop_agent_picker
-    selector_shape: selected_agent_handles
+    selector_owner: runtime
+    selector_shape: account_scope_all_local_agents_including_future
     title_key: AppPermissions.agentsInteract.title
     description_key: AppPermissions.agentsInteract.description
-    user_semantics: interact with user-selected Agents through bounded text conversation operations and receive outputs from those app-owned conversations
-    selector_projection: selected_agent_handles_without_inventory_or_selector_construction
+    user_semantics: interact with every current and future local Agent in the owner-granted account scope through bounded text conversation operations and receive outputs from those app-owned conversations
+    selector_projection: runtime_materialized_opaque_agent_handles_without_pregrant_inventory_or_selector_construction
     internal_operation_families:
       - agent_conversation_open
       - agent_conversation_turn_send
       - agent_conversation_turn_subscribe
       - agent_conversation_snapshot
     forbidden_operation_families:
-      - agent_inventory
+      - agent_inventory_before_owner_grant
       - agent_selector_construction
       - agent_voice_transcribe
       - agent_voice_stream_subscribe
@@ -122,11 +122,11 @@ public_permissions:
       - embedded_avatar_rendering
     invariants:
       - no_zero_permission_full_agent_inventory
-      - only_selected_agent_projection
+      - runtime_materializes_current_and_future_agent_handles_from_account_scope
       - only_calling_app_conversation_anchors
       - microphone_capture_remains_os_right
       - ai_usage_remains_metered
-    atomic_publication_requirement: P-PERM-017 owner-issued Agent picker, durable selected-Agent decision, SDK and Kit surface, Desktop approval and settings UX, revoke, audit, and enforcement at all four endpoint families
+    atomic_publication_requirement: P-PERM-017 Runtime-owned account-scope selector, durable account-scope decision, SDK and Kit surface, Desktop approval and settings UX, revoke, audit, and enforcement at all four endpoint families
   - permission_id: artifacts.open
     admission: reserved
     authority_class: one_shot_consent

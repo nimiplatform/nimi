@@ -1,8 +1,7 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { AccountReasonCode, AccountSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
-import { appId, getRuntimeAccountCaller, getZhiyuRuntime } from './runtime-platform';
+import { getZhiyuLocalAppClient } from './runtime-platform';
 
 export type ZhiyuAuthStatus = ZhiyuEvidence['auth'];
 
@@ -10,39 +9,25 @@ export async function probeZhiyuRuntimeAccountStatus(): Promise<ZhiyuAuthStatus>
   if (typeof window === 'undefined' || !hasElectronRuntime()) {
     return authUnavailable({
       reasonCode: 'electron-runtime-bridge-unavailable',
-      accountReasonCode: 'UNKNOWN',
       actionHint: 'restart_zhiyu_electron_shell',
       source: 'renderer',
       message: 'Electron Runtime bridge is not available.',
     });
   }
 
-  const runtime = getZhiyuRuntime();
-
   try {
-    const response = await runtime.account.getAccountSessionStatus({
-      caller: getRuntimeAccountCaller(),
-    });
-    if (!response.accepted || !response.snapshot) {
-      throw new Error(
-        `Runtime account status rejected: ${accountReasonCodeLabel(response.accountReasonCode)} / ${reasonCodeLabel(response.reasonCode)}`,
-      );
-    }
-    const snapshot = response.snapshot;
-    const stateLabel = accountSessionStateLabel(snapshot.state);
+    const session = await getZhiyuLocalAppClient().auth.status();
     return {
       transport: 'electron-ipc',
-      ready: snapshot.state === AccountSessionState.AUTHENTICATED,
-      state: stateLabel,
-      reasonCode: reasonCodeLabel(snapshot.reasonCode),
-      accountReasonCode: accountReasonCodeLabel(snapshot.accountReasonCode),
-      actionHint: snapshot.state === AccountSessionState.AUTHENTICATED
-        ? 'none'
-        : 'open_runtime_account_login',
+      ready: session.sessionBound,
+      state: session.state,
+      reasonCode: session.reasonCode,
+      accountReasonCode: 'LOCAL_APP_SESSION',
+      actionHint: session.actionHint,
       source: 'runtime',
-      message: `Runtime account session state: ${stateLabel}.`,
-      accountId: stringOr(snapshot.accountProjection?.accountId, null),
-      displayName: stringOr(snapshot.accountProjection?.displayName, null),
+      message: `Local-app Runtime session state: ${session.state}.`,
+      accountId: null,
+      displayName: null,
       productionInert: false,
     };
   } catch (error) {
@@ -55,18 +40,16 @@ function normalizeAccountStatusError(error: unknown): ZhiyuAuthStatus {
   const unavailable = normalizeZhiyuElectronRuntimeUnavailableError(error);
   return authUnavailable({
     reasonCode: unavailable?.reasonCode ?? stringOr(record.reasonCode, 'runtime-account-status-unavailable'),
-    accountReasonCode: 'UNKNOWN',
-    actionHint: unavailable?.actionHint ?? stringOr(record.actionHint, 'check_runtime_account_status'),
+    actionHint: unavailable?.actionHint ?? stringOr(record.actionHint, 'check_local_app_session_status'),
     source: unavailable?.source ?? stringOr(record.source, 'sdk'),
     message: error instanceof Error && error.message.trim()
       ? error.message.trim()
-      : 'Runtime account status is unavailable.',
+      : 'Local-app Runtime session status is unavailable.',
   });
 }
 
 function authUnavailable(input: {
   readonly reasonCode: string;
-  readonly accountReasonCode: string;
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
@@ -74,9 +57,9 @@ function authUnavailable(input: {
   return {
     transport: 'electron-ipc',
     ready: false,
-    state: 'UNAVAILABLE',
+    state: 'unavailable',
     reasonCode: input.reasonCode,
-    accountReasonCode: input.accountReasonCode,
+    accountReasonCode: 'LOCAL_APP_SESSION',
     actionHint: input.actionHint,
     source: input.source,
     message: input.message,
@@ -86,20 +69,6 @@ function authUnavailable(input: {
   };
 }
 
-function accountSessionStateLabel(value: unknown): string {
-  return typeof value === 'number' ? AccountSessionState[value] ?? String(value) : String(value || 'UNSPECIFIED');
-}
-
-function reasonCodeLabel(value: unknown): string {
-  return typeof value === 'number' ? ReasonCode[value] ?? String(value) : String(value || 'UNKNOWN');
-}
-
-function accountReasonCodeLabel(value: unknown): string {
-  return typeof value === 'number' ? AccountReasonCode[value] ?? String(value) : String(value || 'UNKNOWN');
-}
-
-function stringOr(value: unknown, fallback: string): string;
-function stringOr(value: unknown, fallback: null): string | null;
-function stringOr(value: unknown, fallback: string | null): string | null {
+function stringOr(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }

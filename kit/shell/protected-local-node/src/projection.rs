@@ -14,6 +14,10 @@ pub(super) fn project_permission_status(status: LocalAppPermissionStatus) -> Jso
         "permissionId": status.permission_id,
         "canRequest": status.can_request,
         "reasonCode": status.reason_code.as_str(),
+        "agents": status.agents.into_iter().map(|agent| json!({
+            "agentHandle": agent.agent_handle,
+            "displayName": agent.display_name,
+        })).collect::<Vec<_>>(),
     })
 }
 
@@ -355,6 +359,7 @@ mod tests {
             permission_id: "agents.interact".to_string(),
             can_request: false,
             reason_code: LocalAppReasonCode::RuntimePermissionDenied,
+            agents: Vec::new(),
         });
         assert_eq!(value["permissionId"], "agents.interact");
         assert_eq!(value["canRequest"], false);

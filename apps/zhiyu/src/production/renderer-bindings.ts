@@ -4,14 +4,14 @@ import {
   type NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
 import {
-  createNimiRuntimeAgentClient,
-  createNimiRuntimeAgentConsumeClient,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-  type NimiRuntimeAgentConsumeEvent,
 } from '@nimiplatform/sdk/runtime';
 
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
-import { probeZhiyuRuntimeAgentInventory } from '../shell/agent/agent-inventory.js';
+import {
+  probeZhiyuRuntimeAgentInventory,
+  requestZhiyuAgentInteractionPermission,
+} from '../shell/agent/agent-inventory.js';
 import { probeZhiyuRuntimeCompanionState } from '../shell/agent/companion-state.js';
 import { probeZhiyuRuntimeConversationHome } from '../shell/agent/conversation-home.js';
 import { probeZhiyuRuntimeDelegationUx } from '../shell/agent/delegation-ux.js';
@@ -23,15 +23,8 @@ import {
   fetchZhiyuAgentAIConfigRouteEvidence,
   subscribeZhiyuAgentAIConfigReadiness,
 } from '../shell/agent-chat/agent-ai-config.js';
-import {
-  hydrateZhiyuAgentChatFromRuntimeSessionSnapshot,
-  projectZhiyuCompanionFromRuntimeAgentEvent,
-} from '../shell/agent-chat/agent-conversation-state.js';
 import { probeZhiyuAgentTurnReadiness } from '../shell/agent-chat/agent-turn-readiness.js';
 import { runZhiyuAgentChatTurn } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
-import {
-  withZhiyuRuntimeAgentAccessRequired,
-} from '../shell/agent-chat/runtime-agent-access.js';
 import {
   createBrowserVoiceCaptureRecorder,
   createElectronVoiceCaptureTranscriber,
@@ -43,8 +36,10 @@ import { runZhiyuVoicePlaybackAction } from '../shell/app/voice-playback-action.
 import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
 import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
 import { probeZhiyuRuntimeAccountStatus } from '../shell/auth/runtime-account-status.js';
-import { getZhiyuRuntime } from '../shell/auth/runtime-platform.js';
-import { requestZhiyuDesktopOpenSelectPartner } from '../shell/desktop-open/desktop-open-action.js';
+import {
+  requestZhiyuDesktopOpenAgentConfig,
+  requestZhiyuDesktopOpenSelectPartner,
+} from '../shell/desktop-open/desktop-open-action.js';
 import { probeZhiyuRuntimeStatus } from '../shell/runtime/runtime-status.js';
 import { createZhiyuProductionTurnRequestId } from './turn-request-id.js';
 import { createZhiyuProductionAgentCenterAdapters } from './agent-center-adapters.js';
@@ -59,13 +54,13 @@ function productionRoutePort(): ZhiyuCanonicalRendererBindings['route'] {
   });
 }
 
-async function loadHome(selectedLocalAgentRef: string | null): Promise<ZhiyuHomeProjection> {
+async function loadHome(selectedAgentHandle: string | null): Promise<ZhiyuHomeProjection> {
   const [runtime, auth] = await Promise.all([
     probeZhiyuRuntimeStatus(),
     probeZhiyuRuntimeAccountStatus(),
   ]);
-  const inventory = await probeZhiyuRuntimeAgentInventory(auth);
-  const localAgent = resolveZhiyuRuntimeLocalAgentSelection({ inventory, selectedLocalAgentRef });
+  const inventory = await probeZhiyuRuntimeAgentInventory();
+  const localAgent = resolveZhiyuRuntimeLocalAgentSelection({ inventory, selectedAgentHandle });
   const source = projectZhiyuRuntimeSourceProjection({
     ownerUserId: localAgent.ownerUserId,
     runtimeSourceRef: localAgent.runtimeSourceRef,
@@ -95,45 +90,9 @@ async function loadHome(selectedLocalAgentRef: string | null): Promise<ZhiyuHome
 }
 
 async function hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
-  const runtime = getZhiyuRuntime();
-  const client = createNimiRuntimeAgentClient({
-    runtime,
-    appId: 'nimi.zhiyu',
-    getSubjectUserId: () => input.ownerUserId,
-    withScopes: withZhiyuRuntimeAgentAccessRequired,
-  });
-  const consume = createNimiRuntimeAgentConsumeClient({
-    runtime: { agents: runtime.agents, appMessages: runtime.appMessages },
-    runtimeAppId: 'nimi.zhiyu',
-  });
-  const identity = {
-    ownerUserId: input.ownerUserId,
-    runtimeSourceRef: input.runtimeSourceRef,
-    localAgentRef: input.localAgentRef,
-    conversationAnchorId: input.conversationAnchorId,
-  };
-  const [snapshot, anchorSnapshot] = await Promise.all([
-    client.getSessionSnapshot(identity),
-    withZhiyuRuntimeAgentAccessRequired(['runtime.agent.turn.read'], (callOptions) => (
-      consume.anchors.getSnapshot({
-        ...identity,
-        subjectUserId: input.ownerUserId,
-      }, callOptions)
-    )),
-  ]);
   return {
-    source: projectZhiyuRuntimeSourceProjection({
-      ownerUserId: input.ownerUserId,
-      runtimeSourceRef: input.runtimeSourceRef,
-      localAgentRef: input.localAgentRef,
-      sourceContextStatus: anchorSnapshot.sourceContextStatus ?? input.currentSource.sourceContextStatus,
-      turnContextSummary: anchorSnapshot.turnContextSummary ?? null,
-    }),
-    chat: hydrateZhiyuAgentChatFromRuntimeSessionSnapshot({
-      current: input.currentChat,
-      ...identity,
-      snapshot,
-    }),
+    source: input.currentSource,
+    chat: input.currentChat,
   };
 }
 
@@ -149,7 +108,8 @@ export function createZhiyuProductionBindings(
     app: {
       projection: Object.freeze({
         agentCenterAdapters: createZhiyuProductionAgentCenterAdapters,
-        loadHome: ({ selectedLocalAgentRef }: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0]) => loadHome(selectedLocalAgentRef),
+        loadHome: ({ selectedAgentHandle }: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0]) => loadHome(selectedAgentHandle),
+        loadAgentInventory: probeZhiyuRuntimeAgentInventory,
         loadExecutionRoute: fetchZhiyuAgentAIConfigRouteEvidence,
         projectTurnReadiness: probeZhiyuAgentTurnReadiness,
         hydrateConversation,
@@ -177,6 +137,10 @@ export function createZhiyuProductionBindings(
             current = update(current);
           });
           return current.companion;
+        },
+        requestAgentInteractionPermission: requestZhiyuAgentInteractionPermission,
+        async openDesktopAgentConfig() {
+          await requestZhiyuDesktopOpenAgentConfig();
         },
         openDesktopSelectPartner: requestZhiyuDesktopOpenSelectPartner,
         launchAvatar: ({ evidence, action }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action }),
@@ -214,56 +178,8 @@ export function createZhiyuProductionBindings(
           };
         },
         subscribeCompanion(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeCompanion']>[0]) {
-          let active = true;
-          let iterator: AsyncIterator<NimiRuntimeAgentConsumeEvent> | null = null;
-          void (async () => {
-            const runtime = getZhiyuRuntime();
-            const client = createNimiRuntimeAgentClient({
-              runtime,
-              appId: 'nimi.zhiyu',
-              getSubjectUserId: () => input.ownerUserId,
-              withScopes: withZhiyuRuntimeAgentAccessRequired,
-            });
-            try {
-              const stream = await client.subscribeEvents({
-                ownerUserId: input.ownerUserId,
-                runtimeSourceRef: input.runtimeSourceRef,
-                localAgentRef: input.localAgentRef,
-                conversationAnchorId: input.conversationAnchorId,
-                includeAgentEvents: true,
-              });
-              iterator = stream[Symbol.asyncIterator]();
-              let companion: ZhiyuEvidence['companion'] | null = null;
-              while (active) {
-                const next = await iterator.next();
-                if (next.done) break;
-                companion = projectZhiyuCompanionFromRuntimeAgentEvent({
-                  current: companion ?? (await probeZhiyuRuntimeCompanionState({
-                    transport: 'electron-ipc',
-                    ready: true,
-                    reasonCode: 'runtime-local-agent-selected',
-                    actionHint: 'open_runtime_agent_home',
-                    source: 'runtime',
-                    message: 'Runtime-owned LocalAgent selected.',
-                    ownerUserId: input.ownerUserId,
-                    runtimeSourceRef: input.runtimeSourceRef,
-                    localAgentRef: input.localAgentRef,
-                  })),
-                  event: next.value,
-                  ownerUserId: input.ownerUserId,
-                  runtimeSourceRef: input.runtimeSourceRef,
-                  observedAt: new Date().toISOString(),
-                });
-                input.onCompanion(companion);
-              }
-            } catch {
-              // Initial companion evidence remains fail-closed when live events are unavailable.
-            }
-          })();
-          return () => {
-            active = false;
-            void iterator?.return?.();
-          };
+          void input;
+          return () => undefined;
         },
       }),
     },

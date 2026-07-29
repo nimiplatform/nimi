@@ -7,6 +7,15 @@ export enum GpuMemoryModel {
   UNIFIED = 2,
 }
 
+export enum LocalAppPermissionOwnerPosture {
+  UNSPECIFIED = 0,
+  PENDING = 1,
+  GRANTED = 2,
+  DENIED = 3,
+  EXPIRED = 4,
+  REVOKED = 5,
+}
+
 export enum LocalAppPermissionPosture {
   UNSPECIFIED = 0,
   PROMPT = 1,

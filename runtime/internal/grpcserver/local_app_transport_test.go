@@ -80,7 +80,7 @@ func TestProtectedLocalAppNativeCarrierConversationOperationsRemainTypedUnavaila
 	defer func() { _ = clientConn.Close() }()
 
 	payload, err := structpb.NewStruct(map[string]any{
-		"local_agent_ref": "opaque-agent-handle", "conversation_anchor_id": "anchor-a", "turn_id": "turn-a",
+		"local_agent_ref": "opaque-agent-handle", "conversation_anchor_id": "anchor-a", "request_id": "request-a",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -315,7 +315,7 @@ func TestSelectedProtectedLocalAppStorageOperationsCarryOnlyExactPath(t *testing
 
 func TestSelectedProtectedLocalAppConversationOperationsCarryOnlyExactSelectors(t *testing.T) {
 	payload, err := structpb.NewStruct(map[string]any{
-		"local_agent_ref": "agent-handle", "conversation_anchor_id": "anchor-a", "turn_id": "turn-a", "text": "private payload",
+		"local_agent_ref": "agent-handle", "conversation_anchor_id": "anchor-a", "request_id": "request-a", "text": "private payload",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -327,7 +327,7 @@ func TestSelectedProtectedLocalAppConversationOperationsCarryOnlyExactSelectors(
 		selector  localappop.Selector
 	}{
 		{protectedOpenConversationMethod, &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-handle"}, accountservice.LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent-handle"}},
-		{protectedSendConversationTurnMethod, &runtimev1.SendAppMessageRequest{Payload: payload}, accountservice.LocalAppOperationSendConversationTurn, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a", TurnID: "turn-a"}},
+		{protectedSendConversationTurnMethod, &runtimev1.SendAppMessageRequest{Payload: payload}, accountservice.LocalAppOperationSendConversationTurn, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a", TurnID: "request-a"}},
 		{protectedConversationSnapshotMethod, &runtimev1.GetPublicChatSessionSnapshotRequest{AgentId: "agent-handle", ConversationAnchorId: "anchor-a"}, accountservice.LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a"}},
 	} {
 		operation, selector, selected := selectedLocalAppUnaryOperation(test.method, test.request)

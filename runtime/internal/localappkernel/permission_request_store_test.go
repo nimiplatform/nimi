@@ -114,6 +114,34 @@ func TestPermissionGrantStoreConsumesPendingRequestWithCAS(t *testing.T) {
 	}
 }
 
+func TestPermissionGrantStoreListsOnlyExactOwnerPartition(t *testing.T) {
+	ctx := context.Background()
+	kernel := openTestKernel(t, Options{})
+	defer func() { _ = kernel.Close() }()
+	principal, err := kernel.Principals().Create(ctx, CreatePrincipalInput{
+		Kind: PrincipalKindDevelopment, AppID: "com.example.partitioned",
+		DevelopmentAuthorizationID: "dev-auth:partitioned", CanonicalProjectFileID: "file-id:partitioned",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, accountID := range []string{"account-one", "account-other"} {
+		if _, err := kernel.PermissionGrants().CreatePendingRequest(ctx, CreatePermissionRequestInput{
+			LocalOSUserAnchor: kernel.LocalOSUserAnchor(), AccountID: accountID, LocalAppPrincipalID: principal.LocalAppPrincipalID,
+			PermissionID: "agents.interact", DisplayAppID: principal.AppID, Reason: "Open a conversation",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	requests, err := kernel.PermissionGrants().ListPermissionRequests(ctx, kernel.LocalOSUserAnchor(), "account-one")
+	if err != nil || len(requests) != 1 || requests[0].AccountID != "account-one" {
+		t.Fatalf("partitioned requests = (%+v, %v)", requests, err)
+	}
+	if _, err := kernel.PermissionGrants().ListPermissionRequests(ctx, "other-os-user-anchor", "account-one"); !errors.Is(err, ErrPartitionMismatch) {
+		t.Fatalf("cross OS-user list error = %v", err)
+	}
+}
+
 func TestPermissionGrantStoreRejectsUnboundedPendingRequestReason(t *testing.T) {
 	kernel := openTestKernel(t, Options{})
 	defer func() { _ = kernel.Close() }()

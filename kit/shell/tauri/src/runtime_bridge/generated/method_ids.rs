@@ -3,7 +3,6 @@
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
-    "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
@@ -15,8 +14,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
-    "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
-    "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
     "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
     "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",

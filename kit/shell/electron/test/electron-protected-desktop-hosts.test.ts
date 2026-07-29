@@ -26,6 +26,7 @@ function accountBinding(
     desktopAccountSessionEventsOpen: ok,
     desktopAccountSessionEventsNext: ok,
     desktopAccountSessionEventsClose: ok,
+    desktopPermissionOwnerUnary: async () => ({ status: 'ok', value: new Uint8Array() }),
     desktopAccountBeginLogin: ok,
     desktopAccountCompleteLogin: ok,
     desktopAccountInvokeRealmUnary: ok,
@@ -64,6 +65,7 @@ describe('Electron protected Desktop account host', () => {
       'runtime_account_session_status',
       'runtime_account_session_events_open',
       'runtime_account_session_events_close',
+      'runtime_account_permission_owner_unary',
       'runtime_account_begin_login',
       'runtime_account_complete_login',
       'runtime_account_invoke_realm_unary',
@@ -74,6 +76,28 @@ describe('Electron protected Desktop account host', () => {
     }
     expect(isElectronDesktopAccountCommand('runtime_bridge_unary')).toBe(false);
     expect(isElectronDesktopAccountCommand('runtime_account_issue_binding')).toBe(false);
+  });
+
+  it('routes permission-owner protobuf only through the bounded account-control command', async () => {
+    const unary = vi.fn(async () => ({ status: 'ok' as const, value: Uint8Array.from([1, 2]) }));
+    const host = createNimiElectronDesktopAccountHostForBinding(accountBinding({
+      desktopPermissionOwnerUnary: unary,
+    }));
+    await expect(host.invoke('runtime_account_permission_owner_unary', {
+      methodId: '/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests',
+      requestBytesBase64: 'AA==',
+      timeoutMs: 10_000,
+    })).resolves.toEqual({ responseBytesBase64: 'AQI=' });
+    expect(unary).toHaveBeenCalledWith({
+      methodId: '/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests',
+      requestBytes: Uint8Array.from([0]),
+      timeoutMs: 10_000,
+    });
+    await expect(host.invoke('runtime_account_permission_owner_unary', {
+      methodId: '/nimi.runtime.v1.RuntimeAccountService/BeginLogin',
+      requestBytesBase64: 'AA==',
+      timeoutMs: 10_000,
+    })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
   });
 
   it('cancels a native stream that finishes opening after host shutdown', async () => {

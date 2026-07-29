@@ -31,7 +31,7 @@
     "test:runtime:live": "cd runtime && go test -tags=live -count=1 ./internal/services/ai -run ^TestLive",
     "test:runtime:python": "node scripts/run-runtime-python-tests.mjs",
     "test:sdks-adapters:upstream": "pnpm --filter @nimiplatform/sdk-adapter-mastra test:upstream && pnpm --filter @nimiplatform/sdk-adapter-vercel-ai test:upstream",
-    "test:kit:native": "cargo test --locked --manifest-path kit/shell/protected-local/Cargo.toml && cargo test --locked --manifest-path kit/shell/protected-local-node/Cargo.toml && cargo test --locked --manifest-path kit/shell/tauri/Cargo.toml",
+    "test:kit:native": "cargo test --locked --manifest-path kit/shell/protected-local/Cargo.toml && cargo test --locked --manifest-path kit/shell/protected-local-node/Cargo.toml && cargo build --locked --manifest-path kit/shell/protected-local-node/Cargo.toml && node kit/shell/protected-local-node/test/native-input-contract.cjs && cargo test --locked --manifest-path kit/shell/tauri/Cargo.toml",
     "test:desktop:native": "cargo test --locked --manifest-path apps/desktop/product-control-core/Cargo.toml && pnpm --filter @nimiplatform/desktop check:cargo:test",
     "check:desktop-native-quality": "cargo test --locked --manifest-path apps/desktop/product-control-core/Cargo.toml && pnpm --filter @nimiplatform/desktop check:cargo:quality",
     "test:avatar:native": "cargo test --locked --manifest-path apps/avatar/src-tauri/Cargo.toml",
