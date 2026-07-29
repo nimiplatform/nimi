@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { createAgentCenterShellAppearanceAdapter } from '@nimiplatform/kit/features/agent-center/headless';
 import { createAgentCenterShellBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
@@ -18,7 +18,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     getSubjectUserId: () => input.accountId ?? undefined,
     withScopes: bindings.sdk.withRuntimeProtectedScopes,
   }), [bindings, input.accountId]);
-  const shell = useMemo(() => (hasShellHostInvoke() ? createAgentCenterShellBridge() : null), []);
+  const shell = useMemo(() => (hasElectronInvoke() ? createAgentCenterShellBridge() : null), []);
   const appearanceAdapter = useMemo(() => {
     if (!input.activeTarget || !input.accountId) {
       return null;

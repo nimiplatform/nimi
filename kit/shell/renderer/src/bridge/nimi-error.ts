@@ -177,8 +177,11 @@ export function getShellBridgeUserMessageProjection(error: unknown): ShellBridge
       defaultValue: runtimeReasonProjection.defaultMessage,
     };
   }
-  if (errorCode && SHELL_BRIDGE_ERROR_CODE_MAP[errorCode]) {
-    return SHELL_BRIDGE_ERROR_CODE_MAP[errorCode];
+  const mappedProjection = errorCode
+    ? SHELL_BRIDGE_ERROR_CODE_MAP[errorCode]
+    : undefined;
+  if (mappedProjection) {
+    return mappedProjection;
   }
   for (const entry of SHELL_BRIDGE_ERROR_PATTERNS) {
     if (entry.pattern.test(raw)) {

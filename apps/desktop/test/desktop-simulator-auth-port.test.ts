@@ -146,8 +146,7 @@ function createKitFacade() {
     globalName: (localName: string) => `desktop-auth-test--global--${localName}`,
   });
   const capabilitiesInternal = new Set<string>();
-  let capabilitiesView: ReadonlySet<string>;
-  capabilitiesView = Object.freeze({
+  const capabilitiesView: ReadonlySet<string> = Object.freeze({
     get size() { return capabilitiesInternal.size; },
     has: (value: string) => capabilitiesInternal.has(value),
     entries: () => capabilitiesInternal.entries(),
@@ -188,7 +187,6 @@ function createLifecycleRecorder() {
     port: {
       auth: () => ({ status: 'anonymous' }),
       bootstrap: () => Object.freeze({ bootstrapError: null, bootstrapReady: true }),
-      desktopReleaseInfo: () => null,
       translate: (key: string) => key,
       subscribeBootstrap: () => () => undefined,
       setActiveTab: () => undefined,
@@ -203,9 +201,6 @@ function createLifecycleRecorder() {
       clearAuthSession: () => {
         cleared += 1;
       },
-      setDesktopReleaseInfo: () => undefined,
-      setDesktopReleaseError: () => undefined,
-      setDesktopUpdateState: () => undefined,
       setRuntimeDefaults: () => undefined,
       setStatusBanner: () => undefined,
       setBootstrapReady: () => undefined,

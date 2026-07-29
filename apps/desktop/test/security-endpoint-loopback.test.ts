@@ -8,7 +8,7 @@ import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/i
 //
 // Runtime owns authoritative endpoint validation. Desktop keeps only the
 // user-facing bridge error mapping and must not revive local endpoint
-// validation truth in Tauri or renderer helpers.
+// validation truth in renderer helpers.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------

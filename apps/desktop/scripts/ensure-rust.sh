@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ensure Rust toolchain is available for Tauri builds.
+# Ensure Rust toolchain is available for Desktop native packages.
 # Called from postinstall — installs rustup + stable toolchain if missing.
 
 set -euo pipefail

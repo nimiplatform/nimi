@@ -1,13 +1,9 @@
 /**
- * Editable account profile library — Tauri bridge surface.
+ * Editable account profile library host bridge.
  *
- * Spec authority: `P-AIPS-013` Account Default Profile Local Library Evidence.
- *
- * These functions are the renderer's bridge to the `account_profile_library_*`
- * Tauri commands. The account profile library file family
- * (`<dataRoot>/accounts/<account-id>/profiles/{ index.json, user/, imported/ }`,
- * `account_profile_library_files.rs`) is the single source of truth; this
- * bridge only reads/writes it and parses the host projection fail-closed.
+ * The account profile library under the Runtime-authenticated account and
+ * Product-Control-ready data root is the single source of truth. The renderer
+ * only invokes the Desktop host and parses its projection fail-closed.
  */
 
 import {
@@ -19,26 +15,22 @@ import {
   type NimiAccountProfileLibraryProfile,
   type NimiAIProfile,
 } from '@nimiplatform/sdk/ai';
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
 export type LibraryProfileOrigin = NimiAccountProfileLibraryOrigin;
 export type LibraryProfile = NimiAccountProfileLibraryProfile;
 export type LibraryIndexEntry = NimiAccountProfileLibraryIndexEntry;
 
-function requireTauri(command: string): void {
-  if (!hasTauriInvoke()) {
-    throw new Error(`${command} requires the desktop Tauri runtime`);
+function requireDesktopHost(command: string): void {
+  if (!hasElectronInvoke()) {
+    throw new Error(`${command} requires the Desktop host runtime`);
   }
 }
 
-// ---------------------------------------------------------------------------
-// Tauri bridge commands
-// ---------------------------------------------------------------------------
-
 /** List the account profile library from the Rust file family. */
 export async function listAccountProfileLibrary(): Promise<NimiAccountProfileLibraryProjection> {
-  requireTauri('account_profile_library_list');
+  requireDesktopHost('account_profile_library_list');
   return invokeChecked('account_profile_library_list', {}, parseNimiAccountProfileLibraryProjection);
 }
 
@@ -46,7 +38,7 @@ export async function listAccountProfileLibrary(): Promise<NimiAccountProfileLib
 export async function createAccountProfileLibraryProfile(
   profile: NimiAIProfile,
 ): Promise<NimiAccountProfileLibraryProjection> {
-  requireTauri('account_profile_library_create');
+  requireDesktopHost('account_profile_library_create');
   return invokeChecked(
     'account_profile_library_create',
     { payload: { profile } },
@@ -58,7 +50,7 @@ export async function createAccountProfileLibraryProfile(
 export async function editAccountProfileLibraryProfile(
   profile: NimiAIProfile,
 ): Promise<NimiAccountProfileLibraryProjection> {
-  requireTauri('account_profile_library_edit');
+  requireDesktopHost('account_profile_library_edit');
   return invokeChecked(
     'account_profile_library_edit',
     { payload: { profile } },
@@ -70,7 +62,7 @@ export async function editAccountProfileLibraryProfile(
 export async function importAccountProfileLibraryProfiles(
   profiles: NimiAIProfile[],
 ): Promise<NimiAccountProfileLibraryProjection> {
-  requireTauri('account_profile_library_import');
+  requireDesktopHost('account_profile_library_import');
   return invokeChecked(
     'account_profile_library_import',
     { payload: { profiles } },
@@ -85,7 +77,7 @@ export async function importAccountProfileLibraryProfiles(
 export async function exportAccountProfileLibraryProfiles(
   profileIds: string[] = [],
 ): Promise<NimiAIProfile[]> {
-  requireTauri('account_profile_library_export');
+  requireDesktopHost('account_profile_library_export');
   const profiles = await invokeChecked(
     'account_profile_library_export',
     { payload: { profileIds } },
@@ -98,7 +90,7 @@ export async function exportAccountProfileLibraryProfiles(
 export async function deleteAccountProfileLibraryProfile(
   profileId: string,
 ): Promise<NimiAccountProfileLibraryProjection> {
-  requireTauri('account_profile_library_delete');
+  requireDesktopHost('account_profile_library_delete');
   return invokeChecked(
     'account_profile_library_delete',
     { payload: { profileId } },

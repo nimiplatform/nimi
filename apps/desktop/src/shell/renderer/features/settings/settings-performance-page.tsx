@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 import { loadNimiRealmCreatorEligibility } from '@nimiplatform/sdk/realm';
-import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import {
   FormFeedback,
@@ -15,26 +14,15 @@ import { DeveloperModeToggle } from '../developer/developer-mode-toggle.js';
 import {
   AnimationIcon,
   AwardIcon,
-  canUseDesktopUpdater,
-  collectDesktopUpdatePanelAlerts,
-  DownloadIcon,
-  formatUpdateProgress,
   GpuIcon,
-  InfoCard,
   performanceEqual,
-  ServerIcon,
   SettingRow,
-  TargetIcon,
 } from './settings-preferences-panel-parts.js';
 
 export function PerformancePage() {
   const { t } = useTranslation();
-  const desktopReleaseInfo = useAppStore((s) => s.desktopReleaseInfo);
-  const desktopReleaseError = useAppStore((s) => s.desktopReleaseError);
-  const desktopUpdateState = useAppStore((s) => s.desktopUpdateState);
   const bindings = useDesktopRendererBindings();
-  const updateCommands = bindings.app.commands;
-  const settings = updateCommands.settings;
+  const settings = bindings.app.commands.settings;
   const [preferences, setPreferences] = useState<PerformancePreferences>(() =>
     settings.loadPerformancePreferences());
   const [baseline, setBaseline] = useState<PerformancePreferences>(() =>
@@ -134,32 +122,6 @@ export function PerformancePage() {
       ? 'warning'
       : 'neutral';
   const isEligible = eligibilityState === 'eligible';
-  const updateStatusText = desktopUpdateState
-    ? ({
-      idle: t('Performance.updateStatusIdle'),
-      checking: t('Performance.updateStatusChecking'),
-      available: t('Performance.updateStatusAvailable'),
-      downloading: t('Performance.updateStatusDownloading'),
-      downloaded: t('Performance.updateStatusDownloaded'),
-      installing: t('Performance.updateStatusInstalling'),
-      readyToRestart: t('Performance.updateStatusReadyToRestart'),
-      error: t('Performance.updateStatusError'),
-    }[desktopUpdateState.status] || desktopUpdateState.status)
-    : t('Performance.updateStatusIdle');
-  const canCheckUpdates = canUseDesktopUpdater({
-    desktopReleaseError,
-    updaterAvailable: desktopReleaseInfo?.updaterAvailable,
-  });
-  const canRestartForUpdate = desktopUpdateState?.readyToRestart === true;
-  const isUpdateBusy = desktopUpdateState?.status === 'checking'
-    || desktopUpdateState?.status === 'downloading'
-    || desktopUpdateState?.status === 'installing';
-  const desktopUpdateAlerts = collectDesktopUpdatePanelAlerts({
-    desktopReleaseError,
-    updaterUnavailableReason: desktopReleaseInfo?.updaterUnavailableReason,
-    updateLastError: desktopUpdateState?.lastError,
-  });
-
   return (
     <PageShell
       title={t('Performance.pageTitle')}
@@ -187,93 +149,6 @@ export function PerformancePage() {
             checked={preferences.reduceAnimations}
             onChange={(value) => setPreferences((previous) => ({ ...previous, reduceAnimations: value }))}
           />
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <SectionTitle>
-          {t('Performance.sectionUpdates')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <SettingRow
-            icon={<DownloadIcon className="h-5 w-5" />}
-            title={t('Performance.autoUpdate')}
-            description={t('Performance.autoUpdateDescription')}
-            checked={preferences.autoUpdate}
-            onChange={(value) => setPreferences((previous) => ({ ...previous, autoUpdate: value }))}
-          />
-        </div>
-        <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{t('Performance.appUpdateTitle')}</p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {t('Performance.appUpdateDescription')}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  disabled={!canCheckUpdates || isUpdateBusy}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => {
-                    void updateCommands.checkDesktopUpdate({ autoDownload: false, silent: false });
-                  }}
-                >
-                  {t('Performance.checkNow')}
-                </button>
-                <button
-                  type="button"
-                  disabled={!canCheckUpdates || isUpdateBusy || canRestartForUpdate}
-                  className="rounded-lg bg-mint-600 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => {
-                    void updateCommands.installDesktopUpdate({ silent: false });
-                  }}
-                >
-                  {t('Performance.downloadAndInstall')}
-                </button>
-                <button
-                  type="button"
-                  disabled={!canRestartForUpdate}
-                  className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => {
-                    void updateCommands.restartDesktopUpdate();
-                  }}
-                >
-                  {t('Performance.restartNow')}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InfoCard icon={<DownloadIcon className="h-5 w-5" />} label={t('Performance.desktopVersion')} value={desktopReleaseInfo?.desktopVersion || '-'} />
-              <InfoCard icon={<ServerIcon className="h-5 w-5" />} label={t('Performance.desktopRelease')} value={desktopReleaseInfo?.desktopReleaseId || '-'} />
-              <InfoCard icon={<TargetIcon className="h-5 w-5" />} label={t('Performance.updateStatus')} value={updateStatusText} />
-              <InfoCard icon={<AwardIcon className="h-5 w-5" />} label={t('Performance.targetVersion')} value={desktopUpdateState?.targetVersion || '-'} />
-            </div>
-
-            {desktopUpdateState?.status === 'downloading' ? (
-              <div className="rounded-xl border border-mint-100 bg-mint-50 px-4 py-3 text-xs text-mint-700">
-                {formatUpdateProgress(
-                  desktopUpdateState.downloadedBytes,
-                  desktopUpdateState.totalBytes,
-                  t('Performance.updateProgressDownloaded'),
-                )}
-              </div>
-            ) : null}
-
-            {desktopUpdateAlerts.map((alert) => (
-              <div
-                key={`${alert.tone}:${alert.message}`}
-                className={alert.tone === 'error'
-                  ? 'rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700'
-                  : 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700'}
-              >
-                {alert.message}
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 

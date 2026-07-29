@@ -9,7 +9,9 @@ const tablePath = 'config/platform-nimi-app-identity-surfaces.yaml';
 const table = readYamlWithFragments(path.join(root, tablePath));
 const rows = Array.isArray(table?.apps) ? table.apps : [];
 const appIdPattern = new RegExp(String(table?.identity_schema?.app_id_pattern || ''));
-const tauriPrefix = String(table?.identity_schema?.tauri_identifier_prefix || '').trim();
+const nativeBundlePrefix = String(
+  table?.identity_schema?.native_bundle_identifier_prefix || '',
+).trim();
 const violations = [];
 
 const excludedDirs = new Set(['node_modules', 'dist', 'target', '.git', '.tmp', '.turbo', '.vite']);
@@ -107,8 +109,8 @@ function requiredString(row, field) {
   return value;
 }
 
-function expectedTauriIdentifier(appId) {
-  return `${tauriPrefix}.${appId}`;
+function expectedNativeBundleIdentifier(appId) {
+  return `${nativeBundlePrefix}.${appId}`;
 }
 
 if (!rows.length) {
@@ -123,8 +125,11 @@ for (const row of rows) {
   const sdkAppId = requiredString(row, 'sdk_app_id');
   const runtimeAppId = requiredString(row, 'runtime_app_id');
   const npmPackage = requiredString(row, 'npm_package');
-  const tauriRequired = row?.tauri_identifier_required === true;
-  const tauriIdentifier = row?.tauri_identifier === null ? null : String(row?.tauri_identifier || '').trim();
+  const nativeShell = requiredString(row, 'native_shell');
+  const nativeBundleRequired = row?.native_bundle_identifier_required === true;
+  const nativeBundleIdentifier = row?.native_bundle_identifier === null
+    ? null
+    : String(row?.native_bundle_identifier || '').trim();
 
   if (seenAppIds.has(appId)) {
     fail(`${tablePath}: duplicate canonical_app_id ${appId}`);
@@ -160,21 +165,41 @@ for (const row of rows) {
   }
 
   const tauriConfigPath = `${sourceRoot}/src-tauri/tauri.conf.json`;
-  if (tauriRequired) {
-    const expected = expectedTauriIdentifier(appId);
-    if (tauriIdentifier !== expected) {
-      fail(`${tablePath}: ${sourceRoot} tauri_identifier must be ${expected}`);
+  if (!['electron', 'none', 'tauri'].includes(nativeShell)) {
+    fail(`${tablePath}: ${sourceRoot} native_shell must be electron, tauri, or none`);
+  }
+  if (nativeBundleRequired) {
+    const expected = expectedNativeBundleIdentifier(appId);
+    if (nativeBundleIdentifier !== expected) {
+      fail(`${tablePath}: ${sourceRoot} native_bundle_identifier must be ${expected}`);
     }
-    if (!exists(tauriConfigPath)) {
-      fail(`${sourceRoot}: tauri_identifier_required=true but src-tauri/tauri.conf.json is missing`);
-    } else {
+    if (nativeShell === 'tauri' && !exists(tauriConfigPath)) {
+      fail(`${sourceRoot}: native_shell=tauri but src-tauri/tauri.conf.json is missing`);
+    } else if (nativeShell === 'tauri') {
       const tauri = parseJson(tauriConfigPath);
       if (tauri && tauri.identifier !== expected) {
         fail(`${tauriConfigPath}: identifier ${tauri.identifier} must be ${expected}`);
       }
     }
-  } else if (tauriIdentifier !== null) {
-    fail(`${tablePath}: ${sourceRoot} tauri_identifier must be null when tauri_identifier_required=false`);
+    if (nativeShell === 'electron') {
+      const electronMainPath = `${sourceRoot}/src-electron/main.ts`;
+      const electronPackagePath = `${sourceRoot}/scripts/build-macos-electron-release.mjs`;
+      if (!exists(electronMainPath) || !exists(electronPackagePath)) {
+        fail(`${sourceRoot}: native_shell=electron requires the Electron main and package builder`);
+      } else if (!readText(electronPackagePath).includes(`: '${expected}'`)) {
+        fail(`${electronPackagePath}: production appBundleId must be ${expected}`);
+      }
+      if (exists(tauriConfigPath)) {
+        fail(`${sourceRoot}: native_shell=electron must not retain a Desktop Tauri product carrier`);
+      }
+    }
+  } else {
+    if (nativeBundleIdentifier !== null) {
+      fail(`${tablePath}: ${sourceRoot} native_bundle_identifier must be null when not required`);
+    }
+    if (nativeShell !== 'none') {
+      fail(`${tablePath}: ${sourceRoot} native_shell must be none when no native bundle is admitted`);
+    }
   }
 
   const suffix = appId.startsWith('nimi.') ? appId.slice('nimi.'.length) : appId;
@@ -195,7 +220,7 @@ for (const row of rows) {
 const testerRow = rows.find((row) => row?.source_root === 'apps/tester');
 if (testerRow) {
   const testerAppId = String(testerRow.canonical_app_id || '').trim();
-  const testerTauri = expectedTauriIdentifier(testerAppId);
+  const testerTauri = expectedNativeBundleIdentifier(testerAppId);
   const syncSource = readText('app-tools/scripts/sync-app-source.mjs');
   if (!syncSource.includes(`appId: '${testerAppId}'`)) {
     fail('app-tools/scripts/sync-app-source.mjs: SOURCE_IDENTITY.appId must match apps/tester canonical_app_id');

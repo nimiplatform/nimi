@@ -14,8 +14,6 @@ export const E2E_IDS = {
   shellSidebarRail: 'shell-sidebar-rail',
   topbarRuntimeButton: 'topbar-runtime-button',
   topbarLoginButton: 'topbar-login-button',
-  desktopReleaseStrip: 'desktop-release-strip',
-  desktopReleaseOpenUpdates: 'desktop-release-open-updates',
   offlineStrip: 'offline-strip',
   panel: (name: string) => `panel:${name}`,
   navTab: (tabId: string) => `nav-tab:${tabId}`,

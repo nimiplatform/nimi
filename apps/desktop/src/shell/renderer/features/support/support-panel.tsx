@@ -5,8 +5,8 @@
  * mounted from the `config/desktop-shell-ui-app-tabs.yaml` `support` entry (`nav_group: secondary`)
  * and is NOT one of the five ordinary primary navigation tabs.
  *
- * The host renders a fixed five-item sub-area sidebar (`rule.nimi.desktop.product-surfaces.r023`: repair /
- * updates / diagnostics / logs / recovery) and dispatches the active sub-area.
+ * The host renders a fixed four-item sub-area sidebar (`rule.nimi.desktop.product-surfaces.r023`: repair /
+ * diagnostics / logs / recovery) and dispatches the active sub-area.
  * Each sub-area owns its own typed-projection load and fail-closed state.
  */
 
@@ -28,7 +28,6 @@ import {
 } from './support-sections.js';
 import { loadStoredSupportSection, persistStoredSupportSection } from './support-storage.js';
 import { SupportRepairSection } from './support-repair-section.js';
-import { SupportUpdatesSection } from './support-updates-section.js';
 import { SupportDiagnosticsSection } from './support-diagnostics-section.js';
 import { SupportLogsSection } from './support-logs-section.js';
 import { SupportRecoverySection } from './support-recovery-section.js';
@@ -40,8 +39,6 @@ function renderSupportSection(
   switch (section) {
     case 'repair':
       return <SupportRepairSection onNavigateToRecovery={() => navigate('recovery')} />;
-    case 'updates':
-      return <SupportUpdatesSection />;
     case 'diagnostics':
       return <SupportDiagnosticsSection />;
     case 'logs':

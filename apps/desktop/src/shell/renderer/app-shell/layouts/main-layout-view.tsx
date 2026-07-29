@@ -14,7 +14,6 @@ import {
 } from '../../features/notification/notification-query.js';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '../../features/home/home-feed-controls';
-import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
 import { shouldHideMainLayoutPrimaryRail } from './main-layout-primary-rail';
 import { MainLayoutTopBar } from './main-layout-topbar';
@@ -41,13 +40,7 @@ import {
 } from './navigation-config';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
-
-const DEFAULT_TITLEBAR_TOP_INSET_CLASS = 'top-0';
-const MACOS_TITLEBAR_TOP_INSET_CLASS = 'top-7';
-const DEFAULT_SHELL_CONTENT_TOP_PADDING_CLASS = 'pt-14';
-const MACOS_SHELL_CONTENT_TOP_PADDING_CLASS = 'pt-[calc(3.5rem+1.75rem)]';
-const DEFAULT_SETTINGS_MENU_TOP_PX = 64;
-const MACOS_SETTINGS_MENU_TOP_PX = 92;
+import { resolveMainLayoutTitlebarFrame } from './main-layout-titlebar-frame';
 
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(
@@ -75,16 +68,12 @@ type MainLayoutViewProps = {
 export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
-  const usesMacTrafficLightTitlebar = bindings.app.projection.menuBarShellEnabled();
-  const titlebarTopInsetClass = usesMacTrafficLightTitlebar
-    ? MACOS_TITLEBAR_TOP_INSET_CLASS
-    : DEFAULT_TITLEBAR_TOP_INSET_CLASS;
-  const shellContentTopPaddingClass = usesMacTrafficLightTitlebar
-    ? MACOS_SHELL_CONTENT_TOP_PADDING_CLASS
-    : DEFAULT_SHELL_CONTENT_TOP_PADDING_CLASS;
-  const settingsMenuFallbackTop = usesMacTrafficLightTitlebar
-    ? MACOS_SETTINGS_MENU_TOP_PX
-    : DEFAULT_SETTINGS_MENU_TOP_PX;
+  const titlebarFrame = resolveMainLayoutTitlebarFrame(
+    bindings.app.projection.titlebarDragEnabled(),
+  );
+  const titlebarTopInsetClass = titlebarFrame.topInsetClass;
+  const shellContentTopPaddingClass = titlebarFrame.contentTopPaddingClass;
+  const settingsMenuFallbackTop = titlebarFrame.settingsMenuFallbackTop;
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
@@ -121,7 +110,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const sidebarWidthClass = 'w-[60px]';
-  const titlebarLeftInsetClass = bindings.app.projection.titlebarDragEnabled() ? 'pl-[92px]' : 'pl-3';
+  const titlebarLeftInsetClass = titlebarFrame.leftInsetClass;
   const [homeFeedScope, setHomeFeedScope] = useState(DEFAULT_HOME_FEED_SCOPE);
   const [homeCreatePostRequestKey, setHomeCreatePostRequestKey] = useState(0);
   const reducedMotion = useDesktopReducedMotion();
@@ -379,7 +368,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <OfflineShellStrip />
-          <DesktopReleaseStrip />
           <StatusBanner />
 
           <MainLayoutPanelStack

@@ -36,6 +36,8 @@
       "@nimiplatform/kit/shell/renderer/bridge/*": ["../../kit/shell/renderer/src/bridge/*"],
       "@nimiplatform/kit/shell/renderer/bootstrap": ["../../kit/shell/renderer/src/bootstrap/index.ts"],
       "@nimiplatform/kit/shell/renderer/bootstrap/*": ["../../kit/shell/renderer/src/bootstrap/*"],
+      "@nimiplatform/kit/shell/renderer/host": ["../../kit/shell/renderer/src/host/index.ts"],
+      "@nimiplatform/kit/shell/renderer/host/*": ["../../kit/shell/renderer/src/host/*"],
       "@nimiplatform/kit/telemetry": ["../../kit/telemetry/src/telemetry/index.ts"],
       "@nimiplatform/kit/telemetry/*": ["../../kit/telemetry/src/*"]
     },

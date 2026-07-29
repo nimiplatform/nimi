@@ -21,6 +21,7 @@ await build({
   platform: 'node',
   target: 'node22',
   format: 'esm',
+  packages: releaseBuild ? undefined : 'external',
   external: releaseBuild
     ? ['electron', 'sharp', '@nimiplatform/kit-protected-local-darwin-arm64']
     : ['electron', '@nimiplatform/*', 'yaml'],
@@ -34,5 +35,17 @@ await build({
   banner: releaseBuild ? {
     js: "import { createRequire as __nimiCreateRequire } from 'node:module'; const require = __nimiCreateRequire(import.meta.url);",
   } : undefined,
+  logLevel: 'silent',
+});
+
+await build({
+  entryPoints: [path.join(appRoot, 'src-electron/chat-ai-store-worker.ts')],
+  outfile: path.join(appRoot, 'dist-electron/chat-ai-store-worker.js'),
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'esm',
+  packages: releaseBuild ? undefined : 'external',
+  external: releaseBuild ? [] : ['@nimiplatform/*'],
   logLevel: 'silent',
 });

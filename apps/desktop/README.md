@@ -6,7 +6,7 @@ This package is the desktop runtime core for Nimi V1:
 - Local-agent runtime (`local` channel)
 - Play protocol client (`Story` + `Scene Turn`)
 - PromptTrace/Audit replay API integration
-- Desktop shell scaffold (Tauri)
+- Electron Desktop host
 
 ## Run (CLI)
 
@@ -14,15 +14,15 @@ This package is the desktop runtime core for Nimi V1:
 pnpm --filter @nimiplatform/desktop dev:cli
 ```
 
-## Run (Desktop Shell)
+## Run (Desktop)
 
 ```bash
-pnpm --filter @nimiplatform/desktop dev:shell
+pnpm --filter @nimiplatform/desktop dev
 ```
 
 Renderer tech stack:
 
-- TypeScript + Vite (Tauri `devUrl` mode in development)
+- TypeScript + Vite, supervised by the Electron main process in development
 - `pnpm --filter @nimiplatform/desktop typecheck`
 
 Mock fixture quick-start (after `pnpm reset`):
@@ -40,11 +40,6 @@ export NIMI_AGENT_ID=01JKDESKTOPAGENTPRIVATE000001
 # ROUTE_DENIED case (private agent owned by others)
 # export NIMI_AGENT_ID=01JKDESKTOPAGENTDENIED000001
 ```
-
-Linux runtime prerequisites (for Tauri/WebKit runtime):
-
-- `webkit2gtk` (distribution package name may vary)
-- `libayatana-appindicator` (or equivalent tray deps where required)
 
 Environment variables:
 
@@ -77,9 +72,9 @@ V1 runtime core keeps cloud chat on human DIRECT endpoints and desktop agent cha
 - `GET /api/human/chats/:chatId/sync`
 - desktop agent chat execution via desktop runtime (cloud agent chat namespace removed)
 
-## Shell Features
+## Desktop Features
 
-Tauri shell includes:
+The Electron Desktop host includes:
 
 - Route badge + route reason panel (CLOUD/LOCAL deterministic result)
 - Agent chat 会话列表、会话切换与会话删除
@@ -90,8 +85,39 @@ Tauri shell includes:
 - API client retry/backoff for transient network failures and retryable HTTP statuses
 - Status rail feedback for retry lifecycle: `retrying` / `retry_exhausted` / `recovered`
 
-## Notes
+## macOS packaging
 
-- Ensure Rust toolchain is installed (`rustup`, `cargo`).
-- Shell command uses Tauri CLI:
-  - `pnpm --filter @nimiplatform/desktop dev:shell`
+```bash
+pnpm --filter @nimiplatform/desktop build:macos:electron:layout
+pnpm --filter @nimiplatform/desktop build:macos:electron:dev-candidate
+```
+
+The layout target validates packaging without signing or installation. The
+local-development candidate uses fixed ad-hoc signing with hardened Runtime and
+requires no Keychain signing identity. This development-only path is separate
+from production signing and notarization. Production release remains unavailable
+until the native production service installation path is implemented and can be
+exercised as a real install.
+
+On macOS, `pnpm dev:desktop` rebuilds the Electron host and launches the
+workspace Electron application for ordinary UI, main, preload, and loopback CDP
+iteration. This host does not gain protected Runtime access: the native carrier
+loader remains fail-closed with `protected-carrier-required`. A protected
+Runtime journey still requires building and installing the fixed ad-hoc
+development candidate.
+
+After `pnpm dev:runtime -- --install` reports a healthy service, launch the
+workspace renderer with the installed protected Desktop carrier using:
+
+```bash
+pnpm dev:macos:desktop:installed
+```
+
+This is a direct development launcher, not an acceptance harness. It stops the
+renderer when the installed `Nimi Dev.app` exits.
+
+The privileged installer rolls back ordinary reported failures. An abrupt
+termination can still leave a partial local machine namespace; that state is
+handled by inspecting and removing the exact administrator-owned development
+paths once, then performing a fresh install. It is intentionally not a product
+migration or automatic repair path.

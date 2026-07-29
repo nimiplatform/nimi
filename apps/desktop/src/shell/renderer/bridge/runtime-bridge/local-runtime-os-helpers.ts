@@ -1,17 +1,10 @@
 import {
-  hasShellHostInvoke,
-  hasTauriInvoke,
+  hasElectronInvoke,
   openShellFileDialog,
   revealShellFile,
   type ShellFileDialogOpenResult,
 } from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeChecked } from './invoke';
 import { getDesktopStorageDirs } from './desktop-storage';
-
-function parseOptionalPath(value: unknown): string | null {
-  const path = typeof value === 'string' ? value.trim() : '';
-  return path || null;
-}
 
 function firstDialogPath(result: ShellFileDialogOpenResult): string | null {
   if (result.canceled) return null;
@@ -38,8 +31,7 @@ function isStandardRevealNotFound(error: unknown): boolean {
   const reasonCode = error && typeof error === 'object'
     ? String((error as { readonly reasonCode?: unknown }).reasonCode || '').trim()
     : '';
-  if (reasonCode === 'tauri-standard-file-reveal-target-not-found'
-    || reasonCode === 'electron-file-reveal-target-not-found') {
+  if (reasonCode === 'electron-file-reveal-target-not-found') {
     return true;
   }
   return error instanceof Error
@@ -55,12 +47,18 @@ async function localRuntimeModelsRoot(): Promise<string> {
 }
 
 export async function pickLocalRuntimeAssetManifestPath(): Promise<string | null> {
-  if (!hasTauriInvoke()) return null;
-  return invokeChecked('runtime_local_pick_asset_manifest_path', {}, parseOptionalPath);
+  if (!hasElectronInvoke()) return null;
+  return firstDialogPath(await openShellFileDialog({
+    kind: 'file',
+    title: 'Select asset.manifest.json',
+    filters: [
+      { name: 'Asset Manifest', extensions: ['json'] },
+    ],
+  }));
 }
 
 export async function pickLocalRuntimeAssetFile(): Promise<string | null> {
-  if (!hasShellHostInvoke()) return null;
+  if (!hasElectronInvoke()) return null;
   return firstDialogPath(await openShellFileDialog({
     kind: 'file',
     title: 'Select asset file to import',
@@ -72,7 +70,7 @@ export async function pickLocalRuntimeAssetFile(): Promise<string | null> {
 }
 
 export async function pickLocalRuntimeAssetDirectory(): Promise<string | null> {
-  if (!hasShellHostInvoke()) return null;
+  if (!hasElectronInvoke()) return null;
   return firstDialogPath(await openShellFileDialog({
     kind: 'directory',
     title: 'Select asset bundle directory to import',
@@ -80,7 +78,7 @@ export async function pickLocalRuntimeAssetDirectory(): Promise<string | null> {
 }
 
 export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Promise<void> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('Local runtime asset reveal requires standard shell file reveal');
   }
   const modelsRoot = await localRuntimeModelsRoot();
@@ -100,7 +98,7 @@ export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Pro
 }
 
 export async function revealLocalRuntimeAssetsRootFolder(): Promise<void> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('Local runtime asset root reveal requires standard shell file reveal');
   }
   await revealShellFile(await localRuntimeModelsRoot());

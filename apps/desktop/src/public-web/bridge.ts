@@ -2,7 +2,6 @@
 // Web adapters import from here instead of reaching into desktop bridge internals.
 
 export { logRendererEvent, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
-export { completeMenuBarQuit, syncMenuBarRuntimeHealth } from '../shell/renderer/bridge/runtime-bridge/menu-bar';
 export { proxyHttp } from '../shell/renderer/bridge/runtime-bridge/http';
 export { getSystemResourceSnapshot } from '../shell/renderer/bridge/runtime-bridge/system-resources';
 export { startWindowDrag } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -29,9 +28,6 @@ export type {
 export type { DesktopStorageDirs } from '../shell/renderer/bridge/runtime-bridge/desktop-storage';
 
 export type {
-  DesktopReleaseInfo,
-  DesktopUpdateCheckResult,
-  DesktopUpdateState,
   RendererLogMessage,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
@@ -45,8 +41,3 @@ export type {
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
 } from '@nimiplatform/kit/core/oauth';
-
-export type {
-  MenuBarProviderSummary,
-  MenuBarRuntimeHealthSyncPayload,
-} from '../shell/renderer/bridge/runtime-bridge/types';

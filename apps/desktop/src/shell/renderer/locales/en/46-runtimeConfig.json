@@ -83,7 +83,7 @@
     "temperature": "Temperature",
     "temperatureValue": "{{value}} °C",
     "systemResourceMeta": "Source: {{source}} | Captured: {{capturedAt}}",
-    "mockDataSysinfo": "Mock data — will connect to Tauri sysinfo",
+    "mockDataSysinfo": "System metrics unavailable from the Electron host",
     "runtimeLoadTitle": "Runtime Load & Usage",
     "requests": "Requests",
     "requestsShort": "{{count}} req",

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -23,6 +23,7 @@ test('macOS local-app host accepts only the exact supervised production launch s
     await writeFile(mainEntry, 'export {};\n');
     await writeFile(executable, 'fixture');
     await mkdir(profile, { recursive: true, mode: 0o700 });
+    await chmod(home, 0o750);
     const resolved = resolveMacOSLocalAppHostLaunch({
       argv: [
         executable,

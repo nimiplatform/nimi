@@ -2,6 +2,8 @@ import {
   CONNECTOR_AUTH_ACQUISITION_PROFILES,
   type ConnectorAuthAcquisitionProfileSpec,
 } from './connector-auth-acquisition-profiles.generated.js';
+export { CONNECTOR_AUTH_ACQUISITION_PROFILES };
+export type { ConnectorAuthAcquisitionProfileSpec };
 import {
   ConnectorAuthKind,
   ConnectorStatus,

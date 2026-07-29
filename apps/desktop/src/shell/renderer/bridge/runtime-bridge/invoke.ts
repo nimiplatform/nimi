@@ -1,7 +1,7 @@
 import type { NimiError } from '@nimiplatform/sdk/types';
 import {
   getShellBridgeUserMessageProjection,
-  hasShellHostInvoke,
+  hasElectronInvoke,
   invokeShell,
   toShellBridgeNimiError,
 } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -69,7 +69,7 @@ function summarizeInvokePayload(command: string, payload: unknown): JsonObject {
 type ShellInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
 
 function resolveShellInvoke(): ShellInvokeFn {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE'));
   }
   return invokeShell;
@@ -91,7 +91,7 @@ function createSecureInvokeId(command: string): string {
 
 export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {
   const startedAt = performance.now();
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE'));
   }
   const shellInvoke = resolveShellInvoke();

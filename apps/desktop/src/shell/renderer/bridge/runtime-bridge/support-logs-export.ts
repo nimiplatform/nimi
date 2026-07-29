@@ -2,7 +2,8 @@
  * Renderer bridge for the Support `logs` sub-area log-export command
  * (`rule.nimi.desktop.product-surfaces.r027`).
  *
- * Backend authority: `apps/desktop/src-tauri/src/desktop_logs_export.rs`,
+ * Desktop hosts implement the command against the canonical Product Control
+ * data root and the operating-system Downloads directory.
  * spec `rule.nimi.desktop.product-surfaces.r027` in `.nimi/spec/desktop/product-surfaces.authority.yaml`. The command bundles
  * `<nimi_data>/logs/` into a user-locatable `.zip` archive in the OS Downloads
  * directory and reveals it in the OS file manager.
@@ -13,7 +14,7 @@
  * fabricates an artifact path or a pseudo-success result.
  */
 
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
 /** Typed result of a successful log export (`rule.nimi.desktop.product-surfaces.r027`). */
@@ -65,8 +66,8 @@ export function parseLogsExportResult(value: unknown): LogsExportResult {
  * an artifact.
  */
 export async function exportDesktopLogs(): Promise<LogsExportResult> {
-  if (!hasTauriInvoke()) {
-    throw new Error('desktop_logs_export requires Tauri runtime');
+  if (!hasElectronInvoke()) {
+    throw new Error('desktop_logs_export requires a standard shell host');
   }
   return invokeChecked('desktop_logs_export', {}, parseLogsExportResult);
 }

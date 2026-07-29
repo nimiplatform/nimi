@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { invoke } from '../src/shell/renderer/bridge/runtime-bridge/invoke.js';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
+import { invoke } from '../src/shell/renderer/bridge/runtime-bridge/invoke.js';
 
-type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
+type ElectronInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 type ForwardedRendererLog = {
   level?: string;
   message?: string;
@@ -25,15 +25,15 @@ if (typeof globalThis.sessionStorage === 'undefined') {
   };
 }
 
-function withTauriInvoke(invokeImpl: TauriInvoke): void {
+function withElectronInvoke(invokeImpl: ElectronInvoke): void {
   const globalRecord = globalThis as unknown as Record<string, unknown>;
   const windowRecord = globalThis.window as unknown as Record<string, unknown>;
   const testHook = {
     invoke: invokeImpl,
-    listen: async () => () => {},
+    listen: () => () => {},
   };
-  globalRecord.__NIMI_TAURI_TEST__ = testHook;
-  windowRecord.__NIMI_TAURI_TEST__ = testHook;
+  globalRecord.__NIMI_ELECTRON_TEST__ = testHook;
+  windowRecord.__NIMI_ELECTRON_TEST__ = testHook;
 }
 
 function clearTelemetryTestState(): void {
@@ -42,16 +42,12 @@ function clearTelemetryTestState(): void {
   setRuntimeLogger(null);
   (globalThis.sessionStorage as { clear?: () => void }).clear?.();
   delete globalRecord.__NIMI_RENDERER_ENV__;
-  delete globalRecord.__NIMI_TAURI_TEST__;
-  delete windowRecord.__NIMI_TAURI_TEST__;
+  delete globalRecord.__NIMI_ELECTRON_TEST__;
+  delete windowRecord.__NIMI_ELECTRON_TEST__;
   delete windowRecord.__NIMI_HTML_BOOT_ID__;
 }
 
 test.beforeEach(() => {
-  (globalThis as unknown as Record<string, unknown>).__NIMI_RENDERER_ENV__ = {
-    VITE_NIMI_DEBUG_BOOT: '1',
-    VITE_NIMI_VERBOSE_RENDERER_LOGS: '1',
-  };
   clearTelemetryTestState();
   (globalThis as unknown as Record<string, unknown>).__NIMI_RENDERER_ENV__ = {
     VITE_NIMI_DEBUG_BOOT: '1',
@@ -63,9 +59,9 @@ test.afterEach(() => {
   clearTelemetryTestState();
 });
 
-test('D-TEL-005: invoke emits start and success traces with a stable invokeId', async () => {
+test('D-TEL-005: Electron invoke emits start and success traces with a stable invokeId', async () => {
   const forwardedLogs: ForwardedRendererLog[] = [];
-  withTauriInvoke(async (command, payload) => {
+  withElectronInvoke(async (command, payload) => {
     if (command === 'demo_command') {
       return { ok: true };
     }
@@ -90,9 +86,9 @@ test('D-TEL-005: invoke emits start and success traces with a stable invokeId', 
   assert.equal(startLog?.details?.sessionTraceId, successLog?.details?.sessionTraceId);
 });
 
-test('D-TEL-005: invoke emits failed traces and preserves structured bridge error fields', async () => {
+test('D-TEL-005: Electron invoke emits failed traces with structured bridge error fields', async () => {
   const forwardedLogs: ForwardedRendererLog[] = [];
-  withTauriInvoke(async (command, payload) => {
+  withElectronInvoke(async (command, payload) => {
     if (command === 'demo_fail') {
       throw JSON.stringify({
         reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,

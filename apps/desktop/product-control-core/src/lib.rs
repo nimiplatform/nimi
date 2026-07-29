@@ -1,9 +1,7 @@
-//! Shared Desktop-owned first-run evidence core.
+//! Shared Desktop-owned first-run product-control core.
 //!
-//! The implementation modules remain the single source consumed by both the
-//! Tauri Desktop host and the Electron Node-API projection. Runtime owns the
-//! product-control state machine; this crate owns only Desktop-local durable
-//! Account Default Profile and built-in AIConfig evidence.
+//! This crate is the single implementation consumed by the Electron Node-API
+//! projection. It contains no shell framework dependency.
 
 pub mod desktop_paths {
     use std::fs;
@@ -40,14 +38,14 @@ pub mod desktop_paths {
 }
 
 pub mod runtime_bridge {
-    pub use nimi_shell_tauri::capabilities::runtime::generated;
+    pub mod generated {
+        include!(concat!(env!("OUT_DIR"), "/nimi.runtime.v1.rs"));
+    }
 }
 
-#[path = "../../src-tauri/src/account_profile_library.rs"]
 pub mod account_profile_library;
-
-#[path = "../../src-tauri/src/desktop_ai_config_library.rs"]
 pub mod desktop_ai_config_library;
+pub mod platform_ai_profile;
 
 #[cfg(test)]
 pub mod test_support {

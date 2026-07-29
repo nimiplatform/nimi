@@ -205,21 +205,6 @@ export default defineConfig(({ mode }) => {
               if (normalizedId.includes('/sdks/typescript/dist/core-generated/google/')) {
                 return 'vendor-sdk-runtime-google';
               }
-              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/ai')) {
-                return 'vendor-sdk-runtime-ai-generated';
-              }
-              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/local_runtime')) {
-                return 'vendor-sdk-runtime-local-generated';
-              }
-              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/connector')) {
-                return 'vendor-sdk-runtime-connector-generated';
-              }
-              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/workflow')) {
-                return 'vendor-sdk-runtime-workflow-generated';
-              }
-              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/model')) {
-                return 'vendor-sdk-runtime-model-generated';
-              }
               if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/')) {
                 return 'vendor-sdk-runtime-generated';
               }

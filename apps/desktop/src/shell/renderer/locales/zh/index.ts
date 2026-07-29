@@ -17,7 +17,6 @@ import section15 from './16-NotificationPanel.json';
 import section16 from './17-GiftInbox.json';
 import section17 from './18-Auth.json';
 import section18 from './19-AuthLogin.json';
-import section19 from './20-DesktopRelease.json';
 import section20 from './21-ProfileView.json';
 import section21 from './22-SourceDetail.json';
 import section22 from './23-GiftSend.json';
@@ -74,7 +73,6 @@ const messages = {
   "GiftInbox": section16,
   "Auth": section17,
   "AuthLogin": section18,
-  "DesktopRelease": section19,
   "ProfileView": section20,
   "SourceDetail": section21,
   "GiftSend": section22,

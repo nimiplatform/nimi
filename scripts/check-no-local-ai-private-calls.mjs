@@ -3,7 +3,7 @@
 /**
  * check:no-local-ai-private-calls
  *
- * Forbids desktop renderer TypeScript from calling private `local_ai_*` Tauri
+ * Forbids desktop renderer TypeScript from calling private `local_ai_*` host
  * commands directly. Private local-AI lifecycle must go through the runtime
  * bridge APIs (`runtime.local.*`), never a raw `invoke('local_ai_*')`.
  *
@@ -77,7 +77,7 @@ function main() {
   }
 
   if (violations.length > 0) {
-    console.error('desktop TS private local_ai_* Tauri command calls are forbidden; use runtime.local.* bridge APIs');
+    console.error('desktop TS private local_ai_* host command calls are forbidden; use runtime.local.* bridge APIs');
     for (const violation of violations) {
       console.error(` - ${violation.file}:${violation.line} -> ${violation.text}`);
     }

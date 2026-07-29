@@ -4,10 +4,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
 
-pub use crate::runtime_ai_config_projection::{
-    project_first_run_execution_evidence_to_ai_config_bindings, RuntimeAiConfigCapabilityBinding,
-};
-
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]

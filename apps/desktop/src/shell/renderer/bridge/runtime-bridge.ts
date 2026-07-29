@@ -3,18 +3,8 @@ import {
   getRuntimeAccountSessionStatus,
   subscribeRuntimeAccountSessionEvents,
   getRuntimeDefaults,
-  hasShellHostInvoke,
-  hasTauriInvoke,
+  hasElectronInvoke,
 } from '@nimiplatform/kit/shell/renderer/bridge';
-import {
-  desktopUpdateCheck,
-  desktopUpdateDownload,
-  desktopUpdateInstall,
-  desktopUpdateRestart,
-  getDesktopReleaseInfo,
-  getDesktopUpdateState,
-  subscribeDesktopUpdateState,
-} from './runtime-bridge/desktop-release';
 import {
   getRuntimeBridgeStatus,
   restartRuntimeBridge,
@@ -41,7 +31,7 @@ import {
 } from './runtime-bridge/nimi-data-directory';
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
-import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
+import { syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { setDesktopOpenIntentReady } from './runtime-bridge/desktop-open-intent';
 import {
   focusMainWindow,
@@ -81,16 +71,16 @@ export type { LogsExportResult } from './runtime-bridge/support-logs-export';
 export type { DesktopStorageDirs } from './runtime-bridge/desktop-storage';
 
 export type {
-  DesktopReleaseInfo,
-  DesktopUpdateCheckResult,
-  DesktopUpdateState,
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
+} from './runtime-bridge/menu-bar';
+
+export type {
   RendererLogLevel,
   RendererLogMessage,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   SystemResourceSnapshot,
-  MenuBarProviderSummary,
-  MenuBarRuntimeHealthSyncPayload,
 } from './runtime-bridge/types';
 
 export type {
@@ -109,15 +99,7 @@ export type {
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export {
-  getDesktopReleaseInfo,
-  getDesktopUpdateState,
-  desktopUpdateCheck,
-  desktopUpdateDownload,
-  desktopUpdateInstall,
-  desktopUpdateRestart,
-  subscribeDesktopUpdateState,
-  hasTauriInvoke,
-  hasShellHostInvoke,
+  hasElectronInvoke,
   logRendererEvent,
   toRendererLogMessage,
   getRuntimeBridgeStatus,
@@ -149,6 +131,5 @@ export {
   openExternalUrl,
   startWindowDrag,
   syncMenuBarRuntimeHealth,
-  completeMenuBarQuit,
   setDesktopOpenIntentReady,
 };

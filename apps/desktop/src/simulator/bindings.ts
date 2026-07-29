@@ -380,15 +380,6 @@ export function createDesktopSimulatorBindings(
         async revealLocalRuntimeAssetsRootFolder() {
           throw new Error('DESKTOP_SIMULATOR_RUNTIME_ASSET_REVEAL_UNADMITTED');
         },
-        async checkDesktopUpdate() {
-          throw new Error('DESKTOP_SIMULATOR_UPDATE_UNADMITTED');
-        },
-        async installDesktopUpdate() {
-          throw new Error('DESKTOP_SIMULATOR_UPDATE_UNADMITTED');
-        },
-        async restartDesktopUpdate() {
-          throw new Error('DESKTOP_SIMULATOR_UPDATE_UNADMITTED');
-        },
         reloadApplication() {
           throw new Error('DESKTOP_SIMULATOR_APPLICATION_RELOAD_UNADMITTED');
         },

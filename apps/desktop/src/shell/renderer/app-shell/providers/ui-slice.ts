@@ -38,9 +38,6 @@ function pushNavigationBackStack(
 type UiSlice = Pick<AppStoreState,
   | 'bootstrapReady'
   | 'bootstrapError'
-  | 'desktopReleaseInfo'
-  | 'desktopReleaseError'
-  | 'desktopUpdateState'
   | 'activeTab'
   | 'navigationBackStack'
   | 'chatMode'
@@ -72,9 +69,6 @@ type UiSlice = Pick<AppStoreState,
   | 'setOfflineTier'
   | 'setBootstrapReady'
   | 'setBootstrapError'
-  | 'setDesktopReleaseInfo'
-  | 'setDesktopReleaseError'
-  | 'setDesktopUpdateState'
   | 'setActiveTab'
   | 'setChatMode'
   | 'setChatThinkingPreference'
@@ -114,9 +108,6 @@ export function createUiSlice(
   return {
     bootstrapReady: false,
     bootstrapError: null,
-    desktopReleaseInfo: null,
-    desktopReleaseError: null,
-    desktopUpdateState: null,
     activeTab: 'chat',
     navigationBackStack: [],
     chatMode: 'ai',
@@ -148,9 +139,6 @@ export function createUiSlice(
     setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
-    setDesktopReleaseInfo: (info) => set({ desktopReleaseInfo: info }),
-    setDesktopReleaseError: (message) => set({ desktopReleaseError: message }),
-    setDesktopUpdateState: (state) => set({ desktopUpdateState: state }),
     setActiveTab: (tab) => {
       startTransition(() => {
         set({ activeTab: tab, navigationBackStack: [] });

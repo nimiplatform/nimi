@@ -45,7 +45,7 @@ export async function resolveLocalAppUserDataArguments(input: {
     ? ['Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1', leaf]
     : ['AppData', 'Local', 'Nimi', 'Local App Hosts', 'v1', leaf];
   let current = canonicalHome;
-  await requirePrivateUserDataDirectory(current, platform, uid);
+  await requireCanonicalUserHome(current, platform, uid);
   for (const segment of segments) {
     current = path.join(current, segment);
     await mkdir(current, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
@@ -57,6 +57,20 @@ export async function resolveLocalAppUserDataArguments(input: {
     failPartition();
   }
   return [`--user-data-dir=${current}`];
+}
+
+async function requireCanonicalUserHome(
+  candidate: string,
+  platform: 'darwin' | 'win32',
+  uid: number | undefined,
+): Promise<void> {
+  const metadata = await lstat(candidate).catch(failPartition);
+  const canonical = await realpath(candidate).catch(failPartition);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()
+    || !sameCanonicalPath(canonical, candidate, platform)
+    || (platform === 'darwin' && (metadata.uid !== uid || (metadata.mode & 0o022) !== 0))) {
+    failPartition();
+  }
 }
 
 async function requirePrivateUserDataDirectory(

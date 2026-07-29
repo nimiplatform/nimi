@@ -73,12 +73,14 @@ type RunContext = {
   readonly plan: ElectronLocalDevelopmentPlan;
   readonly supervisorRunId: string;
   authorizationId?: string;
+  pendingEndRunAuthorizationId?: string;
   buildChild?: ChildProcessWithoutNullStreams;
   renderer?: ChildProcessWithoutNullStreams;
   watcher?: FSWatcher;
   healthTimer?: ReturnType<typeof setInterval>;
   rebuildTimer?: ReturnType<typeof setTimeout>;
   stopped: boolean;
+  tearingDown: boolean;
   supervising: boolean;
   rebuilding: boolean;
   rebuildRequested: boolean;
@@ -107,7 +109,7 @@ type RendererAuthorization = {
   readonly appId: string;
   readonly displayName: string;
   readonly canonicalProjectRoot: string;
-  readonly shell: 'electron' | 'tauri';
+  readonly shell: 'electron';
   readonly accountId: string;
   readonly permissionRequirements: readonly { readonly permissionId: string; readonly reason: string }[];
   readonly persistence: string;
@@ -145,13 +147,14 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
   };
 }
 
-class ElectronLocalDevelopmentHost {
+export class ElectronLocalDevelopmentHost {
   private readonly runs = new Map<string, RunContext>();
   private readonly pending = new Map<string, PendingApproval>();
   private readonly authorizationSelectors = new Map<string, string>();
   private server: Server | undefined;
   private endpoint = '';
   private shutdownPromise: Promise<void> | undefined;
+  private shutdownComplete = false;
   private readonly projectionPublisher: DesktopElectronLocalDevelopmentProjectionPublisher;
 
   constructor(
@@ -200,8 +203,19 @@ class ElectronLocalDevelopmentHost {
   }
 
   shutdown(): Promise<void> {
-    this.shutdownPromise ??= this.performShutdown();
-    return this.shutdownPromise;
+    if (this.shutdownComplete) return Promise.resolve();
+    if (this.shutdownPromise) return this.shutdownPromise;
+    const attempt = this.performShutdown()
+      .then(() => {
+        this.shutdownComplete = true;
+      })
+      .finally(() => {
+        if (this.shutdownPromise === attempt) {
+          this.shutdownPromise = undefined;
+        }
+      });
+    this.shutdownPromise = attempt;
+    return attempt;
   }
 
   private async performShutdown(): Promise<void> {
@@ -270,6 +284,7 @@ class ElectronLocalDevelopmentHost {
       plan,
       supervisorRunId: randomIdentifier(),
       stopped: false,
+      tearingDown: false,
       supervising: false,
       rebuilding: false,
       rebuildRequested: false,
@@ -404,7 +419,7 @@ class ElectronLocalDevelopmentHost {
 
   private async listAuthorizations(): Promise<RendererAuthorization[]> {
     const rows = await this.control.listAuthorizations();
-    return rows.map((authorization) => {
+    return rows.filter((authorization) => authorization.project.shell === 'electron').map((authorization) => {
       let selectorValue = [...this.authorizationSelectors].find(([, id]) => id === authorization.authorizationId)?.[0];
       selectorValue ??= randomSelector('dev-project');
       this.authorizationSelectors.set(selectorValue, authorization.authorizationId);
@@ -454,8 +469,11 @@ class ElectronLocalDevelopmentHost {
         }, REBUILD_DEBOUNCE_MS);
       });
       this.ensureHealthTimer(run);
-      run.renderer.once('exit', (code) => {
-        if (!run.stopped) setRunState(run, 'failed', `local-development-dev-server-exited-${code ?? -1}`, 'local-development-dev-server-uncontrolled', false);
+      const renderer = run.renderer;
+      renderer.once('exit', (code) => {
+        if (run.stopped || run.renderer !== renderer) return;
+        run.renderer = undefined;
+        void this.handleUnexpectedRendererExit(run, code);
       });
     } catch (error) {
       if (!run.stopped) setRunState(run, 'failed', reason(error), reason(error), false);
@@ -476,7 +494,7 @@ class ElectronLocalDevelopmentHost {
         setRunState(run, 'restarting', 'Rebuilding Electron main and preload', undefined, true);
         await this.runPackageScript(run, 'build:electron');
         if (run.stopped) return;
-        await this.launchHost(run);
+        await this.replaceHost(run);
       } while (run.rebuildRequested && !run.stopped);
     } catch (error) {
       if (!run.stopped) {
@@ -513,12 +531,17 @@ class ElectronLocalDevelopmentHost {
     appendLog(run, 'supervisor', `host generation ${run.status.hostGeneration} started (pid ${outcome.processId})`);
   }
 
+  private async replaceHost(run: RunContext): Promise<void> {
+    await this.control.terminateHost(run.supervisorRunId);
+    if (!run.stopped) await this.launchHost(run);
+  }
+
   private ensureHealthTimer(run: RunContext): void {
     run.healthTimer ??= setInterval(() => void this.refreshAuthority(run), HEALTH_MS);
   }
 
   private async refreshAuthority(run: RunContext): Promise<void> {
-    if (run.stopped || run.status.state === 'pending-approval') return;
+    if (run.stopped || run.tearingDown || run.rebuilding || run.status.state === 'pending-approval') return;
     try {
       const evaluation = await this.control.evaluate({
         expectedAppId: run.plan.appId,
@@ -539,11 +562,52 @@ class ElectronLocalDevelopmentHost {
       }
       run.authorizationId = evaluation.authorization.authorizationId;
       const running = await this.control.hostRunning(run.supervisorRunId);
-      if (!running && run.status.hostGeneration > 0) await this.launchHost(run);
+      if (!running && run.status.hostGeneration > 0) await this.replaceHost(run);
       if (!run.supervising && !run.renderer) this.startSupervisor(run);
     } catch (error) {
       const code = reason(error);
-      setRunState(run, resolveLocalDevelopmentAuthorityFailureState(code), code, code, true);
+      await this.failClosedRun(run, {
+        state: resolveLocalDevelopmentAuthorityFailureState(code),
+        message: code,
+        reasonCode: code,
+        retryable: true,
+        endAuthorization: false,
+        resumeAuthorityRefresh: true,
+      });
+    }
+  }
+
+  private async handleUnexpectedRendererExit(run: RunContext, code: number | null): Promise<void> {
+    await this.failClosedRun(run, {
+      state: 'failed',
+      message: `local-development-dev-server-exited-${code ?? -1}`,
+      reasonCode: 'local-development-dev-server-uncontrolled',
+      retryable: false,
+      endAuthorization: true,
+      resumeAuthorityRefresh: false,
+    });
+  }
+
+  private async failClosedRun(run: RunContext, outcome: {
+    readonly state: string;
+    readonly message: string;
+    readonly reasonCode: string;
+    readonly retryable: boolean;
+    readonly endAuthorization: boolean;
+    readonly resumeAuthorityRefresh: boolean;
+  }): Promise<void> {
+    if (run.stopped || run.tearingDown) return;
+    run.tearingDown = true;
+    if (!outcome.resumeAuthorityRefresh) run.stopped = true;
+    try {
+      await this.teardownRun(run, outcome.endAuthorization);
+      setRunState(run, outcome.state, outcome.message, outcome.reasonCode, outcome.retryable);
+    } catch {
+      run.stopped = true;
+      setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
+    } finally {
+      run.tearingDown = false;
+      if (outcome.resumeAuthorityRefresh && !run.stopped) this.ensureHealthTimer(run);
     }
   }
 
@@ -582,24 +646,40 @@ class ElectronLocalDevelopmentHost {
 
   private async stopRun(run: RunContext, state: string): Promise<void> {
     run.stopped = true;
+    try {
+      await this.teardownRun(run, true);
+    } catch (error) {
+      setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
+      throw error;
+    }
+    setRunState(run, state, 'Development run stopped', undefined, false);
+  }
+
+  private async teardownRun(run: RunContext, endAuthorization: boolean): Promise<void> {
+    if (endAuthorization && run.authorizationId) {
+      run.pendingEndRunAuthorizationId ??= run.authorizationId;
+    }
+    run.authorizationId = undefined;
     const failures: unknown[] = [];
     try {
       await this.stopRunProcesses(run);
     } catch (error) {
       failures.push(error);
     }
-    if (run.authorizationId) {
+    const pendingEndRunAuthorizationId = run.pendingEndRunAuthorizationId;
+    if (pendingEndRunAuthorizationId) {
       try {
-        await this.control.endRun(run.authorizationId, run.supervisorRunId);
+        await this.control.endRun(pendingEndRunAuthorizationId, run.supervisorRunId);
+        if (run.pendingEndRunAuthorizationId === pendingEndRunAuthorizationId) {
+          run.pendingEndRunAuthorizationId = undefined;
+        }
       } catch (error) {
         failures.push(error);
       }
     }
     if (failures.length > 0) {
-      setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
       throw new AggregateError(failures, 'local-development-process-cleanup-failed');
     }
-    setRunState(run, state, 'Development run stopped', undefined, false);
   }
 
   private async stopRunProcesses(run: RunContext): Promise<void> {
@@ -609,24 +689,34 @@ class ElectronLocalDevelopmentHost {
     run.rebuildTimer = undefined;
     run.healthTimer = undefined;
     run.rebuildRequested = false;
-    run.watcher?.close();
-    run.watcher = undefined;
-    if (run.buildChild && run.buildChild.exitCode === null && run.buildChild.pid) {
+    try {
+      run.watcher?.close();
+      run.watcher = undefined;
+    } catch (error) {
+      failures.push(error);
+    }
+    const buildChild = run.buildChild;
+    if (buildChild && buildChild.exitCode === null && buildChild.pid) {
       try {
-        await terminateTree(run.buildChild);
+        await terminateTree(buildChild);
+        if (run.buildChild === buildChild) run.buildChild = undefined;
       } catch (error) {
         failures.push(error);
       }
+    } else if (run.buildChild === buildChild) {
+      run.buildChild = undefined;
     }
-    run.buildChild = undefined;
-    if (run.renderer && run.renderer.exitCode === null && run.renderer.pid) {
+    const renderer = run.renderer;
+    if (renderer && renderer.exitCode === null && renderer.pid) {
       try {
-        await terminateTree(run.renderer);
+        await terminateTree(renderer);
+        if (run.renderer === renderer) run.renderer = undefined;
       } catch (error) {
         failures.push(error);
       }
+    } else if (run.renderer === renderer) {
+      run.renderer = undefined;
     }
-    run.renderer = undefined;
     try {
       await this.control.terminateHost(run.supervisorRunId);
     } catch (error) {
@@ -667,6 +757,9 @@ function projectRun(status: RunStatus) {
 }
 
 function projectAuthorization(selectorValue: string, authorization: NimiElectronLocalDevelopmentAuthorization): RendererAuthorization {
+  if (authorization.project.shell !== 'electron') {
+    throw new Error('local-development-authority-shell-unsupported');
+  }
   return {
     selector: selectorValue,
     appId: authorization.project.appId,

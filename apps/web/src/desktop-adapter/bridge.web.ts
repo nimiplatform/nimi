@@ -5,7 +5,6 @@
 // a web-specific app shell that does not render desktop App.
 
 import {
-  hasTauriInvoke,
   hasShellHostInvoke,
   getDaemonStatus,
   startDaemon,
@@ -21,18 +20,11 @@ import {
 import {
   logRendererEvent,
   toRendererLogMessage,
-  completeMenuBarQuit,
-  syncMenuBarRuntimeHealth,
   proxyHttp,
   getSystemResourceSnapshot,
   startWindowDrag,
 } from '@desktop-public/bridge';
 import type {
-  DesktopReleaseInfo,
-  DesktopUpdateCheckResult,
-  DesktopUpdateState,
-  MenuBarProviderSummary,
-  MenuBarRuntimeHealthSyncPayload,
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
@@ -56,11 +48,6 @@ import type {
 } from '@desktop-public/bridge';
 
 export type {
-  DesktopReleaseInfo,
-  DesktopUpdateCheckResult,
-  DesktopUpdateState,
-  MenuBarProviderSummary,
-  MenuBarRuntimeHealthSyncPayload,
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
@@ -83,18 +70,11 @@ export type {
   DesktopAccountSessionSubscriptionHandlers,
 };
 
-export {
-  completeMenuBarQuit,
-  logRendererEvent,
-  syncMenuBarRuntimeHealth,
-  toRendererLogMessage,
-};
+export { logRendererEvent, toRendererLogMessage };
 
 function unsupportedDesktopRuntime(message: string): never {
   throw new Error(message);
 }
-
-export { hasTauriInvoke };
 
 function normalizeHttpOrigin(raw: string): string | null {
   const value = String(raw || '').trim();
@@ -156,42 +136,12 @@ export async function subscribeRuntimeAccountSessionEvents(
   unsupportedDesktopRuntime('Runtime account event stream is only available in desktop runtime');
 }
 
-export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
-  unsupportedDesktopRuntime('Application release metadata is only available in desktop runtime');
-}
-
-export async function getDesktopUpdateState(): Promise<DesktopUpdateState> {
-  unsupportedDesktopRuntime('Application update state is only available in desktop runtime');
-}
-
 export async function getDesktopStorageDirs(): Promise<DesktopStorageDirs> {
   unsupportedDesktopRuntime('Desktop storage directories are only available in desktop runtime');
 }
 
-export async function desktopUpdateCheck(): Promise<DesktopUpdateCheckResult> {
-  unsupportedDesktopRuntime('Application update is only available in desktop runtime');
-}
-
-export async function desktopUpdateDownload(): Promise<DesktopUpdateCheckResult> {
-  unsupportedDesktopRuntime('Application update is only available in desktop runtime');
-}
-
-export async function desktopUpdateInstall(): Promise<DesktopUpdateState> {
-  unsupportedDesktopRuntime('Application update is only available in desktop runtime');
-}
-
-export async function desktopUpdateRestart(): Promise<void> {
-  unsupportedDesktopRuntime('Application update is only available in desktop runtime');
-}
-
-export async function subscribeDesktopUpdateState(
-  _listener: (event: DesktopUpdateState) => void,
-): Promise<() => void> {
-  unsupportedDesktopRuntime('Application update events are only available in desktop runtime');
-}
-
 // The `nimi_data` directory cleanup surface (P-MIG-006/008) is a desktop
-// Tauri-only capability: it plans and executes host filesystem cleanup through
+// host-only capability: it plans and executes filesystem cleanup through
 // the governed owner matrix. The web shell has no nimi_data root, so cleanup
 // fails closed rather than synthesizing a fake outcome.
 export async function planNimiDataCleanup(_directory: string): Promise<NimiDataCleanupPlan> {
@@ -206,7 +156,7 @@ export async function executeNimiDataCleanup(
 }
 
 // The Support `logs` export (`rule.nimi.desktop.product-surfaces.r027`) bundles the on-disk `<nimi_data>/logs/`
-// directory into a user-locatable archive — a desktop Tauri-only capability.
+// directory into a user-locatable archive — a desktop host-only capability.
 // The web shell has no nimi_data root, so the export fails closed rather than
 // synthesizing a fake artifact.
 export async function exportDesktopLogs(): Promise<LogsExportResult> {
@@ -215,8 +165,8 @@ export async function exportDesktopLogs(): Promise<LogsExportResult> {
 
 // The product-control record (`P-COLD-001`/`P-COLD-015/016`) is the durable
 // first-run / cold-start authority projection rooted in the desktop-local
-// `~/.nimi` control directory and admitted by the desktop Tauri host. The web
-// shell has no `~/.nimi` control root and no Tauri host, so every
+// `~/.nimi` control directory and admitted by the Desktop host. The web shell
+// has no `~/.nimi` control root, so every
 // product-control read and mutation fails closed rather than synthesizing a
 // projection. Support / first-run consumers already treat a thrown read as a
 // fail-closed `repair_required` projection.
@@ -283,15 +233,7 @@ export { oauthListenForCode, oauthTokenExchange, openExternalUrl, focusMainWindo
 export { proxyHttp, getSystemResourceSnapshot, startWindowDrag };
 
 export const desktopBridge = {
-  hasTauriInvoke,
   hasShellHostInvoke,
-  getDesktopReleaseInfo,
-  getDesktopUpdateState,
-  desktopUpdateCheck,
-  desktopUpdateDownload,
-  desktopUpdateInstall,
-  desktopUpdateRestart,
-  subscribeDesktopUpdateState,
   getRuntimeBridgeStatus,
   getRuntimeBridgeConfig,
   setRuntimeBridgeConfig,
@@ -316,8 +258,6 @@ export const desktopBridge = {
   oauthTokenExchange,
   oauthListenForCode,
   focusMainWindow,
-  syncMenuBarRuntimeHealth,
-  completeMenuBarQuit,
   planNimiDataCleanup,
   executeNimiDataCleanup,
   exportDesktopLogs,

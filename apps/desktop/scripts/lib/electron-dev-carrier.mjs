@@ -3,17 +3,6 @@ import path from 'node:path';
 export function resolveSignedDesktopDevCarrier(input) {
   const platform = input.platform ?? process.platform;
   const architecture = input.architecture ?? process.arch;
-  if (platform === 'darwin' && architecture === 'arm64') {
-    const executablePath = '/Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev';
-    if (!input.existsSync(executablePath)) {
-      throw carrierError(
-        `Signed Desktop development carrier is missing: ${executablePath}`,
-        'dev-runtime-service-not-installed',
-        'run_pnpm_dev_runtime_install',
-      );
-    }
-    return executablePath;
-  }
   if (platform !== 'win32' || architecture !== 'x64') {
     throw carrierError(
       `Signed Desktop Electron development is not admitted for ${platform}/${architecture}.`,
@@ -36,6 +25,27 @@ export function resolveSignedDesktopDevCarrier(input) {
       `Signed Desktop development carrier is missing: ${executablePath}`,
       'desktop-dev-signed-carrier-missing',
       'prepare_signed_desktop_electron_runtime',
+    );
+  }
+  return executablePath;
+}
+
+export function resolveWorkspaceElectronDevCarrier(input) {
+  const platform = input.platform ?? process.platform;
+  const architecture = input.architecture ?? process.arch;
+  if (platform !== 'darwin' || architecture !== 'arm64') {
+    throw carrierError(
+      `Workspace Electron development is not admitted for ${platform}/${architecture}.`,
+      'desktop-dev-workspace-carrier-platform-unsupported',
+      'use_native_apple_silicon_macos',
+    );
+  }
+  const executablePath = path.resolve(requiredText(input.electronExecutable, 'electronExecutable'));
+  if (!input.existsSync(executablePath)) {
+    throw carrierError(
+      `Workspace Electron development carrier is missing: ${executablePath}`,
+      'desktop-dev-workspace-carrier-missing',
+      'install_the_workspace_Electron_dependency',
     );
   }
   return executablePath;

@@ -16,7 +16,6 @@ import type {
 export interface DesktopRendererLifecyclePort {
   auth(): AppStoreState['auth'];
   bootstrap(): Readonly<Pick<AppStoreState, 'bootstrapError' | 'bootstrapReady'>>;
-  desktopReleaseInfo(): AppStoreState['desktopReleaseInfo'];
   translate(key: string, options?: Readonly<Record<string, unknown>>): string;
   subscribeBootstrap(listener: () => void): () => void;
   setActiveTab(tab: AppStoreState['activeTab']): void;
@@ -25,9 +24,6 @@ export interface DesktopRendererLifecyclePort {
   applyRuntimeAccountProjection(projection: RuntimeAccountAuthProjection): void;
   setAuthSession(user: Record<string, unknown> | null): void;
   clearAuthSession(): void;
-  setDesktopReleaseInfo(info: AppStoreState['desktopReleaseInfo']): void;
-  setDesktopReleaseError(message: string | null): void;
-  setDesktopUpdateState(state: AppStoreState['desktopUpdateState']): void;
   setRuntimeDefaults(defaults: NonNullable<AppStoreState['runtimeDefaults']>): void;
   setStatusBanner(banner: StatusBanner | null): void;
   setBootstrapReady(ready: boolean): void;
@@ -55,7 +51,6 @@ export function createDesktopRendererLifecyclePort(
         bootstrapReady: state.bootstrapReady,
       });
     },
-    desktopReleaseInfo: () => store.getState().desktopReleaseInfo,
     translate,
     subscribeBootstrap(listener) {
       let previous = store.getState();
@@ -79,9 +74,6 @@ export function createDesktopRendererLifecyclePort(
     ),
     setAuthSession: (user) => store.getState().setAuthSession(user),
     clearAuthSession: () => store.getState().clearAuthSession(),
-    setDesktopReleaseInfo: (info) => store.getState().setDesktopReleaseInfo(info),
-    setDesktopReleaseError: (message) => store.getState().setDesktopReleaseError(message),
-    setDesktopUpdateState: (state) => store.getState().setDesktopUpdateState(state),
     setRuntimeDefaults: (defaults) => store.getState().setRuntimeDefaults(defaults),
     setStatusBanner: (banner) => store.getState().setStatusBanner(banner),
     setBootstrapReady: (ready) => store.getState().setBootstrapReady(ready),

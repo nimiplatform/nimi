@@ -32,7 +32,7 @@ async function loadDiagnosticsProjection(
   bindings: ReturnType<typeof useDesktopRendererBindings>,
 ): Promise<DiagnosticsProjection> {
   // The runtime daemon status is the load-bearing typed projection. The
-  // resource snapshot can be legitimately unavailable (no Tauri host probe), so
+  // resource snapshot can be legitimately unavailable (no Electron host probe), so
   // its failure is captured inline instead of fail-closing the section.
   const daemon = await bindings.app.commands.runtimeDaemon.status();
   let resources: SystemResourceSnapshot | null = null;

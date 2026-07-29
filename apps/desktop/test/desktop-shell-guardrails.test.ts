@@ -10,7 +10,7 @@ import { confirmDialog, openExternalUrl } from '@nimiplatform/kit/shell/renderer
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type WindowLike = {
-  __NIMI_TAURI_TEST__?: {
+  __NIMI_ELECTRON_TEST__?: {
     invoke?: (command: string, payload?: unknown) => Promise<unknown> | unknown;
     listen?: (eventName: string, handler: (event: { payload: unknown }) => void) => (() => void) | Promise<() => void>;
   };
@@ -92,7 +92,7 @@ test('confirmDialog invokes the standard shell UI command and payload shape', as
   let observedCommand = '';
   let observedPayload: unknown = null;
   const restoreWindow = installWindowMock({
-    __NIMI_TAURI_TEST__: {
+    __NIMI_ELECTRON_TEST__: {
       invoke: async (command, payload) => {
         observedCommand = command;
         observedPayload = payload;
@@ -121,10 +121,12 @@ test('confirmDialog invokes the standard shell UI command and payload shape', as
   }
 });
 
-test('proxyHttp fallback blocks private-network absolute URLs outside the app origin', async () => {
+test('proxyHttp fails closed without the Electron standard shell host', async () => {
   const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
   globalThis.fetch = (async () => {
-    throw new Error('fetch should not be reached for blocked private URLs');
+    fetchCalled = true;
+    throw new Error('renderer fetch must not be reached');
   }) as typeof fetch;
 
   try {
@@ -138,8 +140,9 @@ test('proxyHttp fallback blocks private-network absolute URLs outside the app or
       const { proxyHttp } = await import('../src/shell/renderer/bridge/runtime-bridge/http');
       await assert.rejects(
         () => proxyHttp({ url: 'http://169.254.169.254/latest/meta-data' }),
-        /禁止访问私有网络地址/,
+        /Desktop HTTP requests require the Electron standard shell host/,
       );
+      assert.equal(fetchCalled, false);
     } finally {
       restoreWindow();
     }

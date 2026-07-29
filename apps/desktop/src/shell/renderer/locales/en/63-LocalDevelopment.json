@@ -4,7 +4,7 @@
     "title": "Allow this development project?",
     "subtitle": "Nimi will supervise this project's build, dev server, and native host. Project approval does not grant access to protected Nimi resources.",
     "warning": "Only approve a project you are actively developing. This authorization cannot become a store listing or production release.",
-    "nativeRiskAcknowledgement": "I understand this project can build and run native Windows code with my user privileges. I have reviewed and trust this exact project root.",
+    "nativeRiskAcknowledgement": "I understand this project can build and run native code with my user privileges. I have reviewed and trust this exact project root.",
     "queue": "{{count}} development requests are waiting."
   },
   "field": {
@@ -16,8 +16,7 @@
     "noExtraPermissions": "No additional Nimi permissions. App-owned storage, SQLite, media, settings, and routes do not require Nimi approval."
   },
   "shell": {
-    "electron": "Electron",
-    "tauri": "Tauri"
+    "electron": "Electron"
   },
   "state": {
     "active": "Active",

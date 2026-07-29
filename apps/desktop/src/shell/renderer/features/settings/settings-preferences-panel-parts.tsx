@@ -9,11 +9,6 @@ type SettingRowProps = {
   onChange: (value: boolean) => void;
 };
 
-export type DesktopUpdatePanelAlert = {
-  tone: 'warning' | 'error';
-  message: string;
-};
-
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) {
   return (
     <button
@@ -51,41 +46,10 @@ export function SettingRow({ icon, title, description, checked, onChange }: Sett
   );
 }
 
-export function collectDesktopUpdatePanelAlerts(input: {
-  desktopReleaseError?: string | null;
-  updaterUnavailableReason?: string | null;
-  updateLastError?: string | null;
-}): DesktopUpdatePanelAlert[] {
-  const alerts: DesktopUpdatePanelAlert[] = [];
-  const releaseError = String(input.desktopReleaseError || '').trim();
-  const updaterUnavailableReason = String(input.updaterUnavailableReason || '').trim();
-  const updateLastError = String(input.updateLastError || '').trim();
-
-  if (releaseError) {
-    alerts.push({ tone: 'warning', message: releaseError });
-  }
-  if (updaterUnavailableReason) {
-    alerts.push({ tone: 'warning', message: updaterUnavailableReason });
-  }
-  if (updateLastError) {
-    alerts.push({ tone: 'error', message: updateLastError });
-  }
-
-  return alerts;
-}
-
-export function canUseDesktopUpdater(input: {
-  desktopReleaseError?: string | null;
-  updaterAvailable?: boolean | null;
-}): boolean {
-  return !String(input.desktopReleaseError || '').trim() && input.updaterAvailable === true;
-}
-
 export function performanceEqual(left: PerformancePreferences, right: PerformancePreferences): boolean {
   return (
     left.hardwareAcceleration === right.hardwareAcceleration
     && left.reduceAnimations === right.reduceAnimations
-    && left.autoUpdate === right.autoUpdate
   );
 }
 
@@ -284,30 +248,4 @@ export function AwardIcon({ className = '' }: { className?: string }) {
       <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
     </svg>
   );
-}
-
-function formatBytes(bytes: number | undefined): string {
-  if (!Number.isFinite(bytes) || !bytes || bytes <= 0) {
-    return '-';
-  }
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let value = bytes;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-  return `${value.toFixed(value >= 100 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-}
-
-export function formatUpdateProgress(
-  downloadedBytes: number,
-  totalBytes: number | undefined,
-  downloadedLabel: string,
-): string {
-  if (!totalBytes || totalBytes <= 0) {
-    return `${formatBytes(downloadedBytes)} ${downloadedLabel}`;
-  }
-  const percent = Math.max(0, Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)));
-  return `${percent}% · ${formatBytes(downloadedBytes)} / ${formatBytes(totalBytes)}`;
 }

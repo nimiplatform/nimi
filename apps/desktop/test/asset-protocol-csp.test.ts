@@ -3,135 +3,56 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const tauriConfigPath = path.resolve(
+const rendererIndexPath = path.resolve(
   import.meta.dirname ?? __dirname,
-  '../src-tauri/tauri.conf.json',
+  '../src/shell/renderer/index.html',
 );
+const rendererIndex = fs.readFileSync(rendererIndexPath, 'utf8');
+const csp = rendererIndex.match(
+  /<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]+)"/u,
+)?.[1] ?? '';
 
-const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf-8')) as {
-  app?: {
-    security?: {
-      csp?: string;
-      devCsp?: string;
-      assetProtocol?: {
-        enable?: boolean;
-        scope?: unknown;
-      };
-    };
-  };
-};
+function directive(name: string): string {
+  return csp.match(new RegExp(`(?:^|;)\\s*${name}\\b[^;]*`, 'u'))?.[0] ?? '';
+}
 
-const csp = String(tauriConfig.app?.security?.csp || '');
-const devCsp = String(tauriConfig.app?.security?.devCsp || '');
-const assetProtocol = tauriConfig.app?.security?.assetProtocol;
-
-test('desktop CSP allows tauri asset protocol for local avatar resource loading', () => {
-  const imgDirective = csp.match(/\bimg-src\b[^;]*/)?.[0] || '';
-  const mediaDirective = csp.match(/\bmedia-src\b[^;]*/)?.[0] || '';
-  const connectDirective = csp.match(/\bconnect-src\b[^;]*/)?.[0] || '';
-
-  assert.ok(
-    imgDirective.includes('asset:'),
-    'img-src must allow asset: URLs for local avatar posters and textures',
-  );
-  assert.ok(
-    imgDirective.includes('http://asset.localhost'),
-    'img-src must allow http://asset.localhost for Tauri asset protocol compatibility',
-  );
-  assert.ok(
-    mediaDirective.includes('asset:'),
-    'media-src must allow asset: URLs for local desktop avatar assets',
-  );
-  assert.ok(
-    connectDirective.includes('asset:'),
-    'connect-src must allow asset: URLs for managed local avatar resources',
-  );
-  assert.ok(
-    connectDirective.includes('http://asset.localhost'),
-    'connect-src must allow http://asset.localhost for Tauri asset protocol compatibility',
-  );
-  assert.ok(
-    connectDirective.includes('http://ipc.localhost'),
-    'connect-src must allow http://ipc.localhost for Tauri Windows IPC fallback',
-  );
-  assert.ok(
-    connectDirective.includes('data:'),
-    'connect-src must allow data: wasm payloads emitted by packaged renderer dependencies',
-  );
-});
-
-test('desktop CSP allows reviewed remote profile media without widening script execution', () => {
-  const imgDirective = csp.match(/\bimg-src\b[^;]*/)?.[0] || '';
-  const mediaDirective = csp.match(/\bmedia-src\b[^;]*/)?.[0] || '';
-  const scriptDirective = csp.match(/\bscript-src\b[^;]*/)?.[0] || '';
-
-  assert.ok(
-    imgDirective.includes('https:'),
-    'img-src must allow HTTPS reviewed portrait URLs promoted from Realm Persona Studio',
-  );
-  assert.ok(
-    mediaDirective.includes('https:'),
-    'media-src must allow HTTPS reviewed voice/profile media URLs promoted from Realm Persona Studio',
-  );
-  assert.ok(
-    !scriptDirective.includes('https:'),
-    'script-src must not allow remote scripts when enabling reviewed remote profile media',
-  );
-});
-
-test('desktop CSP allows blob module scripts for packaged renderer dependencies', () => {
-  const scriptDirective = csp.match(/\bscript-src\b[^;]*/)?.[0] || '';
-
-  assert.ok(
-    scriptDirective.includes('blob:'),
-    'script-src must allow blob: module URLs for packaged renderer dependency loading',
-  );
-  assert.ok(
-    scriptDirective.includes("'wasm-unsafe-eval'"),
-    'script-src must allow wasm-unsafe-eval so packaged WebKit can instantiate renderer WASM dependencies without enabling unsafe-eval',
-  );
-  assert.ok(
-    !scriptDirective.includes("'unsafe-inline'"),
-    'production script-src must not allow inline scripts',
-  );
-});
-
-test('desktop dev CSP keeps production script restrictions while HMR is disabled', () => {
-  const devScriptDirective = devCsp.match(/\bscript-src\b[^;]*/)?.[0] || '';
-  const prodScriptDirective = csp.match(/\bscript-src\b[^;]*/)?.[0] || '';
-
+test('Electron Desktop renderer has one explicit CSP', () => {
+  assert.ok(csp, 'renderer index must declare Content-Security-Policy');
   assert.equal(
-    devScriptDirective,
-    prodScriptDirective,
-    'dev script-src must stay aligned with production script-src when desktop HMR is disabled',
+    rendererIndex.match(/http-equiv="Content-Security-Policy"/gu)?.length,
+    1,
   );
-  assert.ok(
-    devScriptDirective.includes('blob:'),
-    'dev script-src must preserve blob module support for packaged renderer dependency loading',
-  );
-  assert.ok(
-    devScriptDirective.includes("'wasm-unsafe-eval'"),
-    'dev script-src must preserve WebKit WASM support',
-  );
-  assert.ok(
-    !devScriptDirective.includes("'unsafe-inline'"),
-    'dev script-src must not allow inline scripts when React refresh is disabled',
-  );
+  assert.ok(directive('default-src').includes("'self'"));
+  assert.ok(directive('object-src').includes("'none'"));
+  assert.ok(directive('base-uri').includes("'self'"));
 });
 
-test('desktop asset protocol starts empty and admits only resolved files dynamically', () => {
-  assert.equal(
-    assetProtocol?.enable,
-    true,
-    'assetProtocol.enable must be true so convertFileSrc URLs resolve in the desktop shell',
-  );
-  assert.ok(
-    Array.isArray(assetProtocol?.scope),
-    'assetProtocol.scope must be configured',
-  );
-  assert.deepEqual(
-    assetProtocol?.scope,
-    [],
-    'static home-relative scopes would bypass Product Control dataRoot discovery',
-  );
+test('Electron CSP admits only the current local asset protocol', () => {
+  for (const name of ['img-src', 'media-src', 'font-src', 'connect-src']) {
+    assert.ok(
+      directive(name).includes('nimi-shell-file:'),
+      `${name} must admit the registered-only Electron local file protocol`,
+    );
+  }
+  assert.ok(!csp.includes('asset:'), 'retired Tauri asset protocol must not remain');
+  assert.ok(!csp.includes('ipc:'), 'retired Tauri IPC protocol must not remain');
+  assert.ok(!csp.includes('asset.localhost'), 'retired Tauri asset host must not remain');
+  assert.ok(!csp.includes('ipc.localhost'), 'retired Tauri IPC host must not remain');
+});
+
+test('Electron CSP allows reviewed remote media without widening scripts', () => {
+  assert.ok(directive('img-src').includes('https:'));
+  assert.ok(directive('media-src').includes('https:'));
+  assert.ok(!directive('script-src').includes('https:'));
+});
+
+test('Electron CSP preserves WASM and loopback development without unsafe script execution', () => {
+  const scripts = directive('script-src');
+  const connections = directive('connect-src');
+  assert.ok(scripts.includes('blob:'));
+  assert.ok(scripts.includes("'wasm-unsafe-eval'"));
+  assert.ok(!scripts.includes("'unsafe-inline'"));
+  assert.ok(!scripts.includes("'unsafe-eval'"));
+  assert.ok(connections.includes('http://127.0.0.1:*'));
+  assert.ok(connections.includes('ws://127.0.0.1:*'));
 });

@@ -5,56 +5,12 @@ import {
 import {
   assertRecord,
   parseOptionalNumber,
-  parseOptionalString,
   parseRequiredString,
 } from './shared.js';
-import type {
-  DesktopReleaseInfo,
-  DesktopUpdateCheckResult,
-  DesktopUpdateState,
-  MenuBarProviderSummary,
-  SystemResourceSnapshot,
-} from './runtime-types';
+import type { SystemResourceSnapshot } from './runtime-types';
 
 export const parseRuntimeDefaults = parseSharedRuntimeDefaults;
 export const parseRuntimeBridgeDaemonStatus = parseSharedRuntimeBridgeDaemonStatus;
-
-export function parseDesktopReleaseInfo(value: unknown): DesktopReleaseInfo {
-  const record = assertRecord(value, 'desktop_release_info_get returned invalid payload');
-  return {
-    desktopVersion: parseRequiredString(record.desktopVersion, 'desktopVersion', 'desktop_release_info_get'),
-    desktopReleaseId: parseRequiredString(record.desktopReleaseId, 'desktopReleaseId', 'desktop_release_info_get'),
-    channel: parseRequiredString(record.channel, 'channel', 'desktop_release_info_get'),
-    commit: parseRequiredString(record.commit, 'commit', 'desktop_release_info_get'),
-    builtAt: parseRequiredString(record.builtAt, 'builtAt', 'desktop_release_info_get'),
-    updaterAvailable: Boolean(record.updaterAvailable),
-    updaterUnavailableReason: parseOptionalString(record.updaterUnavailableReason),
-  };
-}
-
-export function parseDesktopUpdateState(value: unknown): DesktopUpdateState {
-  const record = assertRecord(value, 'desktop_update_state_get returned invalid payload');
-  return {
-    status: parseRequiredString(record.status, 'status', 'desktop_update_state_get'),
-    currentVersion: parseRequiredString(record.currentVersion, 'currentVersion', 'desktop_update_state_get'),
-    targetVersion: parseOptionalString(record.targetVersion),
-    downloadedBytes: parseOptionalNumber(record.downloadedBytes) || 0,
-    totalBytes: parseOptionalNumber(record.totalBytes),
-    lastError: parseOptionalString(record.lastError),
-    readyToRestart: Boolean(record.readyToRestart),
-  };
-}
-
-export function parseDesktopUpdateCheckResult(value: unknown): DesktopUpdateCheckResult {
-  const record = assertRecord(value, 'desktop_update_check returned invalid payload');
-  return {
-    available: Boolean(record.available),
-    currentVersion: parseRequiredString(record.currentVersion, 'currentVersion', 'desktop_update_check'),
-    targetVersion: parseOptionalString(record.targetVersion),
-    notes: parseOptionalString(record.notes),
-    pubDate: parseOptionalString(record.pubDate),
-  };
-}
 
 export function parseSystemResourceSnapshot(value: unknown): SystemResourceSnapshot {
   const record = assertRecord(value, 'get_system_resource_snapshot returned invalid payload');
@@ -85,15 +41,5 @@ export function parseSystemResourceSnapshot(value: unknown): SystemResourceSnaps
     temperatureCelsius: parseOptionalNumber(record.temperatureCelsius),
     capturedAtMs,
     source: parseRequiredString(record.source, 'source', 'get_system_resource_snapshot'),
-  };
-}
-
-export function parseMenuBarProviderSummary(value: unknown): MenuBarProviderSummary {
-  const record = assertRecord(value, 'menu bar provider summary');
-  return {
-    healthy: parseOptionalNumber(record.healthy) || 0,
-    unhealthy: parseOptionalNumber(record.unhealthy) || 0,
-    unknown: parseOptionalNumber(record.unknown) || 0,
-    total: parseOptionalNumber(record.total) || 0,
   };
 }

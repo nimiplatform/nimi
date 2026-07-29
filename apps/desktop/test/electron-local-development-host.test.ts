@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { lstat, mkdtemp, mkdir, readFile, realpath, rm, symlink } from 'node:fs/promises';
+import { chmod, lstat, mkdtemp, mkdir, readFile, realpath, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -11,6 +11,7 @@ import type {
   NimiElectronLocalDevelopmentEvaluation,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
+  ElectronLocalDevelopmentHost,
   createDesktopElectronLocalDevelopmentHost,
   resolveLocalDevelopmentAuthorityFailureState,
   sameLocalDevelopmentProject,
@@ -74,6 +75,172 @@ function authorization(
     updatedAtUnixMs: Date.now(),
   };
 }
+
+function activeRun() {
+  return {
+    plan: {
+      appId: 'nimi.zhiyu',
+      displayName: 'Zhiyu Development',
+      projectRoot,
+      rendererOrigin: 'http://127.0.0.1:1420',
+      electronExecutable: '/Applications/Nimi.app/Contents/MacOS/Nimi',
+      mainEntry: path.join(projectRoot, 'dist-electron', 'main.js'),
+    },
+    supervisorRunId: '44'.repeat(32),
+    authorizationId,
+    pendingEndRunAuthorizationId: undefined as string | undefined,
+    stopped: false,
+    tearingDown: false,
+    supervising: false,
+    rebuilding: false,
+    rebuildRequested: false,
+    watcher: undefined as { close: () => void } | undefined,
+    healthTimer: undefined as ReturnType<typeof setInterval> | undefined,
+    status: {
+      schemaVersion: 1,
+      runId: 'dev-run-test',
+      state: 'running',
+      appId: 'nimi.zhiyu',
+      displayName: 'Zhiyu Development',
+      canonicalProjectRoot: projectRoot,
+      shell: 'electron',
+      rendererOrigin: 'http://127.0.0.1:1420',
+      message: 'Supervised electron host is running',
+      reasonCode: undefined as string | undefined,
+      retryable: false,
+      hostGeneration: 1,
+      logSequence: 0,
+      logs: [],
+    },
+  };
+}
+
+async function invokeHostMethod(host: object, name: string, ...args: unknown[]): Promise<void> {
+  const method = Reflect.get(host, name);
+  assert.equal(typeof method, 'function');
+  await Reflect.apply(method, host, args);
+}
+
+test('Electron local-development authority refresh failure terminates the host and clears local authority', async () => {
+  const terminateCalls: string[] = [];
+  const endRunCalls: Array<readonly [string, string]> = [];
+  const control = {
+    getAuthoritySummary: async () => authoritySummary(),
+    evaluate: async () => { throw new Error('runtime-restarted'); },
+    decide: async () => { throw new Error('not-called'); },
+    listAuthorizations: async () => [],
+    revokeAuthorization: async () => { throw new Error('not-called'); },
+    launch: async () => { throw new Error('not-called'); },
+    hostRunning: async () => false,
+    terminateHost: async (supervisorRunId: string) => { terminateCalls.push(supervisorRunId); },
+    endRun: async (id: string, supervisorRunId: string) => { endRunCalls.push([id, supervisorRunId]); },
+  } satisfies NimiElectronLocalDevelopmentControl;
+  const host = new ElectronLocalDevelopmentHost(control, os.tmpdir(), async () => {});
+  const run = activeRun();
+  let watcherClosed = 0;
+  run.watcher = { close: () => { watcherClosed += 1; } };
+  try {
+    await invokeHostMethod(host, 'refreshAuthority', run);
+    assert.deepEqual(terminateCalls, [run.supervisorRunId]);
+    assert.deepEqual(endRunCalls, []);
+    assert.equal(run.authorizationId, undefined);
+    assert.equal(run.watcher, undefined);
+    assert.equal(watcherClosed, 1);
+    assert.equal(run.stopped, false);
+    assert.equal(run.status.state, 'runtime-unavailable');
+    assert.equal(run.status.reasonCode, 'runtime-restarted');
+    assert.equal(run.status.retryable, true);
+    assert.ok(run.healthTimer);
+  } finally {
+    if (run.healthTimer) clearInterval(run.healthTimer);
+  }
+});
+
+test('Electron local-development renderer exit tears down its host and ends the active run', async () => {
+  const terminateCalls: string[] = [];
+  const endRunCalls: Array<readonly [string, string]> = [];
+  const control = {
+    getAuthoritySummary: async () => authoritySummary(),
+    evaluate: async () => { throw new Error('not-called'); },
+    decide: async () => { throw new Error('not-called'); },
+    listAuthorizations: async () => [],
+    revokeAuthorization: async () => { throw new Error('not-called'); },
+    launch: async () => { throw new Error('not-called'); },
+    hostRunning: async () => false,
+    terminateHost: async (supervisorRunId: string) => { terminateCalls.push(supervisorRunId); },
+    endRun: async (id: string, supervisorRunId: string) => { endRunCalls.push([id, supervisorRunId]); },
+  } satisfies NimiElectronLocalDevelopmentControl;
+  const host = new ElectronLocalDevelopmentHost(control, os.tmpdir(), async () => {});
+  const run = activeRun();
+  let watcherClosed = 0;
+  run.watcher = { close: () => { watcherClosed += 1; } };
+  run.healthTimer = setInterval(() => {}, 60_000);
+  try {
+    await invokeHostMethod(host, 'handleUnexpectedRendererExit', run, 17);
+    assert.deepEqual(terminateCalls, [run.supervisorRunId]);
+    assert.deepEqual(endRunCalls, [[authorizationId, run.supervisorRunId]]);
+    assert.equal(run.authorizationId, undefined);
+    assert.equal(run.watcher, undefined);
+    assert.equal(watcherClosed, 1);
+    assert.equal(run.healthTimer, undefined);
+    assert.equal(run.stopped, true);
+    assert.equal(run.status.state, 'failed');
+    assert.equal(run.status.message, 'local-development-dev-server-exited-17');
+    assert.equal(run.status.reasonCode, 'local-development-dev-server-uncontrolled');
+    assert.equal(run.status.retryable, false);
+  } finally {
+    if (run.healthTimer) clearInterval(run.healthTimer);
+  }
+});
+
+test('Electron local-development shutdown retains failed cleanup targets for retry', async () => {
+  let watcherCloseCalls = 0;
+  let endRunCalls = 0;
+  const control = {
+    getAuthoritySummary: async () => authoritySummary(),
+    evaluate: async () => { throw new Error('not-called'); },
+    decide: async () => { throw new Error('not-called'); },
+    listAuthorizations: async () => [],
+    revokeAuthorization: async () => { throw new Error('not-called'); },
+    launch: async () => { throw new Error('not-called'); },
+    hostRunning: async () => false,
+    terminateHost: async () => {},
+    endRun: async () => {
+      endRunCalls += 1;
+      if (endRunCalls === 1) throw new Error('end-run-temporary-failure');
+    },
+  } satisfies NimiElectronLocalDevelopmentControl;
+  const host = new ElectronLocalDevelopmentHost(control, os.tmpdir(), async () => {});
+  const run = activeRun();
+  run.watcher = {
+    close: () => {
+      watcherCloseCalls += 1;
+      if (watcherCloseCalls === 1) throw new Error('watcher-close-temporary-failure');
+    },
+  };
+  const runs = Reflect.get(host, 'runs') as Map<string, typeof run>;
+  runs.set(run.status.runId, run);
+
+  await assert.rejects(
+    host.shutdown(),
+    /local-development-supervisor-shutdown-failed/u,
+  );
+  assert.equal(run.authorizationId, undefined);
+  assert.equal(run.pendingEndRunAuthorizationId, authorizationId);
+  assert.ok(run.watcher);
+  assert.equal(endRunCalls, 1);
+  assert.equal(watcherCloseCalls, 1);
+
+  await host.shutdown();
+  assert.equal(run.pendingEndRunAuthorizationId, undefined);
+  assert.equal(run.watcher, undefined);
+  assert.equal(endRunCalls, 2);
+  assert.equal(watcherCloseCalls, 2);
+
+  await host.shutdown();
+  assert.equal(endRunCalls, 2);
+  assert.equal(watcherCloseCalls, 2);
+});
 
 test('Electron local-development host keeps Runtime identifiers behind approval and project selectors', {
   skip: process.platform !== 'win32' && !existsSync(macosLocalAppHost),
@@ -149,9 +316,9 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
       command: 'local_development_authorizations_list',
       payload: {},
     }) as Array<Record<string, unknown>>;
+    assert.equal(authorizations.length, 1);
     assert.equal(authorizations[0]?.state, 'active');
     assert.equal(authorizations[0]?.shell, 'electron');
-    assert.equal(authorizations[1]?.shell, 'tauri');
     assert.match(String(authorizations[0]?.selector), /^dev-project-/u);
     assert.doesNotMatch(JSON.stringify(authorizations), new RegExp(authorizationId, 'u'));
     assert.doesNotMatch(JSON.stringify(authorizations), /permissionRequirementFingerprint/u);
@@ -420,6 +587,7 @@ test('macOS local-app Chromium data is opaque, private, and authorization-partit
 }, async () => {
   const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-user-data-')));
   try {
+    await chmod(home, 0o750);
     const first = await resolveLocalAppUserDataArguments({
       authorizationId,
       homeDirectory: home,

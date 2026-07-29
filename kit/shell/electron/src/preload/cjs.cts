@@ -38,6 +38,7 @@ const DEFAULT_API_KEY = '__NIMI_ELECTRON_RUNTIME__';
 const DEFAULT_INVOKE_CHANNEL = 'nimi:runtime:invoke';
 const DEFAULT_LISTEN_CHANNEL_PREFIX = 'nimi:runtime:event:';
 const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
+const MENU_BAR_OPEN_TAB_EVENT = 'menu-bar://open-tab';
 
 export function installNimiElectronRuntimeBridge(
   input: InstallNimiElectronRuntimeBridgeInput,
@@ -86,6 +87,7 @@ function createStandardShellHostErrorRecord(value: unknown): Readonly<Record<str
   const actionHint = normalizeToken(record.actionHint, normalizeToken(envelope?.actionHint, 'check_electron_shell_host'));
   const source = normalizeToken(record.source, normalizeToken(envelope?.source, 'electron'));
   const details = asOptionalRecord(record.details) ?? asOptionalRecord(envelope?.details);
+  const retryable = typeof record.retryable === 'boolean' ? record.retryable : undefined;
   return {
     name: normalizeToken(record.name, 'NimiElectronShellHostError'),
     message: normalizeToken(record.message, 'Nimi Electron shell host command failed'),
@@ -93,6 +95,7 @@ function createStandardShellHostErrorRecord(value: unknown): Readonly<Record<str
     reasonCode,
     actionHint,
     source,
+    retryable,
     details,
     envelope: {
       code,
@@ -117,7 +120,7 @@ function normalizeCommand(value: unknown): string {
 
 function normalizeEvent(value: unknown): string {
   const normalized = String(value ?? '').trim();
-  return normalized === DESKTOP_OPEN_INTENT_EVENT
+  return normalized === DESKTOP_OPEN_INTENT_EVENT || normalized === MENU_BAR_OPEN_TAB_EVENT
     ? normalized
     : normalizeCommand(normalized);
 }

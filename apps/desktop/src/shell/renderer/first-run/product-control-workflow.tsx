@@ -38,7 +38,7 @@ import type { DesktopRendererFirstRunPort } from '../renderer/first-run-port.js'
  *
  * The component name and the `data-testid="product-first-run-workflow"` /
  * `data-product-state` contract are preserved for the first-run gate and the
- * acceptance-evidence tests.
+ * directly affected renderer tests.
  */
 
 type ProductControlWorkflowProps = {

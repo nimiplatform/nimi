@@ -17,12 +17,12 @@ import {
 test('support exposes the closed set of product-control sections', () => {
   assert.deepEqual(
     [...SUPPORT_SECTION_IDS],
-    ['repair', 'updates', 'diagnostics', 'logs', 'recovery'],
+    ['repair', 'diagnostics', 'logs', 'recovery'],
   );
 });
 
 test('support section resolution rejects unknown sub-areas', () => {
-  assert.equal(resolveSupportSection('updates'), 'updates');
+  assert.equal(resolveSupportSection('unknown-section'), 'repair');
   assert.equal(resolveSupportSection('nonexistent'), 'repair');
   assert.equal(resolveSupportSection(null), 'repair');
   assert.equal(isSupportSectionId('diagnostics'), true);

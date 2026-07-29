@@ -1,48 +1,20 @@
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  hasElectronInvoke,
+  listenShell,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+
+import {
+  MENU_BAR_OPEN_TAB_EVENT,
+  parseMenuBarOpenTabPayload,
+} from '../../../shared/menu-bar-types.js';
 import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
 } from '../../features/runtime-config/runtime-config-storage-persist';
-import {
-  normalizePageIdV11,
-  type RuntimePageIdV11,
-} from '../../features/runtime-config/runtime-config-state-types';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
 import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
-
-type MenuBarOpenTabEvent =
-  | { tab?: 'runtime'; page?: RuntimePageIdV11 }
-  | { tab?: 'settings' };
-
-type TauriEventUnsubscribe = () => void;
-type TauriListenResult = Promise<TauriEventUnsubscribe | undefined> | TauriEventUnsubscribe | undefined;
-
-function resolveTauriEventListen(): ((eventName: string, handler: (event: { payload: unknown }) => void) => TauriListenResult) | null {
-  if (!hasTauriRuntime()) {
-    return null;
-  }
-  return listenTauri;
-}
-
-function asOpenTabPayload(value: unknown): MenuBarOpenTabEvent {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  const record = value as Record<string, unknown>;
-  const tab = String(record.tab || '').trim();
-  const page = String(record.page || '').trim();
-  if (tab === 'runtime') {
-    return {
-      tab: 'runtime',
-      page: normalizePageIdV11(page || 'overview'),
-    };
-  }
-  if (tab === 'settings') {
-    return { tab: 'settings' };
-  }
-  return {};
-}
 
 type MenuBarNavigationPort = Pick<DesktopRendererLifecyclePort, 'setActiveTab'>;
 
@@ -51,44 +23,49 @@ export function connectMenuBarNavigation(
   runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort,
 ): () => void {
   const flags = getShellFeatureFlags();
-  if (!flags.enableMenuBarShell) {
-    return () => {};
-  }
-  const listen = resolveTauriEventListen();
-  if (!listen) {
+  if (!flags.enableMenuBarShell || !hasElectronInvoke()) {
     return () => {};
   }
 
   let active = true;
-  const unsubscribePromise = Promise.resolve(listen('menu-bar://open-tab', (event) => {
-    if (!active) {
-      return;
-    }
-    const payload = asOpenTabPayload(event.payload);
-
-    if (payload.tab === 'settings') {
-      port.setActiveTab('settings');
-      return;
-    }
-
-    if (payload.tab === 'runtime') {
-      const nextPage = payload.page || 'overview';
+  const unsubscribePromise = Promise.resolve(listenShell(MENU_BAR_OPEN_TAB_EVENT, (event) => {
+    if (!active) return;
+    try {
+      const payload = parseMenuBarOpenTabPayload(event.payload);
+      if (payload.tab === 'settings') {
+        port.setActiveTab('settings');
+        return;
+      }
       const state = loadRuntimeConfigStateV11();
       persistRuntimeConfigStateV11({
         ...state,
-        activePage: nextPage,
+        activePage: payload.page,
       });
-      runtimeConfigNavigation.openPage(nextPage);
+      runtimeConfigNavigation.openPage(payload.page);
       port.setActiveTab('runtime');
+    } catch {
+      logRendererEvent({
+        level: 'warn',
+        area: 'menu-bar',
+        message: 'action:open-tab-payload-rejected',
+        details: { event: MENU_BAR_OPEN_TAB_EVENT },
+      });
     }
   }));
+  void unsubscribePromise.catch(() => {
+    if (!active) return;
+    logRendererEvent({
+      level: 'warn',
+      area: 'menu-bar',
+      message: 'phase:navigation-listener-unavailable',
+      details: { event: MENU_BAR_OPEN_TAB_EVENT },
+    });
+  });
 
   return () => {
     active = false;
     void unsubscribePromise.then((unsubscribe) => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-    });
+      unsubscribe();
+    }, () => undefined);
   };
 }

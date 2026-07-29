@@ -10,26 +10,17 @@ export type {
 } from './shared.js';
 
 export type {
-  DesktopReleaseInfo,
-  DesktopUpdateCheckResult,
-  DesktopUpdateState,
   RealmDefaults,
   RuntimeExecutionDefaults,
   RuntimeDefaults,
   SystemResourceSnapshot,
   RuntimeBridgeDaemonStatus,
-  MenuBarProviderSummary,
-  MenuBarRuntimeHealthSyncPayload,
 } from './runtime-types.js';
 
 export {
-  parseDesktopReleaseInfo,
-  parseDesktopUpdateCheckResult,
-  parseDesktopUpdateState,
   parseRuntimeDefaults,
   parseSystemResourceSnapshot,
   parseRuntimeBridgeDaemonStatus,
-  parseMenuBarProviderSummary,
 } from './runtime-parsers.js';
 
 export type {
@@ -51,7 +42,7 @@ export type {
   ChatAiCreateMessageInput,
   ChatAiUpdateMessageInput,
   ChatAiPutDraftInput,
-} from './chat-ai-types.js';
+} from '../../../shared/chat-ai-store-types.js';
 
 export {
   parseChatAiAttachment,
@@ -68,7 +59,7 @@ export {
   parseChatAiCreateMessageInput,
   parseChatAiUpdateMessageInput,
   parseChatAiPutDraftInput,
-} from './chat-ai-parsers.js';
+} from '../../../shared/chat-ai-store-parsers.js';
 
 export type {
   AgentLocalMessageRole,
@@ -80,5 +71,3 @@ export type {
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
 } from './chat-agent-types.js';
-
-import './window-global.js';

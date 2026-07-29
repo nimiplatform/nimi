@@ -31,7 +31,6 @@ describe('Desktop Apps current local-development projection', () => {
     const newer = authorization({
       selector: 'dev-project-newer',
       appId: 'newer.local-app',
-      shell: 'tauri',
       state: 'revoked',
       updatedAtUnixMs: 1_723_000_000_000,
     });

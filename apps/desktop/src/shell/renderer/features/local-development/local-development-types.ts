@@ -8,7 +8,7 @@ export type LocalDevelopmentApproval = {
   readonly appId: string;
   readonly displayName: string;
   readonly canonicalProjectRoot: string;
-  readonly shell: 'electron' | 'tauri';
+  readonly shell: 'electron';
   readonly accountId: string;
   readonly permissionRequirements: readonly LocalDevelopmentPermissionRequirement[];
   readonly approvalState: string;
@@ -19,7 +19,7 @@ export type LocalDevelopmentAuthorization = {
   readonly appId: string;
   readonly displayName: string;
   readonly canonicalProjectRoot: string;
-  readonly shell: 'electron' | 'tauri';
+  readonly shell: 'electron';
   readonly accountId: string;
   readonly permissionRequirements: readonly LocalDevelopmentPermissionRequirement[];
   readonly persistence: string;
@@ -31,7 +31,7 @@ export type LocalDevelopmentRun = {
   readonly appId: string;
   readonly displayName: string;
   readonly canonicalProjectRoot: string;
-  readonly shell: 'electron' | 'tauri';
+  readonly shell: 'electron';
   readonly state: string;
   readonly message: string;
   readonly reasonCode?: string;

@@ -1,17 +1,26 @@
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeChecked } from './invoke';
-import type { MenuBarRuntimeHealthSyncPayload } from './types';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 
-export async function syncMenuBarRuntimeHealth(payload: MenuBarRuntimeHealthSyncPayload): Promise<void> {
-  if (!hasTauriInvoke()) {
-    return;
+import {
+  MENU_BAR_RUNTIME_HEALTH_SYNC_COMMAND,
+  parseMenuBarRuntimeHealthSyncResult,
+  type MenuBarRuntimeHealthSyncPayload,
+} from '../../../shared/menu-bar-types.js';
+import { invokeChecked } from './invoke.js';
+
+export async function syncMenuBarRuntimeHealth(
+  payload: MenuBarRuntimeHealthSyncPayload,
+): Promise<void> {
+  if (!hasElectronInvoke()) {
+    throw new Error('menu-bar-runtime-health-sync-requires-electron-host');
   }
-  await invokeChecked('menu_bar_sync_runtime_health', { payload }, () => undefined);
+  await invokeChecked(
+    MENU_BAR_RUNTIME_HEALTH_SYNC_COMMAND,
+    { payload },
+    parseMenuBarRuntimeHealthSyncResult,
+  );
 }
 
-export async function completeMenuBarQuit(): Promise<void> {
-  if (!hasTauriInvoke()) {
-    return;
-  }
-  await invokeChecked('menu_bar_complete_quit', {}, () => undefined);
-}
+export type {
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
+} from '../../../shared/menu-bar-types.js';

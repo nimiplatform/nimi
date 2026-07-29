@@ -6,6 +6,7 @@ import {
   resolveDesktopDevObservationArguments,
   resolvePersistentDesktopDevProfile,
   resolveSignedDesktopDevCarrier,
+  resolveWorkspaceElectronDevCarrier,
 } from '../scripts/lib/electron-dev-carrier.mjs';
 
 const workspaceRoot = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -55,21 +56,29 @@ test('Desktop dev rejects unsigned-carrier platforms instead of falling back to 
   );
 });
 
-test('Desktop dev resolves only the fixed installed macOS development application', () => {
-  assert.equal(resolveSignedDesktopDevCarrier({
+test('Desktop dev resolves workspace Electron for ordinary macOS host iteration', () => {
+  const executable = path.join(
+    workspaceRoot,
+    'node_modules',
+    'electron',
+    'dist',
+    'Electron.app',
+    'Contents',
+    'MacOS',
+    'Electron',
+  );
+  assert.equal(resolveWorkspaceElectronDevCarrier({
     platform: 'darwin',
     architecture: 'arm64',
-    electronVersion: '42.5.0',
-    workspaceRoot,
+    electronExecutable: executable,
     existsSync: () => true,
-  }), '/Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev');
-  assert.throws(() => resolveSignedDesktopDevCarrier({
+  }), executable);
+  assert.throws(() => resolveWorkspaceElectronDevCarrier({
     platform: 'darwin',
     architecture: 'arm64',
-    electronVersion: '42.5.0',
-    workspaceRoot,
+    electronExecutable: executable,
     existsSync: () => false,
-  }), (error) => error.reasonCode === 'dev-runtime-service-not-installed');
+  }), (error) => error.reasonCode === 'desktop-dev-workspace-carrier-missing');
 });
 
 test('Desktop dev CDP observation is explicit, loopback-only, and fail-closed', () => {

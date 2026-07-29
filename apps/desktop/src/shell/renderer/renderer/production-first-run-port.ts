@@ -19,7 +19,7 @@ export function createDesktopProductionFirstRunPort(): DesktopRendererFirstRunPo
     return { prepared, final: await desktopBridge.admitProductReadyForUse() };
   };
   return Object.freeze({
-    available: desktopBridge.hasShellHostInvoke,
+    available: desktopBridge.hasElectronInvoke,
     ensureRecordCreated: desktopBridge.ensureProductControlRecordCreated,
     reconcileSetupState: desktopBridge.reconcileProductFirstRunSetupState,
     pickDataRootDirectory: desktopBridge.pickProductDataRootDirectory,

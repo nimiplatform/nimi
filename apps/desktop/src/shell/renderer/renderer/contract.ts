@@ -120,12 +120,6 @@ export interface DesktopRendererCommandPort {
   reconcileLoginState(input: {
     readonly authStatus: AuthStatus;
   }): Promise<{ readonly clearAuthSession: boolean }>;
-  checkDesktopUpdate(input?: {
-    readonly autoDownload?: boolean;
-    readonly silent?: boolean;
-  }): Promise<void>;
-  installDesktopUpdate(input?: { readonly silent?: boolean }): Promise<void>;
-  restartDesktopUpdate(): Promise<void>;
   reloadApplication(): void;
   startWindowDrag(): Promise<void>;
   listLocalDevelopmentApprovals(): Promise<readonly LocalDevelopmentApproval[]>;

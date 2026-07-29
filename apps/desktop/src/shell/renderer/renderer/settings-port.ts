@@ -6,7 +6,6 @@ import type {
 export type PerformancePreferences = {
   readonly hardwareAcceleration: boolean;
   readonly reduceAnimations: boolean;
-  readonly autoUpdate: boolean;
 };
 
 export type DesktopRendererStorageUsage = {
@@ -29,7 +28,6 @@ export type DesktopRendererStorageDirs = {
 export const DEFAULT_PERFORMANCE_PREFERENCES: PerformancePreferences = Object.freeze({
   hardwareAcceleration: true,
   reduceAnimations: false,
-  autoUpdate: true,
 });
 
 const VISIBLE_SETTINGS_SELECTED_IDS = Object.freeze([
@@ -63,7 +61,6 @@ export function normalizePerformancePreferences(
   return Object.freeze({
     hardwareAcceleration: preferences.hardwareAcceleration === true,
     reduceAnimations: preferences.reduceAnimations === true,
-    autoUpdate: preferences.autoUpdate === true,
   });
 }
 

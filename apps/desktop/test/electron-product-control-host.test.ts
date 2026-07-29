@@ -69,6 +69,15 @@ function projectionJson(state = 'data_root_selected'): string {
   });
 }
 
+const unusedAccountProfileLibrary = Object.freeze({
+  listAccountProfileLibrary: () => { throw new Error('not-called'); },
+  createAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
+  editAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
+  importAccountProfileLibraryProfiles: () => { throw new Error('not-called'); },
+  exportAccountProfileLibraryProfiles: () => { throw new Error('not-called'); },
+  deleteAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
+});
+
 test('Electron Product Control host maps every renderer command to an exact Runtime method', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
   const control: DesktopProductControlTransport = {
@@ -100,6 +109,7 @@ test('Electron Product Control host maps every renderer command to an exact Runt
       close: () => {},
     },
     evidence: {
+      ...unusedAccountProfileLibrary,
       ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
       readAccountDefaultProfile: () => { throw new Error('not-called'); },
       verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
@@ -185,6 +195,14 @@ test('Electron selected data-root resolver uses only dataRoot.path and accepts s
       verifiedAtUnixMs: 1,
     });
     assert.equal(await host.resolveSelectedDataRoot(), 'D:\\NimiData');
+    if (status === 'ready') {
+      assert.equal(await host.resolveReadyDataRoot(), 'D:\\NimiData');
+    } else {
+      await assert.rejects(
+        host.resolveReadyDataRoot(),
+        /desktop-product-control-data-root-not-ready/u,
+      );
+    }
   }
 
   await assert.rejects(
@@ -211,6 +229,194 @@ test('Electron selected data-root resolver uses only dataRoot.path and accepts s
       /desktop-product-control-selected-data-root-unavailable/u,
     );
   }
+});
+
+test('Electron Account Profile Library host binds all operations to ready Product Control and authenticated account', async () => {
+  const transportCalls: string[] = [];
+  let accountCalls = 0;
+  const libraryCalls: Array<{ operation: string; input: unknown }> = [];
+  const control: DesktopProductControlTransport = {
+    machineProductUnary: async (input) => {
+      transportCalls.push(input.methodId);
+      assert.equal(input.methodId, GET_SELECTED_DATA_ROOT);
+      const json = JSON.stringify({
+        path: 'C:\\Users\\tester\\.nimi\\nimi.json',
+        exists: true,
+        state: 'ready_for_use',
+        dataRoot: {
+          path: 'D:\\NimiData',
+          status: 'ready',
+          selectedAt: '2026-07-14T00:00:00.000Z',
+          verifiedAt: '2026-07-14T00:00:00.000Z',
+          selectedAtUnixMs: 1,
+          verifiedAtUnixMs: 1,
+        },
+        error: null,
+      });
+      return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json }));
+    },
+  };
+  const account: NimiElectronDesktopAccountHost = {
+    invoke: async (command, payload) => {
+      accountCalls += 1;
+      assert.equal(command, 'runtime_account_session_status');
+      assert.deepEqual(payload, {});
+      return {
+        state: 'authenticated',
+        accountProjection: {
+          accountId: 'account-a',
+          displayName: 'Account A',
+          realmEnvironmentId: 'production',
+        },
+      };
+    },
+    close: () => {},
+  };
+  const capture = (operation: string, input: unknown) => {
+    libraryCalls.push({ operation, input });
+    return { operation };
+  };
+  const host = createDesktopElectronProductControlHost({
+    control,
+    account,
+    evidence: {
+      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
+      readAccountDefaultProfile: () => { throw new Error('not-called'); },
+      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
+      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
+      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+      listAccountProfileLibrary: (input) => capture('list', input),
+      createAccountProfileLibraryProfile: (input) => capture('create', input),
+      editAccountProfileLibraryProfile: (input) => capture('edit', input),
+      importAccountProfileLibraryProfiles: (input) => capture('import', input),
+      exportAccountProfileLibraryProfiles: (input) => capture('export', input),
+      deleteAccountProfileLibraryProfile: (input) => capture('delete', input),
+    },
+  });
+  const profile = { profileId: 'profile-a', title: 'Profile A' };
+
+  await host.commandHandlers.account_profile_library_list({
+    command: 'account_profile_library_list',
+    payload: {},
+  });
+  await host.commandHandlers.account_profile_library_create({
+    command: 'account_profile_library_create',
+    payload: { payload: { profile } },
+  });
+  await host.commandHandlers.account_profile_library_edit({
+    command: 'account_profile_library_edit',
+    payload: { payload: { profile } },
+  });
+  await host.commandHandlers.account_profile_library_import({
+    command: 'account_profile_library_import',
+    payload: { payload: { profiles: [profile] } },
+  });
+  await host.commandHandlers.account_profile_library_export({
+    command: 'account_profile_library_export',
+    payload: { payload: { profileIds: ['profile-a'] } },
+  });
+  await host.commandHandlers.account_profile_library_delete({
+    command: 'account_profile_library_delete',
+    payload: { payload: { profileId: 'profile-a' } },
+  });
+
+  assert.deepEqual(transportCalls, Array(6).fill(GET_SELECTED_DATA_ROOT));
+  assert.equal(accountCalls, 6);
+  assert.deepEqual(libraryCalls, [
+    { operation: 'list', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a' } },
+    { operation: 'create', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profile } },
+    { operation: 'edit', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profile } },
+    { operation: 'import', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profiles: [profile] } },
+    { operation: 'export', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profileIds: ['profile-a'] } },
+    { operation: 'delete', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profileId: 'profile-a' } },
+  ]);
+});
+
+test('Electron Account Profile Library host rejects caller-owned bindings and non-ready data roots', async () => {
+  let transportCalls = 0;
+  let accountCalls = 0;
+  let libraryCalls = 0;
+  const host = createDesktopElectronProductControlHost({
+    control: {
+      machineProductUnary: async () => {
+        transportCalls += 1;
+        const json = JSON.stringify({
+          path: 'C:\\Users\\tester\\.nimi\\nimi.json',
+          exists: true,
+          state: 'data_root_selected',
+          dataRoot: {
+            path: 'D:\\NimiData',
+            status: 'selected',
+            selectedAt: '2026-07-14T00:00:00.000Z',
+            verifiedAt: '2026-07-14T00:00:00.000Z',
+            selectedAtUnixMs: 1,
+            verifiedAtUnixMs: 1,
+          },
+          error: null,
+        });
+        return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json }));
+      },
+    },
+    account: {
+      invoke: async () => {
+        accountCalls += 1;
+        return {
+          state: 'authenticated',
+          accountProjection: {
+            accountId: 'account-a',
+            displayName: 'Account A',
+            realmEnvironmentId: 'production',
+          },
+        };
+      },
+      close: () => {},
+    },
+    evidence: {
+      ...unusedAccountProfileLibrary,
+      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
+      readAccountDefaultProfile: () => { throw new Error('not-called'); },
+      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
+      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
+      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+      createAccountProfileLibraryProfile: () => { libraryCalls += 1; },
+      listAccountProfileLibrary: () => { libraryCalls += 1; },
+    },
+  });
+
+  await assert.rejects(
+    host.commandHandlers.account_profile_library_create({
+      command: 'account_profile_library_create',
+      payload: {
+        payload: {
+          profile: { profileId: 'profile-a' },
+          accountId: 'renderer-account',
+        },
+      },
+    }),
+    /desktop-product-control-payload-invalid/u,
+  );
+  await assert.rejects(
+    host.commandHandlers.account_profile_library_import({
+      command: 'account_profile_library_import',
+      payload: { payload: { profiles: [] } },
+    }),
+    /desktop-product-control-payload-invalid/u,
+  );
+  assert.equal(transportCalls, 0);
+  assert.equal(accountCalls, 0);
+
+  await assert.rejects(
+    host.commandHandlers.account_profile_library_list({
+      command: 'account_profile_library_list',
+      payload: {},
+    }),
+    /desktop-product-control-data-root-not-ready/u,
+  );
+  assert.equal(transportCalls, 1);
+  assert.equal(accountCalls, 1);
+  assert.equal(libraryCalls, 0);
 });
 
 test('Electron evidence commands reject repair-required Product Control before side effects', async () => {
@@ -272,6 +478,7 @@ test('Electron evidence commands reject repair-required Product Control before s
       close: () => {},
     },
     evidence: {
+      ...unusedAccountProfileLibrary,
       ensureAccountDefaultProfile: () => {
         evidenceCalls += 1;
         return { accountDefaultProfileRef: 'must-not-record' };
@@ -307,6 +514,7 @@ test('Electron Product Control host rejects extra renderer fields before protect
       close: () => {},
     },
     evidence: {
+      ...unusedAccountProfileLibrary,
       ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
       readAccountDefaultProfile: () => { throw new Error('not-called'); },
       verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
@@ -357,6 +565,7 @@ test('Electron first-run host records Desktop evidence through the exact protect
   };
   const evidenceCalls: unknown[] = [];
   const evidence: DesktopProductControlEvidence = {
+    ...unusedAccountProfileLibrary,
     ensureAccountDefaultProfile: (input) => {
       evidenceCalls.push(input);
       return { accountDefaultProfileRef: 'account-default-profile:v1:bound' };
@@ -456,6 +665,7 @@ test('Electron first-run host remints Runtime-owned evidence after unknown refs'
       close: () => {},
     },
     evidence: {
+      ...unusedAccountProfileLibrary,
       ensureAccountDefaultProfile: () => ({
         accountDefaultProfileRef: 'account-default-profile:v1:bound',
       }),
@@ -497,6 +707,7 @@ test('Electron first-run host rejects renderer-supplied evidence fields', async 
       close: () => {},
     },
     evidence: {
+      ...unusedAccountProfileLibrary,
       ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
       readAccountDefaultProfile: () => { throw new Error('not-called'); },
       verifyAccountDefaultProfile: () => { throw new Error('not-called'); },

@@ -35,7 +35,20 @@ const EVIDENCE_COMMANDS = [
   'built_in_ai_config_for_scope_init',
 ] as const;
 
-const COMMANDS = [...DIRECT_COMMANDS, ...EVIDENCE_COMMANDS] as const;
+const ACCOUNT_PROFILE_LIBRARY_COMMANDS = [
+  'account_profile_library_list',
+  'account_profile_library_create',
+  'account_profile_library_edit',
+  'account_profile_library_import',
+  'account_profile_library_export',
+  'account_profile_library_delete',
+] as const;
+
+const COMMANDS = [
+  ...DIRECT_COMMANDS,
+  ...EVIDENCE_COMMANDS,
+  ...ACCOUNT_PROFILE_LIBRARY_COMMANDS,
+] as const;
 
 // One First Run mint performs three bounded, real local executions after any
 // required cold engine activation. The Runtime budgets those executions at
@@ -75,6 +88,8 @@ export type DesktopElectronProductControlHost = {
   }) => Promise<unknown>>>;
   /** Runtime-validated selected data root from the canonical Product Control record. */
   readonly resolveSelectedDataRoot: () => Promise<string>;
+  /** Runtime-validated data root after Product Control has reached ready_for_use. */
+  readonly resolveReadyDataRoot: () => Promise<string>;
 };
 
 export function createDesktopElectronProductControlHost(input: {
@@ -95,6 +110,7 @@ export function createDesktopElectronProductControlHost(input: {
       ),
     ])) as DesktopElectronProductControlHost['commandHandlers'],
     resolveSelectedDataRoot: () => host.resolveSelectedDataRoot(),
+    resolveReadyDataRoot: () => host.resolveReadyDataRoot(),
   };
 }
 class ElectronProductControlHost {
@@ -160,10 +176,55 @@ class ElectronProductControlHost {
       requireEmptyPayload(payload);
       return this.accountProfileForScopeInit();
     }
-    const nested = exactPayload(payload, ['surfaceId']);
-    const surfaceId = payloadText(nested.surfaceId, 64);
-    if (surfaceId !== 'nimi' && surfaceId !== 'agent') throw new Error('built-in-ai-config-surface-invalid');
-    return this.builtInAiConfigForScopeInit(surfaceId);
+    if (command === 'built_in_ai_config_for_scope_init') {
+      const nested = exactPayload(payload, ['surfaceId']);
+      const surfaceId = payloadText(nested.surfaceId, 64);
+      if (surfaceId !== 'nimi' && surfaceId !== 'agent') throw new Error('built-in-ai-config-surface-invalid');
+      return this.builtInAiConfigForScopeInit(surfaceId);
+    }
+    if (command === 'account_profile_library_list') {
+      requireEmptyPayload(payload);
+      const context = await this.accountProfileLibraryContext();
+      return this.evidence.listAccountProfileLibrary(context);
+    }
+    if (command === 'account_profile_library_create') {
+      const nested = exactPayload(payload, ['profile']);
+      const profile = profilePayload(nested.profile);
+      return this.evidence.createAccountProfileLibraryProfile({
+        ...await this.accountProfileLibraryContext(),
+        profile,
+      });
+    }
+    if (command === 'account_profile_library_edit') {
+      const nested = exactPayload(payload, ['profile']);
+      const profile = profilePayload(nested.profile);
+      return this.evidence.editAccountProfileLibraryProfile({
+        ...await this.accountProfileLibraryContext(),
+        profile,
+      });
+    }
+    if (command === 'account_profile_library_import') {
+      const nested = exactPayload(payload, ['profiles']);
+      const profiles = profilePayloads(nested.profiles);
+      return this.evidence.importAccountProfileLibraryProfiles({
+        ...await this.accountProfileLibraryContext(),
+        profiles,
+      });
+    }
+    if (command === 'account_profile_library_export') {
+      const nested = exactPayload(payload, ['profileIds']);
+      const requestedProfileIds = profileIds(nested.profileIds);
+      return this.evidence.exportAccountProfileLibraryProfiles({
+        ...await this.accountProfileLibraryContext(),
+        profileIds: requestedProfileIds,
+      });
+    }
+    const nested = exactPayload(payload, ['profileId']);
+    const profileId = payloadText(nested.profileId, 256);
+    return this.evidence.deleteAccountProfileLibraryProfile({
+      ...await this.accountProfileLibraryContext(),
+      profileId,
+    });
   }
 
   async resolveSelectedDataRoot(): Promise<string> {
@@ -178,6 +239,20 @@ class ElectronProductControlHost {
       || !selectedPath
     ) {
       throw new Error('desktop-product-control-selected-data-root-unavailable');
+    }
+    return selectedPath;
+  }
+
+  async resolveReadyDataRoot(): Promise<string> {
+    const projection = await this.selectedDataRoot();
+    const selectedPath = String(projection.dataRoot?.path || '').trim();
+    if (
+      !projection.exists
+      || projection.state !== 'ready_for_use'
+      || projection.dataRoot?.status !== 'ready'
+      || !selectedPath
+    ) {
+      throw new Error('desktop-product-control-data-root-not-ready');
     }
     return selectedPath;
   }
@@ -418,6 +493,17 @@ class ElectronProductControlHost {
     return boundedText(asRecord(response.accountProjection).accountId);
   }
 
+  private async accountProfileLibraryContext(): Promise<{
+    readonly dataRoot: string;
+    readonly accountId: string;
+  }> {
+    const [dataRoot, accountId] = await Promise.all([
+      this.resolveReadyDataRoot(),
+      this.authenticatedAccountId(),
+    ]);
+    return { dataRoot, accountId };
+  }
+
   private async record(): Promise<NimiProductControlRecordProjection> {
     return this.projection(METHOD.getRecord, {}, 10_000);
   }
@@ -554,4 +640,26 @@ function payloadText(value: unknown, max: number): string {
     throw new Error('desktop-product-control-payload-invalid');
   }
   return value;
+}
+
+function profilePayload(value: unknown): Readonly<Record<string, unknown>> {
+  return asRecord(value);
+}
+
+function profilePayloads(value: unknown): readonly Readonly<Record<string, unknown>>[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 256) {
+    throw new Error('desktop-product-control-payload-invalid');
+  }
+  return value.map(profilePayload);
+}
+
+function profileIds(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || value.length > 256) {
+    throw new Error('desktop-product-control-payload-invalid');
+  }
+  const ids = value.map((profileId) => payloadText(profileId, 256));
+  if (new Set(ids).size !== ids.length) {
+    throw new Error('desktop-product-control-payload-invalid');
+  }
+  return ids;
 }

@@ -1,4 +1,4 @@
-import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke';
 import type { DeveloperModeProjection } from './developer-mode-types.js';
 
@@ -22,7 +22,7 @@ export function isDeveloperToolsEnabled(): boolean {
 
 export function subscribeDeveloperMode(onChange: (enabled: boolean) => void): () => void {
   subscribers.add(onChange);
-  if (!refreshInFlight && hasShellHostInvoke()) {
+  if (!refreshInFlight && hasElectronInvoke()) {
     refreshInFlight = refreshDeveloperMode().finally(() => {
       refreshInFlight = undefined;
     });
@@ -32,14 +32,14 @@ export function subscribeDeveloperMode(onChange: (enabled: boolean) => void): ()
 }
 
 export async function refreshDeveloperMode(): Promise<DeveloperModeProjection> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     return publish(unavailable('protected-carrier-required', false));
   }
   return publish(await invokeChecked('developer_mode_status', {}, parseDeveloperModeProjection));
 }
 
 export async function setDeveloperMode(enabled: boolean): Promise<DeveloperModeProjection> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('protected-carrier-required');
   }
   return publish(await invokeChecked(

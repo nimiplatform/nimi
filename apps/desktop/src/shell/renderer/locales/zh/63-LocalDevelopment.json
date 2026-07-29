@@ -4,7 +4,7 @@
     "title": "允许这个开发项目吗？",
     "subtitle": "Nimi 将监管此项目的构建、开发服务器和原生宿主。批准项目不会授予受保护的 Nimi 资源访问权。",
     "warning": "仅批准你正在开发并且信任的项目。此开发授权不能转化为商店上架或生产发布。",
-    "nativeRiskAcknowledgement": "我了解此项目可以使用我的 Windows 用户权限构建并运行原生代码；我已检查并信任这个确切的项目目录。",
+    "nativeRiskAcknowledgement": "我了解此项目可以使用我的当前用户权限构建并运行原生代码；我已检查并信任这个确切的项目目录。",
     "queue": "当前有 {{count}} 个开发请求等待处理。"
   },
   "field": {
@@ -16,8 +16,7 @@
     "noExtraPermissions": "没有额外的 Nimi 权限。应用自有的存储、SQLite、媒体、设置和路由不需要 Nimi 批准。"
   },
   "shell": {
-    "electron": "Electron",
-    "tauri": "Tauri"
+    "electron": "Electron"
   },
   "state": {
     "active": "已启用",

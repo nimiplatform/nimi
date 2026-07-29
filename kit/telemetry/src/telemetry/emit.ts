@@ -1,5 +1,5 @@
 import {
-  hasTauriInvoke,
+  hasRendererTelemetryInvoke,
   RENDERER_DEBUG_ENABLED,
   isRendererDebugEnabledForCurrentEnv,
   resolveRendererTelemetryInvoke,
@@ -101,7 +101,7 @@ export async function emitRendererLog(payload: RendererLogPayload): Promise<void
     return;
   }
 
-  if (!hasTauriInvoke()) {
+  if (!hasRendererTelemetryInvoke()) {
     return;
   }
 

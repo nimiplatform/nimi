@@ -20,6 +20,10 @@ export {
 } from './local-app-host.js';
 export { resolveElectronRuntimeDefaults } from './runtime.js';
 export {
+  createNimiElectronFixedRuntimeLifecycleHost,
+  type NimiElectronFixedRuntimeLifecycleHost,
+} from './runtime-lifecycle-host.js';
+export {
   createNimiElectronLocalDevelopmentControl,
   type NimiElectronLocalDevelopmentAuthorization,
   type NimiElectronLocalDevelopmentControl,

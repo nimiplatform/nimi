@@ -13,17 +13,17 @@ import {
 
 const AGENT_ID = 'local-agent:opaque-1';
 
-function installTauriInvokeMock(
+function installElectronInvokeMock(
   handler: (command: string, payload?: unknown) => Promise<unknown> | unknown,
 ): () => void {
   const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
+  const previousElectron = globalRecord.__NIMI_ELECTRON_TEST__;
   const previousWindow = globalRecord.window;
-  globalRecord.__NIMI_TAURI_TEST__ = { invoke: handler };
-  globalRecord.window = { __NIMI_TAURI_TEST__: globalRecord.__NIMI_TAURI_TEST__ };
+  globalRecord.__NIMI_ELECTRON_TEST__ = { invoke: handler, listen: () => () => undefined };
+  globalRecord.window = { __NIMI_HTML_BOOT_ID__: 'avatar-instance-registry-test' };
   return () => {
-    if (previousTauri === undefined) delete globalRecord.__NIMI_TAURI_TEST__;
-    else globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
+    if (previousElectron === undefined) delete globalRecord.__NIMI_ELECTRON_TEST__;
+    else globalRecord.__NIMI_ELECTRON_TEST__ = previousElectron;
     if (previousWindow === undefined) delete globalRecord.window;
     else globalRecord.window = previousWindow;
   };
@@ -63,7 +63,7 @@ test('desktop avatar live instance parser rejects authority-bearing projections'
 });
 
 test('desktop avatar live instance bridge rejects authority-bearing host records', async () => {
-  const restore = installTauriInvokeMock(async () => [{
+  const restore = installElectronInvokeMock(async () => [{
     avatarInstanceId: 'instance-1',
     agentId: AGENT_ID,
     ownerUserId: 'forbidden',
@@ -84,7 +84,7 @@ test('desktop avatar ephemeral instance id extends the deterministic selector id
 
 test('desktop avatar close handoff invokes the fixed command only', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
-  const restore = installTauriInvokeMock(async (command, payload) => {
+  const restore = installElectronInvokeMock(async (command, payload) => {
     calls.push({ command, payload });
     return { opened: true, handoffUri: 'desktop-supervised-avatar://close/instance-1' };
   });
@@ -107,7 +107,7 @@ test('desktop avatar close handoff invokes the fixed command only', async () => 
 
 test('desktop avatar live instance bridge sends only the Runtime Agent selector', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
-  const restore = installTauriInvokeMock(async (command, payload) => {
+  const restore = installElectronInvokeMock(async (command, payload) => {
     calls.push({ command, payload });
     return [{ avatarInstanceId: 'instance-1', agentId: AGENT_ID, launchSource: 'desktop-agent-chat' }];
   });

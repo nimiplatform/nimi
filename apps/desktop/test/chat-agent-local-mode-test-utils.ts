@@ -14,12 +14,15 @@ import {
   type NimiRuntimeAgentTurnRequest,
   type NimiRuntimeAgentTurnsModule,
   type NimiRuntimeAgentScopeRunner,
+  type NimiDesktopAccountProductRuntimeClient,
+  type NimiDesktopMachineProductRuntimeClient,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
 import {
   clearDesktopNimiClientSession,
   createDesktopRuntimeAgentDiscoverySurface,
   setDesktopNimiClientSessionForTests,
+  type DesktopAccountRuntime,
   type DesktopNimiClientSession,
 } from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.js';
 import {
@@ -50,9 +53,13 @@ import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-
 import { createDesktopRuntimeRouteAccess } from '../src/shell/renderer/infra/runtime-route-host-access.js';
 
 const TEST_CHAT_SCOPE_REF = createNimiBuiltInChatAIScopeRef('agent');
+type DesktopTestRuntime =
+  & NimiDesktopMachineProductRuntimeClient
+  & NimiDesktopAccountProductRuntimeClient
+  & DesktopAccountRuntime;
 type DesktopTestNimiClientSession = DesktopNimiClientSession & {
-  readonly runtime: any;
-  readonly accountRuntime: any;
+  readonly runtime: DesktopTestRuntime;
+  readonly accountRuntime: DesktopTestRuntime;
 };
 
 let currentDesktopTestSession: DesktopTestNimiClientSession | null = null;
@@ -314,11 +321,10 @@ function normalizeDesktopTestRuntimeTransport(value: unknown) {
   const candidate = value && typeof value === 'object'
     ? value as { readonly type?: unknown }
     : null;
-  if (candidate?.type === 'electron-ipc' || candidate?.type === 'tauri-ipc') {
+  if (candidate?.type === 'electron-ipc') {
     return candidate;
   }
-  // Runtime Agent unit doubles exercise the final Electron host-owned carrier.
-  // Tauri's renderer-side fail-closed posture has dedicated contract coverage.
+  // Runtime Agent unit doubles exercise the Electron host-owned carrier.
   return { type: 'electron-ipc' as const };
 }
 
@@ -335,7 +341,7 @@ function createDesktopTestNimiClientSession(input: {
   turns?: NimiRuntimeAgentTurnsModule;
   runtime?: unknown;
 }) {
-  let currentRuntime: unknown = input.runtime || (input.turns
+  let currentRuntime = (input.runtime || (input.turns
     ? createDesktopTestRuntimeFromAgentTurns({ appId: input.appId, turns: input.turns })
     : {
       appId: input.appId,
@@ -343,7 +349,7 @@ function createDesktopTestNimiClientSession(input: {
       account: createDefaultDesktopTestAccount(),
       appAuth: createDefaultDesktopTestAppAuth(),
       grants: createDefaultDesktopTestAppAuth(),
-    });
+    })) as DesktopTestRuntime;
   const session = {
     appId: input.appId,
     runtimeTransport: normalizeDesktopTestRuntimeTransport(input.runtimeTransport),
@@ -352,7 +358,7 @@ function createDesktopTestNimiClientSession(input: {
       return currentRuntime;
     },
     set runtime(nextRuntime: unknown) {
-      currentRuntime = normalizeDesktopTestRuntime(input.appId, nextRuntime);
+      currentRuntime = normalizeDesktopTestRuntime(input.appId, nextRuntime) as DesktopTestRuntime;
     },
     get runtimeClients() {
       const runtime = currentRuntime as Record<string, unknown>;

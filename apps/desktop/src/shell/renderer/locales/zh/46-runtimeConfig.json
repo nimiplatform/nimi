@@ -83,7 +83,7 @@
     "temperature": "温度",
     "temperatureValue": "{{value}} °C",
     "systemResourceMeta": "来源：{{source}} | 采集时间：{{capturedAt}}",
-    "mockDataSysinfo": "模拟数据 — 将接入 Tauri sysinfo",
+    "mockDataSysinfo": "Electron 主进程未提供系统指标",
     "runtimeLoadTitle": "运行负载与用量",
     "requests": "请求数",
     "requestsShort": "{{count}} 次",

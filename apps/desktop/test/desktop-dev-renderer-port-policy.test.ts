@@ -159,7 +159,7 @@ test('dev renderer runner keeps delegated commands direct on POSIX', () => {
   });
 });
 
-test('dev renderer runner treats SIGTERM as a successful Tauri handoff shutdown', {
+test('dev renderer runner treats SIGTERM as a successful Electron handoff shutdown', {
   skip: process.platform === 'win32'
     ? 'Node child.kill(SIGTERM) terminates Windows child processes instead of delivering a JS signal handler.'
     : false,

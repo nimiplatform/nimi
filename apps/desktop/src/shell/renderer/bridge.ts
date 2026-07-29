@@ -1,27 +1,18 @@
 import {
   admitProductReadyForUse,
-  completeMenuBarQuit,
-  desktopUpdateCheck,
-  desktopUpdateDownload,
-  desktopUpdateInstall,
-  desktopUpdateRestart,
   focusMainWindow,
-  getDesktopReleaseInfo,
-  getDesktopUpdateState,
   getDesktopStorageDirs,
   getProductControlRecord,
   getRuntimeBridgeStatus,
   getRuntimeAccountSessionStatus,
   subscribeRuntimeAccountSessionEvents,
   getRuntimeDefaults,
-  hasShellHostInvoke,
-  hasTauriInvoke,
+  hasElectronInvoke,
   getSystemResourceSnapshot,
   logRendererEvent,
   oauthListenForCode,
   oauthTokenExchange,
   openExternalUrl,
-  subscribeDesktopUpdateState,
   proxyHttp,
   restartRuntimeBridge,
   startRuntimeBridge,
@@ -40,9 +31,6 @@ import {
   toRendererLogMessage,
 } from './bridge/runtime-bridge';
 import type {
-  DesktopReleaseInfo,
-  DesktopUpdateCheckResult,
-  DesktopUpdateState,
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
@@ -67,9 +55,6 @@ import type {
 } from './bridge/runtime-bridge';
 
 export type {
-  DesktopReleaseInfo,
-  DesktopUpdateCheckResult,
-  DesktopUpdateState,
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
@@ -93,22 +78,10 @@ export type {
   DesktopStorageDirs,
 };
 
-export {
-  completeMenuBarQuit,
-  logRendererEvent,
-  syncMenuBarRuntimeHealth,
-  toRendererLogMessage,
-};
+export { logRendererEvent, syncMenuBarRuntimeHealth, toRendererLogMessage };
 
 export const desktopBridge = {
-  hasTauriInvoke,
-  hasShellHostInvoke,
-  getDesktopReleaseInfo,
-  getDesktopUpdateState,
-  desktopUpdateCheck,
-  desktopUpdateDownload,
-  desktopUpdateInstall,
-  desktopUpdateRestart,
+  hasElectronInvoke,
   getRuntimeBridgeStatus,
   getRuntimeAccountSessionStatus,
   subscribeRuntimeAccountSessionEvents,
@@ -135,7 +108,6 @@ export const desktopBridge = {
   oauthListenForCode,
   focusMainWindow,
   syncMenuBarRuntimeHealth,
-  subscribeDesktopUpdateState,
   startWindowDrag,
   logRendererEvent,
 };

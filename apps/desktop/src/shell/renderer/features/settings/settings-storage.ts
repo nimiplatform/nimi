@@ -87,11 +87,10 @@ export function loadStoredPerformancePreferences(): PerformancePreferences {
       const payload = parseOptionalJsonObject(parsed);
       if (!payload) {
         return { ...DEFAULT_PERFORMANCE_PREFERENCES };
-    }
-    return {
-      hardwareAcceleration: payload.hardwareAcceleration !== false,
-      reduceAnimations: payload.reduceAnimations === true,
-      autoUpdate: payload.autoUpdate !== false,
+      }
+      return {
+        hardwareAcceleration: payload.hardwareAcceleration !== false,
+        reduceAnimations: payload.reduceAnimations === true,
       };
     },
   );

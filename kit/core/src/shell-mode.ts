@@ -66,7 +66,8 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
   const mode = resolveShellModeFromEnv();
   const isDesktop = mode === 'desktop';
   const isTauriShell = hasTauriRuntime();
-  const enableMenuBarShell = isTauriShell && isMacDesktopEnvironment();
+  const isElectronShell = hasElectronRuntime();
+  const enableMenuBarShell = (isTauriShell || isElectronShell) && isMacDesktopEnvironment();
 
   cachedFlags = {
     mode,

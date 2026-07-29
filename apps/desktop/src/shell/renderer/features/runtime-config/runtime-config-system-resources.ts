@@ -21,7 +21,7 @@ function normalizeSnapshot(raw: SystemResourceSnapshot, now: () => number): Syst
       ? Number(raw.temperatureCelsius)
       : undefined,
     capturedAtMs: Number(raw.capturedAtMs) > 0 ? Number(raw.capturedAtMs) : now(),
-    source: String(raw.source || '').trim() || 'tauri-unknown',
+    source: String(raw.source || '').trim() || 'electron-unknown',
   };
 }
 

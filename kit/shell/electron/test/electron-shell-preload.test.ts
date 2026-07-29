@@ -7,6 +7,7 @@ import {
   createNimiElectronStandardApplicationMenuTemplate,
   createNimiElectronFileAIConfigStore,
   getElectronStandardShellCapabilityIds,
+  NimiElectronShellHostError,
   registerNimiElectronRuntimeBridge,
   type ElectronRuntimeBridgeTrustedMetadataProvider,
   type ElectronRuntimeBridgeUnaryRequest,
@@ -93,6 +94,17 @@ describe('installNimiElectronRuntimeBridge', () => {
     ipcEvents.get('nimi:runtime:event:desktop-open://open-intent')?.({}, { requestId: 'request-a' });
     expect(openIntentEvents).toEqual([{ requestId: 'request-a' }]);
     unsubscribeOpenIntent();
+
+    const menuBarEvents: unknown[] = [];
+    const unsubscribeMenuBar = hook.listen('menu-bar://open-tab', (event) => {
+      menuBarEvents.push(event.payload);
+    });
+    ipcEvents.get('nimi:runtime:event:menu-bar://open-tab')?.({}, {
+      tab: 'runtime',
+      page: 'overview',
+    });
+    expect(menuBarEvents).toEqual([{ tab: 'runtime', page: 'overview' }]);
+    unsubscribeMenuBar();
     expect(() => hook.listen('desktop-open:\\unsafe', () => undefined)).toThrow(/unsupported characters/u);
   });
 
@@ -114,6 +126,7 @@ describe('installNimiElectronRuntimeBridge', () => {
             reasonCode: 'electron-runtime-daemon-managed-externally',
             actionHint: 'start_runtime_daemon_outside_electron_or_use_tauri_host_lifecycle',
             source: 'electron',
+            retryable: false,
             details: { command: STANDARD_COMMANDS.start },
             envelope: {
               code: 'external-daemon-required',
@@ -137,11 +150,59 @@ describe('installNimiElectronRuntimeBridge', () => {
       reasonCode: 'electron-runtime-daemon-managed-externally',
       actionHint: 'start_runtime_daemon_outside_electron_or_use_tauri_host_lifecycle',
       source: 'electron',
+      retryable: false,
       envelope: {
         code: 'external-daemon-required',
         reasonCode: 'electron-runtime-daemon-managed-externally',
         source: 'electron',
       },
     });
+  });
+
+  it('preserves host retryability through the real preload invoke path', async () => {
+    const ipcMain = new FakeIpcMain();
+    const registration = registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      commandHandlers: {
+        'test.retryable-error': () => {
+          throw Object.assign(new NimiElectronShellHostError({
+            code: 'resource-exhausted',
+            message: 'fixed request boundary exceeded',
+            reasonCode: 'DESKTOP_HTTP_REQUEST_TOO_LARGE',
+            actionHint: 'reduce_desktop_http_request_size',
+          }), { retryable: false });
+        },
+      },
+    });
+    const { event } = createInvokeEvent();
+    const exposed = new Map<string, unknown>();
+    installNimiElectronRuntimeBridge({
+      contextBridge: {
+        exposeInMainWorld: (key, api) => {
+          exposed.set(key, api);
+        },
+      },
+      ipcRenderer: {
+        invoke: async (channel, payload) => ipcMain.invoke(channel, event, payload),
+        on: () => undefined,
+        removeListener: () => undefined,
+      },
+    });
+    const hook = exposed.get('__NIMI_ELECTRON_RUNTIME__') as {
+      invoke: (command: string, payload?: unknown) => Promise<unknown>;
+    };
+
+    try {
+      await expect(hook.invoke('test.retryable-error', {})).rejects.toMatchObject({
+        code: 'resource-exhausted',
+        reasonCode: 'DESKTOP_HTTP_REQUEST_TOO_LARGE',
+        retryable: false,
+      });
+    } finally {
+      registration.unregister();
+    }
   });
 });

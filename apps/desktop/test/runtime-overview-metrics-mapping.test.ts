@@ -45,9 +45,9 @@ test('parseSystemResourceSnapshot validates and normalizes bridge payload', () =
     diskUsedBytes: 120_000_000_000,
     diskTotalBytes: 512_000_000_000,
     capturedAtMs: 1762473600000,
-    source: 'tauri-macos',
+    source: 'electron-darwin',
   });
   assert.equal(snapshot.cpuPercent, 34.2);
   assert.equal(snapshot.memoryTotalBytes, 16_000_000_000);
-  assert.equal(snapshot.source, 'tauri-macos');
+  assert.equal(snapshot.source, 'electron-darwin');
 });

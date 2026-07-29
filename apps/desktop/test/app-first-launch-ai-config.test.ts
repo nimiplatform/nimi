@@ -13,7 +13,7 @@ import type { NimiError } from '@nimiplatform/sdk/types';
  * Exercises the Desktop host wiring `ensureAppFirstLaunchAIConfig`, which binds
  * the host-agnostic SDK helper to the Desktop host AIConfig persistence
  * (`commitConfig` write path + scope-keyed localStorage). The Account Default
- * Profile resolver is injected so the test does not need the Tauri layer; the
+ * Profile resolver is injected so the test does not need an Electron host; the
  * persistence + never-overwrite + fail-closed behavior is real.
  */
 

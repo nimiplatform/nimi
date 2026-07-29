@@ -22,7 +22,7 @@ import { productionRendererLifecyclePort } from '../../renderer/production-lifec
 import type { DesktopRendererAuthPort } from '../../renderer/auth-port.js';
 
 export const desktopOAuthBridge: ShellOAuthBridge = {
-  hasShellHostInvoke: () => desktopBridge.hasShellHostInvoke(),
+  hasShellHostInvoke: () => desktopBridge.hasElectronInvoke(),
   oauthListenForCode: (payload) => desktopBridge.oauthListenForCode(payload),
   oauthTokenExchange: async () => {
     throw new Error('Desktop OAuth exchange is owned by RuntimeAccountService');

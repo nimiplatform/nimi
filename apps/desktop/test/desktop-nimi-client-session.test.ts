@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   clearDesktopNimiClientSession,
   setDesktopNimiClientSessionForTests,
@@ -33,21 +32,18 @@ test('desktop Electron Runtime calls leave host-owned auth metadata to the Elect
   }
 });
 
-test('desktop Tauri Runtime calls use the exact host carrier without minting a public Grant token', async () => {
+test('desktop Electron Runtime calls do not mint a public Grant token', async () => {
   let accountStatusCalls = 0;
   let publicGrantCalls = 0;
   setDesktopNimiClientSessionForTests({
     appId: 'nimi.desktop',
-    runtimeTransport: { type: 'tauri-ipc' },
+    runtimeTransport: { type: 'electron-ipc' },
     runtimeClients: {},
     accountRuntime: {
       account: {
         getAccountSessionStatus: async () => {
           accountStatusCalls += 1;
-          return {
-            state: AccountSessionState.AUTHENTICATED,
-            accountProjection: { accountId: 'user-1' },
-          };
+          throw new Error('Electron renderer must not fetch account metadata for protected scopes');
         },
       },
       grants: {
@@ -65,10 +61,10 @@ test('desktop Tauri Runtime calls use the exact host carrier without minting a p
       ['runtime.agent.read'],
       async (callOptions) => {
         assert.deepEqual(callOptions, {});
-        return 'tauri-host-owned';
+        return 'electron-host-owned';
       },
     );
-    assert.equal(result, 'tauri-host-owned');
+    assert.equal(result, 'electron-host-owned');
     assert.equal(accountStatusCalls, 0);
     assert.equal(publicGrantCalls, 0);
   } finally {

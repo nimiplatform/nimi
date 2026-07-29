@@ -2,7 +2,7 @@
  * T10.4 — Support secondary surface render coverage (`rule.nimi.desktop.product-surfaces.r022..r029`).
  *
  * Static-markup render proofs:
- *   - the Support panel mounts the fixed five-item sub-area sidebar;
+ *   - the Support panel mounts the fixed four-item sub-area sidebar;
  *   - the typed fail-closed surface renders the typed reason + retry;
  *   - each sub-area starts in a non-fabricated state (loading), never a
  *     synthesized "ready" placeholder, before its typed projection resolves;
@@ -17,11 +17,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
-import {
-  createEmptyNimiAIConfig,
-  createNimiBuiltInChatAIScopeRef,
-} from '@nimiplatform/sdk/ai';
-
 // Some transitively rendered kit primitives (ScrollArea via @radix-ui) are
 // CJS bundles compiled with the classic JSX runtime and expect a global
 // `React`. The test runner compiles project `.tsx` with the automatic
@@ -32,13 +27,10 @@ import { initI18n } from '../src/shell/renderer/i18n';
 import { SupportPanel } from '../src/shell/renderer/features/support/support-panel';
 import { SupportFailClosed } from '../src/shell/renderer/features/support/support-section-shell';
 import { SupportRepairSection } from '../src/shell/renderer/features/support/support-repair-section';
-import { SupportUpdatesSection } from '../src/shell/renderer/features/support/support-updates-section';
 import { SupportDiagnosticsSection } from '../src/shell/renderer/features/support/support-diagnostics-section';
 import { SupportLogsSection } from '../src/shell/renderer/features/support/support-logs-section';
 import { SupportRecoverySection } from '../src/shell/renderer/features/support/support-recovery-section';
 import { SupportDegradedEntry } from '../src/shell/renderer/features/support/support-degraded-entry';
-import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory';
-import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store';
 import {
   DesktopRendererBindingProvider,
 } from '../src/shell/renderer/renderer/binding-context';
@@ -63,11 +55,11 @@ function renderToStaticMarkup(element: React.ReactNode): string {
   );
 }
 
-test('rule.nimi.desktop.product-surfaces.r022/r023: the Support panel renders the five-item sub-area sidebar', () => {
+test('rule.nimi.desktop.product-surfaces.r022/r023: the Support panel renders the four-item sub-area sidebar', () => {
   const markup = renderToStaticMarkup(React.createElement(SupportPanel));
   assert.match(markup, /data-testid="panel:support"/);
   assert.match(markup, /data-testid="panel:support-sidebar"/);
-  for (const section of ['repair', 'updates', 'diagnostics', 'logs', 'recovery']) {
+  for (const section of ['repair', 'diagnostics', 'logs', 'recovery']) {
     assert.match(markup, new RegExp(`data-testid="support-nav:${section}"`));
   }
 });
@@ -118,37 +110,6 @@ for (const section of SECTIONS) {
     assert.match(markup, new RegExp(`data-testid="${section.loadingTestId}"`));
   });
 }
-
-test('rule.nimi.desktop.product-surfaces.r025: updates fails closed before the release projection arrives', () => {
-  // The updates sub-area reads the release projection from the app store
-  // (synchronously available, null on a cold store). It must render the
-  // section frame without crashing and without fabricating version rows.
-  const store = createAppStore({
-    initialAIConfig: createEmptyNimiAIConfig(createNimiBuiltInChatAIScopeRef('nimi')),
-    commitAIConfig: () => {},
-    initialChatThinkingPreference: 'off',
-    persistChatThinkingPreference: () => {},
-    setActiveScopeForMode: () => {},
-  });
-  const markup = renderToStaticMarkup(
-    React.createElement(
-      DesktopRendererBindingProvider,
-      {
-        bindings: {
-          app: { commands: {} },
-        } as DesktopCanonicalRendererBindings,
-      },
-      React.createElement(
-        AppStoreProvider,
-        { store },
-        React.createElement(SupportUpdatesSection),
-      ),
-    ),
-  );
-  assert.match(markup, /data-testid="support-section-updates"/);
-  assert.match(markup, /data-testid="support-updates-fail-closed"/);
-  assert.doesNotMatch(markup, /data-testid="support-updates-versions"/);
-});
 
 test('rule.nimi.desktop.product-surfaces.r029: the degraded entry renders only the trigger when closed', () => {
   const markup = renderToStaticMarkup(React.createElement(SupportDegradedEntry));

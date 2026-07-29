@@ -170,9 +170,6 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@nimiplatform/desktop-product-control-win32-x64':
-        specifier: workspace:*
-        version: link:product-control-node/npm/win32-x64
       '@nimiplatform/kit':
         specifier: workspace:*
         version: link:../../kit
@@ -185,9 +182,6 @@ importers:
       '@tanstack/react-virtual':
         specifier: 3.13.25
         version: 3.13.25(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
-      '@tauri-apps/api':
-        specifier: ^2.11.0
-        version: 2.11.0
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -249,9 +243,6 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(vite@7.3.1(@types/node@25.9.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
-      '@tauri-apps/cli':
-        specifier: ^2.11.2
-        version: 2.11.2
       '@types/node':
         specifier: ^25.9.1
         version: 25.9.1
@@ -291,6 +282,15 @@ importers:
       vite:
         specifier: ^7.3.1
         version: 7.3.1(@types/node@25.9.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
+    optionalDependencies:
+      '@nimiplatform/desktop-product-control-darwin-arm64':
+        specifier: workspace:*
+        version: link:product-control-node/npm/darwin-arm64
+      '@nimiplatform/desktop-product-control-win32-x64':
+        specifier: workspace:*
+        version: link:product-control-node/npm/win32-x64
+
+  apps/desktop/product-control-node/npm/darwin-arm64: {}
 
   apps/desktop/product-control-node/npm/win32-x64: {}
 

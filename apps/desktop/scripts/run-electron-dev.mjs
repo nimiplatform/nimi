@@ -13,6 +13,7 @@ import {
   resolveDesktopDevObservationArguments,
   resolvePersistentDesktopDevProfile,
   resolveSignedDesktopDevCarrier,
+  resolveWorkspaceElectronDevCarrier,
 } from './lib/electron-dev-carrier.mjs';
 
 const require = createRequire(import.meta.url);
@@ -27,13 +28,6 @@ const avatarOnly = process.argv.includes('--avatar-only');
 const unknownArgument = process.argv.slice(2).find((value) => value !== '--avatar-only');
 if (unknownArgument) throw new Error(`Unsupported Desktop Electron dev argument: ${unknownArgument}`);
 const electronVersion = String(require('electron/package.json').version || '').trim();
-const electronBin = resolveSignedDesktopDevCarrier({
-  platform: process.platform,
-  architecture: process.arch,
-  electronVersion,
-  workspaceRoot,
-  existsSync,
-});
 const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
 const localAssetRoot = path.join(profileRoot, 'local-assets');
 const children = new Set();
@@ -57,6 +51,13 @@ if (process.platform === 'darwin') {
 async function runWindowsDesktopDev() {
   try {
     await buildElectronHostForDesktopDev();
+    const electronBin = resolveSignedDesktopDevCarrier({
+      platform: process.platform,
+      architecture: process.arch,
+      electronVersion,
+      workspaceRoot,
+      existsSync,
+    });
     const signingIdentity = requireWindowsDevSigningIdentity({ cwd: workspaceRoot });
     requireWindowsDevSignedFiles([electronBin], signingIdentity.certificateSha256, { cwd: workspaceRoot });
     mkdirSync(localAssetRoot, { recursive: true });
@@ -103,27 +104,44 @@ async function runWindowsDesktopDev() {
 async function runMacOSDesktopDev() {
   try {
     await buildElectronHostForDesktopDev();
-    const electronBin = resolveSignedDesktopDevCarrier({
+    const electronBin = resolveWorkspaceElectronDevCarrier({
       platform: process.platform,
       architecture: process.arch,
-      electronVersion,
-      workspaceRoot,
+      electronExecutable: require('electron'),
       existsSync,
     });
     const macOSProfileRoot = path.join(workspaceRoot, '.nimi', 'local', 'dev-profiles', 'macos-desktop');
     mkdirSync(macOSProfileRoot, { recursive: true });
+    mkdirSync(localAssetRoot, { recursive: true });
+    process.stdout.write(`${JSON.stringify({
+      status: 'starting',
+      carrier: electronBin,
+      hostBundle: 'workspace-electron',
+      rendererUrl,
+      mainIteration: 'workspace_build',
+      protectedRuntime: 'unavailable_without_the_installed_fixed_ad_hoc_candidate',
+    })}\n`);
     spawnRenderer();
-    await waitForUrl('http://127.0.0.1:1420', 45_000);
+    await waitForUrl(rendererUrl, 45_000);
     const electron = spawnTracked(electronBin, [
       ...resolveDesktopDevObservationArguments(),
       `--user-data-dir=${macOSProfileRoot}`,
+      'dist-electron/main.js',
     ], {
       stdio: 'inherit',
       env: {
-        HOME: process.env.HOME,
-        LANG: process.env.LANG || 'en_US.UTF-8',
-        PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
-        TMPDIR: process.env.TMPDIR || '/private/tmp',
+        ...process.env,
+        NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererUrl,
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL: bundledAvatarRendererUrl,
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT: avatarRoot,
+        NIMI_DESKTOP_ELECTRON_AVATAR_ONLY: avatarOnly ? '1' : '0',
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID:
+          process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID
+          || process.env.NIMI_AVATAR_AGENT_ID
+          || '',
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID:
+          process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID || '',
+        NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,
       },
     });
     const exitCode = await waitForExit(electron);

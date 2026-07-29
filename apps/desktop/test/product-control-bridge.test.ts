@@ -9,7 +9,6 @@ import {
 
 type DesktopBridgeTestWindow = {
   __NIMI_HTML_BOOT_ID__?: string;
-  __NIMI_TAURI_TEST__?: DesktopBridgeTestGlobal['__NIMI_TAURI_TEST__'];
   __NIMI_ELECTRON_TEST__?: DesktopBridgeTestGlobal['__NIMI_ELECTRON_TEST__'];
   localStorage?: {
     getItem: (key: string) => string | null;
@@ -18,10 +17,6 @@ type DesktopBridgeTestWindow = {
 
 type DesktopBridgeTestGlobal = {
   window?: DesktopBridgeTestWindow;
-  __NIMI_TAURI_TEST__?: {
-    invoke: (command: string, payload?: unknown) => Promise<unknown>;
-    listen: (eventName: string, handler: (event: { payload: unknown }) => void) => Promise<() => void> | (() => void);
-  };
   __NIMI_ELECTRON_TEST__?: {
     invoke: (command: string, payload?: unknown) => Promise<unknown>;
     listen: (eventName: string, handler: (event: { payload: unknown }) => void) => () => void;
@@ -50,31 +45,9 @@ async function withStandardShellInvoke<T>(
   }
 }
 
-async function withTauriShellInvoke<T>(
-  invoke: (command: string, payload?: unknown) => Promise<unknown>,
-  run: () => Promise<T>,
-): Promise<T> {
-  const root = globalThis as unknown as DesktopBridgeTestGlobal;
-  const previous = root.__NIMI_TAURI_TEST__;
-  const previousWindow = root.window;
-  const hook = { invoke, listen: () => () => undefined };
-  root.__NIMI_TAURI_TEST__ = hook;
-  root.window = {
-    ...(previousWindow ?? {}),
-    __NIMI_HTML_BOOT_ID__: previousWindow?.__NIMI_HTML_BOOT_ID__ ?? 'product-control-bridge-test',
-    __NIMI_TAURI_TEST__: hook,
-  };
-  try {
-    return await run();
-  } finally {
-    root.__NIMI_TAURI_TEST__ = previous;
-    root.window = previousWindow;
-  }
-}
-
 test('product-control data-root picker uses Kit standard file dialog without a guessed startDirectory', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
-  await withTauriShellInvoke(async (command, payload) => {
+  await withStandardShellInvoke(async (command, payload) => {
     calls.push({ command, payload });
     return { canceled: false, paths: ['D:/nimi-data'] };
   }, async () => {
@@ -103,14 +76,12 @@ test('product-control data-root picker preserves cancel as null', async () => {
 
 test('product-control record ignores fabricated renderer-local ready state', async () => {
   const root = globalThis as unknown as DesktopBridgeTestGlobal;
-  const previousTauri = root.__NIMI_TAURI_TEST__;
   const previousElectron = root.__NIMI_ELECTRON_TEST__;
   const previousWindow = root.window;
   const rendererState = new Map<string, string>([
     ['nimi.productControl.state', 'ready_for_use'],
     ['nimi.productControl.projection', JSON.stringify({ state: 'ready_for_use' })],
   ]);
-  delete root.__NIMI_TAURI_TEST__;
   delete root.__NIMI_ELECTRON_TEST__;
   root.window = {
     __NIMI_HTML_BOOT_ID__: 'renderer-only-product-control-test',
@@ -123,7 +94,6 @@ test('product-control record ignores fabricated renderer-local ready state', asy
     const projection = await getProductControlRecord();
     assert.equal(projection.state, 'config_missing');
   } finally {
-    root.__NIMI_TAURI_TEST__ = previousTauri;
     root.__NIMI_ELECTRON_TEST__ = previousElectron;
     root.window = previousWindow;
   }

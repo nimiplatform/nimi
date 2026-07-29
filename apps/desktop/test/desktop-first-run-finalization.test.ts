@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { admitProductReadyForUse } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
 
-type TauriInvokeCall = {
+type ElectronInvokeCall = {
   command: string;
   payload: unknown;
 };
@@ -13,19 +13,19 @@ type TauriInvokeCall = {
  *
  * At `local_ai_ready` the renderer requests backend admission of the
  * `ready_for_use` transition via the `product_control_record_admit_ready_for_use`
- * Tauri command (wave-6 seam). The backend admission op is the sole authority
+ * Electron host command. The backend admission op is the sole authority
  * that writes `ready_for_use` (cold-start-authority-contract P-COLD-016); the
  * renderer only requests and routes the returned projection.
  */
 
-function installTauriInvokeMock(
+function installElectronInvokeMock(
   handler: (command: string, payload?: unknown) => Promise<unknown> | unknown,
-): { restore: () => void; calls: TauriInvokeCall[] } {
+): { restore: () => void; calls: ElectronInvokeCall[] } {
   const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
+  const previousElectron = globalRecord.__NIMI_ELECTRON_TEST__;
   const previousWindow = globalRecord.window;
-  const calls: TauriInvokeCall[] = [];
-  globalRecord.__NIMI_TAURI_TEST__ = {
+  const calls: ElectronInvokeCall[] = [];
+  globalRecord.__NIMI_ELECTRON_TEST__ = {
     invoke: (command: string, payload?: unknown) => {
       calls.push({ command, payload });
       return handler(command, payload);
@@ -37,10 +37,10 @@ function installTauriInvokeMock(
   return {
     calls,
     restore: () => {
-      if (typeof previousTauri === 'undefined') {
-        delete globalRecord.__NIMI_TAURI_TEST__;
+      if (typeof previousElectron === 'undefined') {
+        delete globalRecord.__NIMI_ELECTRON_TEST__;
       } else {
-        globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
+        globalRecord.__NIMI_ELECTRON_TEST__ = previousElectron;
       }
       if (typeof previousWindow === 'undefined') {
         delete globalRecord.window;
@@ -52,7 +52,7 @@ function installTauriInvokeMock(
 }
 
 test('Wave 7: local_ai_ready finalization invokes the backend admission command', async () => {
-  const mock = installTauriInvokeMock((command) => {
+  const mock = installElectronInvokeMock((command) => {
     assert.equal(command, 'product_control_record_admit_ready_for_use');
     return {
       path: '/nimi/product-control.json',
@@ -94,7 +94,7 @@ test('Wave 7: a failed admission routes to the earliest-failed copy-floor surfac
   // On failure the backend admission op returns the earliest-failed product
   // state with a non-null error and record: null. The workflow routes to that
   // state's copy-floor surface — never a synthesized ready_for_use.
-  const mock = installTauriInvokeMock(() => ({
+  const mock = installElectronInvokeMock(() => ({
     path: '/nimi/product-control.json',
     exists: true,
     state: 'local_ai_assets_downloaded_environment_not_ready',
@@ -112,18 +112,18 @@ test('Wave 7: a failed admission routes to the earliest-failed copy-floor surfac
   }
 });
 
-test('Wave 7: admission fails closed when the Tauri runtime is unavailable', async () => {
+test('Wave 7: admission fails closed when the Electron host is unavailable', async () => {
   const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
-  delete globalRecord.__NIMI_TAURI_TEST__;
+  const previousElectron = globalRecord.__NIMI_ELECTRON_TEST__;
+  delete globalRecord.__NIMI_ELECTRON_TEST__;
   try {
     await assert.rejects(
       () => admitProductReadyForUse(),
       /product_control_record_admit_ready_for_use requires standard shell Runtime/,
     );
   } finally {
-    if (typeof previousTauri !== 'undefined') {
-      globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
+    if (typeof previousElectron !== 'undefined') {
+      globalRecord.__NIMI_ELECTRON_TEST__ = previousElectron;
     }
   }
 });

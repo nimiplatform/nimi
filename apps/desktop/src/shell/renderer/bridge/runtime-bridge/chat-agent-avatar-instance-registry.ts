@@ -1,4 +1,4 @@
-import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
   assertRecord,
@@ -59,7 +59,7 @@ const FORBIDDEN_LIVE_INSTANCE_FIELDS = [
 ] as const;
 
 function requireShellHost(commandName: string) {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error(`${commandName} requires the Desktop shell host`);
   }
 }

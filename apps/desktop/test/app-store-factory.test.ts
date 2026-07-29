@@ -428,9 +428,6 @@ function createCanonicalBindings(input: {
         async pickLocalRuntimeAssetDirectory() { return null; },
         async revealLocalRuntimeAssetsRootFolder() {},
         async reconcileLoginState() { return { clearAuthSession: false }; },
-        async checkDesktopUpdate() {},
-        async installDesktopUpdate() {},
-        async restartDesktopUpdate() {},
         reloadApplication() {},
         async startWindowDrag() {},
         async listLocalDevelopmentApprovals() { return []; },
@@ -528,7 +525,6 @@ test('renderer settings ports isolate selection, subscriptions, and preferences 
   const firstPreferences: PerformancePreferences = {
     hardwareAcceleration: false,
     reduceAnimations: true,
-    autoUpdate: false,
   };
 
   first.openSection('performance');
@@ -541,7 +537,6 @@ test('renderer settings ports isolate selection, subscriptions, and preferences 
   assert.deepEqual(second.loadPerformancePreferences(), {
     hardwareAcceleration: true,
     reduceAnimations: false,
-    autoUpdate: true,
   });
 
   unsubscribe();

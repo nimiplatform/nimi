@@ -25,11 +25,6 @@ import {
   UserPlusIcon,
 } from './settings-preferences-panel-parts.js';
 
-export {
-  canUseDesktopUpdater,
-  collectDesktopUpdatePanelAlerts,
-} from './settings-preferences-panel-parts.js';
-
 type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
 type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;
 

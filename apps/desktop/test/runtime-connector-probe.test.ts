@@ -32,12 +32,12 @@ const {
   sdkListConnectors,
 } = connectorSdk;
 
-type TauriInvokeCall = {
+type ElectronInvokeCall = {
   command: string;
   payload: Record<string, unknown>;
 };
 
-type TauriRuntime = {
+type ElectronRuntime = {
   core: {
     invoke: (command: string, payload?: unknown) => Promise<unknown>;
   };
@@ -46,24 +46,22 @@ type TauriRuntime = {
   };
 };
 
-type MutableGlobalTauri = typeof globalThis & {
-  __NIMI_TAURI_TEST__?: {
-    invoke?: TauriRuntime['core']['invoke'];
-    listen?: TauriRuntime['event']['listen'];
+type MutableGlobalElectron = typeof globalThis & {
+  __NIMI_ELECTRON_TEST__?: {
+    invoke?: ElectronRuntime['core']['invoke'];
+    listen?: ElectronRuntime['event']['listen'];
   };
   window?: {
-    __NIMI_TAURI_TEST__?: {
-      invoke?: TauriRuntime['core']['invoke'];
-      listen?: TauriRuntime['event']['listen'];
+    __NIMI_ELECTRON_TEST__?: {
+      invoke?: ElectronRuntime['core']['invoke'];
+      listen?: ElectronRuntime['event']['listen'];
     };
   };
 };
 
 const RUNTIME_CONNECTOR_PROBE_APP_ID = 'nimi.desktop';
-const RUNTIME_CONNECTOR_PROBE_TAURI_TRANSPORT = {
-  type: 'tauri-ipc',
-  commandNamespace: 'runtime_bridge',
-  eventNamespace: 'runtime_bridge',
+const RUNTIME_CONNECTOR_PROBE_ELECTRON_TRANSPORT = {
+  type: 'electron-ipc',
 } as const;
 
 function unaryResponseBytes(bytes: Uint8Array): { responseBytesBase64: string } {
@@ -109,12 +107,12 @@ function unwrapPayload(payload: unknown): Record<string, unknown> {
 function installRuntimeConnectorProbeDesktopSession(): void {
   const runtime = new Runtime({
     appId: RUNTIME_CONNECTOR_PROBE_APP_ID,
-    transport: RUNTIME_CONNECTOR_PROBE_TAURI_TRANSPORT,
+    transport: RUNTIME_CONNECTOR_PROBE_ELECTRON_TRANSPORT,
   });
 
   setDesktopNimiClientSessionForTests({
     appId: RUNTIME_CONNECTOR_PROBE_APP_ID,
-    runtimeTransport: { type: 'tauri-ipc' },
+    runtimeTransport: { type: 'electron-ipc' },
     runtimeClients: {
       machineProduct: { connectors: runtime.connectors },
       accountProduct: { connectors: runtime.connectors },
@@ -125,13 +123,13 @@ function installRuntimeConnectorProbeDesktopSession(): void {
   } as unknown as DesktopNimiClientSession);
 }
 
-function installTauriRuntime(
-  calls: TauriInvokeCall[],
+function installElectronRuntime(
+  calls: ElectronInvokeCall[],
 ): () => void {
-  const target = globalThis as MutableGlobalTauri;
-  const previousRoot = target.__NIMI_TAURI_TEST__;
+  const target = globalThis as MutableGlobalElectron;
+  const previousRoot = target.__NIMI_ELECTRON_TEST__;
   const previousWindow = target.window;
-  const runtime: TauriRuntime = {
+  const runtime: ElectronRuntime = {
     core: {
       invoke: async (command: string, payload?: unknown) => {
         const unwrapped = unwrapPayload(payload);
@@ -140,7 +138,7 @@ function installTauriRuntime(
           payload: unwrapped,
         });
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && unwrapped.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
         ) {
           return unaryResponseBytes(ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
@@ -148,7 +146,7 @@ function installTauriRuntime(
           })));
         }
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && unwrapped.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
           return unaryResponseBytes(ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
@@ -156,7 +154,7 @@ function installTauriRuntime(
           })));
         }
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && unwrapped.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector'
         ) {
           return createConnectorProbeResponse();
@@ -169,17 +167,17 @@ function installTauriRuntime(
     },
   };
   const windowObject = previousWindow || {};
-  windowObject.__NIMI_TAURI_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
-  target.__NIMI_TAURI_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
+  windowObject.__NIMI_ELECTRON_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
+  target.__NIMI_ELECTRON_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
   target.window = windowObject;
   installRuntimeConnectorProbeDesktopSession();
 
   return () => {
     clearDesktopNimiClientSession();
     if (typeof previousRoot === 'undefined') {
-      Reflect.deleteProperty(target, '__NIMI_TAURI_TEST__');
+      Reflect.deleteProperty(target, '__NIMI_ELECTRON_TEST__');
     } else {
-      target.__NIMI_TAURI_TEST__ = previousRoot;
+      target.__NIMI_ELECTRON_TEST__ = previousRoot;
     }
     if (typeof previousWindow === 'undefined') {
       Reflect.deleteProperty(target, 'window');
@@ -415,10 +413,10 @@ test('listConnectorAuthOptionsForProvider exposes admitted oauth-managed options
   );
 });
 
-test('sdkCreateConnector leaves Runtime app-session identity to the Tauri host', async () => {
+test('sdkCreateConnector leaves Runtime app-session identity to the Electron host', async () => {
   clearRuntimeConnectorSdkCaches();
-  const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls);
+  const calls: ElectronInvokeCall[] = [];
+  const restoreElectron = installElectronRuntime(calls);
   try {
     await sdkCreateConnector({
       provider: 'openai',
@@ -435,7 +433,7 @@ test('sdkCreateConnector leaves Runtime app-session identity to the Tauri host',
     });
 
     const unaryCalls = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector'
     ));
     assert.equal(unaryCalls.length, 2);
@@ -446,26 +444,26 @@ test('sdkCreateConnector leaves Runtime app-session identity to the Tauri host',
     assert.equal(firstCall?.payload.appSession, undefined);
     assert.equal(secondCall?.payload.appSession, undefined);
   } finally {
-    restoreTauri();
+    restoreElectron();
   }
 });
 
 test('sdkListConnectors discovers connectors via single-path vNext Runtime calls (no anonymous-fallback retry)', async () => {
   clearRuntimeConnectorSdkCaches();
-  const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls);
+  const calls: ElectronInvokeCall[] = [];
+  const restoreElectron = installElectronRuntime(calls);
   try {
-    const target = globalThis as MutableGlobalTauri;
-    const invoke = target.__NIMI_TAURI_TEST__?.invoke;
-    assert.ok(invoke, 'expected test tauri invoke');
-    target.__NIMI_TAURI_TEST__ = {
-      ...target.__NIMI_TAURI_TEST__,
+    const target = globalThis as MutableGlobalElectron;
+    const invoke = target.__NIMI_ELECTRON_TEST__?.invoke;
+    assert.ok(invoke, 'expected test Electron invoke');
+    target.__NIMI_ELECTRON_TEST__ = {
+      ...target.__NIMI_ELECTRON_TEST__,
       invoke: async (command: string, payload?: unknown) => {
         const unwrapped = unwrapPayload(payload);
         calls.push({ command, payload: unwrapped });
         const methodId = String(unwrapped.methodId || '');
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
         ) {
           return unaryResponseBytes(ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
@@ -473,7 +471,7 @@ test('sdkListConnectors discovers connectors via single-path vNext Runtime calls
           })));
         }
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
           return unaryResponseBytes(ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
@@ -495,18 +493,18 @@ test('sdkListConnectors discovers connectors via single-path vNext Runtime calls
         return { responseBytesBase64: '' };
       },
     };
-    if (target.window?.__NIMI_TAURI_TEST__) {
-      target.window.__NIMI_TAURI_TEST__.invoke = target.__NIMI_TAURI_TEST__.invoke;
+    if (target.window?.__NIMI_ELECTRON_TEST__) {
+      target.window.__NIMI_ELECTRON_TEST__.invoke = target.__NIMI_ELECTRON_TEST__.invoke;
     }
 
     await sdkListConnectors();
 
     const listConnectorCalls = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
     ));
     const catalogCalls = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
     ));
     // Single-path: each method is invoked exactly once. No retry.
@@ -517,24 +515,24 @@ test('sdkListConnectors discovers connectors via single-path vNext Runtime calls
     assert.equal(listConnectorCalls[0]?.payload.authorization, undefined);
     assert.equal(listConnectorCalls[0]?.payload.appSession, undefined);
   } finally {
-    restoreTauri();
+    restoreElectron();
   }
 });
 
 test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-lived cache', async () => {
   clearRuntimeConnectorSdkCaches();
-  const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls);
+  const calls: ElectronInvokeCall[] = [];
+  const restoreElectron = installElectronRuntime(calls);
   try {
-    const target = globalThis as MutableGlobalTauri;
-    target.__NIMI_TAURI_TEST__ = {
-      ...target.__NIMI_TAURI_TEST__,
+    const target = globalThis as MutableGlobalElectron;
+    target.__NIMI_ELECTRON_TEST__ = {
+      ...target.__NIMI_ELECTRON_TEST__,
       invoke: async (command: string, payload?: unknown) => {
         const unwrapped = unwrapPayload(payload);
         calls.push({ command, payload: unwrapped });
         const methodId = String(unwrapped.methodId || '');
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
         ) {
           return unaryResponseBytes(ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
@@ -542,7 +540,7 @@ test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-
           })));
         }
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
           return unaryResponseBytes(ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
@@ -564,8 +562,8 @@ test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-
         return { responseBytesBase64: '' };
       },
     };
-    if (target.window?.__NIMI_TAURI_TEST__) {
-      target.window.__NIMI_TAURI_TEST__.invoke = target.__NIMI_TAURI_TEST__.invoke;
+    if (target.window?.__NIMI_ELECTRON_TEST__) {
+      target.window.__NIMI_ELECTRON_TEST__.invoke = target.__NIMI_ELECTRON_TEST__.invoke;
     }
 
     const [first, second, third] = await Promise.all([
@@ -584,34 +582,34 @@ test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-
     assert.deepEqual(cached[0]?.models, [], 'cached connector values must be returned as clones');
 
     const listConnectorCalls = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
     ));
     const catalogCalls = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
     ));
     assert.equal(listConnectorCalls.length, 1, 'concurrent connector reads must share one runtime call');
     assert.equal(catalogCalls.length, 1, 'connector reads must also share the provider catalog call');
   } finally {
-    restoreTauri();
+    restoreElectron();
   }
 });
 
 test('sdkListConnectorModelDescriptors coalesces concurrent model inventory reads', async () => {
   clearRuntimeConnectorSdkCaches();
-  const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls);
+  const calls: ElectronInvokeCall[] = [];
+  const restoreElectron = installElectronRuntime(calls);
   try {
-    const target = globalThis as MutableGlobalTauri;
-    target.__NIMI_TAURI_TEST__ = {
-      ...target.__NIMI_TAURI_TEST__,
+    const target = globalThis as MutableGlobalElectron;
+    target.__NIMI_ELECTRON_TEST__ = {
+      ...target.__NIMI_ELECTRON_TEST__,
       invoke: async (command: string, payload?: unknown) => {
         const unwrapped = unwrapPayload(payload);
         calls.push({ command, payload: unwrapped });
         const methodId = String(unwrapped.methodId || '');
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels'
         ) {
           return unaryResponseBytes(ListConnectorModelsResponse.toBinary(ListConnectorModelsResponse.create({
@@ -626,8 +624,8 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
         return { responseBytesBase64: '' };
       },
     };
-    if (target.window?.__NIMI_TAURI_TEST__) {
-      target.window.__NIMI_TAURI_TEST__.invoke = target.__NIMI_TAURI_TEST__.invoke;
+    if (target.window?.__NIMI_ELECTRON_TEST__) {
+      target.window.__NIMI_ELECTRON_TEST__.invoke = target.__NIMI_ELECTRON_TEST__.invoke;
     }
 
     const [first, second] = await Promise.all([
@@ -643,36 +641,36 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
     assert.deepEqual(cached, [{ modelId: 'openrouter/auto', capabilities: ['text', 'tools'] }]);
 
     const modelCallsBeforeRefresh = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels'
     ));
     assert.equal(modelCallsBeforeRefresh.length, 1, 'concurrent model reads must share one runtime call');
 
     await sdkListConnectorModelDescriptors('conn-1', true);
     const modelCallsAfterRefresh = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels'
     ));
     assert.equal(modelCallsAfterRefresh.length, 2, 'force refresh must still reach runtime');
   } finally {
-    restoreTauri();
+    restoreElectron();
   }
 });
 
 test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymous fallback', async () => {
   clearRuntimeConnectorSdkCaches();
-  const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls);
+  const calls: ElectronInvokeCall[] = [];
+  const restoreElectron = installElectronRuntime(calls);
   try {
-    const target = globalThis as MutableGlobalTauri;
-    target.__NIMI_TAURI_TEST__ = {
-      ...target.__NIMI_TAURI_TEST__,
+    const target = globalThis as MutableGlobalElectron;
+    target.__NIMI_ELECTRON_TEST__ = {
+      ...target.__NIMI_ELECTRON_TEST__,
       invoke: async (command: string, payload?: unknown) => {
         const unwrapped = unwrapPayload(payload);
         calls.push({ command, payload: unwrapped });
         const methodId = String(unwrapped.methodId || '');
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
         ) {
           return unaryResponseBytes(ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
@@ -680,7 +678,7 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
           })));
         }
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
           throw {
@@ -689,7 +687,7 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
           };
         }
         if (
-          command === 'runtime_bridge_unary'
+          command === 'nimi.shell.runtime.unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
           return unaryResponseBytes(ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
@@ -699,8 +697,8 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
         return { responseBytesBase64: '' };
       },
     };
-    if (target.window?.__NIMI_TAURI_TEST__) {
-      target.window.__NIMI_TAURI_TEST__.invoke = target.__NIMI_TAURI_TEST__.invoke;
+    if (target.window?.__NIMI_ELECTRON_TEST__) {
+      target.window.__NIMI_ELECTRON_TEST__.invoke = target.__NIMI_ELECTRON_TEST__.invoke;
     }
 
     await assert.rejects(
@@ -712,7 +710,7 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
     );
 
     const listConnectorCalls = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
     ));
     assert.equal(listConnectorCalls.length, 1, 'ListConnectors must not retry through a legacy auth refresh path');
@@ -720,19 +718,19 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
     assert.equal(listConnectorCalls[0]?.payload.appSession, undefined);
 
     const refreshCalls = calls.filter((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession'
     ));
     assert.equal(refreshCalls.length, 0, 'AUTH_TOKEN_INVALID must not trigger legacy account-token refresh');
   } finally {
-    restoreTauri();
+    restoreElectron();
   }
 });
 
 test('sdkCreateConnector emits oauth-managed payload when selected auth shape requires it', async () => {
   clearRuntimeConnectorSdkCaches();
-  const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls);
+  const calls: ElectronInvokeCall[] = [];
+  const restoreElectron = installElectronRuntime(calls);
   try {
     await sdkCreateConnector({
       provider: 'openai_codex',
@@ -744,7 +742,7 @@ test('sdkCreateConnector emits oauth-managed payload when selected auth shape re
     });
 
     const createCall = calls.find((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector'
     ));
     assert.ok(createCall, 'expected runtime createConnector call');
@@ -756,14 +754,14 @@ test('sdkCreateConnector emits oauth-managed payload when selected auth shape re
     assert.equal(requestText.includes('https://chatgpt.com/backend-api/codex'), true);
     assert.equal(requestText.includes(JSON.stringify({ access_token: 'codex-access-token' })), true);
   } finally {
-    restoreTauri();
+    restoreElectron();
   }
 });
 
 test('sdkCreateConnector preserves explicit credentialJson for oauth-managed providers', async () => {
   clearRuntimeConnectorSdkCaches();
-  const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls);
+  const calls: ElectronInvokeCall[] = [];
+  const restoreElectron = installElectronRuntime(calls);
   try {
     await sdkCreateConnector({
       provider: 'openai_codex',
@@ -781,7 +779,7 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
     });
 
     const createCall = calls.find((call) => (
-      call.command === 'runtime_bridge_unary'
+      call.command === 'nimi.shell.runtime.unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector'
     ));
     assert.ok(createCall, 'expected runtime createConnector call');
@@ -792,6 +790,6 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
     assert.equal(requestText.includes('refresh-token'), true);
     assert.equal(requestText.includes('stale-access-token'), false);
   } finally {
-    restoreTauri();
+    restoreElectron();
   }
 });

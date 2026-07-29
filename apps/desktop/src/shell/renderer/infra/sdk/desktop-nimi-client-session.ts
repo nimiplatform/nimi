@@ -84,15 +84,9 @@ export type DesktopRuntimeAgentDiscoverySurface = Pick<
   'listLocalAgents' | 'discoverLocalAgentsBySource'
 >;
 
-export type DesktopRuntimeTransport =
-  | {
-    readonly type: 'tauri-ipc';
-    readonly commandNamespace?: string;
-    readonly eventNamespace?: string;
-  }
-  | {
-    readonly type: 'electron-ipc';
-  };
+export type DesktopRuntimeTransport = {
+  readonly type: 'electron-ipc';
+};
 
 export interface ConfigureDesktopRuntimeRealmSessionInput {
   readonly appId: string;

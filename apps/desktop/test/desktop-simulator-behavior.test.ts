@@ -22,7 +22,6 @@ const initialInput = {
   },
   sharedProjection: {},
 } as const;
-const behaviorContext = { now: 42, drawRandom: () => 0.5 } as const;
 const callbackUrl = 'http://127.0.0.1:43110/oauth/callback';
 const callbackOrigin = 'http://127.0.0.1:43110';
 

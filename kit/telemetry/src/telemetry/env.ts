@@ -42,21 +42,25 @@ export function shouldForwardRendererLogLevel(level: 'debug' | 'info' | 'warn' |
 }
 
 type RendererTelemetryInvoke = (command: string, payload?: unknown) => Promise<unknown>;
-type RendererTelemetryHook = {
+type RendererTelemetryHostHook = {
   invoke?: RendererTelemetryInvoke;
 };
 type RendererTelemetryGlobal = typeof globalThis & {
-  __NIMI_TAURI_TEST__?: RendererTelemetryHook;
-  __NIMI_TAURI_RUNTIME__?: RendererTelemetryHook;
+  __NIMI_ELECTRON_TEST__?: RendererTelemetryHostHook;
+  __NIMI_ELECTRON_RUNTIME__?: RendererTelemetryHostHook;
+  __NIMI_TAURI_TEST__?: RendererTelemetryHostHook;
+  __NIMI_TAURI_RUNTIME__?: RendererTelemetryHostHook;
   __TAURI__?: {
-    core?: RendererTelemetryHook;
+    core?: RendererTelemetryHostHook;
     invoke?: RendererTelemetryInvoke;
   };
   window?: Window & {
-    __NIMI_TAURI_TEST__?: RendererTelemetryHook;
-    __NIMI_TAURI_RUNTIME__?: RendererTelemetryHook;
+    __NIMI_ELECTRON_TEST__?: RendererTelemetryHostHook;
+    __NIMI_ELECTRON_RUNTIME__?: RendererTelemetryHostHook;
+    __NIMI_TAURI_TEST__?: RendererTelemetryHostHook;
+    __NIMI_TAURI_RUNTIME__?: RendererTelemetryHostHook;
     __TAURI__?: {
-      core?: RendererTelemetryHook;
+      core?: RendererTelemetryHostHook;
       invoke?: RendererTelemetryInvoke;
     };
   };
@@ -66,11 +70,11 @@ function telemetryGlobal(): RendererTelemetryGlobal {
   return globalThis as RendererTelemetryGlobal;
 }
 
-function invokeFromHook(hook: RendererTelemetryHook | undefined): RendererTelemetryInvoke | null {
+function invokeFromHostHook(hook: RendererTelemetryHostHook | undefined): RendererTelemetryInvoke | null {
   return typeof hook?.invoke === 'function' ? hook.invoke : null;
 }
 
-function invokeFromTauriGlobal(): RendererTelemetryInvoke | null {
+function invokeFromThirdPartyTauriHost(): RendererTelemetryInvoke | null {
   const value = telemetryGlobal();
   const tauri = value.__TAURI__ || value.window?.__TAURI__;
   if (typeof tauri?.core?.invoke === 'function') {
@@ -85,14 +89,18 @@ function invokeFromTauriGlobal(): RendererTelemetryInvoke | null {
 export function resolveRendererTelemetryInvoke(): RendererTelemetryInvoke | null {
   const value = telemetryGlobal();
   return (
-    invokeFromHook(value.__NIMI_TAURI_TEST__)
-    || invokeFromHook(value.window?.__NIMI_TAURI_TEST__)
-    || invokeFromHook(value.__NIMI_TAURI_RUNTIME__)
-    || invokeFromHook(value.window?.__NIMI_TAURI_RUNTIME__)
-    || invokeFromTauriGlobal()
+    invokeFromHostHook(value.__NIMI_ELECTRON_TEST__)
+    || invokeFromHostHook(value.window?.__NIMI_ELECTRON_TEST__)
+    || invokeFromHostHook(value.__NIMI_ELECTRON_RUNTIME__)
+    || invokeFromHostHook(value.window?.__NIMI_ELECTRON_RUNTIME__)
+    || invokeFromHostHook(value.__NIMI_TAURI_TEST__)
+    || invokeFromHostHook(value.window?.__NIMI_TAURI_TEST__)
+    || invokeFromHostHook(value.__NIMI_TAURI_RUNTIME__)
+    || invokeFromHostHook(value.window?.__NIMI_TAURI_RUNTIME__)
+    || invokeFromThirdPartyTauriHost()
   );
 }
 
-export function hasTauriInvoke(): boolean {
+export function hasRendererTelemetryInvoke(): boolean {
   return Boolean(resolveRendererTelemetryInvoke());
 }

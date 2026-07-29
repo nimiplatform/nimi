@@ -1,5 +1,5 @@
 import {
-  hasShellHostInvoke,
+  hasElectronInvoke,
   openShellFileDialog,
   type ShellFileDialogOpenResult,
 } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -41,14 +41,14 @@ function firstDialogPath(result: ShellFileDialogOpenResult): string | null {
 }
 
 export async function getProductControlRecord(): Promise<NimiProductControlRecordProjection> {
-  if (hasShellHostInvoke()) {
+  if (hasElectronInvoke()) {
     return invokeChecked('product_control_record_get', {}, parseNimiProductControlRecordProjection);
   }
   return projectUnavailableNimiProductControlRecord('product_control_record_get requires standard shell Runtime');
 }
 
 export async function getProductControlSelectedDataRoot(): Promise<NimiProductControlSelectedDataRootProjection> {
-  if (hasShellHostInvoke()) {
+  if (hasElectronInvoke()) {
     return invokeChecked(
       'product_control_selected_data_root_get',
       {},
@@ -61,14 +61,14 @@ export async function getProductControlSelectedDataRoot(): Promise<NimiProductCo
 }
 
 export async function ensureProductControlRecordCreated(): Promise<NimiProductControlRecordProjection> {
-  if (hasShellHostInvoke()) {
+  if (hasElectronInvoke()) {
     return invokeChecked('product_control_record_ensure_created', {}, parseNimiProductControlRecordProjection);
   }
   throw new Error('product_control_record_ensure_created requires standard shell Runtime');
 }
 
 export async function selectProductDataRoot(dataRoot: string): Promise<NimiProductControlRecordProjection> {
-  if (hasShellHostInvoke()) {
+  if (hasElectronInvoke()) {
     const selected = await invokeChecked('product_control_record_select_data_root', {
       payload: { dataRoot },
     }, parseNimiProductControlRecordProjection);
@@ -90,7 +90,7 @@ export async function selectProductDataRoot(dataRoot: string): Promise<NimiProdu
  * fail-closed validation of the selected `nimi_data` root (P-COLD-010).
  */
 export async function pickProductDataRootDirectory(): Promise<string | null> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('Product data-root picker requires standard shell file dialog');
   }
   return firstDialogPath(await openShellFileDialog({
@@ -103,7 +103,7 @@ export async function setProductFirstRunInstallLevel(input: {
   installLevel: 'minimal' | 'recommended';
   aiProfileAlias?: string | null;
 }): Promise<NimiProductControlRecordProjection> {
-  if (hasShellHostInvoke()) {
+  if (hasElectronInvoke()) {
     return invokeChecked('product_control_record_set_first_run_install_level', {
       payload: input,
     }, parseNimiProductControlRecordProjection);
@@ -112,7 +112,7 @@ export async function setProductFirstRunInstallLevel(input: {
 }
 
 export async function ensureProductAccountDefaultProfile(): Promise<NimiProductControlRecordProjection> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('product_control_record_ensure_account_default_profile requires standard shell Runtime');
   }
   return invokeChecked(
@@ -123,7 +123,7 @@ export async function ensureProductAccountDefaultProfile(): Promise<NimiProductC
 }
 
 export async function prepareProductFirstRunLocalAiReady(): Promise<NimiProductControlRecordProjection> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('product_control_record_prepare_first_run_local_ai_ready requires standard shell Runtime');
   }
   return invokeChecked(
@@ -134,7 +134,7 @@ export async function prepareProductFirstRunLocalAiReady(): Promise<NimiProductC
 }
 
 export async function reconcileProductFirstRunSetupState(): Promise<NimiProductControlRecordProjection> {
-  if (hasShellHostInvoke()) {
+  if (hasElectronInvoke()) {
     return invokeChecked(
       'product_control_record_reconcile_first_run_setup_state',
       {},
@@ -145,7 +145,7 @@ export async function reconcileProductFirstRunSetupState(): Promise<NimiProductC
 }
 
 export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<NimiProductControlRecordProjection> {
-  if (hasShellHostInvoke()) {
+  if (hasElectronInvoke()) {
     return invokeChecked(
       'product_control_record_complete_first_run_device_environment_scan',
       {},
@@ -168,7 +168,7 @@ export type AccountDefaultProfileAIProfile = NimiAIProfile;
  * `default.json` record.
  */
 export async function getAccountDefaultProfileForScopeInit(): Promise<AccountDefaultProfileAIProfile> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('account_default_profile_for_scope_init requires standard shell Runtime');
   }
   return invokeChecked(
@@ -213,7 +213,7 @@ function parseBuiltInAIConfigForScopeInit(value: unknown): NimiAIConfig {
 export async function getBuiltInAIConfigForScopeInit(
   surfaceId: 'nimi' | 'agent',
 ): Promise<NimiAIConfig> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('built_in_ai_config_for_scope_init requires standard shell Runtime');
   }
   return invokeChecked(
@@ -231,7 +231,7 @@ export async function getBuiltInAIConfigForScopeInit(
  * evidence to Runtime, and Runtime commits or routes the product-control state.
  */
 export async function admitProductReadyForUse(): Promise<NimiProductControlRecordProjection> {
-  if (!hasShellHostInvoke()) {
+  if (!hasElectronInvoke()) {
     throw new Error('product_control_record_admit_ready_for_use requires standard shell Runtime');
   }
   return invokeChecked('product_control_record_admit_ready_for_use', {}, parseNimiProductControlRecordProjection);

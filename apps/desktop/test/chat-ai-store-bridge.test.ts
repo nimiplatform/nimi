@@ -6,25 +6,25 @@ import {
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-ai-store.js';
 import {
   parseChatAiThreadBundle,
-} from '../src/shell/renderer/bridge/runtime-bridge/chat-ai-parsers.js';
+} from '../src/shell/shared/chat-ai-store-parsers.js';
 import type {
   ChatAiMessageContent,
-} from '../src/shell/renderer/bridge/runtime-bridge/chat-ai-types.js';
+} from '../src/shell/shared/chat-ai-store-types.js';
 
-type TauriInvokeCall = {
+type ShellInvokeCall = {
   command: string;
   payload: unknown;
 };
 
-function installTauriInvokeMock(
+function installElectronInvokeMock(
   handler: (command: string, payload?: unknown) => Promise<unknown> | unknown,
 ): () => void {
   const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
+  const previousElectron = globalRecord.__NIMI_ELECTRON_RUNTIME__;
   const previousWindow = globalRecord.window;
   const previousSessionStorage = globalRecord.sessionStorage;
   const sessionStore = new Map<string, string>();
-  globalRecord.__NIMI_TAURI_TEST__ = {
+  globalRecord.__NIMI_ELECTRON_RUNTIME__ = {
     invoke: handler,
   };
   globalRecord.window = {
@@ -45,10 +45,10 @@ function installTauriInvokeMock(
     },
   };
   return () => {
-    if (typeof previousTauri === 'undefined') {
-      delete globalRecord.__NIMI_TAURI_TEST__;
+    if (typeof previousElectron === 'undefined') {
+      delete globalRecord.__NIMI_ELECTRON_RUNTIME__;
     } else {
-      globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
+      globalRecord.__NIMI_ELECTRON_RUNTIME__ = previousElectron;
     }
     if (typeof previousWindow === 'undefined') {
       delete globalRecord.window;
@@ -88,9 +88,9 @@ test('chat ai bridge parser rejects invalid timestamps', () => {
   }, /updatedAtMs must be an integer/);
 });
 
-test('chat ai store bridge invokes fixed tauri commands and payload shapes', async () => {
-  const calls: TauriInvokeCall[] = [];
-  const restore = installTauriInvokeMock(async (command, payload) => {
+test('chat ai store bridge invokes fixed Electron host commands and payload shapes', async () => {
+  const calls: ShellInvokeCall[] = [];
+  const restore = installElectronInvokeMock(async (command, payload) => {
     calls.push({ command, payload });
     switch (command) {
       case 'chat_ai_list_threads':

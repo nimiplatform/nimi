@@ -19,7 +19,6 @@ export default defineConfig([
     '.cache/**',
     'dist/**',
     'dist-electron/**',
-    'src-tauri/target/**',
     'node_modules/**',
     '.corepack-cache/**',
     'src/shell/renderer/.cache/**',

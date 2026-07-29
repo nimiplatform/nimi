@@ -20,7 +20,6 @@ import {
   startAuthStateWatcher,
   stopAuthStateWatcher,
 } from './auth-state-watcher';
-import { registerExitHandler } from './exit-handler';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
 import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 import {
@@ -107,14 +106,7 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
 }
 
 function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
-  if (desktopBridge.hasTauriInvoke()) {
-    return {
-      type: 'tauri-ipc',
-      commandNamespace: 'runtime_bridge',
-      eventNamespace: 'runtime_bridge',
-    };
-  }
-  if (desktopBridge.hasShellHostInvoke()) {
+  if (desktopBridge.hasElectronInvoke()) {
     return { type: 'electron-ipc' };
   }
   throw new Error('Desktop Runtime transport requires a standard shell host invoke.');
@@ -221,30 +213,11 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       flowId,
     });
 
-    let releaseInfo: Awaited<ReturnType<typeof desktopBridge.getDesktopReleaseInfo>> | null = null;
-    if (desktopBridge.hasTauriInvoke()) {
-      try {
-        releaseInfo = await desktopBridge.getDesktopReleaseInfo();
-        lifecycle.setDesktopReleaseInfo(releaseInfo);
-        lifecycle.setDesktopReleaseError(null);
-      } catch (error) {
-        const message = safeBootstrapErrorMessage(error);
-        lifecycle.setDesktopReleaseInfo(null);
-        lifecycle.setDesktopReleaseError(message);
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:desktop-release:read-failed',
-          flowId,
-          details: { error: message },
-        });
-      }
-    }
     const defaults = await desktopBridge.getRuntimeDefaults();
     lifecycle.setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
     let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
-    if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
+    if (desktopBridge.hasElectronInvoke() && runtimeUnavailable) {
       try {
         daemonStatus = await desktopBridge.startRuntimeBridge();
         runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
@@ -289,7 +262,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
     daemonStatus = configSync.daemonStatus;
     runtimeUnavailable = configSync.runtimeUnavailable;
     const bootstrapRuntimeConfigWarning = configSync.bootstrapRuntimeConfigWarning;
-    if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
+    if (desktopBridge.hasElectronInvoke() && runtimeUnavailable) {
       try {
         daemonStatus = await desktopBridge.startRuntimeBridge();
         runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
@@ -328,7 +301,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
     }
     const versionResult = checkRuntimeDaemonVersion(
       daemonStatus.version,
-      releaseInfo?.desktopVersion || DESKTOP_VERSION_FALLBACK,
+      DESKTOP_VERSION_FALLBACK,
       {
         strictExactMatch: daemonStatus.launchMode === 'RELEASE' && !runtimeUnavailable,
         logEvent: logRendererEvent,
@@ -337,7 +310,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
     if (!runtimeUnavailable && !versionResult.ok) {
       throw new Error(versionResult.message);
     }
-    registerExitHandler({ managed: daemonStatus.managed });
     clearDesktopNimiClientSession();
     unsubscribeRealmConnectivityEvents?.();
     unsubscribeRealmConnectivityEvents = null;

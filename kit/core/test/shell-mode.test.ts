@@ -35,6 +35,10 @@ describe('shell mode primitives', () => {
         listen: () => () => {},
       },
     });
+    vi.stubGlobal('navigator', {
+      platform: 'Linux x86_64',
+      userAgent: 'Mozilla/5.0 (X11; Linux x86_64)',
+    });
 
     const { getShellFeatureFlags, isWebShellMode } = await loadShellModeModule();
 
@@ -46,5 +50,28 @@ describe('shell mode primitives', () => {
       enableRuntimeBootstrap: true,
     });
     expect(isWebShellMode()).toBe(false);
+  });
+
+  it('enables the menu-bar shell for Electron on macOS without claiming custom titlebar drag', async () => {
+    vi.stubGlobal('window', {
+      __NIMI_ELECTRON_RUNTIME__: {
+        invoke: async () => null,
+        listen: () => () => {},
+      },
+    });
+    vi.stubGlobal('navigator', {
+      platform: 'MacIntel',
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5)',
+    });
+
+    const { getShellFeatureFlags } = await loadShellModeModule();
+
+    expect(getShellFeatureFlags()).toEqual({
+      mode: 'desktop',
+      enableRuntimeTab: true,
+      enableTitlebarDrag: false,
+      enableMenuBarShell: true,
+      enableRuntimeBootstrap: true,
+    });
   });
 });

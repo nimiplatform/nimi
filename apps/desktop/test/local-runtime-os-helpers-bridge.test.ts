@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
+  pickLocalRuntimeAssetManifestPath,
   pickLocalRuntimeAssetDirectory,
   pickLocalRuntimeAssetFile,
   revealLocalRuntimeAssetInFolder,
@@ -11,16 +12,11 @@ import {
 
 type DesktopBridgeTestWindow = {
   __NIMI_HTML_BOOT_ID__?: string;
-  __NIMI_TAURI_TEST__?: DesktopBridgeTestGlobal['__NIMI_TAURI_TEST__'];
   __NIMI_ELECTRON_TEST__?: DesktopBridgeTestGlobal['__NIMI_ELECTRON_TEST__'];
 };
 
 type DesktopBridgeTestGlobal = {
   window?: DesktopBridgeTestWindow;
-  __NIMI_TAURI_TEST__?: {
-    invoke?: (command: string, payload?: unknown) => Promise<unknown>;
-    listen?: (eventName: string, handler: (event: { payload: unknown }) => void) => () => void;
-  };
   __NIMI_ELECTRON_TEST__?: {
     invoke: (command: string, payload?: unknown) => Promise<unknown>;
     listen: (eventName: string, handler: (event: { payload: unknown }) => void) => () => void;
@@ -33,32 +29,19 @@ async function withStandardShellInvoke<T>(
 ): Promise<T> {
   const root = globalThis as unknown as DesktopBridgeTestGlobal;
   const previous = root.__NIMI_ELECTRON_TEST__;
-  root.__NIMI_ELECTRON_TEST__ = { invoke, listen: () => () => undefined };
-  try {
-    return await run();
-  } finally {
-    root.__NIMI_ELECTRON_TEST__ = previous;
-  }
-}
-
-async function withTauriShellInvoke<T>(
-  invoke: (command: string, payload?: unknown) => Promise<unknown>,
-  run: () => Promise<T>,
-): Promise<T> {
-  const root = globalThis as unknown as DesktopBridgeTestGlobal;
-  const previous = root.__NIMI_TAURI_TEST__;
   const previousWindow = root.window;
   const hook = { invoke, listen: () => () => undefined };
-  root.__NIMI_TAURI_TEST__ = hook;
+  root.__NIMI_ELECTRON_TEST__ = hook;
   root.window = {
     ...(previousWindow ?? {}),
-    __NIMI_HTML_BOOT_ID__: previousWindow?.__NIMI_HTML_BOOT_ID__ ?? 'desktop-local-runtime-os-helpers-test',
-    __NIMI_TAURI_TEST__: hook,
+    __NIMI_HTML_BOOT_ID__: previousWindow?.__NIMI_HTML_BOOT_ID__
+      ?? 'desktop-local-runtime-os-helpers-test',
+    __NIMI_ELECTRON_TEST__: hook,
   };
   try {
     return await run();
   } finally {
-    root.__NIMI_TAURI_TEST__ = previous;
+    root.__NIMI_ELECTRON_TEST__ = previous;
     root.window = previousWindow;
   }
 }
@@ -104,6 +87,32 @@ test('local runtime asset file picker uses Kit standard file dialog with import 
   }]);
 });
 
+test('local runtime manifest picker uses the Electron-compatible standard file dialog', async () => {
+  const calls: Array<{ command: string; payload: unknown }> = [];
+  await withStandardShellInvoke(async (command, payload) => {
+    calls.push({ command, payload });
+    return { canceled: false, paths: ['/tmp/runtime-models/resolved/demo/asset.manifest.json'] };
+  }, async () => {
+    assert.equal(
+      await pickLocalRuntimeAssetManifestPath(),
+      '/tmp/runtime-models/resolved/demo/asset.manifest.json',
+    );
+  });
+
+  assert.deepEqual(calls, [{
+    command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
+    payload: {
+      payload: {
+        kind: 'file',
+        title: 'Select asset.manifest.json',
+        filters: [
+          { name: 'Asset Manifest', extensions: ['json'] },
+        ],
+      },
+    },
+  }]);
+});
+
 test('local runtime asset directory picker uses Kit standard directory dialog', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
   await withStandardShellInvoke(async (command, payload) => {
@@ -133,7 +142,7 @@ test('local runtime asset pickers preserve cancel as null', async () => {
 
 test('local runtime asset reveal uses Kit standard file reveal for the asset directory', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
-  await withTauriShellInvoke(async (command, payload) => {
+  await withStandardShellInvoke(async (command, payload) => {
     calls.push({ command, payload });
     if (command === 'product_control_selected_data_root_get') {
       return selectedDataRootProjection('/tmp/nimi-data');
@@ -157,7 +166,7 @@ test('local runtime asset reveal uses Kit standard file reveal for the asset dir
 
 test('local runtime asset reveal falls back to models root when asset directory is missing', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
-  await withTauriShellInvoke(async (command, payload) => {
+  await withStandardShellInvoke(async (command, payload) => {
     calls.push({ command, payload });
     if (command === 'product_control_selected_data_root_get') {
       return selectedDataRootProjection('/tmp/nimi-data');
@@ -167,7 +176,7 @@ test('local runtime asset reveal falls back to models root when asset directory 
       if (revealPath === '/tmp/nimi-data/models/asset-missing') {
         throw {
           code: 'not-found',
-          reasonCode: 'tauri-standard-file-reveal-target-not-found',
+          reasonCode: 'electron-file-reveal-target-not-found',
           actionHint: 'materialize_file_before_revealing_it',
         };
       }
@@ -193,7 +202,7 @@ test('local runtime asset reveal falls back to models root when asset directory 
 
 test('local runtime asset reveal sends invalid asset ids directly to models root', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
-  await withTauriShellInvoke(async (command, payload) => {
+  await withStandardShellInvoke(async (command, payload) => {
     calls.push({ command, payload });
     if (command === 'product_control_selected_data_root_get') {
       return selectedDataRootProjection('/tmp/nimi-data');
@@ -217,7 +226,7 @@ test('local runtime asset reveal sends invalid asset ids directly to models root
 
 test('local runtime models root reveal uses Kit standard file reveal', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
-  await withTauriShellInvoke(async (command, payload) => {
+  await withStandardShellInvoke(async (command, payload) => {
     calls.push({ command, payload });
     if (command === 'product_control_selected_data_root_get') {
       return selectedDataRootProjection('/tmp/nimi-data');

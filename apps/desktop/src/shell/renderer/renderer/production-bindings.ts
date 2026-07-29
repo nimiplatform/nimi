@@ -20,12 +20,6 @@ import {
   createRuntimeHealthCoordinator,
 } from '../features/runtime-config/runtime-health-coordinator.js';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import {
-  connectDesktopUpdates,
-  runDesktopUpdateCheck,
-  runDesktopUpdateInstall,
-  runDesktopUpdateRestart,
-} from '../infra/bootstrap/desktop-updates.js';
 import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
 import { connectProductionBootstrap } from './production-bootstrap.js';
 import { desktopBridge } from '@renderer/bridge';
@@ -85,7 +79,7 @@ import { createDesktopProductionOfflinePort } from '../infra/offline/production-
 import { createDesktopRuntimeRouteAccess } from '../infra/runtime-route-host-access.js';
 import { loadRuntimeRouteOptions } from '../infra/bootstrap/runtime-bootstrap-route-options.js';
 import { createNimiClientId } from '@nimiplatform/sdk';
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   pickLocalRuntimeAssetDirectory,
   pickLocalRuntimeAssetFile,
@@ -181,10 +175,6 @@ export function createDesktopProductionBindings(
     },
   );
   let connectedLifecycle: DesktopRendererLifecyclePort | null = null;
-  const requireLifecycle = () => {
-    if (!connectedLifecycle) throw new Error('DESKTOP_PRODUCTION_LIFECYCLE_NOT_CONNECTED');
-    return connectedLifecycle;
-  };
   return createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
     capabilities: kit.capabilities,
@@ -280,7 +270,7 @@ export function createDesktopProductionBindings(
           listProjections: localAppPermissions.listProjections,
         }),
         avatarHandoff: Object.freeze({
-          available: hasTauriInvoke,
+          available: hasElectronInvoke,
           list: (agentId: string) => listDesktopAvatarLiveInstances({ agentId }),
           launch: launchDesktopAvatarHandoff,
           close: closeDesktopAvatarHandoff,
@@ -301,7 +291,7 @@ export function createDesktopProductionBindings(
           ),
         }),
         profileLibrary: Object.freeze({
-          available: hasTauriInvoke,
+          available: hasElectronInvoke,
           createId: () => createNimiClientId('user'),
           load: listAccountProfileLibrary,
           ensureAccountDefault: async () => { await ensureProductAccountDefaultProfile(); },
@@ -337,7 +327,7 @@ export function createDesktopProductionBindings(
           },
         }),
         runtimeDaemon: Object.freeze({
-          available: hasTauriInvoke,
+          available: hasElectronInvoke,
           status: () => desktopBridge.getRuntimeBridgeStatus(),
           start: () => desktopBridge.startRuntimeBridge(),
           restart: () => desktopBridge.restartRuntimeBridge(),
@@ -413,13 +403,6 @@ export function createDesktopProductionBindings(
           }
           return Object.freeze({ clearAuthSession: false });
         },
-        checkDesktopUpdate: (input: Parameters<
-          DesktopCanonicalRendererBindings['app']['commands']['checkDesktopUpdate']
-        >[0]) => runDesktopUpdateCheck(requireLifecycle(), input),
-        installDesktopUpdate: (input: Parameters<
-          DesktopCanonicalRendererBindings['app']['commands']['installDesktopUpdate']
-        >[0]) => runDesktopUpdateInstall(requireLifecycle(), input),
-        restartDesktopUpdate: runDesktopUpdateRestart,
         reloadApplication() {
           window.location.reload();
         },
@@ -538,7 +521,10 @@ export function createDesktopProductionBindings(
           }
           connectedLifecycle = lifecycle;
           let active = true;
-          const disconnectMenuBarNavigation = connectMenuBarNavigation(lifecycle, runtimeConfigNavigation);
+          const disconnectMenuBarNavigation = connectMenuBarNavigation(
+            lifecycle,
+            runtimeConfigNavigation,
+          );
           const disconnectRuntimeHealth = connectRuntimeHealthCoordinator(
             runtimeHealthCoordinator,
             lifecycle,
@@ -548,13 +534,11 @@ export function createDesktopProductionBindings(
             lifecycle,
             runtimeHealthCoordinator,
           );
-          const disconnectDesktopUpdates = connectDesktopUpdates(lifecycle);
           const disconnectBootstrap = connectProductionBootstrap(lifecycle);
           return () => {
             if (!active) return;
             active = false;
             connectedLifecycle = null;
-            disconnectDesktopUpdates();
             disconnectMenuBarRuntimeSync();
             disconnectRuntimeHealth();
             disconnectMenuBarNavigation();

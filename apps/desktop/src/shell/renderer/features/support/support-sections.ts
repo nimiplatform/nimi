@@ -1,14 +1,13 @@
 /**
  * Support surface sub-area enumeration (`rule.nimi.desktop.product-surfaces.r023`).
  *
- * The `Support` secondary surface hosts exactly — and only — these five
+ * The `Support` secondary surface hosts exactly — and only — these four
  * sub-areas, in this order. Adding an ordinary preference section here, or a
  * developer-tool entry, violates `rule.nimi.desktop.product-surfaces.r023`.
  */
 
 export type SupportSectionId =
   | 'repair'
-  | 'updates'
   | 'diagnostics'
   | 'logs'
   | 'recovery';
@@ -16,7 +15,6 @@ export type SupportSectionId =
 /** The canonical, contract-fixed `rule.nimi.desktop.product-surfaces.r023` sub-area set, in render order. */
 export const SUPPORT_SECTION_IDS: readonly SupportSectionId[] = [
   'repair',
-  'updates',
   'diagnostics',
   'logs',
   'recovery',
@@ -25,7 +23,6 @@ export const SUPPORT_SECTION_IDS: readonly SupportSectionId[] = [
 /** i18n key for each sub-area's sidebar label. */
 export const SUPPORT_SECTION_LABEL_KEY: Record<SupportSectionId, string> = {
   repair: 'Support.sectionRepair',
-  updates: 'Support.sectionUpdates',
   diagnostics: 'Support.sectionDiagnostics',
   logs: 'Support.sectionLogs',
   recovery: 'Support.sectionRecovery',

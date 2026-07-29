@@ -1,13 +1,27 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeImage,
+  protocol,
+  shell,
+  Tray,
+  type MessageBoxOptions,
+} from 'electron';
 import {
   NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION,
   NimiElectronShellHostError,
+  createElectronRuntimeBridgeCommandNames,
   createElectronShellFileProtocolHost,
   createNimiElectronFileAIConfigStore,
+  createNimiElectronFixedRuntimeLifecycleHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
+  resolveElectronRuntimeDefaults,
   type NimiElectronAIConfigStore,
   type NimiElectronFileDialogOpenPayload,
   type NimiElectronFileDialogOpenResult,
@@ -26,11 +40,33 @@ import {
   DESKTOP_OPEN_INTENT_EVENT,
   type DesktopElectronOpenIntentHost,
 } from './desktop-open-intent-host.js';
-import { assertMacOSElectronSecurity } from './macos-electron-security.js';
+import {
+  assertMacOSElectronSecurity,
+  resolveElectronRuntimeDeploymentProfile,
+} from './macos-electron-security.js';
 import {
   createDesktopElectronBundledAvatarHost,
   type DesktopElectronBundledAvatarHost,
 } from './bundled-avatar-host.js';
+import { createDesktopElectronSystemResourcesHost } from './system-resources-host.js';
+import { createDesktopElectronSupportLogsHost } from './support-logs-host.js';
+import {
+  createDesktopElectronChatAiStoreHost,
+  type DesktopElectronChatAiStoreHost,
+} from './chat-ai-store-host.js';
+import { createDesktopElectronDataCleanupHost } from './data-cleanup-host.js';
+import { createDesktopDataRootOperationGate } from './data-root-operation-gate.js';
+import { createDesktopElectronHttpHost } from './http-request-host.js';
+import { createDesktopElectronRendererLogHost } from './renderer-log-host.js';
+import {
+  createDesktopElectronMenuBarHost,
+  type DesktopElectronMenuBarHost,
+  type MenuBarFixedRuntimeStatus,
+} from './menu-bar-host.js';
+import {
+  MENU_BAR_OPEN_TAB_EVENT,
+  type MenuBarOpenTabPayload,
+} from '../src/shell/shared/menu-bar-types.js';
 
 const APP_ID = 'nimi.desktop';
 const ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
@@ -48,7 +84,7 @@ const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
-const rendererDistAvatarIndex = path.join(appRoot, '..', 'avatar', 'dist', 'index.html');
+const rendererDistAvatarIndex = path.join(appRoot, 'avatar', 'dist', 'index.html');
 const rendererDistAvatarUrl = pathToFileURL(rendererDistAvatarIndex).toString();
 const rendererUrl = MACOS_LOCAL_DEVELOPMENT_BUILD
   ? MACOS_LOCAL_DEVELOPMENT_RENDERER_URL
@@ -87,6 +123,8 @@ const desktopSenderInvalidationListeners = new Set<() => void>();
 let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
 let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
 let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
+let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
+let menuBarHost: DesktopElectronMenuBarHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
@@ -126,9 +164,59 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       emitIntent: emitDesktopOpenIntent,
     });
     const productControlHost = createDesktopElectronProductControlHost();
+    const systemResourcesHost = createDesktopElectronSystemResourcesHost();
     const resolveProductControlDataRoot = createDesktopProductControlDataRootResolver(
       productControlHost.resolveSelectedDataRoot,
     );
+    const dataRootOperationGate = createDesktopDataRootOperationGate();
+    chatAiStoreHost = createDesktopElectronChatAiStoreHost({
+      resolveSelectedDataRoot: productControlHost.resolveReadyDataRoot,
+      operationGate: dataRootOperationGate,
+    });
+    const supportLogsHost = createDesktopElectronSupportLogsHost({
+      resolveSelectedDataRoot: resolveProductControlDataRoot,
+      downloadsDirectory: app.getPath('downloads'),
+      revealFile: (filePath) => shell.showItemInFolder(filePath),
+    });
+    const dataCleanupHost = createDesktopElectronDataCleanupHost({
+      resolveReadyDataRoot: productControlHost.resolveReadyDataRoot,
+      operationGate: dataRootOperationGate,
+    });
+    const runtimeDeploymentProfile = resolveElectronRuntimeDeploymentProfile({
+      electronDevelopmentBuild: ELECTRON_DEVELOPMENT_BUILD,
+      macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
+    });
+    const httpRequestHost = createDesktopElectronHttpHost({
+      realmBaseUrl: resolveDesktopRealmBaseUrl(runtimeDeploymentProfile),
+    });
+    const rendererLogHost = createDesktopElectronRendererLogHost();
+    const fixedRuntimeLifecycleHost = createNimiElectronFixedRuntimeLifecycleHost(
+      PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
+    );
+    const fixedRuntimeCommandNames = createElectronRuntimeBridgeCommandNames();
+    const invokeFixedRuntimeLifecycle = async (
+      command: string,
+    ): Promise<MenuBarFixedRuntimeStatus> => (
+      await fixedRuntimeLifecycleHost.invoke(command, fixedRuntimeCommandNames)
+    ) as MenuBarFixedRuntimeStatus;
+    menuBarHost = createDesktopElectronMenuBarHost({
+      electron: { Menu, Tray },
+      icon: process.platform === 'darwin' ? createDesktopMenuBarIcon() : '',
+      lifecycle: {
+        status: () => invokeFixedRuntimeLifecycle(fixedRuntimeCommandNames.status),
+        start: () => invokeFixedRuntimeLifecycle(fixedRuntimeCommandNames.start),
+        restart: () => invokeFixedRuntimeLifecycle(fixedRuntimeCommandNames.restart),
+      },
+      focusMainWindow: focusDesktopMainWindow,
+      hideMainWindow: hideDesktopMainWindow,
+      emitRendererEvent: emitDesktopMenuBarEvent,
+      quit: () => app.quit(),
+      reportError: (operation, error) => {
+        process.stderr.write(
+          `[desktop-menu-bar] ${normalizeText(operation) || 'operation'}:${desktopBootstrapFailureCode(error)}\n`,
+        );
+      },
+    });
     bundledAvatarHost = await createDesktopElectronBundledAvatarHost({
       rendererUrl: bundledAvatarRendererUrl,
       preloadPath,
@@ -147,7 +235,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     registeredRuntimeBridge = registerNimiElectronRuntimeBridge({
       appId: APP_ID,
       runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
-      runtimeDeploymentProfile: ELECTRON_DEVELOPMENT_BUILD ? 'local-development' : 'production',
+      runtimeDeploymentProfile,
       allowedOrigins: allowedRendererOrigins(),
       allowedRendererUrls: allowedRendererUrls(),
       ipcMain,
@@ -167,6 +255,13 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ...localDevelopmentHost.commandHandlers,
         ...desktopOpenIntentHost.commandHandlers,
         ...productControlHost.commandHandlers,
+        ...chatAiStoreHost.commandHandlers,
+        ...systemResourcesHost.commandHandlers,
+        ...supportLogsHost.commandHandlers,
+        ...dataCleanupHost.commandHandlers,
+        ...httpRequestHost.commandHandlers,
+        ...rendererLogHost.commandHandlers,
+        ...menuBarHost.commandHandlers,
         ...bundledAvatarHost.desktopCommandHandlers,
       },
       standardShellHost: {
@@ -196,13 +291,19 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         launchSource: 'official-avatar-electron-dev-launcher',
       }));
     } else {
+      if (menuBarHost.enabled) {
+        await menuBarHost.initialize();
+      }
       await createMainWindow();
     }
 
     app.on('activate', () => {
-      if (!AVATAR_ONLY_DEVELOPMENT_MODE && BrowserWindow.getAllWindows().length === 0) {
+      if (AVATAR_ONLY_DEVELOPMENT_MODE) return;
+      if (BrowserWindow.getAllWindows().length === 0) {
         void createMainWindow();
+        return;
       }
+      void focusDesktopMainWindow();
     });
   } catch (error: unknown) {
     await shutdownBeforeQuit().catch(() => undefined);
@@ -257,17 +358,38 @@ async function shutdownBeforeQuit(): Promise<void> {
   const localHost = localDevelopmentHost;
   const openIntentHost = desktopOpenIntentHost;
   const avatarHost = bundledAvatarHost;
+  const chatStoreHost = chatAiStoreHost;
+  const currentMenuBarHost = menuBarHost;
   const runtimeBridge = registeredRuntimeBridge;
-  await Promise.all([
-    localHost?.shutdown(),
+  await localHost?.shutdown();
+  const cleanupResults = await Promise.allSettled([
     openIntentHost?.shutdown(),
     avatarHost?.shutdown(),
+    chatStoreHost?.close(),
   ]);
-  runtimeBridge?.unregister();
+  try {
+    runtimeBridge?.unregister();
+  } catch (error) {
+    cleanupResults.push({ status: 'rejected', reason: error });
+  }
+  try {
+    currentMenuBarHost?.dispose();
+  } catch (error) {
+    cleanupResults.push({ status: 'rejected', reason: error });
+  }
   if (localDevelopmentHost === localHost) localDevelopmentHost = undefined;
   if (desktopOpenIntentHost === openIntentHost) desktopOpenIntentHost = undefined;
   if (bundledAvatarHost === avatarHost) bundledAvatarHost = undefined;
+  if (chatAiStoreHost === chatStoreHost) chatAiStoreHost = undefined;
+  if (menuBarHost === currentMenuBarHost) menuBarHost = undefined;
   if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
+  for (const result of cleanupResults) {
+    if (result.status === 'rejected') {
+      process.stderr.write(
+        `[desktop-shutdown] ${desktopBootstrapFailureCode(result.reason)}\n`,
+      );
+    }
+  }
 }
 
 async function createMainWindow(): Promise<BrowserWindow> {
@@ -286,11 +408,17 @@ async function createMainWindow(): Promise<BrowserWindow> {
   });
   mainWindow = window;
   window.on('close', (event) => {
+    if (!quitCleanupComplete && menuBarHost?.hideMainWindowOnClose()) {
+      event.preventDefault();
+      return;
+    }
     if (!quitCleanupComplete) {
       event.preventDefault();
       app.quit();
     }
   });
+  window.on('show', () => menuBarHost?.setWindowVisible(true));
+  window.on('hide', () => menuBarHost?.setWindowVisible(false));
   const invalidateDesktopSender = () => {
     for (const listener of desktopSenderInvalidationListeners) listener();
   };
@@ -300,6 +428,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     if (mainWindow === window) {
       mainWindow = undefined;
     }
+    menuBarHost?.setWindowVisible(false);
   });
   secureDesktopWindow(window);
   await window.loadURL(rendererUrl || rendererDistUrl);
@@ -475,6 +604,12 @@ async function focusDesktopMainWindow(): Promise<void> {
   window.show();
   window.moveTop();
   window.focus();
+  menuBarHost?.setWindowVisible(true);
+}
+
+function hideDesktopMainWindow(): void {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  window?.hide();
 }
 
 function emitDesktopOpenIntent(envelope: NimiDesktopOpenIntentEnvelope): void {
@@ -488,6 +623,45 @@ function emitDesktopOpenIntent(envelope: NimiDesktopOpenIntentEnvelope): void {
   );
 }
 
+function emitDesktopMenuBarEvent(
+  eventName: typeof MENU_BAR_OPEN_TAB_EVENT,
+  payload: MenuBarOpenTabPayload,
+): void {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (!window || window.webContents.isDestroyed()) {
+    throw new Error('desktop-menu-bar-renderer-not-ready');
+  }
+  window.webContents.send(
+    `${ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX}${eventName}`,
+    payload,
+  );
+}
+
+function createDesktopMenuBarIcon(): Electron.NativeImage {
+  const icon = nativeImage
+    .createFromPath(path.join(appRoot, 'assets', 'icon.icns'))
+    .resize({ width: 18, height: 18 });
+  if (icon.isEmpty()) {
+    throw new Error('desktop-menu-bar-icon-unavailable');
+  }
+  return icon;
+}
+
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function resolveDesktopRealmBaseUrl(
+  deploymentProfile: ReturnType<typeof resolveElectronRuntimeDeploymentProfile>,
+): string {
+  const defaults = resolveElectronRuntimeDefaults(deploymentProfile);
+  const realm = defaults.realm;
+  if (!realm || typeof realm !== 'object' || Array.isArray(realm)) {
+    throw new Error('desktop-http-realm-defaults-invalid');
+  }
+  const realmBaseUrl = (realm as Readonly<Record<string, unknown>>).realmBaseUrl;
+  if (typeof realmBaseUrl !== 'string' || !realmBaseUrl) {
+    throw new Error('desktop-http-realm-defaults-invalid');
+  }
+  return realmBaseUrl;
 }

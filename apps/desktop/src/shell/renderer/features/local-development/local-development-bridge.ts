@@ -1,8 +1,5 @@
 import {
   hasElectronInvoke,
-  hasShellHostInvoke,
-  hasTauriInvoke,
-  listenTauri,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke';
 import type {
@@ -21,10 +18,8 @@ export type {
   LocalDevelopmentRun,
 } from './local-development-types.js';
 
-const APPROVAL_EVENT = 'local-development://approval-requested';
-
 export function localDevelopmentBridgeAvailable(): boolean {
-  return hasShellHostInvoke();
+  return hasElectronInvoke();
 }
 
 export async function listPendingLocalDevelopmentApprovals(): Promise<LocalDevelopmentApproval[]> {
@@ -54,11 +49,6 @@ export async function decideLocalDevelopmentApproval(
 export async function subscribeLocalDevelopmentApprovals(
   onApproval: (approval: LocalDevelopmentApproval) => void,
 ): Promise<() => void> {
-  if (hasTauriInvoke()) {
-    return listenTauri(APPROVAL_EVENT, (event) => {
-      onApproval(parseApproval(event.payload));
-    });
-  }
   if (!hasElectronInvoke()) throw new Error('local-development-protected-carrier-required');
   let disposed = false;
   let inFlight = false;
@@ -196,8 +186,8 @@ function parseRun(value: unknown): LocalDevelopmentRun {
   };
 }
 
-function requireShell(value: unknown): 'electron' | 'tauri' {
-  if (value !== 'electron' && value !== 'tauri') {
+function requireShell(value: unknown): 'electron' {
+  if (value !== 'electron') {
     throw new Error('Local development shell is invalid.');
   }
   return value;

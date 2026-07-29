@@ -1,5 +1,5 @@
 import { createNimiError } from '@nimiplatform/sdk/types';
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { assertRecord, parseOptionalJsonObject } from './shared.js';
 import { invokeChecked } from './invoke';
 import { resolveRendererSessionTraceId } from '@nimiplatform/kit/telemetry';
@@ -19,9 +19,6 @@ type ProxyHttpResult = {
   headers: Record<string, string>;
   body: string;
 };
-
-const nativeFetch =
-  typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
 
 function createDesktopBridgeError(reasonCode: string, message: string) {
   return createNimiError({
@@ -87,138 +84,12 @@ function sanitizeRendererHeaders(headers: HeadersInit | undefined): Record<strin
   return normalizedHeaders;
 }
 
-function isIpv4Host(hostname: string): boolean {
-  const parts = hostname.split('.');
-  if (parts.length !== 4) {
-    return false;
-  }
-  return parts.every((part) => {
-    if (!/^\d+$/.test(part)) {
-      return false;
-    }
-    const value = Number(part);
-    return Number.isInteger(value) && value >= 0 && value <= 255;
-  });
-}
-
-function isPrivateIpv4Host(hostname: string): boolean {
-  if (!isIpv4Host(hostname)) {
-    return false;
-  }
-  const parts = hostname.split('.').map((part) => Number(part));
-  const first = parts[0] ?? -1;
-  const second = parts[1] ?? -1;
-  return (
-    first === 0
-    || first === 10
-    || first === 127
-    || (first === 169 && second === 254)
-    || (first === 172 && second >= 16 && second <= 31)
-    || (first === 192 && second === 168)
-    || (first === 100 && second >= 64 && second <= 127)
-  );
-}
-
-function isPrivateIpv6Host(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
-  if (!normalized.includes(':')) {
-    return false;
-  }
-  if (normalized === '::1') {
-    return true;
-  }
-  if (normalized.startsWith('::ffff:')) {
-    return isPrivateIpv4Host(normalized.slice('::ffff:'.length));
-  }
-  return (
-    normalized.startsWith('fc')
-    || normalized.startsWith('fd')
-    || normalized.startsWith('fe8')
-    || normalized.startsWith('fe9')
-    || normalized.startsWith('fea')
-    || normalized.startsWith('feb')
-  );
-}
-
-function isLoopbackHost(hostname: string): boolean {
-  const normalized = String(hostname || '').trim().toLowerCase();
-  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1' || normalized === '[::1]';
-}
-
-function isPrivateNetworkHost(hostname: string): boolean {
-  const normalized = String(hostname || '').trim().toLowerCase();
-  return isLoopbackHost(normalized) || isPrivateIpv4Host(normalized) || isPrivateIpv6Host(normalized);
-}
-
-function resolveFallbackFetchUrl(url: URL, runtimeOrigin: string, allowSameMachineLoopbackProxy: boolean): string {
-  if (!allowSameMachineLoopbackProxy) {
-    return url.toString();
-  }
-  if (!url.pathname.startsWith('/api/')) {
-    return url.toString();
-  }
-  return `${runtimeOrigin}${url.pathname}${url.search}${url.hash}`;
-}
-
-async function proxyHttpFallback(payload: ProxyHttpPayload): Promise<ProxyHttpResult> {
-  if (!payload || typeof payload !== 'object') {
-    throw createDesktopBridgeError('DESKTOP_HTTP_PAYLOAD_INVALID', 'proxyHttp payload must be an object');
-  }
-
-  const method = typeof payload.method === 'string' ? payload.method.toUpperCase() : 'GET';
-  const rawUrl = String(payload.url || '').trim();
-  if (!rawUrl) {
-    throw createDesktopBridgeError('DESKTOP_HTTP_URL_REQUIRED', 'proxyHttp request URL is required');
-  }
-  const runtimeBaseUrl =
-    typeof window !== 'undefined' && window.location
-      ? window.location.origin
-      : 'http://localhost';
-  const url = new URL(rawUrl, runtimeBaseUrl);
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw createDesktopBridgeError('DESKTOP_HTTP_URL_SCHEME_INVALID', `unsupported URL scheme: ${url.protocol}`);
-  }
-  const runtimeUrl = new URL(runtimeBaseUrl);
-  const runtimeOrigin = runtimeUrl.origin;
-  const isSameOriginRequest = url.origin === runtimeOrigin;
-  const isLoopbackToLoopbackRequest =
-    isLoopbackHost(runtimeUrl.hostname) && isLoopbackHost(url.hostname);
-  if (url.origin !== runtimeOrigin && isPrivateNetworkHost(url.hostname) && !isLoopbackToLoopbackRequest) {
-    throw new Error(`禁止访问私有网络地址：${url.hostname}`);
-  }
-  if (!isSameOriginRequest && !isLoopbackToLoopbackRequest) {
-    throw new Error(`Web fallback 仅允许同源或显式 loopback 请求：${url.origin}`);
-  }
-  const headers = sanitizeRendererHeaders(payload.headers);
-
-  const init: RequestInit = {
-    method,
-    headers,
-  };
-  if (typeof payload.body === 'string' && method !== 'GET' && method !== 'HEAD') {
-    init.body = payload.body;
-  }
-
-  if (!nativeFetch) {
-    throw createDesktopBridgeError('DESKTOP_HTTP_FETCH_UNAVAILABLE', 'native fetch is unavailable in the current environment');
-  }
-  const response = await nativeFetch(
-    resolveFallbackFetchUrl(url, runtimeOrigin, isLoopbackToLoopbackRequest),
-    init,
-  );
-  const body = await response.text();
-
-  return {
-    status: response.status,
-    ok: response.ok,
-    headers: Object.fromEntries(response.headers.entries()),
-    body,
-  };
-}
-
 export async function proxyHttp(payload: ProxyHttpPayload): Promise<ProxyHttpResult> {
-  if (!hasTauriInvoke()) {
-    return proxyHttpFallback(payload);
+  if (!hasElectronInvoke()) {
+    throw createDesktopBridgeError(
+      'DESKTOP_HTTP_ELECTRON_HOST_REQUIRED',
+      'Desktop HTTP requests require the Electron standard shell host.',
+    );
   }
 
   const diagnosticSessionId = resolveRendererSessionTraceId();
