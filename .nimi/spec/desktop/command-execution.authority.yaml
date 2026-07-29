@@ -28,8 +28,8 @@ units:
     meaning: The Desktop command blocking risk families are blocking_http, sync_dns_or_connect, runtime_bridge_block_on, block_on_variants, process_command, archive_or_compression, sqlite_sync, std_fs, native_dialog, thread_sleep, raw_thread_spawn, spawn_blocking, sync_lock_contention, cpu_hash_or_codec, sync_socket_bind, os_browser_handoff, window_handoff, and sync_keyring_dialog.
   - id: definition.nimi.desktop.command-execution.registered-surface
     kind: definition
-    title: Desktop generate_handler registered invoke surface
-    meaning: The Desktop registered invoke surface is the balanced registration list supplied to tauri::generate_handler! by apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs, including admitted Kit shell handler macro expansions, resolved against annotated command definitions under apps/desktop/src-tauri/src and kit/shell/tauri/src.
+    title: Desktop Electron registered IPC surface
+    meaning: The Desktop registered IPC surface is the host-owned command handler map supplied to registerNimiElectronRuntimeBridge by apps/desktop/src-electron/main.ts, including admitted Kit Electron standard shell and Runtime bridge commands plus app-domain handlers implemented under apps/desktop/src-electron and kit/shell/electron/src.
   - id: rule.nimi.desktop.command-execution.r001
     kind: rule
     title: Every registered command has exactly one execution class
@@ -72,9 +72,9 @@ units:
     kind: rule
     title: Synchronous blocking requires bounded admission
     modality: must
-    statement: A registered command that performs synchronous blocking work on the invoke execution path uses bounded_blocking_with_admission with a cataloged risk family, explicit owner, and explicit bound.
-    condition: Whenever synchronous blocking work is reachable from a registered command on the invoke execution path.
-    failure: Reject the command until blocking is removed from the invoke path or the command receives complete bounded blocking admission.
+    statement: A registered command that performs synchronous blocking work on the Electron IPC execution path uses bounded_blocking_with_admission with a cataloged risk family, explicit owner, and explicit bound.
+    condition: Whenever synchronous blocking work is reachable from a registered command on the Electron IPC execution path.
+    failure: Reject the command until blocking is removed from the IPC path or the command receives complete bounded blocking admission.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.command-execution.bounded-blocking-with-admission
@@ -98,11 +98,11 @@ units:
         target: definition.nimi.desktop.command-execution.request-response-async
   - id: rule.nimi.desktop.command-execution.r005
     kind: rule
-    title: Registered surface parsing and definition resolution fail closed
+    title: Electron IPC registration and dispatch fail closed
     modality: must
-    statement: The Desktop registered invoke surface is parsed with balanced brackets and every registered command resolves to an annotated definition in an admitted Desktop or Kit command root.
-    condition: Whenever the Desktop registered invoke surface is evaluated.
-    failure: Reject zero-command parses, unbalanced or unparseable registration, and registered commands without a resolved annotated definition.
+    statement: Desktop installs one explicit Electron IPC handler through the Kit bridge, dispatches only registered standard-shell, Runtime, or app-domain command keys, and unregisters that handler during completed shutdown.
+    condition: Whenever the Desktop Electron IPC surface is registered, invoked, or shut down.
+    failure: Reject unknown command keys and renderer invocations that do not resolve through the registered Electron host surface.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.command-execution.registered-surface

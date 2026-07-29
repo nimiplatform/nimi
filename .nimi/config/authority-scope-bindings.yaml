@@ -3,17 +3,17 @@ scopes:
   - scope: desktop.command-execution
     bindings:
       - kind: path_glob
-        value: "apps/desktop/src-tauri/src/**/*.rs"
+        value: "apps/desktop/src-electron/**/*.ts"
       - kind: path_glob
-        value: "kit/shell/tauri/src/**/*.rs"
+        value: "kit/shell/electron/src/**/*.ts"
   - scope: desktop.bridge-ipc
     bindings:
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/bridge/**/*"
       - kind: path_glob
-        value: "apps/desktop/src-tauri/src/**/*.rs"
+        value: "apps/desktop/src-electron/**/*.ts"
       - kind: path_glob
-        value: "kit/shell/tauri/src/**/*.rs"
+        value: "kit/shell/electron/src/**/*.ts"
       - kind: path_glob
         value: "kit/shell/protected-local/src/**/*.rs"
   - scope: desktop.shell-runtime
@@ -35,17 +35,9 @@ scopes:
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/support/**/*"
       - kind: path_glob
-        value: "apps/desktop/src/shell/renderer/bridge/runtime-bridge/desktop-release.ts"
-      - kind: path_glob
         value: "apps/desktop/src/shell/renderer/bridge/runtime-bridge/http.ts"
       - kind: path_glob
-        value: "apps/desktop/src-tauri/src/desktop_release.rs"
-      - kind: path_glob
-        value: "apps/desktop/src-tauri/src/desktop_release/**/*.rs"
-      - kind: path_glob
-        value: "apps/desktop/src-tauri/src/desktop_updates.rs"
-      - kind: path_glob
-        value: "apps/desktop/src-tauri/src/desktop_updates/**/*.rs"
+        value: "apps/desktop/src-electron/**/*.ts"
       - kind: path_glob
         value: "sdks/typescript/types/network-retry.ts"
   - scope: desktop.shell-ui
@@ -53,7 +45,7 @@ scopes:
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/**/*"
       - kind: path_glob
-        value: "apps/desktop/src-tauri/src/menu_bar_shell/**/*.rs"
+        value: "apps/desktop/src-electron/main.ts"
       - kind: path_glob
         value: "apps/desktop/vite.config.ts"
       - kind: path_glob
@@ -78,8 +70,6 @@ scopes:
         value: "apps/desktop/src/shell/renderer/features/world/**/*"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/bridge/runtime-bridge/support-logs-export.ts"
-      - kind: path_glob
-        value: "apps/desktop/src-tauri/src/desktop_logs_export.rs"
   - scope: desktop.agent-projection
     bindings:
       - kind: path_glob
@@ -409,7 +399,7 @@ scopes:
       - kind: path_glob
         value: "apps/desktop/src-electron/**/*"
       - kind: path_glob
-        value: "apps/desktop/src-tauri/src/**/*.rs"
+        value: "apps/desktop/src-electron/**/*.ts"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/chat/**/*"
       - kind: path_glob
@@ -423,11 +413,7 @@ scopes:
       - kind: path_glob
         value: "apps/desktop/src-electron/product-control-*.ts"
       - kind: path_glob
-        value: "apps/desktop/src-tauri/src/desktop_product_control*.rs"
-      - kind: path_glob
-        value: "apps/desktop/src-tauri/src/desktop_product_control/*"
-      - kind: path_glob
-        value: "apps/desktop/src-tauri/src/nimi_data_directory.rs"
+        value: "apps/desktop/product-control-node/src/**/*"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/first-run/*"
       - kind: path_glob

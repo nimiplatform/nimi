@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.desktop.shell-ui.home-shell
     kind: definition
     title: Desktop Nimi Home shell
-    meaning: The Desktop Nimi Home shell is the current replaceable implementation of the Nimi Home Contract for product control, first-run and return-run state, Apps, LocalAgent conversation, health, account, settings, diagnostics, update, and explicit failure projection without becoming the owner of upstream truth.
+    meaning: The Desktop Nimi Home shell is the current replaceable implementation of the Nimi Home Contract for product control, first-run and return-run state, Apps, LocalAgent conversation, health, account, settings, diagnostics, and explicit failure projection without becoming the owner of upstream truth.
   - id: definition.nimi.desktop.shell-ui.menu-bar
     kind: definition
     title: Desktop menu-bar shell
@@ -116,7 +116,7 @@ units:
     kind: rule
     title: Shell mode is a closed host projection
     modality: must
-    statement: Desktop resolves shell mode as exactly desktop or web from VITE_NIMI_SHELL_MODE, then Tauri runtime presence, then desktop for server rendering; Simulator is never a shell mode and canonical renderer hosts instead receive the opaque host binding.
+    statement: Desktop resolves shell mode as exactly desktop or web from VITE_NIMI_SHELL_MODE, then the Electron preload bridge, then desktop for server rendering; Simulator is never a shell mode and canonical renderer hosts instead receive the opaque host binding.
     condition: Whenever shell mode or host-specific feature defaults are resolved.
     failure: Reject unknown modes, global-probe Simulator detection, and a third shell branch.
     relations:
@@ -436,7 +436,7 @@ units:
     kind: rule
     title: Local-app launch remains owner-approved and renderer-safe
     modality: must
-    statement: Desktop launches an isolated local-development Electron or Tauri child only after Runtime-owned record and Desktop decision success, obtains fresh single-use lease, exact process bind, and request-empty session for every replacement or Runtime restart, excludes bundled apps from third-party records, keeps immutable package launch unavailable before admission, and exposes only typed Kit session, permission posture, base entitlements, and app-owned commands to the renderer.
+    statement: Desktop launches an isolated local-development Electron child only after Runtime-owned record and Desktop decision success, obtains fresh single-use lease, exact process bind, and request-empty session for every replacement or Runtime restart, excludes bundled apps from third-party records, keeps immutable package launch unavailable before admission, and exposes only typed Kit session, permission posture, base entitlements, and app-owned commands to the renderer.
     condition: Whenever Desktop presents or performs local-app launch.
     failure: Deny launch, inheritance, or renderer exposure of account, token, principal, decision, endpoint, lease, session, or internal operation material.
     relations:
@@ -632,7 +632,7 @@ units:
     kind: rule
     title: Home operational surfaces consume typed owner projections
     modality: must_not
-    statement: Runtime health, app health, account, settings, diagnostics, Developer Mode, or update UI directly fetches Runtime gRPC, Realm REST, Cognition artifacts, or renderer-local substitutes instead of typed SDK and owner projections.
+    statement: Runtime health, app health, account, settings, diagnostics, or Developer Mode UI directly fetches Runtime gRPC, Realm REST, Cognition artifacts, or renderer-local substitutes instead of typed SDK and owner projections.
     condition: Whenever Nimi Home reads operational state.
     failure: Keep the surface explicitly unavailable until the typed projection exists.
     relations:
@@ -640,14 +640,9 @@ units:
         target: definition.nimi.desktop.shell-ui.home-shell
   - id: rule.nimi.desktop.shell-ui.r058
     kind: rule
+    lifecycle: removed
     title: Self-update UI preserves typed failure distinctions
-    modality: must
-    statement: Nimi Home self-update UI preserves failed, rollback-required, verification-failed, unsupported, and stale-projection distinctions and never mutates Runtime-selected source or local dependency state.
-    condition: Whenever Desktop presents self-update state or intent.
-    failure: Reject collapsed status and unauthorized Runtime mutation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-ui.home-shell
+    reason: Removed because the pre-release Electron Desktop exposes no authorized self-update UI.
   - id: rule.nimi.desktop.shell-ui.r059
     kind: rule
     title: Nimi Home first screen is usable product control
@@ -932,11 +927,11 @@ units:
         target: definition.nimi.desktop.shell-ui.developer-tools
   - id: rule.nimi.desktop.shell-ui.r086
     kind: rule
-    title: There is one production Developer Mode and trust set
+    title: Direct development carries no protected authority
     modality: must_not
-    statement: Desktop creates a test-only service principal, developer daemon, environment-selected hidden mode, direct development server trust, renderer authentication, localhost trust, or second developer account or session truth; enabling the one production mode grants permission, principal, grant, lease, or session authority.
+    statement: A direct development server, manually launched Electron host, localhost origin, environment-selected hidden mode, test-only service principal, developer daemon, renderer authentication, or second developer account or session establishes protected identity, trust, permission, principal, grant, lease, session, Runtime authority, or protected-operation success; enabling production Developer Mode alone establishes any of those facts.
     condition: Whenever local-development trust or identity is established.
-    failure: Deny the path and require the admitted Runtime and Desktop protected flow.
+    failure: Permit non-protected UI and CDP iteration, return typed unavailable for every protected operation, and require the fixed platform development candidate through the admitted Runtime and Desktop protected flow, with ad-hoc signing admitted only by the compile-time macOS local-development policy.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.developer-tools

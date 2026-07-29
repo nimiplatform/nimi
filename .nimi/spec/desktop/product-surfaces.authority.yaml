@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.support
     kind: definition
     title: Desktop Support product surface
-    meaning: Desktop Support is the independent secondary system surface for repair, updates, diagnostics, logs and export, and recovery help that consumes owner-typed state and remains reachable during degraded product-control state.
+    meaning: Desktop Support is the independent secondary system surface for repair, diagnostics, logs and export, and recovery help that consumes owner-typed state and remains reachable during degraded product-control state.
   - id: definition.nimi.desktop.product-surfaces.relationship-profile
     kind: definition
     title: Desktop contextual relationship and profile surface
@@ -182,7 +182,7 @@ units:
     kind: rule
     title: Home feed and Nimi Home do not overlap
     modality: must
-    statement: Home remains the Realm feed and Create Post surface inside Nimi Home, while the enclosing installed Nimi Home shell retains hosted-shell information architecture, navigation, windowing, first-run and return-run state, surface registry, Apps placement, LocalAgent conversation placement, self-update UI, and failure-projection ownership.
+    statement: Home remains the Realm feed and Create Post surface inside Nimi Home, while the enclosing installed Nimi Home shell retains hosted-shell information architecture, navigation, windowing, first-run and return-run state, surface registry, Apps placement, LocalAgent conversation placement, and failure-projection ownership.
     condition: Whenever Desktop composes, names, or assigns ownership to Home or Nimi Home.
     failure: Reject an interpretation that equates the two objects, gives shell ownership to Home feed, or lets Home feed redefine or narrow enclosing shell authority.
     relations:
@@ -242,7 +242,7 @@ units:
     kind: rule
     title: Support sub-areas are closed
     modality: must
-    statement: Support contains exactly repair for configuration, data-root, and dependency repair entry; updates for Desktop update and independently installed Runtime service compatibility or repair projection; diagnostics for aggregated technical diagnostics; logs for log viewing and export; and recovery for recovery help and guidance.
+    statement: Support contains exactly repair for configuration, data-root, dependency, and independently installed Runtime service repair entry; diagnostics for aggregated technical diagnostics; logs for log viewing and export; and recovery for recovery help and guidance.
     condition: Whenever Desktop configures, routes, or renders Support content.
     failure: Reject a missing or additional Support sub-area, ordinary account, language, appearance, notification, or other preference content, and any developer-surface entry.
     relations:
@@ -260,14 +260,9 @@ units:
         target: definition.nimi.desktop.product-surfaces.support
   - id: rule.nimi.desktop.product-surfaces.r025
     kind: rule
+    lifecycle: removed
     title: Support updates consumes verified owner projections
-    modality: must
-    statement: Support updates hosts Application Update, consumes DesktopReleaseInfo for current Desktop release, target Desktop release, and updater state, consumes protected-local service status for verified Runtime service release, mutual compatibility, and repair state, invokes Desktop update only through managed desktop_update commands, and leaves Runtime service update or repair with the independent signed service updater; updaterAvailable false makes silent check a no-op and manual action displays updaterUnavailableReason without invoking a known-failing command.
-    condition: Whenever Support checks, presents, or triggers Desktop or Runtime service update and repair state.
-    failure: Reject renderer-synthesized version defaults, Desktop-manifest Runtime truth, hidden metadata, trust, compatibility, or repair errors, bundled or staged Runtime paths, cross-owner update execution, and pseudo-success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.product-surfaces.support
+    reason: Removed because the pre-release Electron Desktop has no authorized application-update product surface or update command path.
   - id: rule.nimi.desktop.product-surfaces.r026
     kind: rule
     title: Support diagnostics aggregates typed projections only

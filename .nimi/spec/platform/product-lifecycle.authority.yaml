@@ -24,8 +24,9 @@ units:
     meaning: Production Runtime configuration is protected state owned by the isolated Runtime service and contains private service identity, custody, grants, sessions, security evidence, and data-root verification derived from the canonical product-control record, while product control communicates only through the protected Home Host Contract and never owns physical Runtime configuration paths.
   - id: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
     kind: definition
-    title: Signed development checkpoint lineage
-    meaning: A dev_kernel_checkpoint lineage is a non-release, non-promotable service-owned development state lineage identified by an exact signed trial id, a first-install developmentStateCandidateId, and a cryptographically random acceptanceRoundId, with runtimeCandidateId independently replaceable and verifiable.
+    lifecycle: removed
+    title: Retired signed development checkpoint lineage
+    reason: Removed because fixed platform development candidates no longer create a parallel signed-trial, profile, acceptance-round, or Runtime-candidate lineage.
   - id: definition.nimi.platform.product-lifecycle.governed-local-config-family
     kind: definition
     title: Governed local configuration family
@@ -338,68 +339,46 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015c
     kind: rule
-    title: P-COLD-015 development lineage continuity
-    modality: must
-    statement: The first real dev_kernel_checkpoint installation creates only the protected service-owned development lineage, later signed Runtime candidate updates preserve its signed trial id, developmentStateCandidateId, and acceptanceRoundId while independently replacing and verifying runtimeCandidateId, Runtime local state, audit, model registry, generated identity, and durable grants remain bound to that protected lineage, and the canonical ~/.nimi/nimi.json Product Control record remains outside the lineage and is neither recreated nor relocated by candidate rotation.
-    condition: When a signed development checkpoint is first installed or updated.
-    failure: Reject a candidate or protected-state binding that breaks lineage continuity or binds, recreates, relocates, or shadows Product Control.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
+    lifecycle: removed
+    title: Retired development lineage continuity
+    reason: Removed with the parallel development checkpoint lineage; development candidates now use the fixed platform installation and current service state without signed-trial or acceptance-round continuity records.
   - id: rule.nimi.platform.product-lifecycle.p-cold-015d
     kind: rule
-    title: P-COLD-015 persistent completed first run
+    title: P-COLD-015 Product Control survives service lifecycle
     modality: must_not
-    statement: Runtime restart, binary update, installer Install, an existing record, or a damaged record silently creates a fresh lineage or resets completed first run in place.
-    condition: When a checkpoint lineage restarts, updates, installs, or encounters existing or damaged state.
-    failure: Preserve completed state, use the normal repair state machine, and require an explicit destructive repair or reset for a fresh lineage.
+    statement: Runtime restart, fixed-candidate replacement, installer install or uninstall, an existing Product Control record, or a damaged record silently creates a fresh Product Control record or resets completed first run in place.
+    condition: When Runtime or Desktop restarts, installs, uninstalls, replaces a development candidate, or encounters existing or damaged Product Control state.
+    failure: Preserve valid completed Product Control state, use the normal repair state machine for damaged state, and require an explicit destructive Product Control reset to start again.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
+        target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015e
     kind: rule
-    title: P-COLD-015 protected checkpoint identity inputs
-    modality: must_not
-    statement: HOME, USERPROFILE, TEMP, renderer state, endpoint, environment, argv, a request field, installer input, protected profile, or test harness selects protected lineage or round identity or selects, proposes, overrides, or relocates dataRoot.path, and the signed checkpoint profile affects Product Control beyond consuming the canonical selection through the shared resolver and exact typed operation.
-    condition: When checkpoint identity or data-root selection is resolved.
-    failure: Reject the unprotected input, alternate data-root channel, or profile effect.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.nimi-data-root
+    lifecycle: removed
+    title: Retired protected checkpoint identity inputs
+    reason: Removed with checkpoint, profile, harness, and round identities; the active Product Control data-root rule independently rejects non-UI selection channels.
   - id: rule.nimi.platform.product-lifecycle.p-cold-015f
     kind: rule
-    title: P-COLD-015 development reuses canonical data-root selection
+    title: P-COLD-015 service consumers reuse canonical data-root selection
     modality: must
-    statement: A signed checkpoint, first-party acceptance run, and Runtime update reuse dataRoot.path only from the canonical ~/.nimi/nimi.json record through the shared resolver; when that record has no valid selection, only the normal Product Control UI may select it once through the exact typed operation, and no checkpoint, installer, harness, profile, test, environment, argv, or protected lineage field proposes or selects a separate root.
-    condition: When a signed checkpoint, acceptance run, or update resolves a data root.
-    failure: Reuse the valid canonical selection, or route an absent, invalid, or mismatched selection to normal setup or explicit repair without guessing, prompting for, or recording another root.
+    statement: Runtime, Desktop, fixed development candidate installation, and product operations consume dataRoot.path only from the canonical Product Control record through the shared resolver; when that record has no valid selection, only the normal Product Control UI may select it through the exact typed operation.
+    condition: When Runtime, Desktop, installation, update, or a product operation resolves the Nimi data root.
+    failure: Reuse the valid canonical selection, or route an absent, invalid, or mismatched selection to normal setup or explicit repair without guessing, prompting from a non-UI channel, or recording another root.
     relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015g
     kind: rule
-    title: P-COLD-015 isolated checkpoint state and payload reuse
-    modality: must_not
-    statement: A development checkpoint, installer binding, protected profile, Runtime config, or test channel imports, selects, replaces, or shadows Product Control or dataRoot.path, or existing payload files or an older local-state record alone satisfies first run without independent current-candidate catalog-hash, manifest, compatibility, and activation-readiness verification recorded in isolated service-owned state.
-    condition: When a checkpoint resolves the canonical data root or reuses model, dependency, or environment payload bytes.
-    failure: Reject the alternate authority and require the canonical Product Control selection plus independent verification and current isolated evidence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
+    lifecycle: removed
+    title: Retired isolated checkpoint evidence
+    reason: Removed because checkpoint-specific profile, candidate, catalog-hash, manifest, and isolated-evidence records duplicated Product Control and Runtime readiness instead of proving a separate product decision.
   - id: rule.nimi.platform.product-lifecycle.p-cold-015h
     kind: rule
-    title: P-COLD-015 checkpoint cannot become product bypass
-    modality: must_not
-    statement: The dev_kernel_checkpoint profile becomes release, becomes promotable to product close, bypasses product readiness, or provides a parallel Product Control store.
-    condition: Whenever the checkpoint profile is interpreted or used.
-    failure: Reject promotion, bypass, or parallel state and retain non-release non-promotable status.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
+    lifecycle: removed
+    title: Retired checkpoint product-bypass rule
+    reason: Removed because the checkpoint profile and its parallel Product Control state no longer exist.
   - id: rule.nimi.platform.product-lifecycle.p-cold-016-owner
     kind: rule
     title: P-COLD-016 Runtime-owned finalization operation
@@ -1317,12 +1296,12 @@ units:
     kind: rule
     title: P-COLD-015 product-control-record-schema installId immutability
     modality: must_not
-    statement: Runtime candidate rotation, restart, update, or installer Install changes installId, resets grants, abandons selected payloads, or creates a fresh product-control lineage without an explicit destructive repair or reset.
-    condition: When an existing product-control lineage is resumed, repaired, or updated.
-    failure: Reject the replacement and preserve the existing installId and durable lineage.
+    statement: Runtime or Desktop restart, fixed-candidate replacement, update, or installer install changes installId, resets grants, abandons selected payloads, or creates a fresh Product Control record without an explicit destructive Product Control repair or reset.
+    condition: When an existing Product Control record is resumed, repaired, or used after service installation, replacement, or update.
+    failure: Reject the replacement and preserve the existing installId and Product Control record.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
+        target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-ready-write
     kind: rule
     title: P-COLD-015 product-control-record-schema atomic readiness writes
@@ -1345,14 +1324,16 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-data-root-proposal
     kind: rule
-    title: P-COLD-015 no development data-root authority
+    title: P-COLD-015 no alternate data-root authority
     modality: must_not
-    statement: A dev_kernel_checkpoint, first-party acceptance harness, updater, installer, protected profile, CLI, environment variable, argv field, endpoint, request, home-derived guess, or dataRootProposal field becomes a second data-root locator, proposal authority, selection authority, or persisted Product Control field.
-    condition: When development, acceptance, installation, or update code resolves or carries a data root.
-    failure: Reject the channel and use only the shared resolver for ~/.nimi/nimi.json, with the normal Product Control UI as the sole initial selection surface.
+    statement: An updater, installer, CLI, environment variable, argv field, endpoint, request, home-derived guess, test input, or dataRootProposal field becomes a second data-root locator, proposal authority, selection authority, or persisted Product Control field.
+    condition: When development, installation, update, test, or product code resolves or carries a data root.
+    failure: Reject the alternate channel and use only the canonical Product Control record through the shared resolver, with the normal Product Control UI as the sole initial selection surface.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
+        target: definition.nimi.platform.product-lifecycle.nimi-data-root
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-account-profile-ref
     kind: rule
     title: P-COLD-015 product-control-record-schema accountDefaultProfileRef projection

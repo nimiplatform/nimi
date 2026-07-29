@@ -548,9 +548,9 @@ units:
     kind: rule
     title: Protected state and boot epoch precede every listener
     modality: must
-    statement: Before any protected listener accepts traffic, Runtime validates its protected state against the secure-store anti-rollback owner, creates a fresh unpredictable boot identity, and invalidates all nonterminal authority from prior boots.
+    statement: Before any protected listener accepts traffic, Runtime validates its service-owned protected state and custody boundary, verifies endpoint ownership, creates a fresh unpredictable boot identity, and invalidates all authority from prior Runtime processes.
     condition: Whenever a Runtime production service boots.
-    failure: Disable protected features on ledger unavailability, corruption, rollback mismatch, endpoint ownership failure, or missing required OS primitive without public-TCP or portable-session fallback.
+    failure: Disable protected features on protected-state corruption, service-owned custody-boundary failure, endpoint ownership failure, or a missing required OS primitive without public-TCP or portable-session fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
@@ -558,9 +558,9 @@ units:
     kind: rule
     title: Production Runtime starts only from signed service identity
     modality: must
-    statement: A production build proves the exact service principal, signed service definition, connected-process signing identity, executable trust row, release digest, account partition, and immutable production configuration before ledger or custody access, and Desktop start or restart invokes only the typed OS service-control gateway.
+    statement: A production Runtime validates the exact service principal, signed service definition, current platform code identity, and service-owned immutable configuration and custody before opening protected access, and Desktop start or restart invokes only the typed OS service-control gateway.
     condition: Whenever production Runtime starts or restarts.
-    failure: Reject Desktop-spawned same-user processes, command-line serve, generic user-session keyrings, environment-selected endpoints, user-writable configuration, test trust rows, and Desktop-selected executable paths as production service identity.
+    failure: Reject Desktop-spawned same-user processes, command-line serve, generic user-session keyrings, environment-selected endpoints, user-writable configuration or custody, and Desktop-selected executable paths as production service identity.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
@@ -568,7 +568,7 @@ units:
     kind: rule
     title: Daemon startup stages are ordered
     modality: must
-    statement: Runtime startup verifies service identity and production or test isolation, loads and validates admitted configuration, validates protected custody and commits boot revocation, opens only admitted listeners, starts enabled supervised engines, changes STARTING to READY with matching gRPC health status, and then starts one-second in-memory resource sampling plus AI provider probes.
+    statement: Runtime startup verifies service identity and production or test isolation, loads and validates admitted configuration, validates protected custody, creates a fresh unpredictable boot identity and invalidates prior-process authority in memory, opens only admitted listeners, starts enabled supervised engines, changes STARTING to READY with matching gRPC health status, and then starts one-second in-memory resource sampling plus AI provider probes.
     condition: Whenever the daemon starts.
     failure: Stop before the dependent stage or mark the daemon DEGRADED where explicitly admitted rather than reorder stages or fabricate readiness.
     relations:
@@ -748,7 +748,7 @@ units:
     kind: rule
     title: Restart integrity failures make protected access unavailable
     modality: must
-    statement: State corruption, rollback mismatch, account partition mismatch, service-owned root mismatch, or inability to commit epoch invalidation makes protected local-app access unavailable.
+    statement: Protected-state corruption, account or session mismatch, service-owned root mismatch, or custody-boundary failure makes protected local-app access unavailable.
     condition: Whenever Runtime validates protected state during restart.
     failure: Fail closed without direct-daemon, environment-selected-root, portable-session, app-id lookup, or old-process-channel recovery.
     relations:

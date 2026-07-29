@@ -656,9 +656,9 @@ units:
     kind: rule
     title: P-NAPP-037 macOS requires independent native security outcomes
     modality: must
-    statement: Future macOS admission requires an isolated non-interactive Runtime principal, Runtime-only secret custody, verified and supervised native host, process and executable trust, liveness, least privilege, session and account revocation, and fail-closed authorization without localhost, bearer, same-user daemon, development identity, or Windows-mechanism fallback.
+    statement: macOS production admission requires an isolated non-interactive Runtime principal, Runtime-only secret custody, a verified and supervised native host, process and executable trust, liveness, least privilege, session and account revocation, fail-closed authorization, Apple-anchored executable trust, and notarization; the fixed macOS local-development candidate may exercise the same native protected boundary solely for authorized local development when it is ad-hoc signed and retains strict code-seal validation, exact signing identifiers, hardened runtime, fixed root-owned installation, the isolated Runtime principal, Runtime-only secret custody, verified process identity and liveness, existing session and authorization outcomes, and fail-closed negative behavior, but it does not require or claim an Apple certificate, Team ID, notarization, production readiness, release admission, or ordinary-user distribution truth, and neither path admits localhost, bearer, a same-user daemon, a runtime-selected bypass, or a Windows-mechanism fallback.
     condition: Whenever macOS protected-local admission is implemented or evaluated.
-    failure: Deny protected access until every required native security outcome is independently satisfied.
+    failure: Deny protected access unless the current candidate satisfies every applicable native security outcome, admit ad-hoc signing only in the fixed macOS local-development build and installation path, and reject that development candidate from production readiness, release admission, and ordinary-user distribution truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.executable-trust-set
@@ -886,10 +886,10 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-principal
   - id: rule.nimi.platform.app-ecosystem.p-napp-012b
     kind: rule
-    title: P-NAPP-012 canonical identity syntax and bundle mapping
+    title: P-NAPP-012 canonical identity syntax and native bundle mapping
     modality: must
-    statement: app_id is lowercase dot-separated with segments starting and ending in ASCII lowercase letters or digits and containing only internal lowercase letters, digits, or hyphens, underscore is forbidden, and Tauri identifier is only an OS bundle, signing, and update identifier derived exactly as ai.nimi.apps.<app_id> without AI semantics.
-    condition: Whenever app_id or a Tauri identifier is admitted.
+    statement: app_id is lowercase dot-separated with segments starting and ending in ASCII lowercase letters or digits and containing only internal lowercase letters, digits, or hyphens, underscore is forbidden, and an Electron or Tauri native bundle identifier is only an OS bundle, signing, and update identifier derived exactly as ai.nimi.apps.<app_id> without AI semantics.
+    condition: Whenever app_id or a native shell bundle identifier is admitted.
     failure: Reject invalid syntax or a non-derived or overloaded bundle identifier.
     relations:
       - type: applies_to
@@ -898,7 +898,7 @@ units:
     kind: rule
     title: P-NAPP-012 no side-namespace identity
     modality: must_not
-    statement: Active source, scaffold state, Runtime caller behavior, or Tauri configuration uses app.nimi.*, dev.nimi.*, or another side namespace as active identity or encodes development or test posture into canonical app_id.
+    statement: Active source, scaffold state, Runtime caller behavior, or native shell configuration uses app.nimi.*, dev.nimi.*, or another side namespace as active identity or encodes development or test posture into canonical app_id.
     condition: Whenever an active app identity is authored or consumed.
     failure: Reject the side namespace and keep non-product posture in Runtime-owned mode, record, build profile, or non-product evidence.
     relations:
@@ -1420,9 +1420,9 @@ units:
     kind: rule
     title: P-SCAF-002 production development path and accepted-input stability
     modality: must
-    statement: Local development uses production Developer Mode, an isolated local_development principal, the fixed service, the shared grant evaluator, and a host-private local-app session, forbids daemon, mock-auth, disabled-gate, pseudo-success, and first-party-self-declaration shortcuts, and does not reopen the accepted A0 through A5 boundaries without an explicit superseding specification cut.
+    statement: Protected local development uses one path consisting of production Developer Mode, the fixed platform development candidate, an isolated local_development principal, the fixed service, the shared grant evaluator, a supervised host, and a host-private local-app session; the macOS local-development candidate is ad-hoc signed under its compile-time-only native policy without weakening those remaining outcomes, manual or direct Electron may provide non-protected UI and CDP iteration only, every protected operation on that path returns typed unavailable without creating identity, grant, lease, session, or protected success, mock-auth, disabled-gate, pseudo-success, and first-party-self-declaration shortcuts remain forbidden, and the accepted A0 through A5 boundaries remain closed without an explicit superseding specification cut.
     condition: Whenever scaffolded local development or compatibility behavior is implemented.
-    failure: Fail closed on any shortcut or unsuperseded compatibility alternative.
+    failure: Route protected development through the fixed supervised platform candidate, admit ad-hoc signing only for the macOS local-development build, and keep manual or direct Electron limited to non-protected UI and CDP iteration with typed unavailable for protected operations.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
@@ -1546,9 +1546,9 @@ units:
     kind: rule
     title: P-SCAF-018 production path and bypass prohibition
     modality: must
-    statement: The positive development command requests Desktop production Developer Mode, fresh project presence, isolated principal, and supervised fixed-service launch, receives only stable status or failure, and rejects direct Tauri, manual Electron, generic proxy, token or session custody, app-owned authorization, caller-selected Runtime inputs, private launchers, registration bypasses, and protected-operation-positive renderer-only development.
+    statement: The positive protected-development command requests Desktop production Developer Mode, fresh project presence, an isolated principal, and the fixed platform development candidate launched through the supervised fixed-service host, with the macOS local-development candidate ad-hoc signed under its compile-time-only native policy, receives only stable status or failure, and rejects direct Tauri, generic proxy, token or session custody, app-owned authorization, caller-selected Runtime inputs, private launchers, registration bypasses, and protected-operation-positive renderer-only development; manual or direct Electron may provide non-protected UI and CDP iteration only and cannot create identity, grant, lease, session, or protected-operation success.
     condition: Whenever local development attempts to reach protected operations.
-    failure: Fail closed before protected access and route the request through the official supervised path.
+    failure: Fail closed before protected access, route the request through the official fixed supervised platform candidate, admit ad-hoc signing only for the macOS local-development build, and return typed unavailable rather than protected success from manual or direct Electron.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
