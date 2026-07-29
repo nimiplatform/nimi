@@ -5899,7 +5899,7 @@ export interface RealmWorldPublicControllerListWorldCharactersOperationRequest {
     readonly worldId: string;
   };
   readonly query?: {
-
+    readonly limit?: number;
   };
   readonly headers?: {
 

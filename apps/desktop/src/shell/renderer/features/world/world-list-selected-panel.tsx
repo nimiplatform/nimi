@@ -24,7 +24,10 @@ import { worldInitial } from './world-list-atoms';
 import { displayTags, sourceCount } from './world-list-catalog-model';
 import { WorldCover } from './world-list-cover';
 import { WORLD_EXPLORER_THEME } from './world-list-theme';
-import { fetchWorldPrimaryDisplayDetail, worldPrimaryDisplayDetailQueryKey } from './world-detail-queries.js';
+import {
+  fetchWorldRecommendedCharacterPreview,
+  worldRecommendedCharacterPreviewQueryKey,
+} from './world-detail-queries.js';
 import type { WorldCharacter } from './world-detail-types';
 import type { WorldCharacterItem, WorldListItem } from './world-list-model';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -118,13 +121,17 @@ export function SelectedWorldPanel({
   const relationships = world.relationshipCount;
 
   const peopleQuery = useQuery({
-    queryKey: worldPrimaryDisplayDetailQueryKey(world.id),
-    queryFn: () => fetchWorldPrimaryDisplayDetail(world.id, createRealmWorldData(sdk)),
+    queryKey: worldRecommendedCharacterPreviewQueryKey(world.id),
+    queryFn: () => fetchWorldRecommendedCharacterPreview(
+      world.id,
+      world.createdAt,
+      createRealmWorldData(sdk),
+    ),
     enabled: Boolean(world.id),
     staleTime: 30_000,
   });
   const people = useMemo(
-    () => previewPeople(world, peopleQuery.data?.characters),
+    () => previewPeople(world, peopleQuery.data),
     [world, peopleQuery.data],
   );
   const peopleLoading = people.length === 0 && (peopleQuery.isPending || peopleQuery.isFetching);

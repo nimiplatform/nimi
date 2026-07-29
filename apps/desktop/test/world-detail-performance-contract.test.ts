@@ -12,6 +12,7 @@ const realmWorldData = createRealmWorldData({
 } as unknown as DesktopRendererSdkPort);
 import {
   fetchWorldPrimaryDisplayDetail,
+  fetchWorldRecommendedCharacterPreview,
 } from '../src/shell/renderer/features/world/world-detail-queries.js';
 
 const primaryWorldFixture = {
@@ -165,6 +166,34 @@ test('world primary display detail preserves connected local-agent relation stat
     assert.equal(relation?.connectionId, 'local-agent-primary');
     assert.equal(relation?.runtimeSourceRef, 'realm-source:world-primary:character-primary');
   } finally {
+    realmWorldData.loadWorldDetailWithCharacters = originalLoadWorldDetailWithCharacters;
+  }
+});
+
+test('world recommended character preview loads only three source cards without full detail', async () => {
+  const originalLoadWorldCharacters = realmWorldData.loadWorldCharacters;
+  const originalLoadWorldDetailWithCharacters = realmWorldData.loadWorldDetailWithCharacters;
+  const calls: Array<{ worldId: string; limit?: number }> = [];
+  realmWorldData.loadWorldCharacters = async (worldId, limit) => {
+    calls.push({ worldId, limit });
+    return primaryWorldFixture.characters;
+  };
+  realmWorldData.loadWorldDetailWithCharacters = async () => {
+    throw new Error('FULL_WORLD_DETAIL_MUST_NOT_LOAD_FOR_RECOMMENDED_PREVIEW');
+  };
+
+  try {
+    const characters = await fetchWorldRecommendedCharacterPreview(
+      'world-primary',
+      primaryWorldFixture.createdAt,
+      realmWorldData,
+    );
+
+    assert.equal(characters.length, 1);
+    assert.equal(characters[0]?.id, 'character-primary');
+    assert.deepEqual(calls, [{ worldId: 'world-primary', limit: 3 }]);
+  } finally {
+    realmWorldData.loadWorldCharacters = originalLoadWorldCharacters;
     realmWorldData.loadWorldDetailWithCharacters = originalLoadWorldDetailWithCharacters;
   }
 });

@@ -78,10 +78,14 @@ async function getWorldCore(realm: Realm, worldId: string): Promise<WorldDetailD
   return projectWorldPublicDetail(requireWorldPublicDetailDto(world, worldId));
 }
 
-async function listWorldCharacters(realm: Realm, worldId: string): Promise<WorldCharacterSummaryDto[]> {
+async function listWorldCharacters(
+  realm: Realm,
+  worldId: string,
+  limit?: number,
+): Promise<WorldCharacterSummaryDto[]> {
   const rows = await realm.worldPublic.worldPublicControllerListWorldCharacters({
     path: { worldId },
-    query: {},
+    query: limit === undefined ? {} : { limit },
   });
   if (!Array.isArray(rows)) {
     failRealmWorldContract(
@@ -230,10 +234,11 @@ export async function loadWorldCharacters(
   callApi: RealmWorldApiCaller,
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
+  limit?: number,
 ): Promise<WorldCharacterSummaryDto[]> {
   try {
     return await callApi(
-      (realm) => listWorldCharacters(realm, worldId),
+      (realm) => listWorldCharacters(realm, worldId, limit),
       'Failed to load world characters',
     );
   } catch (error) {
@@ -326,8 +331,8 @@ export function createRealmWorldData(sdk: DesktopRendererSdkPort) {
     loadWorldSemanticBundle(callRealmApi, emitRealmDataError, worldId),
   loadMainWorld: () =>
     loadMainWorld(callRealmApi, emitRealmDataError, sdk.offline),
-  loadWorldCharacters: (worldId: string) =>
-    loadWorldCharacters(callRealmApi, emitRealmDataError, worldId),
+  loadWorldCharacters: (worldId: string, limit?: number) =>
+    loadWorldCharacters(callRealmApi, emitRealmDataError, worldId, limit),
   loadWorldDetailWithCharacters: (worldId: string, recommendedCharacterLimit?: number) =>
     loadWorldDetailWithCharacters(callRealmApi, emitRealmDataError, worldId, recommendedCharacterLimit, sdk.offline),
   loadWorldHistory: (worldId: string) =>

@@ -2,17 +2,15 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { IconToggleAction, ScrollArea } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import {
-  ProfileDetailModal,
-} from '../relationship/profile-detail-modal.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   RelationshipHoverCard,
-  buildRelationshipProfileSeed,
+  buildRelationshipProfileNavigationTarget,
   clampHoverCardTop,
   type RelationshipHoverCardPosition,
 } from './chat-relationship-hover-card.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { useAppStore } from '../../app-shell/providers/app-store.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,15 +42,16 @@ function RelationshipAvatar({
   onSelect: () => void;
 }) {
   const bindings = useDesktopRendererBindings();
+  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
   const { t } = useTranslation();
   const ref = useRef<HTMLButtonElement>(null);
   const cancelHideRef = useRef<(() => void) | null>(null);
   const [hoverCardPos, setHoverCardPos] = useState<RelationshipHoverCardPosition | null>(null);
-  const [profileTarget, setProfileTarget] = useState<ReturnType<typeof buildRelationshipProfileSeed>>(null);
 
   const initial = (target.avatarFallback || target.title || '?').charAt(0).toUpperCase();
   const unread = target.unreadCount && target.unreadCount > 0 ? target.unreadCount : null;
-  const profileSeed = buildRelationshipProfileSeed(target);
+  const profileTarget = buildRelationshipProfileNavigationTarget(target);
   const canShowHoverCard = target.source !== 'ai';
   const testId = target.source === 'human'
     ? E2E_IDS.chatRow(String(target.canonicalSessionId || target.id))
@@ -112,13 +111,17 @@ function RelationshipAvatar({
   };
 
   const handleOpenProfile = () => {
-    if (!profileSeed) {
+    if (!profileTarget) {
       onSelect();
       return;
     }
     cancelHide();
     setHoverCardPos(null);
-    setProfileTarget(profileSeed);
+    if (profileTarget.kind === 'source-detail') {
+      navigateToSourceDetail(profileTarget.sourceRef);
+      return;
+    }
+    navigateToProfile(profileTarget.profileId, 'profile');
   };
 
   return (
@@ -187,16 +190,7 @@ function RelationshipAvatar({
           onMouseEnter={cancelHide}
           onMouseLeave={scheduleHide}
           onSelect={onSelect}
-          onOpenProfile={profileSeed ? handleOpenProfile : undefined}
-        />
-      ) : null}
-
-      {profileTarget ? (
-        <ProfileDetailModal
-          open
-          profileId={profileTarget.profileId}
-          profileSeed={profileTarget.seed}
-          onClose={() => setProfileTarget(null)}
+          onOpenProfile={profileTarget ? handleOpenProfile : undefined}
         />
       ) : null}
     </>

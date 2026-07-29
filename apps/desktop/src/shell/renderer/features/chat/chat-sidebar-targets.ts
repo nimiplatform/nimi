@@ -38,6 +38,8 @@ import {
 } from './chat-group-thread-model';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
+import { resolveCharacterSourceRefV3 } from '../explore/character-source-materialization.js';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
 type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
 
@@ -122,7 +124,10 @@ export function mergeHumanChatTargetsWithFriendTargets(
   ];
 }
 
-function toAgentTargetSummary(snapshot: AgentLocalTargetSnapshot): ConversationTargetSummary {
+function toAgentTargetSummary(
+  snapshot: AgentLocalTargetSnapshot,
+  sourceRef: CharacterSourceRefV3,
+): ConversationTargetSummary {
   const title = normalizeText(snapshot.displayName) || normalizeText(snapshot.runtimeSourceRef) || 'Agent';
   const handle = normalizeText(snapshot.handle) || null;
   return {
@@ -152,6 +157,7 @@ function toAgentTargetSummary(snapshot: AgentLocalTargetSnapshot): ConversationT
       ownershipType: snapshot.ownershipType,
       greeting: snapshot.greeting,
       builtinDocsContext: snapshot.builtinDocsContext,
+      sourceRef,
     },
   };
 }
@@ -177,7 +183,7 @@ export function toAgentTargetsFromLocalAgentList(
         ownershipType: normalizeOwnershipType(source?.ownershipType),
         greeting: source?.worldCharacter?.interaction?.greeting ?? null,
         builtinDocsContext: null,
-      });
+      }, agent.sourceRef);
     })
     .sort((left, right) => left.title.localeCompare(right.title));
 }
@@ -197,10 +203,14 @@ export function toAgentTargetsFromSocialSnapshot(
         return null;
       }
       try {
+        const sourceRef = resolveCharacterSourceRefV3(friend);
+        if (!sourceRef) {
+          return null;
+        }
         return toAgentTargetSummary(toSourceContactLaunchTarget(
           friend as Parameters<typeof toSourceContactLaunchTarget>[0],
           owner,
-        ));
+        ), sourceRef);
       } catch {
         return null;
       }

@@ -116,6 +116,23 @@ export function buildRelationshipProfileSeed(target: ConversationTargetSummary):
   };
 }
 
+export type RelationshipProfileNavigationTarget =
+  | { kind: 'source-detail'; sourceRef: CharacterSourceRefV3 }
+  | { kind: 'profile'; profileId: string };
+
+export function buildRelationshipProfileNavigationTarget(
+  target: ConversationTargetSummary,
+): RelationshipProfileNavigationTarget | null {
+  const profile = buildRelationshipProfileSeed(target);
+  if (!profile) {
+    return null;
+  }
+  if (profile.seed.sourceRef) {
+    return { kind: 'source-detail', sourceRef: profile.seed.sourceRef };
+  }
+  return { kind: 'profile', profileId: profile.profileId };
+}
+
 function LocalAgentGlyphIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -170,21 +187,24 @@ export function RelationshipHoverCard({
   const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      onSelect();
+      (onOpenProfile ?? onSelect)();
     }
   };
+  const activationLabel = onOpenProfile
+    ? getProfileOpenLabel(target.source, target.title, t)
+    : `${t('Chat.hoverCardOpenChat', { defaultValue: 'Open chat' })}: ${target.title}`;
 
   return (
     <div
       data-chat-contact-hover-card="true"
       role="button"
       tabIndex={0}
-      aria-label={`${t('Chat.hoverCardOpenChat', { defaultValue: 'Open chat' })}: ${target.title}`}
+      aria-label={activationLabel}
       className="nimi-material-glass-chrome group fixed z-[9999] w-[min(430px,calc(100cqw-96px))] overflow-hidden rounded-[22px] border border-white/75 bg-white/82 px-5 py-4 text-left shadow-[0_22px_70px_rgba(80,95,130,0.2)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] transition duration-200 hover:border-white hover:bg-white/88 hover:shadow-[0_24px_76px_rgba(80,95,130,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80"
       style={{ top: pos.top, right: pos.right, transform: 'translateY(-50%)' }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      onClick={onSelect}
+      onClick={onOpenProfile ?? onSelect}
       onKeyDown={handleCardKeyDown}
     >
       <span
@@ -194,23 +214,9 @@ export function RelationshipHoverCard({
         }`}
       />
       <div className="flex min-w-0 items-center gap-4">
-        {onOpenProfile ? (
-          <button
-            type="button"
-            aria-label={getProfileOpenLabel(target.source, target.title, t)}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenProfile();
-            }}
-            className="shrink-0 rounded-[12px] transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80"
-          >
-            {avatarVisual}
-          </button>
-        ) : (
-          <div className="shrink-0">
-            {avatarVisual}
-          </div>
-        )}
+        <div className="shrink-0 transition-transform group-hover:scale-[1.03]">
+          {avatarVisual}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <h3 className="min-w-0 truncate text-[16px] font-semibold leading-6 tracking-normal text-slate-950">

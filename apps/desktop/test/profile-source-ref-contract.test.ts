@@ -3,7 +3,10 @@ import test from 'node:test';
 
 import { parsePersonaSources } from '../src/shell/renderer/features/explore/explore-persona-source-projection.js';
 import { resolveCharacterSourceRefV3 } from '../src/shell/renderer/features/explore/character-source-materialization.js';
-import { buildRelationshipProfileSeed } from '../src/shell/renderer/features/chat/chat-relationship-hover-card.js';
+import {
+  buildRelationshipProfileNavigationTarget,
+  buildRelationshipProfileSeed,
+} from '../src/shell/renderer/features/chat/chat-relationship-hover-card.js';
 import { toProfileData } from '../src/shell/renderer/features/profile/profile-model.js';
 import { toFriendContact } from '../src/shell/renderer/features/relationship/relationship-model.js';
 
@@ -123,4 +126,14 @@ test('chat relationship profile seed requires hash-bearing sourceRef for agent t
   assert.equal(target?.profileId, 'persona-a');
   assert.deepEqual(target?.seed.sourceRef, sourceRef);
   assert.equal(target?.seed.runtimeSourceRef, 'runtime-source:personaCharacter:world-a:persona-a');
+  assert.deepEqual(buildRelationshipProfileNavigationTarget({
+    id: 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a',
+    source: 'agent',
+    canonicalSessionId: 'conversation-a',
+    title: 'Persona A',
+    metadata: { sourceRef },
+  }), {
+    kind: 'source-detail',
+    sourceRef,
+  });
 });

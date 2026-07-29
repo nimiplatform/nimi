@@ -274,6 +274,31 @@ test('loadWorldCharacters projects public source cards', async () => {
   assert.equal(errors.length, 0);
 });
 
+test('loadWorldCharacters forwards the bounded preview limit through Realm SDK', async () => {
+  const errors: RealmWorldDataError[] = [];
+  let receivedQuery: { limit?: number } | undefined;
+
+  const result = await loadWorldCharacters(
+    async (task) => task({
+      worldPublic: {
+        worldPublicControllerListWorldCharacters: async (
+          request: { query?: { limit?: number } },
+        ) => {
+          receivedQuery = request.query;
+          return [worldCharacterPayload()];
+        },
+      },
+    } as never),
+    createEmitter(errors),
+    'world-1',
+    3,
+  );
+
+  assert.equal(result.length, 1);
+  assert.deepEqual(receivedQuery, { limit: 3 });
+  assert.equal(errors.length, 0);
+});
+
 test('loadWorldCharacters fails close when public sourceRef is missing sourceHash', async () => {
   const errors: RealmWorldDataError[] = [];
 

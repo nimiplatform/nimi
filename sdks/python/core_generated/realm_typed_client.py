@@ -7493,7 +7493,7 @@ class RealmWorldPublicControllerListWorldCharactersOperationPath:
 
 @dataclass(frozen=True)
 class RealmWorldPublicControllerListWorldCharactersOperationQuery:
-    pass
+    limit: float | None = None
 
 
 @dataclass(frozen=True)

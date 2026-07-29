@@ -191,6 +191,7 @@ test('agent sidebar targets include Runtime ListAgents items even without Realm 
   assert.equal(runtimeTargets[0]?.metadata?.localAgentRef, 'local-agent:runtime-owned-yan-zhenqing');
   assert.equal(runtimeTargets[0]?.metadata?.worldId, 'world-tang');
   assert.equal(runtimeTargets[0]?.metadata?.worldName, 'Tang Literati');
+  assert.deepEqual(runtimeTargets[0]?.metadata?.sourceRef, worldSourceRef('yan-zhenqing', 'world-tang'));
 
   assert.deepEqual(toAgentTargetSnapshotFromSummary(runtimeTargets[0]), {
     ownerUserId: 'owner-1',

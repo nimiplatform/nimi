@@ -1,10 +1,17 @@
 import type { RealmWorldData } from './data/realm-world-data.js';
-import type { WorldAssetExternalRef, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from './world-detail-types.js';
+import type {
+  WorldAssetExternalRef,
+  WorldCharacter,
+  WorldHistoryBundle,
+  WorldPublicAssetsData,
+  WorldSemanticData,
+} from './world-detail-types.js';
 import { toWorldListItem, type WorldListItem } from './world-list-model.js';
 import { readStringValue } from './world-detail-query-readers.js';
 import { toWorldDisplayHistoryBundle } from './world-detail-history-projection.js';
 import {
   projectWorldPrimaryDisplayDetail,
+  toWorldDisplayCharacter,
   toWorldDisplayFallback as projectWorldDisplayFallback,
 } from './world-detail-primary-projection.js';
 import { toWorldPublicAssetsData } from './world-detail-public-assets-projection.js';
@@ -22,6 +29,7 @@ export type {
 } from './world-detail-query-types.js';
 
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT = 4;
+const WORLD_RECOMMENDED_CHARACTER_PREVIEW_LIMIT = 3;
 
 const EMPTY_WORLD_HISTORY: WorldHistoryBundle = {
   items: [],
@@ -97,6 +105,14 @@ export function worldPrimaryDisplayDetailQueryKey(worldId: string) {
   ] as const;
 }
 
+export function worldRecommendedCharacterPreviewQueryKey(worldId: string) {
+  return [
+    'world-recommended-character-preview',
+    normalizeWorldId(worldId),
+    WORLD_RECOMMENDED_CHARACTER_PREVIEW_LIMIT,
+  ] as const;
+}
+
 export function worldSupplementalDisplayDetailQueryKey(worldId: string) {
   return ['world-supplemental-display-detail', normalizeWorldId(worldId)] as const;
 }
@@ -125,6 +141,18 @@ export async function fetchWorldDetailWithCharacters(
     throw new Error('WORLD_DETAIL_NOT_FOUND');
   }
   return detail;
+}
+
+export async function fetchWorldRecommendedCharacterPreview(
+  worldId: string,
+  worldCreatedAt: string,
+  realmWorldData: RealmWorldData,
+): Promise<WorldCharacter[]> {
+  const characters = await realmWorldData.loadWorldCharacters(
+    normalizeWorldId(worldId),
+    WORLD_RECOMMENDED_CHARACTER_PREVIEW_LIMIT,
+  );
+  return characters.map((character) => toWorldDisplayCharacter(character, worldCreatedAt));
 }
 
 export async function fetchWorldHistory(worldId: string, realmWorldData: RealmWorldData): Promise<WorldHistoryBundle> {
