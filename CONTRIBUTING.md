@@ -7,7 +7,7 @@ Thanks for contributing to Nimi.
 - Node.js `>=24`
 - pnpm `>=10`
 - Go `1.24+`
-- Rust (for desktop/Tauri work)
+- Rust (for Desktop native packages and Tauri apps)
 - Buf CLI (for proto work)
 
 ## Repository Setup

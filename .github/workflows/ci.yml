@@ -509,22 +509,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Install Linux desktop dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
       - name: Build workspace surfaces for Desktop/Web
         run: pnpm dev:prepare
 
-      - name: Complete Desktop native quality gate
+      - name: Complete Desktop Electron native quality gate
         run: pnpm check:desktop-native-quality
 
-      - name: Lint desktop
-        run: pnpm --filter @nimiplatform/desktop lint
-
-      - name: Typecheck desktop
-        run: pnpm --filter @nimiplatform/desktop typecheck
+      - name: Lint and build Desktop Electron
+        run: pnpm --filter @nimiplatform/desktop lint && pnpm --filter @nimiplatform/desktop build
 
       - name: Build web
         run: pnpm --filter @nimiplatform/web build

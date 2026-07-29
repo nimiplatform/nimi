@@ -61,7 +61,7 @@ jobs:
           .github/workflows
           .github/dependabot.yml
 
-  desktop-rust-dependencies:
+  desktop-electron-native-dependencies:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -75,5 +75,9 @@ jobs:
       - name: Install cargo audit
         run: cargo install cargo-audit --locked
 
-      - name: Audit Desktop Rust dependencies
-        run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
+      - name: Audit Electron native Rust dependencies
+        run: |
+          cargo audit --file apps/desktop/product-control-core/Cargo.lock
+          cargo audit --file apps/desktop/product-control-node/Cargo.lock
+          cargo audit --file kit/shell/protected-local/Cargo.lock
+          cargo audit --file kit/shell/protected-local-node/Cargo.lock
