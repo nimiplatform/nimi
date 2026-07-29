@@ -948,9 +948,9 @@ export enum ReasonCode {
      */
     PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN = 636,
     /**
-     * @generated from protobuf enum value: RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID = 637;
+     * @generated from protobuf enum value: RUNTIME_EXECUTABLE_TRUST_INVALID = 637;
      */
-    RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID = 637,
+    RUNTIME_EXECUTABLE_TRUST_INVALID = 637,
     /**
      * LOCAL_APP family (642+). The third-party principal/record/session and
      * product-permission evaluator uses one provenance-agnostic reason vocabulary.

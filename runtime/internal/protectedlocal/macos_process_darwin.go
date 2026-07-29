@@ -5,15 +5,14 @@ package protectedlocal
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 )
@@ -21,17 +20,14 @@ import (
 const macOSStoppedProcessStatus = 4
 
 type macOSProcessLiveness struct {
-	kqueueFD     int
-	executableFD int
-	pid          uint32
-	snapshot     macOSProcessSnapshot
-	interactive  *macOSAuditIdentity
-	revoked      chan struct{}
-	stop         chan struct{}
-	done         chan struct{}
-	revokeOnce   sync.Once
-	closeOnce    sync.Once
-	closeErr     error
+	kqueueFD    int
+	interactive *macOSAuditIdentity
+	revoked     chan struct{}
+	stop        chan struct{}
+	done        chan struct{}
+	revokeOnce  sync.Once
+	closeOnce   sync.Once
+	closeErr    error
 }
 
 func (liveness *macOSProcessLiveness) Revoked() <-chan struct{} {
@@ -58,9 +54,6 @@ func (liveness *macOSProcessLiveness) Close() error {
 			failures = append(failures, unix.Close(liveness.kqueueFD))
 		}
 		<-liveness.done
-		if liveness.executableFD >= 0 {
-			failures = append(failures, unix.Close(liveness.executableFD))
-		}
 		liveness.closeErr = errors.Join(failures...)
 	})
 	return liveness.closeErr
@@ -90,11 +83,6 @@ func (liveness *macOSProcessLiveness) watch() {
 			return
 		default:
 		}
-		current, err := inspectMacOSProcess(liveness.pid)
-		if err != nil || !sameMacOSProcessSnapshot(liveness.snapshot, current) {
-			liveness.revoke()
-			return
-		}
 		if liveness.interactive != nil {
 			if err := revalidateMacOSGraphicSession(liveness.interactive.euid, liveness.interactive.auditSession); err != nil {
 				liveness.revoke()
@@ -111,33 +99,26 @@ func sameMacOSProcessSnapshot(expected, current macOSProcessSnapshot) bool {
 		expected.executablePath == current.executablePath
 }
 
-func newMacOSProcessLiveness(snapshot macOSProcessSnapshot, executableFD int, interactive *macOSAuditIdentity) (*macOSProcessLiveness, error) {
-	if snapshot.pid == 0 || executableFD < 0 {
+func newMacOSProcessLiveness(snapshot macOSProcessSnapshot, interactive *macOSAuditIdentity) (*macOSProcessLiveness, error) {
+	if snapshot.pid == 0 {
 		return nil, fmt.Errorf("complete macOS process liveness inputs are required")
 	}
 	kqueueFD, err := unix.Kqueue()
 	if err != nil {
 		return nil, fmt.Errorf("create macOS process liveness kqueue: %w", err)
 	}
-	changes := []unix.Kevent_t{
-		{
-			Ident: uint64(snapshot.pid), Filter: unix.EVFILT_PROC,
-			Flags:  unix.EV_ADD | unix.EV_ENABLE | unix.EV_CLEAR,
-			Fflags: unix.NOTE_EXIT | unix.NOTE_EXEC,
-		},
-		{
-			Ident: uint64(executableFD), Filter: unix.EVFILT_VNODE,
-			Flags:  unix.EV_ADD | unix.EV_ENABLE | unix.EV_CLEAR,
-			Fflags: unix.NOTE_DELETE | unix.NOTE_WRITE | unix.NOTE_EXTEND | unix.NOTE_ATTRIB | unix.NOTE_LINK | unix.NOTE_RENAME | unix.NOTE_REVOKE,
-		},
-	}
+	changes := []unix.Kevent_t{{
+		Ident: uint64(snapshot.pid), Filter: unix.EVFILT_PROC,
+		Flags:  unix.EV_ADD | unix.EV_ENABLE | unix.EV_CLEAR,
+		Fflags: unix.NOTE_EXIT | unix.NOTE_EXEC,
+	}}
 	if _, err := unix.Kevent(kqueueFD, changes, nil, nil); err != nil {
 		_ = unix.Close(kqueueFD)
 		return nil, fmt.Errorf("register macOS process liveness witnesses: %w", err)
 	}
 	liveness := &macOSProcessLiveness{
-		kqueueFD: kqueueFD, executableFD: executableFD, pid: snapshot.pid, snapshot: snapshot,
-		interactive: interactive, revoked: make(chan struct{}), stop: make(chan struct{}), done: make(chan struct{}),
+		kqueueFD: kqueueFD, interactive: interactive, revoked: make(chan struct{}),
+		stop: make(chan struct{}), done: make(chan struct{}),
 	}
 	go liveness.watch()
 	return liveness, nil
@@ -161,54 +142,18 @@ func validateMacOSExecutablePath(path, expected string) (string, error) {
 	if err != nil || filepath.Clean(canonical) != cleaned {
 		return "", fmt.Errorf("macOS executable path is not canonical")
 	}
+	info, err := os.Lstat(cleaned)
+	if err != nil || !info.Mode().IsRegular() {
+		return "", fmt.Errorf("macOS executable path is not a regular file")
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || stat.Uid != 0 || info.Mode().Perm()&0o022 != 0 {
+		return "", fmt.Errorf("macOS executable path ownership or mode is not protected")
+	}
 	return cleaned, nil
 }
 
-func openAndHashMacOSExecutable(path string) (int, Identifier, string, error) {
-	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_CLOEXEC|unix.O_NOFOLLOW, 0)
-	if err != nil {
-		return -1, Identifier{}, "", fmt.Errorf("open macOS executable vnode: %w", err)
-	}
-	accepted := false
-	defer func() {
-		if !accepted {
-			_ = unix.Close(fd)
-		}
-	}()
-	var stat unix.Stat_t
-	if err := unix.Fstat(fd, &stat); err != nil || stat.Mode&unix.S_IFMT != unix.S_IFREG || stat.Ino == 0 ||
-		stat.Uid != 0 || stat.Mode&0o022 != 0 {
-		return -1, Identifier{}, "", fmt.Errorf("macOS executable vnode ownership or mode is not release-safe")
-	}
-	duplicate, err := unix.Dup(fd)
-	if err != nil {
-		return -1, Identifier{}, "", fmt.Errorf("duplicate macOS executable vnode: %w", err)
-	}
-	file := os.NewFile(uintptr(duplicate), path)
-	if file == nil {
-		_ = unix.Close(duplicate)
-		return -1, Identifier{}, "", fmt.Errorf("open macOS executable hash reader")
-	}
-	hash := sha256.New()
-	_, copyErr := io.Copy(hash, file)
-	closeErr := file.Close()
-	if copyErr != nil || closeErr != nil {
-		return -1, Identifier{}, "", fmt.Errorf("hash macOS executable vnode")
-	}
-	var digest Identifier
-	copy(digest[:], hash.Sum(nil))
-	identity := fmt.Sprintf("dev:%d:ino:%d:gen:%d:birth:%d.%09d", stat.Dev, stat.Ino, stat.Gen, stat.Btim.Sec, stat.Btim.Nsec)
-	accepted = true
-	return fd, digest, identity, nil
-}
-
-func macOSProcessTuple(snapshot macOSProcessSnapshot, audit *macOSAuditIdentity, code macOSCodeIdentity, policy macOSCodePolicy, digest Identifier, vnodeIdentity string, inheritedSession *ProcessTuple) (ProcessTuple, error) {
-	if code.cdhash != policy.releaseCDHash {
-		return ProcessTuple{}, fmt.Errorf("macOS executable cdhash does not match the signed release policy")
-	}
-	if digest != policy.artifactDigest {
-		return ProcessTuple{}, fmt.Errorf("macOS executable digest does not match the signed role record")
-	}
+func macOSProcessTuple(snapshot macOSProcessSnapshot, audit *macOSAuditIdentity, code macOSCodeIdentity, policy macOSCodePolicy, inheritedSession *ProcessTuple) (ProcessTuple, error) {
 	loginSession := ""
 	securityPrincipal := ""
 	if audit != nil {
@@ -221,13 +166,25 @@ func macOSProcessTuple(snapshot macOSProcessSnapshot, audit *macOSAuditIdentity,
 		loginSession = "launchd-system-domain"
 		securityPrincipal = "uid:" + strconv.FormatUint(uint64(snapshot.euid), 10) + ":" + MacOSRuntimeAccountName
 	}
+	signer := code.teamID
+	if signer == "" {
+		signer = "adhoc"
+	}
+	executableIdentity := fmt.Sprintf(
+		"identifier:%s;team:%s;cdhash:%s",
+		code.signingIdentifier,
+		signer,
+		code.cdhash,
+	)
+	executableDigest := sha256.Sum256([]byte(executableIdentity))
 	tuple := ProcessTuple{
 		OS: OSMacOS, PID: snapshot.pid,
 		CreationMarker: fmt.Sprintf("proc-start:%d.%06d", snapshot.startSeconds, snapshot.startMicros),
 		OSLoginSession: loginSession, SecurityPrincipal: securityPrincipal,
-		CanonicalExecutableIdentity: fmt.Sprintf("identifier:%s;team:%s;cdhash:%s;%s", code.signingIdentifier, code.teamID, code.cdhash, vnodeIdentity),
-		CanonicalExecutablePath:     snapshot.executablePath, ExecutableDigest: digest,
-		ExecutableTrustSetID: policy.trustSetID,
+		CanonicalExecutableIdentity: executableIdentity,
+		CanonicalExecutablePath:     snapshot.executablePath,
+		ExecutableDigest:            Identifier(executableDigest),
+		ExecutableTrustSetID:        policy.trustSetID,
 	}
 	return tuple, tuple.validate()
 }
@@ -245,20 +202,9 @@ func verifyMacOSProcess(snapshot macOSProcessSnapshot, audit *macOSAuditIdentity
 	if requireSuspended && snapshot.status != macOSStoppedProcessStatus {
 		return ProcessTuple{}, nil, fmt.Errorf("macOS supervised process is not start-suspended")
 	}
-	canonical, err := validateMacOSExecutablePath(snapshot.executablePath, expectedPath)
-	if err != nil {
+	if _, err := validateMacOSExecutablePath(snapshot.executablePath, expectedPath); err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	executableFD, digest, vnodeIdentity, err := openAndHashMacOSExecutable(canonical)
-	if err != nil {
-		return ProcessTuple{}, nil, err
-	}
-	accepted := false
-	defer func() {
-		if !accepted {
-			_ = unix.Close(executableFD)
-		}
-	}()
 	code, err := verifyMacOSDynamicCode(snapshot.pid, audit, policy)
 	if err != nil {
 		return ProcessTuple{}, nil, err
@@ -267,15 +213,14 @@ func verifyMacOSProcess(snapshot macOSProcessSnapshot, audit *macOSAuditIdentity
 	if err != nil || !sameMacOSProcessSnapshot(snapshot, current) {
 		return ProcessTuple{}, nil, fmt.Errorf("macOS process changed during trust verification")
 	}
-	tuple, err := macOSProcessTuple(snapshot, audit, code, policy, digest, vnodeIdentity, inheritedSession)
+	tuple, err := macOSProcessTuple(snapshot, audit, code, policy, inheritedSession)
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	liveness, err := newMacOSProcessLiveness(snapshot, executableFD, audit)
+	liveness, err := newMacOSProcessLiveness(snapshot, audit)
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	accepted = true
 	return tuple, liveness, nil
 }
 
@@ -291,26 +236,15 @@ func verifyMacOSRuntimeProcess() (ProcessTuple, DesktopProcessLiveness, error) {
 	return verifyMacOSProcess(snapshot, nil, policy, MacOSRuntimeExecutablePath, 1, false, nil)
 }
 
-type macOSLocalDevelopmentProcessVerifier struct {
-	state *MacOSRuntimeSecurityState
-}
+type macOSLocalDevelopmentProcessVerifier struct{}
 
 func NewMacOSLocalDevelopmentProcessVerifier(state *MacOSRuntimeSecurityState) (LocalDevelopmentProcessVerifier, error) {
-	if state == nil || state.ledger == nil {
+	if state == nil || state.bootEpoch == (Identifier{}) || state.stateRoot == "" ||
+		state.stateLock == nil || state.runtimeLiveness == nil || state.secrets == nil ||
+		state.desktopSessions == nil || state.localAppLaunches == nil {
 		return nil, fmt.Errorf("verified macOS Runtime security state is required")
 	}
-	host, err := macOSLocalAppHostCodePolicy()
-	if err != nil {
-		return nil, err
-	}
-	runtimePolicy, err := macOSRuntimeCodePolicy()
-	if err != nil {
-		return nil, err
-	}
-	if err := requireMacOSReleaseCompatibility(host, runtimePolicy); err != nil {
-		return nil, err
-	}
-	return macOSLocalDevelopmentProcessVerifier{state: state}, nil
+	return macOSLocalDevelopmentProcessVerifier{}, nil
 }
 
 func (verifier macOSLocalDevelopmentProcessVerifier) VerifyLocalDevelopmentProcess(ctx context.Context, pid uint32, policy LocalDevelopmentProcessPolicy) (ProcessTuple, DesktopProcessLiveness, error) {
@@ -336,17 +270,9 @@ func (verifier macOSLocalDevelopmentProcessVerifier) VerifyLocalDevelopmentProce
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	runtimePolicy, err := macOSRuntimeCodePolicy()
-	if err != nil || requireMacOSReleaseCompatibility(hostPolicy, runtimePolicy) != nil {
-		return ProcessTuple{}, nil, fmt.Errorf("macOS local-app host release is incompatible with Runtime")
-	}
 	process, liveness, err := verifyMacOSProcess(snapshot, nil, hostPolicy, MacOSLocalAppHostPath, desktop.PID, true, &desktop)
 	if err != nil {
 		return ProcessTuple{}, nil, err
-	}
-	if verifier.state == nil || verifier.state.ledger == nil || verifier.state.ledger.AdmitReleaseLineage(ctx, hostPolicy.releaseLineage()) != nil {
-		_ = liveness.Close()
-		return ProcessTuple{}, nil, fmt.Errorf("admit macOS local-app host release lineage")
 	}
 	return process, liveness, nil
 }
@@ -358,13 +284,6 @@ func verifyConnectedMacOSDesktop(audit macOSAuditIdentity) (ProcessTuple, Deskto
 	}
 	desktopPolicy, err := macOSDesktopCodePolicy()
 	if err != nil {
-		return ProcessTuple{}, nil, err
-	}
-	runtimePolicy, err := macOSRuntimeCodePolicy()
-	if err != nil {
-		return ProcessTuple{}, nil, err
-	}
-	if err := requireMacOSReleaseCompatibility(desktopPolicy, runtimePolicy); err != nil {
 		return ProcessTuple{}, nil, err
 	}
 	return verifyMacOSProcess(snapshot, &audit, desktopPolicy, MacOSDesktopExecutablePath, 0, false, nil)
@@ -382,13 +301,6 @@ func verifyConnectedMacOSLocalApp(audit macOSAuditIdentity, expected ProcessTupl
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	runtimePolicy, err := macOSRuntimeCodePolicy()
-	if err != nil {
-		return ProcessTuple{}, nil, err
-	}
-	if err := requireMacOSReleaseCompatibility(hostPolicy, runtimePolicy); err != nil {
-		return ProcessTuple{}, nil, err
-	}
 	peer, liveness, err := verifyMacOSProcess(snapshot, &audit, hostPolicy, MacOSLocalAppHostPath, desktopPID, false, &expected)
 	if err != nil {
 		return ProcessTuple{}, nil, err
@@ -398,17 +310,4 @@ func verifyConnectedMacOSLocalApp(audit macOSAuditIdentity, expected ProcessTupl
 		return ProcessTuple{}, nil, fmt.Errorf("connected macOS local-app process changed after pre-bind")
 	}
 	return peer, liveness, nil
-}
-
-func macOSExecutableSHA256(path string) (string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = file.Close() }()
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
 }

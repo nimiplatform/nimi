@@ -291,6 +291,7 @@ if (isMainModule()) {
       reasonCode: error?.reasonCode || 'dev-runtime-service-failed',
       actionHint: error?.actionHint || 'inspect_dev_runtime_failure',
       message: error instanceof Error ? error.message : String(error),
+      ...(error?.details === undefined ? {} : { details: error.details }),
     };
     process.stderr.write(`${JSON.stringify(failure)}\n`);
     process.exitCode = 1;

@@ -1,18 +1,9 @@
 // Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT.
 export const MACOS_LOCAL_DEVELOPMENT_PROFILE = Object.freeze({
-  "admission": "local_development_candidate_fail_closed_pending_real_acceptance",
-  "profileId": "macos_local_development_v1",
-  "carrier": 4,
-  "legacyReasonCode": "legacy-local-dev-profile-not-supported",
-  "environment": "local_development",
-  "identityClass": "local_ca",
-  "signatureAlgorithm": "ecdsa_p256_sha256",
-  "signerPolicyId": "nimi-macos-local-development-signing-policy",
   "runtimeServiceLabel": "ai.nimi.runtime.dev",
   "runtimeAccountName": "_nimiruntimedev",
   "runtimeExecutablePath": "/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime",
   "runtimeStateRoot": "/Library/Application Support/Nimi/RuntimeDev/state",
-  "trustRecordRoot": "/Library/Application Support/Nimi/RuntimeDev/active/trust/protected-local/v1",
   "desktopApplicationPath": "/Applications/Nimi Dev.app",
   "desktopExecutablePath": "/Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev",
   "localAppHostPath": "/Applications/Nimi Dev.app/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev",
@@ -21,7 +12,6 @@ export const MACOS_LOCAL_DEVELOPMENT_PROFILE = Object.freeze({
   "desktopSigningIdentifier": "ai.nimi.apps.nimi.desktop.dev",
   "localAppHostSigningIdentifier": "ai.nimi.apps.nimi.local-app-host.dev",
   "installerSigningIdentifier": "ai.nimi.dev-installer",
-  "releaseRecordSchemaVersion": 3,
   "architecture": "arm64",
   "runtimeTrustSetId": "nimi-runtime-macos-local-development-v1",
   "desktopTrustSetId": "nimi-desktop-macos-local-development-v1",
@@ -31,11 +21,5 @@ export const MACOS_LOCAL_DEVELOPMENT_PROFILE = Object.freeze({
   "desktopSocketPath": "/private/var/run/nimi-dev/runtime-desktop.sock",
   "localAppSocketPath": "/private/var/run/nimi-dev/runtime-local-app.sock",
   "keychainService": "ai.nimi.runtime.protected-local.dev.v1",
-  "runtimeKeychainAccounts": [
-    "ledger-anchor-v1",
-    "ledger-record-hmac-v1"
-  ],
-  "signingKeychainRelativePath": "Library/Keychains/nimi-local-development-signing.keychain-db",
-  "helperPath": "/usr/local/libexec/nimi-macos-dev-security",
-  "freshProfileSchemaVersion": "nimi.macos-local-development-signing-profile/fresh-carrier-4/v1"
+  "helperPath": "/usr/local/libexec/nimi-macos-dev-security"
 });

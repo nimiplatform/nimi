@@ -2,7 +2,11 @@
 
 package protectedlocal
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestClassifyMacOSProvisionInventoryFresh(t *testing.T) {
 	disposition, err := classifyMacOSProvisionInventory(macOSProvisionInventory{})
@@ -16,8 +20,8 @@ func TestClassifyMacOSProvisionInventoryFresh(t *testing.T) {
 
 func TestClassifyMacOSProvisionInventoryExisting(t *testing.T) {
 	for _, inventory := range []macOSProvisionInventory{
-		{stateLock: true, ledger: true, recordKey: true, anchor: true},
-		{stateLock: true, ledger: true, ledgerWAL: true, ledgerSHM: true, runtimeDir: true, recordKey: true, anchor: true},
+		{stateLock: true},
+		{stateLock: true, runtimeDir: true},
 	} {
 		disposition, err := classifyMacOSProvisionInventory(inventory)
 		if err != nil {
@@ -31,21 +35,22 @@ func TestClassifyMacOSProvisionInventoryExisting(t *testing.T) {
 
 func TestClassifyMacOSProvisionInventoryRejectsPartialState(t *testing.T) {
 	partials := []macOSProvisionInventory{
-		{stateLock: true},
-		{ledger: true},
-		{ledgerWAL: true},
-		{ledgerSHM: true},
 		{runtimeDir: true},
-		{recordKey: true},
-		{anchor: true},
-		{stateLock: true, ledger: true, recordKey: true},
-		{stateLock: true, ledger: true, anchor: true},
-		{stateLock: true, recordKey: true, anchor: true},
-		{ledger: true, recordKey: true, anchor: true},
 	}
 	for _, inventory := range partials {
 		if _, err := classifyMacOSProvisionInventory(inventory); !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
 			t.Fatalf("partial inventory %+v error = %v", inventory, err)
 		}
+	}
+}
+
+func TestInspectMacOSProvisionInventoryRejectsUnknownEntries(t *testing.T) {
+	stateRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(stateRoot, "unexpected-entry"), []byte("unexpected"), 0o600); err != nil {
+		t.Fatalf("write unknown macOS state entry: %v", err)
+	}
+	_, err := inspectMacOSProvisionInventory(stateRoot, macOSRuntimePrincipal{uid: uint32(os.Geteuid()), gid: uint32(os.Getegid())})
+	if !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
+		t.Fatalf("unknown state entry inventory error = %v", err)
 	}
 }

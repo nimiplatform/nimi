@@ -1,7 +1,7 @@
-#[cfg(target_os = "macos")]
-use nimi_shell_protected_local::MacOsUnixSocketCarrier;
 #[cfg(not(target_os = "windows"))]
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
+#[cfg(target_os = "macos")]
+use nimi_shell_protected_local::{FixedRuntimeServiceControl, MacOsUnixSocketCarrier};
 use nimi_shell_protected_local::{
     LinuxLocalAppCarrier, LinuxUnixSocketCarrier, LocalAppReasonCode, MacOsLocalAppCarrier,
     NimiLocalAppCarrier, NimiProtectedLocalHostCarrier, ProtectedCarrierReasonCode,

@@ -6,12 +6,9 @@ package protectedlocal
 #cgo CFLAGS: -mmacosx-version-min=13.0
 #cgo LDFLAGS: -framework CoreFoundation -framework Security -framework SystemConfiguration -lbsm
 
-#include <CommonCrypto/CommonDigest.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/AuthSession.h>
-#include <Security/SecCertificate.h>
 #include <Security/SecCode.h>
-#include <Security/SecKey.h>
 #include <Security/SecRequirement.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #include <bsm/libbsm.h>
@@ -53,9 +50,7 @@ typedef struct {
 
 typedef struct {
     char team_id[128];
-    char leaf_spki_sha256[65];
     char signing_identifier[256];
-    char designated_requirement[2048];
     unsigned char cdhash[64];
     size_t cdhash_len;
     uint32_t code_flags;
@@ -218,54 +213,20 @@ static int nimi_macos_code_for_process(uint32_t pid, const audit_token_t *token,
     return status == errSecSuccess && *output != NULL ? 0 : (int)status;
 }
 
-static int nimi_macos_leaf_spki_sha256(CFDictionaryRef signing, char output[65]) {
-    if (signing == NULL || output == NULL) return EINVAL;
-    CFArrayRef certificates = (CFArrayRef)CFDictionaryGetValue(signing, kSecCodeInfoCertificates);
-    if (certificates == NULL || CFGetTypeID(certificates) != CFArrayGetTypeID() ||
-        CFArrayGetCount(certificates) < 1) return EACCES;
-    SecCertificateRef leaf = (SecCertificateRef)CFArrayGetValueAtIndex(certificates, 0);
-    if (leaf == NULL || CFGetTypeID(leaf) != SecCertificateGetTypeID()) return EACCES;
-    SecKeyRef public_key = SecCertificateCopyKey(leaf);
-    if (public_key == NULL) return EACCES;
-    CFErrorRef error = NULL;
-    CFDataRef external = SecKeyCopyExternalRepresentation(public_key, &error);
-    CFRelease(public_key);
-    if (error != NULL) CFRelease(error);
-    if (external == NULL || CFDataGetLength(external) != 65 ||
-        CFDataGetBytePtr(external)[0] != 0x04) {
-        if (external != NULL) CFRelease(external);
-        return EACCES;
-    }
-    static const unsigned char p256_spki_prefix[] = {
-        0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d,
-        0x02, 0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01,
-        0x07, 0x03, 0x42, 0x00,
-    };
-    unsigned char spki[sizeof(p256_spki_prefix) + 65];
-    memcpy(spki, p256_spki_prefix, sizeof(p256_spki_prefix));
-    memcpy(spki + sizeof(p256_spki_prefix), CFDataGetBytePtr(external), 65);
-    CFRelease(external);
-    unsigned char digest[CC_SHA256_DIGEST_LENGTH];
-    CC_SHA256(spki, (CC_LONG)sizeof(spki), digest);
-    static const char hex[] = "0123456789abcdef";
-    for (size_t index = 0; index < sizeof(digest); index++) {
-        output[index * 2] = hex[digest[index] >> 4];
-        output[index * 2 + 1] = hex[digest[index] & 0x0f];
-    }
-    output[64] = '\0';
-    return 0;
-}
-
 static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity *audit,
                                   const char *expected_requirement,
                                   const char *expected_team,
-                                  const char *expected_leaf_spki_sha256,
                                   const char *expected_identifier,
+                                  int require_trusted_anchor,
+                                  int require_ad_hoc,
                                   nimi_macos_code_identity *output) {
     if (pid == 0 || expected_requirement == NULL || expected_team == NULL ||
-        expected_leaf_spki_sha256 == NULL || expected_identifier == NULL || output == NULL ||
+        expected_identifier == NULL || output == NULL ||
         expected_requirement[0] == '\0' || expected_identifier[0] == '\0' ||
-        ((expected_team[0] == '\0') == (expected_leaf_spki_sha256[0] == '\0'))) {
+        (require_trusted_anchor != 0 && require_trusted_anchor != 1) ||
+        (require_ad_hoc != 0 && require_ad_hoc != 1) ||
+        (require_ad_hoc && (expected_team[0] != '\0' || require_trusted_anchor)) ||
+        (!require_ad_hoc && (expected_team[0] == '\0' || !require_trusted_anchor))) {
         return EINVAL;
     }
     memset(output, 0, sizeof(*output));
@@ -280,12 +241,13 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
     }
     CFStringRef expected_requirement_string = CFStringCreateWithCString(
         kCFAllocatorDefault, expected_requirement, kCFStringEncodingUTF8);
-    CFStringRef expected_team_string = expected_team[0] == '\0' ? NULL : CFStringCreateWithCString(
-        kCFAllocatorDefault, expected_team, kCFStringEncodingUTF8);
+    CFStringRef expected_team_string = expected_team[0] == '\0' ? NULL :
+        CFStringCreateWithCString(kCFAllocatorDefault, expected_team, kCFStringEncodingUTF8);
     CFStringRef expected_identifier_string = CFStringCreateWithCString(
         kCFAllocatorDefault, expected_identifier, kCFStringEncodingUTF8);
     if (expected_requirement_string == NULL ||
-        (expected_team[0] != '\0' && expected_team_string == NULL) || expected_identifier_string == NULL) {
+        (expected_team[0] != '\0' && expected_team_string == NULL) ||
+        expected_identifier_string == NULL) {
         result = ENOMEM;
         goto cleanup_strings;
     }
@@ -296,7 +258,9 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
         result = (int)status;
         goto cleanup_strings;
     }
-    status = SecCodeCheckValidity(code, kSecCSStrictValidate | kSecCSCheckAllArchitectures, requirement);
+    SecCSFlags validation_flags = kSecCSStrictValidate | kSecCSCheckAllArchitectures;
+    if (require_trusted_anchor) validation_flags |= kSecCSCheckTrustedAnchors;
+    status = SecCodeCheckValidity(code, validation_flags, requirement);
     if (status != errSecSuccess) {
         result = (int)status;
         CFRelease(requirement);
@@ -314,20 +278,17 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
     CFStringRef identifier = (CFStringRef)CFDictionaryGetValue(signing, kSecCodeInfoIdentifier);
     CFDataRef cdhash = (CFDataRef)CFDictionaryGetValue(signing, kSecCodeInfoUnique);
     CFNumberRef flags = (CFNumberRef)CFDictionaryGetValue(signing, kSecCodeInfoFlags);
+    int32_t code_flags = 0;
     if (identifier == NULL || cdhash == NULL || flags == NULL ||
         CFGetTypeID(identifier) != CFStringGetTypeID() ||
         CFGetTypeID(cdhash) != CFDataGetTypeID() || CFGetTypeID(flags) != CFNumberGetTypeID() ||
-        (expected_team_string != NULL && (team == NULL || CFGetTypeID(team) != CFStringGetTypeID() ||
-            !CFEqual(team, expected_team_string))) ||
-        (expected_team_string == NULL && team != NULL) || !CFEqual(identifier, expected_identifier_string)) {
-        result = EACCES;
-        CFRelease(signing);
-        CFRelease(requirement);
-        goto cleanup_strings;
-    }
-    int32_t code_flags = 0;
-    if (!CFNumberGetValue(flags, kCFNumberSInt32Type, &code_flags) ||
-        (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0) {
+        !CFEqual(identifier, expected_identifier_string) ||
+        !CFNumberGetValue(flags, kCFNumberSInt32Type, &code_flags) ||
+        (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0 ||
+        (require_ad_hoc && ((((uint32_t)code_flags) & kSecCodeSignatureAdhoc) == 0 || team != NULL)) ||
+        (!require_ad_hoc && ((((uint32_t)code_flags) & kSecCodeSignatureAdhoc) != 0 ||
+            team == NULL || CFGetTypeID(team) != CFStringGetTypeID() ||
+            !CFEqual(team, expected_team_string)))) {
         result = EACCES;
         CFRelease(signing);
         CFRelease(requirement);
@@ -341,43 +302,16 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
         goto cleanup_strings;
     }
 
-    SecRequirementRef actual_requirement = NULL;
-    CFStringRef actual_requirement_string = NULL;
-    status = SecCodeCopyDesignatedRequirement((SecStaticCodeRef)code, kSecCSDefaultFlags, &actual_requirement);
-    if (status != errSecSuccess || actual_requirement == NULL) {
-        result = (int)status;
-        CFRelease(signing);
-        CFRelease(requirement);
-        goto cleanup_strings;
-    }
-    status = SecRequirementCopyString(actual_requirement, kSecCSDefaultFlags, &actual_requirement_string);
-    if (status != errSecSuccess || actual_requirement_string == NULL ||
-        !CFEqual(actual_requirement_string, expected_requirement_string)) {
-        result = status == errSecSuccess ? EACCES : (int)status;
-        if (actual_requirement_string != NULL) CFRelease(actual_requirement_string);
-        CFRelease(actual_requirement);
-        CFRelease(signing);
-        CFRelease(requirement);
-        goto cleanup_strings;
-    }
-
     result = 0;
-    if (team != NULL) result = nimi_copy_cf_string(team, output->team_id, sizeof(output->team_id));
-    if (result == 0 && expected_leaf_spki_sha256[0] != '\0') {
-        result = nimi_macos_leaf_spki_sha256(signing, output->leaf_spki_sha256);
-        if (result == 0 && strcmp(output->leaf_spki_sha256, expected_leaf_spki_sha256) != 0) {
-            result = EACCES;
-        }
+    if (!require_ad_hoc) {
+        result = nimi_copy_cf_string(team, output->team_id, sizeof(output->team_id));
     }
     if (result == 0) result = nimi_copy_cf_string(identifier, output->signing_identifier, sizeof(output->signing_identifier));
-    if (result == 0) result = nimi_copy_cf_string(actual_requirement_string, output->designated_requirement, sizeof(output->designated_requirement));
     if (result == 0) {
         memcpy(output->cdhash, CFDataGetBytePtr(cdhash), (size_t)cdhash_len);
         output->cdhash_len = (size_t)cdhash_len;
         output->code_flags = (uint32_t)code_flags;
     }
-    CFRelease(actual_requirement_string);
-    CFRelease(actual_requirement);
     CFRelease(signing);
     CFRelease(requirement);
 
@@ -392,16 +326,20 @@ cleanup_strings:
 static int nimi_macos_verify_outer_bundle(const char *expected_path,
                                           const char *expected_requirement,
                                           const char *expected_team,
-                                          const char *expected_leaf_spki_sha256,
                                           const char *expected_identifier,
                                           int require_trusted_anchor,
-                                          int require_notarization) {
+                                          int require_notarization,
+                                          int require_ad_hoc) {
     if (expected_requirement == NULL || expected_path == NULL || expected_team == NULL ||
-        expected_leaf_spki_sha256 == NULL || expected_identifier == NULL ||
+        expected_identifier == NULL ||
         expected_requirement[0] == '\0' || expected_path[0] != '/' ||
         expected_identifier[0] == '\0' ||
-        ((expected_team[0] == '\0') == (expected_leaf_spki_sha256[0] == '\0')) ||
-        (require_notarization && !require_trusted_anchor)) {
+        (require_trusted_anchor != 0 && require_trusted_anchor != 1) ||
+        (require_notarization != 0 && require_notarization != 1) ||
+        (require_ad_hoc != 0 && require_ad_hoc != 1) ||
+        (require_notarization && (!require_trusted_anchor || require_ad_hoc)) ||
+        (require_ad_hoc && (expected_team[0] != '\0' || require_trusted_anchor)) ||
+        (!require_ad_hoc && (expected_team[0] == '\0' || !require_trusted_anchor))) {
         return EINVAL;
     }
     CFURLRef url = CFURLCreateFromFileSystemRepresentation(
@@ -417,11 +355,12 @@ static int nimi_macos_verify_outer_bundle(const char *expected_path,
     }
     CFStringRef requirement_string = CFStringCreateWithCString(
         kCFAllocatorDefault, expected_requirement, kCFStringEncodingUTF8);
-    CFStringRef team_string = expected_team[0] == '\0' ? NULL : CFStringCreateWithCString(
-        kCFAllocatorDefault, expected_team, kCFStringEncodingUTF8);
+    CFStringRef team_string = expected_team[0] == '\0' ? NULL :
+        CFStringCreateWithCString(kCFAllocatorDefault, expected_team, kCFStringEncodingUTF8);
     CFStringRef identifier_string = CFStringCreateWithCString(
         kCFAllocatorDefault, expected_identifier, kCFStringEncodingUTF8);
-    if (requirement_string == NULL || (expected_team[0] != '\0' && team_string == NULL) ||
+    if (requirement_string == NULL ||
+        (expected_team[0] != '\0' && team_string == NULL) ||
         identifier_string == NULL) {
         if (identifier_string != NULL) CFRelease(identifier_string);
         if (team_string != NULL) CFRelease(team_string);
@@ -458,9 +397,6 @@ static int nimi_macos_verify_outer_bundle(const char *expected_path,
             CFDataRef ticket = (CFDataRef)CFDictionaryGetValue(signing, kSecCodeInfoStapledNotarizationTicket);
             CFNumberRef flags = (CFNumberRef)CFDictionaryGetValue(signing, kSecCodeInfoFlags);
             int32_t code_flags = 0;
-            char leaf_spki_sha256[65] = {0};
-            int leaf_status = expected_leaf_spki_sha256[0] == '\0' ? 0 :
-                nimi_macos_leaf_spki_sha256(signing, leaf_spki_sha256);
             if (identifier == NULL || flags == NULL ||
                 CFGetTypeID(identifier) != CFStringGetTypeID() ||
                 CFGetTypeID(flags) != CFNumberGetTypeID() ||
@@ -468,11 +404,11 @@ static int nimi_macos_verify_outer_bundle(const char *expected_path,
                     CFDataGetLength(ticket) <= 0)) ||
                 !CFNumberGetValue(flags, kCFNumberSInt32Type, &code_flags) ||
                 (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0 ||
-                (team_string != NULL && (team == NULL || CFGetTypeID(team) != CFStringGetTypeID() ||
+                (require_ad_hoc && ((((uint32_t)code_flags) & kSecCodeSignatureAdhoc) == 0 ||
+                    team != NULL)) ||
+                (!require_ad_hoc && ((((uint32_t)code_flags) & kSecCodeSignatureAdhoc) != 0 ||
+                    team == NULL || CFGetTypeID(team) != CFStringGetTypeID() ||
                     !CFEqual(team, team_string))) ||
-                (team_string == NULL && team != NULL) || leaf_status != 0 ||
-                (expected_leaf_spki_sha256[0] != '\0' &&
-                    strcmp(leaf_spki_sha256, expected_leaf_spki_sha256) != 0) ||
                 !CFEqual(identifier, identifier_string)) {
                 status = errSecCSReqFailed;
             }
@@ -480,21 +416,6 @@ static int nimi_macos_verify_outer_bundle(const char *expected_path,
         } else if (status == errSecSuccess) {
             status = errSecCSReqFailed;
         }
-    }
-    if (status == errSecSuccess) {
-        SecRequirementRef actual_requirement = NULL;
-        CFStringRef actual_requirement_string = NULL;
-        status = SecCodeCopyDesignatedRequirement(code, kSecCSDefaultFlags, &actual_requirement);
-        if (status == errSecSuccess && actual_requirement != NULL) {
-            status = SecRequirementCopyString(
-                actual_requirement, kSecCSDefaultFlags, &actual_requirement_string);
-        }
-        if (status != errSecSuccess || actual_requirement_string == NULL ||
-            !CFEqual(actual_requirement_string, requirement_string)) {
-            status = status == errSecSuccess ? errSecCSReqFailed : status;
-        }
-        if (actual_requirement_string != NULL) CFRelease(actual_requirement_string);
-        if (actual_requirement != NULL) CFRelease(actual_requirement);
     }
     CFRelease(requirement);
     CFRelease(identifier_string);
@@ -537,12 +458,10 @@ type macOSProcessSnapshot struct {
 }
 
 type macOSCodeIdentity struct {
-	teamID                string
-	leafSPKISHA256        string
-	signingIdentifier     string
-	designatedRequirement string
-	cdhash                string
-	codeFlags             uint32
+	teamID            string
+	signingIdentifier string
+	cdhash            string
+	codeFlags         uint32
 }
 
 type macOSRuntimeAccountRecord struct {
@@ -567,16 +486,14 @@ func lookupMacOSRuntimeAccount(name string) (macOSRuntimeAccountRecord, error) {
 	}, nil
 }
 
-func verifyMacOSOuterBundleSeal(applicationPath, designatedRequirement, teamID, leafSPKISHA256, signingIdentifier string, requireTrustedAnchor, requireNotarization bool) error {
+func verifyMacOSOuterBundleSeal(applicationPath, directRequirement, teamID, signingIdentifier string, requireTrustedAnchor, requireNotarization, requireAdHoc bool) error {
 	application := C.CString(applicationPath)
-	requirement := C.CString(designatedRequirement)
+	requirement := C.CString(directRequirement)
 	team := C.CString(teamID)
-	leafSPKI := C.CString(leafSPKISHA256)
 	identifier := C.CString(signingIdentifier)
 	defer C.free(unsafe.Pointer(application))
 	defer C.free(unsafe.Pointer(requirement))
 	defer C.free(unsafe.Pointer(team))
-	defer C.free(unsafe.Pointer(leafSPKI))
 	defer C.free(unsafe.Pointer(identifier))
 	trustedAnchor := C.int(0)
 	if requireTrustedAnchor {
@@ -586,7 +503,11 @@ func verifyMacOSOuterBundleSeal(applicationPath, designatedRequirement, teamID, 
 	if requireNotarization {
 		notarization = 1
 	}
-	if result := C.nimi_macos_verify_outer_bundle(application, requirement, team, leafSPKI, identifier, trustedAnchor, notarization); result != 0 {
+	adHoc := C.int(0)
+	if requireAdHoc {
+		adHoc = 1
+	}
+	if result := C.nimi_macos_verify_outer_bundle(application, requirement, team, identifier, trustedAnchor, notarization, adHoc); result != 0 {
 		return fmt.Errorf("verify macOS outer application signature and resource seal: native status %d", int(result))
 	}
 	return nil
@@ -643,20 +564,35 @@ func verifyMacOSDynamicCode(pid uint32, audit *macOSAuditIdentity, policy macOSC
 	if err := policy.validate(); err != nil {
 		return macOSCodeIdentity{}, err
 	}
-	requirement := C.CString(policy.designatedRequirement)
+	requirement := C.CString(policy.directRequirement)
 	team := C.CString(policy.teamID)
-	leafSPKI := C.CString(policy.leafSPKISHA256)
 	identifier := C.CString(policy.signingIdentifier)
 	defer C.free(unsafe.Pointer(requirement))
 	defer C.free(unsafe.Pointer(team))
-	defer C.free(unsafe.Pointer(leafSPKI))
 	defer C.free(unsafe.Pointer(identifier))
 	var native C.nimi_macos_code_identity
 	var nativeAudit *C.nimi_macos_audit_identity
 	if audit != nil {
 		nativeAudit = &audit.native
 	}
-	result := C.nimi_macos_verify_code(C.uint32_t(pid), nativeAudit, requirement, team, leafSPKI, identifier, &native)
+	trustedAnchor := C.int(0)
+	if policy.requireTrustedAnchor {
+		trustedAnchor = 1
+	}
+	adHoc := C.int(0)
+	if policy.requireAdHoc {
+		adHoc = 1
+	}
+	result := C.nimi_macos_verify_code(
+		C.uint32_t(pid),
+		nativeAudit,
+		requirement,
+		team,
+		identifier,
+		trustedAnchor,
+		adHoc,
+		&native,
+	)
 	if result != 0 {
 		return macOSCodeIdentity{}, fmt.Errorf("verify macOS dynamic code: native status %d", int(result))
 	}
@@ -666,15 +602,14 @@ func verifyMacOSDynamicCode(pid uint32, audit *macOSAuditIdentity, policy macOSC
 	}
 	cdhashBytes := C.GoBytes(unsafe.Pointer(&native.cdhash[0]), C.int(cdhashLength))
 	identity := macOSCodeIdentity{
-		teamID:                C.GoString(&native.team_id[0]),
-		leafSPKISHA256:        C.GoString(&native.leaf_spki_sha256[0]),
-		signingIdentifier:     C.GoString(&native.signing_identifier[0]),
-		designatedRequirement: C.GoString(&native.designated_requirement[0]),
-		cdhash:                hex.EncodeToString(cdhashBytes),
-		codeFlags:             uint32(native.code_flags),
+		teamID:            C.GoString(&native.team_id[0]),
+		signingIdentifier: C.GoString(&native.signing_identifier[0]),
+		cdhash:            hex.EncodeToString(cdhashBytes),
+		codeFlags:         uint32(native.code_flags),
 	}
-	if identity.teamID != policy.teamID || identity.leafSPKISHA256 != policy.leafSPKISHA256 || identity.signingIdentifier != policy.signingIdentifier || identity.designatedRequirement != policy.designatedRequirement || identity.cdhash == "" {
-		return macOSCodeIdentity{}, fmt.Errorf("verify macOS dynamic code: release identity mismatch")
+	if identity.teamID != policy.teamID ||
+		identity.signingIdentifier != policy.signingIdentifier || identity.cdhash == "" {
+		return macOSCodeIdentity{}, fmt.Errorf("verify macOS dynamic code: direct signer identity mismatch")
 	}
 	return identity, nil
 }

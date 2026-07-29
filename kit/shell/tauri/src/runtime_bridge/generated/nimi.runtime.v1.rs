@@ -292,7 +292,7 @@ pub enum ReasonCode {
     ProtectedLocalRuntimePrincipalRequired = 634,
     ProtectedLocalCustodyBoundaryUnavailable = 635,
     ProtectedLocalProductionConfigOverrideForbidden = 636,
-    RuntimeExecutableTrustRecordInvalid = 637,
+    RuntimeExecutableTrustInvalid = 637,
     /// LOCAL_APP family (642+). The third-party principal/record/session and
     /// product-permission evaluator uses one provenance-agnostic reason vocabulary.
     LocalAppPrincipalRequired = 642,
@@ -561,9 +561,7 @@ impl ReasonCode {
             Self::ProtectedLocalProductionConfigOverrideForbidden => {
                 "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN"
             }
-            Self::RuntimeExecutableTrustRecordInvalid => {
-                "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID"
-            }
+            Self::RuntimeExecutableTrustInvalid => "RUNTIME_EXECUTABLE_TRUST_INVALID",
             Self::LocalAppPrincipalRequired => "LOCAL_APP_PRINCIPAL_REQUIRED",
             Self::LocalAppRecordNotFound => "LOCAL_APP_RECORD_NOT_FOUND",
             Self::LocalAppRecordTombstoned => "LOCAL_APP_RECORD_TOMBSTONED",
@@ -856,8 +854,8 @@ impl ReasonCode {
             "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN" => {
                 Some(Self::ProtectedLocalProductionConfigOverrideForbidden)
             }
-            "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID" => {
-                Some(Self::RuntimeExecutableTrustRecordInvalid)
+            "RUNTIME_EXECUTABLE_TRUST_INVALID" => {
+                Some(Self::RuntimeExecutableTrustInvalid)
             }
             "LOCAL_APP_PRINCIPAL_REQUIRED" => Some(Self::LocalAppPrincipalRequired),
             "LOCAL_APP_RECORD_NOT_FOUND" => Some(Self::LocalAppRecordNotFound),

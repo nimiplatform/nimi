@@ -123,13 +123,6 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			_ = raw.Close()
 			continue
 		}
-		desktopPolicy, err := macOSDesktopCodePolicy()
-		if err != nil || desktopPolicy.artifactDigest != client.ExecutableDigest ||
-			listener.state.ledger.AdmitReleaseLineage(ctx, desktopPolicy.releaseLineage()) != nil {
-			_ = liveness.Close()
-			_ = raw.Close()
-			continue
-		}
 		if err := listener.state.BindInteractiveIdentity(audit); err != nil {
 			_ = liveness.Close()
 			_ = raw.Close()

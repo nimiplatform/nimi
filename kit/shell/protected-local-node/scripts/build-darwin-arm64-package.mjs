@@ -11,33 +11,35 @@ if (process.platform !== 'darwin' || process.arch !== 'arm64') {
   throw new Error('darwin-arm64 protected-local package must be built natively on Apple Silicon');
 }
 
-const productionPolicy = [
-  'NIMI_PLATFORM_RELEASE_ROOT_KEY_ID',
-  'NIMI_PLATFORM_RELEASE_ROOT_PUBLIC_KEY_B64URL',
-];
-const localDevelopmentPolicy = [
-  'NIMI_MACOS_LOCAL_DEVELOPMENT_RELEASE_ROOT_KEY_ID',
-  'NIMI_MACOS_LOCAL_DEVELOPMENT_RELEASE_ROOT_PUBLIC_KEY_B64URL',
-];
 const localDevelopment = process.argv.includes('--local-development');
-const failClosedCandidate = process.argv.includes('--fail-closed-candidate');
-const knownArguments = new Set(['--local-development', '--fail-closed-candidate']);
+const layoutOnly = process.argv.includes('--layout-only');
+const knownArguments = new Set(['--local-development', '--layout-only']);
 const unknownArgument = process.argv.slice(2).find((value) => !knownArguments.has(value));
 if (unknownArgument) throw new Error(`unsupported protected-local macOS build argument: ${unknownArgument}`);
-if (localDevelopment && failClosedCandidate) {
-  throw new Error('local-development and fail-closed candidate profiles are mutually exclusive');
+if (localDevelopment && layoutOnly) {
+  throw new Error('local-development and layout-only builds are mutually exclusive');
 }
-const releasePolicy = localDevelopment ? localDevelopmentPolicy : productionPolicy;
-const missingPolicy = releasePolicy.filter((key) => !String(process.env[key] || '').trim());
-if (missingPolicy.length > 0 && !failClosedCandidate) {
-  throw new Error(`macOS release policy is incomplete: ${missingPolicy.join(', ')}`);
+
+const exactTeamId = (value) => /^[A-Z0-9]{10}$/.test(value);
+if (!layoutOnly && !localDevelopment) {
+  const teamId = String(process.env.NIMI_MACOS_TEAM_ID || '').trim();
+  if (!exactTeamId(teamId)) {
+    throw new Error('production macOS build requires exact NIMI_MACOS_TEAM_ID');
+  }
 }
 
 const cargoArguments = ['build', '--release', '--manifest-path', path.join(crateRoot, 'Cargo.toml')];
 if (localDevelopment) cargoArguments.push('--features', 'macos-local-development');
+const cargoEnvironment = {
+  ...process.env,
+  CARGO_BUILD_JOBS: process.env.CARGO_BUILD_JOBS ?? '1',
+};
+if (layoutOnly || localDevelopment) {
+  delete cargoEnvironment.NIMI_MACOS_TEAM_ID;
+}
 const cargo = spawnSync('cargo', cargoArguments, {
   cwd: workspaceRoot,
-  env: process.env,
+  env: cargoEnvironment,
   stdio: 'inherit',
 });
 if (cargo.status !== 0) {
@@ -54,4 +56,12 @@ const installName = spawnSync('/usr/bin/install_name_tool', [
 if (installName.status !== 0) {
   throw new Error(`normalizing macOS native module install name failed: ${installName.stderr.trim()}`);
 }
-console.log(`[protected-local] wrote ${path.relative(workspaceRoot, target)}${localDevelopment ? ' (local-development non-product)' : missingPolicy.length > 0 ? ' (fail-closed candidate)' : ''}`);
+console.log(
+  `[protected-local] wrote ${path.relative(workspaceRoot, target)}${
+    localDevelopment
+      ? ' (local-development)'
+      : layoutOnly
+        ? ' (layout-only; direct trust disabled)'
+        : ' (production)'
+  }`,
+);

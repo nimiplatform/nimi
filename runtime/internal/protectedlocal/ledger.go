@@ -21,7 +21,7 @@ import (
 
 const (
 	LedgerFilename      = "protected_local.db"
-	ledgerSchemaVersion = 4
+	ledgerSchemaVersion = 5
 	ledgerBusyTimeoutMS = 5000
 )
 
@@ -705,20 +705,9 @@ var protectedLocalSchema = []string{
 		delivered_unix_nano INTEGER,
 		record_hmac BLOB NOT NULL CHECK(length(record_hmac) = 32)
 	) STRICT`,
-	`CREATE TABLE IF NOT EXISTS protected_release_lineage (
-		executable_role TEXT NOT NULL CHECK(length(executable_role) BETWEEN 1 AND 64),
-		release_id TEXT NOT NULL CHECK(length(release_id) BETWEEN 1 AND 128),
-		release_generation INTEGER NOT NULL CHECK(release_generation > 0),
-		artifact_sha256 BLOB NOT NULL CHECK(length(artifact_sha256) = 32),
-		created_commit_sequence INTEGER NOT NULL REFERENCES protected_security_commit(commit_sequence),
-		record_hmac BLOB NOT NULL CHECK(length(record_hmac) = 32),
-		PRIMARY KEY(executable_role, release_generation),
-		UNIQUE(executable_role, release_id)
-	) STRICT`,
 }
 
 var pendingDiscardStatements = []string{
-	`DELETE FROM protected_release_lineage WHERE created_commit_sequence = ?`,
 	`DELETE FROM protected_security_audit_outbox WHERE created_commit_sequence = ?`,
 	`DELETE FROM protected_desktop_session WHERE created_commit_sequence = ?`,
 	`DELETE FROM protected_runtime_epoch WHERE created_commit_sequence = ?`,

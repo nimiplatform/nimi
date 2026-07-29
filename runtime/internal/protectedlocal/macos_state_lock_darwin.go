@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 )
@@ -152,8 +153,8 @@ func removeCreatedMacOSRuntimeStateLock(stateRoot string, lock *macOSRuntimeStat
 	if err != nil {
 		return fmt.Errorf("inspect linked macOS Runtime state lock for removal: %w", err)
 	}
-	opened, openedOK := openedInfo.Sys().(*unix.Stat_t)
-	linked, linkedOK := linkedInfo.Sys().(*unix.Stat_t)
+	opened, openedOK := openedInfo.Sys().(*syscall.Stat_t)
+	linked, linkedOK := linkedInfo.Sys().(*syscall.Stat_t)
 	if !openedOK || !linkedOK || !openedInfo.Mode().IsRegular() || !linkedInfo.Mode().IsRegular() ||
 		linkedInfo.Mode()&os.ModeSymlink != 0 || opened.Dev != linked.Dev || opened.Ino != linked.Ino ||
 		opened.Uid != principal.uid || opened.Gid != principal.gid || opened.Mode&0o777 != 0o600 || opened.Nlink != 1 {

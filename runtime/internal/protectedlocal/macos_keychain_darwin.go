@@ -11,6 +11,7 @@ package protectedlocal
 #include <Security/SecACL.h>
 #include <Security/SecKeychain.h>
 #include <Security/SecKeychainItem.h>
+#include <Security/SecItem.h>
 #include <Security/SecTrustedApplication.h>
 #include <errno.h>
 #include <stdint.h>
@@ -245,6 +246,38 @@ static int nimi_macos_keychain_delete(nimi_macos_keychain_store *store,
     CFRelease(item);
     return status == errSecSuccess ? 0 : (int)status;
 }
+
+static int nimi_macos_keychain_delete_service(nimi_macos_keychain_store *store,
+                                              const char *service) {
+    if (store == NULL || store->keychain == NULL || service == NULL || service[0] == '\0') {
+        return EINVAL;
+    }
+    CFStringRef service_string = CFStringCreateWithCString(
+        kCFAllocatorDefault, service, kCFStringEncodingUTF8);
+    if (service_string == NULL) {
+        return ENOMEM;
+    }
+    const void *keychain_values[] = { store->keychain };
+    CFArrayRef search_list = CFArrayCreate(
+        kCFAllocatorDefault, keychain_values, 1, &kCFTypeArrayCallBacks);
+    if (search_list == NULL) {
+        CFRelease(service_string);
+        return ENOMEM;
+    }
+    const void *keys[] = { kSecClass, kSecAttrService, kSecMatchSearchList };
+    const void *values[] = { kSecClassGenericPassword, service_string, search_list };
+    CFDictionaryRef query = CFDictionaryCreate(
+        kCFAllocatorDefault, keys, values, 3,
+        &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CFRelease(search_list);
+    CFRelease(service_string);
+    if (query == NULL) {
+        return ENOMEM;
+    }
+    OSStatus status = SecItemDelete(query);
+    CFRelease(query);
+    return status == errSecSuccess || status == errSecItemNotFound ? 0 : (int)status;
+}
 */
 import "C"
 
@@ -372,6 +405,20 @@ func (store *macOSSystemKeychainSecretStore) Delete(ctx context.Context, name st
 		}
 		if result != 0 {
 			return fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("delete Runtime System Keychain item: native status %d", int(result)))
+		}
+		return nil
+	})
+}
+
+func (store *macOSSystemKeychainSecretStore) resetServiceNamespace(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	service := C.CString(MacOSKeychainService)
+	defer C.free(unsafe.Pointer(service))
+	return store.withNative("reset Runtime System Keychain service namespace", func(native *C.nimi_macos_keychain_store) error {
+		if result := C.nimi_macos_keychain_delete_service(native, service); result != 0 {
+			return fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("reset Runtime System Keychain service namespace: native status %d", int(result)))
 		}
 		return nil
 	})

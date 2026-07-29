@@ -11,40 +11,27 @@ const (
 )
 
 type macOSCodePolicy struct {
-	executableRole           string
-	teamID                   string
-	leafSPKISHA256           string
-	signingIdentifier        string
-	designatedRequirement    string
-	releaseCDHash            string
-	artifactDigest           Identifier
-	trustSetID               string
-	releaseID                string
-	compatiblePeerReleaseIDs []string
-	generation               uint64
+	executableRole       string
+	teamID               string
+	signingIdentifier    string
+	directRequirement    string
+	trustSetID           string
+	requireAdHoc         bool
+	requireTrustedAnchor bool
+	requireNotarization  bool
 }
 
 func (policy macOSCodePolicy) validate() error {
-	if !canonicalIdentityField(policy.executableRole) || !validMacOSProfileTeamID(policy.teamID) ||
-		!validMacOSProfileLeafSPKI(policy.leafSPKISHA256) ||
+	if !canonicalIdentityField(policy.executableRole) ||
 		!canonicalIdentityField(policy.signingIdentifier) ||
-		!canonicalIdentityField(policy.designatedRequirement) ||
+		!validMacOSRequirement(policy.directRequirement) ||
 		!canonicalIdentityField(policy.trustSetID) ||
-		!canonicalIdentityField(policy.releaseID) ||
-		policy.artifactDigest == (Identifier{}) || policy.generation == 0 ||
-		len(policy.compatiblePeerReleaseIDs) == 0 || !validMacOSCDHash(policy.releaseCDHash) {
-		return fail(ReasonDesktopExecutableTrustFailed, false, "reinstall_signed_release", fmt.Errorf("macOS release code policy is incomplete"))
+		(policy.requireNotarization && !policy.requireTrustedAnchor) ||
+		(policy.requireAdHoc && (policy.teamID != "" || policy.requireTrustedAnchor || policy.requireNotarization)) ||
+		(!policy.requireAdHoc && (!validMacOSTeamID(policy.teamID) || !policy.requireTrustedAnchor)) {
+		return fail(ReasonDesktopExecutableTrustFailed, false, "reinstall_runtime_service", fmt.Errorf("macOS direct code policy is incomplete"))
 	}
 	return nil
-}
-
-func (policy macOSCodePolicy) releaseLineage() ReleaseLineageRecord {
-	return ReleaseLineageRecord{
-		ExecutableRole: policy.executableRole,
-		ReleaseID:      policy.releaseID,
-		Generation:     policy.generation,
-		ArtifactSHA256: policy.artifactDigest,
-	}
 }
 
 func macOSRuntimeCodePolicy() (macOSCodePolicy, error) {
@@ -52,7 +39,22 @@ func macOSRuntimeCodePolicy() (macOSCodePolicy, error) {
 }
 
 func macOSDesktopCodePolicy() (macOSCodePolicy, error) {
-	return loadMacOSCodePolicy(macOSDesktopExecutableRole)
+	policy, err := loadMacOSCodePolicy(macOSDesktopExecutableRole)
+	if err != nil {
+		return macOSCodePolicy{}, err
+	}
+	if err := verifyMacOSOuterBundleSeal(
+		MacOSDesktopApplicationPath,
+		policy.directRequirement,
+		policy.teamID,
+		policy.signingIdentifier,
+		policy.requireTrustedAnchor,
+		policy.requireNotarization,
+		policy.requireAdHoc,
+	); err != nil {
+		return macOSCodePolicy{}, err
+	}
+	return policy, nil
 }
 
 func macOSLocalAppHostCodePolicy() (macOSCodePolicy, error) {

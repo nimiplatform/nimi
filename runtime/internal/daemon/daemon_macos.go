@@ -30,8 +30,12 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	stateRoot := strings.TrimSpace(state.ServiceStatePath())
 	secrets := state.BinarySecrets()
 	sessions := state.DesktopSessions()
+	bootEpoch := state.BootEpoch()
+	runtimeProcess := state.RuntimeProcess()
 	euid, auditSession, accountPartition, identityBound := state.InteractiveIdentity()
-	if stateRoot == "" || state.Ledger() == nil || secrets == nil || sessions == nil || state.LocalAppLaunches() == nil || !identityBound {
+	if stateRoot == "" || bootEpoch == (protectedlocal.Identifier{}) || secrets == nil || sessions == nil ||
+		sessions.BootEpoch() != bootEpoch || state.LocalAppLaunches() == nil || !identityBound ||
+		protectedlocal.ValidateProcessTuple(runtimeProcess) != nil {
 		return fail(fmt.Errorf("complete verified macOS Runtime security state is required"))
 	}
 	serviceDataRoot, err := resolveProtectedServiceDataRoot(stateRoot, cfg.LocalStatePath)
@@ -65,7 +69,7 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot, PlatformAppIdentityProjectionPath: platformAppIdentityProjectionPath,
-			LocalDevelopmentConsentStorePath: filepath.Join(stateRoot, "local-development.db"),
+			LocalDevelopmentConsentStorePath: filepath.Join(serviceDataRoot, "runtime", "local-development.db"),
 			PlatformBundledAppsRoot:          platformBundledAppsRoot,
 			AccountCustody:                   accountCustody, AccountPartition: accountPartition,
 			AccountRealmBaseURL: cfg.AccountRealmBaseURL, AccountAuthorizationURL: cfg.AccountAuthorizationURL,

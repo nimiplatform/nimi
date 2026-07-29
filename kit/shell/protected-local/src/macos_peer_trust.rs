@@ -1,13 +1,11 @@
 use std::ffi::CString;
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
 use std::os::fd::{AsRawFd, FromRawFd, RawFd};
 
-use sha2::{Digest, Sha256};
-
-use crate::macos_profile::{LOCAL_APP_SOCKET_PATH, RUNTIME_EXECUTABLE_PATH, RUNTIME_SOCKET_PATH};
-use crate::macos_release_trust::{
-    load_release_trust, require_mutual_compatibility, DESKTOP_ROLE, RUNTIME_ROLE,
+use crate::macos_profile::{
+    DESKTOP_APPLICATION_PATH, DESKTOP_SIGNING_IDENTIFIER, LOCAL_APP_SOCKET_PATH, MACOS_TEAM_ID,
+    REQUIRE_AD_HOC, REQUIRE_NOTARIZATION, REQUIRE_TRUSTED_ANCHOR, RUNTIME_EXECUTABLE_PATH,
+    RUNTIME_SIGNING_IDENTIFIER, RUNTIME_SOCKET_PATH,
 };
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 
@@ -24,7 +22,6 @@ struct NativeVerifiedRuntimePeer {
     ppid: u32,
     start_sec: u64,
     start_usec: u64,
-    executable_fd: i32,
     kqueue_fd: i32,
 }
 
@@ -35,10 +32,19 @@ unsafe extern "C" {
         expected_executable: *const libc::c_char,
         expected_requirement: *const libc::c_char,
         expected_team: *const libc::c_char,
-        expected_leaf_spki_sha256: *const libc::c_char,
         expected_identifier: *const libc::c_char,
-        expected_cdhash: *const libc::c_char,
+        require_trusted_anchor: i32,
+        require_ad_hoc: i32,
         output: *mut NativeVerifiedRuntimePeer,
+    ) -> i32;
+    fn nimi_macos_verify_outer_bundle(
+        expected_path: *const libc::c_char,
+        expected_requirement: *const libc::c_char,
+        expected_team: *const libc::c_char,
+        expected_identifier: *const libc::c_char,
+        require_trusted_anchor: i32,
+        require_notarization: i32,
+        require_ad_hoc: i32,
     ) -> i32;
     fn nimi_macos_runtime_peer_alive(
         pid: u32,
@@ -46,7 +52,6 @@ unsafe extern "C" {
         expected_euid: u32,
         start_sec: u64,
         start_usec: u64,
-        executable_fd: i32,
         kqueue_fd: i32,
         expected_executable: *const libc::c_char,
     ) -> i32;
@@ -64,10 +69,7 @@ pub(crate) struct VerifiedMacOSRuntimePeer {
     identity: MacOSRuntimeProcessIdentity,
     euid: u32,
     ppid: u32,
-    _executable: File,
     process_events: File,
-    _release_id: String,
-    _release_generation: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -111,7 +113,6 @@ impl VerifiedMacOSRuntimePeer {
                 self.euid,
                 self.identity.start_sec,
                 self.identity.start_usec,
-                self._executable.as_raw_fd(),
                 self.process_events.as_raw_fd(),
                 executable.as_ptr(),
             )
@@ -127,23 +128,15 @@ pub(crate) fn verify_runtime_peer(
     if socket_fd < 0 {
         return Err(untrusted());
     }
-    let runtime_release = load_release_trust(RUNTIME_ROLE)?;
-    let desktop_release = load_release_trust(DESKTOP_ROLE)?;
-    require_mutual_compatibility(&runtime_release, &desktop_release)?;
     if socket_path != MACOS_RUNTIME_SOCKET_PATH
         && socket_path != MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH
     {
         return Err(untrusted());
     }
+    verify_desktop_bundle()?;
+    let policy = signing_policy(RUNTIME_SIGNING_IDENTIFIER)?;
     let socket_path = CString::new(socket_path).map_err(|_| untrusted())?;
     let executable = CString::new(MACOS_RUNTIME_EXECUTABLE_PATH).map_err(|_| untrusted())?;
-    let identifier = CString::new(runtime_release.signing_identifier).map_err(|_| untrusted())?;
-    let team = CString::new(runtime_release.team_id.as_str()).map_err(|_| untrusted())?;
-    let leaf_spki =
-        CString::new(runtime_release.leaf_spki_sha256.as_str()).map_err(|_| untrusted())?;
-    let requirement =
-        CString::new(runtime_release.designated_requirement.as_str()).map_err(|_| untrusted())?;
-    let cdhash = CString::new(runtime_release.cdhash.as_str()).map_err(|_| untrusted())?;
     let mut native = NativeVerifiedRuntimePeer {
         pid: 0,
         pidversion: 0,
@@ -152,22 +145,21 @@ pub(crate) fn verify_runtime_peer(
         ppid: 0,
         start_sec: 0,
         start_usec: 0,
-        executable_fd: -1,
         kqueue_fd: -1,
     };
     // SAFETY: all pointers reference immutable NUL-terminated strings and the
     // output is valid writable storage. Successful native verification returns
-    // ownership of exactly two nonnegative descriptors.
+    // ownership of exactly one nonnegative kqueue descriptor.
     let status = unsafe {
         nimi_macos_verify_runtime_peer(
             socket_fd,
             socket_path.as_ptr(),
             executable.as_ptr(),
-            requirement.as_ptr(),
-            team.as_ptr(),
-            leaf_spki.as_ptr(),
-            identifier.as_ptr(),
-            cdhash.as_ptr(),
+            policy.requirement.as_ptr(),
+            policy.team.as_ptr(),
+            policy.identifier.as_ptr(),
+            i32::from(policy.require_trusted_anchor),
+            i32::from(policy.require_ad_hoc),
             &mut native,
         )
     };
@@ -178,20 +170,13 @@ pub(crate) fn verify_runtime_peer(
         || native.euid != native.ruid
         || native.ppid != 1
         || native.start_sec == 0
-        || native.executable_fd < 0
         || native.kqueue_fd < 0
     {
-        close_native_descriptors(native.executable_fd, native.kqueue_fd);
+        close_native_descriptor(native.kqueue_fd);
         return Err(untrusted());
     }
-    // SAFETY: the native verifier transferred two distinct owned descriptors
-    // on success; each is adopted once and closed by File.
-    let mut executable = unsafe { File::from_raw_fd(native.executable_fd) };
-    // SAFETY: see above.
+    // SAFETY: the native verifier transferred one owned descriptor on success.
     let process_events = unsafe { File::from_raw_fd(native.kqueue_fd) };
-    if hash_open_executable(&mut executable)? != runtime_release.artifact_sha256 {
-        return Err(untrusted());
-    }
     let peer = VerifiedMacOSRuntimePeer {
         identity: MacOSRuntimeProcessIdentity {
             pid: native.pid,
@@ -201,10 +186,7 @@ pub(crate) fn verify_runtime_peer(
         },
         euid: native.euid,
         ppid: native.ppid,
-        _executable: executable,
         process_events,
-        _release_id: runtime_release.release_id,
-        _release_generation: runtime_release.generation,
     };
     if !peer.intact() {
         return Err(untrusted());
@@ -212,33 +194,115 @@ pub(crate) fn verify_runtime_peer(
     Ok(peer)
 }
 
-fn hash_open_executable(file: &mut File) -> Result<String, ProtectedCarrierError> {
-    file.seek(SeekFrom::Start(0)).map_err(|_| untrusted())?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0u8; 64 * 1024];
-    loop {
-        let read = file.read(&mut buffer).map_err(|_| untrusted())?;
-        if read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..read]);
-    }
-    file.seek(SeekFrom::Start(0)).map_err(|_| untrusted())?;
-    let digest = hasher.finalize();
-    let mut encoded = String::with_capacity(64);
-    for byte in digest {
-        use std::fmt::Write as _;
-        write!(&mut encoded, "{byte:02x}").map_err(|_| untrusted())?;
-    }
-    Ok(encoded)
+struct MacOSSigningPolicy {
+    requirement: CString,
+    team: CString,
+    identifier: CString,
+    require_trusted_anchor: bool,
+    require_notarization: bool,
+    require_ad_hoc: bool,
 }
 
-fn close_native_descriptors(executable_fd: i32, kqueue_fd: i32) {
-    if executable_fd >= 0 {
-        // SAFETY: this path runs only before Rust ownership adoption.
-        unsafe { libc::close(executable_fd) };
+fn signing_policy(
+    signing_identifier: &'static str,
+) -> Result<MacOSSigningPolicy, ProtectedCarrierError> {
+    build_signing_policy(
+        signing_identifier,
+        MACOS_TEAM_ID,
+        REQUIRE_TRUSTED_ANCHOR,
+        REQUIRE_NOTARIZATION,
+        REQUIRE_AD_HOC,
+    )
+}
+
+fn build_signing_policy(
+    signing_identifier: &str,
+    team: Option<&str>,
+    require_trusted_anchor: bool,
+    require_notarization: bool,
+    require_ad_hoc: bool,
+) -> Result<MacOSSigningPolicy, ProtectedCarrierError> {
+    if !valid_signing_identifier(signing_identifier) {
+        return Err(untrusted());
     }
-    if kqueue_fd >= 0 && kqueue_fd != executable_fd {
+    if require_notarization && (!require_trusted_anchor || require_ad_hoc) {
+        return Err(untrusted());
+    }
+    let (team, mut requirement) = if require_ad_hoc {
+        if team.is_some() || require_trusted_anchor {
+            return Err(untrusted());
+        }
+        (None, format!("identifier \"{signing_identifier}\""))
+    } else {
+        let team = team
+            .filter(|team| valid_team_id(team))
+            .ok_or_else(untrusted)?;
+        if !require_trusted_anchor {
+            return Err(untrusted());
+        }
+        (
+            Some(team),
+            format!(
+                "identifier \"{signing_identifier}\" and anchor apple generic and \
+                 certificate leaf[subject.OU] = \"{team}\""
+            ),
+        )
+    };
+    if require_notarization {
+        requirement.push_str(" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists");
+    }
+    Ok(MacOSSigningPolicy {
+        requirement: CString::new(requirement).map_err(|_| untrusted())?,
+        team: CString::new(team.unwrap_or_default()).map_err(|_| untrusted())?,
+        identifier: CString::new(signing_identifier).map_err(|_| untrusted())?,
+        require_trusted_anchor,
+        require_notarization,
+        require_ad_hoc,
+    })
+}
+
+fn verify_desktop_bundle() -> Result<(), ProtectedCarrierError> {
+    let policy = signing_policy(DESKTOP_SIGNING_IDENTIFIER)?;
+    let path = CString::new(DESKTOP_APPLICATION_PATH).map_err(|_| untrusted())?;
+    // SAFETY: every pointer references immutable NUL-terminated storage for
+    // this read-only Security.framework validation of the fixed app path.
+    let status = unsafe {
+        nimi_macos_verify_outer_bundle(
+            path.as_ptr(),
+            policy.requirement.as_ptr(),
+            policy.team.as_ptr(),
+            policy.identifier.as_ptr(),
+            i32::from(policy.require_trusted_anchor),
+            i32::from(policy.require_notarization),
+            i32::from(policy.require_ad_hoc),
+        )
+    };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(untrusted())
+    }
+}
+
+fn valid_signing_identifier(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && !value.starts_with('.')
+        && !value.ends_with('.')
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-'))
+}
+
+fn valid_team_id(value: &str) -> bool {
+    value.len() == 10
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
+}
+
+fn close_native_descriptor(kqueue_fd: i32) {
+    if kqueue_fd >= 0 {
         // SAFETY: this path runs only before Rust ownership adoption.
         unsafe { libc::close(kqueue_fd) };
     }
@@ -268,5 +332,54 @@ mod tests {
             decode_runtime_peer_state(99),
             MacOSRuntimePeerState::Untrusted
         );
+    }
+
+    #[test]
+    fn direct_signing_policy_values_are_closed() {
+        assert!(valid_signing_identifier("ai.nimi.runtime"));
+        assert!(!valid_signing_identifier("../ai.nimi.runtime"));
+        assert!(valid_team_id("ABCDE12345"));
+        assert!(!valid_team_id("abcde12345"));
+    }
+
+    #[test]
+    fn ad_hoc_signing_policy_is_identifier_only_and_teamless() {
+        let policy = build_signing_policy("ai.nimi.runtime.dev", None, false, false, true)
+            .expect("ad-hoc local-development policy");
+        assert_eq!(
+            policy.requirement.to_str().expect("requirement"),
+            "identifier \"ai.nimi.runtime.dev\""
+        );
+        assert_eq!(policy.team.to_bytes(), b"");
+        assert!(policy.require_ad_hoc);
+        assert!(!policy.require_trusted_anchor);
+        assert!(!policy.require_notarization);
+
+        assert!(build_signing_policy(
+            "ai.nimi.runtime.dev",
+            Some("ABCDE12345"),
+            false,
+            false,
+            true,
+        )
+        .is_err());
+        assert!(build_signing_policy("ai.nimi.runtime.dev", None, true, false, true,).is_err());
+    }
+
+    #[test]
+    fn production_signing_policy_keeps_team_anchor_and_notarization() {
+        let policy = build_signing_policy("ai.nimi.runtime", Some("ABCDE12345"), true, true, false)
+            .expect("production signing policy");
+        assert_eq!(policy.team.to_str().expect("team"), "ABCDE12345");
+        assert!(policy.require_trusted_anchor);
+        assert!(policy.require_notarization);
+        assert!(!policy.require_ad_hoc);
+        assert!(policy
+            .requirement
+            .to_str()
+            .expect("requirement")
+            .contains("anchor apple generic"));
+
+        assert!(build_signing_policy("ai.nimi.runtime", None, true, true, false,).is_err());
     }
 }

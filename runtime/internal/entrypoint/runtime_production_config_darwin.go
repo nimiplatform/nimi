@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -70,7 +71,7 @@ func ensureMacOSServiceDirectory(path string) error {
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm() != 0o700 {
 		return fmt.Errorf("macOS Runtime service directory kind or mode is invalid")
 	}
-	stat, ok := info.Sys().(*unix.Stat_t)
+	stat, ok := info.Sys().(*syscall.Stat_t)
 	if !ok || stat.Uid != uint32(os.Geteuid()) || stat.Nlink < 2 {
 		return fmt.Errorf("macOS Runtime service directory ownership is invalid")
 	}
@@ -85,7 +86,7 @@ func validateOptionalMacOSServiceFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("inspect macOS Runtime service file: %w", err)
 	}
-	stat, ok := info.Sys().(*unix.Stat_t)
+	stat, ok := info.Sys().(*syscall.Stat_t)
 	if !ok || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 ||
 		info.Mode().Perm() != 0o600 || stat.Uid != uint32(os.Geteuid()) || stat.Nlink != 1 {
 		return fmt.Errorf("macOS Runtime service file owner, mode, kind, or link count is invalid")
@@ -194,7 +195,7 @@ func validateMacOSOpenServiceFile(file *os.File) error {
 	if err != nil {
 		return fmt.Errorf("inspect open macOS Runtime service file: %w", err)
 	}
-	stat, ok := info.Sys().(*unix.Stat_t)
+	stat, ok := info.Sys().(*syscall.Stat_t)
 	if !ok || !info.Mode().IsRegular() || info.Mode().Perm() != 0o600 ||
 		stat.Uid != uint32(os.Geteuid()) || stat.Nlink != 1 {
 		return fmt.Errorf("open macOS Runtime service file owner, mode, kind, or link count is invalid")

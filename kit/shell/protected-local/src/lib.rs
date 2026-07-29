@@ -19,9 +19,6 @@ mod macos_profile;
 mod macos_profile_local_development;
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
-mod macos_release_trust;
-#[cfg(target_os = "macos")]
-#[allow(unsafe_code)]
 mod macos_service_control;
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]

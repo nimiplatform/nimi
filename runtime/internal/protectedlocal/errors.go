@@ -17,7 +17,7 @@ const (
 	ReasonProtectedLocalBootEpochMismatch          Reason = "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH"
 	ReasonProtectedLocalRuntimePrincipalRequired   Reason = "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED"
 	ReasonProtectedLocalCustodyBoundaryUnavailable Reason = "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE"
-	ReasonRuntimeExecutableTrustRecordInvalid      Reason = "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID"
+	ReasonRuntimeExecutableTrustInvalid            Reason = "RUNTIME_EXECUTABLE_TRUST_INVALID"
 )
 
 var ErrAnchorNotFound = errors.New("protected-local anchor not found")

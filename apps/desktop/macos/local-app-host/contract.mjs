@@ -40,6 +40,8 @@ function canonicalPrivateUserDataDirectory(candidate, homeDirectory, rawUID) {
   const expectedRoot = path.join(homeDirectory, 'Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1');
   const relative = path.relative(expectedRoot, canonical);
   if (!/^[a-f0-9]{64}$/u.test(relative) || path.isAbsolute(relative)) fail();
+  const homeMetadata = lstatSync(homeDirectory);
+  if (homeMetadata.uid !== Number(uid) || (homeMetadata.mode & 0o022) !== 0) fail();
   let current = homeDirectory;
   for (const component of ['Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1', relative]) {
     current = path.join(current, component);

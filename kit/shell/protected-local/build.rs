@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 fn main() {
     println!("cargo:rerun-if-env-changed=NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256");
+    println!("cargo:rerun-if-env-changed=NIMI_MACOS_TEAM_ID");
     let target = std::env::var("TARGET").expect("target triple");
     if target.contains("apple-darwin") {
         let mut native = cc::Build::new();

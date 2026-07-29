@@ -4,14 +4,14 @@ package protectedlocal
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"golang.org/x/sys/unix"
+	"syscall"
 )
 
 type MacOSRuntimeSecurityState struct {
@@ -22,7 +22,6 @@ type MacOSRuntimeSecurityState struct {
 	runtimeProcess   ProcessTuple
 	runtimeLiveness  DesktopProcessLiveness
 	secrets          *macOSSystemKeychainSecretStore
-	ledger           *Ledger
 	bootEpoch        Identifier
 	desktopSessions  *DesktopSessionManager
 	localAppLaunches *LocalAppLaunchRegistry
@@ -82,7 +81,7 @@ func validateMacOSRuntimeStateRoot(path string, principal macOSRuntimePrincipal)
 		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return "", fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("macOS Runtime state root contains an unsafe component"))
 		}
-		stat, ok := info.Sys().(*unix.Stat_t)
+		stat, ok := info.Sys().(*syscall.Stat_t)
 		if !ok {
 			return "", fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("inspect macOS Runtime state ownership"))
 		}
@@ -111,7 +110,7 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 	}
 	runtimeProcess, runtimeLiveness, err := verifyMacOSRuntimeProcess()
 	if err != nil {
-		return nil, fail(ReasonRuntimeExecutableTrustRecordInvalid, false, "reinstall_runtime_service", err)
+		return nil, fail(ReasonRuntimeExecutableTrustInvalid, false, "reinstall_runtime_service", err)
 	}
 	acceptedRuntimeLiveness := false
 	defer func() {
@@ -143,39 +142,7 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 			_ = secrets.Close()
 		}
 	}()
-	anchorStore, err := NewMacOSKeychainAnchorStore(secrets)
-	if err != nil {
-		return nil, err
-	}
-	// A production service never silently bootstraps machine custody. The
-	// signed installer/repair transaction must provision both Keychain items
-	// and the matching ledger before launchd can expose a socket.
-	if _, err := anchorStore.Load(ctx); err != nil {
-		return nil, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("load installer-provisioned macOS ledger anchor: %w", err))
-	}
-	recordMACKey, err := LoadMacOSLedgerRecordMACKey(ctx, secrets)
-	if err != nil {
-		return nil, err
-	}
-	defer zeroBytes(recordMACKey)
-	ledger, err := OpenLedger(ctx, LedgerOptions{Path: filepath.Join(stateRoot, LedgerFilename), AnchorStore: anchorStore, RecordMACKey: recordMACKey})
-	if err != nil {
-		return nil, err
-	}
-	keepLedger := false
-	defer func() {
-		if !keepLedger {
-			_ = ledger.Close()
-		}
-	}()
-	runtimePolicy, err := macOSRuntimeCodePolicy()
-	if err != nil {
-		return nil, fail(ReasonRuntimeExecutableTrustRecordInvalid, false, "reinstall_runtime_service", err)
-	}
-	if err := ledger.AdmitReleaseLineage(ctx, runtimePolicy.releaseLineage()); err != nil {
-		return nil, err
-	}
-	bootEpoch, err := ledger.StartRuntime(ctx)
+	bootEpoch, err := NewBootEpoch(rand.Reader)
 	if err != nil {
 		return nil, err
 	}
@@ -189,11 +156,10 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 	}
 	state := &MacOSRuntimeSecurityState{
 		serviceUID: principal.uid, serviceGID: principal.gid, stateRoot: stateRoot, stateLock: stateLock, runtimeProcess: runtimeProcess,
-		runtimeLiveness: runtimeLiveness, secrets: secrets, ledger: ledger, bootEpoch: bootEpoch,
+		runtimeLiveness: runtimeLiveness, secrets: secrets, bootEpoch: bootEpoch,
 		desktopSessions: desktopSessions, localAppLaunches: localAppLaunches,
 	}
 	keepSecrets = true
-	keepLedger = true
 	keepStateLock = true
 	acceptedRuntimeLiveness = true
 	return state, nil
@@ -240,12 +206,6 @@ func (state *MacOSRuntimeSecurityState) BinarySecrets() BinarySecretStore {
 	}
 	return state.secrets
 }
-func (state *MacOSRuntimeSecurityState) Ledger() *Ledger {
-	if state == nil {
-		return nil
-	}
-	return state.ledger
-}
 func (state *MacOSRuntimeSecurityState) BootEpoch() Identifier {
 	if state == nil {
 		return Identifier{}
@@ -290,9 +250,6 @@ func (state *MacOSRuntimeSecurityState) Close() error {
 		}
 		if state.runtimeLiveness != nil {
 			failures = append(failures, state.runtimeLiveness.Close())
-		}
-		if state.ledger != nil {
-			failures = append(failures, state.ledger.Close())
 		}
 		if state.secrets != nil {
 			failures = append(failures, state.secrets.Close())

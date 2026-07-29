@@ -1,26 +1,15 @@
 // Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT.
-let generatedProfileID = "macos_local_development_v1"
-let generatedProfileAdmission = "local_development_candidate_fail_closed_pending_real_acceptance"
-let generatedProfileEnvironment = "local_development"
-let generatedProfileIdentityClass = "local_ca"
-let generatedRuntimePrincipalCarrierContractVersion = 4
-let generatedLegacyProfileReasonCode = "legacy-local-dev-profile-not-supported"
-let generatedFreshProfileSchemaVersion = "nimi.macos-local-development-signing-profile/fresh-carrier-4/v1"
 let generatedInstallerHelperPath = "/usr/local/libexec/nimi-macos-dev-security"
 let generatedInstallerSigningIdentifier = "ai.nimi.dev-installer"
-let generatedReleaseRecordSchemaVersion = 3
 let generatedRequiredArchitecture = "arm64"
 let generatedRuntimeExecutablePath = "/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime"
 let generatedRuntimeStateRoot = "/Library/Application Support/Nimi/RuntimeDev/state"
-let generatedTrustRecordRoot = "/Library/Application Support/Nimi/RuntimeDev/active/trust/protected-local/v1"
 let generatedDesktopApplicationPath = "/Applications/Nimi Dev.app"
 let generatedDesktopExecutablePath = "/Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev"
 let generatedLocalAppHostPath = "/Applications/Nimi Dev.app/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev"
 let generatedLaunchDaemonPath = "/Library/LaunchDaemons/ai.nimi.runtime.dev.plist"
 let generatedLaunchDaemonLabel = "ai.nimi.runtime.dev"
-let generatedLaunchDaemonSHA256 = "ceb4efde4a0b6c78fe28a41b3843569adcad7989a590434017bd1f906e941f5e"
+let generatedLaunchDaemonSHA256 = "298d7c2065089fdcc9d23ae6e0e1014c5977be928cb16784a210374aa9bfd4a1"
 let generatedRuntimeAccountName = "_nimiruntimedev"
 let generatedDesktopSocketPath = "/private/var/run/nimi-dev/runtime-desktop.sock"
 let generatedLocalAppSocketPath = "/private/var/run/nimi-dev/runtime-local-app.sock"
-let generatedKeychainService = "ai.nimi.runtime.protected-local.dev.v1"
-let generatedRuntimeKeychainAccounts = ["ledger-anchor-v1","ledger-record-hmac-v1"]

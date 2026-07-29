@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-// MacOSProtectedStateResetResult contains no credential or ledger material.
+// MacOSProtectedStateResetResult contains no credential material.
 type MacOSProtectedStateResetResult struct {
 	SchemaVersion int    `json:"schemaVersion"`
 	Disposition   string `json:"disposition"`
@@ -19,9 +19,9 @@ type MacOSProtectedStateResetResult struct {
 
 // ResetMacOSProtectedState is the explicit, root-only destructive counterpart
 // to installer provisioning. The caller must stop launchd first. The running
-// binary, fixed installed path, release record, role signature, state root,
-// service principal, Keychain ACL, and complete state inventory are verified
-// before any deletion starts.
+// binary, fixed installed path, direct code signer, state root, service
+// principal, and complete state inventory are verified before
+// any deletion starts.
 func ResetMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateResetResult, resultErr error) {
 	if ctx == nil {
 		return MacOSProtectedStateResetResult{}, fmt.Errorf("reset macOS protected state: context is required")
@@ -32,9 +32,9 @@ func ResetMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateResetRe
 	if os.Geteuid() != 0 || os.Getuid() != 0 || os.Getegid() != 0 || os.Getgid() != 0 {
 		return MacOSProtectedStateResetResult{}, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "run_signed_installer_as_administrator", fmt.Errorf("reset macOS protected state: real root principal is required"))
 	}
-	_, liveness, err := verifyMacOSInstalledProvisioningProcess()
+	liveness, err := verifyMacOSInstalledProvisioningProcess()
 	if err != nil {
-		return MacOSProtectedStateResetResult{}, fail(ReasonRuntimeExecutableTrustRecordInvalid, false, "reinstall_signed_release", err)
+		return MacOSProtectedStateResetResult{}, fail(ReasonRuntimeExecutableTrustInvalid, false, "reinstall_runtime_service", err)
 	}
 	defer func() { resultErr = errors.Join(resultErr, liveness.Close()) }()
 	principal, err := resolveMacOSRuntimePrincipal()
@@ -45,12 +45,7 @@ func ResetMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateResetRe
 	if err != nil {
 		return MacOSProtectedStateResetResult{}, err
 	}
-	secrets, err := OpenMacOSSystemKeychainSecretStore()
-	if err != nil {
-		return MacOSProtectedStateResetResult{}, err
-	}
-	defer func() { resultErr = errors.Join(resultErr, secrets.Close()) }()
-	inventory, err := inspectMacOSProvisionInventory(ctx, stateRoot, principal, secrets)
+	inventory, err := inspectMacOSProvisionInventory(stateRoot, principal)
 	if err != nil {
 		return MacOSProtectedStateResetResult{}, err
 	}
@@ -59,23 +54,18 @@ func ResetMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateResetRe
 		return MacOSProtectedStateResetResult{}, err
 	}
 	if disposition == macOSProvisionFresh {
+		if err := resetMacOSDevelopmentKeychainNamespace(ctx); err != nil {
+			return MacOSProtectedStateResetResult{}, err
+		}
 		return MacOSProtectedStateResetResult{SchemaVersion: 1, Disposition: "already_empty", StateRoot: stateRoot}, nil
 	}
 	stateLock, err := openExistingMacOSRuntimeStateLock(stateRoot, principal, "stop_runtime_service_before_reset")
 	if err != nil {
 		return MacOSProtectedStateResetResult{}, err
 	}
-	for _, name := range []string{macOSLedgerAnchorSecretName, macOSLedgerRecordMACKeyName} {
-		if err := secrets.Delete(ctx, name); err != nil && !errors.Is(err, ErrProtectedSecretNotFound) {
-			_ = stateLock.Close()
-			return MacOSProtectedStateResetResult{}, err
-		}
-	}
-	for _, name := range []string{LedgerFilename + "-journal", LedgerFilename + "-shm", LedgerFilename + "-wal", LedgerFilename} {
-		if err := removeFreshMacOSLedgerArtifact(filepath.Join(stateRoot, name), principal); err != nil {
-			_ = stateLock.Close()
-			return MacOSProtectedStateResetResult{}, err
-		}
+	if err := resetMacOSDevelopmentKeychainNamespace(ctx); err != nil {
+		_ = stateLock.Close()
+		return MacOSProtectedStateResetResult{}, err
 	}
 	runtimeDirectory := filepath.Join(stateRoot, macOSRuntimeMutableDirectoryName)
 	if inventory.runtimeDir {
@@ -95,7 +85,7 @@ func ResetMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateResetRe
 	}
 	select {
 	case <-liveness.Revoked():
-		return MacOSProtectedStateResetResult{}, fail(ReasonRuntimeExecutableTrustRecordInvalid, false, "reinstall_signed_release", fmt.Errorf("reset macOS protected state: Runtime executable changed during transaction"))
+		return MacOSProtectedStateResetResult{}, fail(ReasonRuntimeExecutableTrustInvalid, false, "reinstall_runtime_service", fmt.Errorf("reset macOS protected state: Runtime executable changed during transaction"))
 	default:
 	}
 	return MacOSProtectedStateResetResult{SchemaVersion: 1, Disposition: "reset", StateRoot: stateRoot}, nil
