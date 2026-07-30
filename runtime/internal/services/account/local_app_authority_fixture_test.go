@@ -7,7 +7,12 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"google.golang.org/grpc/metadata"
 )
+
+func permissionRequestContext(requestID string) context.Context {
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-trace-id", requestID))
+}
 
 type localAppAuthorityFixture struct {
 	service  *Service

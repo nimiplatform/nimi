@@ -199,7 +199,7 @@ func (s *Service) resumeLocalAppConversationAnchor(decision accountservice.Local
 func (s *Service) ValidateLocalAppConversationScope(ctx context.Context, agentID string, anchorID string) error {
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || strings.TrimSpace(agentID) == "" || strings.TrimSpace(anchorID) == "" {
-		return status.Error(codes.PermissionDenied, "local-app conversation scope is unavailable")
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
 	}
 	s.chatSurfaceMu.Lock()
 	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
@@ -209,7 +209,7 @@ func (s *Service) ValidateLocalAppConversationScope(ctx context.Context, agentID
 		anchor.LocalAppPrincipalID != "" && anchor.LocalAppPrincipalID == decision.LocalAppPrincipalID
 	s.chatSurfaceMu.Unlock()
 	if !valid {
-		return status.Error(codes.PermissionDenied, "local-app conversation principal scope mismatch")
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
 	}
 	return nil
 }

@@ -43,6 +43,7 @@ func TestCoordinatorKeepsReservedUserPermissionOperationsUnavailable(t *testing.
 		OperationArtifactRead,
 		OperationConversationOpen,
 		OperationConversationTurnSend,
+		OperationConversationInterrupt,
 		OperationConversationSubscribe,
 		OperationConversationSnapshot,
 		OperationConfigurationSnapshot,
@@ -440,9 +441,8 @@ func selectorFor(operation Operation) Selector {
 		return Selector{AgentID: "agent:1"}
 	case OperationConversationTurnSend:
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1", TurnID: "turn:1"}
-	case OperationConversationSnapshot:
-		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}
-	case OperationConversationSubscribe:
+	case OperationConversationInterrupt, OperationConversationSnapshot,
+		OperationConversationSubscribe:
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}
 	case OperationStorageJSONRead, OperationStorageJSONWrite, OperationStorageJSONRemove:
 		return Selector{StorageRelativePath: "state/value.json"}

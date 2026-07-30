@@ -385,6 +385,12 @@ func TestSelectedProtectedLocalAppConversationOperationsCarryOnlyExactSelectors(
 	if err != nil {
 		t.Fatal(err)
 	}
+	interruptPayload, err := structpb.NewStruct(map[string]any{
+		"local_agent_ref": "agent-handle", "conversation_anchor_id": "anchor-a", "reason": "user_cancel",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, test := range []struct {
 		method    string
 		request   any
@@ -392,7 +398,8 @@ func TestSelectedProtectedLocalAppConversationOperationsCarryOnlyExactSelectors(
 		selector  localappop.Selector
 	}{
 		{protectedOpenConversationMethod, &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-handle"}, accountservice.LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent-handle"}},
-		{protectedSendConversationTurnMethod, &runtimev1.SendAppMessageRequest{Payload: payload}, accountservice.LocalAppOperationSendConversationTurn, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a", TurnID: "request-a"}},
+		{protectedSendConversationTurnMethod, &runtimev1.SendAppMessageRequest{MessageType: "runtime.agent.turn.request", Payload: payload}, accountservice.LocalAppOperationSendConversationTurn, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a", TurnID: "request-a"}},
+		{protectedSendConversationTurnMethod, &runtimev1.SendAppMessageRequest{MessageType: "runtime.agent.turn.interrupt", Payload: interruptPayload}, accountservice.LocalAppOperationInterruptConversation, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a"}},
 		{protectedConversationSnapshotMethod, &runtimev1.GetPublicChatSessionSnapshotRequest{AgentId: "agent-handle", ConversationAnchorId: "anchor-a"}, accountservice.LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: "agent-handle", ConversationAnchorID: "anchor-a"}},
 	} {
 		operation, selector, selected := selectedLocalAppUnaryOperation(test.method, test.request)

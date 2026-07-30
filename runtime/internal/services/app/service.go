@@ -196,10 +196,19 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 			selector := localappop.Selector{
 				AgentID:              strings.TrimSpace(fields["local_agent_ref"].GetStringValue()),
 				ConversationAnchorID: strings.TrimSpace(fields["conversation_anchor_id"].GetStringValue()),
-				TurnID:               strings.TrimSpace(fields["request_id"].GetStringValue()),
+			}
+			var operation accountservice.LocalAppOperation
+			switch strings.TrimSpace(req.GetMessageType()) {
+			case "runtime.agent.turn.request":
+				operation = accountservice.LocalAppOperationSendConversationTurn
+				selector.TurnID = strings.TrimSpace(fields["request_id"].GetStringValue())
+			case "runtime.agent.turn.interrupt":
+				operation = accountservice.LocalAppOperationInterruptConversation
+			default:
+				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 			}
 			var authorizeErr error
-			localDecision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(ctx, accountservice.LocalAppOperationSendConversationTurn, selector)
+			localDecision, authorizeErr = s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(ctx, operation, selector)
 			if authorizeErr != nil {
 				return nil, grpcerr.WrapWithReasonCode(
 					codes.PermissionDenied,
@@ -217,7 +226,10 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	if localAppAuthorized {
-		if localDecision.Operation != accountservice.LocalAppOperationSendConversationTurn || req.GetToAppId() != "runtime.agent" || req.GetMessageType() != "runtime.agent.turn.request" {
+		messageType := strings.TrimSpace(req.GetMessageType())
+		validOperation := (localDecision.Operation == accountservice.LocalAppOperationSendConversationTurn && messageType == "runtime.agent.turn.request") ||
+			(localDecision.Operation == accountservice.LocalAppOperationInterruptConversation && messageType == "runtime.agent.turn.interrupt")
+		if !validOperation || req.GetToAppId() != "runtime.agent" {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 		}
 		cloned, ok := proto.Clone(req).(*runtimev1.SendAppMessageRequest)
@@ -230,7 +242,14 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		if !payloadOK || strings.TrimSpace(localDecision.LocalAgentID) == "" {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
 		}
-		payload.Fields["local_agent_ref"] = structpb.NewStringValue(localDecision.LocalAgentID)
+		if localDecision.Operation == accountservice.LocalAppOperationSendConversationTurn {
+			payload.Fields["local_agent_ref"] = structpb.NewStringValue(localDecision.LocalAgentID)
+		} else {
+			if strings.TrimSpace(payload.GetFields()["turn_id"].GetStringValue()) != "" {
+				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+			}
+			delete(payload.Fields, "local_agent_ref")
+		}
 		cloned.Payload = payload
 		req = cloned
 	}

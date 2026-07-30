@@ -22,7 +22,7 @@ func TestPermissionGrantStoreCreatesAndRefreshesSelectorFreePendingRequest(t *te
 	}
 	input := CreatePermissionRequestInput{
 		LocalOSUserAnchor: kernel.LocalOSUserAnchor(), AccountID: "account-one",
-		LocalAppPrincipalID: principal.LocalAppPrincipalID, PermissionID: "agents.interact",
+		LocalAppPrincipalID: principal.LocalAppPrincipalID, PermissionID: "agents.interact", RequestID: "request-pending-1",
 		DisplayAppID: principal.AppID, Reason: "Open a conversation with my selected Agent",
 	}
 	created, err := kernel.PermissionGrants().CreatePendingRequest(ctx, input)
@@ -38,7 +38,7 @@ func TestPermissionGrantStoreCreatesAndRefreshesSelectorFreePendingRequest(t *te
 	now = now.Add(time.Second)
 	refreshed, err := kernel.PermissionGrants().RefreshPendingRequest(ctx, RefreshPermissionRequestInput{
 		LocalOSUserAnchor: input.LocalOSUserAnchor, AccountID: input.AccountID, LocalAppPrincipalID: input.LocalAppPrincipalID,
-		PermissionID: input.PermissionID, DisplayAppID: input.DisplayAppID, Reason: "Continue the selected Agent conversation",
+		PermissionID: input.PermissionID, RequestID: input.RequestID, DisplayAppID: input.DisplayAppID, Reason: "Continue the selected Agent conversation",
 		ExpectedRevision: created.Revision,
 	})
 	if err != nil {
@@ -49,7 +49,7 @@ func TestPermissionGrantStoreCreatesAndRefreshesSelectorFreePendingRequest(t *te
 	}
 	if _, err := kernel.PermissionGrants().RefreshPendingRequest(ctx, RefreshPermissionRequestInput{
 		LocalOSUserAnchor: input.LocalOSUserAnchor, AccountID: input.AccountID, LocalAppPrincipalID: input.LocalAppPrincipalID,
-		PermissionID: input.PermissionID, DisplayAppID: input.DisplayAppID, Reason: input.Reason, ExpectedRevision: 1,
+		PermissionID: input.PermissionID, RequestID: input.RequestID, DisplayAppID: input.DisplayAppID, Reason: input.Reason, ExpectedRevision: 1,
 	}); !errors.Is(err, ErrPermissionRevisionConflict) {
 		t.Fatalf("stale refresh error = %v", err)
 	}
@@ -77,7 +77,7 @@ func TestPermissionGrantStoreConsumesPendingRequestWithCAS(t *testing.T) {
 	}
 	created, err := kernel.PermissionGrants().CreatePendingRequest(ctx, CreatePermissionRequestInput{
 		LocalOSUserAnchor: kernel.LocalOSUserAnchor(), AccountID: "account-one", LocalAppPrincipalID: principal.LocalAppPrincipalID,
-		PermissionID: "agents.interact", DisplayAppID: principal.AppID, Reason: "Open a conversation",
+		PermissionID: "agents.interact", RequestID: "request-decision-1", DisplayAppID: principal.AppID, Reason: "Open a conversation",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -128,7 +128,7 @@ func TestPermissionGrantStoreListsOnlyExactOwnerPartition(t *testing.T) {
 	for _, accountID := range []string{"account-one", "account-other"} {
 		if _, err := kernel.PermissionGrants().CreatePendingRequest(ctx, CreatePermissionRequestInput{
 			LocalOSUserAnchor: kernel.LocalOSUserAnchor(), AccountID: accountID, LocalAppPrincipalID: principal.LocalAppPrincipalID,
-			PermissionID: "agents.interact", DisplayAppID: principal.AppID, Reason: "Open a conversation",
+			PermissionID: "agents.interact", RequestID: "request-" + accountID, DisplayAppID: principal.AppID, Reason: "Open a conversation",
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -147,7 +147,7 @@ func TestPermissionGrantStoreRejectsUnboundedPendingRequestReason(t *testing.T) 
 	defer func() { _ = kernel.Close() }()
 	_, err := kernel.PermissionGrants().CreatePendingRequest(context.Background(), CreatePermissionRequestInput{
 		LocalOSUserAnchor: kernel.LocalOSUserAnchor(), AccountID: "account-one", LocalAppPrincipalID: "lap_v1_missing",
-		PermissionID: "agents.interact", DisplayAppID: "com.example.pending", Reason: strings.Repeat("x", MaxPermissionRequestReasonBytes+1),
+		PermissionID: "agents.interact", RequestID: "request-invalid-reason", DisplayAppID: "com.example.pending", Reason: strings.Repeat("x", MaxPermissionRequestReasonBytes+1),
 	})
 	if !errors.Is(err, ErrInvalidArgument) {
 		t.Fatalf("unbounded reason error = %v", err)

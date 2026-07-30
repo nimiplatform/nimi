@@ -18,6 +18,7 @@ const (
 	OperationArtifactRead          Operation = "artifacts.read_runtime_bytes"
 	OperationConversationOpen      Operation = "runtime_agent.conversation.open"
 	OperationConversationTurnSend  Operation = "runtime_agent.conversation.turn_send"
+	OperationConversationInterrupt Operation = "runtime_agent.conversation.turn_interrupt"
 	OperationConversationSubscribe Operation = "runtime_agent.conversation.turn_subscribe"
 	OperationConversationSnapshot  Operation = "runtime_agent.conversation.snapshot"
 	OperationConfigurationSnapshot Operation = "runtime_agent.configuration.snapshot"

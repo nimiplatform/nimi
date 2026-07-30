@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"errors"
 	"sort"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -22,17 +21,9 @@ func (s *Service) GetLocalAppPermissionOwnerProjection(ctx context.Context, req 
 	if err != nil || principal.State != localappkernel.PrincipalStateActive {
 		return ownerPermissionProjectionResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
 	}
-	requests, err := s.localAppKernel.PermissionGrants().ListPermissionRequestsForPrincipal(ctx, s.localAppKernel.LocalOSUserAnchor(), accountID, principal.LocalAppPrincipalID)
+	permissions, err := s.ownerPermissionProjectionsForPrincipal(ctx, accountID, principal)
 	if err != nil {
 		return ownerPermissionProjectionResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
-	}
-	permissions := make([]*runtimev1.LocalAppPermissionOwnerProjection, 0, len(requests))
-	for _, request := range requests {
-		projection, projectionErr := s.projectOwnerPermission(ctx, accountID, request)
-		if projectionErr != nil {
-			return ownerPermissionProjectionResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
-		}
-		permissions = append(permissions, projection)
 	}
 	return &runtimev1.GetLocalAppPermissionOwnerProjectionResponse{Accepted: true, Permissions: permissions, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
@@ -46,64 +37,79 @@ func (s *Service) ListLocalAppPermissionOwnerProjections(ctx context.Context, re
 	if err != nil {
 		return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 	}
-	permissions := make([]*runtimev1.LocalAppPermissionOwnerProjection, 0, len(requests))
+	grants, err := s.localAppKernel.PermissionGrants().ListActive(ctx, s.localAppKernel.LocalOSUserAnchor(), accountID)
+	if err != nil {
+		return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+	}
+	permissions := make([]*runtimev1.LocalAppPermissionOwnerProjection, 0, len(requests)+len(grants))
 	for _, request := range requests {
-		projection, projectionErr := s.projectOwnerPermission(ctx, accountID, request)
+		permissions = append(permissions, projectPendingOwnerPermission(request))
+	}
+	for _, grant := range grants {
+		principal, principalErr := s.localAppKernel.Principals().Get(ctx, grant.Key.LocalAppPrincipalID)
+		if principalErr != nil || principal.State != localappkernel.PrincipalStateActive {
+			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+		}
+		projection, projectionErr := s.projectActiveOwnerPermission(ctx, accountID, principal, grant)
 		if projectionErr != nil {
 			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 		}
 		permissions = append(permissions, projection)
 	}
+	sortOwnerPermissionProjections(permissions)
 	return &runtimev1.ListLocalAppPermissionOwnerProjectionsResponse{Accepted: true, Permissions: permissions, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
-func (s *Service) projectOwnerPermission(ctx context.Context, accountID string, request localappkernel.PermissionRequest) (*runtimev1.LocalAppPermissionOwnerProjection, error) {
-	projection := &runtimev1.LocalAppPermissionOwnerProjection{
-		LocalAppPrincipalId: request.LocalAppPrincipalID, DisplayAppId: request.DisplayAppID, PermissionId: request.PermissionID,
-		Posture:       runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING,
-		OwnerRevision: request.Revision, RequestedAt: timestamppb.New(request.RequestedAt),
-	}
-	decision, err := s.localAppKernel.PermissionGrants().GetPermissionRequestDecision(ctx, request.LocalOSUserAnchor, accountID, request.LocalAppPrincipalID, request.PermissionID)
-	if errors.Is(err, localappkernel.ErrNotFound) {
-		return projection, nil
-	}
+func (s *Service) ownerPermissionProjectionsForPrincipal(ctx context.Context, accountID string, principal localappkernel.Principal) ([]*runtimev1.LocalAppPermissionOwnerProjection, error) {
+	requests, err := s.localAppKernel.PermissionGrants().ListPermissionRequestsForPrincipal(ctx, s.localAppKernel.LocalOSUserAnchor(), accountID, principal.LocalAppPrincipalID)
 	if err != nil {
 		return nil, err
 	}
-	projection.OwnerRevision = decision.Revision
-	projection.DecidedAt = timestamppb.New(decision.DecidedAt)
-	if decision.State == localappkernel.PermissionGrantStateDenied {
-		projection.Posture = runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED
-		return projection, nil
-	}
-	key := localappkernel.PermissionGrantKey{LocalOSUserAnchor: request.LocalOSUserAnchor, AccountID: accountID,
-		LocalAppPrincipalID: request.LocalAppPrincipalID, PermissionID: request.PermissionID, OwnerSelectorDigest: decision.OwnerSelectorDigest}
-	grant, err := s.localAppKernel.PermissionGrants().Get(ctx, key)
+	grants, err := s.localAppKernel.PermissionGrants().ListActiveForPrincipal(ctx, s.localAppKernel.LocalOSUserAnchor(), accountID, principal.LocalAppPrincipalID)
 	if err != nil {
 		return nil, err
 	}
-	projection.OwnerRevision = grant.Revision
-	projection.DecidedAt = timestamppb.New(grant.UpdatedAt)
-	switch grant.State {
-	case localappkernel.PermissionGrantStateGranted:
-		if grant.ExpiresAt != nil && !s.now().UTC().Before(*grant.ExpiresAt) {
-			projection.Posture = runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED
-		} else {
-			projection.Posture = runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED
+	permissions := make([]*runtimev1.LocalAppPermissionOwnerProjection, 0, len(requests)+len(grants))
+	for _, request := range requests {
+		permissions = append(permissions, projectPendingOwnerPermission(request))
+	}
+	for _, grant := range grants {
+		projection, projectionErr := s.projectActiveOwnerPermission(ctx, accountID, principal, grant)
+		if projectionErr != nil {
+			return nil, projectionErr
 		}
-	case localappkernel.PermissionGrantStateDenied:
-		projection.Posture = runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED
-	case localappkernel.PermissionGrantStateExpired:
-		projection.Posture = runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED
-	case localappkernel.PermissionGrantStateRevoked:
-		projection.Posture = runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED
-	default:
+		permissions = append(permissions, projection)
+	}
+	sortOwnerPermissionProjections(permissions)
+	return permissions, nil
+}
+
+func projectPendingOwnerPermission(request localappkernel.PermissionRequest) *runtimev1.LocalAppPermissionOwnerProjection {
+	return &runtimev1.LocalAppPermissionOwnerProjection{
+		LocalAppPrincipalId: request.LocalAppPrincipalID,
+		DisplayAppId:        request.DisplayAppID,
+		PermissionId:        request.PermissionID,
+		Posture:             runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING,
+		OwnerRevision:       request.Revision,
+		RequestedAt:         timestamppb.New(request.RequestedAt),
+	}
+}
+
+func (s *Service) projectActiveOwnerPermission(ctx context.Context, accountID string, principal localappkernel.Principal, grant localappkernel.PermissionGrant) (*runtimev1.LocalAppPermissionOwnerProjection, error) {
+	if grant.State != localappkernel.PermissionGrantStateGranted || grant.Key.AccountID != accountID ||
+		grant.Key.LocalAppPrincipalID != principal.LocalAppPrincipalID {
 		return nil, localappkernel.ErrStateConflict
 	}
-	if projection.Posture != runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED {
-		return projection, nil
+	projection := &runtimev1.LocalAppPermissionOwnerProjection{
+		LocalAppPrincipalId: principal.LocalAppPrincipalID,
+		DisplayAppId:        principal.AppID,
+		PermissionId:        grant.Key.PermissionID,
+		Posture:             runtimev1.LocalAppPermissionOwnerPosture_LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED,
+		OwnerRevision:       grant.Revision,
+		RequestedAt:         timestamppb.New(grant.CreatedAt),
+		DecidedAt:           timestamppb.New(grant.UpdatedAt),
 	}
-	if decision.OwnerSelectorDigest != localappkernel.AgentAccountScopeDigest(accountID) || s.localAgentOwnership == nil {
+	if grant.Key.OwnerSelectorDigest != localappkernel.AgentAccountScopeDigest(accountID) || s.localAgentOwnership == nil {
 		return nil, ErrLocalAppSelectorUnavailable
 	}
 	agents, err := s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
@@ -132,6 +138,18 @@ func (s *Service) projectOwnerPermission(ctx context.Context, accountID string, 
 		})
 	}
 	return projection, nil
+}
+
+func sortOwnerPermissionProjections(permissions []*runtimev1.LocalAppPermissionOwnerProjection) {
+	sort.Slice(permissions, func(i, j int) bool {
+		if permissions[i].GetDisplayAppId() != permissions[j].GetDisplayAppId() {
+			return permissions[i].GetDisplayAppId() < permissions[j].GetDisplayAppId()
+		}
+		if permissions[i].GetLocalAppPrincipalId() != permissions[j].GetLocalAppPrincipalId() {
+			return permissions[i].GetLocalAppPrincipalId() < permissions[j].GetLocalAppPrincipalId()
+		}
+		return permissions[i].GetPermissionId() < permissions[j].GetPermissionId()
+	})
 }
 
 func ownerPermissionProjectionResponse(reason runtimev1.ReasonCode) *runtimev1.GetLocalAppPermissionOwnerProjectionResponse {

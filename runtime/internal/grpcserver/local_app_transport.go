@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -318,9 +319,18 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 			return "", localappop.Selector{}, true
 		}
 		fields := req.GetPayload().GetFields()
-		return accountservice.LocalAppOperationSendConversationTurn, localappop.Selector{
-			AgentID: fields["local_agent_ref"].GetStringValue(), ConversationAnchorID: fields["conversation_anchor_id"].GetStringValue(), TurnID: fields["request_id"].GetStringValue(),
-		}, true
+		selector := localappop.Selector{
+			AgentID: fields["local_agent_ref"].GetStringValue(), ConversationAnchorID: fields["conversation_anchor_id"].GetStringValue(),
+		}
+		switch strings.TrimSpace(req.GetMessageType()) {
+		case "runtime.agent.turn.request":
+			selector.TurnID = fields["request_id"].GetStringValue()
+			return accountservice.LocalAppOperationSendConversationTurn, selector, true
+		case "runtime.agent.turn.interrupt":
+			return accountservice.LocalAppOperationInterruptConversation, selector, true
+		default:
+			return "", localappop.Selector{}, true
+		}
 	case protectedConversationSnapshotMethod:
 		req, ok := request.(*runtimev1.GetPublicChatSessionSnapshotRequest)
 		if !ok {

@@ -28,7 +28,7 @@ func (s *Service) DecideLocalAppPermission(ctx context.Context, req *runtimev1.D
 		return ownerDecisionResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
 	}
 	nextState := localappkernel.PermissionGrantStateDenied
-	nextPosture := apppermission.PostureDenied
+	nextPosture := apppermission.PosturePrompt
 	selectorDigest := ""
 	if req.GetApproved() {
 		nextState = localappkernel.PermissionGrantStateGranted
@@ -37,7 +37,11 @@ func (s *Service) DecideLocalAppPermission(ctx context.Context, req *runtimev1.D
 	}
 	key := localappkernel.PermissionGrantKey{LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), AccountID: accountID,
 		LocalAppPrincipalID: principal.LocalAppPrincipalID, PermissionID: req.GetPermissionId(), OwnerSelectorDigest: selectorDigest}
-	binding := s.permissionAuditBinding(principal, accountID, key, apppermission.PosturePending, nextPosture, "owner_deny", pending.Revision+1)
+	auditPosture := nextPosture
+	if !req.GetApproved() {
+		auditPosture = apppermission.PostureDenied
+	}
+	binding := s.permissionAuditBinding(principal, accountID, key, apppermission.PosturePending, auditPosture, "owner_deny", pending.Revision+1)
 	emitter := apppermission.NewAuditEmitter(s.auditStore)
 	if req.GetApproved() {
 		binding.Trigger = "owner_approve"
@@ -78,19 +82,20 @@ func (s *Service) RevokeLocalAppPermission(ctx context.Context, req *runtimev1.R
 	if err != nil {
 		return ownerRevokeResponse(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED), nil
 	}
-	binding := s.permissionAuditBinding(principal, accountID, key, permissionGrantPublicPosture(grant.State), apppermission.PostureDenied, "owner_revoke", grant.Revision+1)
+	binding := s.permissionAuditBinding(principal, accountID, key, apppermission.PostureGranted, apppermission.PostureDenied, "owner_revoke", grant.Revision+1)
 	if err := apppermission.NewAuditEmitter(s.auditStore).EmitDecisionTransition(ctx, binding); err != nil {
 		return ownerRevokeResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 	}
-	grant, err = s.localAppKernel.PermissionGrants().Transition(ctx, localappkernel.TransitionPermissionGrantInput{
-		Key: key, ExpectedRevision: grant.Revision, State: localappkernel.PermissionGrantStateRevoked,
+	decision, err := s.localAppKernel.PermissionGrants().Revoke(ctx, localappkernel.RevokePermissionGrantInput{
+		Key: key, ExpectedRevision: grant.Revision,
 	})
 	if err != nil {
 		return ownerRevokeResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 	}
+	s.publishPermissionInbox(ctx, accountID)
 	return &runtimev1.RevokeLocalAppPermissionResponse{
-		Accepted: true, Posture: runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED,
-		OwnerRevision: grant.Revision, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		Accepted: true, Posture: runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT,
+		OwnerRevision: decision.Revision, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
 }
 
@@ -118,17 +123,6 @@ func (s *Service) permissionAuditBinding(principal localappkernel.Principal, acc
 		OwnerSubjectID: accountID, LocalAppPrincipalID: principal.LocalAppPrincipalID, DisplayAppID: principal.AppID,
 		PermissionID: key.PermissionID, SelectorDigest: key.OwnerSelectorDigest, OldPosture: oldPosture, NewPosture: newPosture,
 		Trigger: trigger, Timestamp: s.now().UTC(), OwnerRevision: revision,
-	}
-}
-
-func permissionGrantPublicPosture(state localappkernel.PermissionGrantState) apppermission.Posture {
-	switch state {
-	case localappkernel.PermissionGrantStatePending:
-		return apppermission.PosturePending
-	case localappkernel.PermissionGrantStateGranted:
-		return apppermission.PostureGranted
-	default:
-		return apppermission.PostureDenied
 	}
 }
 

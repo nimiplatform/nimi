@@ -242,6 +242,7 @@ capability_sets:
       - local-app.permissionRequest
       - local-app.conversationOpen
       - local-app.conversationSendTurn
+      - local-app.conversationInterruptTurn
       - local-app.conversationSubscribe
       - local-app.conversationSnapshot
       - local-app.agentConfigurationSnapshot
@@ -395,6 +396,16 @@ local_app_operation_contract:
       transport_boundary: unary
       effect_boundary: write
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, permission-unavailable, permission-denied, permission-revoked, invalid-payload, resource-exhausted, host-internal-error]
+      owner: runtime_app_service
+    conversationInterruptTurn:
+      command: local-app.conversationInterruptTurn
+      operation_id: runtime_agent.conversation.turn_interrupt
+      authority_class: user_permission
+      request_fields: [agentHandle, conversationAnchorId]
+      response_fields: [messageId]
+      transport_boundary: unary
+      effect_boundary: write
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, permission-unavailable, permission-denied, permission-revoked, invalid-payload, not-found, host-internal-error]
       owner: runtime_app_service
     conversationSubscribe:
       command: local-app.conversationSubscribe
@@ -675,6 +686,9 @@ capabilities:
       - id: conversationSendTurn
         command: nimi.shell.localApp.conversationSendTurn
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, permission-unavailable, permission-denied, permission-revoked, invalid-payload, resource-exhausted, host-internal-error]
+      - id: conversationInterruptTurn
+        command: nimi.shell.localApp.conversationInterruptTurn
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, permission-unavailable, permission-denied, permission-revoked, invalid-payload, not-found, host-internal-error]
       - id: conversationSubscribe
         command: nimi.shell.localApp.conversationSubscribe
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, permission-unavailable, permission-denied, permission-revoked, invalid-payload, resource-exhausted, not-found, host-internal-error]

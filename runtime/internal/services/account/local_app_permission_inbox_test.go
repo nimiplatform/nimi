@@ -31,9 +31,7 @@ func TestLocalAppPermissionOwnerInboxListsAndPushesPendingRequests(t *testing.T)
 	if !initial.GetAccepted() || len(initial.GetRequests()) != 0 || initial.GetSequence() == 0 {
 		t.Fatalf("initial inbox snapshot = %+v", initial)
 	}
-	requested, err := fixture.service.RequestLocalAppPermission(context.Background(), &runtimev1.RequestLocalAppPermissionRequest{
-		PermissionId: "agents.interact", Reason: "Open a conversation with my selected Agent",
-	})
+	requested, err := fixture.service.RequestLocalAppPermission(permissionRequestContext("test-local_app_permission_inbox_test-1"), &runtimev1.RequestLocalAppPermissionRequest{PermissionId: "agents.interact", Reason: "Open a conversation with my selected Agent"})
 	if err != nil || requested.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING {
 		t.Fatalf("request = (%+v, %v)", requested, err)
 	}

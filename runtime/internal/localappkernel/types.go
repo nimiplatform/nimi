@@ -129,15 +129,16 @@ type ProvenanceInvalidationFact struct {
 	RecordedAt              time.Time
 }
 
-const MaxPermissionRequestReasonBytes = 240
+const (
+	MaxPermissionRequestReasonBytes = 240
+	MaxPermissionRequestIDBytes     = 240
+)
 
 type PermissionGrantState string
 
 const (
-	PermissionGrantStatePending PermissionGrantState = "pending"
 	PermissionGrantStateGranted PermissionGrantState = "granted"
 	PermissionGrantStateDenied  PermissionGrantState = "denied"
-	PermissionGrantStateExpired PermissionGrantState = "expired"
 	PermissionGrantStateRevoked PermissionGrantState = "revoked"
 )
 
@@ -154,16 +155,12 @@ type PermissionGrantKey struct {
 
 type PermissionGrant struct {
 	Key       PermissionGrantKey
+	RequestID string
 	State     PermissionGrantState
 	Revision  uint64
 	ExpiresAt *time.Time
 	CreatedAt time.Time
 	UpdatedAt time.Time
-}
-
-type CreatePermissionGrantInput struct {
-	Key       PermissionGrantKey
-	ExpiresAt *time.Time
 }
 
 // PermissionRequest is the selector-free durable app request that precedes an
@@ -173,6 +170,7 @@ type PermissionRequest struct {
 	AccountID           string
 	LocalAppPrincipalID string
 	PermissionID        string
+	RequestID           string
 	DisplayAppID        string
 	Reason              string
 	Revision            uint64
@@ -185,6 +183,7 @@ type CreatePermissionRequestInput struct {
 	AccountID           string
 	LocalAppPrincipalID string
 	PermissionID        string
+	RequestID           string
 	DisplayAppID        string
 	Reason              string
 }
@@ -194,16 +193,27 @@ type RefreshPermissionRequestInput struct {
 	AccountID           string
 	LocalAppPrincipalID string
 	PermissionID        string
+	RequestID           string
 	DisplayAppID        string
 	Reason              string
 	ExpectedRevision    uint64
 }
+
+type PermissionAuthorizationAction string
+
+const (
+	PermissionAuthorizationActionAccept PermissionAuthorizationAction = "accept"
+	PermissionAuthorizationActionReject PermissionAuthorizationAction = "reject"
+	PermissionAuthorizationActionRevoke PermissionAuthorizationAction = "revoke"
+)
 
 type PermissionRequestDecision struct {
 	LocalOSUserAnchor   string
 	AccountID           string
 	LocalAppPrincipalID string
 	PermissionID        string
+	RequestID           string
+	Action              PermissionAuthorizationAction
 	State               PermissionGrantState
 	OwnerSelectorDigest string
 	Revision            uint64
@@ -220,11 +230,9 @@ type DecidePermissionRequestInput struct {
 	OwnerSelectorDigest string
 }
 
-type TransitionPermissionGrantInput struct {
+type RevokePermissionGrantInput struct {
 	Key              PermissionGrantKey
 	ExpectedRevision uint64
-	State            PermissionGrantState
-	ExpiresAt        *time.Time
 }
 
 type AgentHandle struct {
@@ -257,15 +265,6 @@ type SecurityKeys struct {
 	StoragePartitionKey string
 	AudienceKey         string
 	AuditSubjectKey     string
-}
-
-func validPermissionGrantState(state PermissionGrantState) bool {
-	switch state {
-	case PermissionGrantStatePending, PermissionGrantStateGranted, PermissionGrantStateDenied, PermissionGrantStateExpired, PermissionGrantStateRevoked:
-		return true
-	default:
-		return false
-	}
 }
 
 func validatePermissionGrantKey(key PermissionGrantKey) error {

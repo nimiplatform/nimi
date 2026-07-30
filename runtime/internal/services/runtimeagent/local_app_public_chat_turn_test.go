@@ -6,9 +6,116 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestAuthorizedLocalAppInterruptsOnlyItsOwnActiveConversation(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
+	baseDecision := accountservice.LocalAppCallerDecision{
+		AppID:               "nimi.zhiyu",
+		AccountID:           "user-1",
+		LocalAppPrincipalID: "principal-a",
+		LocalAppRecordID:    "record-a",
+		LocalAgentID:        localAgentRef,
+	}
+	metadata, err := structpb.NewStruct(map[string]any{"local_app_anchor_disposition": "create-new"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	openDecision := baseDecision
+	openDecision.Operation = accountservice.LocalAppOperationOpenConversation
+	opened, err := svc.OpenConversationAnchor(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), openDecision),
+		&runtimev1.OpenConversationAnchorRequest{AgentId: localAgentRef, Metadata: metadata},
+	)
+	if err != nil {
+		t.Fatalf("OpenConversationAnchor(local app): %v", err)
+	}
+	anchorID := opened.GetSnapshot().GetAnchor().GetConversationAnchorId()
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(ctx context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-local-app-interrupt",
+				Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
+					ModelResolved: "qwen3-chat", RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				}},
+			}); err != nil {
+				return err
+			}
+			<-ctx.Done()
+			return ctx.Err()
+		},
+	})
+	turnDecision := baseDecision
+	turnDecision.Operation = accountservice.LocalAppOperationSendConversationTurn
+	if err := svc.ConsumePublicChatAppMessage(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), turnDecision),
+		&runtimev1.AppMessageEvent{
+			MessageId: "local-app-interrupt-turn", ToAppId: publicChatRuntimeAppID,
+			FromAppId: baseDecision.AppID, SubjectUserId: baseDecision.AccountID,
+			MessageType: publicChatTurnRequestType,
+			Payload: publicChatStructPayload(t, map[string]any{
+				"local_agent_ref": localAgentRef, "conversation_anchor_id": anchorID,
+				"request_id": "local-app-interrupt-turn",
+				"messages":   []any{map[string]any{"role": "user", "content": "please wait"}},
+			}),
+		},
+	); err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(local request): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+
+	interruptEvent := &runtimev1.AppMessageEvent{
+		ToAppId: publicChatRuntimeAppID, FromAppId: baseDecision.AppID,
+		SubjectUserId: baseDecision.AccountID, MessageType: publicChatTurnInterruptType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"conversation_anchor_id": anchorID, "reason": "user_cancel",
+		}),
+	}
+	foreignDecision := baseDecision
+	foreignDecision.Operation = accountservice.LocalAppOperationInterruptConversation
+	foreignDecision.LocalAppPrincipalID = "principal-b"
+	foreignDecision.LocalAppRecordID = "record-b"
+	err = svc.ConsumePublicChatAppMessage(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), foreignDecision),
+		interruptEvent,
+	)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("foreign interrupt status = %s err=%v", status.Code(err), err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED {
+		t.Fatalf("foreign interrupt reason = %s ok=%v err=%v", reason, ok, err)
+	}
+
+	interruptDecision := baseDecision
+	interruptDecision.Operation = accountservice.LocalAppOperationInterruptConversation
+	if err := svc.ConsumePublicChatAppMessage(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), interruptDecision),
+		interruptEvent,
+	); err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(local interrupt): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnInterruptAckType)
+	_ = capture.waitForMessageType(t, publicChatTurnInterruptedType)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+
+	err = svc.ConsumePublicChatAppMessage(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), interruptDecision),
+		interruptEvent,
+	)
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("inactive-turn interrupt status = %s err=%v", status.Code(err), err)
+	}
+}
 
 func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)

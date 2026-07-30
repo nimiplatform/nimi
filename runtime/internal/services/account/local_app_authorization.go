@@ -26,6 +26,7 @@ const (
 	LocalAppOperationReadArtifactBytes     LocalAppOperation = "artifacts.read_runtime_bytes"
 	LocalAppOperationOpenConversation      LocalAppOperation = "runtime_agent.conversation.open"
 	LocalAppOperationSendConversationTurn  LocalAppOperation = "runtime_agent.conversation.turn_send"
+	LocalAppOperationInterruptConversation LocalAppOperation = "runtime_agent.conversation.turn_interrupt"
 	LocalAppOperationSubscribeConversation LocalAppOperation = "runtime_agent.conversation.turn_subscribe"
 	LocalAppOperationConversationSnapshot  LocalAppOperation = "runtime_agent.conversation.snapshot"
 	LocalAppOperationConfigurationSnapshot LocalAppOperation = "runtime_agent.configuration.snapshot"
@@ -287,7 +288,8 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 	case LocalAppOperationReadArtifactBytes:
 		return "data.scope.read#runtime.artifacts", true
 	case LocalAppOperationOpenConversation, LocalAppOperationSendConversationTurn,
-		LocalAppOperationSubscribeConversation, LocalAppOperationConversationSnapshot:
+		LocalAppOperationInterruptConversation, LocalAppOperationSubscribeConversation,
+		LocalAppOperationConversationSnapshot:
 		return localAppAgentPermissionID, true
 	case LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
 		LocalAppOperationReadinessSnapshot, LocalAppOperationAutonomySnapshot,

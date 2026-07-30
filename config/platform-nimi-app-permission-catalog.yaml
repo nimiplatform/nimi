@@ -109,6 +109,7 @@ public_permissions:
     internal_operation_families:
       - agent_conversation_open
       - agent_conversation_turn_send
+      - agent_conversation_turn_interrupt
       - agent_conversation_turn_subscribe
       - agent_conversation_snapshot
     reserved_scope_extensions:
@@ -134,7 +135,7 @@ public_permissions:
       - delegation_decision_requires_agents_delegate
       - microphone_capture_remains_os_right
       - ai_usage_remains_metered
-    atomic_publication_requirement: P-PERM-017 applies independently to the currently admitted four-operation slice and every reserved scope extension
+    atomic_publication_requirement: P-PERM-017 applies independently to the currently admitted five-operation slice and every reserved scope extension
   - permission_id: agents.configure
     admission: reserved
     authority_class: user_permission

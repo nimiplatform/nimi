@@ -23,6 +23,7 @@ func TestAuthorizeLocalAppProtectedOperationsFailClosedUntilProductPermissionAdm
 		{LocalAppOperationReadArtifactBytes, localappop.Selector{ArtifactID: "artifact-a"}},
 		{LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent-a"}},
 		{LocalAppOperationSendConversationTurn, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a", TurnID: "turn-a"}},
+		{LocalAppOperationInterruptConversation, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a"}},
 		{LocalAppOperationSubscribeConversation, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a"}},
 		{LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a"}},
 		{LocalAppOperationConfigurationSnapshot, localappop.Selector{AgentID: "agent-a"}},
@@ -66,18 +67,7 @@ func TestConfigureGrantCannotMaterializeOrValidateHandlesWithoutInteract(t *test
 	fixture.resolver.binding.Capabilities = []string{"agents.interact", "agents.configure"}
 	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
 	digest := localappkernel.AgentAccountScopeDigest("acct-1")
-	configureKey := localappkernel.PermissionGrantKey{
-		LocalOSUserAnchor: fixture.kernel.LocalOSUserAnchor(), AccountID: "acct-1",
-		LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
-		PermissionID:        "agents.configure", OwnerSelectorDigest: digest,
-	}
-	pending, err := fixture.kernel.PermissionGrants().CreatePending(context.Background(), localappkernel.CreatePermissionGrantInput{Key: configureKey})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := fixture.kernel.PermissionGrants().Transition(context.Background(), localappkernel.TransitionPermissionGrantInput{Key: configureKey, ExpectedRevision: pending.Revision, State: localappkernel.PermissionGrantStateGranted}); err != nil {
-		t.Fatal(err)
-	}
+	grantLocalAppPermissionForTest(t, fixture, "agents.configure", "request-configure-without-interact")
 	handle, err := fixture.kernel.AgentHandles().EnsureAccountScope(context.Background(), localappkernel.EnsureAccountScopeAgentHandleInput{
 		AccountID: "acct-1", LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
 		PermissionID: "agents.interact", OwnerSelectorDigest: digest, LocalAgentID: "agent-owned",
@@ -107,18 +97,7 @@ func TestConfigureGrantBecomesImmediatelyIneffectiveWhenInteractIsRevoked(t *tes
 	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
 	digest := localappkernel.AgentAccountScopeDigest("acct-1")
 	for _, permissionID := range []string{"agents.interact", "agents.configure"} {
-		key := localappkernel.PermissionGrantKey{
-			LocalOSUserAnchor: fixture.kernel.LocalOSUserAnchor(), AccountID: "acct-1",
-			LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
-			PermissionID:        permissionID, OwnerSelectorDigest: digest,
-		}
-		pending, err := fixture.kernel.PermissionGrants().CreatePending(context.Background(), localappkernel.CreatePermissionGrantInput{Key: key})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := fixture.kernel.PermissionGrants().Transition(context.Background(), localappkernel.TransitionPermissionGrantInput{Key: key, ExpectedRevision: pending.Revision, State: localappkernel.PermissionGrantStateGranted}); err != nil {
-			t.Fatal(err)
-		}
+		grantLocalAppPermissionForTest(t, fixture, permissionID, "request-"+permissionID)
 	}
 	handle, err := fixture.kernel.AgentHandles().EnsureAccountScope(context.Background(), localappkernel.EnsureAccountScopeAgentHandleInput{
 		AccountID: "acct-1", LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
@@ -163,17 +142,75 @@ func TestConfigureGrantBecomesImmediatelyIneffectiveWhenInteractIsRevoked(t *tes
 		LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
 		PermissionID:        "agents.interact", OwnerSelectorDigest: digest,
 	}
-	if _, err := fixture.kernel.PermissionGrants().Transition(context.Background(), localappkernel.TransitionPermissionGrantInput{
-		Key: interactKey, ExpectedRevision: 2, State: localappkernel.PermissionGrantStateRevoked,
+	if _, err := fixture.kernel.PermissionGrants().Revoke(context.Background(), localappkernel.RevokePermissionGrantInput{
+		Key: interactKey, ExpectedRevision: 2,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	_, err = fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationConfigurationSnapshot, selector)
-	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED {
-		t.Fatalf("configure after interact revoke reason = %s, want revoked (err=%v)", got, err)
+	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED {
+		t.Fatalf("configure after interact revoke reason = %s, want required (err=%v)", got, err)
 	}
 	if _, err := fixture.service.materializeAccountAgentHandles(ctx, caller, "agents.configure", digest); !errors.Is(err, ErrLocalAppSelectorUnavailable) {
 		t.Fatalf("configure materialization after interact revoke error = %v", err)
+	}
+}
+
+func grantLocalAppPermissionForTest(t *testing.T, fixture *localAppAuthorityFixture, permissionID, requestID string) {
+	t.Helper()
+	request, err := fixture.kernel.PermissionGrants().CreatePendingRequest(context.Background(), localappkernel.CreatePermissionRequestInput{
+		LocalOSUserAnchor: fixture.kernel.LocalOSUserAnchor(), AccountID: "acct-1",
+		LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID, PermissionID: permissionID,
+		RequestID: requestID, DisplayAppID: "sample.nimi.app", Reason: "Test permission grant",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = fixture.kernel.PermissionGrants().DecidePendingRequest(context.Background(), localappkernel.DecidePermissionRequestInput{
+		LocalOSUserAnchor: fixture.kernel.LocalOSUserAnchor(), AccountID: "acct-1",
+		LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID, PermissionID: permissionID,
+		ExpectedRevision: request.Revision, State: localappkernel.PermissionGrantStateGranted,
+		OwnerSelectorDigest: localappkernel.AgentAccountScopeDigest("acct-1"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestInterruptConversationRequiresCurrentInteractGrant(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	fixture.service.permissionAdmitted = func(id string) bool { return id == "agents.interact" }
+	fixture.service.auditStore = auditlog.New(32, 32)
+	fixture.service.SetLocalAgentOwnershipResolver(localAgentOwnershipFixture{accountID: "acct-1", agentID: "agent-owned"})
+	fixture.resolver.binding.Capabilities = []string{"agents.interact"}
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	digest := localappkernel.AgentAccountScopeDigest("acct-1")
+	handle, err := fixture.kernel.AgentHandles().EnsureAccountScope(context.Background(), localappkernel.EnsureAccountScopeAgentHandleInput{
+		AccountID: "acct-1", LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
+		PermissionID: "agents.interact", OwnerSelectorDigest: digest, LocalAgentID: "agent-owned",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	selector := localappop.Selector{AgentID: handle.Handle, ConversationAnchorID: "anchor-owned"}
+	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationInterruptConversation, selector); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED {
+		t.Fatalf("interrupt without grant reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
+	}
+	grantLocalAppPermissionForTest(t, fixture, "agents.interact", "request-interrupt")
+	decision, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationInterruptConversation, selector)
+	if err != nil || decision.Operation != LocalAppOperationInterruptConversation || decision.LocalAgentID != "agent-owned" {
+		t.Fatalf("granted interrupt decision = (%+v, %v), reason=%s", decision, err, LocalAppOperationAuthorizationReason(err))
+	}
+	key := localappkernel.PermissionGrantKey{
+		LocalOSUserAnchor: fixture.kernel.LocalOSUserAnchor(), AccountID: "acct-1",
+		LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
+		PermissionID:        "agents.interact", OwnerSelectorDigest: digest,
+	}
+	if _, err := fixture.kernel.PermissionGrants().Revoke(context.Background(), localappkernel.RevokePermissionGrantInput{Key: key, ExpectedRevision: 2}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationInterruptConversation, selector); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED {
+		t.Fatalf("interrupt after revoke reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
 	}
 }
 

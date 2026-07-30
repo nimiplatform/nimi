@@ -4,16 +4,20 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"google.golang.org/grpc/metadata"
 )
 
 const (
-	localAppPermissionReasonMaxBytes = localappkernel.MaxPermissionRequestReasonBytes
-	localAppAgentDisplayNameMaxBytes = 240
+	localAppPermissionReasonMaxBytes    = localappkernel.MaxPermissionRequestReasonBytes
+	localAppPermissionRequestIDMaxBytes = localappkernel.MaxPermissionRequestIDBytes
+	localAppPermissionRequestDedupTTL   = 5 * time.Minute
+	localAppAgentDisplayNameMaxBytes    = 240
 )
 
 func (s *Service) GetLocalAppPermissionStatus(ctx context.Context, req *runtimev1.GetLocalAppPermissionStatusRequest) (*runtimev1.GetLocalAppPermissionStatusResponse, error) {
@@ -27,18 +31,27 @@ func (s *Service) GetLocalAppPermissionStatus(ctx context.Context, req *runtimev
 
 func (s *Service) RequestLocalAppPermission(ctx context.Context, req *runtimev1.RequestLocalAppPermissionRequest) (*runtimev1.RequestLocalAppPermissionResponse, error) {
 	permissionID := ""
+	requestID := ""
 	reason := ""
 	if req != nil {
 		permissionID = req.GetPermissionId()
 		reason = req.GetReason()
 	}
+	requestID = localAppPermissionRequestID(ctx)
 	projection := s.localAppPermissionProjection(ctx, permissionID)
-	if !canonicalPermissionReason(reason) {
+	if !canonicalPermissionRequestID(requestID) || !canonicalPermissionReason(reason) {
 		projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE
 		projection.CanRequest = false
 		projection.ReasonCode = runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID
 		return &runtimev1.RequestLocalAppPermissionResponse{Projection: projection}, nil
 	}
+	if projection.GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT &&
+		projection.GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING {
+		return &runtimev1.RequestLocalAppPermissionResponse{Projection: projection}, nil
+	}
+	s.permissionRequestMu.Lock()
+	defer s.permissionRequestMu.Unlock()
+	projection = s.localAppPermissionProjection(ctx, permissionID)
 	if projection.GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT &&
 		projection.GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING {
 		return &runtimev1.RequestLocalAppPermissionResponse{Projection: projection}, nil
@@ -51,25 +64,39 @@ func (s *Service) RequestLocalAppPermission(ctx context.Context, req *runtimev1.
 	if err != nil || principal.State != localappkernel.PrincipalStateActive {
 		return &runtimev1.RequestLocalAppPermissionResponse{Projection: unavailablePermissionProjection(permissionID, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)}, nil
 	}
+	if _, dedupErr := s.localAppKernel.PermissionGrants().GetRecentPermissionRequestDecisionByRequestID(
+		ctx, caller.LocalOSUserAnchor, caller.AccountID, caller.LocalAppPrincipalID, requestID,
+		s.now().UTC().Add(-localAppPermissionRequestDedupTTL),
+	); dedupErr == nil {
+		return &runtimev1.RequestLocalAppPermissionResponse{Projection: s.localAppPermissionProjection(ctx, permissionID)}, nil
+	} else if !errors.Is(dedupErr, localappkernel.ErrNotFound) {
+		return &runtimev1.RequestLocalAppPermissionResponse{Projection: unavailablePermissionProjection(permissionID, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)}, nil
+	}
 	request, err := s.localAppKernel.PermissionGrants().GetPendingRequest(ctx, caller.LocalOSUserAnchor, caller.AccountID, caller.LocalAppPrincipalID, permissionID)
 	switch {
 	case errors.Is(err, localappkernel.ErrNotFound):
+		nextRevision, revisionErr := s.localAppKernel.PermissionGrants().NextPermissionRequestRevision(
+			ctx, caller.LocalOSUserAnchor, caller.AccountID, caller.LocalAppPrincipalID, permissionID,
+		)
+		if revisionErr != nil {
+			return &runtimev1.RequestLocalAppPermissionResponse{Projection: unavailablePermissionProjection(permissionID, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)}, nil
+		}
 		binding := apppermission.AuditBinding{
 			OwnerSubjectID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID, DisplayAppID: principal.AppID,
 			PermissionID: permissionID, OldPosture: apppermission.PosturePrompt, NewPosture: apppermission.PosturePending,
-			Trigger: "app_request", Timestamp: s.now().UTC(), OwnerRevision: 1,
+			Trigger: "app_request", Timestamp: s.now().UTC(), OwnerRevision: nextRevision,
 		}
 		if err := apppermission.NewAuditEmitter(s.auditStore).EmitPendingRequestTransition(ctx, binding); err != nil {
 			return &runtimev1.RequestLocalAppPermissionResponse{Projection: unavailablePermissionProjection(permissionID, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)}, nil
 		}
 		request, err = s.localAppKernel.PermissionGrants().CreatePendingRequest(ctx, localappkernel.CreatePermissionRequestInput{
 			LocalOSUserAnchor: caller.LocalOSUserAnchor, AccountID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID,
-			PermissionID: permissionID, DisplayAppID: principal.AppID, Reason: reason,
+			PermissionID: permissionID, RequestID: requestID, DisplayAppID: principal.AppID, Reason: reason,
 		})
 	case err == nil:
 		request, err = s.localAppKernel.PermissionGrants().RefreshPendingRequest(ctx, localappkernel.RefreshPermissionRequestInput{
 			LocalOSUserAnchor: caller.LocalOSUserAnchor, AccountID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID,
-			PermissionID: permissionID, DisplayAppID: principal.AppID, Reason: reason, ExpectedRevision: request.Revision,
+			PermissionID: permissionID, RequestID: requestID, DisplayAppID: principal.AppID, Reason: reason, ExpectedRevision: request.Revision,
 		})
 	}
 	if err != nil || request.Revision == 0 {
@@ -112,60 +139,56 @@ func (s *Service) localAppPermissionProjection(ctx context.Context, permissionID
 	if !descriptor.ManifestAllowed || !containsLocalAppCapability(s.currentLocalAppCapabilities(ctx, caller.AccountGeneration), permissionID) || s.localAppKernel == nil {
 		return projection
 	}
-	decision, decisionErr := s.localAppKernel.PermissionGrants().GetPermissionRequestDecision(
+	request, requestErr := s.localAppKernel.PermissionGrants().GetPendingRequest(
 		ctx, caller.LocalOSUserAnchor, caller.AccountID, caller.LocalAppPrincipalID, permissionID,
 	)
-	if errors.Is(decisionErr, localappkernel.ErrNotFound) {
-		request, requestErr := s.localAppKernel.PermissionGrants().GetPendingRequest(
-			ctx, caller.LocalOSUserAnchor, caller.AccountID, caller.LocalAppPrincipalID, permissionID,
-		)
-		switch {
-		case requestErr == nil && request.Revision > 0:
-			projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING
-			projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
-		case errors.Is(requestErr, localappkernel.ErrNotFound):
-			projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT
-			projection.CanRequest = true
-			projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
-		}
+	if requestErr == nil && request.Revision > 0 {
+		projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING
+		projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
 		return projection
 	}
-	if decisionErr != nil {
-		return projection
-	}
-	if decision.State == localappkernel.PermissionGrantStateDenied {
-		projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED
-		projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED
+	if requestErr != nil && !errors.Is(requestErr, localappkernel.ErrNotFound) {
 		return projection
 	}
 	accountScopeDigest := localappkernel.AgentAccountScopeDigest(caller.AccountID)
-	if decision.State != localappkernel.PermissionGrantStateGranted || decision.OwnerSelectorDigest != accountScopeDigest {
-		return projection
-	}
 	grantKey := localappkernel.PermissionGrantKey{
 		LocalOSUserAnchor: caller.LocalOSUserAnchor,
 		AccountID:         caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID,
 		PermissionID: permissionID, OwnerSelectorDigest: accountScopeDigest,
 	}
 	grant, grantErr := s.localAppKernel.PermissionGrants().Get(ctx, grantKey)
+	if errors.Is(grantErr, localappkernel.ErrNotFound) {
+		projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT
+		projection.CanRequest = true
+		projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
+		return projection
+	}
 	if grantErr != nil {
 		return projection
 	}
 	evaluation := apppermission.EvaluatePosture(s.now().UTC(), true, true, grantKey, &grant)
+	if !evaluation.Usable {
+		projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT
+		projection.CanRequest = true
+		projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
+		return projection
+	}
 	projection.Posture = runtimePermissionPosture(evaluation.Posture)
 	if evaluation.Posture == apppermission.PostureGranted && permissionID == "agents.configure" {
 		interactKey := grantKey
 		interactKey.PermissionID = localAppAgentPermissionID
 		interactGrant, interactErr := s.localAppKernel.PermissionGrants().Get(ctx, interactKey)
 		if interactErr != nil {
-			projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED
+			projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT
+			projection.CanRequest = true
 			projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
 			return projection
 		}
 		interactEvaluation := apppermission.EvaluatePosture(s.now().UTC(), true, true, interactKey, &interactGrant)
 		if !interactEvaluation.Usable {
-			projection.Posture = runtimePermissionPosture(interactEvaluation.Posture)
-			projection.ReasonCode = runtimePermissionReason(interactEvaluation)
+			projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT
+			projection.CanRequest = true
+			projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
 			return projection
 		}
 	}
@@ -188,8 +211,10 @@ func (s *Service) localAppPermissionProjection(ctx context.Context, permissionID
 		latestEvaluation := apppermission.EvaluatePosture(s.now().UTC(), true, true, grantKey, &latestGrant)
 		if latestEvaluation.Posture != apppermission.PostureGranted {
 			projection.Agents = nil
-			projection.Posture = runtimePermissionPosture(latestEvaluation.Posture)
-			evaluation = latestEvaluation
+			projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT
+			projection.CanRequest = true
+			projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
+			return projection
 		}
 	}
 	projection.ReasonCode = runtimePermissionReason(evaluation)
@@ -215,10 +240,8 @@ func runtimePermissionPosture(posture apppermission.Posture) runtimev1.LocalAppP
 		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PENDING
 	case apppermission.PostureGranted:
 		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_GRANTED
-	case apppermission.PostureDenied:
-		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED
-	case apppermission.PostureRevoked:
-		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_REVOKED
+	case apppermission.PostureDenied, apppermission.PostureRevoked:
+		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_PROMPT
 	default:
 		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE
 	}
@@ -242,6 +265,22 @@ func unavailablePermissionProjection(permissionID string, reason runtimev1.Reaso
 		PermissionId: permissionID, Posture: runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE,
 		CanRequest: false, ReasonCode: reason,
 	}
+}
+
+func localAppPermissionRequestID(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
+	}
+	values := md.Get("x-nimi-trace-id")
+	if len(values) != 1 {
+		return ""
+	}
+	return values[0]
+}
+
+func canonicalPermissionRequestID(value string) bool {
+	return value != "" && strings.TrimSpace(value) == value && utf8.ValidString(value) && len([]byte(value)) <= localAppPermissionRequestIDMaxBytes
 }
 
 func canonicalPermissionReason(value string) bool {

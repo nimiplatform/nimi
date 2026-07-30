@@ -7,29 +7,17 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 )
 
-func TestEvaluatePostureMapsOwnerStatesWithoutExposingTerminalWorkflow(t *testing.T) {
+func TestEvaluatePostureUsesOnlyActiveGrantTruth(t *testing.T) {
 	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	key := postureTestKey()
-	tests := []struct {
-		name    string
-		state   localappkernel.PermissionGrantState
-		posture Posture
-		usable  bool
-	}{
-		{name: "pending", state: localappkernel.PermissionGrantStatePending, posture: PosturePending},
-		{name: "granted", state: localappkernel.PermissionGrantStateGranted, posture: PostureGranted, usable: true},
-		{name: "denied", state: localappkernel.PermissionGrantStateDenied, posture: PostureDenied},
-		{name: "expired", state: localappkernel.PermissionGrantStateExpired, posture: PostureDenied},
-		{name: "revoked", state: localappkernel.PermissionGrantStateRevoked, posture: PostureRevoked},
+	grant := &localappkernel.PermissionGrant{Key: key, State: localappkernel.PermissionGrantStateGranted, Revision: 7}
+	if got := EvaluatePosture(now, true, true, key, grant); got.Posture != PostureGranted || !got.Usable {
+		t.Fatalf("active grant evaluation = %+v", got)
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			grant := &localappkernel.PermissionGrant{Key: key, State: test.state, Revision: 7}
-			got := EvaluatePosture(now, true, true, key, grant)
-			if got.Posture != test.posture || got.Usable != test.usable {
-				t.Fatalf("evaluation = %+v", got)
-			}
-		})
+	malformed := *grant
+	malformed.State = localappkernel.PermissionGrantStateRevoked
+	if got := EvaluatePosture(now, true, true, key, &malformed); got.Posture != PostureDenied || got.Usable || got.Reason != PostureReasonBindingInvalid {
+		t.Fatalf("non-active row did not fail closed = %+v", got)
 	}
 	if got := EvaluatePosture(now, true, true, key, nil); got.Posture != PosturePrompt || got.Usable {
 		t.Fatalf("missing owner decision = %+v", got)

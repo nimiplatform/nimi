@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -66,6 +67,14 @@ func (r publicChatRuntime) consumeAppMessage(ctx context.Context, event *runtime
 		req, err := decodePublicChatTurnInterruptPayload(event.GetPayload())
 		if err != nil {
 			return err
+		}
+		if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
+			if decision.Operation != accountservice.LocalAppOperationInterruptConversation {
+				return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+			}
+			if err := r.svc.ValidateLocalAppConversationScope(ctx, decision.LocalAgentID, req.ConversationAnchorID); err != nil {
+				return err
+			}
 		}
 		return r.handleTurnInterrupt(event, req)
 	case publicChatTurnVoiceRenderType:

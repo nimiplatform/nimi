@@ -345,7 +345,8 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "agent:" + selector.AgentID + "/conversation:" + selector.ConversationAnchorID, nil
-	case LocalAppOperationSubscribeConversation, LocalAppOperationConversationSnapshot:
+	case LocalAppOperationInterruptConversation, LocalAppOperationSubscribeConversation,
+		LocalAppOperationConversationSnapshot:
 		if !require(selector.AgentID) || !require(selector.ConversationAnchorID) || selector.ArtifactID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
 			return "", ErrLocalAppOperationNotAdmitted
 		}

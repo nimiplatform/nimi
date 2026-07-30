@@ -21,6 +21,7 @@ var operationSpecs = map[Operation]operationSpec{
 	OperationArtifactRead:          {selector: selectorArtifact, authorityClass: AuthorityClassUserPermission},
 	OperationConversationOpen:      {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
 	OperationConversationTurnSend:  {selector: selectorAgentAnchorTurn, authorityClass: AuthorityClassUserPermission},
+	OperationConversationInterrupt: {selector: selectorAgentAnchor, authorityClass: AuthorityClassUserPermission},
 	OperationConversationSubscribe: {selector: selectorAgentAnchor, authorityClass: AuthorityClassUserPermission},
 	OperationConversationSnapshot:  {selector: selectorAgentAnchor, authorityClass: AuthorityClassUserPermission},
 	OperationConfigurationSnapshot: {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},

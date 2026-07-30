@@ -45,6 +45,7 @@ var operationPermissions = map[string]string{
 	"artifacts.read_runtime_bytes":              "artifacts.open",
 	"runtime_agent.conversation.open":           "agents.interact",
 	"runtime_agent.conversation.turn_send":      "agents.interact",
+	"runtime_agent.conversation.turn_interrupt": "agents.interact",
 	"runtime_agent.conversation.turn_subscribe": "agents.interact",
 	"runtime_agent.conversation.snapshot":       "agents.interact",
 	"runtime_agent.configuration.snapshot":      "agents.configure",

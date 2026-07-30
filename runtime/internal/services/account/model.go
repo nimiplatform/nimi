@@ -232,6 +232,7 @@ type Service struct {
 	events                          []*runtimev1.AccountSessionEvent
 	nextSubscriberID                uint64
 	subscribers                     map[uint64]subscriber
+	permissionRequestMu             sync.Mutex
 	permissionInboxMu               sync.Mutex
 	permissionInboxSequence         uint64
 	nextPermissionInboxSubscriberID uint64

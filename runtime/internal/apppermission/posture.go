@@ -38,9 +38,8 @@ type PostureEvaluation struct {
 	Usable  bool
 }
 
-// EvaluatePosture projects owner truth into the closed public posture set. A
-// missing decision is prompt only when all current bindings and catalog facts
-// are present; every mismatch fails closed and revocation remains distinct.
+// EvaluatePosture projects active owner truth. A missing active grant is prompt;
+// history records never participate in this state calculation.
 func EvaluatePosture(now time.Time, admitted bool, manifestAllowed bool, expected localappkernel.PermissionGrantKey, grant *localappkernel.PermissionGrant) PostureEvaluation {
 	if !admitted || !manifestAllowed {
 		return PostureEvaluation{Posture: PostureUnavailable, Reason: PostureReasonPermissionClosed}
@@ -62,20 +61,10 @@ func EvaluatePosture(now time.Time, admitted bool, manifestAllowed bool, expecte
 			return PostureEvaluation{Posture: PostureDenied, Reason: PostureReasonGrantExpired}
 		}
 	}
-	switch grant.State {
-	case localappkernel.PermissionGrantStatePending:
-		return PostureEvaluation{Posture: PosturePending, Reason: PostureReasonPending}
-	case localappkernel.PermissionGrantStateGranted:
+	if grant.State == localappkernel.PermissionGrantStateGranted {
 		return PostureEvaluation{Posture: PostureGranted, Reason: PostureReasonGranted, Usable: true}
-	case localappkernel.PermissionGrantStateDenied:
-		return PostureEvaluation{Posture: PostureDenied, Reason: PostureReasonOwnerDenied}
-	case localappkernel.PermissionGrantStateExpired:
-		return PostureEvaluation{Posture: PostureDenied, Reason: PostureReasonGrantExpired}
-	case localappkernel.PermissionGrantStateRevoked:
-		return PostureEvaluation{Posture: PostureRevoked, Reason: PostureReasonGrantRevoked}
-	default:
-		return PostureEvaluation{Posture: PostureDenied, Reason: PostureReasonBindingInvalid}
 	}
+	return PostureEvaluation{Posture: PostureDenied, Reason: PostureReasonBindingInvalid}
 }
 
 func completeGrantKey(key localappkernel.PermissionGrantKey) bool {
