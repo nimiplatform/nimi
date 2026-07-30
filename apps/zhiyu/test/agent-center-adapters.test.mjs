@@ -17,11 +17,17 @@ for (const reason of ['reserved_not_admitted', 'unknown', 'not_granted', 'reques
   });
 }
 
-test('Agent Center binding keeps request and settings recovery actions typed', async () => {
+test('Agent Center binding routes all non-persistent rejection history back to request', async () => {
   const { mapZhiyuAgentCenterActionPosture } = await loadBindingModule();
-  assert.equal(mapZhiyuAgentCenterActionPosture(sdkPosture({ posture: 'prompt', reason: 'not_granted' })).requestPermission.state, 'available');
-  assert.equal(mapZhiyuAgentCenterActionPosture(sdkPosture({ posture: 'denied', reason: 'grant_denied' })).openPermissionSettings.state, 'available');
-  assert.equal(mapZhiyuAgentCenterActionPosture(sdkPosture({ posture: 'revoked', reason: 'grant_revoked' })).openPermissionSettings.state, 'available');
+  for (const input of [
+    { posture: 'prompt', reason: 'not_granted' },
+    { posture: 'denied', reason: 'grant_denied' },
+    { posture: 'revoked', reason: 'grant_revoked' },
+  ]) {
+    const projection = mapZhiyuAgentCenterActionPosture(sdkPosture(input));
+    assert.equal(projection.requestPermission.state, 'available');
+    assert.equal(projection.openPermissionSettings.state, 'unavailable');
+  }
 });
 
 test('Agent Center binding maps carrier failure to runtime_offline without throwing', async () => {
@@ -37,7 +43,6 @@ test('reserved configure posture performs no reserved reads', async () => {
     agentConfigure: configureClient(calls),
     permissions: permissionClient(calls),
     loadPosture: async () => sdkPosture({ posture: 'unavailable', reason: 'reserved_not_admitted' }),
-    openPermissionSettings: async () => { calls.push('openPermissionSettings'); },
   });
   assert.deepEqual(await surface.read('opaque-handle'), {});
   assert.deepEqual(calls, []);
@@ -50,7 +55,6 @@ test('binding composes revisions and preserves blocked, failed, and unavailable 
       agentConfigure: configureClient([], state),
       permissions: permissionClient([]),
       loadPosture: async () => sdkPosture({ posture: 'granted', reason: null }),
-      openPermissionSettings: async () => undefined,
     });
     const projection = await surface.read('opaque-handle');
     assert.equal(projection.modelSettings.configurationRevision, '7');
@@ -67,7 +71,6 @@ test('binding routes model, autonomy, and atomic appearance mutations', async ()
     agentConfigure: configureClient(calls),
     permissions: permissionClient(calls),
     loadPosture: async () => sdkPosture({ posture: 'granted', reason: null }),
-    openPermissionSettings: async () => { calls.push('openPermissionSettings'); },
   });
   await surface.updateConfiguration('opaque-handle', {
     expectedConfigurationRevision: '7',
@@ -85,24 +88,23 @@ test('binding routes model, autonomy, and atomic appearance mutations', async ()
   assert.ok(!calls.some((entry) => entry.startsWith('previewPresentation')));
 });
 
-test('configure recovery actions use the SDK request and settings paths', async () => {
+test('configure request action uses the public SDK permission request shape', async () => {
   const { createZhiyuAgentCenterPermissionedSdkSurface, ZHIYU_AGENTS_CONFIGURE_REASON } = await loadBindingModule();
   const calls = [];
   const surface = createZhiyuAgentCenterPermissionedSdkSurface({
     agentConfigure: configureClient(calls),
     permissions: permissionClient(calls),
     loadPosture: async () => sdkPosture({ posture: 'prompt', reason: 'not_granted' }),
-    openPermissionSettings: async () => { calls.push('openPermissionSettings'); },
   });
   await surface.requestPermission('opaque-handle');
-  await surface.openPermissionSettings('opaque-handle');
-  assert.deepEqual(calls.filter((call) => typeof call !== 'string' || !call.includes('Snapshot')), [
-    { permissionId: 'agents.configure', reason: ZHIYU_AGENTS_CONFIGURE_REASON },
-    'openPermissionSettings',
-  ]);
+  const actionCalls = calls.filter((call) => typeof call !== 'string' || !call.includes('Snapshot'));
+  assert.equal(actionCalls[0].permissionId, 'agents.configure');
+  assert.equal(actionCalls[0].reason, ZHIYU_AGENTS_CONFIGURE_REASON);
+  assert.deepEqual(Object.keys(actionCalls[0]).sort(), ['permissionId', 'reason']);
+  assert.equal(actionCalls.length, 1);
 });
 
-test('scripted SDK posture events preserve granted, revoked, and denied distinctly', async () => {
+test('scripted SDK posture events project granted to prompt requestability', async () => {
   const { createZhiyuAgentCenterPermissionedSdkSurface } = await loadBindingModule();
   const calls = [];
   let emit;
@@ -110,18 +112,16 @@ test('scripted SDK posture events preserve granted, revoked, and denied distinct
     agentConfigure: configureClient(calls),
     permissions: permissionClient(calls, (listener) => { emit = listener; }),
     loadPosture: async () => sdkPosture({ posture: 'granted', reason: null }),
-    openPermissionSettings: async () => undefined,
   });
   const events = [];
   const unsubscribe = surface.subscribeActionPosture('opaque-handle', (posture) => events.push(posture));
   emit(sdkPosture({ posture: 'granted', reason: null }));
-  emit(sdkPosture({ posture: 'revoked', reason: 'grant_revoked' }));
-  emit(sdkPosture({ posture: 'denied', reason: 'grant_denied' }));
+  emit(sdkPosture({ posture: 'prompt', reason: 'not_granted' }));
   assert.deepEqual(events.map((event) => event.updateModelSettings), [
     { state: 'available', reason: null },
-    { state: 'unavailable', reason: 'grant_revoked' },
-    { state: 'unavailable', reason: 'grant_denied' },
+    { state: 'unavailable', reason: 'not_granted' },
   ]);
+  assert.equal(events[1].requestPermission.state, 'available');
   unsubscribe();
   assert.ok(calls.includes('unsubscribePermissionPosture'));
 });

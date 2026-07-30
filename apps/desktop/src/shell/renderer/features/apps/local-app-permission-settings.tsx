@@ -37,7 +37,8 @@ export function projectLocalAppPermissionSettingsItems(
     projection.permissionId === 'agents.interact' && projection.posture === 'granted'
   ));
   const order = new Map(DESKTOP_AGENT_PERMISSION_IDS.map((permissionId, index) => [permissionId, index]));
-  return [...projections]
+  return projections
+    .filter((projection) => projection.posture === 'granted')
     .sort((left, right) => (
       (order.get(left.permissionId) ?? Number.MAX_SAFE_INTEGER)
       - (order.get(right.permissionId) ?? Number.MAX_SAFE_INTEGER)
@@ -268,6 +269,5 @@ export function LocalAppPermissionSettingsView({
 function postureTone(posture: DesktopLocalAppPermissionPosture): 'success' | 'warning' | 'danger' | 'neutral' {
   if (posture === 'granted') return 'success';
   if (posture === 'pending' || posture === 'prompt') return 'warning';
-  if (posture === 'denied') return 'danger';
   return 'neutral';
 }

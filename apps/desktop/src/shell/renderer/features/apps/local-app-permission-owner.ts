@@ -38,8 +38,6 @@ export type DesktopLocalAppPermissionPosture =
   | 'prompt'
   | 'pending'
   | 'granted'
-  | 'denied'
-  | 'revoked'
   | 'unavailable';
 
 export type DesktopLocalAppPermissionRequest = {
@@ -309,8 +307,8 @@ function ownerPosture(posture: LocalAppPermissionOwnerPosture): DesktopLocalAppP
     case LocalAppPermissionOwnerPosture.PENDING: return 'pending';
     case LocalAppPermissionOwnerPosture.GRANTED: return 'granted';
     case LocalAppPermissionOwnerPosture.DENIED:
-    case LocalAppPermissionOwnerPosture.EXPIRED: return 'denied';
-    case LocalAppPermissionOwnerPosture.REVOKED: return 'revoked';
+    case LocalAppPermissionOwnerPosture.EXPIRED:
+    case LocalAppPermissionOwnerPosture.REVOKED:
     default: return 'unavailable';
   }
 }

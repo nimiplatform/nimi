@@ -59,7 +59,6 @@ export interface CreateZhiyuAgentCenterPermissionedSurfaceInput {
     'request' | 'subscribeAgentCapabilityPosture'
   >;
   readonly loadPosture: () => Promise<NimiAgentCapabilityPosture>;
-  readonly openPermissionSettings: () => Promise<void> | void;
 }
 
 function actionEntry(
@@ -67,14 +66,12 @@ function actionEntry(
   action: AgentCenterProductAction,
 ): AgentCenterTransportActionPosture {
   if (action === 'requestPermission') {
-    return entry.reason === 'not_granted'
+    return entry.reason === 'not_granted' || entry.reason === 'grant_denied' || entry.reason === 'grant_revoked'
       ? { state: 'available', reason: null }
       : { state: 'unavailable', reason: entry.reason ? REASONS[entry.reason] : 'unknown' };
   }
   if (action === 'openPermissionSettings') {
-    return entry.reason === 'grant_denied' || entry.reason === 'grant_revoked'
-      ? { state: 'available', reason: null }
-      : { state: 'unavailable', reason: entry.reason ? REASONS[entry.reason] : 'unknown' };
+    return { state: 'unavailable', reason: entry.reason ? REASONS[entry.reason] : 'unknown' };
   }
   return entry.posture === 'granted'
     ? { state: 'available', reason: null }
@@ -192,9 +189,6 @@ export function createZhiyuAgentCenterPermissionedSdkSurface(
         permissionId: 'agents.configure',
         reason: ZHIYU_AGENTS_CONFIGURE_REASON,
       });
-    },
-    async openPermissionSettings() {
-      await input.openPermissionSettings();
     },
   });
 }

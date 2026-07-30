@@ -72,11 +72,6 @@ function inventoryForPermissionPosture(
       actionHint: 'wait_for_agents_interact_permission_decision',
       message: '账户级 Agent 交互授权请求正在等待您在 Nimi 桌面端处理。',
     },
-    denied: {
-      reasonCode: 'zhiyu-agents-interact-permission-denied',
-      actionHint: 'request_agents_interact_permission_again',
-      message: '账户级 Agent 交互授权未授予或已撤销。',
-    },
     unavailable: {
       reasonCode: 'zhiyu-agents-interact-capability-unavailable',
       actionHint: 'check_agents_interact_admission',

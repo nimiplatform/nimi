@@ -61,14 +61,7 @@ function createRuntime(overrides: Partial<NimiDesktopPermissionOwnerRuntimeClien
       return {
         accepted: true,
         reasonCode: 1,
-        permissions: [{
-          localAppPrincipalId: input.localAppPrincipalId,
-          displayAppId: 'com.example.zhiyu',
-          permissionId: 'agents.interact',
-          posture: LocalAppPermissionOwnerPosture.REVOKED,
-          coveredAgents: [],
-          ownerRevision: '9',
-        }],
+        permissions: [],
       };
     },
     async decideLocalAppPermission(input: unknown) {
@@ -77,7 +70,7 @@ function createRuntime(overrides: Partial<NimiDesktopPermissionOwnerRuntimeClien
     },
     async revokeLocalAppPermission(input: unknown) {
       calls.push({ name: 'revoke', input });
-      return { accepted: true, posture: 4, ownerRevision: '9', reasonCode: 1 };
+      return { accepted: true, posture: 1, ownerRevision: '9', reasonCode: 1 };
     },
     ...overrides,
   } as unknown as NimiDesktopPermissionOwnerRuntimeClient;
@@ -120,14 +113,7 @@ test('synthetic five-item inbox rows preserve each permission through independen
     getLocalAppPermissionOwnerProjection: async () => ({
       accepted: true,
       reasonCode: 1,
-      permissions: [{
-        localAppPrincipalId: 'principal-1',
-        displayAppId: 'com.example.zhiyu',
-        permissionId: 'agents.configure',
-        posture: LocalAppPermissionOwnerPosture.REVOKED,
-        coveredAgents: [],
-        ownerRevision: '8',
-      }],
+      permissions: [],
     }),
   });
   const port = createDesktopLocalAppPermissionOwnerPort({ runtime: () => runtime, caller: () => caller });
@@ -165,7 +151,7 @@ test('approve grants the account Agent scope without an Agent selector', async (
     approved: true,
     expectedOwnerRevision: '7',
   });
-  assert.equal(projection.posture, 'revoked');
+  assert.equal(projection.posture, 'prompt');
   assert.deepEqual(projection.coveredAgents, []);
 });
 
@@ -274,7 +260,7 @@ test('revoke removes the whole account Agent scope without an Agent selector', a
     localAppPrincipalId: 'principal-1',
     permissionId: 'agents.interact',
   });
-  assert.equal(projection.posture, 'revoked');
+  assert.equal(projection.posture, 'prompt');
   assert.deepEqual(projection.coveredAgents, []);
 });
 

@@ -130,11 +130,15 @@ test('only granted configure, voice, and delegate become ineffective without int
   assert.doesNotMatch(memoryRow, /Requires an effective Interact|currently ineffective/u);
 });
 
-test('renders the closed six-state public posture set', () => {
-  for (const posture of ['prompt', 'pending', 'granted', 'denied', 'revoked', 'unavailable'] as const) {
-    const markup = render({ items: [item('agents.interact', posture)] });
-    assert.match(markup, new RegExp(`data-posture="${posture}"`, 'u'));
-  }
+test('settings projection keeps only active granted rows', () => {
+  const projected = projectLocalAppPermissionSettingsItems([
+    projection('agents.interact', 'granted'),
+    projection('agents.configure', 'pending'),
+    projection('memory.read', 'prompt'),
+    projection('agents.voice', 'unavailable'),
+  ]);
+  assert.deepEqual(projected.map((row) => row.permissionId), ['agents.interact']);
+  assert.equal(projected[0]?.posture, 'granted');
 });
 
 test('public permission copy is complete in English and Chinese', async () => {
